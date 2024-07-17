@@ -1,0 +1,22 @@
+name: keychat_ecash
+description: A sample command-line application.
+version: 1.0.0
+# repository: https://github.com/my_org/my_repo
+
+environment:
+  sdk: ">=3.0.5 <4.0.0"
+  flutter: ">=3.0.0"
+
+# Add regular dependencies here.
+dependencies:
+  flutter:
+    sdk: flutter
+  keychat_rust_ffi_plugin: 1.0.0
+  app: 1.0.0
+  timer_builder: ^2.0.0
+  carousel_slider: ^4.2.1
+
+dev_dependencies:
+  test: ^1.21.0
+  lints: ^3.0.0
+  flutter_lints: ^3.0.1

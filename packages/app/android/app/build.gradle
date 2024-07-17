@@ -1,0 +1,136 @@
+  def keystoreProperties = new Properties()
+  def localProperties = new Properties()
+  def keystorePropertiesFile = rootProject.file('key.properties')
+  if (keystorePropertiesFile.exists()) {
+      keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+  }
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localProperties.load(new FileInputStream(localPropertiesFile))
+}
+
+def flutterRoot = localProperties.getProperty('flutter.sdk')
+if (flutterRoot == null) {
+    throw new FileNotFoundException("Flutter SDK not found. Define location with flutter.sdk in the local.properties file.")
+}
+
+def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
+if (flutterVersionCode == null) {
+    flutterVersionCode = '1'
+}
+
+def flutterVersionName = localProperties.getProperty('flutter.versionName')
+if (flutterVersionName == null) {
+    flutterVersionName = '1.0'
+}
+
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
+
+android {
+    compileSdkVersion localProperties.getProperty('flutter.compileSdkVersion').toInteger()
+    // minSdkVersion localProperties.getProperty('flutter.minSdkVersion').toInteger()
+    ndkVersion flutter.ndkVersion
+    namespace "com.keychat.io"
+    // ndkVersion "25.1.8937393"
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+//    kotlin {
+//     jvmToolchain {
+//         languageVersion.set(JavaLanguageVersion.of(18))
+//     }
+//     jvmToolchain(8)
+// }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+    }
+
+    defaultConfig {
+        applicationId "com.keychat.io"
+        // You can update the following values to match your application needs.
+        // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
+        minSdkVersion 27
+        targetSdkVersion flutter.targetSdkVersion
+        versionCode flutterVersionCode.toInteger()
+        versionName flutterVersionName
+        multiDexEnabled true
+        ndk {
+            // abiFilters 'x86','armeabi-v7a','arm64-v8a','x86_64'
+            abiFilters 'x86','armeabi-v7a','arm64-v8a'
+            // abiFilters 'ARCH_X86','ARCH_ARM32','ARCH_ARM64'
+        }        
+    }
+    splits {
+        abi {
+            enable true //enables the ABIs split mechanism
+            reset()
+            include 'x86','armeabi-v7a','arm64-v8a'
+            // include 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'
+            universalApk  true
+        }
+    }
+
+    signingConfigs {
+        release {
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+            storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
+            storePassword keystoreProperties['storePassword']
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+        }
+    }
+}
+
+flutter {
+    source '../..'
+}
+
+dependencies {
+    implementation 'com.android.support:multidex:1.0.3'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation 'com.google.android.material:material:1.9.0'
+    implementation "me.leolin:ShortcutBadger:1.1.22@aar"
+}
+
+[
+    ['Debug': ''],
+    ['Profile': '--release'],
+    ['Release': '--release']
+].each {
+    def taskPostfix = it.first
+    def profileMode = it.second
+    tasks.whenTaskAdded { task ->
+        if (task.name == "javaPreCompile$taskPostfix") {
+            task.dependsOn "cargoBuild$taskPostfix"
+        }
+    }
+    tasks.register("cargoBuild$taskPostfix", Exec) {
+        // Until https://github.com/bbqsrc/cargo-ndk/pull/13 is merged,
+        // this workaround is necessary.
+        
+         def ndk_command = """cargo ndk \
+            -t armeabi-v7a -t arm64-v8a -t x86 \
+            -o ../app/android/app/src/main/jniLibs build $profileMode"""
+
+        workingDir "../../../keychat_rust"
+        environment "ANDROID_NDK_HOME", "$ANDROID_NDK"
+        if (org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem.isWindows()) {
+            commandLine 'cmd', '/C', ndk_command
+        } else {
+            commandLine 'sh', '-c', ndk_command
+        }
+    }
+}

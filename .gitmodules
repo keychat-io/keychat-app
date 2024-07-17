@@ -1,0 +1,5 @@
+[submodule "packages/keychat_rust_ffi_plugin"]
+	path = packages/keychat_rust_ffi_plugin
+	url = git@keychat2:keychat-io/keychat_rust_ffi_plugin.git
+  # git@keychat2:keychat-io/keychat_rust_ffi_plugin.git
+  # git submodule update --init --recursive

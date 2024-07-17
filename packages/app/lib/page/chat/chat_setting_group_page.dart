@@ -1,0 +1,576 @@
+import 'package:app/app.dart';
+import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app/page/chat/message_bill/message_bill_page.dart';
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
+
+import 'package:app/service/contact.service.dart';
+
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/get.dart';
+import 'package:settings_ui/settings_ui.dart';
+
+import '../../controller/chat.controller.dart';
+import '../../controller/home.controller.dart';
+import '../components.dart';
+import '../routes.dart';
+import '../../service/group.service.dart';
+import 'addGroupMember_page.dart';
+
+class GroupChatSettingPage extends StatefulWidget {
+  final ChatController chatController;
+  final Room room;
+  const GroupChatSettingPage({
+    required this.room,
+    required this.chatController,
+    super.key,
+  });
+
+  @override
+  createState() => _GroupChatSettingPageState();
+}
+
+class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
+  GroupService groupService = GroupService();
+  RoomService roomService = RoomService();
+  HomeController homeController = Get.find<HomeController>();
+  int gridCount = 5;
+  late ChatController chatController;
+  late Room room;
+  late TextEditingController textEditingController;
+  late TextEditingController userNameController;
+  @override
+  void initState() {
+    super.initState();
+    chatController = widget.chatController;
+    room = widget.room;
+    textEditingController =
+        TextEditingController(text: chatController.roomObs.value.name);
+
+    userNameController =
+        TextEditingController(text: chatController.meMember.value.name);
+  }
+
+  @override
+  void dispose() {
+    textEditingController.dispose();
+    userNameController.dispose();
+    super.dispose();
+  }
+
+  void _deleteAndExist(BuildContext context) {
+    Get.dialog(_exitGroup(context));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        appBar: AppBar(
+          title: Obx(() => Text(
+                "${chatController.roomObs.value.name ?? ""}(${chatController.enableMembers.length})",
+              )),
+          actions: [
+            IconButton(
+                onPressed: () {
+                  Get.to(
+                    () => AddGroupMember(
+                      room: chatController.roomObs.value,
+                    ),
+                  );
+                },
+                icon: const Icon(
+                  CupertinoIcons.plus_circle_fill,
+                ))
+          ],
+        ),
+        body: Obx(
+          () => Column(
+            children: [
+              getImageGridView(chatController.enableMembers),
+              Expanded(
+                  child: SettingsList(
+                platform: DevicePlatform.iOS,
+                sections: [
+                  generalSection(),
+                  payToRelaySection(),
+                  if (chatController.roomObs.value.isShareKeyGroup)
+                    receiveInPostOffice(),
+                  dangerZoom(context)
+                ],
+              )),
+            ],
+          ),
+        ));
+  }
+
+  receiveInPostOffice() {
+    return SettingsSection(
+      title: const Text('Message Relay'),
+      tiles: [
+        SettingsTile(
+            leading: const Icon(
+              CupertinoIcons.up_arrow,
+            ),
+            title: const Text('SendTo'),
+            value: Text(chatController.roomObs.value.groupRelay ??
+                KeychatGlobal.defaultRelay)),
+        SettingsTile(
+            leading: const Icon(
+              CupertinoIcons.down_arrow,
+            ),
+            title: const Text('ReceiveFrom'),
+            value: Text(chatController.roomObs.value.groupRelay ??
+                KeychatGlobal.defaultRelay)),
+      ],
+    );
+  }
+
+  payToRelaySection() {
+    return SettingsSection(
+      tiles: [
+        RoomUtil.mediaSection(chatController),
+        SettingsTile.navigation(
+          leading: const Icon(
+            CupertinoIcons.bitcoin,
+          ),
+          title: const Text('Ecash Bills'),
+          onPressed: (context) async {
+            Get.to(() => MessageBillPage(roomId: room.id));
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget getImageGridView(List<RoomMember> list) {
+    // List<RoomMember> list =
+    //     source.map((e) => RoomMember.fromJson(e.toJson())).toList();
+
+    return Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: SizedBox(
+            height: list.length < 10 ? 140 : 200,
+            child: GridView.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: gridCount,
+                childAspectRatio: 1.0,
+              ),
+              itemCount: list.length,
+              itemBuilder: (context, index) {
+                RoomMember rm = list[index];
+                return InkWell(
+                  key: Key(rm.idPubkey),
+                  onTap: () async {
+                    if (chatController.room.myIdPubkey == rm.idPubkey) {
+                      EasyLoading.showToast('It \'s me');
+                      return;
+                    }
+                    Contact? contact = await ContactService().getContact(
+                        chatController.room.identityId, rm.idPubkey);
+                    String npub =
+                        rustNostr.getBech32PubkeyByHex(hex: rm.idPubkey);
+                    contact ??= Contact(
+                        pubkey: rm.idPubkey,
+                        npubkey: npub,
+                        identityId: chatController.room.identityId)
+                      ..name = rm.name;
+                    contact.name ??= rm.name;
+                    Get.dialog(CupertinoAlertDialog(
+                      title: Text(rm.name),
+                      content: Container(
+                        color: Colors.transparent,
+                        child: Text(
+                          npub,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                      actions: <Widget>[
+                        CupertinoDialogAction(
+                          onPressed: () async {
+                            Room? room = await RoomService()
+                                .getRoomAndContainSession(contact!.pubkey,
+                                    chatController.room.identityId);
+                            if (room == null) {
+                              await RoomService().createRoomAndsendInvite(
+                                  contact.pubkey,
+                                  identity: chatController.room.getIdentity(),
+                                  greeting:
+                                      'From Group: ${chatController.roomObs.value.getRoomName()}');
+                              return;
+                            }
+
+                            await Get.offAndToNamed('/room/${room.id}',
+                                arguments: room);
+                            await Get.find<HomeController>()
+                                .loadIdentityRoomList(room.identityId);
+                          },
+                          child: const Text("Start Private Chat"),
+                        ),
+                        CupertinoDialogAction(
+                          child: const Text("Copy Pubkey"),
+                          onPressed: () {
+                            String npub = rustNostr.getBech32PubkeyByHex(
+                                hex: rm.idPubkey);
+                            Clipboard.setData(ClipboardData(text: npub));
+                            EasyLoading.showToast('Copied');
+                            Get.back();
+                          },
+                        ),
+                        if (chatController.meMember.value.isAdmin)
+                          CupertinoDialogAction(
+                            isDestructiveAction: true,
+                            onPressed: () {
+                              Get.back();
+                              Get.dialog(CupertinoAlertDialog(
+                                title: Text("Remove ${rm.name}?"),
+                                actions: <Widget>[
+                                  CupertinoDialogAction(
+                                    child: const Text("Cancel"),
+                                    onPressed: () {
+                                      Get.back();
+                                    },
+                                  ),
+                                  CupertinoDialogAction(
+                                    isDestructiveAction: true,
+                                    child: const Text("Remove"),
+                                    onPressed: () async {
+                                      EasyLoading.show(status: 'Processing...');
+                                      try {
+                                        await groupService.removeMember(
+                                            chatController.roomObs.value, rm);
+                                        EasyLoading.dismiss();
+                                        EasyLoading.showSuccess("Removed",
+                                            duration:
+                                                const Duration(seconds: 1));
+                                      } catch (e, s) {
+                                        logger.e(e.toString(),
+                                            error: e, stackTrace: s);
+                                        EasyLoading.showError(e.toString(),
+                                            duration:
+                                                const Duration(seconds: 2));
+                                      } finally {
+                                        Get.back();
+                                      }
+                                    },
+                                  ),
+                                ],
+                              ));
+                            },
+                            child: const Text("Remove"),
+                          ),
+                        CupertinoDialogAction(
+                          isDefaultAction: true,
+                          onPressed: () {
+                            Get.back();
+                          },
+                          child: const Text("Cancel"),
+                        ),
+                      ],
+                    ));
+                  },
+                  child: Column(children: [
+                    getRandomAvatar(rm.idPubkey, height: 40, width: 40),
+                    Text(
+                      rm.name,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ]),
+                );
+              },
+            )));
+  }
+
+//sync key
+  Widget reinviteGroup() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: <Widget>[
+        Expanded(
+          child: InkWell(
+            onTap: () async {
+              var members = await chatController.roomObs.value.getMembers();
+              List<String> toUsers = [];
+              for (RoomMember rm in members) {
+                toUsers.add(rm.idPubkey);
+              }
+              await groupService.inviteToJoinGroup(chatController.roomObs.value,
+                  toUsers: toUsers);
+              EasyLoading.showSuccess("Send invitation successfully");
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                Container(
+                  margin:
+                      const EdgeInsets.only(bottom: 15.0, top: 15, left: 12),
+                  child: const Text(
+                    "Reinvite",
+                    style: TextStyle(
+                      fontSize: 20,
+                    ),
+                  ),
+                ),
+                const Expanded(child: Text("")),
+                Container(
+                  margin:
+                      const EdgeInsets.only(bottom: 15.0, top: 15, right: 8),
+                  child: Text(
+                    "",
+                    style: TextStyle(fontSize: 20, color: Colors.grey.shade800),
+                  ),
+                ),
+                Container(
+                  margin:
+                      const EdgeInsets.only(top: 15, bottom: 15.0, right: 10.0),
+                  child: const Icon(
+                    Icons.chevron_right,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  generalSection() {
+    String pubkey = chatController.roomObs.value.toMainPubkey;
+    return SettingsSection(tiles: [
+      SettingsTile.navigation(
+          title: const Text("Group ID"),
+          leading: const Icon(CupertinoIcons.person_3),
+          value: textP(getPublicKeyDisplay(pubkey)),
+          onPressed: (context) {
+            Get.dialog(CupertinoAlertDialog(
+              content: Text(pubkey),
+              actions: <Widget>[
+                CupertinoDialogAction(
+                  child: const Text("Cancel"),
+                  onPressed: () {
+                    Get.back();
+                  },
+                ),
+                CupertinoDialogAction(
+                  child: const Text("Copy"),
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: pubkey));
+                    Get.back();
+                  },
+                ),
+              ],
+            ));
+          }),
+      SettingsTile.navigation(
+          leading: const Icon(CupertinoIcons.chart_bar),
+          title: const Text('Group Mode'),
+          value: Text(
+              chatController.roomObs.value.groupType == GroupType.shareKey
+                  ? 'Shared Key'
+                  : 'Pairwise'),
+          onPressed: (context) => {getGroupInfoBottomSheetWidget(context)}),
+      SettingsTile.navigation(
+        title: const Text("Group Name"),
+        leading: const Icon(CupertinoIcons.pencil),
+        value: Text("${chatController.roomObs.value.name}"),
+        onPressed: (context) async {
+          if (!chatController.meMember.value.isAdmin) {
+            EasyLoading.showError("Admin only");
+            return;
+          }
+          _showGroupNameDialog();
+        },
+      ),
+      SettingsTile.navigation(
+        title: const Text("My Alias in Group"),
+        leading: const Icon(CupertinoIcons.person),
+        value: textP(
+          chatController.meMember.value.name,
+        ),
+        onPressed: (context) async {
+          _showMyNameDialog();
+        },
+      ),
+      RoomUtil.pinRoomSection(chatController),
+      if (chatController.room.isShareKeyGroup)
+        RoomUtil.muteSection(chatController)
+      // SettingsTile.navigation(
+      //   title: const Text("Sync room info to members"),
+      //   leading: const Icon(CupertinoIcons.person_3_fill),
+      //   onPressed: (context) async {
+      //     if (chatController.meMember.value.isAdmin) {
+      //       await groupService.reInvite(chatController.roomObs.value.id);
+      //       EasyLoading.showSuccess(
+      //           "Send room info to all members successfully");
+      //     } else {
+      //       EasyLoading.showError("Admin only");
+      //     }
+      //   },
+      // ),
+    ]);
+  }
+
+  dangerZoom(BuildContext context) {
+    return SettingsSection(
+      tiles: [
+        RoomUtil.autoCleanMessage(chatController),
+        RoomUtil.clearHistory(chatController),
+        SettingsTile(
+          leading: const Icon(
+            CupertinoIcons.trash,
+            color: Colors.pink,
+          ),
+          title: Text(
+              chatController.meMember.value.isAdmin ? "Delete Group" : "Leave",
+              style: const TextStyle(color: Colors.pink)),
+          onPressed: (context) {
+            _deleteAndExist(context);
+          },
+        ),
+      ],
+    );
+  }
+
+  void _showGroupNameDialog() async {
+    await Get.dialog(CupertinoAlertDialog(
+      title: const Text("Group Name"),
+      content: Container(
+        color: Colors.transparent,
+        padding: const EdgeInsets.only(top: 15),
+        child: TextField(
+          controller: textEditingController,
+          textInputAction: TextInputAction.done,
+          decoration: const InputDecoration(
+            labelText: 'Group Name',
+            border: OutlineInputBorder(),
+          ),
+        ),
+      ),
+      actions: <Widget>[
+        CupertinoDialogAction(
+          child: const Text("Cancel"),
+          onPressed: () {
+            Get.back();
+          },
+        ),
+        CupertinoDialogAction(
+          child: const Text("Confirm"),
+          onPressed: () async {
+            String newName = textEditingController.text;
+            if (newName.isNotEmpty &&
+                newName != chatController.roomObs.value.name) {
+              await groupService.changeRoomName(
+                  chatController.roomObs.value.id, newName);
+
+              chatController.roomObs.value.name = newName;
+              textEditingController.clear();
+              chatController.roomObs.update((val) {});
+            }
+            Get.back();
+          },
+        ),
+      ],
+    ));
+  }
+
+  void _showMyNameDialog() async {
+    await Get.dialog(CupertinoAlertDialog(
+      title: const Text("My Name"),
+      content: Container(
+        color: Colors.transparent,
+        padding: const EdgeInsets.only(top: 15),
+        child: TextField(
+          controller: userNameController,
+          textInputAction: TextInputAction.done,
+          decoration: const InputDecoration(
+            labelText: 'Name',
+            border: OutlineInputBorder(),
+          ),
+        ),
+      ),
+      actions: <Widget>[
+        CupertinoDialogAction(
+          child: const Text("Cancel"),
+          onPressed: () {
+            Get.back();
+          },
+        ),
+        CupertinoDialogAction(
+          child: const Text("Confirm"),
+          onPressed: () async {
+            String name = userNameController.text.trim();
+            if (name.isNotEmpty) {
+              await groupService.changeMyNickname(
+                  chatController.roomObs.value, name);
+              await chatController.setMeMember(name);
+              chatController.meMember.refresh();
+              chatController.resetMembers();
+            }
+            userNameController.clear();
+
+            Get.back();
+          },
+        ),
+      ],
+    ));
+  }
+
+  Widget deleteAndExist(BuildContext context) {
+    return InkWell(
+      onTap: () {
+        _deleteAndExist(context);
+      },
+      child: Container(
+        width: double.infinity,
+        alignment: Alignment.center,
+        margin: const EdgeInsets.only(top: 12, bottom: 12),
+        child: Text(
+          chatController.meMember.value.isAdmin ? "Delete group" : "Leave",
+          style: const TextStyle(fontSize: 20, color: Colors.red),
+        ),
+      ),
+    );
+  }
+
+  Widget _exitGroup(BuildContext context) {
+    return CupertinoAlertDialog(
+      title: Text(chatController.meMember.value.isAdmin ? "Delete?" : "Leave?"),
+      content: const Text('Are you sure to delete the group?'),
+      actions: <Widget>[
+        CupertinoDialogAction(
+          child: const Text(
+            'Cancel',
+          ),
+          onPressed: () {
+            Get.back();
+          },
+        ),
+        CupertinoDialogAction(
+            isDestructiveAction: true,
+            child: Text(
+              chatController.meMember.value.isAdmin ? "Delete" : "Leave",
+            ),
+            onPressed: () async {
+              EasyLoading.show(status: 'Loading...');
+              try {
+                chatController.meMember.value.isAdmin
+                    ? await groupService
+                        .dissolveGroup(chatController.roomObs.value)
+                    : await groupService
+                        .exitGroup(chatController.roomObs.value);
+                await Get.find<HomeController>()
+                    .loadIdentityRoomList(room.identityId);
+                Get.offAllNamed(Routes.root);
+              } catch (e) {
+                EasyLoading.showError(e.toString());
+              } finally {
+                EasyLoading.dismiss();
+              }
+            }),
+      ],
+    );
+  }
+}

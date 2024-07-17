@@ -1,0 +1,20 @@
+name: aws
+description: A starting point for Dart libraries or applications.
+version: 1.0.0
+# repository: https://github.com/my_org/my_repo
+
+environment:
+  sdk: ">=3.0.5 <4.0.0"
+
+# Add regular dependencies here.
+dependencies:
+  amazon_cognito_identity_dart_2: ^3.5.0
+  crypto: ^3.0.3
+  encrypt: ^5.0.1
+  dio: ^5.2.1+1
+  app: 1.0.0
+
+dev_dependencies:
+  test: ^1.21.0
+  lints: ^3.0.0
+  flutter_lints: ^3.0.1

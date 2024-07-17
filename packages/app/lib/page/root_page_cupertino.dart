@@ -1,0 +1,72 @@
+// Copyright 2019 The Flutter team. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+import 'package:app/utils.dart';
+import 'package:easy_debounce/easy_throttle.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:keychat_ecash/keychat_ecash.dart';
+import 'package:app/controller/home.controller.dart';
+import 'package:app/page/login/me.dart';
+import 'package:app/page/room_list.dart';
+
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:haptic_feedback/haptic_feedback.dart';
+
+class CupertinoRootPage extends GetView<HomeController> {
+  const CupertinoRootPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    List<Widget> pages = [
+      const RoomList(),
+      // const WorldPage(),
+      const MinePage(),
+    ];
+    return CupertinoTabScaffold(
+      restorationId: 'cupertino_tab_scaffold',
+      tabBar: CupertinoTabBar(
+        onTap: (value) async {
+          if (EasyLoading.isShow) {
+            EasyLoading.dismiss();
+          }
+          if (GetPlatform.isMobile) {
+            await Haptics.vibrate(HapticsType.selection);
+          }
+          if (value == 1) {
+            EasyThrottle.throttle(
+                'loadCashuABalance', const Duration(seconds: 1), () {
+              getGetxController<EcashController>()?.getBalance();
+            });
+          }
+          // if (index == 1) {
+          //   try {
+          //     List? list = Get.find<WorldController>().feeds['bitcoin'];
+          //     if (list == null || list.isEmpty) {
+          //       await Get.find<WorldController>().getFeed('bitcoin');
+          //     }
+          //   } catch (e) {}
+          // }
+        },
+        items: [
+          BottomNavigationBarItem(
+              label: 'Chats',
+              icon: Obx(() => Badge(
+                  backgroundColor: Colors.red,
+                  textColor: Colors.white,
+                  label: Text('${controller.allUnReadCount.value}'),
+                  isLabelVisible: controller.allUnReadCount.value > 0,
+                  child:
+                      const Icon(CupertinoIcons.chat_bubble_fill, size: 22)))),
+          const BottomNavigationBarItem(
+              label: 'Me', icon: Icon(CupertinoIcons.person_fill, size: 22))
+        ],
+      ),
+      tabBuilder: (context, index) {
+        return pages[index];
+      },
+    );
+  }
+}

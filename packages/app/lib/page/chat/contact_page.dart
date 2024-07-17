@@ -74,11 +74,6 @@ class ContactPage extends StatelessWidget {
                 Get.back();
               },
             ),
-            if (contact.hisRelay != null)
-              SettingsTile(
-                title: const Text('SendTo PostOffice'),
-                value: Text(contact.hisRelay!),
-              ),
             if (model != null) fromQRCode(),
             if (model == null)
               RoomUtil.fromContactClick(contact.pubkey, identityId, greeting),

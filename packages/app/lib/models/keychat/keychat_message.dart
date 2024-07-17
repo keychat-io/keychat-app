@@ -5,7 +5,6 @@ import 'package:app/constants.dart';
 import 'package:app/models/models.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/group.service.dart';
-import 'package:app/service/relay.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:get/get.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -55,7 +54,7 @@ class KeychatMessage {
 
   Future<KeychatMessage> setHelloMessagge(Identity identity,
       {String? greeting, String? relay}) async {
-    String? relay = await RelayService().getDefaultOnlineRelay();
+    // String? relay = await RelayService().getDefaultOnlineRelay();
     Map userInfo = await Get.find<ChatxService>().getQRCodeData(identity);
     List<Mykey> oneTimeKeys =
         await ChatxService().getOneTimePubkey(identity.id);
@@ -69,6 +68,7 @@ class KeychatMessage {
       'curve25519PkHex': identity.curve25519PkHex,
       'onetimekey': onetimekey,
       'time': -1,
+      'relay': "",
       "globalSign": "",
       ...userInfo
     };

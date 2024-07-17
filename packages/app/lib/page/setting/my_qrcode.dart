@@ -169,6 +169,7 @@ class _MyQRCodeState extends State<MyQRCode> {
       'curve25519PkHex': identity.curve25519PkHex,
       'name': identity.displayName,
       'time': time ?? -1,
+      'relay': "",
       "onetimekey": onetimekey,
       "globalSign": globalSignResult,
       ...userInfo

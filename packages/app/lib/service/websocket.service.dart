@@ -225,7 +225,7 @@ class WebsocketService extends GetxService {
       Function(bool)? sentCallback}) async {
     List<String> relays = getOnlineRelayString();
     // set his relay
-    if (hisRelay != null) {
+    if (hisRelay != null && hisRelay.isNotEmpty) {
       relays = [];
       if (channels[hisRelay] != null) {
         if (channels[hisRelay]!.channelStatus == RelayStatusEnum.success) {

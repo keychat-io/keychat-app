@@ -549,7 +549,7 @@ class ChatPage extends StatelessWidget {
     } else if (chatController.room.isShareKeyGroup) {
       hisPostOffice = chatController.roomObs.value.groupRelay;
     }
-    if (hisPostOffice == null) {
+    if (hisPostOffice == null || hisPostOffice.isEmpty) {
       return const SizedBox();
     }
 

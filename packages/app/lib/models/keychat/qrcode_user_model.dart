@@ -16,7 +16,7 @@ class QRUserModel {
   late int prekeyId;
   late String prekeyPubkey;
   late String globalSign;
-  String relay = "";
+  String? relay;
   int time = -1;
 
   @override

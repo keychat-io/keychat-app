@@ -67,7 +67,6 @@ class KeychatMessage {
       'name': identity.displayName,
       'pubkey': identity.secp256k1PKHex,
       'curve25519PkHex': identity.curve25519PkHex,
-      'relay': relay ?? '',
       'onetimekey': onetimekey,
       'time': -1,
       "globalSign": "",

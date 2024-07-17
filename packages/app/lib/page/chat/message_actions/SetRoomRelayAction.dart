@@ -56,7 +56,8 @@ class SetRoomRelayAction extends StatelessWidget {
                   await ContactService().updateHisRelay(
                       chatController.roomContact.value.id, message.content);
 
-                  chatController.roomContact.value.hisRelay = message.content;
+                  chatController.roomContact.value.hisRelay =
+                      message.content.isEmpty ? null : message.content;
                   chatController.roomContact.refresh();
 
                   message.requestConfrim = RequestConfrimEnum.approved;

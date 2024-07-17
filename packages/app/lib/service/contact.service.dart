@@ -313,6 +313,7 @@ class ContactService {
         await DBProvider.database.contacts.filter().idEqualTo(id).findFirst();
     if (contact == null) return false;
     contact.hisRelay = relay;
+
     await ContactService().saveContact(contact);
   }
 

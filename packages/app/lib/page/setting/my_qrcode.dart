@@ -157,7 +157,7 @@ class _MyQRCodeState extends State<MyQRCode> {
 
   Future<String> _initQRCodeData(
       Identity identity, String onetimekey, int? time) async {
-    String? relay = await RelayService().getDefaultOnlineRelay();
+    // String? relay = await RelayService().getDefaultOnlineRelay();
     Map userInfo = await Get.find<ChatxService>().getQRCodeData(identity);
     String globalSignStr =
         "Keychat-${identity.secp256k1PKHex}-${identity.curve25519PkHex}-$time";
@@ -167,9 +167,9 @@ class _MyQRCodeState extends State<MyQRCode> {
     Map<String, dynamic> data = {
       'pubkey': identity.secp256k1PKHex,
       'curve25519PkHex': identity.curve25519PkHex,
-      'relay': relay ?? "",
       'name': identity.displayName,
       'time': time ?? -1,
+      'relay': "",
       "onetimekey": onetimekey,
       "globalSign": globalSignResult,
       ...userInfo

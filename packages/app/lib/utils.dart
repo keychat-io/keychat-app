@@ -390,6 +390,10 @@ class Utils {
   }
 
   static getErrorMessage(Object e) {
-    return e is AnyhowException ? e.message : e.toString();
+    if (e is! AnyhowException) return e.toString();
+
+    int index = e.message.indexOf('Stack backtrace:');
+    if (index == -1) return e.message;
+    return e.message.substring(0, index).trim();
   }
 }

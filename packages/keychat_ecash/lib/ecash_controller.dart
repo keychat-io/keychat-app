@@ -76,20 +76,6 @@ class EcashController extends GetxController {
     return cim.token;
   }
 
-  // Future<void> init() async {
-  //   try {
-  //     await rustCashu.initDb(
-  //       dbpath: '$dbPath${KeychatGlobal.ecashDBFile}',
-  //       words: currentIdentity?.mnemonic,
-  //     );
-  //     logger.i('rust api init success');
-  //   } catch (e, s) {
-  //     String msg = e is FrbAnyhowException ? e.anyhow : e.toString();
-  //     logger.e(msg, error: e, stackTrace: s);
-  //   }
-  //   await _initCashu();
-  // }
-
   Future initWithoutIdentity() async {
     try {
       await rustCashu.initDb(
@@ -141,11 +127,6 @@ class EcashController extends GetxController {
     } catch (e, s) {
       logger.e(e.toString(), error: e, stackTrace: s);
     }
-  }
-
-  resume() {
-    getBalance();
-    rustCashu.checkPending();
   }
 
   @override

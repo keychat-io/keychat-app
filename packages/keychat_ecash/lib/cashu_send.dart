@@ -1,5 +1,4 @@
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
-import 'package:flutter/cupertino.dart';
 import 'package:keychat_ecash/Bills/ecash_bill_controller.dart';
 import 'package:keychat_ecash/components/SelectMint.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';

@@ -1,5 +1,25 @@
 #!/bin/sh
+
 # Script Name: iOS build
+echo "Update keychat_rust_ffi_plugin start..."
+cd packages/keychat_rust_ffi_plugin
+git pull origin 
+git log -n 2 --pretty=format:"%h - %s (%ci)"
+cargo update
+cd ../../
+echo "Update keychat_rust_ffi_plugin success"
+
+echo "Update ios starting..."
+git log -n 2 --pretty=format:"%h - %s (%ci)"
+cd packages/app/ios
+rm -rf Podfile.lock
+pod repo update && pod install
+cd ../../../
+
+
+echo "Update app starting..."
+melos clean
+melos bs
 cd packages/app/
 dart fix --apply
 

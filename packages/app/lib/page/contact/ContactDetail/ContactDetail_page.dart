@@ -203,24 +203,28 @@ class ContactDetailPage extends GetView<ContactDetailController> {
                       'Delete',
                     ),
                     onPressed: () async {
+                      Room? room;
                       try {
                         EasyLoading.show(status: 'Loading...');
                         await ContactService()
                             .deleteContact(controller.contact.value);
-                        Room? room = await RoomService().getRoomByIdentity(
+                        room = await RoomService().getRoomByIdentity(
                             controller.contact.value.pubkey,
                             controller.contact.value.identityId);
                         if (room != null) {
                           await RoomService().deleteRoom(room);
 
                           EasyLoading.showSuccess('Deleted');
-                          await Get.find<HomeController>()
-                              .loadIdentityRoomList(room.identityId);
-                          await Get.offAllNamed(Routes.root);
                         }
                       } catch (e, s) {
                         logger.e(e.toString(), error: s, stackTrace: s);
                         EasyLoading.showError(e.toString());
+                        return;
+                      }
+                      if (room != null) {
+                        await Get.find<HomeController>()
+                            .loadIdentityRoomList(room.identityId);
+                        await Get.offAllNamed(Routes.root);
                       }
                     }),
               ],

@@ -1,9 +1,8 @@
-import 'dart:io';
+import 'dart:io' show Directory;
 
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -11,6 +10,7 @@ import 'package:get/get.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
+import 'package:keychat_rust_ffi_plugin/index.dart';
 import 'package:path_provider/path_provider.dart';
 import 'controller/home.controller.dart';
 import 'controller/setting.controller.dart';
@@ -32,12 +32,12 @@ void main() async {
 
   initEasyLoading();
   Get.config(
-      enableLog: kDebugMode,
+      enableLog: true,
+      logWriterCallback: _logWriterCallback,
       defaultPopGesture: true,
       defaultTransition: Transition.cupertino);
   String initialRoute = await getInitRoute(isLogin);
   runApp(GetMaterialApp(
-    enableLog: kDebugMode,
     initialRoute: initialRoute,
     getPages: Pages.routes,
     builder: EasyLoading.init(),
@@ -79,6 +79,7 @@ Future initServices() async {
       DeviceOrientation.portraitDown,
     ],
   );
+  await RustLib.init();
   await dotenv.load(fileName: ".env");
   String env =
       'dev3'; //const String.fromEnvironment("MYENV", defaultValue: "prod");
@@ -101,4 +102,8 @@ Future initServices() async {
   Get.putAsync(() => WebsocketService().init());
 
   return sc;
+}
+
+void _logWriterCallback(String text, {bool isError = false}) {
+  isError ? logger.e(text) : loggerNoLine.i(text);
 }

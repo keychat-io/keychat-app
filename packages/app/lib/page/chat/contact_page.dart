@@ -1,5 +1,6 @@
 import 'package:app/constants.dart';
 import 'package:app/page/chat/RoomUtil.dart';
+import 'package:easy_debounce/easy_throttle.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
 
 import 'package:app/service/chatx.service.dart';
@@ -91,56 +92,68 @@ class ContactPage extends StatelessWidget {
             Room? room = snapshot.data;
             return FilledButton(
               onPressed: () async {
-                bool roomIsNull = room == null;
-                try {
-                  Identity identity =
-                      Get.find<HomeController>().identities[identityId]!;
-                  Room room0 = await RoomService().createPrivateRoom(
-                      toMainPubkey: contact.pubkey,
-                      identity: identity,
-                      name: contact.displayName,
-                      status: RoomStatus.enabled,
-                      curve25519PkHex: model?.curve25519PkHex,
-                      onetimekey: model?.onetimekey,
-                      contact: contact);
+                EasyThrottle.throttle('Add_contact', const Duration(seconds: 2),
+                    () async {
+                  bool roomIsNull = room == null;
+                  late Room room0;
+                  try {
+                    EasyLoading.show(status: 'Proccessing...');
+                    Identity identity =
+                        Get.find<HomeController>().identities[identityId]!;
+                    room0 = await RoomService().createPrivateRoom(
+                        toMainPubkey: contact.pubkey,
+                        identity: identity,
+                        name: contact.displayName,
+                        status: RoomStatus.enabled,
+                        curve25519PkHex: model?.curve25519PkHex,
+                        onetimekey: model?.onetimekey,
+                        contact: contact);
 
-                  //delete signal session
-                  if (room != null) {
-                    await Get.find<ChatxService>().deleteSignalSessionKPA(room);
-                    if (model?.curve25519PkHex != null) {
-                      room.curve25519PkHex = model?.curve25519PkHex;
+                    //delete signal session
+                    if (room != null) {
+                      await Get.find<ChatxService>()
+                          .deleteSignalSessionKPA(room);
+                      if (model?.curve25519PkHex != null) {
+                        room.curve25519PkHex = model?.curve25519PkHex;
+                      }
                     }
-                  }
-                  if (room0.curve25519PkHex != null &&
-                      model?.signedId != null) {
-                    if (model == null) {
-                      EasyLoading.showError(
-                          "Signal Session create failed. Please generate a new QR Code");
-                      return;
+                    if (room0.curve25519PkHex != null &&
+                        model?.signedId != null) {
+                      if (model == null) {
+                        EasyLoading.showError(
+                            "Signal Session create failed. Please generate a new QR Code");
+                        return;
+                      }
+                      bool res = await Get.find<ChatxService>().addRoomKPA(
+                          room: room0,
+                          bobSignedId: model!.signedId,
+                          bobSignedPublic: Uint8List.fromList(
+                              hex.decode(model!.signedPublic)),
+                          bobSignedSignature: Uint8List.fromList(
+                              hex.decode(model!.signedSignature)),
+                          bobPrekeyId: model!.prekeyId,
+                          bobPrekeyPublic: Uint8List.fromList(
+                              hex.decode(model!.prekeyPubkey)));
+                      if (!res) {
+                        EasyLoading.showError(
+                            "Signal Session create failed. Please generate a new QR Code");
+                        return;
+                      }
+                      String onetimekey = model!.onetimekey;
+                      await SignalChatService().sendHelloMessage(
+                          room0, identity,
+                          onetimekey: onetimekey,
+                          type: roomIsNull
+                              ? KeyChatEventKinds.dmAddContactFromAlice
+                              : KeyChatEventKinds.dmAddContactFromBob);
+                      room0.encryptMode = EncryptMode.signal;
+                      room0 = await RoomService().updateRoom(room0);
+                      EasyLoading.showSuccess('Successfully added');
                     }
-                    bool res = await Get.find<ChatxService>().addRoomKPA(
-                        room: room0,
-                        bobSignedId: model!.signedId,
-                        bobSignedPublic:
-                            Uint8List.fromList(hex.decode(model!.signedPublic)),
-                        bobSignedSignature: Uint8List.fromList(
-                            hex.decode(model!.signedSignature)),
-                        bobPrekeyId: model!.prekeyId,
-                        bobPrekeyPublic: Uint8List.fromList(
-                            hex.decode(model!.prekeyPubkey)));
-                    if (!res) {
-                      EasyLoading.showError(
-                          "Signal Session create failed. Please generate a new QR Code");
-                      return;
-                    }
-                    String onetimekey = model!.onetimekey;
-                    await SignalChatService().sendHelloMessage(room0, identity,
-                        onetimekey: onetimekey,
-                        type: roomIsNull
-                            ? KeyChatEventKinds.dmAddContactFromAlice
-                            : KeyChatEventKinds.dmAddContactFromBob);
-                    room0.encryptMode = EncryptMode.signal;
-                    room0 = await RoomService().updateRoom(room0);
+                  } catch (e, s) {
+                    EasyLoading.showError(Utils.getErrorMessage(e),
+                        duration: const Duration(seconds: 3));
+                    logger.e(e.toString(), error: e, stackTrace: s);
                   }
                   await Get.find<HomeController>()
                       .loadIdentityRoomList(room0.identityId);
@@ -148,9 +161,7 @@ class ContactPage extends StatelessWidget {
                       arguments: room0);
                   await Get.find<HomeController>()
                       .loadIdentityRoomList(room0.identityId);
-                } catch (e, s) {
-                  logger.e(e.toString(), error: e, stackTrace: s);
-                }
+                });
               },
               child: Text(room == null ? 'Add' : 'Reset Signal Session'),
             );

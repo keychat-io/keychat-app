@@ -231,7 +231,6 @@ class IdentityService {
     return await DBProvider.database.mykeys
         .filter()
         .isOneTimeEqualTo(true)
-        .oneTimeUsedEqualTo(false)
         .sortByCreatedAt()
         .findAll();
   }

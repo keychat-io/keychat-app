@@ -105,32 +105,40 @@ dependencies {
     implementation "me.leolin:ShortcutBadger:1.1.22@aar"
 }
 
-[
-    ['Debug': ''],
-    ['Profile': '--release'],
-    ['Release': '--release']
-].each {
-    def taskPostfix = it.first
-    def profileMode = it.second
-    tasks.whenTaskAdded { task ->
-        if (task.name == "javaPreCompile$taskPostfix") {
-            task.dependsOn "cargoBuild$taskPostfix"
-        }
-    }
-    tasks.register("cargoBuild$taskPostfix", Exec) {
-        // Until https://github.com/bbqsrc/cargo-ndk/pull/13 is merged,
-        // this workaround is necessary.
+// [
+//     ['Debug': ''],
+//     ['Profile': '--release'],
+//     ['Release': '--release']
+// ].each {
+//     def taskPostfix = it.first
+//     def profileMode = it.second
+//     tasks.whenTaskAdded { task ->
+//         if (task.name == "javaPreCompile$taskPostfix") {
+//             task.dependsOn "cargoBuild$taskPostfix"
+//         }
+//     }
+//     tasks.register("cargoBuild$taskPostfix", Exec) {
+//         // Until https://github.com/bbqsrc/cargo-ndk/pull/13 is merged,
+//         // this workaround is necessary.
         
-         def ndk_command = """cargo ndk \
-            -t armeabi-v7a -t arm64-v8a -t x86 \
-            -o ../app/android/app/src/main/jniLibs build $profileMode"""
+//          def ndk_command = """cargo ndk \
+//             -t armeabi-v7a -t arm64-v8a -t x86 \
+//             -o ../app/android/app/src/main/jniLibs build $profileMode"""
 
-        workingDir "../../../keychat_rust"
-        environment "ANDROID_NDK_HOME", "$ANDROID_NDK"
-        if (org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem.isWindows()) {
-            commandLine 'cmd', '/C', ndk_command
-        } else {
-            commandLine 'sh', '-c', ndk_command
-        }
-    }
+//         workingDir "../../../keychat_rust"
+//         environment "ANDROID_NDK_HOME", "$ANDROID_NDK"
+//         if (org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem.isWindows()) {
+//             commandLine 'cmd', '/C', ndk_command
+//         } else {
+//             commandLine 'sh', '-c', ndk_command
+//         }
+//     }
+// }
+
+
+apply from: "../../../keychat_rust_ffi_plugin/cargokit/gradle/plugin.gradle"
+
+cargokit {
+    manifestDir = "../../../keychat_rust_ffi_plugin/rust"
+    libname = "keychat_rust_ffi_plugin"
 }

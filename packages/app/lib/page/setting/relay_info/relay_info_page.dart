@@ -116,6 +116,12 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                   SettingsTile(
                     title: const Text("ID"),
                     value: Text(controller.info['id'] ?? ""),
+                    onPressed: (context) {
+                      if (controller.info['id'] == null) return;
+                      Clipboard.setData(
+                          ClipboardData(text: controller.info['id']));
+                      EasyLoading.showToast('Copied');
+                    },
                   ),
                   SettingsTile(
                     title: const Text("pubkey"),

@@ -56,7 +56,6 @@ class ChatxService extends GetxService {
     required Uint8List bobPrekeyPublic,
   }) async {
     if (room.curve25519PkHex == null) {
-      // throw Exception('curve25519PkHex_is_null');
       return false;
     }
     KeychatProtocolAddress? exist = await getRoomKPA(room);

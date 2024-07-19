@@ -324,14 +324,13 @@ class HomeController extends GetxController
         resumed = true;
 
         EasyThrottle.throttle(
-            'AppLifecycleState.resumed', const Duration(seconds: 1), () {
+            'AppLifecycleState.resumed', const Duration(seconds: 3), () {
           Get.find<WebsocketService>().checkOnlineAndConnect();
 
           Utils.initLoggger(Get.find<SettingController>().appFolder);
           NotifyService.initNofityConfig(true);
           if (kReleaseMode) {
             _startCheckWebsocketTimer();
-            RoomUtil.executeAutoDelete();
           }
         });
 

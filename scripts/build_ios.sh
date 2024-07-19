@@ -5,7 +5,7 @@ echo "Update keychat_rust_ffi_plugin start..."
 cd packages/keychat_rust_ffi_plugin
 git pull origin 
 git log -n 2 --pretty=format:"%h - %s (%ci)"
-cargo update
+cargo build
 cd ../../
 echo "Update keychat_rust_ffi_plugin success"
 
@@ -18,8 +18,8 @@ cd ../../../
 
 
 echo "Update app starting..."
-melos clean
-melos bs
+# melos clean
+melos bs --ignore="*build_tool_runner*"
 cd packages/app/
 dart fix --apply
 

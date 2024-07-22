@@ -190,11 +190,12 @@ class GroupService extends BaseChatService {
 
     late Mykey newkey;
     await DBProvider.database.writeTxn(() async {
-      newkey = await GroupTx().importMykeyTx(
-          room.getIdentity(), await rustNostr.importKey(senderKeys: newPrikey));
+      newkey = await GroupTx().importMykeyTx(room!.getIdentity(),
+          await rustNostr.importKey(senderKeys: newPrikey));
+      room.mykey.value = newkey;
     });
-
-    await updateRoomMykey(room, newkey);
+    await Get.find<WebsocketService>().listenPubkey([newPubkey], limit: 1000);
+    room = await RoomService().updateRoom(room, updateMykey: true);
 
     await room.updateAllMember(users);
 
@@ -214,7 +215,6 @@ class GroupService extends BaseChatService {
         isMeSend: false,
         isSystem: true,
         isRead: false);
-    await Get.find<WebsocketService>().listenPubkey([newPubkey], limit: 1000);
     updateChatControllerMembers(room.id);
   }
 
@@ -411,6 +411,8 @@ class GroupService extends BaseChatService {
               identity, await rustNostr.importKey(senderKeys: toRoomPriKey));
         });
         groupRoom.mykey.value = roomKey;
+        groupRoom =
+            await RoomService().updateRoom(groupRoom, updateMykey: isKeyChange);
         await Get.find<WebsocketService>()
             .listenPubkey([roomKey.pubkey], limit: 300);
         NotifyService.addPubkeys([roomKey.pubkey]);
@@ -422,8 +424,10 @@ class GroupService extends BaseChatService {
             groupRoom, '${identity.displayName} $joinGreeting',
             subtype: KeyChatEventKinds.groupHi, sentCallback: (res) {});
       }
+    } else {
+      await RoomService().updateRoom(groupRoom);
     }
-    await RoomService().updateRoom(groupRoom, updateMykey: isKeyChange);
+
     RoomService().updateChatRoomPage(groupRoom);
 
     await groupRoom.updateAllMember(users);

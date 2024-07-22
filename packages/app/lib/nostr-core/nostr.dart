@@ -1,6 +1,6 @@
 import 'dart:collection' show Queue;
-import 'dart:convert' show base64Decode, jsonDecode, jsonEncode, utf8;
-import 'dart:typed_data';
+import 'dart:convert' show jsonDecode, jsonEncode;
+
 import 'package:app/controller/world.controller.dart';
 
 import 'package:app/models/models.dart';
@@ -9,7 +9,6 @@ import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/nostr-core/relay_event_status.dart';
 
 import 'package:app/nostr-core/request.dart';
-import 'package:app/service/chatx.service.dart';
 
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/nip4Chat.service.dart';
@@ -19,8 +18,6 @@ import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
-import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rustSignal;
-import 'package:keychat_rust_ffi_plugin/api_signal.dart';
 
 import '../constants.dart';
 import '../controller/home.controller.dart';
@@ -40,7 +37,6 @@ class NostrAPI {
   String nip05SubscriptionId = '';
   bool _processingLock = false;
   final nostrEventQueue = Queue<List<dynamic>>();
-  ChatxService chatxService = Get.find<ChatxService>();
   static final NostrAPI _instance = NostrAPI._internal();
   NostrAPI._internal();
 
@@ -440,42 +436,27 @@ Tags: ${event.tags}''',
     }
     // logNostrEventK4(relay, event);
     exist = await dbProvider.receiveNewEventLog(event: event, relay: relay.url);
-
     try {
       if (event.isNip4) {
         return await dmNip4Proccess(event, relay, exist);
       }
+
+      // if signal message , to_address is myIDPubkey or one-time-key
       String to = event.tags[0][1];
-      Room? room = await RoomService().getRoom(event.pubkey, to);
-      if (room == null) {
-        var ciphertext = Uint8List.fromList(base64Decode(event.content));
-        String signalIdPubkey = await rustSignal
-            .parseIdentityFromPrekeySignalMessage(ciphertext: ciphertext);
-        Mykey? mykey = await IdentityService().getMykeyByPubkey(to);
-        if (mykey == null) {
-          logger.e('mykey is null , can\'t find decode mykey for $to');
-          return;
-        }
-        Identity identity =
-            Get.find<HomeController>().identities[mykey.identityId]!;
-
-        var (plaintext, msgKeyHash, _) = await rustSignal.decryptSignal(
-            keyPair: chatxService.getKeyPair(identity),
-            ciphertext: ciphertext,
-            remoteAddress: KeychatProtocolAddress(
-                name: signalIdPubkey, deviceId: identity.id),
-            roomId: 0,
-            isPrekey: true);
-        logger.i(utf8.decode(plaintext));
-        return;
+      Room? room = await roomService.getRoomByReceiveKey(to);
+      if (room != null) {
+        return await SignalChatService()
+            .decryptDMMessage(room, event, relay, eventLog: exist);
       }
-
-      return await SignalChatService()
-          .decryptDMMessage(room, event, relay, eventLog: exist);
-    } catch (e, s) {
-      String msg = Utils.getErrorMessage(e);
-      logger.e(msg, error: e, stackTrace: s);
-      await exist.setNote(msg);
+      Mykey? mykey = await IdentityService().getMykeyByPubkey(to);
+      if (mykey != null) {
+        return await SignalChatService().decryptPreKeyMessage(to, mykey,
+            event: event, relay: relay, eventLog: exist);
+      }
+      throw Exception('signal message decrypt error');
+    } catch (e) {
+      exist.setNote('signal message decrypt error');
+      logger.e('signal message decrypt error', error: e);
     }
   }
 

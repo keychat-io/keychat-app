@@ -106,6 +106,7 @@ class ContactPage extends StatelessWidget {
                         status: RoomStatus.enabled,
                         curve25519PkHex: model?.curve25519PkHex,
                         onetimekey: model?.onetimekey,
+                        encryptMode: EncryptMode.signal,
                         contact: contact);
 
                     //delete signal session
@@ -138,12 +139,8 @@ class ContactPage extends StatelessWidget {
                             "Signal Session create failed. Please generate a new QR Code");
                         return;
                       }
-                      await SignalChatService().sendHelloMessage2(
-                        room0,
-                        identity,
-                      );
-                      room0.encryptMode = EncryptMode.signal;
-                      room0 = await RoomService().updateRoom(room0);
+                      await SignalChatService().sendMessage(room0,
+                          RoomUtil.getHelloMessage(identity.displayName));
                       EasyLoading.showSuccess('Successfully added');
                     }
                   } catch (e, s) {

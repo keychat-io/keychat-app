@@ -53,6 +53,7 @@ class RoomService extends BaseChatService {
       {required String toMainPubkey,
       required Identity identity,
       required RoomStatus status,
+      required EncryptMode encryptMode,
       String? name,
       Contact? contact,
       String? curve25519PkHex,
@@ -68,6 +69,7 @@ class RoomService extends BaseChatService {
     )
       ..onetimekey = onetimekey
       ..status = status
+      ..encryptMode = encryptMode
       ..curve25519PkHex = curve25519PkHex;
 
     if (toMainPubkey == identity.secp256k1PKHex) {
@@ -108,6 +110,10 @@ class RoomService extends BaseChatService {
           await Get.find<ChatxService>().deleteSignalSessionKPA(room);
         }
       }
+      await database.contactReceiveKeys
+          .filter()
+          .pubkeyEqualTo(room.toMainPubkey)
+          .deleteAll();
       await database.messages.filter().roomIdEqualTo(roomId).deleteAll();
       await database.messageBills.filter().roomIdEqualTo(roomId).deleteAll();
       await database.rooms.filter().idEqualTo(roomId).deleteFirst();
@@ -154,6 +160,7 @@ class RoomService extends BaseChatService {
         toMainPubkey: from,
         identity: identity,
         status: status,
+        encryptMode: EncryptMode.nip04,
         name: contactName);
   }
 
@@ -163,14 +170,17 @@ class RoomService extends BaseChatService {
     if (room != null) return room;
 
     room = await createPrivateRoom(
-        toMainPubkey: toMainPubkey, identity: identity, status: status);
+        encryptMode: EncryptMode.nip04,
+        toMainPubkey: toMainPubkey,
+        identity: identity,
+        status: status);
     return room;
   }
 
   Future<Room?> getRoom(String from, String to) async {
     Isar database = DBProvider.database;
 
-    Room? signalRatchetRoom = await _getRoomByReceiveKey(to);
+    Room? signalRatchetRoom = await getRoomByReceiveKey(to);
     if (signalRatchetRoom != null) return signalRatchetRoom;
 
     // common chat. from is room mainkey, to is my identity'pubkey
@@ -186,16 +196,18 @@ class RoomService extends BaseChatService {
 
     // group share key
     if (from == to) {
-      Room? groupRoom = await database.rooms
-          .filter()
-          .typeEqualTo(RoomType.group)
-          .groupTypeEqualTo(GroupType.shareKey)
-          .mykey((q) => q.pubkeyEqualTo(to))
-          .findFirst();
-
-      if (groupRoom != null) return groupRoom;
+      return await _getGroupRoom(to);
     }
     return null;
+  }
+
+  Future<Room?> _getGroupRoom(String to) async {
+    return await DBProvider.database.rooms
+        .filter()
+        .typeEqualTo(RoomType.group)
+        .groupTypeEqualTo(GroupType.shareKey)
+        .mykey((q) => q.pubkeyEqualTo(to))
+        .findFirst();
   }
 
   Future<Room?> getRoomById(int id) async {
@@ -325,24 +337,33 @@ class RoomService extends BaseChatService {
   ]) async {
     KeychatMessage km = KeychatMessage.fromJson(content);
     String toAddress = event.tags[0][1];
-    Identity? identity;
-    Mykey? mykey;
-    List<Identity> identities = homeController.identities.values
-        .where((element) => element.secp256k1PKHex == toAddress)
-        .toList();
-    if (identities.isNotEmpty) {
-      identity = identities[0];
-    } else {
-      // onetime-key is receive address
-      mykey = await IdentityService().getMykeyByPubkey(toAddress);
-      if (mykey != null) {
-        identity = homeController.identities[mykey.identityId];
-      }
+    String from = event.pubkey;
+    Room? room;
+    // group room message
+    if (from == toAddress) {
+      room = await _getGroupRoom(toAddress);
     }
-    if (identity == null) throw Exception('My receive address is null');
+    if (room == null) {
+      Identity? identity;
+      Mykey? mykey;
+      List<Identity> identities = homeController.identities.values
+          .where((element) => element.secp256k1PKHex == toAddress)
+          .toList();
+      if (identities.isNotEmpty) {
+        identity = identities[0];
+      } else {
+        // onetime-key is receive address
+        mykey = await IdentityService().getMykeyByPubkey(toAddress);
+        if (mykey != null) {
+          identity = homeController.identities[mykey.identityId];
+        }
+      }
+      if (identity == null) throw Exception('My receive address is null');
 
-    Room room = await getOrCreateRoomByIdentity(
-        event.pubkey, identity, RoomStatus.init);
+      room = await getOrCreateRoomByIdentity(
+          event.pubkey, identity, RoomStatus.init);
+    }
+
     await km.service.processMessage(
         room: room,
         event: event,
@@ -382,20 +403,24 @@ class RoomService extends BaseChatService {
     }
   }
 
-  Future receiveDM(Room room, NostrEventModel event, KeychatMessage km,
-      NostrEventModel? sourceEvent,
+  Future receiveDM(
+      Room room, NostrEventModel event, NostrEventModel? sourceEvent,
       {bool? isSystem,
+      KeychatMessage? km,
       String? realMessage,
+      String? content,
       bool? isRead,
       String? msgKeyHash}) async {
-    String content = realMessage ?? km.msg!;
+    content ??= realMessage ?? km?.msg ?? '';
     MsgReply? reply;
-    if (km.type == KeyChatEventKinds.dm && km.name != null) {
-      try {
-        reply = MsgReply.fromJson(jsonDecode(km.name!));
-        content = km.msg!;
-        // ignore: empty_catches
-      } catch (e) {}
+    if (km != null) {
+      if (km.type == KeyChatEventKinds.dm && km.name != null) {
+        try {
+          reply = MsgReply.fromJson(jsonDecode(km.name!));
+          content = km.msg!;
+          // ignore: empty_catches
+        } catch (e) {}
+      }
     }
     late String idPubkey;
     if (room.type == RoomType.common) {
@@ -414,7 +439,7 @@ class RoomService extends BaseChatService {
         idPubkey: idPubkey,
         isSystem: isSystem,
         realMessage: realMessage,
-        content: content,
+        content: content ?? '',
         encryptType: encryptType,
         reply: reply,
         sent: SendStatusType.success,
@@ -543,7 +568,7 @@ class RoomService extends BaseChatService {
     }
   }
 
-  Future<Room?> _getRoomByReceiveKey(String address) async {
+  Future<Room?> getRoomByReceiveKey(String address) async {
     ContactReceiveKey? crk = await DBProvider.database.contactReceiveKeys
         .filter()
         .receiveKeysElementContains(address)

@@ -39,7 +39,12 @@ class Nip4ChatService extends BaseChatService {
       required Relay relay}) async {
     switch (km.type) {
       case KeyChatEventKinds.dm:
-        await RoomService().receiveDM(room, event, km, sourceEvent);
+        await RoomService().receiveDM(
+          room,
+          event,
+          sourceEvent,
+          km: km,
+        );
         break;
       default:
     }

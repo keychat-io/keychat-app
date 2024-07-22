@@ -1,4 +1,3 @@
-import 'package:app/constants.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
@@ -94,7 +93,7 @@ class ContactPage extends StatelessWidget {
               onPressed: () async {
                 EasyThrottle.throttle('Add_contact', const Duration(seconds: 2),
                     () async {
-                  bool roomIsNull = room == null;
+                  // bool roomIsNull = room == null;
                   late Room room0;
                   try {
                     EasyLoading.show(status: 'Proccessing...');
@@ -139,13 +138,10 @@ class ContactPage extends StatelessWidget {
                             "Signal Session create failed. Please generate a new QR Code");
                         return;
                       }
-                      String onetimekey = model!.onetimekey;
-                      await SignalChatService().sendHelloMessage(
-                          room0, identity,
-                          onetimekey: onetimekey,
-                          type: roomIsNull
-                              ? KeyChatEventKinds.dmAddContactFromAlice
-                              : KeyChatEventKinds.dmAddContactFromBob);
+                      await SignalChatService().sendHelloMessage2(
+                        room0,
+                        identity,
+                      );
                       room0.encryptMode = EncryptMode.signal;
                       room0 = await RoomService().updateRoom(room0);
                       EasyLoading.showSuccess('Successfully added');

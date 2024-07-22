@@ -188,8 +188,11 @@ class GroupService extends BaseChatService {
       throw Exception('not admin');
     }
 
-    Mykey? newkey = await GroupTx().importMykey(
-        room.getIdentity(), await rustNostr.importKey(senderKeys: newPrikey));
+    late Mykey newkey;
+    await DBProvider.database.writeTxn(() async {
+      newkey = await GroupTx().importMykeyTx(
+          room.getIdentity(), await rustNostr.importKey(senderKeys: newPrikey));
+    });
 
     await updateRoomMykey(room, newkey);
 
@@ -403,8 +406,10 @@ class GroupService extends BaseChatService {
 
       if (groupRoom.mykey.value!.prikey != toRoomPriKey) {
         isKeyChange = true;
-        roomKey = await GroupTx().importMykey(
-            identity, await rustNostr.importKey(senderKeys: toRoomPriKey));
+        await DBProvider.database.writeTxn(() async {
+          roomKey = await GroupTx().importMykeyTx(
+              identity, await rustNostr.importKey(senderKeys: toRoomPriKey));
+        });
         groupRoom.mykey.value = roomKey;
         await Get.find<WebsocketService>()
             .listenPubkey([roomKey.pubkey], limit: 300);

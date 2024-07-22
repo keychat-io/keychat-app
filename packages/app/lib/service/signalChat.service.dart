@@ -83,23 +83,21 @@ class SignalChatService extends BaseChatService {
 
     String to = await _getToAddress(bobSession, room);
     String encryptedContent = base64.encode(ciphertext);
-    bool isSignalMessage = to != room.toMainPubkey;
-    // If the receiving address is an account address or the message is sent to onetime-key, it is sent using nip (signal) package in two layers. This is the inner layer.
     bool isSendToOnetimeKey =
         to == room.toMainPubkey && room.onetimekey != null;
-    if (to == room.toMainPubkey || isSendToOnetimeKey) {
-      encryptedContent = await rustNostr.getUnencryptEvent(
-          senderKeys: (room.getIdentity()).secp256k1SKHex,
-          receiverPubkey: to,
-          content: encryptedContent);
-
-      encryptedContent = "[\"EVENT\",$encryptedContent]";
-    }
-    var senderKey = await rustNostr.generateSimple();
-
     if (isSendToOnetimeKey) {
       to = room.onetimekey!;
     }
+    // if (to == room.toMainPubkey || isSendToOnetimeKey) {
+    //   encryptedContent = await rustNostr.getUnencryptEvent(
+    //       senderKeys: (room.getIdentity()).secp256k1SKHex,
+    //       receiverPubkey: to,
+    //       content: encryptedContent);
+
+    //   encryptedContent = "[\"EVENT\",$encryptedContent]";
+    // }
+    var senderKey = await rustNostr.generateSimple();
+
     SendMessageResponse smr = await NostrAPI().sendNip4Message(
         to, encryptedContent,
         save: save,
@@ -107,14 +105,12 @@ class SignalChatService extends BaseChatService {
         from: senderKey.pubkey,
         room: room,
         isSystem: isSystem,
-        encryptType: to == room.toMainPubkey || isSendToOnetimeKey
-            ? MessageEncryptType.nip4WrapSignal
-            : MessageEncryptType.signal,
+        encryptType: MessageEncryptType.signal,
         realMessage: realMessage,
         sourceContent: message0,
         reply: reply,
         mediaType: mediaType,
-        isSignalMessage: isSignalMessage,
+        isSignalMessage: true,
         msgKeyHash: msgKeyHash);
     smr.toAddPubkeys = toAddPubkeys;
     return smr;
@@ -376,6 +372,22 @@ class SignalChatService extends BaseChatService {
       realMessage: sm.msg,
       isSystem: true,
     );
+    return;
+  }
+
+  Future sendHelloMessage2(Room room, Identity identity,
+      {String? greeting}) async {
+    KeychatMessage sm = KeychatMessage(
+        c: MessageType.signal, type: KeyChatEventKinds.dmAddContactFromBobV2)
+      ..msg = identity.secp256k1PKHex
+      ..name = identity.displayName;
+
+    var res = await SignalChatService().sendMessage(
+      room,
+      sm.toString(),
+      realMessage: sm.msg,
+    );
+    logger.d('sendHelloMessage2: $res');
     return;
   }
 

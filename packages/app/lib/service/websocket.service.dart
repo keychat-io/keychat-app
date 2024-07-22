@@ -1,4 +1,3 @@
-import 'package:app/controller/home.controller.dart';
 import 'package:app/models/embedded/cashu_info.dart';
 import 'package:app/models/embedded/relay_file_fee.dart';
 import 'package:app/models/embedded/relay_message_fee.dart';
@@ -13,7 +12,7 @@ import 'package:app/service/message.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
-import 'package:easy_debounce/easy_debounce.dart';
+
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -151,25 +150,24 @@ class WebsocketService extends GetxService {
       channels[relay]!.relay.errorMessage = errorMessage;
     }
     channels.refresh();
-    int success = 0;
-    for (var rw in channels.values) {
-      if (rw.channelStatus == RelayStatusEnum.success) {
-        ++success;
-      }
-    }
+
+    int success = channels.values
+        .where((RelayWebsocket element) =>
+            element.channelStatus == RelayStatusEnum.success)
+        .length;
+
     if (success > 0) {
       if (relayStatusInt.value != RelayStatusEnum.success.name) {
         relayStatusInt.value = RelayStatusEnum.success.name;
-        EasyDebounce.debounce('loadRoomList', const Duration(seconds: 1),
-            () => Get.find<HomeController>().loadRoomList());
       }
 
       return;
     }
+
     if (success == 0) {
       int diff =
           DateTime.now().millisecondsSinceEpoch - initAt.millisecondsSinceEpoch;
-      if (diff > 1000) {
+      if (diff > 2000) {
         relayStatusInt.value = RelayStatusEnum.allFailed.name;
         return;
       }
@@ -253,7 +251,7 @@ class WebsocketService extends GetxService {
               await _addCashuToMessage(toSendMesage, relay, roomId, event.id);
           if (channels[relay]?.channel != null) {
             logger.i(
-                'to:[$relay]: ${eventRaw.length > 200 ? eventRaw.substring(0, 400) : eventRaw}');
+                'to:[$relay]: $eventRaw }'); // ${eventRaw.length > 200 ? eventRaw.substring(0, 400) : eventRaw}');
             channels[relay]!.channel!.sendMessage(eventRaw);
           } else {
             failedRelay[relay] = 'Relay not connected';
@@ -354,6 +352,7 @@ class WebsocketService extends GetxService {
     );
     rw.channel = textSocketHandler;
     textSocketHandler.socketHandlerStateStream.listen((stateEvent) {
+      // delay 100ms
       loggerNoLine.i('[${relay.url}] status: ${stateEvent.status}');
 
       switch (stateEvent.status) {

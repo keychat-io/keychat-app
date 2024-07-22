@@ -304,7 +304,7 @@ class MessageWidget extends StatelessWidget {
     }
   }
 
-  getLinkify(String text, Color fontColor) {
+  Widget getLinkify(String text, Color fontColor) {
     return Linkify(
       onOpen: (link) {
         final Uri uri = Uri.parse(link.url);
@@ -603,7 +603,8 @@ class MessageWidget extends StatelessWidget {
             isMeSend: message.isMeSend),
         displayDirection: UIDirection.uiDirectionVertical,
         backgroundColor: Get.isDarkMode ? Colors.black26 : Colors.grey[300],
-        // errorImage: "https://i.ytimg.com/vi/z8wrRRR7_qU/maxresdefault.jpg",
+        errorImage:
+            "https://raw.githubusercontent.com/keychat-io/docs/main/docs/_media/empty2.png",
         errorWidget: _getTextContainer(getLinkify(content, fontColor),
             isMeSend: message.isMeSend));
   }

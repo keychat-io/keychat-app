@@ -19,6 +19,7 @@ class KeyChatEventKinds {
   static const int dmAddContactFromBob = 102; // agree to add friend
   static const int dmDeleteHistory = 103; // delete history
   static const int dmReject = 104; // reject to add friend
+  static const int dmAddContactFromBobV2 = 111;
   static const int dmEnd = 200; // chat end
 
   // share key group

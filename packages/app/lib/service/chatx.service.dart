@@ -67,12 +67,12 @@ class ChatxService extends GetxService {
     final keyPair = getKeyPair(room.getIdentity());
     await rustSignal.processPrekeyBundleApi(
         keyPair: keyPair,
-        remoteAddress: remoteAddress,
         regId: getRegistrationId(room.curve25519PkHex!),
         deviceId: room.identityId,
         identityKey: KeychatIdentityKey(
             publicKey: U8Array33(
                 Uint8List.fromList(hex.decode(room.curve25519PkHex!)))),
+        remoteAddress: remoteAddress,
         bobSignedId: bobSignedId,
         bobSignedPublic: bobSignedPublic,
         bobSigedSig: bobSignedSignature,

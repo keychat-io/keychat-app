@@ -12,6 +12,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/index.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'controller/home.controller.dart';
 import 'controller/setting.controller.dart';
 import 'models/db_provider.dart';
@@ -37,16 +38,35 @@ void main() async {
       defaultPopGesture: true,
       defaultTransition: Transition.cupertino);
   String initialRoute = await getInitRoute(isLogin);
-  runApp(GetMaterialApp(
-    initialRoute: initialRoute,
-    getPages: Pages.routes,
-    builder: EasyLoading.init(),
-    locale: Get.deviceLocale,
-    debugShowCheckedModeBanner: false,
-    themeMode: themeMode,
-    theme: AppThemeCustom.light(),
-    darkTheme: AppThemeCustom.dark(),
-  ));
+
+  try {
+    // start with sentry
+    String sentryDNS = dotenv.get('SENTRY_DNS');
+    await SentryFlutter.init((options) {
+      options.dsn = sentryDNS;
+    },
+        appRunner: () => runApp(GetMaterialApp(
+              initialRoute: initialRoute,
+              getPages: Pages.routes,
+              builder: EasyLoading.init(),
+              locale: Get.deviceLocale,
+              debugShowCheckedModeBanner: false,
+              themeMode: themeMode,
+              theme: AppThemeCustom.light(),
+              darkTheme: AppThemeCustom.dark(),
+            )));
+  } catch (e) {
+    runApp(GetMaterialApp(
+      initialRoute: initialRoute,
+      getPages: Pages.routes,
+      builder: EasyLoading.init(),
+      locale: Get.deviceLocale,
+      debugShowCheckedModeBanner: false,
+      themeMode: themeMode,
+      theme: AppThemeCustom.light(),
+      darkTheme: AppThemeCustom.dark(),
+    ));
+  }
 }
 
 Future<String> getInitRoute(bool isLogin) async {

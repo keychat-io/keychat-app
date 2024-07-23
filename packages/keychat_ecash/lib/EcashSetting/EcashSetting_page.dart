@@ -75,8 +75,8 @@ class EcashSettingPage extends GetView<EcashSettingController> {
               try {
                 EasyLoading.show(status: 'Proccessing');
                 var res = await rustCashu.checkProofs();
-                EasyLoading.showToast('''Successfully!
-Detail: Deleted: ${res.$1}, Hidden: ${res.$2}, Total: ${res.$3}''');
+                EasyLoading.showToast(
+                    ''' Deleted: ${res.$1}, Hidden: ${res.$2}, Total: ${res.$3}''');
               } catch (e) {
                 EasyLoading.dismiss();
                 String msg = Utils.getErrorMessage(e);

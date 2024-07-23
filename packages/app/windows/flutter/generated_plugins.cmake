@@ -8,6 +8,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   image_compression_flutter
   isar_flutter_libs
   permission_handler_windows
+  sentry_flutter
   share_plus
   url_launcher_windows
 )

@@ -1,4 +1,3 @@
-import 'package:app/controller/home.controller.dart';
 import 'package:app/models/embedded/cashu_info.dart';
 import 'package:app/models/embedded/relay_file_fee.dart';
 import 'package:app/models/embedded/relay_message_fee.dart';
@@ -13,7 +12,7 @@ import 'package:app/service/message.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
-import 'package:easy_debounce/easy_debounce.dart';
+
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -21,6 +20,8 @@ import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:websocket_universal/websocket_universal.dart';
 
 import '../utils.dart' as utils;
+
+const int failedTimesLimit = 3;
 
 class WebsocketService extends GetxService {
   RelayService rs = RelayService();
@@ -149,25 +150,24 @@ class WebsocketService extends GetxService {
       channels[relay]!.relay.errorMessage = errorMessage;
     }
     channels.refresh();
-    int success = 0;
-    for (var rw in channels.values) {
-      if (rw.channelStatus == RelayStatusEnum.success) {
-        ++success;
-      }
-    }
+
+    int success = channels.values
+        .where((RelayWebsocket element) =>
+            element.channelStatus == RelayStatusEnum.success)
+        .length;
+
     if (success > 0) {
       if (relayStatusInt.value != RelayStatusEnum.success.name) {
         relayStatusInt.value = RelayStatusEnum.success.name;
-        EasyDebounce.debounce('loadRoomList', const Duration(seconds: 1),
-            () => Get.find<HomeController>().loadRoomList());
       }
 
       return;
     }
+
     if (success == 0) {
       int diff =
           DateTime.now().millisecondsSinceEpoch - initAt.millisecondsSinceEpoch;
-      if (diff > 1000) {
+      if (diff > 2000) {
         relayStatusInt.value = RelayStatusEnum.allFailed.name;
         return;
       }
@@ -242,32 +242,34 @@ class WebsocketService extends GetxService {
         sentCallback: sentCallback);
 
     List<Future> tasks = [];
-    List<String> successRelay = [];
+    Map failedRelay = {};
     String toSendMesage = "[\"EVENT\",$encryptedEvent]";
     for (String relay in relays) {
       tasks.add(() async {
-        String eventRaw =
-            await _addCashuToMessage(toSendMesage, relay, roomId, event.id);
-        if (channels[relay]?.channel != null) {
-          logger.i(
-              'to:[$relay]: ${eventRaw.length > 200 ? eventRaw.substring(0, 400) : eventRaw}'); //
-          channels[relay]!.channel!.sendMessage(eventRaw);
-          successRelay.add(relay);
-        } else {
-          logger.e('====to:[$relay]: NOT_AVAILABLE =====');
+        try {
+          String eventRaw =
+              await _addCashuToMessage(toSendMesage, relay, roomId, event.id);
+          if (channels[relay]?.channel != null) {
+            logger.i(
+                'to:[$relay]: $eventRaw }'); // ${eventRaw.length > 200 ? eventRaw.substring(0, 400) : eventRaw}');
+            channels[relay]!.channel!.sendMessage(eventRaw);
+          } else {
+            failedRelay[relay] = 'Relay not connected';
+          }
+        } catch (e, s) {
+          String message = Utils.getErrorMessage(e);
+          logger.e(message, error: e, stackTrace: s);
+          failedRelay[relay] = message;
         }
       }());
     }
-    List<Exception> errors = [];
-    Future.wait(tasks).then((res) {}).catchError((e, s) {
-      errors.add(e);
-      logger.e('writeNostrEvent error', error: e, stackTrace: s);
-    }, test: (e) => true).whenComplete(() {
-      if (successRelay.isEmpty) {
-        String messages = errors
-            .map((item) => Utils.getErrorMessage(item))
+    Future.wait(tasks).whenComplete(() {
+      // all failed
+      if (relays.length == failedRelay.entries.length) {
+        String messages = failedRelay.entries
+            .map((item) => '${item.key}: ${item.value}')
             .toList()
-            .join(',');
+            .join('\n');
         Get.snackbar('Message Send Failed', messages,
             icon: const Icon(Icons.error));
       }
@@ -323,15 +325,18 @@ class WebsocketService extends GetxService {
       return rw;
     }
 
-    if (rw.failedTimes > 3) {
+    if (rw.failedTimes > failedTimesLimit) {
       rw.channelStatus = RelayStatusEnum.failed;
+      rw.channel?.disconnect('Failed times too many');
       return rw;
     }
 
-    loggerNoLine.i('start connect ${relay.url}');
+    loggerNoLine
+        .i('start connect ${relay.url} ,failedTimes: ${rw.failedTimes}');
     SocketConnectionOptions connectionOptions = SocketConnectionOptions(
         timeoutConnectionMs: 6000,
-        failedReconnectionAttemptsLimit: GetPlatform.isMacOS ? 999 : 5,
+        failedReconnectionAttemptsLimit:
+            GetPlatform.isMacOS ? 99 : failedTimesLimit,
         reconnectionDelay: GetPlatform.isMacOS
             ? const Duration(seconds: 5)
             : const Duration(seconds: 2),
@@ -347,6 +352,7 @@ class WebsocketService extends GetxService {
     );
     rw.channel = textSocketHandler;
     textSocketHandler.socketHandlerStateStream.listen((stateEvent) {
+      // delay 100ms
       loggerNoLine.i('[${relay.url}] status: ${stateEvent.status}');
 
       switch (stateEvent.status) {

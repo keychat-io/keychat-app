@@ -1,4 +1,3 @@
-import 'package:app/constants.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
@@ -94,7 +93,7 @@ class ContactPage extends StatelessWidget {
               onPressed: () async {
                 EasyThrottle.throttle('Add_contact', const Duration(seconds: 2),
                     () async {
-                  bool roomIsNull = room == null;
+                  // bool roomIsNull = room == null;
                   late Room room0;
                   try {
                     EasyLoading.show(status: 'Proccessing...');
@@ -107,6 +106,7 @@ class ContactPage extends StatelessWidget {
                         status: RoomStatus.enabled,
                         curve25519PkHex: model?.curve25519PkHex,
                         onetimekey: model?.onetimekey,
+                        encryptMode: EncryptMode.signal,
                         contact: contact);
 
                     //delete signal session
@@ -139,15 +139,8 @@ class ContactPage extends StatelessWidget {
                             "Signal Session create failed. Please generate a new QR Code");
                         return;
                       }
-                      String onetimekey = model!.onetimekey;
-                      await SignalChatService().sendHelloMessage(
-                          room0, identity,
-                          onetimekey: onetimekey,
-                          type: roomIsNull
-                              ? KeyChatEventKinds.dmAddContactFromAlice
-                              : KeyChatEventKinds.dmAddContactFromBob);
-                      room0.encryptMode = EncryptMode.signal;
-                      room0 = await RoomService().updateRoom(room0);
+                      await SignalChatService().sendMessage(room0,
+                          RoomUtil.getHelloMessage(identity.displayName));
                       EasyLoading.showSuccess('Successfully added');
                     }
                   } catch (e, s) {

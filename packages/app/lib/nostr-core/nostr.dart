@@ -1,5 +1,6 @@
 import 'dart:collection' show Queue;
-import 'dart:convert' show jsonEncode, jsonDecode;
+import 'dart:convert' show jsonDecode, jsonEncode;
+
 import 'package:app/controller/world.controller.dart';
 
 import 'package:app/models/models.dart';
@@ -36,7 +37,6 @@ class NostrAPI {
   String nip05SubscriptionId = '';
   bool _processingLock = false;
   final nostrEventQueue = Queue<List<dynamic>>();
-
   static final NostrAPI _instance = NostrAPI._internal();
   NostrAPI._internal();
 
@@ -436,19 +436,27 @@ Tags: ${event.tags}''',
     }
     // logNostrEventK4(relay, event);
     exist = await dbProvider.receiveNewEventLog(event: event, relay: relay.url);
-
     try {
       if (event.isNip4) {
         return await dmNip4Proccess(event, relay, exist);
       }
-      Room room =
-          await RoomService().getRoomOrFail(event.pubkey, event.tags[0][1]);
-      return await SignalChatService()
-          .decryptDMMessage(room, event, relay, eventLog: exist);
-    } catch (e, s) {
-      String msg = Utils.getErrorMessage(e);
-      logger.e(msg, error: e, stackTrace: s);
-      await exist.setNote(msg);
+
+      // if signal message , to_address is myIDPubkey or one-time-key
+      String to = event.tags[0][1];
+      Room? room = await roomService.getRoomByReceiveKey(to);
+      if (room != null) {
+        return await SignalChatService()
+            .decryptDMMessage(room, event, relay, eventLog: exist);
+      }
+      Mykey? mykey = await IdentityService().getMykeyByPubkey(to);
+      if (mykey != null) {
+        return await SignalChatService().decryptPreKeyMessage(to, mykey,
+            event: event, relay: relay, eventLog: exist);
+      }
+      throw Exception('signal message decrypt error');
+    } catch (e) {
+      exist.setNote('signal message decrypt error');
+      logger.e('signal message decrypt error', error: e);
     }
   }
 

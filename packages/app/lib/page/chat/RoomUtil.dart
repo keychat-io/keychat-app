@@ -35,6 +35,12 @@ import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:settings_ui/settings_ui.dart';
 
 class RoomUtil {
+  static String getHelloMessage(String name) {
+    return '''
+😄 Hi, I'm $name.
+Let's start an encrypted chat.''';
+  }
+
   // auto to delete messages and event logs
   static Future executeAutoDelete() async {
     // delete nostr event log

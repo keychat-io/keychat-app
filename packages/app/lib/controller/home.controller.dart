@@ -3,6 +3,7 @@ import 'dart:async' show StreamSubscription, Timer;
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app_badge_plus/app_badge_plus.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
 
 import 'package:app/service/notify.service.dart';
@@ -14,7 +15,6 @@ import 'package:easy_debounce/easy_debounce.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:get/get.dart';
@@ -66,8 +66,6 @@ class HomeController extends GetxController
   void onInit() async {
     super.onInit();
     tabController = TabController(vsync: this, length: 0);
-
-    isAppBadgeSupported = await FlutterAppBadger.isAppBadgeSupported();
 
     List<Identity> mys = await loadRoomList(init: true);
 
@@ -306,8 +304,8 @@ class HomeController extends GetxController
     allUnReadCount.value = count;
     allUnReadCount.refresh();
     if (!isAppBadgeSupported) return;
-    if (count == 0) return await FlutterAppBadger.removeBadge();
-    FlutterAppBadger.updateBadgeCount(count);
+    if (count == 0) return await AppBadgePlus.updateBadge(0);
+    AppBadgePlus.updateBadge(count);
   }
 
   DateTime? pausedTime;
@@ -324,14 +322,13 @@ class HomeController extends GetxController
         resumed = true;
 
         EasyThrottle.throttle(
-            'AppLifecycleState.resumed', const Duration(seconds: 1), () {
+            'AppLifecycleState.resumed', const Duration(seconds: 3), () {
           Get.find<WebsocketService>().checkOnlineAndConnect();
 
           Utils.initLoggger(Get.find<SettingController>().appFolder);
           NotifyService.initNofityConfig(true);
           if (kReleaseMode) {
             _startCheckWebsocketTimer();
-            RoomUtil.executeAutoDelete();
           }
         });
 

@@ -19,7 +19,7 @@ class GroupTx {
 
   GroupTx._internal();
 
-  Future<Mykey> importMykey(
+  Future<Mykey> importMykeyTx(
       Identity identity, rustNostr.Secp256k1Account keychain,
       [int? roomId]) async {
     Isar database = DBProvider.database;
@@ -113,7 +113,7 @@ class GroupTx {
     if (roomProfile.groupType == GroupType.shareKey && toRoomPriKey == null) {
       throw Exception('GroupType.shareKey must have prikey');
     } else if (toRoomPriKey != null) {
-      roomKey = await importMykey(
+      roomKey = await importMykeyTx(
           identity, await rustNostr.importKey(senderKeys: toRoomPriKey));
     }
 

@@ -454,9 +454,9 @@ Tags: ${event.tags}''',
             event: event, relay: relay, eventLog: exist);
       }
       throw Exception('signal message decrypt error');
-    } catch (e) {
+    } catch (e, s) {
       exist.setNote('signal message decrypt error');
-      logger.e('signal message decrypt error', error: e);
+      logger.e('signal message decrypt error', error: e, stackTrace: s);
     }
   }
 

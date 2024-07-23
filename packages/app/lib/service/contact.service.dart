@@ -293,14 +293,18 @@ class ContactService {
     required int identityId,
     required String pubkey,
     String? petname,
+    String? name,
   }) async {
     String pubKeyHex = rustNostr.getHexPubkeyByBech32(bech32: pubkey);
 
     var contact = await getContact(identityId, pubKeyHex);
     if (contact == null) {
       await createContact(
-          pubkey: pubkey, identityId: identityId, petname: petname);
+          pubkey: pubkey, identityId: identityId, petname: petname, name: name);
       return;
+    }
+    if (name != null) {
+      contact.name = name;
     }
     if (petname != null) {
       contact.petname = petname;

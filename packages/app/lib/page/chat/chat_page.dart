@@ -1,7 +1,6 @@
 import 'dart:async' show Timer;
 import 'dart:math' show Random;
 
-import 'package:app/constants.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/page/chat/RoomUtil.dart';
@@ -633,19 +632,13 @@ class ChatPage extends StatelessWidget {
                   Room room = await RoomService()
                       .getRoomByIdOrFail(controller.roomObs.value.id);
                   if (room.status == RoomStatus.approving) {
-                    String? onetimekey;
-                    if (room.onetimekey != null &&
-                        room.onetimekey!.length > 1) {
-                      onetimekey = room.onetimekey;
-                    }
-                    await SignalChatService().sendHelloMessage(
-                        room, room.getIdentity(),
-                        onetimekey: onetimekey,
-                        type: KeyChatEventKinds.dmAddContactFromBob);
+                    String displayName = room.getIdentity().displayName;
+                    await SignalChatService().sendMessage(
+                        room, RoomUtil.getHelloMessage(displayName));
+                    room.status = RoomStatus.enabled;
+                    await RoomService().updateRoom(room);
                   }
 
-                  room.status = RoomStatus.enabled;
-                  await RoomService().updateRoom(room);
                   controller.roomObs.value = room;
                 } catch (e, s) {
                   EasyLoading.showError(e.toString());

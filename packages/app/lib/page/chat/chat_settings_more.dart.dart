@@ -169,7 +169,7 @@ Your messages will send to this server.'''),
                 SettingsTile.navigation(
                   title: const Text('ReceiveFrom'),
                   description: const Text(
-                      'Using different PostOffice(relay server) for receiving and sending messages, tracking metadata will be more difficultly.'),
+                      'Using different PostOffice(relay server) for receiving and sending messages, tracking metadata will be more difficult.'),
                   leading: const Icon(CupertinoIcons.down_arrow),
                   value: Obx(() => textSmallGray(Get.context!,
                       chatController.roomContact.value.myRelay ?? 'Not set')),

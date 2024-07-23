@@ -352,7 +352,8 @@ class SignalChatService extends BaseChatService {
     if (room.status == RoomStatus.enabled &&
         keychatMessage.type == KeyChatEventKinds.dmAddContactFromAlice) {
       String displayName = room.getIdentity().displayName;
-      await sendMessage(room, RoomUtil.getHelloMessage(displayName));
+      await SignalChatService()
+          .sendMessage(room, RoomUtil.getHelloMessage(displayName));
     }
     RoomService().updateChatRoomPage(room);
   }
@@ -501,6 +502,18 @@ Let's talk on this server.''';
         status: RoomStatus.enabled,
         encryptMode: EncryptMode.signal,
         curve25519PkHex: signalIdPubkey);
+    if (room.status == RoomStatus.requesting) {
+      room.status = RoomStatus.enabled;
+      room.encryptMode = EncryptMode.signal;
+      room.curve25519PkHex = signalIdPubkey;
+      await ContactService().updateContact(
+          identityId: room.identityId,
+          pubkey: room.toMainPubkey,
+          name: prekeyMessageModel.name);
+      await RoomService().updateRoom(room);
+      await RoomService().updateChatRoomPage(room);
+      await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
+    }
     await RoomService().receiveDM(room, event, null,
         content: decryptedContent, realMessage: prekeyMessageModel.message);
     return;

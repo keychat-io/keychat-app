@@ -8,19 +8,19 @@ class NostrNip4Req {
   List<String> pubkeys = [];
   late DateTime since;
   int? limit;
-
-  // late Request request;
+  late int kind;
 
   NostrNip4Req(
       {required this.reqId,
       required this.pubkeys,
       required this.since,
-      int? limit});
+      this.kind = EventKinds.encryptedDirectMessage,
+      this.limit});
   @override
   String toString() {
     return Request(reqId, [
       Filter(
-        kinds: [EventKinds.encryptedDirectMessage],
+        kinds: [kind],
         p: pubkeys,
         limit: limit,
         since: since.millisecondsSinceEpoch ~/ 1000,
@@ -29,5 +29,5 @@ class NostrNip4Req {
   }
 
   /// subscription_id is a random string that should be used to represent a subscription.
-  late String subscriptionId;
+  // late String subscriptionId;
 }

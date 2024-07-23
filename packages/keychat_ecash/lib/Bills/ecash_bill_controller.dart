@@ -1,3 +1,4 @@
+import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
 
 import 'package:get/get.dart';
@@ -13,18 +14,23 @@ class EcashBillController extends GetxController {
   void onInit() async {
     refreshController = RefreshController();
     super.onInit();
-    getTransactions().then((e) {
-      status.toggle();
-      rustCashu.checkPending().then(
-            (value) => getTransactions(),
-          );
-    });
+    initPageData();
   }
 
   @override
   onClose() {
     refreshController.dispose();
     super.onClose();
+  }
+
+  initPageData() {
+    rustCashu.checkPending().then(
+      (value) async {
+        await Get.find<EcashController>().getBalance();
+        status.value = true;
+        getTransactions();
+      },
+    );
   }
 
   Future getTransactions({

@@ -352,6 +352,7 @@ class SignalChatService extends BaseChatService {
     if (room.status == RoomStatus.enabled &&
         keychatMessage.type == KeyChatEventKinds.dmAddContactFromAlice) {
       String displayName = room.getIdentity().displayName;
+
       await SignalChatService()
           .sendMessage(room, RoomUtil.getHelloMessage(displayName));
     }

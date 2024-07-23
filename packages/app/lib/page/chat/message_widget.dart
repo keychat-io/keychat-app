@@ -776,10 +776,10 @@ class MessageWidget extends StatelessWidget {
   }
 
   Map encryptText = {
-    'signal': 'Signal Double Ratchet Algorithm',
+    'signal': 'Signal-Double-Ratchet-Algorithm',
     'nip4': 'NIP4',
     'nip4WrapNip4': 'NIP4(NIP4(raw message))',
-    'nip4WrapSignal': 'NIP4(Signal Double Ratchet Algorithm(raw message))'
+    'nip4WrapSignal': 'NIP4(Signal-Double-Ratchet-Algorithm(raw message))'
   };
   _showRawData(Message message, NostrEventModel event, List<EventLog> eventLogs,
       [List<MessageBill> bills = const []]) {

@@ -8,6 +8,7 @@ import 'package:app/service/websocket.service.dart';
 import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
+import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 import 'package:app/global.dart';
 
@@ -32,11 +33,13 @@ class EcashController extends GetxController {
   Identity? currentIdentity;
   late ScrollController scrollController;
   late TextEditingController nameController;
+  late RefreshController refreshController;
 
   @override
   void onInit() async {
     scrollController = ScrollController();
     nameController = TextEditingController();
+    refreshController = RefreshController();
     super.onInit();
   }
 
@@ -133,14 +136,8 @@ class EcashController extends GetxController {
   void onClose() {
     nameController.dispose();
     scrollController.dispose();
+    refreshController.dispose();
     super.onClose();
-  }
-
-  Future handleRefresh() async {
-    // fetchBitcoinPrice();
-    await rustCashu.checkPending();
-    await getBalance();
-    await updateMessageStatus();
   }
 
   Future getPendingCount() async {
@@ -211,15 +208,16 @@ class EcashController extends GetxController {
     return res;
   }
 
-  int getTotalByMints([List<String> mints = const [], String token = 'sat']) {
-    if (mints.isEmpty) {
-      mints = getMintsString();
+  int getTotalByMints(
+      [List<String> mintsString = const [], String token = 'sat']) {
+    if (mintsString.isEmpty) {
+      mintsString = getMintsString();
     }
-    if (mints.isEmpty) return 0;
+    if (mintsString.isEmpty) return 0;
     int total = 0;
 
     for (var item in mintBalances) {
-      if (mints.contains(item.mint) && item.token == token) {
+      if (mintsString.contains(item.mint) && item.token == token) {
         total += item.balance;
       }
     }

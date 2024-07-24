@@ -408,16 +408,15 @@ class RoomService extends BaseChatService {
       {bool? isSystem,
       KeychatMessage? km,
       String? realMessage,
-      String? content,
+      String? decodedContent,
       bool? isRead,
       String? msgKeyHash}) async {
-    content ??= realMessage ?? km?.msg ?? '';
     MsgReply? reply;
     if (km != null) {
       if (km.type == KeyChatEventKinds.dm && km.name != null) {
         try {
           reply = MsgReply.fromJson(jsonDecode(km.name!));
-          content = km.msg!;
+          decodedContent = km.msg!;
           // ignore: empty_catches
         } catch (e) {}
       }
@@ -429,8 +428,7 @@ class RoomService extends BaseChatService {
       idPubkey = event.pubkey;
     }
 
-    var encryptType =
-        MessageService().getMessageEncryptType(event, sourceEvent);
+    var encryptType = (sourceEvent ?? event).encryptType;
     await MessageService().saveMessageToDB(
         events: [sourceEvent ?? event],
         room: room,
@@ -439,12 +437,13 @@ class RoomService extends BaseChatService {
         idPubkey: idPubkey,
         isSystem: isSystem,
         realMessage: realMessage,
-        content: content ?? '',
+        content: decodedContent ?? km?.msg ?? event.content,
         encryptType: encryptType,
         reply: reply,
         sent: SendStatusType.success,
         isMeSend: false,
         isRead: isRead,
+        createdAt: event.createdAt,
         msgKeyHash: msgKeyHash);
   }
 
@@ -676,6 +675,45 @@ class RoomService extends BaseChatService {
   Future markAllRead({required int identityId, required int roomId}) async {
     await MessageService().setViewedMessage(roomId);
     homeController.loadIdentityRoomList(identityId);
+  }
+
+  // Future sendHelloMessage(Room room, Identity identity,
+  //     {int type = KeyChatEventKinds.dmAddContactFromAlice,
+  //     String? greeting}) async {
+  //   KeychatMessage sm = await KeychatMessage(c: MessageType.signal, type: type)
+  //       .setHelloMessagge(identity, greeting: greeting);
+  //   await sendNip17Message(room, identity,
+  //       sourceContent: sm.toString(), realMessage: sm.msg);
+  //   return;
+  // }
+
+  Future sendNip17Message(Room room, Identity identity,
+      {required String sourceContent, String? realMessage}) async {
+    String result = await rustNostr.createGiftJson(
+        kind: 14,
+        senderKeys: identity.secp256k1SKHex,
+        receiverPubkey: room.toMainPubkey,
+        content: sourceContent);
+    await NostrAPI().sendAndSaveGiftMessage(
+      room.toMainPubkey,
+      sourceContent,
+      room: room,
+      encryptedEvent: result,
+      from: identity.secp256k1PKHex,
+      realMessage: realMessage,
+    );
+  }
+
+  Future sendRejectMessage(Room room) async {
+    KeychatMessage sm =
+        KeychatMessage(c: MessageType.signal, type: KeyChatEventKinds.dmReject);
+
+    await sendNip17Message(
+      room,
+      room.getIdentity(),
+      sourceContent: sm.toString(),
+      realMessage: 'Reject',
+    );
   }
 }
 

@@ -4,10 +4,13 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/models/models.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/utils.dart';
+import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
 
 import 'package:app/rust_api.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:flutter/material.dart';
@@ -61,6 +64,10 @@ class _QRCodeViewState extends State<QRCodeView> {
                 if (str.startsWith('cashu')) {
                   return _proccessCashuA(str);
                 }
+                // lighting invoice
+                if (str.startsWith('lnbc')) {
+                  return _proccessPayLightingBill(str);
+                }
                 bool isBase = isBase64(str);
                 if (isBase) {
                   QRUserModel model;
@@ -85,7 +92,7 @@ class _QRCodeViewState extends State<QRCodeView> {
                         Get.find<HomeController>().getSelectedIdentity();
                     await showMyQrCode(context, identity, false);
                   },
-                  child: const Text('Show My QRCode'),
+                  child: const Text('Show My QR Code'),
                 ))
         ]));
   }
@@ -151,5 +158,14 @@ class _QRCodeViewState extends State<QRCodeView> {
     } catch (e) {
       return handleText(str);
     }
+  }
+
+  _proccessPayLightingBill(String str) async {
+    try {
+      InvoiceInfo ii = await rustCashu.decodeInvoice(encodedInvoice: str);
+    } catch (e) {
+      return handleText(str);
+    }
+    Get.to(() => PayInvoicePage(str));
   }
 }

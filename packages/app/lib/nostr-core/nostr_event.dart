@@ -1,5 +1,8 @@
 import 'dart:convert' show jsonEncode;
 
+import 'package:app/constants.dart';
+import 'package:app/models/message.dart';
+
 class BIP340VerifyError implements Exception {
   String message = 'BIP340VerifyError';
   // BIP340VerifyError(this.message);
@@ -87,8 +90,13 @@ class NostrEventModel {
   }) {
     pubkey = pubkey.toLowerCase();
   }
-  bool get isSignal => !content.contains('?iv=');
-  bool get isNip4 => content.contains('?iv=');
+  bool get isSignal =>
+      kind == EventKinds.encryptedDirectMessage && !content.contains('?iv=');
+  bool get isNip4 =>
+      kind == EventKinds.encryptedDirectMessage && content.contains('?iv=');
+  MessageEncryptType get encryptType => kind == EventKinds.nip17
+      ? MessageEncryptType.nip17
+      : (isSignal ? MessageEncryptType.signal : MessageEncryptType.nip4);
 
   /// Partial constructor, you have to fill the fields yourself
   ///

@@ -376,7 +376,7 @@ class RelayService {
     try {
       var response = await dio.get('$url/api/v1/info');
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && response.data is Map) {
         return response.data;
       } else {
         logger.e(

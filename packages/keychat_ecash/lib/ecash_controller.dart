@@ -5,6 +5,8 @@ import 'package:app/models/embedded/relay_file_fee.dart';
 import 'package:app/models/models.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/websocket.service.dart';
+import 'package:keychat_ecash/Bills/ecash_bill_controller.dart';
+import 'package:keychat_ecash/Bills/lightning_bill_controller.dart';
 import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
@@ -86,7 +88,7 @@ class EcashController extends GetxController {
       );
       logger.i('rust api init success');
     } catch (e, s) {
-      logger.e(e.toString(), error: e, stackTrace: s);
+      logger.e('init cashu error', error: e, stackTrace: s);
     }
     await _initCashu();
   }
@@ -100,6 +102,10 @@ class EcashController extends GetxController {
         mints.value = [];
         var res = await rustCashu.initCashu(
             prepareSatsOnceTime: KeychatGlobal.cashuPrepareAmount);
+        logger.i('initCashu success');
+        for (var item in res) {
+          logger.d('${item.url} ${item.info?.nuts}');
+        }
         mints.addAll(res);
         cashuInitFailed.value = false;
         cashuInitFailed.refresh();
@@ -126,10 +132,10 @@ class EcashController extends GetxController {
           dbpath: '$dbPath${KeychatGlobal.ecashDBFile}',
           words: identity.mnemonic);
       logger.i('rust api init success');
-      await _initCashu();
     } catch (e, s) {
       logger.e(e.toString(), error: e, stackTrace: s);
     }
+    await _initCashu();
   }
 
   @override
@@ -347,7 +353,7 @@ class EcashController extends GetxController {
         return !nuts.nut04.disabled;
       }
     }
-    return false;
+    return true;
   }
 
   bool supportMelt(String mint) {
@@ -358,6 +364,21 @@ class EcashController extends GetxController {
         return !nuts.nut05.disabled;
       }
     }
-    return false;
+    return true;
+  }
+
+  Future requestPageRefresh() async {
+    var lightningBillController = Get.find<LightningBillController>();
+    await rustCashu.checkPending();
+    await getBalance();
+    await Get.find<EcashBillController>().getTransactions();
+    try {
+      List<LNTransaction> lightings =
+          await lightningBillController.getTransactions();
+      lightningBillController
+          .getPendings(lightings)
+          .then(lightningBillController.checkPendings);
+    } catch (e) {}
+    refreshController.refreshCompleted();
   }
 }

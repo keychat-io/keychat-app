@@ -1,3 +1,4 @@
+import 'package:app/constants.dart';
 import 'package:app/models/relay.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/nostr-core/nostr_nip4_req.dart';
@@ -40,20 +41,23 @@ class RelayWebsocket {
     DateTime since = await MessageService().getNostrListenStartAt(relay.url);
     List<String> pubkeys = await IdentityService().getListenPubkeys();
     startListen(pubkeys, since);
+    startListen(pubkeys, DateTime.now().subtract(const Duration(days: 2)),
+        [EventKinds.nip17]);
 
     List<String> signal = await ContactService().getAllReceiveKeys();
     startListen(signal, since);
     NostrAPI().checkFaildEvent();
   }
 
-  Future startListen(List<String> pubkeys, DateTime since) async {
+  Future startListen(List<String> pubkeys, DateTime since,
+      [List<int> kinds = const [EventKinds.encryptedDirectMessage]]) async {
     List<List<String>> groups = utils.listToGroupList(pubkeys, 120);
 
     for (List<String> group in groups) {
       String subId = utils.generate64RandomHexChars(16);
 
-      NostrNip4Req req =
-          NostrNip4Req(reqId: subId, pubkeys: group, since: since, limit: 300);
+      NostrNip4Req req = NostrNip4Req(
+          reqId: subId, kinds: kinds, pubkeys: group, since: since, limit: 300);
       try {
         sendRawREQ(req.toString());
         logger.e(

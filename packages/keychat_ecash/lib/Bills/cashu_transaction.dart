@@ -26,6 +26,24 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
   void initState() {
     tx = widget.transaction;
     super.initState();
+    if (tx.status != TransactionStatus.pending) return;
+
+    late EcashBillController ecashBillController;
+    try {
+      ecashBillController = Get.find<EcashBillController>();
+    } catch (e) {
+      ecashBillController = Get.put(EcashBillController());
+    }
+    ecashBillController.startCheckPending(tx, (ln) {
+      setState(() {
+        tx = ln;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   @override

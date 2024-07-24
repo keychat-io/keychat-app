@@ -1,3 +1,4 @@
+import 'package:app/constants.dart';
 import 'package:app/models/embedded/cashu_info.dart';
 import 'package:app/models/embedded/relay_file_fee.dart';
 import 'package:app/models/embedded/relay_message_fee.dart';
@@ -115,6 +116,23 @@ class WebsocketService extends GetxService {
 
     NostrNip4Req req = NostrNip4Req(
         reqId: subId, pubkeys: pubkeys, since: since, limit: limit);
+
+    Get.find<WebsocketService>().sendReq(req, relay);
+  }
+
+  listenPubkeyNip17(List<String> pubkeys,
+      {DateTime? since, String? relay, int? limit}) async {
+    if (pubkeys.isEmpty) return;
+
+    since ??= DateTime.now().subtract(const Duration(days: 2));
+    String subId = utils.generate64RandomHexChars(16);
+
+    NostrNip4Req req = NostrNip4Req(
+        reqId: subId,
+        pubkeys: pubkeys,
+        since: since,
+        limit: limit,
+        kinds: [EventKinds.nip17]);
 
     Get.find<WebsocketService>().sendReq(req, relay);
   }

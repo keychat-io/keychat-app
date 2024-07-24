@@ -1,3 +1,4 @@
+import 'package:app/utils.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
 
@@ -46,5 +47,25 @@ class EcashBillController extends GetxController {
     res.addAll(list);
     transactions.value = res;
     transactions.refresh();
+  }
+
+  void startCheckPending(
+      CashuTransaction tx, Function(CashuTransaction ct) callback) async {
+    if (tx.status != TransactionStatus.pending) {
+      callback(tx);
+      return;
+    }
+    while (true) {
+      Transaction item = await rustCashu.checkTransaction(id: tx.id);
+      CashuTransaction ln = item.field0 as CashuTransaction;
+      if (ln.status == TransactionStatus.success ||
+          ln.status == TransactionStatus.failed) {
+        callback(ln);
+        Get.find<EcashController>().requestPageRefresh();
+        return;
+      }
+      logger.d('Checking status: ${tx.id}');
+      await Future.delayed(const Duration(seconds: 1));
+    }
   }
 }

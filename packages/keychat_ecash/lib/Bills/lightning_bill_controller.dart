@@ -55,7 +55,7 @@ class LightningBillController extends GetxController {
       if (element.status == TransactionStatus.pending) {
         InvoiceInfo ii =
             await rustCashu.decodeInvoice(encodedInvoice: element.pr);
-        if (ii.expiryTs.toInt() > now) {
+        if (ii.expiryTs.toInt() > now || ii.expiryTs.toInt() == 0) {
           pendings.add(element);
         }
       }
@@ -86,6 +86,7 @@ class LightningBillController extends GetxController {
     }
   }
 
+  Map pendingTaskMap = {};
   void startCheckPending(LNTransaction tx, int expiryTs,
       Function(LNTransaction ln) callback) async {
     if (tx.status != TransactionStatus.pending) {
@@ -95,10 +96,12 @@ class LightningBillController extends GetxController {
     while (true) {
       Transaction item = await rustCashu.checkTransaction(id: tx.hash);
       LNTransaction ln = item.field0 as LNTransaction;
+      if (pendingTaskMap[ln.hash] == false) return;
       int now = DateTime.now().millisecondsSinceEpoch;
+
       if (ln.status == TransactionStatus.success ||
           ln.status == TransactionStatus.failed ||
-          now > expiryTs) {
+          (now > expiryTs && expiryTs > 0)) {
         callback(ln);
         ecashController.requestPageRefresh();
         return;

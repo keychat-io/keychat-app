@@ -23,7 +23,7 @@ class LightningTransactionPage extends StatefulWidget {
 class _CashuTransactionPageState extends State<LightningTransactionPage> {
   late LNTransaction tx;
   int expiryTs = 0;
-  Timer? timer;
+  LightningBillController? lightningBillController;
   @override
   void initState() {
     tx = widget.transaction;
@@ -37,13 +37,13 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
 
     if (tx.status != TransactionStatus.pending) return;
 
-    late LightningBillController lightningBillController;
     try {
       lightningBillController = Get.find<LightningBillController>();
     } catch (e) {
       lightningBillController = Get.put(LightningBillController());
     }
-    lightningBillController.startCheckPending(tx, expiryTs, (ln) {
+    lightningBillController!.pendingTaskMap[tx.hash] = true;
+    lightningBillController!.startCheckPending(tx, expiryTs, (ln) {
       setState(() {
         tx = ln;
       });
@@ -52,7 +52,7 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
 
   @override
   void dispose() {
-    timer?.cancel();
+    lightningBillController?.pendingTaskMap[tx.hash] = false;
     super.dispose();
   }
 

@@ -56,17 +56,19 @@ class SignalChatService extends BaseChatService {
     }
     final keyPair = cs.getKeyPair(room.getIdentity());
     String to = await _getSignalToAddress(keyPair, room);
+    PrekeyMessageModel? pmm;
     if (room.onetimekey != null) {
-      // prepare prekey message
       if (to == room.onetimekey) {
-        var sim = await getSignalPrekeyMessageContent(
+        pmm = await getSignalPrekeyMessageContent(
             room, room.getIdentity(), message);
-        realMessage = message;
-        message0 = sim.toString();
+        // realMessage = pmm.toString();
       }
     }
-    (Uint8List, String?, String, List<String>?) enResult = await rustSignal
-        .encryptSignal(keyPair: keyPair, ptext: message0, remoteAddress: kpa);
+    (Uint8List, String?, String, List<String>?) enResult =
+        await rustSignal.encryptSignal(
+            keyPair: keyPair,
+            ptext: pmm?.toString() ?? message0,
+            remoteAddress: kpa);
     Uint8List ciphertext = enResult.$1;
     String? myReceiverAddr;
     if (enResult.$2 != null) {
@@ -514,8 +516,8 @@ Let's talk on this server.''';
       await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
     }
     await RoomService().receiveDM(room, event, null,
-        decodedContent: decryptedContent,
-        realMessage: prekeyMessageModel.message);
+        decodedContent: prekeyMessageModel.message);
+    // todo add pre decode content
     return;
   }
 }

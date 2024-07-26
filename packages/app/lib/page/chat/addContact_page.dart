@@ -58,7 +58,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                 minLines: 1,
                 controller: _controller,
                 decoration: InputDecoration(
-                    labelText: 'Npub or QRCode String ...',
+                    labelText: 'Npub or QR Code String ...',
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
                       icon: const Icon(Icons.paste),
@@ -134,7 +134,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                   ),
                   ListTile(
                     leading: const Icon(CupertinoIcons.qrcode),
-                    title: const Text('Show My QRCode'),
+                    title: const Text('Show My QR Code'),
                     onTap: () async {
                       Identity identity =
                           Get.find<HomeController>().getSelectedIdentity();

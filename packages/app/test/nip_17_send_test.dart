@@ -45,7 +45,7 @@ void main() {
           pubkeys: [
             '918e2da906df4ccd12c8ac672d8335add131a4cf9d27ce42b3bb3625755f0788'
           ],
-          kind: EventKinds.nip17,
+          kinds: [EventKinds.nip17],
           since: DateTime.fromMillisecondsSinceEpoch(1703128310 * 1000));
       textSocketHandler.sendMessage(req.toString());
     }

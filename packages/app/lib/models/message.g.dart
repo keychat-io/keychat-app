@@ -377,12 +377,14 @@ const _MessageencryptTypeEnumValueMap = {
   'nip4WrapSignal': 1,
   'nip4': 2,
   'nip4WrapNip4': 3,
+  'nip17': 4,
 };
 const _MessageencryptTypeValueEnumMap = {
   0: MessageEncryptType.signal,
   1: MessageEncryptType.nip4WrapSignal,
   2: MessageEncryptType.nip4,
   3: MessageEncryptType.nip4WrapNip4,
+  4: MessageEncryptType.nip17,
 };
 const _MessagemediaTypeEnumValueMap = {
   'text': 0,

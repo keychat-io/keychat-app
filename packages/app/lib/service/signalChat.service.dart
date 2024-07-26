@@ -10,6 +10,7 @@ import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/chat.service.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/identity.service.dart';
+import 'package:app/service/nip4Chat.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/service/storage.dart';
@@ -18,7 +19,6 @@ import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rustSignal;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
 
-import 'package:app/service/nip4Chat.service.dart';
 import 'package:keychat_rust_ffi_plugin/api_signal.dart';
 
 import '../constants.dart';
@@ -214,8 +214,7 @@ class SignalChatService extends BaseChatService {
     await RoomService().receiveDM(
         room,
         event,
-        km: KeychatMessage(type: KeyChatEventKinds.dm, c: MessageType.signal)
-          ..msg = decodeString,
+        decodedContent: decodeString,
         sourceEvent,
         msgKeyHash: msgKeyHash);
     return decodeString;
@@ -245,15 +244,12 @@ class SignalChatService extends BaseChatService {
         break;
       case KeyChatEventKinds.dmAddContactFromAlice:
       case KeyChatEventKinds.dmAddContactFromBob:
-        RoomService().checkMessageValid(room, sourceEvent ?? event);
         await _processHelloMessage(room, event, km, sourceEvent);
         break;
       case KeyChatEventKinds.dmReject:
-        RoomService().checkMessageValid(room, sourceEvent ?? event);
         await _processReject(room, event, km, sourceEvent);
         break;
       case KeyChatEventKinds.signalRelaySyncInvite:
-        RoomService().checkMessageValid(room, sourceEvent ?? event);
         await _processRelaySyncMessage(room, event, km, sourceEvent);
         break;
       default:
@@ -346,7 +342,9 @@ class SignalChatService extends BaseChatService {
     room = await RoomService().updateRoom(room);
     room.contact = contact;
     await RoomService().receiveDM(room, event, sourceEvent,
-        km: keychatMessage, realMessage: keychatMessage.msg);
+        km: keychatMessage,
+        decodedContent: keychatMessage.toString(),
+        realMessage: keychatMessage.msg);
 
     // auto response
     if (room.status == RoomStatus.enabled &&
@@ -357,22 +355,6 @@ class SignalChatService extends BaseChatService {
           .sendMessage(room, RoomUtil.getHelloMessage(displayName));
     }
     RoomService().updateChatRoomPage(room);
-  }
-
-  Future sendHelloMessage(Room room, Identity identity,
-      {int type = KeyChatEventKinds.dmAddContactFromAlice,
-      String? onetimekey,
-      String? greeting}) async {
-    KeychatMessage sm = await KeychatMessage(c: MessageType.signal, type: type)
-        .setHelloMessagge(identity, greeting: greeting);
-    await Nip4ChatService().sendIncognitoNip4Message(
-      room,
-      sm.toString(),
-      toAddress: onetimekey,
-      realMessage: sm.msg,
-      isSystem: true,
-    );
-    return;
   }
 
   Future _processRelaySyncMessage(Room room, NostrEventModel event,
@@ -414,6 +396,22 @@ Let's talk on this server.''';
     );
   }
 
+  Future sendHelloMessage(Room room, Identity identity,
+      {int type = KeyChatEventKinds.dmAddContactFromAlice,
+      String? onetimekey,
+      String? greeting}) async {
+    KeychatMessage sm = await KeychatMessage(c: MessageType.signal, type: type)
+        .setHelloMessagge(identity, greeting: greeting);
+    await Nip4ChatService().sendIncognitoNip4Message(
+      room,
+      sm.toString(),
+      toAddress: onetimekey,
+      realMessage: sm.msg,
+      isSystem: true,
+    );
+    return;
+  }
+
   Future sendRejectMessage(Room room) async {
     KeychatMessage sm =
         KeychatMessage(c: MessageType.signal, type: KeyChatEventKinds.dmReject);
@@ -430,8 +428,8 @@ Let's talk on this server.''';
   Future _processReject(Room room, NostrEventModel event, KeychatMessage km,
       NostrEventModel? sourceEvent) async {
     room.status = RoomStatus.rejected;
-    await RoomService()
-        .receiveDM(room, event, sourceEvent, km: km, realMessage: 'Rejected');
+    await RoomService().receiveDM(room, event, sourceEvent,
+        km: km, decodedContent: km.toString(), realMessage: 'Rejected');
 
     await RoomService().updateRoom(room);
     RoomService().updateChatRoomPage(room);
@@ -516,7 +514,8 @@ Let's talk on this server.''';
       await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
     }
     await RoomService().receiveDM(room, event, null,
-        content: decryptedContent, realMessage: prekeyMessageModel.message);
+        decodedContent: decryptedContent,
+        realMessage: prekeyMessageModel.message);
     return;
   }
 }

@@ -1,3 +1,6 @@
+import 'package:intl/intl.dart' show DateFormat;
+
+import 'package:keychat_ecash/Bills/lightning_bill_controller.dart';
 import 'package:keychat_ecash/status_enum.dart';
 import 'package:app/page/components.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +22,7 @@ class LightningTransactionPage extends StatefulWidget {
 class _CashuTransactionPageState extends State<LightningTransactionPage> {
   late LNTransaction tx;
   int expiryTs = 0;
+  LightningBillController? lightningBillController;
   @override
   void initState() {
     tx = widget.transaction;
@@ -29,6 +33,26 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
     });
 
     super.initState();
+
+    if (tx.status != TransactionStatus.pending) return;
+
+    try {
+      lightningBillController = Get.find<LightningBillController>();
+    } catch (e) {
+      lightningBillController = Get.put(LightningBillController());
+    }
+    lightningBillController!.pendingTaskMap[tx.hash] = true;
+    lightningBillController!.startCheckPending(tx, expiryTs, (ln) {
+      setState(() {
+        tx = ln;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    lightningBillController?.pendingTaskMap[tx.hash] = false;
+    super.dispose();
   }
 
   @override
@@ -48,7 +72,7 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
                 CashuStatus.getStatusIcon(tx.status, 60),
                 if (tx.status == TransactionStatus.pending && expiryTs > 0)
                   Text(
-                      'Expired At: ${DateTime.fromMillisecondsSinceEpoch(expiryTs).toIso8601String()}'),
+                      'Expire At: ${DateFormat("yyyy-MM-ddTHH:mm:ss").format(DateTime.fromMillisecondsSinceEpoch(expiryTs))}'),
                 const SizedBox(
                   height: 15,
                 ),
@@ -70,16 +94,16 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
                 Padding(
                     padding: const EdgeInsets.only(top: 10, bottom: 10),
                     child: genQRImage(tx.pr,
-                        size: 200, embeddedImageSize: 0, embeddedImage: null)),
+                        size: 300, embeddedImageSize: 0, embeddedImage: null)),
                 if (tx.fee != null)
                   Text('Fee: ${tx.fee} ${EcashTokenSymbol.sat.name}'),
                 textSmallGray(context, 'Hash: ${tx.hash}',
-                    overflow: TextOverflow.clip),
+                    overflow: TextOverflow.ellipsis),
                 textSmallGray(context, 'Mint: ${tx.mint}'),
                 textSmallGray(context,
                     'Created At: ${DateTime.fromMillisecondsSinceEpoch(tx.time.toInt()).toIso8601String()}'),
                 const SizedBox(
-                  height: 50,
+                  height: 20,
                 ),
                 OutlinedButton.icon(
                     onPressed: () {

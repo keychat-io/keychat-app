@@ -390,7 +390,7 @@ class _MyListViewState extends State<RoomList> {
                   style: ButtonStyle(
                       minimumSize: WidgetStateProperty.all(
                           const Size(double.infinity, 40))),
-                  child: const Text('Show My QRCode')),
+                  child: const Text('Show My QR Code')),
               const SizedBox(
                 height: 20,
               ),

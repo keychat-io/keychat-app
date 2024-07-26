@@ -8,19 +8,19 @@ class NostrNip4Req {
   List<String> pubkeys = [];
   late DateTime since;
   int? limit;
-  late int kind;
+  List<int> kinds = [EventKinds.encryptedDirectMessage];
 
   NostrNip4Req(
       {required this.reqId,
       required this.pubkeys,
       required this.since,
-      this.kind = EventKinds.encryptedDirectMessage,
+      this.kinds = const [EventKinds.encryptedDirectMessage],
       this.limit});
   @override
   String toString() {
     return Request(reqId, [
       Filter(
-        kinds: [kind],
+        kinds: kinds,
         p: pubkeys,
         limit: limit,
         since: since.millisecondsSinceEpoch ~/ 1000,

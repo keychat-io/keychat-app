@@ -177,7 +177,7 @@ class GroupService extends BaseChatService {
     if (newPrikey == null) throw Exception('newPrikey is null');
     String oldToRoomPubKey = roomProfile.oldToRoomPubKey!;
     List<dynamic> users = roomProfile.users;
-    String newPubkey = await rustNostr.getHexPubkeyByPrikey(prikey: newPrikey);
+    String newPubkey = rustNostr.getHexPubkeyByPrikey(prikey: newPrikey);
 
     Room? room =
         await roomService.getRoomByIdentity(oldToRoomPubKey, idRoom.identityId);

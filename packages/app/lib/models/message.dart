@@ -9,7 +9,7 @@ part 'message.g.dart';
 
 enum SendStatusType { sending, success, partialSuccess, failed }
 
-enum MessageEncryptType { signal, nip4WrapSignal, nip4, nip4WrapNip4 }
+enum MessageEncryptType { signal, nip4WrapSignal, nip4, nip4WrapNip4, nip17 }
 
 enum MessageMediaType {
   text,

@@ -88,6 +88,7 @@ class IdentityService {
 
     await Get.find<HomeController>().loadRoomList(init: true);
     Get.find<WebsocketService>().listenPubkey([keychain.pubkey]);
+    Get.find<WebsocketService>().listenPubkeyNip17([keychain.pubkey]);
     NotifyService.addPubkeys([keychain.pubkey]);
     return iden;
   }

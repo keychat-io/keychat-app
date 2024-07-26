@@ -1,5 +1,3 @@
-// ignore_for_file: depend_on_referenced_packages
-
 import 'package:app/app.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/theme.dart';
@@ -59,13 +57,7 @@ class CashuPage extends GetView<EcashController> {
         body: SmartRefresher(
           enablePullDown: true,
           header: const WaterDropHeader(),
-          onRefresh: () async {
-            await rustCashu.checkPending();
-            await controller.getBalance();
-            await ecashBillController.getTransactions();
-            await lightningBillController.getTransactions();
-            controller.refreshController.refreshCompleted();
-          },
+          onRefresh: controller.requestPageRefresh,
           controller: controller.refreshController,
           child: ListView(
             children: [
@@ -187,8 +179,10 @@ class CashuPage extends GetView<EcashController> {
                                               } catch (e, s) {
                                                 logger.e(e.toString(),
                                                     error: e, stackTrace: s);
-                                                EasyLoading.showError(
-                                                    e.toString());
+                                                String msg =
+                                                    Utils.getErrorMessage(e);
+                                                EasyLoading.showToast(
+                                                    'Exception: $msg');
                                               }
                                             },
                                           )
@@ -790,7 +784,6 @@ class CashuPage extends GetView<EcashController> {
             await showModalBottomSheetWidget(
                 context, '', const CreateInvoicePage(),
                 showAppBar: false);
-            lightningBillController.getTransactions();
           },
         ),
       ])

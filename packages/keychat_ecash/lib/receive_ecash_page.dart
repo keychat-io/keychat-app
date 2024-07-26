@@ -55,12 +55,6 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
         body: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 10),
             child: Column(children: [
-              // Center(
-              //   child: Text(
-              //     'Receive Ecash',
-              //     style: Theme.of(context).textTheme.titleLarge,
-              //   ),
-              // ),
               Form(
                 autovalidateMode: AutovalidateMode.onUserInteraction,
                 child: Expanded(
@@ -126,6 +120,7 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
                   try {
                     await CashuUtil.handleReceiveToken(token: encodedToken);
                     receiveTextController.clear();
+                    controller.requestPageRefresh();
                     setState(() {
                       decodedModel = null;
                     });

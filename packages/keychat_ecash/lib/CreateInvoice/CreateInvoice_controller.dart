@@ -1,4 +1,5 @@
 import 'package:app/utils.dart';
+import 'package:keychat_ecash/Bills/lightning_bill_controller.dart';
 import 'package:keychat_ecash/Bills/lightning_transaction.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
 import 'package:flutter/material.dart';
@@ -9,6 +10,8 @@ import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 
 class CreateInvoiceController extends GetxController {
   EcashController cashuController = Get.find<EcashController>();
+  LightningBillController lightningBillController =
+      Get.find<LightningBillController>();
   late TextEditingController textController;
   RxString selectedMint = ''.obs;
   @override
@@ -43,12 +46,15 @@ class CreateInvoiceController extends GetxController {
       LNTransaction ln = tr.field0 as LNTransaction;
       EasyLoading.dismiss();
       EasyLoading.showToast('Create Successfully');
-      Get.off(() => LightningTransactionPage(transaction: ln));
-    } catch (e) {
-      EasyLoading.dismiss();
+      textController.clear();
+      await Get.off(() => LightningTransactionPage(transaction: ln));
+    } catch (e, s) {
       String msg = Utils.getErrorMessage(e);
-
       EasyLoading.showToast('Exception: $msg');
+      logger.e(msg, error: e, stackTrace: s);
     }
+    var ecashController = Get.find<EcashController>();
+    await ecashController.refreshController.requestRefresh();
+    await ecashController.requestPageRefresh();
   }
 }

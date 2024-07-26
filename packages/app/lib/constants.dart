@@ -67,6 +67,7 @@ class EventKinds {
   static const int delete = 5;
   static const int reaction = 7;
   static const int nip42 = 22242;
+  static const int nip17 = 1059;
   // Channels
   // CHANNEL_CREATION = 40;
   // CHANNEL_METADATA = 41;

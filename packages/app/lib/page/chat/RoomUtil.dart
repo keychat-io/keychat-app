@@ -31,7 +31,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart' hide Contact;
 import 'package:settings_ui/settings_ui.dart';
 
 class RoomUtil {
@@ -430,7 +430,7 @@ Let's start an encrypted chat.''';
     if (model.time <
         DateTime.now().millisecondsSinceEpoch -
             1000 * 3600 * KeychatGlobal.oneTimePubkeysLifetime) {
-      EasyLoading.showToast('QRCode expired');
+      EasyLoading.showToast('QR Code expired');
       return;
     }
     Identity identity = Get.find<HomeController>().getSelectedIdentity();
@@ -446,7 +446,7 @@ Let's start an encrypted chat.''';
         content: needVerifySignStr,
         hash: true);
     if (!sign) {
-      EasyLoading.showToast('QRCode globalSign error');
+      EasyLoading.showToast('QR Code globalSign error');
       return;
     }
 

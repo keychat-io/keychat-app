@@ -87,7 +87,7 @@ class MessageWidget extends StatelessWidget {
           ),
         ),
         getMessageWidget(message),
-        encryptInfo(),
+        // encryptInfo(),
         Obx(() => getFromAndToWidget(context, message))
       ],
     );
@@ -778,6 +778,7 @@ class MessageWidget extends StatelessWidget {
   Map encryptText = {
     'signal': 'Signal-Double-Ratchet-Algorithm',
     'nip4': 'NIP4',
+    'nip17': 'NIP17',
     'nip4WrapNip4': 'NIP4(NIP4(raw message))',
     'nip4WrapSignal': 'NIP4(Signal-Double-Ratchet-Algorithm(raw message))'
   };

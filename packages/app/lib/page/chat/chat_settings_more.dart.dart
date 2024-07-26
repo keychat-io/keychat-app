@@ -77,7 +77,8 @@ class ChatSettingsMoreDart extends StatelessWidget {
                             onPressed: () async {
                               await SignalChatService().sendHelloMessage(
                                   chatController.room,
-                                  chatController.room.getIdentity());
+                                  chatController.room.getIdentity(),
+                                  greeting: 'Reset signal session status');
                               EasyLoading.showInfo(
                                   'Request sent successfully.');
                               Get.back();

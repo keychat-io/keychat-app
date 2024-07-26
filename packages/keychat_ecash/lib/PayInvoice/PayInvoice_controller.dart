@@ -1,8 +1,7 @@
-import 'package:keychat_ecash/Bills/ecash_bill_controller.dart';
-import 'package:keychat_ecash/Bills/lightning_bill_controller.dart';
 import 'package:keychat_ecash/Bills/lightning_transaction.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
+import 'package:intl/intl.dart' show DateFormat;
 
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
@@ -12,13 +11,15 @@ import 'package:keychat_rust_ffi_plugin/api_cashu.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 
 class PayInvoiceController extends GetxController {
+  String? invoice;
+  PayInvoiceController([this.invoice]);
   late TextEditingController textController;
 
   RxString selectedMint = ''.obs;
   @override
   void onInit() {
     selectedMint.value = Get.find<EcashController>().latestMintUrl.value;
-    textController = TextEditingController();
+    textController = TextEditingController(text: invoice);
     super.onInit();
   }
 
@@ -41,7 +42,7 @@ class PayInvoiceController extends GetxController {
         title: Text('Pay ${ii.amount} ${EcashTokenSymbol.sat.name}'),
         content: Text('''
 
-Expire At: ${DateTime.fromMillisecondsSinceEpoch(ii.expiryTs.toInt()).toIso8601String()}
+Expire At: ${DateFormat("yyyy-MM-ddTHH:mm:ss").format(DateTime.fromMillisecondsSinceEpoch(ii.expiryTs.toInt()))}
 
 Hash: ${ii.hash}
 '''),
@@ -53,6 +54,7 @@ Hash: ${ii.hash}
             },
           ),
           CupertinoDialogAction(
+            isDefaultAction: true,
             child: cc.getBalanceByMint(mint) > ii.amount.toInt()
                 ? const Text('Confirm')
                 : const Text('Not Enough Funds'),
@@ -65,12 +67,10 @@ Hash: ${ii.hash}
                 EasyLoading.show(status: 'Proccess...');
                 var tx =
                     await rustCashu.melt(invoice: invoice, activeMint: mint);
-                Get.back(); // hide dialog
+                EasyLoading.showSuccess('Success');
+                Get.back();
                 textController.clear();
-                cc.getBalance();
-                Get.find<LightningBillController>().getTransactions();
-                Get.find<EcashBillController>().getTransactions();
-                EasyLoading.dismiss();
+                cc.requestPageRefresh();
                 Get.off(() => LightningTransactionPage(
                     transaction: tx.field0 as LNTransaction));
               } catch (e) {

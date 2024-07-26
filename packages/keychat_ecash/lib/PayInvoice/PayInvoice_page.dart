@@ -13,7 +13,10 @@ import 'package:permission_handler/permission_handler.dart';
 import './PayInvoice_controller.dart';
 
 class PayInvoicePage extends StatefulWidget {
-  const PayInvoicePage({super.key});
+  final String? invoce;
+  const PayInvoicePage([
+    this.invoce,
+  ]);
 
   @override
   _PayInvoicePageState createState() => _PayInvoicePageState();
@@ -21,9 +24,10 @@ class PayInvoicePage extends StatefulWidget {
 
 class _PayInvoicePageState extends State<PayInvoicePage> {
   late EcashController cashuController;
-
+  late PayInvoiceController controller;
   @override
   void initState() {
+    controller = Get.put(PayInvoiceController(widget.invoce));
     cashuController = Get.find<EcashController>();
     cashuController.getBalance();
     super.initState();
@@ -31,12 +35,14 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
 
   @override
   Widget build(BuildContext context) {
-    PayInvoiceController controller = Get.put(PayInvoiceController());
     return Scaffold(
         appBar: AppBar(
           leading: Container(),
           centerTitle: true,
-          title: const Text('Send to LightingNetwork'),
+          title: Text(
+            'Send to LightingNetwork',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
         ),
         body: SafeArea(
             child: Padding(

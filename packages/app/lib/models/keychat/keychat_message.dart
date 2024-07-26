@@ -3,6 +3,7 @@ import 'dart:convert' show jsonEncode;
 import 'package:app/constants.dart';
 
 import 'package:app/models/models.dart';
+import 'package:app/models/signal_id.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/group.service.dart';
 import 'package:app/service/room.service.dart';
@@ -55,17 +56,24 @@ class KeychatMessage {
   Future<KeychatMessage> setHelloMessagge(Identity identity,
       {String? greeting, String? relay}) async {
     // String? relay = await RelayService().getDefaultOnlineRelay();
-    Map userInfo = await Get.find<ChatxService>().getQRCodeData(identity);
     List<Mykey> oneTimeKeys =
         await ChatxService().getOneTimePubkey(identity.id);
     String onetimekey = '';
     if (oneTimeKeys.isNotEmpty) {
       onetimekey = oneTimeKeys.first.pubkey;
     }
+    List<SignalId> signalIds = await ChatxService().getSignalIds(identity.id);
+    String signalIdPubkey = '';
+    if (signalIds.isNotEmpty) {
+      signalIdPubkey = signalIds.first.pubkey;
+    }
+    Map userInfo =
+        await Get.find<ChatxService>().getQRCodeData(identity, signalIds.first);
+
     Map<String, dynamic> data = {
       'name': identity.displayName,
       'pubkey': identity.secp256k1PKHex,
-      'curve25519PkHex': identity.curve25519PkHex,
+      'curve25519PkHex': signalIdPubkey,
       'onetimekey': onetimekey,
       'time': -1,
       'relay': "",

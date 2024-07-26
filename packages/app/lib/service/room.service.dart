@@ -19,6 +19,7 @@ import '../constants.dart';
 import '../controller/chat.controller.dart';
 import '../controller/home.controller.dart';
 import '../models/db_provider.dart';
+import '../models/signal_id.dart';
 import '../nostr-core/nostr.dart';
 import 'contact.service.dart';
 import 'file_util.dart';
@@ -57,10 +58,12 @@ class RoomService extends BaseChatService {
       String? name,
       Contact? contact,
       String? curve25519PkHex,
-      String? onetimekey}) async {
+      String? onetimekey,
+      SignalId? signalId}) async {
     int identityId = identity.id;
     Room? exist = await getRoomByIdentity(toMainPubkey, identityId);
     if (exist != null) return exist;
+    signalId ??= await createSignalId(identityId);
     Room room = Room(
       toMainPubkey: toMainPubkey,
       identityId: identityId,
@@ -70,7 +73,8 @@ class RoomService extends BaseChatService {
       ..onetimekey = onetimekey
       ..status = status
       ..encryptMode = encryptMode
-      ..curve25519PkHex = curve25519PkHex;
+      ..curve25519PkHex = curve25519PkHex
+      ..signalIdPubkey = signalId!.pubkey;
 
     if (toMainPubkey == identity.secp256k1PKHex) {
       room.encryptMode = EncryptMode.nip04;

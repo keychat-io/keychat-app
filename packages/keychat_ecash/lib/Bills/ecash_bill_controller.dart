@@ -1,4 +1,3 @@
-import 'package:app/utils.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
 
@@ -64,7 +63,7 @@ class EcashBillController extends GetxController {
         Get.find<EcashController>().requestPageRefresh();
         return;
       }
-      logger.d('Checking status: ${tx.id}');
+      // logger.d('Checking status: ${tx.id}');
       await Future.delayed(const Duration(seconds: 1));
     }
   }

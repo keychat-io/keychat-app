@@ -694,7 +694,7 @@ class CashuPage extends GetView<EcashController> {
                       //     binding: PayInvoiceBindings(),
                       //     transition: Transition.downToUp);
                       await showModalBottomSheetWidget(
-                          context, '', PayInvoicePage(),
+                          context, '', const PayInvoicePage(),
                           showAppBar: false);
                       lightningBillController.getTransactions();
                     },
@@ -756,7 +756,8 @@ class CashuPage extends GetView<EcashController> {
         SettingsTile.navigation(
           title: const Text('Send to Lighting Network'),
           onPressed: (context) async {
-            await showModalBottomSheetWidget(context, '', PayInvoicePage(),
+            await showModalBottomSheetWidget(
+                context, '', const PayInvoicePage(),
                 showAppBar: false);
             lightningBillController.getTransactions();
           },

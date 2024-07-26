@@ -429,6 +429,12 @@ class RoomService extends BaseChatService {
     }
 
     var encryptType = (sourceEvent ?? event).encryptType;
+    // todo delete for nip17
+    if (encryptType == MessageEncryptType.nip4 && sourceEvent != null) {
+      if (sourceEvent.encryptType == MessageEncryptType.nip4) {
+        encryptType = MessageEncryptType.nip4WrapNip4;
+      }
+    }
     await MessageService().saveMessageToDB(
         events: [sourceEvent ?? event],
         room: room,

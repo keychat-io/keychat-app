@@ -1,4 +1,3 @@
-import 'dart:async' show Timer;
 import 'package:intl/intl.dart' show DateFormat;
 
 import 'package:keychat_ecash/Bills/lightning_bill_controller.dart';

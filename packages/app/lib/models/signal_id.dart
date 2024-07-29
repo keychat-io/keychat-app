@@ -1,9 +1,5 @@
-import 'package:convert/convert.dart';
 import 'package:equatable/equatable.dart';
 import 'package:isar/isar.dart';
-import '../models/db_provider.dart';
-import 'package:app/global.dart';
-import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rustSignal;
 
 part 'signal_id.g.dart';
 
@@ -27,82 +23,19 @@ class SignalId extends Equatable {
   late DateTime updatedAt;
 
   SignalId(
-      {required this.prikey, required this.identityId, required this.pubkey}) {
+      {required this.pubkey, required this.prikey, required this.identityId}) {
     createdAt = DateTime.now();
     updatedAt = DateTime.now();
   }
 
   @override
-  List get props => [id, pubkey, prikey];
-}
-
-Future createSignalId(int identityId) async {
-  Isar database = DBProvider.database;
-  var keychain = await rustSignal.generateSignalIds();
-  var signalId = SignalId(
-      prikey: hex.encode(keychain.$1),
-      identityId: identityId,
-      pubkey: hex.encode(keychain.$2))
-    ..isUsed = false;
-  await database.writeTxn(() async {
-    await database.signalIds.put(signalId);
-  });
-  return signalId;
-}
-
-Future<SignalId?> isFromSignalId(String toAddress) async {
-  var res = await DBProvider.database.signalIds
-      .filter()
-      .pubkeyEqualTo(toAddress)
-      .findAll();
-  return res.isNotEmpty ? res[0] : null;
-}
-
-Future<List<SignalId>> getSignalAllIds() async {
-  return await DBProvider.database.signalIds
-      .filter()
-      .isUsedEqualTo(false)
-      .sortByCreatedAt()
-      .findAll();
-}
-
-Future<List<SignalId>> getSignalIdByIdentity(int identityId) async {
-  return await DBProvider.database.signalIds
-      .filter()
-      .identityIdEqualTo(identityId)
-      .isUsedEqualTo(false)
-      .sortByCreatedAt()
-      .findAll();
-}
-
-SignalId? getSignalIdByPubkey(String pubkey) {
-  return DBProvider.database.signalIds
-      .filter()
-      .pubkeyEqualTo(pubkey)
-      .findFirstSync();
-}
-
-SignalId? getSignalIdByKeyId(int signalKeyId) {
-  return DBProvider.database.signalIds
-      .filter()
-      .signalKeyIdEqualTo(signalKeyId)
-      .findFirstSync();
-}
-
-Future updateSignalId(SignalId si) async {
-  Isar database = DBProvider.database;
-  await database.writeTxn(() async {
-    await database.signalIds.put(si);
-  });
-}
-
-Future deleteExpiredSignalIds() async {
-  await DBProvider.database.writeTxn(() async {
-    await DBProvider.database.signalIds
-        .filter()
-        .isUsedEqualTo(true)
-        .updatedAtLessThan(DateTime.now()
-            .subtract(const Duration(hours: KeychatGlobal.signalIdLifetime)))
-        .deleteAll();
-  });
+  List get props => [
+        id,
+        pubkey,
+        prikey,
+        identityId,
+        isUsed,
+        needDelete,
+        signalKeyId,
+      ];
 }

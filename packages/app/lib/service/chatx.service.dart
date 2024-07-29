@@ -51,8 +51,9 @@ class ChatxService extends GetxService {
 
   Future<List<SignalId>> getSignalIds(int identityId) async {
     // delete expired signal ids
-    await deleteExpiredSignalIds();
-    List<SignalId> signalIds = await getSignalIdByIdentity(identityId);
+    // await deleteExpiredSignalIds();
+    List<SignalId> signalIds =
+        await IdentityService().getSignalIdByIdentity(identityId);
     if (signalIds.length < KeychatGlobal.oneTimePubkeysPoolLength) {
       List<SignalId> signalIds2 = await _generateSignalIds(identityId,
           KeychatGlobal.oneTimePubkeysPoolLength - signalIds.length);
@@ -130,7 +131,7 @@ class ChatxService extends GetxService {
       // for (var element in identities) {
       //   await setupIdentitySignalStore(element);
       // }
-      var signalIds = await getSignalAllIds();
+      var signalIds = await IdentityService().getSignalAllIds();
       for (var signalId in signalIds) {
         await setupIdentitySignalStore2(signalId);
       }
@@ -157,7 +158,8 @@ class ChatxService extends GetxService {
     if (keypairs2[signalIdPubkey] != null) {
       return keypairs2[signalIdPubkey]!;
     }
-    String signalIdPrikey = getSignalIdByPubkey(signalIdPubkey)!.prikey;
+    String signalIdPrikey =
+        IdentityService().getSignalIdByPubkey(signalIdPubkey)!.prikey;
 
     KeychatIdentityKeyPair identityKeyPair = KeychatIdentityKeyPair(
         identityKey: U8Array33(Uint8List.fromList(hex.decode(signalIdPubkey))),
@@ -224,7 +226,7 @@ class ChatxService extends GetxService {
   Future<List<SignalId>> _generateSignalIds(int identityId, int num) async {
     List<SignalId> signalIds = [];
     for (var i = 0; i < num; i++) {
-      SignalId signalId = await createSignalId(identityId);
+      SignalId signalId = await IdentityService().createSignalId(identityId);
       signalIds.add(signalId);
     }
     return signalIds;
@@ -232,11 +234,13 @@ class ChatxService extends GetxService {
 
   Future getQRCodeData(Identity identity, SignalId signalId) async {
     var keypair = getKeyPair2(signalId.pubkey);
+
     var signalPrivateKey = Uint8List.fromList(hex.decode(signalId.prikey));
     var res = await rustSignal.generateSignedKeyApi(
         keyPair: keypair, signalIdentityPrivateKey: signalPrivateKey);
+
     signalId.signalKeyId = res.$1;
-    await updateSignalId(signalId);
+    await IdentityService().updateSignalId(signalId);
     Map<String, dynamic> data = {};
     data['signedId'] = res.$1;
     data['signedPublic'] = hex.encode(res.$2);

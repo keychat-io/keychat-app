@@ -162,7 +162,7 @@ class _MyQRCodeState extends State<MyQRCode> {
       SignalId signalId, int? time) async {
     // String? relay = await RelayService().getDefaultOnlineRelay();
     Map userInfo =
-        await Get.find<ChatxService>().getQRCodeData(identity, signalId);
+        await Get.put(ChatxService()).getQRCodeData(identity, signalId);
     String globalSignStr =
         "Keychat-${identity.secp256k1PKHex}-${signalId.pubkey}-$time";
     // add gloabl sign

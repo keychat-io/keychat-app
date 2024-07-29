@@ -1,11 +1,13 @@
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
+import 'package:app/models/signal_id.dart';
 
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/websocket.service.dart';
+import 'package:convert/convert.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
@@ -287,5 +289,77 @@ class IdentityService {
     }
     prikeys[pubkey] = prikey;
     return prikey;
+  }
+
+  Future createSignalId(int identityId) async {
+    Isar database = DBProvider.database;
+    var keychain = await rustSignal.generateSignalIds();
+    var signalId = SignalId(
+        prikey: hex.encode(keychain.$1),
+        identityId: identityId,
+        pubkey: hex.encode(keychain.$2))
+      ..isUsed = false;
+    await database.writeTxn(() async {
+      await database.signalIds.put(signalId);
+    });
+    await ChatxService().setupIdentitySignalStore2(signalId);
+    return signalId;
+  }
+
+  Future<SignalId?> isFromSignalId(String toAddress) async {
+    var res = await DBProvider.database.signalIds
+        .filter()
+        .pubkeyEqualTo(toAddress)
+        .findAll();
+    return res.isNotEmpty ? res[0] : null;
+  }
+
+  Future<List<SignalId>> getSignalAllIds() async {
+    return await DBProvider.database.signalIds
+        .filter()
+        .isUsedEqualTo(false)
+        .sortByCreatedAt()
+        .findAll();
+  }
+
+  Future<List<SignalId>> getSignalIdByIdentity(int identityId) async {
+    return await DBProvider.database.signalIds
+        .filter()
+        .identityIdEqualTo(identityId)
+        .isUsedEqualTo(false)
+        .sortByCreatedAt()
+        .findAll();
+  }
+
+  SignalId? getSignalIdByPubkey(String pubkey) {
+    return DBProvider.database.signalIds
+        .filter()
+        .pubkeyEqualTo(pubkey)
+        .findFirstSync();
+  }
+
+  SignalId? getSignalIdByKeyId(int signalKeyId) {
+    return DBProvider.database.signalIds
+        .filter()
+        .signalKeyIdEqualTo(signalKeyId)
+        .findFirstSync();
+  }
+
+  Future updateSignalId(SignalId si) async {
+    Isar database = DBProvider.database;
+    await database.writeTxn(() async {
+      await database.signalIds.put(si);
+    });
+  }
+
+  Future deleteExpiredSignalIds() async {
+    await DBProvider.database.writeTxn(() async {
+      await DBProvider.database.signalIds
+          .filter()
+          .isUsedEqualTo(true)
+          .updatedAtLessThan(DateTime.now()
+              .subtract(const Duration(hours: KeychatGlobal.signalIdLifetime)))
+          .deleteAll();
+    });
   }
 }

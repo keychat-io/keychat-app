@@ -469,7 +469,7 @@ Let's talk on this server.''';
     var prekey = await rustSignal.parseIdentityFromPrekeySignalMessage(
         ciphertext: ciphertext);
     String signalIdPubkey = prekey.$1;
-    SignalId? singalId = getSignalIdByKeyId(prekey.$2);
+    SignalId? singalId = IdentityService().getSignalIdByKeyId(prekey.$2);
     Identity identity =
         Get.find<HomeController>().identities[mykey.identityId]!;
 

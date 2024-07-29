@@ -63,7 +63,8 @@ class RoomService extends BaseChatService {
     int identityId = identity.id;
     Room? exist = await getRoomByIdentity(toMainPubkey, identityId);
     if (exist != null) return exist;
-    signalId ??= await createSignalId(identityId);
+    signalId ??= await IdentityService().createSignalId(identityId);
+
     Room room = Room(
       toMainPubkey: toMainPubkey,
       identityId: identityId,

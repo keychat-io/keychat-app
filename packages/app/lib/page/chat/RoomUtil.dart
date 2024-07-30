@@ -1,8 +1,11 @@
 import 'dart:convert' show jsonDecode;
+import 'package:app/constants.dart';
 import 'package:app/global.dart';
 import 'package:app/models/contact.dart';
+import 'package:app/models/embedded/msg_reply.dart';
 import 'package:app/models/event_log.dart';
 import 'package:app/models/identity.dart';
+import 'package:app/models/keychat/group_message.dart';
 import 'package:app/models/keychat/qrcode_user_model.dart';
 import 'package:app/page/chat/ChatMediaFilesPage.dart';
 import 'package:app/page/chat/contact_page.dart';
@@ -35,6 +38,23 @@ import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart' hide Contact;
 import 'package:settings_ui/settings_ui.dart';
 
 class RoomUtil {
+  static GroupMessage getGroupMessage(Room room, String message,
+      {int? subtype,
+      required String pubkey,
+      String? ext,
+      String? sig,
+      MsgReply? reply}) {
+    GroupMessage gm = GroupMessage(message: message, pubkey: pubkey, sig: sig)
+      ..subtype = subtype
+      ..ext = ext;
+
+    if (reply != null) {
+      gm.subtype = KeyChatEventKinds.dm;
+      gm.ext = reply.toString(); // EventId
+    }
+    return gm;
+  }
+
   static String getHelloMessage(String name) {
     return '''
 😄 Hi, I'm $name.
@@ -461,5 +481,37 @@ Let's start an encrypted chat.''';
           contact: contact,
           title: 'Add Contact',
         )..model = model);
+  }
+
+  static String getGroupModeName(GroupType type) {
+    switch (type) {
+      case GroupType.shareKey:
+        return 'Shared Key';
+      case GroupType.kdf:
+        return 'KDF Group';
+      case GroupType.sendAll:
+        return 'Pairwise';
+      default:
+    }
+    return 'common';
+  }
+
+  static String getGroupModeDescription(GroupType type) {
+    switch (type) {
+      case GroupType.kdf:
+        return '''1. All members hold a same nostr private key and a same signal key pair.
+2. Encrypt message by signal protocol''';
+      case GroupType.shareKey:
+        return '''1. Members < 30
+2. All members hold the same private key''';
+      case GroupType.sendAll:
+        return '''1. All members must already be one-to-one friends with each other on Keychat.
+When a group member sends a message in the group, it is essentially sending a one-to-one message to each group member, which is more secure and costly.
+2. All members must already be one-to-one friends with each other on Keychat.
+3. When a group member sends a message in the group, it is essentially sending a one-to-one message to each group member, which is more secure and costly.
+''';
+      default:
+    }
+    return 'common';
   }
 }

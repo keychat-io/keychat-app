@@ -45,4 +45,5 @@ Map<String, dynamic> _$RoomProfileToJson(RoomProfile instance) {
 const _$GroupTypeEnumMap = {
   GroupType.shareKey: 'shareKey',
   GroupType.sendAll: 'sendAll',
+  GroupType.kdf: 'kdf',
 };

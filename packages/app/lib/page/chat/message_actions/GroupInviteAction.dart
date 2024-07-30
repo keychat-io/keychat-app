@@ -30,27 +30,26 @@ class GroupInviteAction extends StatelessWidget {
               EasyThrottle.throttle('joingroup', const Duration(seconds: 2),
                   () async {
                 late RoomProfile roomProfile;
-                try {
-                  roomProfile =
-                      RoomProfile.fromJson(jsonDecode(message.content));
-                  bool? accept = await Get.bottomSheet(
-                      ignoreSafeArea: false,
-                      isScrollControlled: true,
-                      GroupInfoWidget(roomProfile, identity.secp256k1PKHex));
-                  if (accept == null) return;
-                  message.requestConfrim = accept == true
-                      ? RequestConfrimEnum.approved
-                      : RequestConfrimEnum.rejected;
-                  message.isRead = true;
-                  if (accept == false) {
-                    await MessageService().updateMessageAndRefresh(message);
-                    return;
-                  }
 
+                roomProfile = RoomProfile.fromJson(jsonDecode(message.content));
+                bool? accept = await Get.bottomSheet(
+                    ignoreSafeArea: false,
+                    isScrollControlled: true,
+                    GroupInfoWidget(roomProfile, identity.secp256k1PKHex));
+                if (accept == null) return;
+                message.requestConfrim = accept == true
+                    ? RequestConfrimEnum.approved
+                    : RequestConfrimEnum.rejected;
+                message.isRead = true;
+                if (accept == false) {
+                  await MessageService().updateMessageAndRefresh(message);
+                  return;
+                }
+                Room? groupRoom;
+                try {
                   // accept
                   EasyLoading.show(status: 'Loading...');
                   Isar database = DBProvider.database;
-                  Room? groupRoom;
                   await database.writeTxn(() async {
                     await database.messages.put(message);
                     groupRoom =
@@ -66,20 +65,25 @@ class GroupInviteAction extends StatelessWidget {
                         groupRoom!, '${identity.displayName} joined group.',
                         subtype: KeyChatEventKinds.groupHi,
                         sentCallback: (res) {});
+                  } else if (groupRoom!.isKDFGroup) {
+                    await GroupService().sendMessage(
+                        groupRoom!, '${identity.displayName} joined group.',
+                        subtype: KeyChatEventKinds.groupHi,
+                        sentCallback: (res) {});
                   }
                   MessageService().refreshMessageInPage(message);
-                  EasyLoading.dismiss();
                   EasyLoading.showSuccess('Join group success');
-                  await Get.offAndToNamed('/room/${groupRoom!.id}',
-                      arguments: groupRoom);
-                  await Get.find<HomeController>()
-                      .loadIdentityRoomList(groupRoom!.identityId);
                 } catch (e, s) {
-                  EasyLoading.dismiss();
                   logger.e(e.toString(), error: e, stackTrace: s);
-                  EasyLoading.showError('room info error: ${e.toString()}',
+                  EasyLoading.showError('Join Group Error: ${e.toString()}',
                       duration: const Duration(seconds: 2));
+                  return;
                 }
+
+                await Get.offAndToNamed('/room/${groupRoom!.id}',
+                    arguments: groupRoom);
+                await Get.find<HomeController>()
+                    .loadIdentityRoomList(groupRoom!.identityId);
               });
             },
             child: const Text('Group Info >'));

@@ -1,5 +1,4 @@
-import 'package:app/global.dart';
-import 'package:app/models/embedded/relay_message_fee.dart';
+import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/addGroupSelectMember.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:flutter/material.dart';
@@ -10,33 +9,25 @@ import 'package:app/models/models.dart';
 import '../../service/contact.service.dart';
 import '../../service/group.service.dart';
 
-class AddGroup extends StatefulWidget {
-  const AddGroup({super.key});
+class AddGroupPage extends StatefulWidget {
+  const AddGroupPage({super.key});
 
   @override
-  State<StatefulWidget> createState() => _AddGroupState();
+  State<StatefulWidget> createState() => _AddGroupPageState();
 }
 
-class _AddGroupState extends State<AddGroup> with TickerProviderStateMixin {
+class _AddGroupPageState extends State<AddGroupPage>
+    with TickerProviderStateMixin {
   GroupService groupService = GroupService();
   ContactService contactService = ContactService();
 
   late TextEditingController _groupNameController;
-  GroupType groupType = GroupType.shareKey;
+  GroupType groupType = GroupType.kdf;
   List<String> relays = [];
-  int _selectedRelay = 0;
   late WebsocketService ws;
   @override
   void initState() {
-    _groupNameController = TextEditingController(text: "");
-    ws = Get.find<WebsocketService>();
-    setState(() {
-      relays = ws.getOnlineRelayString();
-      int index = relays.indexOf(KeychatGlobal.defaultRelay);
-      if (index > -1) {
-        _selectedRelay = index;
-      }
-    });
+    _groupNameController = TextEditingController();
     super.initState();
   }
 
@@ -80,16 +71,15 @@ class _AddGroupState extends State<AddGroup> with TickerProviderStateMixin {
                     ),
                     ListTile(
                       title: Text(
-                        "Shared Key Mode",
+                        "KDF Mode",
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
                       subtitle: Text(
-                        '''1. Members < 30
-2. All members hold the same private key''',
+                        RoomUtil.getGroupModeDescription(GroupType.shareKey),
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                       leading: Radio<GroupType>(
-                        value: GroupType.shareKey,
+                        value: GroupType.kdf,
                         groupValue: groupType,
                         onChanged: (value) {
                           setState(() {
@@ -104,11 +94,7 @@ class _AddGroupState extends State<AddGroup> with TickerProviderStateMixin {
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
                       subtitle: Text(
-                        '''1. All members must already be one-to-one friends with each other on Keychat.
-When a group member sends a message in the group, it is essentially sending a one-to-one message to each group member, which is more secure and costly.
-2. All members must already be one-to-one friends with each other on Keychat.
-3. When a group member sends a message in the group, it is essentially sending a one-to-one message to each group member, which is more secure and costly.
-''',
+                        RoomUtil.getGroupModeDescription(GroupType.sendAll),
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                       leading: Radio<GroupType>(
@@ -121,43 +107,43 @@ When a group member sends a message in the group, it is essentially sending a on
                         },
                       ),
                     ),
-                    Visibility(
-                      visible: groupType == GroupType.shareKey,
-                      child: Container(
-                        padding: const EdgeInsets.only(left: 16, top: 16),
-                        child: Text(
-                          "Group Relay",
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ),
-                    ),
-                    Visibility(
-                      visible: groupType == GroupType.shareKey,
-                      child: relays.isEmpty
-                          ? const Text('No any connected relay')
-                          : ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: relays.length,
-                              itemBuilder: (context, index) {
-                                return RadioListTile<int>(
-                                  title: Text(relays[index]),
-                                  value: index,
-                                  dense: true,
-                                  groupValue: _selectedRelay,
-                                  subtitle: Text(
-                                      'Fee: ${_getRelayFee(relays[index])} sat/message'),
-                                  onChanged: (int? value) {
-                                    if (value == null) return;
+                    // Visibility(
+                    //   visible: groupType == GroupType.shareKey,
+                    //   child: Container(
+                    //     padding: const EdgeInsets.only(left: 16, top: 16),
+                    //     child: Text(
+                    //       "Group Relay",
+                    //       style: Theme.of(context).textTheme.titleMedium,
+                    //     ),
+                    //   ),
+                    // ),
+                    // Visibility(
+                    //   visible: groupType == GroupType.shareKey,
+                    //   child: relays.isEmpty
+                    //       ? const Text('No any connected relay')
+                    //       : ListView.builder(
+                    //           shrinkWrap: true,
+                    //           physics: const NeverScrollableScrollPhysics(),
+                    //           itemCount: relays.length,
+                    //           itemBuilder: (context, index) {
+                    //             return RadioListTile<int>(
+                    //               title: Text(relays[index]),
+                    //               value: index,
+                    //               dense: true,
+                    //               groupValue: _selectedRelay,
+                    //               subtitle: Text(
+                    //                   'Fee: ${_getRelayFee(relays[index])} sat/message'),
+                    //               onChanged: (int? value) {
+                    //                 if (value == null) return;
 
-                                    setState(() {
-                                      _selectedRelay = value;
-                                    });
-                                  },
-                                );
-                              },
-                            ),
-                    ),
+                    //                 setState(() {
+                    //                   _selectedRelay = value;
+                    //                 });
+                    //               },
+                    //             );
+                    //           },
+                    //         ),
+                    // ),
                     Container(
                         padding:
                             const EdgeInsets.only(left: 16, right: 16, top: 30),
@@ -173,30 +159,14 @@ When a group member sends a message in the group, it is essentially sending a on
                                     'Please input group name');
                                 return;
                               }
-                              if (groupType == GroupType.shareKey &&
-                                  relays.isEmpty) {
-                                EasyLoading.showToast(
-                                    'Please select a online relay');
-                                return;
-                              }
-                              String relay =
-                                  relays.isEmpty ? '' : relays[_selectedRelay];
-                              Get.to(() => AddGroupSelectMember(
-                                  groupName, groupType, relay));
+
+                              Get.to(() =>
+                                  AddGroupSelectMember(groupName, groupType));
                             },
                             child: const Text(
                               'Next',
                             ))),
                   ]))),
         ));
-  }
-
-  String _getRelayFee(String relay) {
-    if (relay.isEmpty) {
-      return '0';
-    }
-    RelayMessageFee? info = ws.relayMessageFeeModels[relay];
-    if (info == null) return '0';
-    return info.amount.toString();
   }
 }

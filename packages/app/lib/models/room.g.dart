@@ -64,70 +64,75 @@ const RoomSchema = CollectionSchema(
       name: r'identityId',
       type: IsarType.long,
     ),
-    r'isMute': PropertySchema(
+    r'isKDFGroup': PropertySchema(
       id: 9,
+      name: r'isKDFGroup',
+      type: IsarType.bool,
+    ),
+    r'isMute': PropertySchema(
+      id: 10,
       name: r'isMute',
       type: IsarType.bool,
     ),
     r'myIdPubkey': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'myIdPubkey',
       type: IsarType.string,
     ),
     r'name': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'name',
       type: IsarType.string,
     ),
     r'npub': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'npub',
       type: IsarType.string,
     ),
     r'onetimekey': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'onetimekey',
       type: IsarType.string,
     ),
     r'pin': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'pin',
       type: IsarType.bool,
     ),
     r'pinAt': PropertySchema(
-      id: 15,
+      id: 16,
       name: r'pinAt',
       type: IsarType.dateTime,
     ),
     r'signalDecodeError': PropertySchema(
-      id: 16,
+      id: 17,
       name: r'signalDecodeError',
       type: IsarType.bool,
     ),
     r'status': PropertySchema(
-      id: 17,
+      id: 18,
       name: r'status',
       type: IsarType.int,
       enumMap: _RoomstatusEnumValueMap,
     ),
     r'stringify': PropertySchema(
-      id: 18,
+      id: 19,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'toMainPubkey': PropertySchema(
-      id: 19,
+      id: 20,
       name: r'toMainPubkey',
       type: IsarType.string,
     ),
     r'type': PropertySchema(
-      id: 20,
+      id: 21,
       name: r'type',
       type: IsarType.int,
       enumMap: _RoomtypeEnumValueMap,
     ),
     r'version': PropertySchema(
-      id: 21,
+      id: 22,
       name: r'version',
       type: IsarType.long,
     )
@@ -235,19 +240,20 @@ void _roomSerialize(
   writer.writeInt(offsets[6], object.groupType.index);
   writer.writeLong(offsets[7], object.hashCode);
   writer.writeLong(offsets[8], object.identityId);
-  writer.writeBool(offsets[9], object.isMute);
-  writer.writeString(offsets[10], object.myIdPubkey);
-  writer.writeString(offsets[11], object.name);
-  writer.writeString(offsets[12], object.npub);
-  writer.writeString(offsets[13], object.onetimekey);
-  writer.writeBool(offsets[14], object.pin);
-  writer.writeDateTime(offsets[15], object.pinAt);
-  writer.writeBool(offsets[16], object.signalDecodeError);
-  writer.writeInt(offsets[17], object.status.index);
-  writer.writeBool(offsets[18], object.stringify);
-  writer.writeString(offsets[19], object.toMainPubkey);
-  writer.writeInt(offsets[20], object.type.index);
-  writer.writeLong(offsets[21], object.version);
+  writer.writeBool(offsets[9], object.isKDFGroup);
+  writer.writeBool(offsets[10], object.isMute);
+  writer.writeString(offsets[11], object.myIdPubkey);
+  writer.writeString(offsets[12], object.name);
+  writer.writeString(offsets[13], object.npub);
+  writer.writeString(offsets[14], object.onetimekey);
+  writer.writeBool(offsets[15], object.pin);
+  writer.writeDateTime(offsets[16], object.pinAt);
+  writer.writeBool(offsets[17], object.signalDecodeError);
+  writer.writeInt(offsets[18], object.status.index);
+  writer.writeBool(offsets[19], object.stringify);
+  writer.writeString(offsets[20], object.toMainPubkey);
+  writer.writeInt(offsets[21], object.type.index);
+  writer.writeLong(offsets[22], object.version);
 }
 
 Room _roomDeserialize(
@@ -258,11 +264,11 @@ Room _roomDeserialize(
 ) {
   final object = Room(
     identityId: reader.readLong(offsets[8]),
-    npub: reader.readString(offsets[12]),
-    status: _RoomstatusValueEnumMap[reader.readIntOrNull(offsets[17])] ??
+    npub: reader.readString(offsets[13]),
+    status: _RoomstatusValueEnumMap[reader.readIntOrNull(offsets[18])] ??
         RoomStatus.init,
-    toMainPubkey: reader.readString(offsets[19]),
-    type: _RoomtypeValueEnumMap[reader.readIntOrNull(offsets[20])] ??
+    toMainPubkey: reader.readString(offsets[20]),
+    type: _RoomtypeValueEnumMap[reader.readIntOrNull(offsets[21])] ??
         RoomType.common,
   );
   object.autoDeleteDays = reader.readLong(offsets[0]);
@@ -277,13 +283,13 @@ Room _roomDeserialize(
       _RoomgroupTypeValueEnumMap[reader.readIntOrNull(offsets[6])] ??
           GroupType.shareKey;
   object.id = id;
-  object.isMute = reader.readBool(offsets[9]);
-  object.name = reader.readStringOrNull(offsets[11]);
-  object.onetimekey = reader.readStringOrNull(offsets[13]);
-  object.pin = reader.readBool(offsets[14]);
-  object.pinAt = reader.readDateTimeOrNull(offsets[15]);
-  object.signalDecodeError = reader.readBool(offsets[16]);
-  object.version = reader.readLong(offsets[21]);
+  object.isMute = reader.readBool(offsets[10]);
+  object.name = reader.readStringOrNull(offsets[12]);
+  object.onetimekey = reader.readStringOrNull(offsets[14]);
+  object.pin = reader.readBool(offsets[15]);
+  object.pinAt = reader.readDateTimeOrNull(offsets[16]);
+  object.signalDecodeError = reader.readBool(offsets[17]);
+  object.version = reader.readLong(offsets[22]);
   return object;
 }
 
@@ -317,30 +323,32 @@ P _roomDeserializeProp<P>(
     case 9:
       return (reader.readBool(offset)) as P;
     case 10:
-      return (reader.readString(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 11:
-      return (reader.readStringOrNull(offset)) as P;
-    case 12:
       return (reader.readString(offset)) as P;
-    case 13:
+    case 12:
       return (reader.readStringOrNull(offset)) as P;
+    case 13:
+      return (reader.readString(offset)) as P;
     case 14:
-      return (reader.readBool(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 15:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 16:
       return (reader.readBool(offset)) as P;
+    case 16:
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 17:
+      return (reader.readBool(offset)) as P;
+    case 18:
       return (_RoomstatusValueEnumMap[reader.readIntOrNull(offset)] ??
           RoomStatus.init) as P;
-    case 18:
-      return (reader.readBoolOrNull(offset)) as P;
     case 19:
-      return (reader.readString(offset)) as P;
+      return (reader.readBoolOrNull(offset)) as P;
     case 20:
+      return (reader.readString(offset)) as P;
+    case 21:
       return (_RoomtypeValueEnumMap[reader.readIntOrNull(offset)] ??
           RoomType.common) as P;
-    case 21:
+    case 22:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -358,10 +366,12 @@ const _RoomencryptModeValueEnumMap = {
 const _RoomgroupTypeEnumValueMap = {
   'shareKey': 0,
   'sendAll': 1,
+  'kdf': 2,
 };
 const _RoomgroupTypeValueEnumMap = {
   0: GroupType.shareKey,
   1: GroupType.sendAll,
+  2: GroupType.kdf,
 };
 const _RoomstatusEnumValueMap = {
   'init': 0,
@@ -1528,6 +1538,16 @@ extension RoomQueryFilter on QueryBuilder<Room, Room, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Room, Room, QAfterFilterCondition> isKDFGroupEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isKDFGroup',
+        value: value,
+      ));
+    });
+  }
+
   QueryBuilder<Room, Room, QAfterFilterCondition> isMuteEqualTo(bool value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -2668,6 +2688,18 @@ extension RoomQuerySortBy on QueryBuilder<Room, Room, QSortBy> {
     });
   }
 
+  QueryBuilder<Room, Room, QAfterSortBy> sortByIsKDFGroup() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isKDFGroup', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> sortByIsKDFGroupDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isKDFGroup', Sort.desc);
+    });
+  }
+
   QueryBuilder<Room, Room, QAfterSortBy> sortByIsMute() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isMute', Sort.asc);
@@ -2946,6 +2978,18 @@ extension RoomQuerySortThenBy on QueryBuilder<Room, Room, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Room, Room, QAfterSortBy> thenByIsKDFGroup() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isKDFGroup', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> thenByIsKDFGroupDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isKDFGroup', Sort.desc);
+    });
+  }
+
   QueryBuilder<Room, Room, QAfterSortBy> thenByIsMute() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isMute', Sort.asc);
@@ -3162,6 +3206,12 @@ extension RoomQueryWhereDistinct on QueryBuilder<Room, Room, QDistinct> {
     });
   }
 
+  QueryBuilder<Room, Room, QDistinct> distinctByIsKDFGroup() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isKDFGroup');
+    });
+  }
+
   QueryBuilder<Room, Room, QDistinct> distinctByIsMute() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isMute');
@@ -3304,6 +3354,12 @@ extension RoomQueryProperty on QueryBuilder<Room, Room, QQueryProperty> {
   QueryBuilder<Room, int, QQueryOperations> identityIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'identityId');
+    });
+  }
+
+  QueryBuilder<Room, bool, QQueryOperations> isKDFGroupProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isKDFGroup');
     });
   }
 

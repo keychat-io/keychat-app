@@ -6,6 +6,7 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr_event.dart';
+import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/GroupTx.dart';
 import 'package:app/service/chat.service.dart';
 import 'package:app/service/chatx.service.dart';
@@ -97,7 +98,7 @@ class GroupService extends BaseChatService {
       [String? groupRelay]) async {
     Mykey? sharedKey;
     late String toMainPubkey;
-    if (groupType == GroupType.shareKey) {
+    if (groupType == GroupType.shareKey || groupType == GroupType.kdf) {
       sharedKey = await GroupTx().createMykey(identity);
       toMainPubkey = sharedKey.pubkey;
     } else {
@@ -105,7 +106,7 @@ class GroupService extends BaseChatService {
       toMainPubkey = key.pubkey;
     }
     DateTime now = DateTime.now();
-    Room room = await _createGroupToDB(toMainPubkey, groupName,
+    Room room = await createGroupToDB(toMainPubkey, groupName,
         members: [],
         sharedKey: sharedKey,
         identity: identity,
@@ -332,11 +333,12 @@ class GroupService extends BaseChatService {
         throw Exception('You are not in the group, so can\'t invite me.');
       }
     }
-    // roomProfile.oldToRoomPubKey 是 room 唯一标识，所有人同步
+    // roomProfile.oldToRoomPubKey is room unique key
     Room? groupRoom = await roomService.getRoomByIdentity(
         roomProfile.oldToRoomPubKey!, idRoom.identityId);
     if (groupRoom == null) {
-      if (roomProfile.groupType == GroupType.shareKey) {
+      if (roomProfile.groupType == GroupType.shareKey ||
+          roomProfile.groupType == GroupType.kdf) {
         await MessageService().saveMessageToDB(
             from: event.pubkey,
             to: event.tags[0][1],
@@ -352,7 +354,8 @@ class GroupService extends BaseChatService {
             content: roomProfile.toString(),
             realMessage: 'Invite you to join group: $groupName');
         return;
-      } else {
+      }
+      if (roomProfile.groupType == GroupType.kdf) {
         await DBProvider.database.writeTxn(() async {
           try {
             groupRoom = await GroupTx().joinGroup(roomProfile, identity);
@@ -381,6 +384,7 @@ class GroupService extends BaseChatService {
         return;
       }
     }
+    if (groupRoom == null) throw Exception('Group not found');
     // start to update room
     // check room version
     if ((roomProfile.updatedAt ?? 0) > groupRoom.version) {
@@ -400,6 +404,7 @@ class GroupService extends BaseChatService {
     groupRoom.groupRelay = groupRelay;
 
     // Whether the shared secret key key changes
+    // kdf group will not change nostr key
     bool isKeyChange = false;
     if (groupRoom.isShareKeyGroup && toRoomPriKey != null) {
       Mykey roomKey = groupRoom.mykey.value!;
@@ -433,7 +438,8 @@ class GroupService extends BaseChatService {
     await groupRoom.updateAllMember(users);
     await updateChatControllerMembers(groupRoom.id);
 
-    if (idRoom.type == RoomType.common && groupRoom.isShareKeyGroup) return;
+    if (idRoom.type == RoomType.common &&
+        (groupRoom.isShareKeyGroup || groupRoom.isKDFGroup)) return;
 
     Message message = Message(
         identityId: groupRoom.identityId,
@@ -570,7 +576,7 @@ class GroupService extends BaseChatService {
         type: KeyChatEventKinds.groupInvite,
         msg: jsonEncode(roomProfile.toJson()))
       ..name = jsonEncode([realMessage, groupRoom.myIdPubkey]);
-    if (groupRoom.isShareKeyGroup) {
+    if (groupRoom.isShareKeyGroup || groupRoom.isKDFGroup) {
       await _inviteSharekeyGroup(
           realMessage, toMembers, identity, groupRoom, km);
     } else if (groupRoom.isSendAllGroup) {
@@ -602,7 +608,7 @@ class GroupService extends BaseChatService {
       bool save = true}) async {
     Mykey roomKey = room.mykey.value!;
 
-    GroupMessage gm = _getGroupMessage(room, message,
+    GroupMessage gm = RoomUtil.getGroupMessage(room, message,
         pubkey: '', reply: reply, subtype: subtype, ext: ext);
     String subEncryptedEvent = await rustNostr.getEncryptEvent(
         senderKeys: room.getIdentity().secp256k1SKHex,
@@ -626,7 +632,6 @@ class GroupService extends BaseChatService {
         event: event,
         encryptedEvent: encryptedEvent,
         roomId: room.id,
-        hisRelay: room.groupRelay ?? KeychatGlobal.defaultRelay,
         sentCallback: sentCallback);
 
     Message? model;
@@ -662,7 +667,7 @@ class GroupService extends BaseChatService {
   }) async {
     String? msgKeyHash;
 
-    GroupMessage gm = _getGroupMessage(room, message,
+    GroupMessage gm = RoomUtil.getGroupMessage(room, message,
         pubkey: room.toMainPubkey, reply: reply, subtype: subtype, ext: ext);
 
     KeychatMessage km = KeychatMessage(
@@ -772,7 +777,7 @@ class GroupService extends BaseChatService {
     });
   }
 
-  Future<Room> _createGroupToDB(String toMainPubkey, String groupName,
+  Future<Room> createGroupToDB(String toMainPubkey, String groupName,
       {List<dynamic> members = const [],
       required GroupType groupType,
       required Identity identity,
@@ -804,30 +809,13 @@ class GroupService extends BaseChatService {
       me.status = UserStatusType.invited;
       await room.updateMember(me);
     }
-    // listen
-    if (room.isShareKeyGroup) {
+    // listen pubkey
+    if (room.isShareKeyGroup || room.isKDFGroup) {
       await Get.find<WebsocketService>()
           .listenPubkey([toMainPubkey], limit: 300);
       NotifyService.addPubkeys([toMainPubkey]);
     }
     return room;
-  }
-
-  _getGroupMessage(Room room, String message,
-      {int? subtype,
-      required String pubkey,
-      String? ext,
-      String? sig,
-      MsgReply? reply}) {
-    GroupMessage gm = GroupMessage(message: message, pubkey: pubkey, sig: sig)
-      ..subtype = subtype
-      ..ext = ext;
-
-    if (reply != null) {
-      gm.subtype = KeyChatEventKinds.dm;
-      gm.ext = reply.toString(); // EventId
-    }
-    return gm;
   }
 
   // Send a group message to all enabled users

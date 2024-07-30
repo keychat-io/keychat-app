@@ -11,6 +11,7 @@ import 'package:app/nostr-core/relay_event_status.dart';
 import 'package:app/nostr-core/request.dart';
 
 import 'package:app/service/identity.service.dart';
+import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/nip4Chat.service.dart';
 import 'package:app/service/signalChat.service.dart';
 import 'package:app/service/websocket.service.dart';
@@ -530,6 +531,14 @@ Tags: ${event.tags}''',
 
   Future dmNip4Proccess(
       NostrEventModel event, Relay relay, EventLog? eventLog) async {
+    // try kdf group
+    String to = event.tags[0][1];
+    Room? kdfRoom = await roomService.getGroupByReceivePubkey(to);
+    if (kdfRoom != null) {
+      return await KdfGroupService.instance
+          .decryptMessage(kdfRoom, event, relay, eventLog: eventLog);
+    }
+
     String? content = await getDecodeNip4Content(event);
     if (content == null) {
       logger.e('decode error: ${event.id}');

@@ -14,10 +14,8 @@ import '../../service/group.service.dart';
 class AddGroupSelectMember extends StatefulWidget {
   final String groupName;
   final GroupType groupType;
-  final String? groupRelay;
 
-  const AddGroupSelectMember(this.groupName, this.groupType, this.groupRelay,
-      {super.key});
+  const AddGroupSelectMember(this.groupName, this.groupType, {super.key});
 
   @override
   _AddGroupSelectMemberState createState() => _AddGroupSelectMemberState();
@@ -91,28 +89,22 @@ class _AddGroupSelectMemberState extends State<AddGroupSelectMember>
       EasyLoading.showError("Please select at least one user");
       return;
     }
-    if (widget.groupType == GroupType.shareKey) {
-      if (selectAccounts.length > 10) {
-        EasyLoading.showToast('Select up to 10 users per invitation');
-        return;
-      }
+    late Room room;
+    try {
+      Identity identity = hc.getSelectedIdentity();
+
+      room = await groupService.createGroup(
+          widget.groupName, identity, widget.groupType);
+      await GroupService()
+          .inviteToJoinGroup(room, toUsers: selectAccounts.toList());
+    } catch (e, s) {
+      logger.e('create room', error: e, stackTrace: s);
+      EasyLoading.showError(e.toString());
     }
-    // try {
-    Identity identity = hc.getSelectedIdentity();
-
-    Room room = await groupService.createGroup(
-        widget.groupName, identity, widget.groupType, widget.groupRelay);
-    await GroupService()
-        .inviteToJoinGroup(room, toUsers: selectAccounts.toList());
-
     Get.back();
 
     await Get.offAndToNamed('/room/${room.id}', arguments: room);
     await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
-    // } catch (e, s) {
-    //   util.logger.e('create room', error: e, stackTrace: s);
-    //   EasyLoading.showError(e.toString());
-    // }
   }
 
   @override
@@ -127,23 +119,17 @@ class _AddGroupSelectMemberState extends State<AddGroupSelectMember>
             TextButton(
                 onPressed: () => EasyThrottle.throttle('_completeToCreatGroup',
                     const Duration(seconds: 2), _completeToCreatGroup),
-                child: const Text(
-                  "Create Group",
-                ))
+                child: const Text("Create Group"))
           ],
         ),
         body: SafeArea(
             child: Column(children: [
           TabBar(controller: _tabController, tabs: const <Widget>[
             Tab(
-              child: Text(
-                "Contacts",
-              ),
+              child: Text("Contacts"),
             ),
             Tab(
-              child: Text(
-                "Input",
-              ),
+              child: Text("Input"),
             ),
           ]),
           Expanded(

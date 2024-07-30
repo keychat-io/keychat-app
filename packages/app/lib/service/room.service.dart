@@ -3,6 +3,7 @@ import 'dart:convert' show jsonDecode;
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr_event.dart';
+import 'package:app/service/kdf_group.service.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
 import 'package:app/service/chat.service.dart';
 import 'package:app/service/chatx.service.dart';
@@ -139,7 +140,10 @@ class RoomService extends BaseChatService {
     return await DBProvider.database.rooms
         .filter()
         .typeEqualTo(RoomType.group)
-        .groupTypeEqualTo(GroupType.shareKey)
+        .group((q) => q
+            .groupTypeEqualTo(GroupType.shareKey)
+            .or()
+            .groupTypeEqualTo(GroupType.kdf))
         .findAll();
   }
 
@@ -210,6 +214,15 @@ class RoomService extends BaseChatService {
         .findFirst();
   }
 
+  Future<Room?> getGroupByReceivePubkey(String to) async {
+    return await DBProvider.database.rooms
+        .filter()
+        .typeEqualTo(RoomType.group)
+        .groupTypeEqualTo(GroupType.kdf)
+        .mykey((q) => q.pubkeyEqualTo(to))
+        .findFirst();
+  }
+
   Future<Room?> getRoomById(int id) async {
     Isar database = DBProvider.database;
 
@@ -247,9 +260,7 @@ class RoomService extends BaseChatService {
   }
 
   Room? getRoomByIdSync(int id) {
-    Isar database = DBProvider.database;
-
-    return database.rooms.filter().idEqualTo(id).findFirstSync();
+    return DBProvider.database.rooms.filter().idEqualTo(id).findFirstSync();
   }
 
   Future<Map<String, List<Room>>> getRoomList({required int indetityId}) async {
@@ -410,6 +421,7 @@ class RoomService extends BaseChatService {
       String? realMessage,
       String? decodedContent,
       bool? isRead,
+      String? idPubkey,
       String? msgKeyHash}) async {
     MsgReply? reply;
     if (km != null) {
@@ -421,11 +433,12 @@ class RoomService extends BaseChatService {
         } catch (e) {}
       }
     }
-    late String idPubkey;
-    if (room.type == RoomType.common) {
-      idPubkey = room.toMainPubkey;
-    } else {
-      idPubkey = event.pubkey;
+    if (idPubkey == null) {
+      if (room.type == RoomType.common) {
+        idPubkey = room.toMainPubkey;
+      } else {
+        idPubkey = event.pubkey;
+      }
     }
 
     var encryptType = (sourceEvent ?? event).encryptType;
@@ -595,13 +608,17 @@ class RoomService extends BaseChatService {
     MsgReply? reply,
   }) async {
     await checkRoomStatus(room);
-    if (room.groupType == GroupType.shareKey) {
-      return await groupService.sendMessage(room, message,
-          reply: reply, realMessage: realMessage, mediaType: mediaType);
-    }
-    if (room.groupType == GroupType.sendAll) {
-      return await groupService.sendToAllMessage(room, message,
-          reply: reply, realMessage: realMessage, mediaType: mediaType);
+    switch (room.groupType) {
+      case GroupType.shareKey:
+        return await groupService.sendMessage(room, message,
+            reply: reply, realMessage: realMessage, mediaType: mediaType);
+      case GroupType.sendAll:
+        return await groupService.sendToAllMessage(room, message,
+            reply: reply, realMessage: realMessage, mediaType: mediaType);
+      case GroupType.kdf:
+        return await KdfGroupService.instance.sendMessage(room, message,
+            reply: reply, realMessage: realMessage, mediaType: mediaType);
+      default:
     }
     throw Exception('not support group type');
   }

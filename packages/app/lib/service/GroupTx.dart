@@ -86,7 +86,7 @@ class GroupTx {
       me.status = UserStatusType.invited;
       await DBProvider.database.roomMembers.put(me);
     }
-    if (room.isShareKeyGroup) {
+    if (room.isShareKeyGroup || room.isKDFGroup) {
       await Get.find<WebsocketService>()
           .listenPubkey([toMainPubkey], limit: 300);
       NotifyService.addPubkeys([toMainPubkey]);
@@ -110,8 +110,10 @@ class GroupTx {
         roomProfile.updatedAt ?? DateTime.now().millisecondsSinceEpoch;
     List<dynamic> users = roomProfile.users;
     Mykey? roomKey;
-    if (roomProfile.groupType == GroupType.shareKey && toRoomPriKey == null) {
-      throw Exception('GroupType.shareKey must have prikey');
+    if ((roomProfile.groupType == GroupType.shareKey ||
+            roomProfile.groupType == GroupType.kdf) &&
+        toRoomPriKey == null) {
+      throw Exception('Prikey is null');
     } else if (toRoomPriKey != null) {
       roomKey = await importMykeyTx(
           identity, await rustNostr.importKey(senderKeys: toRoomPriKey));

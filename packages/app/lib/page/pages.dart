@@ -12,9 +12,9 @@ import 'package:app/page/setting/qrcode_scan_text.dart';
 import 'package:get/get.dart';
 import 'package:app/page/setting/more_setting.dart';
 
-import 'chat/addGroup_page.dart';
+import 'chat/create_group_page.dart';
 import 'chat/chat_page.dart';
-import 'chat/addContact_page.dart';
+import 'chat/create_contact_page.dart';
 import 'login/login.dart';
 import 'room_list.dart';
 import 'routes.dart';
@@ -48,7 +48,7 @@ class Pages {
     GetPage(name: Routes.addFriend, page: () => const AddtoContactsPage("")),
     GetPage(
         name: Routes.addGroup,
-        page: () => const AddGroup(),
+        page: () => const AddGroupPage(),
         transition: Transition.fadeIn),
     GetPage(
       name: Routes.contactList,

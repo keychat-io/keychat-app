@@ -367,11 +367,9 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
       SettingsTile.navigation(
           leading: const Icon(CupertinoIcons.chart_bar),
           title: const Text('Group Mode'),
-          value: Text(
-              chatController.roomObs.value.groupType == GroupType.shareKey
-                  ? 'Shared Key'
-                  : 'Pairwise'),
-          onPressed: (context) => {getGroupInfoBottomSheetWidget(context)}),
+          value: Text(RoomUtil.getGroupModeName(
+              chatController.roomObs.value.groupType)),
+          onPressed: getGroupInfoBottomSheetWidget),
       SettingsTile.navigation(
         title: const Text("Group Name"),
         leading: const Icon(CupertinoIcons.pencil),

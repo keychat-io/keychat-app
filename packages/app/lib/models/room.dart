@@ -16,7 +16,7 @@ enum RoomType {
   group,
 }
 
-enum GroupType { shareKey, sendAll }
+enum GroupType { shareKey, sendAll, kdf }
 
 enum EncryptMode { nip04, signal }
 
@@ -109,6 +109,7 @@ class Room extends Equatable {
       groupType == GroupType.sendAll && type == RoomType.group;
   bool get isShareKeyGroup =>
       groupType == GroupType.shareKey && type == RoomType.group;
+  bool get isKDFGroup => groupType == GroupType.kdf && type == RoomType.group;
 
   MessageType get messageType =>
       type == RoomType.common && encryptMode == EncryptMode.nip04

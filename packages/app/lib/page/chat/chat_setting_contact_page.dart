@@ -184,7 +184,10 @@ class _ShowContactDetailState extends State<ShowContactDetail> {
                 Identity? identity =
                     await IdentityService().getIdentityById(room.identityId);
                 if (identity == null) return;
-                final keyPair = Get.find<ChatxService>().getKeyPair(identity);
+                String? signalIdPubkey = room.signalIdPubkey;
+                if (signalIdPubkey == null) return;
+                final keyPair =
+                    Get.find<ChatxService>().getKeyPair(signalIdPubkey);
                 // delete signal session
                 await rustSignal.deleteSession(
                     keyPair: keyPair, address: remoteAddress);

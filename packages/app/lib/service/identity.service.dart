@@ -80,12 +80,8 @@ class IdentityService {
         npub: keychain.pubkeyBech32,
         nsec: keychain.prikeyBech32);
 
-    int? identityId;
     await database.writeTxn(() async {
-      identityId = await database.identitys.put(iden);
-
-      iden = (await database.identitys.get(identityId!))!;
-      await Get.find<ChatxService>().setupIdentitySignalStore(iden);
+      await database.identitys.put(iden);
     });
 
     await Get.find<HomeController>().loadRoomList(init: true);
@@ -98,8 +94,6 @@ class IdentityService {
     Isar database = DBProvider.database;
 
     int id = identity.id;
-    final keyPair = Get.find<ChatxService>().getKeyPair(identity);
-
     await database.writeTxn(() async {
       await database.identitys.delete(id);
       await database.mykeys.filter().identityIdEqualTo(id).deleteAll();
@@ -125,16 +119,20 @@ class IdentityService {
         // delete signal session by remote address
         final remoteAddress = rustSignal.KeychatProtocolAddress(
             name: element.toMainPubkey, deviceId: element.identityId);
+        String? signalIdPubkey = element.signalIdPubkey;
+        if (signalIdPubkey == null) continue;
+        final keyPair = Get.find<ChatxService>().getKeyPair(signalIdPubkey);
         await rustSignal.deleteSession(
             keyPair: keyPair, address: remoteAddress);
+        // delete signal session by identity id
+        await rustSignal.deleteSessionByDeviceId(
+            keyPair: keyPair, deviceId: id);
+        // delete signal identity
+        await rustSignal.deleteIdentity(
+            keyPair: keyPair, address: identity.secp256k1PKHex);
       }
       await database.contacts.filter().identityIdEqualTo(id).deleteAll();
       await deleteAllByIdentity(id);
-      // delete signal session by identity id
-      await rustSignal.deleteSessionByDeviceId(keyPair: keyPair, deviceId: id);
-      // delete signal identity
-      await rustSignal.deleteIdentity(
-          keyPair: keyPair, address: identity.secp256k1PKHex);
     });
     Get.find<HomeController>().loadRoomList(init: true);
     NotifyService.initNofityConfig();
@@ -302,7 +300,8 @@ class IdentityService {
     await database.writeTxn(() async {
       await database.signalIds.put(signalId);
     });
-    await ChatxService().setupIdentitySignalStore2(signalId);
+    // should init store when create
+    await ChatxService().setupIdentitySignalStore(signalId);
     return signalId;
   }
 

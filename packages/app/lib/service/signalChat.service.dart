@@ -55,8 +55,7 @@ class SignalChatService extends BaseChatService {
     if (kpa == null) {
       throw Exception("signal_session_is_null");
     }
-    // final keyPair = cs.getKeyPair(room.getIdentity());
-    final keyPair = cs.getKeyPair2(room.signalIdPubkey!);
+    final keyPair = cs.getKeyPair(room.signalIdPubkey!);
     String to = await _getSignalToAddress(keyPair, room);
     if (room.onetimekey != null) {
       // prepare prekey message
@@ -140,8 +139,7 @@ class SignalChatService extends BaseChatService {
       {NostrEventModel? sourceEvent, EventLog? eventLog}) async {
     ChatxService cs = Get.find<ChatxService>();
 
-    // final keyPair = cs.getKeyPair(room.getIdentity());
-    final keyPair = cs.getKeyPair2(room.signalIdPubkey!);
+    final keyPair = cs.getKeyPair(room.signalIdPubkey!);
     Uint8List message = Uint8List.fromList(base64Decode(event.content));
 
     late Uint8List plaintext;
@@ -474,8 +472,7 @@ Let's talk on this server.''';
         Get.find<HomeController>().identities[mykey.identityId]!;
 
     var (plaintext, msgKeyHash, _) = await rustSignal.decryptSignal(
-        // keyPair: Get.find<ChatxService>().getKeyPair(identity),
-        keyPair: Get.find<ChatxService>().getKeyPair2(singalId!.pubkey),
+        keyPair: Get.find<ChatxService>().getKeyPair(singalId!.pubkey),
         ciphertext: ciphertext,
         remoteAddress:
             KeychatProtocolAddress(name: signalIdPubkey, deviceId: identity.id),

@@ -10,6 +10,7 @@ import 'package:app/service/contact.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
@@ -132,6 +133,18 @@ class ContactDetailPage extends GetView<ContactDetailController> {
                               EasyLoading.showSuccess("ID Key copied");
                             },
                           ),
+                          if (kDebugMode)
+                            SettingsTile(
+                              leading: const Icon(Icons.copy),
+                              title: const Text("Hex ID Key"),
+                              value: Text(getPublicKeyDisplay(
+                                  controller.contact.value.pubkey, 6)),
+                              onPressed: (context) {
+                                Clipboard.setData(ClipboardData(
+                                    text: controller.contact.value.pubkey));
+                                EasyLoading.showSuccess("ID Key copied");
+                              },
+                            ),
                           // SettingsTile(
                           //   title: const Text('Nickname'),
                           //   leading:

@@ -18,6 +18,8 @@ import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
+import 'package:keychat_rust_ffi_plugin/index.dart';
 
 import '../constants.dart';
 import '../controller/home.controller.dart';
@@ -182,6 +184,7 @@ Tags: ${event.tags}''',
         await await _processNip2(event);
         break;
       case EventKinds.encryptedDirectMessage:
+      case EventKinds.nip17:
         await await _processNip4Message(eventList, event, relay);
         break;
       case EventKinds.setMetadata:
@@ -362,6 +365,57 @@ Tags: ${event.tags}''',
     return SendMessageResponse(events: [event], relays: relays, message: model);
   }
 
+  Future<SendMessageResponse> sendAndSaveGiftMessage(
+    String to,
+    String sourceContent, {
+    required String encryptedEvent,
+    required String from,
+    required Room room,
+    bool save = true,
+    MessageMediaType? mediaType,
+    MsgReply? reply,
+    bool? isSystem,
+    String? realMessage,
+  }) async {
+    NostrEventModel event =
+        NostrEventModel.fromJson(jsonDecode(encryptedEvent), verify: false);
+    String? hisRelay;
+    if (room.type == RoomType.common) {
+      room.contact ??=
+          await ContactService().getContact(room.identityId, room.toMainPubkey);
+      hisRelay = room.contact?.hisRelay;
+    }
+    List<String> relays = await Get.find<WebsocketService>().writeNostrEvent(
+        event: event,
+        encryptedEvent: encryptedEvent,
+        roomId: room.parentRoom?.id ?? room.id,
+        hisRelay: hisRelay);
+    if (save && relays.isEmpty) {
+      throw Exception(ErrorMessages.relayIsEmptyException);
+    }
+    if (!save) {
+      return SendMessageResponse(events: [event], relays: relays);
+    }
+    var model = await MessageService().saveMessageToDB(
+        events: [event],
+        reply: reply,
+        from: from,
+        to: to,
+        isSystem: isSystem ?? false,
+        idPubkey: room.myIdPubkey,
+        content: sourceContent,
+        realMessage: realMessage,
+        isRead: true,
+        isMeSend: true,
+        room: room,
+        createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        mediaType: mediaType,
+        encryptType: MessageEncryptType.nip17);
+
+    await dbProvider.saveMyEventLog(event: event, relays: relays);
+    return SendMessageResponse(events: [event], relays: relays, message: model);
+  }
+
   Future<String?> getDecodeNip4Content(NostrEventModel event) async {
     String decodePubkey = event.tags[0][1];
     String? prikey = await IdentityService().getPrikeyByPubkey(decodePubkey);
@@ -414,12 +468,13 @@ Tags: ${event.tags}''',
     try {
       await rustNostr.verifyEvent(json: jsonEncode(eventList[2]));
     } catch (e, s) {
-      // var error = e as FfiException;
-
-      if (e.toString().contains('malformed public key')) {
-        exist?.setNote('malformed public key');
-        return;
+      if (e is AnyhowException) {
+        if (e.message.contains('malformed public key')) {
+          exist?.setNote('malformed public key');
+          return;
+        }
       }
+
       exist?.setNote('verify error');
       logger.e('verify error', error: e, stackTrace: s);
     }
@@ -436,27 +491,40 @@ Tags: ${event.tags}''',
     }
     // logNostrEventK4(relay, event);
     exist = await dbProvider.receiveNewEventLog(event: event, relay: relay.url);
-    try {
-      if (event.isNip4) {
-        return await dmNip4Proccess(event, relay, exist);
-      }
+    switch (event.kind) {
+      case EventKinds.encryptedDirectMessage:
+        try {
+          if (event.isNip4) {
+            return await dmNip4Proccess(event, relay, exist);
+          }
 
-      // if signal message , to_address is myIDPubkey or one-time-key
-      String to = event.tags[0][1];
-      Room? room = await roomService.getRoomByReceiveKey(to);
-      if (room != null) {
-        return await SignalChatService()
-            .decryptDMMessage(room, event, relay, eventLog: exist);
-      }
-      Mykey? mykey = await IdentityService().getMykeyByPubkey(to);
-      if (mykey != null) {
-        return await SignalChatService().decryptPreKeyMessage(to, mykey,
-            event: event, relay: relay, eventLog: exist);
-      }
-      throw Exception('signal message decrypt error');
-    } catch (e, s) {
-      exist.setNote('signal message decrypt error');
-      logger.e('signal message decrypt error', error: e, stackTrace: s);
+          // if signal message , to_address is myIDPubkey or one-time-key
+          String to = event.tags[0][1];
+          Room? room = await roomService.getRoomByReceiveKey(to);
+          if (room != null) {
+            return await SignalChatService()
+                .decryptDMMessage(room, event, relay, eventLog: exist);
+          }
+          Mykey? mykey = await IdentityService().getMykeyByPubkey(to);
+          if (mykey != null) {
+            return await SignalChatService().decryptPreKeyMessage(to, mykey,
+                event: event, relay: relay, eventLog: exist);
+          }
+          logger.e('signal message decrypt error');
+        } catch (e, s) {
+          exist.setNote('signal message decrypt error');
+          logger.e('signal message decrypt error', error: e, stackTrace: s);
+        }
+
+        break;
+      case EventKinds.nip17:
+        try {
+          await _processNip17Message(event, relay);
+        } catch (e, s) {
+          logger.e('nip17 decrypt error', error: e, stackTrace: s);
+        }
+        break;
+      default:
     }
   }
 
@@ -575,5 +643,52 @@ Tags: ${event.tags}''',
     var ws = Get.find<WebsocketService>();
     if (ws.channels[relay.url] == null) return;
     ws.channels[relay.url]!.notices.add(msg1);
+  }
+
+  Future _processNip17Message(NostrEventModel event, Relay relay) async {
+    String to = event.tags[0][1];
+    String? myPrivateKey;
+    Identity? identity = await IdentityService().getIdentityByPubkey(to);
+    if (identity != null) {
+      myPrivateKey = identity.secp256k1SKHex;
+    } else {
+      Mykey? mykey = await IdentityService().getMykeyByPubkey(to);
+      if (mykey != null) {
+        myPrivateKey = mykey.prikey;
+      }
+    }
+    if (myPrivateKey == null) {
+      logger.e('myPrivateKey is null');
+      return;
+    }
+
+    NostrEvent result = await rustNostr.decryptGift(
+        senderKeys: myPrivateKey,
+        receiver: event.pubkey,
+        content: event.content);
+    var subEvent = NostrEventModel(
+        result.id,
+        result.pubkey,
+        result.createdAt.toInt(),
+        result.kind.toInt(),
+        result.tags,
+        result.content,
+        result.sig,
+        verify: false);
+
+    dynamic decodedContent;
+    try {
+      decodedContent = jsonDecode(subEvent.content);
+    } catch (e) {
+      return await Nip4ChatService()
+          .receiveNip4Message(subEvent, subEvent.content, event);
+    }
+    if (decodedContent is Map<String, dynamic>) {
+      return await roomService.processKeychatMessage(
+          subEvent, decodedContent, relay, event);
+    }
+
+    await Nip4ChatService()
+        .receiveNip4Message(subEvent, subEvent.content, event);
   }
 }

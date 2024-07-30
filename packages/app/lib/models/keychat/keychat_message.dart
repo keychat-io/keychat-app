@@ -87,9 +87,9 @@ Let's start an encrypted chat.''';
     if (greeting != null && greeting.isNotEmpty) {
       msg = '''
 $msg
+
 Greeting:
-$greeting
-''';
+$greeting''';
     }
     return this;
   }

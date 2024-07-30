@@ -20,7 +20,10 @@ class CreateInvoicePage extends StatelessWidget {
         appBar: AppBar(
           leading: Container(),
           centerTitle: true,
-          title: const Text('Receive From LightningNetwork'),
+          title: Text(
+            'Receive From Lightning Network',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
         ),
         body: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 10),

@@ -50,19 +50,17 @@ class Nip4ChatService extends BaseChatService {
     }
   }
 
-  Future<Message> receiveNip4Message(
-      NostrEventModel event, String content) async {
+  Future<Message> receiveNip4Message(NostrEventModel event, String content,
+      [NostrEventModel? sourceEvent]) async {
     Room room = await roomService.getOrCreateRoom(
         event.pubkey, event.tags[0][1], RoomStatus.init);
-    // logger.i('nip4: ${room.toMainPubkey} say: $content');
+
     return await MessageService().saveMessageToDB(
         room: room,
-        events: [event],
+        events: [sourceEvent ?? event],
         idPubkey: room.toMainPubkey,
         from: event.pubkey,
-        encryptType: event.isSignal
-            ? MessageEncryptType.signal
-            : MessageEncryptType.nip4,
+        encryptType: (sourceEvent ?? event).encryptType,
         to: event.tags[0][1],
         content: content,
         isMeSend: false,

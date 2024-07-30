@@ -86,6 +86,7 @@ class IdentityService {
 
     await Get.find<HomeController>().loadRoomList(init: true);
     Get.find<WebsocketService>().listenPubkey([keychain.pubkey]);
+    Get.find<WebsocketService>().listenPubkeyNip17([keychain.pubkey]);
     NotifyService.addPubkeys([keychain.pubkey]);
     return iden;
   }
@@ -121,7 +122,8 @@ class IdentityService {
             name: element.toMainPubkey, deviceId: element.identityId);
         String? signalIdPubkey = element.signalIdPubkey;
         if (signalIdPubkey == null) continue;
-        final keyPair = Get.find<ChatxService>().getKeyPair(signalIdPubkey);
+        final keyPair =
+            await Get.find<ChatxService>().getKeyPair(signalIdPubkey);
         await rustSignal.deleteSession(
             keyPair: keyPair, address: remoteAddress);
         // delete signal session by identity id
@@ -330,18 +332,18 @@ class IdentityService {
         .findAll();
   }
 
-  SignalId? getSignalIdByPubkey(String pubkey) {
-    return DBProvider.database.signalIds
+  Future<SignalId?> getSignalIdByPubkey(String pubkey) async {
+    return await DBProvider.database.signalIds
         .filter()
         .pubkeyEqualTo(pubkey)
-        .findFirstSync();
+        .findFirst();
   }
 
-  SignalId? getSignalIdByKeyId(int signalKeyId) {
-    return DBProvider.database.signalIds
+  Future<SignalId?> getSignalIdByKeyId(int signalKeyId) async {
+    return await DBProvider.database.signalIds
         .filter()
         .signalKeyIdEqualTo(signalKeyId)
-        .findFirstSync();
+        .findFirst();
   }
 
   Future updateSignalId(SignalId si) async {

@@ -88,6 +88,7 @@ class MessageService {
       SendStatusType sent = SendStatusType.sending,
       MessageMediaType? mediaType,
       RequestConfrimEnum? requestConfrim,
+      int? createdAt,
       bool? isRead,
       bool? isSystem,
       String? msgKeyHash}) async {
@@ -106,8 +107,8 @@ class MessageService {
         reply: reply,
         encryptType: encryptType,
         msgKeyHash: msgKeyHash,
-        createdAt:
-            DateTime.fromMillisecondsSinceEpoch(events[0].createdAt * 1000));
+        createdAt: DateTime.fromMillisecondsSinceEpoch(
+            (createdAt ?? events[0].createdAt) * 1000));
     if (isRead != null) model.isRead = isRead;
     if (isSystem != null) model.isSystem = isSystem;
     if (mediaType != null) model.mediaType = mediaType;
@@ -533,18 +534,5 @@ class MessageService {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.messages.clear();
     });
-  }
-
-  MessageEncryptType getMessageEncryptType(
-      NostrEventModel event, NostrEventModel? sourceEvent) {
-    if (sourceEvent == null) {
-      return event.isSignal
-          ? MessageEncryptType.signal
-          : MessageEncryptType.nip4;
-    }
-
-    return event.isNip4
-        ? MessageEncryptType.nip4WrapNip4
-        : MessageEncryptType.nip4WrapSignal;
   }
 }

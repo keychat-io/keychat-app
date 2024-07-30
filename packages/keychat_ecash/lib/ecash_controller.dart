@@ -373,11 +373,9 @@ class EcashController extends GetxController {
     await getBalance();
     await Get.find<EcashBillController>().getTransactions();
     try {
-      List<LNTransaction> lightings =
-          await lightningBillController.getTransactions();
-      lightningBillController
-          .getPendings(lightings)
-          .then(lightningBillController.checkPendings);
+      await lightningBillController.getTransactions();
+      var pendings = await rustCashu.getLnPendingTransactions();
+      lightningBillController.checkPendings(pendings);
     } catch (e) {}
     refreshController.refreshCompleted();
   }

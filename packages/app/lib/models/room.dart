@@ -51,7 +51,9 @@ class Room extends Equatable {
   late String toMainPubkey;
   late String npub;
 
+  // their(Bob) signal id pubkey
   String? curve25519PkHex;
+  String? signalIdPubkey;
 
   String? avatar;
 

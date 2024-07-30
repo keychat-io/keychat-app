@@ -1,11 +1,13 @@
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
+import 'package:app/models/signal_id.dart';
 
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/websocket.service.dart';
+import 'package:convert/convert.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
@@ -78,12 +80,8 @@ class IdentityService {
         npub: keychain.pubkeyBech32,
         nsec: keychain.prikeyBech32);
 
-    int? identityId;
     await database.writeTxn(() async {
-      identityId = await database.identitys.put(iden);
-
-      iden = (await database.identitys.get(identityId!))!;
-      await Get.find<ChatxService>().setupIdentitySignalStore(iden);
+      await database.identitys.put(iden);
     });
 
     await Get.find<HomeController>().loadRoomList(init: true);
@@ -97,8 +95,6 @@ class IdentityService {
     Isar database = DBProvider.database;
 
     int id = identity.id;
-    final keyPair = Get.find<ChatxService>().getKeyPair(identity);
-
     await database.writeTxn(() async {
       await database.identitys.delete(id);
       await database.mykeys.filter().identityIdEqualTo(id).deleteAll();
@@ -124,16 +120,21 @@ class IdentityService {
         // delete signal session by remote address
         final remoteAddress = rustSignal.KeychatProtocolAddress(
             name: element.toMainPubkey, deviceId: element.identityId);
+        String? signalIdPubkey = element.signalIdPubkey;
+        if (signalIdPubkey == null) continue;
+        final keyPair =
+            await Get.find<ChatxService>().getKeyPair(signalIdPubkey);
         await rustSignal.deleteSession(
             keyPair: keyPair, address: remoteAddress);
+        // delete signal session by identity id
+        await rustSignal.deleteSessionByDeviceId(
+            keyPair: keyPair, deviceId: id);
+        // delete signal identity
+        await rustSignal.deleteIdentity(
+            keyPair: keyPair, address: identity.secp256k1PKHex);
       }
       await database.contacts.filter().identityIdEqualTo(id).deleteAll();
       await deleteAllByIdentity(id);
-      // delete signal session by identity id
-      await rustSignal.deleteSessionByDeviceId(keyPair: keyPair, deviceId: id);
-      // delete signal identity
-      await rustSignal.deleteIdentity(
-          keyPair: keyPair, address: identity.secp256k1PKHex);
     });
     Get.find<HomeController>().loadRoomList(init: true);
     NotifyService.initNofityConfig();
@@ -288,5 +289,78 @@ class IdentityService {
     }
     prikeys[pubkey] = prikey;
     return prikey;
+  }
+
+  Future createSignalId(int identityId) async {
+    Isar database = DBProvider.database;
+    var keychain = await rustSignal.generateSignalIds();
+    var signalId = SignalId(
+        prikey: hex.encode(keychain.$1),
+        identityId: identityId,
+        pubkey: hex.encode(keychain.$2))
+      ..isUsed = false;
+    await database.writeTxn(() async {
+      await database.signalIds.put(signalId);
+    });
+    // should init store when create
+    await ChatxService().setupIdentitySignalStore(signalId);
+    return signalId;
+  }
+
+  Future<SignalId?> isFromSignalId(String toAddress) async {
+    var res = await DBProvider.database.signalIds
+        .filter()
+        .pubkeyEqualTo(toAddress)
+        .findAll();
+    return res.isNotEmpty ? res[0] : null;
+  }
+
+  Future<List<SignalId>> getSignalAllIds() async {
+    return await DBProvider.database.signalIds
+        .filter()
+        .isUsedEqualTo(false)
+        .sortByCreatedAt()
+        .findAll();
+  }
+
+  Future<List<SignalId>> getSignalIdByIdentity(int identityId) async {
+    return await DBProvider.database.signalIds
+        .filter()
+        .identityIdEqualTo(identityId)
+        .isUsedEqualTo(false)
+        .sortByCreatedAt()
+        .findAll();
+  }
+
+  Future<SignalId?> getSignalIdByPubkey(String pubkey) async {
+    return await DBProvider.database.signalIds
+        .filter()
+        .pubkeyEqualTo(pubkey)
+        .findFirst();
+  }
+
+  Future<SignalId?> getSignalIdByKeyId(int signalKeyId) async {
+    return await DBProvider.database.signalIds
+        .filter()
+        .signalKeyIdEqualTo(signalKeyId)
+        .findFirst();
+  }
+
+  Future updateSignalId(SignalId si) async {
+    Isar database = DBProvider.database;
+    await database.writeTxn(() async {
+      await database.signalIds.put(si);
+    });
+  }
+
+  Future deleteExpiredSignalIds() async {
+    await DBProvider.database.writeTxn(() async {
+      await DBProvider.database.signalIds
+          .filter()
+          .isUsedEqualTo(true)
+          .updatedAtLessThan(DateTime.now()
+              .subtract(const Duration(hours: KeychatGlobal.signalIdLifetime)))
+          .deleteAll();
+    });
   }
 }

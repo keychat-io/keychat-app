@@ -104,30 +104,35 @@ const RoomSchema = CollectionSchema(
       name: r'signalDecodeError',
       type: IsarType.bool,
     ),
-    r'status': PropertySchema(
+    r'signalIdPubkey': PropertySchema(
       id: 17,
+      name: r'signalIdPubkey',
+      type: IsarType.string,
+    ),
+    r'status': PropertySchema(
+      id: 18,
       name: r'status',
       type: IsarType.int,
       enumMap: _RoomstatusEnumValueMap,
     ),
     r'stringify': PropertySchema(
-      id: 18,
+      id: 19,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'toMainPubkey': PropertySchema(
-      id: 19,
+      id: 20,
       name: r'toMainPubkey',
       type: IsarType.string,
     ),
     r'type': PropertySchema(
-      id: 20,
+      id: 21,
       name: r'type',
       type: IsarType.int,
       enumMap: _RoomtypeEnumValueMap,
     ),
     r'version': PropertySchema(
-      id: 21,
+      id: 22,
       name: r'version',
       type: IsarType.long,
     )
@@ -216,6 +221,12 @@ int _roomEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  {
+    final value = object.signalIdPubkey;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.toMainPubkey.length * 3;
   return bytesCount;
 }
@@ -243,11 +254,12 @@ void _roomSerialize(
   writer.writeBool(offsets[14], object.pin);
   writer.writeDateTime(offsets[15], object.pinAt);
   writer.writeBool(offsets[16], object.signalDecodeError);
-  writer.writeInt(offsets[17], object.status.index);
-  writer.writeBool(offsets[18], object.stringify);
-  writer.writeString(offsets[19], object.toMainPubkey);
-  writer.writeInt(offsets[20], object.type.index);
-  writer.writeLong(offsets[21], object.version);
+  writer.writeString(offsets[17], object.signalIdPubkey);
+  writer.writeInt(offsets[18], object.status.index);
+  writer.writeBool(offsets[19], object.stringify);
+  writer.writeString(offsets[20], object.toMainPubkey);
+  writer.writeInt(offsets[21], object.type.index);
+  writer.writeLong(offsets[22], object.version);
 }
 
 Room _roomDeserialize(
@@ -259,10 +271,10 @@ Room _roomDeserialize(
   final object = Room(
     identityId: reader.readLong(offsets[8]),
     npub: reader.readString(offsets[12]),
-    status: _RoomstatusValueEnumMap[reader.readIntOrNull(offsets[17])] ??
+    status: _RoomstatusValueEnumMap[reader.readIntOrNull(offsets[18])] ??
         RoomStatus.init,
-    toMainPubkey: reader.readString(offsets[19]),
-    type: _RoomtypeValueEnumMap[reader.readIntOrNull(offsets[20])] ??
+    toMainPubkey: reader.readString(offsets[20]),
+    type: _RoomtypeValueEnumMap[reader.readIntOrNull(offsets[21])] ??
         RoomType.common,
   );
   object.autoDeleteDays = reader.readLong(offsets[0]);
@@ -283,7 +295,8 @@ Room _roomDeserialize(
   object.pin = reader.readBool(offsets[14]);
   object.pinAt = reader.readDateTimeOrNull(offsets[15]);
   object.signalDecodeError = reader.readBool(offsets[16]);
-  object.version = reader.readLong(offsets[21]);
+  object.signalIdPubkey = reader.readStringOrNull(offsets[17]);
+  object.version = reader.readLong(offsets[22]);
   return object;
 }
 
@@ -331,16 +344,18 @@ P _roomDeserializeProp<P>(
     case 16:
       return (reader.readBool(offset)) as P;
     case 17:
+      return (reader.readStringOrNull(offset)) as P;
+    case 18:
       return (_RoomstatusValueEnumMap[reader.readIntOrNull(offset)] ??
           RoomStatus.init) as P;
-    case 18:
-      return (reader.readBoolOrNull(offset)) as P;
     case 19:
-      return (reader.readString(offset)) as P;
+      return (reader.readBoolOrNull(offset)) as P;
     case 20:
+      return (reader.readString(offset)) as P;
+    case 21:
       return (_RoomtypeValueEnumMap[reader.readIntOrNull(offset)] ??
           RoomType.common) as P;
-    case 21:
+    case 22:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -2173,6 +2188,152 @@ extension RoomQueryFilter on QueryBuilder<Room, Room, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Room, Room, QAfterFilterCondition> signalIdPubkeyIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'signalIdPubkey',
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> signalIdPubkeyIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'signalIdPubkey',
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> signalIdPubkeyEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'signalIdPubkey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> signalIdPubkeyGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'signalIdPubkey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> signalIdPubkeyLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'signalIdPubkey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> signalIdPubkeyBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'signalIdPubkey',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> signalIdPubkeyStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'signalIdPubkey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> signalIdPubkeyEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'signalIdPubkey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> signalIdPubkeyContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'signalIdPubkey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> signalIdPubkeyMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'signalIdPubkey',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> signalIdPubkeyIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'signalIdPubkey',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> signalIdPubkeyIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'signalIdPubkey',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<Room, Room, QAfterFilterCondition> statusEqualTo(
       RoomStatus value) {
     return QueryBuilder.apply(this, (query) {
@@ -2764,6 +2925,18 @@ extension RoomQuerySortBy on QueryBuilder<Room, Room, QSortBy> {
     });
   }
 
+  QueryBuilder<Room, Room, QAfterSortBy> sortBySignalIdPubkey() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'signalIdPubkey', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> sortBySignalIdPubkeyDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'signalIdPubkey', Sort.desc);
+    });
+  }
+
   QueryBuilder<Room, Room, QAfterSortBy> sortByStatus() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'status', Sort.asc);
@@ -3042,6 +3215,18 @@ extension RoomQuerySortThenBy on QueryBuilder<Room, Room, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Room, Room, QAfterSortBy> thenBySignalIdPubkey() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'signalIdPubkey', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> thenBySignalIdPubkeyDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'signalIdPubkey', Sort.desc);
+    });
+  }
+
   QueryBuilder<Room, Room, QAfterSortBy> thenByStatus() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'status', Sort.asc);
@@ -3214,6 +3399,14 @@ extension RoomQueryWhereDistinct on QueryBuilder<Room, Room, QDistinct> {
     });
   }
 
+  QueryBuilder<Room, Room, QDistinct> distinctBySignalIdPubkey(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'signalIdPubkey',
+          caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<Room, Room, QDistinct> distinctByStatus() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'status');
@@ -3352,6 +3545,12 @@ extension RoomQueryProperty on QueryBuilder<Room, Room, QQueryProperty> {
   QueryBuilder<Room, bool, QQueryOperations> signalDecodeErrorProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'signalDecodeError');
+    });
+  }
+
+  QueryBuilder<Room, String?, QQueryOperations> signalIdPubkeyProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'signalIdPubkey');
     });
   }
 

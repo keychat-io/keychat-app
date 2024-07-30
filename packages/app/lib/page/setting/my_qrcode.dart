@@ -2,6 +2,7 @@
 import 'dart:convert' show jsonEncode;
 
 import 'package:app/models/models.dart';
+import 'package:app/models/signal_id.dart';
 import 'package:app/page/components.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
 
@@ -21,12 +22,14 @@ class MyQRCode extends StatefulWidget {
   final bool showMore;
   final bool isOneTime;
   final String oneTimeKey;
+  final SignalId signalId;
   int? time;
   final void Function()? onTap;
   MyQRCode(
       {super.key,
       required this.oneTimeKey,
       required this.identity,
+      required this.signalId,
       this.onTap,
       this.time,
       this.isOneTime = false,
@@ -155,18 +158,19 @@ class _MyQRCodeState extends State<MyQRCode> {
                     ])))));
   }
 
-  Future<String> _initQRCodeData(
-      Identity identity, String onetimekey, int? time) async {
+  Future<String> _initQRCodeData(Identity identity, String onetimekey,
+      SignalId signalId, int? time) async {
     // String? relay = await RelayService().getDefaultOnlineRelay();
-    Map userInfo = await Get.find<ChatxService>().getQRCodeData(identity);
+    Map userInfo =
+        await Get.put(ChatxService()).getQRCodeData(identity, signalId);
     String globalSignStr =
-        "Keychat-${identity.secp256k1PKHex}-${identity.curve25519PkHex}-$time";
+        "Keychat-${identity.secp256k1PKHex}-${signalId.pubkey}-$time";
     // add gloabl sign
     String globalSignResult = await rustNostr.signSchnorr(
         senderKeys: identity.secp256k1SKHex, content: globalSignStr);
     Map<String, dynamic> data = {
       'pubkey': identity.secp256k1PKHex,
-      'curve25519PkHex': identity.curve25519PkHex,
+      'curve25519PkHex': signalId.pubkey,
       'name': identity.displayName,
       'time': time ?? -1,
       'relay': "",
@@ -179,8 +183,8 @@ class _MyQRCodeState extends State<MyQRCode> {
   }
 
   void init() async {
-    String res =
-        await _initQRCodeData(widget.identity, widget.oneTimeKey, widget.time);
+    String res = await _initQRCodeData(
+        widget.identity, widget.oneTimeKey, widget.signalId, widget.time);
     setState(() {
       qrString = res;
     });

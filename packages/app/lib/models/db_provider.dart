@@ -1,6 +1,7 @@
 import 'dart:convert' show jsonEncode;
 
 import 'package:app/app.dart';
+import 'package:app/models/signal_id.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:flutter/foundation.dart';
 
@@ -29,6 +30,7 @@ class DBProvider {
       RelaySchema,
       IdentitySchema,
       RoomMemberSchema,
+      SignalIdSchema,
     ], directory: dbFolder, name: 'keychat', inspector: kDebugMode);
     await performMigrationIfNeeded(database);
     return database;

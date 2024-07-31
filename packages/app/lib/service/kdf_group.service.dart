@@ -91,63 +91,63 @@ class KdfGroupService extends BaseChatService {
     return SendMessageResponse(relays: relays, events: [event], message: model);
   }
 
-  Future<SendMessageResponse> sendFeatureMessage(Room room, String message,
-      {MessageMediaType? mediaType,
-      bool save = true,
-      MsgReply? reply,
-      String? realMessage,
-      int? subtype,
-      String? ext,
-      Function(bool)? sentCallback}) async {
-    Mykey roomKey = room.mykey.value!;
+  // Future<SendMessageResponse> sendFeatureMessage(Room room, String message,
+  //     {MessageMediaType? mediaType,
+  //     bool save = true,
+  //     MsgReply? reply,
+  //     String? realMessage,
+  //     int? subtype,
+  //     String? ext,
+  //     Function(bool)? sentCallback}) async {
+  //   Mykey roomKey = room.mykey.value!;
 
-    GroupMessage gm = RoomUtil.getGroupMessage(room, message,
-        pubkey: '', reply: reply, subtype: subtype, ext: ext);
-    String subEncryptedEvent = await rustNostr.getEncryptEvent(
-        senderKeys: room.getIdentity().secp256k1SKHex,
-        receiverPubkey: roomKey.pubkey,
-        content: gm.toString());
+  //   GroupMessage gm = RoomUtil.getGroupMessage(room, message,
+  //       pubkey: '', reply: reply, subtype: subtype, ext: ext);
+  //   String subEncryptedEvent = await rustNostr.getEncryptEvent(
+  //       senderKeys: room.getIdentity().secp256k1SKHex,
+  //       receiverPubkey: roomKey.pubkey,
+  //       content: gm.toString());
 
-    KeychatMessage km = KeychatMessage(
-        c: MessageType.group,
-        type: KeyChatEventKinds.groupSharedKeyMessage,
-        msg: subEncryptedEvent);
+  //   KeychatMessage km = KeychatMessage(
+  //       c: MessageType.group,
+  //       type: KeyChatEventKinds.groupSharedKeyMessage,
+  //       msg: subEncryptedEvent);
 
-    String encryptedEvent = await rustNostr.getEncryptEvent(
-        senderKeys: roomKey.prikey,
-        receiverPubkey: roomKey.pubkey,
-        content: km.toString());
+  //   String encryptedEvent = await rustNostr.getEncryptEvent(
+  //       senderKeys: roomKey.prikey,
+  //       receiverPubkey: roomKey.pubkey,
+  //       content: km.toString());
 
-    NostrEventModel event =
-        NostrEventModel.fromJson(jsonDecode(encryptedEvent), verify: false);
+  //   NostrEventModel event =
+  //       NostrEventModel.fromJson(jsonDecode(encryptedEvent), verify: false);
 
-    List<String> relays = await Get.find<WebsocketService>().writeNostrEvent(
-        event: event,
-        encryptedEvent: encryptedEvent,
-        roomId: room.id,
-        sentCallback: sentCallback);
+  //   List<String> relays = await Get.find<WebsocketService>().writeNostrEvent(
+  //       event: event,
+  //       encryptedEvent: encryptedEvent,
+  //       roomId: room.id,
+  //       sentCallback: sentCallback);
 
-    Message? model;
-    if (subtype == null && ext == null) {
-      await DBProvider().saveMyEventLog(event: event, relays: relays);
-      Identity identity = room.getIdentity();
+  //   Message? model;
+  //   if (subtype == null && ext == null) {
+  //     await DBProvider().saveMyEventLog(event: event, relays: relays);
+  //     Identity identity = room.getIdentity();
 
-      model = await MessageService().saveMessageToDB(
-          events: [event],
-          room: room,
-          reply: reply,
-          content: message,
-          from: identity.secp256k1PKHex,
-          idPubkey: identity.secp256k1PKHex,
-          to: room.toMainPubkey,
-          realMessage: realMessage,
-          isMeSend: true,
-          encryptType: MessageEncryptType.nip4WrapNip4,
-          mediaType: mediaType,
-          isRead: true);
-    }
-    return SendMessageResponse(relays: relays, events: [event], message: model);
-  }
+  //     model = await MessageService().saveMessageToDB(
+  //         events: [event],
+  //         room: room,
+  //         reply: reply,
+  //         content: message,
+  //         from: identity.secp256k1PKHex,
+  //         idPubkey: identity.secp256k1PKHex,
+  //         to: room.toMainPubkey,
+  //         realMessage: realMessage,
+  //         isMeSend: true,
+  //         encryptType: MessageEncryptType.nip4WrapNip4,
+  //         mediaType: mediaType,
+  //         isRead: true);
+  //   }
+  //   return SendMessageResponse(relays: relays, events: [event], message: model);
+  // }
 
   Future getGroupMembers() async {}
 
@@ -204,9 +204,13 @@ class KdfGroupService extends BaseChatService {
   // inti identity's signal session
   // send hello message to group shared key but not save
   // shared signal init signal session
-  Future<Room> createGroup(String groupName, Identity identity) async {
+  Future<Room> createGroup(String groupName, Identity identity,
+      {List<String> toUsers = const []}) async {
     Room room =
         await GroupService().createGroup(groupName, identity, GroupType.kdf);
+    if (toUsers.isNotEmpty) {
+      await GroupService().inviteToJoinGroup(room, toUsers: toUsers);
+    }
     // IdentityService identityService = IdentityService();
     // SignalId signalId = await identityService.createSignalId(identity.id,
     //     isGroupSharedKey: true);
@@ -215,11 +219,14 @@ class KdfGroupService extends BaseChatService {
     // KeychatMessage sm = await KeychatMessage(
     //         c: MessageType.nip04, type: KeyChatEventKinds.kdfHelloMessage)
     //     .setHelloMessagge(identity, greeting: 'Joined Group');
+
+    // send hello message
     KeychatMessage sm = await KeychatMessage(
             c: MessageType.signal, type: KeyChatEventKinds.kdfHelloMessage)
         .setHelloMessagge(identity,
-            greeting: '${identity.displayName} Joined Group');
-    await sendMessage(room, sm.toString(), save: false);
+            greeting: '${identity.displayName} joined group');
+    await KdfGroupService.instance
+        .sendMessage(room, sm.toString(), save: false);
 
     return room;
   }

@@ -147,19 +147,6 @@ class GroupService extends BaseChatService {
     await roomService.deleteRoom(room);
   }
 
-  fillContactName(Room room, String groupName, RoomMember? rm) async {
-    if (rm == null) return;
-
-    Contact? contact =
-        await contactService.getContact(room.identityId, room.toMainPubkey);
-
-    if (contact == null) return;
-    if (contact.name == null && contact.petname == null) {
-      contact.petname = '${rm.name} - $groupName';
-      await contactService.saveContact(contact);
-    }
-  }
-
   isAdminCheck(Room room, String pubkey, RoomMember? roomMember) async {
     bool isAdmin = false;
     if (room.groupType == GroupType.shareKey) {

@@ -465,7 +465,7 @@ class RoomService extends BaseChatService {
         encryptType: encryptType,
         reply: reply,
         sent: SendStatusType.success,
-        isMeSend: false,
+        isMeSend: idPubkey == room.getIdentity().secp256k1PKHex,
         isRead: isRead,
         createdAt: event.createdAt,
         msgKeyHash: msgKeyHash);

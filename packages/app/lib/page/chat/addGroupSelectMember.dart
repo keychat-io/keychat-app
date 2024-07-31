@@ -100,9 +100,8 @@ class _AddGroupSelectMemberState extends State<AddGroupSelectMember>
             .inviteToJoinGroup(room, toUsers: selectAccounts.toList());
       } else if (widget.groupType == GroupType.kdf) {
         room = await KdfGroupService.instance.createGroup(
-          widget.groupName,
-          identity,
-        );
+            widget.groupName, identity,
+            toUsers: selectAccounts.toList());
       }
     } catch (e, s) {
       logger.e('create room', error: e, stackTrace: s);

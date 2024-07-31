@@ -8,6 +8,7 @@ import 'package:app/models/models.dart';
 import 'package:app/page/chat/message_actions/GroupInfoWidget.dart';
 import 'package:app/service/GroupTx.dart';
 import 'package:app/service/group.service.dart';
+import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
@@ -66,10 +67,14 @@ class GroupInviteAction extends StatelessWidget {
                         subtype: KeyChatEventKinds.groupHi,
                         sentCallback: (res) {});
                   } else if (groupRoom!.isKDFGroup) {
-                    await GroupService().sendMessage(
-                        groupRoom!, '${identity.displayName} joined group.',
-                        subtype: KeyChatEventKinds.groupHi,
-                        sentCallback: (res) {});
+                    // send hello message
+                    KeychatMessage sm = await KeychatMessage(
+                            c: MessageType.signal,
+                            type: KeyChatEventKinds.kdfHelloMessage)
+                        .setHelloMessagge(identity,
+                            greeting: '${identity.displayName} joined group');
+                    await KdfGroupService.instance
+                        .sendMessage(groupRoom!, sm.toString(), save: false);
                   }
                   MessageService().refreshMessageInPage(message);
                   EasyLoading.showSuccess('Join group success');

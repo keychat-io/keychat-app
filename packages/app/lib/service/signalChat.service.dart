@@ -4,6 +4,7 @@ import 'dart:typed_data' show Uint8List;
 import 'package:app/controller/home.controller.dart';
 import 'package:app/models/keychat/prekey_message_model.dart';
 import 'package:app/models/models.dart';
+import 'package:app/models/signal_id.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 
@@ -54,7 +55,7 @@ class SignalChatService extends BaseChatService {
     if (kpa == null) {
       throw Exception("signal_session_is_null");
     }
-    final keyPair = cs.getKeyPair(room.getIdentity());
+    final keyPair = await cs.getKeyPair(room.signalIdPubkey!);
     String to = await _getSignalToAddress(keyPair, room);
     PrekeyMessageModel? pmm;
     if (room.onetimekey != null) {
@@ -140,7 +141,7 @@ class SignalChatService extends BaseChatService {
       {NostrEventModel? sourceEvent, EventLog? eventLog}) async {
     ChatxService cs = Get.find<ChatxService>();
 
-    final keyPair = cs.getKeyPair(room.getIdentity());
+    final keyPair = await cs.getKeyPair(room.signalIdPubkey!);
     Uint8List message = Uint8List.fromList(base64Decode(event.content));
 
     late Uint8List plaintext;
@@ -463,13 +464,15 @@ Let's talk on this server.''';
       required Relay relay,
       required EventLog eventLog}) async {
     var ciphertext = Uint8List.fromList(base64Decode(event.content));
-    String signalIdPubkey = await rustSignal
-        .parseIdentityFromPrekeySignalMessage(ciphertext: ciphertext);
+    var prekey = await rustSignal.parseIdentityFromPrekeySignalMessage(
+        ciphertext: ciphertext);
+    String signalIdPubkey = prekey.$1;
+    SignalId? singalId = await IdentityService().getSignalIdByKeyId(prekey.$2);
     Identity identity =
         Get.find<HomeController>().identities[mykey.identityId]!;
 
     var (plaintext, msgKeyHash, _) = await rustSignal.decryptSignal(
-        keyPair: Get.find<ChatxService>().getKeyPair(identity),
+        keyPair: await Get.find<ChatxService>().getKeyPair(singalId!.pubkey),
         ciphertext: ciphertext,
         remoteAddress:
             KeychatProtocolAddress(name: signalIdPubkey, deviceId: identity.id),
@@ -502,7 +505,8 @@ Let's talk on this server.''';
         name: prekeyMessageModel.name,
         status: RoomStatus.enabled,
         encryptMode: EncryptMode.signal,
-        curve25519PkHex: signalIdPubkey);
+        curve25519PkHex: signalIdPubkey,
+        signalId: singalId);
     if (room.status == RoomStatus.requesting) {
       room.status = RoomStatus.enabled;
       room.encryptMode = EncryptMode.signal;

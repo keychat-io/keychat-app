@@ -4,6 +4,8 @@ import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/create_contact_page.dart';
+import 'package:app/models/signal_id.dart';
+
 import 'package:app/page/setting/my_qrcode.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/utils.dart';
@@ -576,6 +578,7 @@ Future showMyQrCode(
     BuildContext context, Identity identity, bool showMore) async {
   // get one time keys from db
   List<Mykey> oneTimeKeys = await ChatxService().getOneTimePubkey(identity.id);
+  List<SignalId> signalIds = await ChatxService().getSignalIds(identity.id);
 
   int expiredTime = DateTime.now().millisecondsSinceEpoch +
       KeychatGlobal.oneTimePubkeysLifetime * 3600 * 1000;
@@ -586,6 +589,7 @@ Future showMyQrCode(
       MyQRCode(
         identity: identity,
         oneTimeKey: oneTimeKeys.first.pubkey,
+        signalId: signalIds.first,
         showMore: showMore,
         time: expiredTime,
         isOneTime: true,

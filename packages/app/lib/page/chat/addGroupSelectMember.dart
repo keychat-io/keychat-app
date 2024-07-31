@@ -103,7 +103,6 @@ class _AddGroupSelectMemberState extends State<AddGroupSelectMember>
           widget.groupName,
           identity,
         );
-        // todo send invite
       }
     } catch (e, s) {
       logger.e('create room', error: e, stackTrace: s);

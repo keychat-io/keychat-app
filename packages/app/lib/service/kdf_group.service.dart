@@ -16,12 +16,10 @@ import 'package:app/models/message.dart';
 import 'package:app/models/mykey.dart';
 import 'package:app/models/relay.dart';
 import 'package:app/models/room.dart';
-import 'package:app/models/signal_id.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/chat.service.dart';
 import 'package:app/service/group.service.dart';
-import 'package:app/service/identity.service.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/websocket.service.dart';
@@ -70,8 +68,12 @@ class KdfGroupService extends BaseChatService {
         roomId: room.id,
         sentCallback: sentCallback);
 
-    await DBProvider().saveMyEventLog(event: event, relays: relays);
+    if (!save) {
+      return SendMessageResponse(
+          relays: relays, events: [event], message: null);
+    }
 
+    await DBProvider().saveMyEventLog(event: event, relays: relays);
     Message? model = await MessageService().saveMessageToDB(
         events: [event],
         room: room,
@@ -147,8 +149,6 @@ class KdfGroupService extends BaseChatService {
     return SendMessageResponse(relays: relays, events: [event], message: model);
   }
 
-  Future receiveMessage() async {}
-
   Future getGroupMembers() async {}
 
   @override
@@ -158,9 +158,18 @@ class KdfGroupService extends BaseChatService {
       NostrEventModel? sourceEvent,
       String? msgKeyHash,
       required KeychatMessage km,
-      required Relay relay}) {
-    // TODO: implement processMessage
-    throw UnimplementedError();
+      required Relay relay}) async {
+    switch (km.type) {
+      case KeyChatEventKinds.dm: // commom chat, may be contain: reply
+        await RoomService().receiveDM(room, event, sourceEvent,
+            km: km, msgKeyHash: msgKeyHash);
+        break;
+      case KeyChatEventKinds.kdfHelloMessage:
+        await _processHelloMessage(room, event, km, sourceEvent);
+        break;
+
+      default:
+    }
   }
 
   Future decryptMessage(Room kdfRoom, NostrEventModel event, Relay relay,
@@ -172,6 +181,14 @@ class KdfGroupService extends BaseChatService {
         receiverPubkey: event.pubkey,
         content: event.content);
     logger.d('from ${event.pubkey}, decodedContent: $decodedContent');
+    KeychatMessage? km;
+    try {
+      km = KeychatMessage.fromJson(jsonDecode(decodedContent));
+    } catch (e) {}
+    if (km != null) {
+      return await processMessage(
+          room: kdfRoom, event: event, km: km, relay: relay);
+    }
     await RoomService().receiveDM(
       kdfRoom,
       event,
@@ -188,12 +205,42 @@ class KdfGroupService extends BaseChatService {
   // send hello message to group shared key but not save
   // shared signal init signal session
   Future<Room> createGroup(String groupName, Identity identity) async {
-    IdentityService identityService = IdentityService();
     Room room =
         await GroupService().createGroup(groupName, identity, GroupType.kdf);
-    SignalId signalId = await identityService.createSignalId(identity.id,
-        isGroupSharedKey: true);
-    room.sharedSignalID = signalId.pubkey;
-    await RoomService().updateRoom(room);
+    // IdentityService identityService = IdentityService();
+    // SignalId signalId = await identityService.createSignalId(identity.id,
+    //     isGroupSharedKey: true);
+    // room.sharedSignalID = signalId.pubkey;
+    // await RoomService().updateRoom(room);
+    // KeychatMessage sm = await KeychatMessage(
+    //         c: MessageType.nip04, type: KeyChatEventKinds.kdfHelloMessage)
+    //     .setHelloMessagge(identity, greeting: 'Joined Group');
+    KeychatMessage sm = await KeychatMessage(
+            c: MessageType.signal, type: KeyChatEventKinds.kdfHelloMessage)
+        .setHelloMessagge(identity,
+            greeting: '${identity.displayName} Joined Group');
+    await sendMessage(room, sm.toString(), save: false);
+
+    return room;
+  }
+
+  _processHelloMessage(Room room, NostrEventModel event, KeychatMessage km,
+      NostrEventModel? sourceEvent) async {
+    if (km.name == null) {
+      logger.e('name is null');
+      return;
+    }
+
+    await RoomService().receiveDM(room, event, sourceEvent,
+        km: km, decodedContent: km.toString(), realMessage: km.msg);
+    // QRUserModel um = QRUserModel.fromJson(jsonDecode(km.name!));
+
+    Identity identity = room.getIdentity();
+    // self message
+    if (identity.secp256k1PKHex == event.pubkey) {
+      logger.i('self message');
+    }
+    // response my hello message
+    // sharedSignalID encrypt a message to identity
   }
 }

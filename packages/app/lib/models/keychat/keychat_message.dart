@@ -55,25 +55,23 @@ class KeychatMessage {
 
   Future<KeychatMessage> setHelloMessagge(Identity identity,
       {String? greeting, String? relay}) async {
-    // String? relay = await RelayService().getDefaultOnlineRelay();
+    List<SignalId> signalIds = await ChatxService().getSignalIds(identity.id);
+    if (signalIds.isEmpty) throw Exception('No signalId found');
+    SignalId signalId = signalIds.first;
+
     List<Mykey> oneTimeKeys =
         await ChatxService().getOneTimePubkey(identity.id);
     String onetimekey = '';
     if (oneTimeKeys.isNotEmpty) {
       onetimekey = oneTimeKeys.first.pubkey;
     }
-    List<SignalId> signalIds = await ChatxService().getSignalIds(identity.id);
-    String signalIdPubkey = '';
-    if (signalIds.isNotEmpty) {
-      signalIdPubkey = signalIds.first.pubkey;
-    }
-    Map userInfo =
-        await Get.find<ChatxService>().getQRCodeData(identity, signalIds.first);
+
+    Map userInfo = await Get.find<ChatxService>().getQRCodeData(signalId);
 
     Map<String, dynamic> data = {
       'name': identity.displayName,
       'pubkey': identity.secp256k1PKHex,
-      'curve25519PkHex': signalIdPubkey,
+      'curve25519PkHex': signalId.pubkey,
       'onetimekey': onetimekey,
       'time': -1,
       'relay': "",

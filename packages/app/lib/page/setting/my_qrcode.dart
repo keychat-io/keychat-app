@@ -160,12 +160,9 @@ class _MyQRCodeState extends State<MyQRCode> {
 
   Future<String> _initQRCodeData(Identity identity, String onetimekey,
       SignalId signalId, int? time) async {
-    // String? relay = await RelayService().getDefaultOnlineRelay();
-    Map userInfo =
-        await Get.put(ChatxService()).getQRCodeData(identity, signalId);
+    Map userInfo = await Get.find<ChatxService>().getQRCodeData(signalId);
     String globalSignStr =
         "Keychat-${identity.secp256k1PKHex}-${signalId.pubkey}-$time";
-    // add gloabl sign
     String globalSignResult = await rustNostr.signSchnorr(
         senderKeys: identity.secp256k1SKHex, content: globalSignStr);
     Map<String, dynamic> data = {

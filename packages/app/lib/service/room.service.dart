@@ -161,7 +161,7 @@ class RoomService extends BaseChatService {
       return room;
     }
 
-    Identity? identity = await IdentityService().getIdentityByPubkey(to);
+    Identity? identity = await IdentityService().getIdentityByNostrPubkey(to);
     if (identity == null) {
       throw Exception('no this identity');
     }

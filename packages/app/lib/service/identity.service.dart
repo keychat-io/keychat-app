@@ -263,10 +263,17 @@ class IdentityService {
     return await DBProvider.database.identitys.where().findAll();
   }
 
-  Future<Identity?> getIdentityByPubkey(String to) async {
+  Future<Identity?> getIdentityByNostrPubkey(String pubkey) async {
     return await DBProvider.database.identitys
         .filter()
-        .secp256k1PKHexEqualTo(to)
+        .secp256k1PKHexEqualTo(pubkey)
+        .findFirst();
+  }
+
+  Future<Identity?> getIdentityBySignalPubkey(String pubkey) async {
+    return await DBProvider.database.identitys
+        .filter()
+        .curve25519SkHexEqualTo(pubkey)
         .findFirst();
   }
 
@@ -291,13 +298,14 @@ class IdentityService {
     return prikey;
   }
 
-  Future createSignalId(int identityId) async {
+  Future createSignalId(int identityId, {bool isGroupSharedKey = false}) async {
     Isar database = DBProvider.database;
     var keychain = await rustSignal.generateSignalIds();
     var signalId = SignalId(
         prikey: hex.encode(keychain.$1),
         identityId: identityId,
         pubkey: hex.encode(keychain.$2))
+      ..isGroupSharedKey = isGroupSharedKey
       ..isUsed = false;
     await database.writeTxn(() async {
       await database.signalIds.put(signalId);

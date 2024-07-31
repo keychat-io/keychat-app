@@ -32,38 +32,43 @@ const SignalIdSchema = CollectionSchema(
       name: r'identityId',
       type: IsarType.long,
     ),
-    r'isUsed': PropertySchema(
+    r'isGroupSharedKey': PropertySchema(
       id: 3,
+      name: r'isGroupSharedKey',
+      type: IsarType.bool,
+    ),
+    r'isUsed': PropertySchema(
+      id: 4,
       name: r'isUsed',
       type: IsarType.bool,
     ),
     r'needDelete': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'needDelete',
       type: IsarType.bool,
     ),
     r'prikey': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'prikey',
       type: IsarType.string,
     ),
     r'pubkey': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'pubkey',
       type: IsarType.string,
     ),
     r'signalKeyId': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'signalKeyId',
       type: IsarType.long,
     ),
     r'stringify': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'updatedAt': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -121,13 +126,14 @@ void _signalIdSerialize(
   writer.writeDateTime(offsets[0], object.createdAt);
   writer.writeLong(offsets[1], object.hashCode);
   writer.writeLong(offsets[2], object.identityId);
-  writer.writeBool(offsets[3], object.isUsed);
-  writer.writeBool(offsets[4], object.needDelete);
-  writer.writeString(offsets[5], object.prikey);
-  writer.writeString(offsets[6], object.pubkey);
-  writer.writeLong(offsets[7], object.signalKeyId);
-  writer.writeBool(offsets[8], object.stringify);
-  writer.writeDateTime(offsets[9], object.updatedAt);
+  writer.writeBool(offsets[3], object.isGroupSharedKey);
+  writer.writeBool(offsets[4], object.isUsed);
+  writer.writeBool(offsets[5], object.needDelete);
+  writer.writeString(offsets[6], object.prikey);
+  writer.writeString(offsets[7], object.pubkey);
+  writer.writeLong(offsets[8], object.signalKeyId);
+  writer.writeBool(offsets[9], object.stringify);
+  writer.writeDateTime(offsets[10], object.updatedAt);
 }
 
 SignalId _signalIdDeserialize(
@@ -138,15 +144,16 @@ SignalId _signalIdDeserialize(
 ) {
   final object = SignalId(
     identityId: reader.readLong(offsets[2]),
-    prikey: reader.readString(offsets[5]),
-    pubkey: reader.readString(offsets[6]),
+    prikey: reader.readString(offsets[6]),
+    pubkey: reader.readString(offsets[7]),
   );
   object.createdAt = reader.readDateTime(offsets[0]);
   object.id = id;
-  object.isUsed = reader.readBool(offsets[3]);
-  object.needDelete = reader.readBool(offsets[4]);
-  object.signalKeyId = reader.readLongOrNull(offsets[7]);
-  object.updatedAt = reader.readDateTime(offsets[9]);
+  object.isGroupSharedKey = reader.readBool(offsets[3]);
+  object.isUsed = reader.readBool(offsets[4]);
+  object.needDelete = reader.readBool(offsets[5]);
+  object.signalKeyId = reader.readLongOrNull(offsets[8]);
+  object.updatedAt = reader.readDateTime(offsets[10]);
   return object;
 }
 
@@ -168,14 +175,16 @@ P _signalIdDeserializeProp<P>(
     case 4:
       return (reader.readBool(offset)) as P;
     case 5:
-      return (reader.readString(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 6:
       return (reader.readString(offset)) as P;
     case 7:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 8:
-      return (reader.readBoolOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 9:
+      return (reader.readBoolOrNull(offset)) as P;
+    case 10:
       return (reader.readDateTime(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -711,6 +720,16 @@ extension SignalIdQueryFilter
     });
   }
 
+  QueryBuilder<SignalId, SignalId, QAfterFilterCondition>
+      isGroupSharedKeyEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isGroupSharedKey',
+        value: value,
+      ));
+    });
+  }
+
   QueryBuilder<SignalId, SignalId, QAfterFilterCondition> isUsedEqualTo(
       bool value) {
     return QueryBuilder.apply(this, (query) {
@@ -1185,6 +1204,18 @@ extension SignalIdQuerySortBy on QueryBuilder<SignalId, SignalId, QSortBy> {
     });
   }
 
+  QueryBuilder<SignalId, SignalId, QAfterSortBy> sortByIsGroupSharedKey() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isGroupSharedKey', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SignalId, SignalId, QAfterSortBy> sortByIsGroupSharedKeyDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isGroupSharedKey', Sort.desc);
+    });
+  }
+
   QueryBuilder<SignalId, SignalId, QAfterSortBy> sortByIsUsed() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isUsed', Sort.asc);
@@ -1320,6 +1351,18 @@ extension SignalIdQuerySortThenBy
     });
   }
 
+  QueryBuilder<SignalId, SignalId, QAfterSortBy> thenByIsGroupSharedKey() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isGroupSharedKey', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SignalId, SignalId, QAfterSortBy> thenByIsGroupSharedKeyDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isGroupSharedKey', Sort.desc);
+    });
+  }
+
   QueryBuilder<SignalId, SignalId, QAfterSortBy> thenByIsUsed() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isUsed', Sort.asc);
@@ -1425,6 +1468,12 @@ extension SignalIdQueryWhereDistinct
     });
   }
 
+  QueryBuilder<SignalId, SignalId, QDistinct> distinctByIsGroupSharedKey() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isGroupSharedKey');
+    });
+  }
+
   QueryBuilder<SignalId, SignalId, QDistinct> distinctByIsUsed() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isUsed');
@@ -1493,6 +1542,12 @@ extension SignalIdQueryProperty
   QueryBuilder<SignalId, int, QQueryOperations> identityIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'identityId');
+    });
+  }
+
+  QueryBuilder<SignalId, bool, QQueryOperations> isGroupSharedKeyProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isGroupSharedKey');
     });
   }
 

@@ -97,7 +97,7 @@ class Room extends Equatable {
   Room? parentRoom; // for group room
 
   String? onetimekey;
-
+  String? sharedSignalID; // a shared virtual signal id for group
   Room(
       {required this.toMainPubkey,
       required this.npub,

@@ -16,9 +16,12 @@ import 'package:app/models/message.dart';
 import 'package:app/models/mykey.dart';
 import 'package:app/models/relay.dart';
 import 'package:app/models/room.dart';
+import 'package:app/models/signal_id.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/chat.service.dart';
+import 'package:app/service/group.service.dart';
+import 'package:app/service/identity.service.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/websocket.service.dart';
@@ -175,5 +178,22 @@ class KdfGroupService extends BaseChatService {
       null,
       decodedContent: decodedContent,
     );
+  }
+
+  // create a group
+  // setup room's sharedSignalID
+  // setup room's signal session
+  // show shared signalID's QRCode
+  // inti identity's signal session
+  // send hello message to group shared key but not save
+  // shared signal init signal session
+  Future<Room> createGroup(String groupName, Identity identity) async {
+    IdentityService identityService = IdentityService();
+    Room room =
+        await GroupService().createGroup(groupName, identity, GroupType.kdf);
+    SignalId signalId = await identityService.createSignalId(identity.id,
+        isGroupSharedKey: true);
+    room.sharedSignalID = signalId.pubkey;
+    await RoomService().updateRoom(room);
   }
 }

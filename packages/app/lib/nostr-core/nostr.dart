@@ -657,7 +657,7 @@ Tags: ${event.tags}''',
   Future _processNip17Message(NostrEventModel event, Relay relay) async {
     String to = event.tags[0][1];
     String? myPrivateKey;
-    Identity? identity = await IdentityService().getIdentityByPubkey(to);
+    Identity? identity = await IdentityService().getIdentityByNostrPubkey(to);
     if (identity != null) {
       myPrivateKey = identity.secp256k1SKHex;
     } else {

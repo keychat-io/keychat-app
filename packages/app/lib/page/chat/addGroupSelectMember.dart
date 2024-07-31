@@ -1,3 +1,4 @@
+import 'package:app/service/kdf_group.service.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
@@ -92,11 +93,18 @@ class _AddGroupSelectMemberState extends State<AddGroupSelectMember>
     late Room room;
     try {
       Identity identity = hc.getSelectedIdentity();
-
-      room = await groupService.createGroup(
-          widget.groupName, identity, widget.groupType);
-      await GroupService()
-          .inviteToJoinGroup(room, toUsers: selectAccounts.toList());
+      if (widget.groupType == GroupType.sendAll) {
+        room = await GroupService()
+            .createGroup(widget.groupName, identity, widget.groupType);
+        await GroupService()
+            .inviteToJoinGroup(room, toUsers: selectAccounts.toList());
+      } else if (widget.groupType == GroupType.kdf) {
+        room = await KdfGroupService.instance.createGroup(
+          widget.groupName,
+          identity,
+        );
+        // todo send invite
+      }
     } catch (e, s) {
       logger.e('create room', error: e, stackTrace: s);
       EasyLoading.showError(e.toString());

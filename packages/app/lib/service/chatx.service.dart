@@ -21,7 +21,6 @@ class ChatxService extends GetxService {
   Map<String, KeychatProtocolAddress> roomKPA = {};
   Set<String> oneTimeListenPubkeys = {};
   Map<String, KeychatIdentityKeyPair> keypairs = {};
-  Map<String, KeychatIdentityKeyPair> keypairs2 = {};
 
   Future<List<Mykey>> getOneTimePubkey(int identityId) async {
     // delete expired one time keys
@@ -136,18 +135,27 @@ class ChatxService extends GetxService {
     return this;
   }
 
-  Future<KeychatIdentityKeyPair> getKeyPair(String signalIdPubkey) async {
-    if (keypairs2[signalIdPubkey] != null) {
-      return keypairs2[signalIdPubkey]!;
+  Future<KeychatIdentityKeyPair> getKeyPair(String pubkey) async {
+    if (keypairs[pubkey] != null) {
+      return keypairs[pubkey]!;
     }
-    SignalId? signalId =
-        await IdentityService().getSignalIdByPubkey(signalIdPubkey);
-    String signalIdPrikey = signalId!.prikey;
+    String? prikey;
+    SignalId? signalId = await IdentityService().getSignalIdByPubkey(pubkey);
+    if (signalId != null) {
+      prikey = signalId.prikey;
+    } else {
+      Identity? identity =
+          await IdentityService().getIdentityByNostrPubkey(pubkey);
+      if (identity != null) {
+        prikey = identity.curve25519SkHex;
+      }
+    }
+    if (prikey == null) throw Exception("not found keypair");
 
     KeychatIdentityKeyPair identityKeyPair = KeychatIdentityKeyPair(
-        identityKey: U8Array33(Uint8List.fromList(hex.decode(signalIdPubkey))),
-        privateKey: U8Array32(Uint8List.fromList(hex.decode(signalIdPrikey))));
-    keypairs[signalIdPubkey] = identityKeyPair;
+        identityKey: U8Array33(Uint8List.fromList(hex.decode(pubkey))),
+        privateKey: U8Array32(Uint8List.fromList(hex.decode(prikey))));
+    keypairs[pubkey] = identityKeyPair;
     return identityKeyPair;
   }
 
@@ -211,7 +219,7 @@ class ChatxService extends GetxService {
     return signalIds;
   }
 
-  Future getQRCodeData(Identity identity, SignalId signalId) async {
+  Future getQRCodeData(SignalId signalId) async {
     var keypair = await getKeyPair(signalId.pubkey);
 
     var signalPrivateKey = Uint8List.fromList(hex.decode(signalId.prikey));

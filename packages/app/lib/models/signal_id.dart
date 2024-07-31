@@ -17,6 +17,7 @@ class SignalId extends Equatable {
 
   bool isUsed = false;
   bool needDelete = false;
+  bool isGroupSharedKey = false;
   int? signalKeyId;
 
   late DateTime createdAt;

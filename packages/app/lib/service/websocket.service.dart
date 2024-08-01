@@ -14,7 +14,6 @@ import 'package:app/service/relay.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
 
-import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
@@ -193,15 +192,12 @@ class WebsocketService extends GetxService {
     relayStatusInt.value = RelayStatusEnum.connecting.name;
   }
 
-  start([List<Relay>? list]) {
-    EasyThrottle.throttle('startConnectWebsocket', const Duration(seconds: 2),
-        () async {
-      initAt = DateTime.now();
-      WriteEventStatus.clear();
-      await stopListening();
-      list ??= await RelayService().list();
-      await _createChannels(list ?? []);
-    });
+  start([List<Relay>? list]) async {
+    initAt = DateTime.now();
+    WriteEventStatus.clear();
+    await stopListening();
+    list ??= await RelayService().list();
+    await _createChannels(list);
   }
 
   Future stopListening() async {
@@ -322,7 +318,7 @@ class WebsocketService extends GetxService {
     return message;
   }
 
-  Future _createChannels(List<Relay> list) async {
+  Future _createChannels([List<Relay> list = const []]) async {
     list = list.where((element) => element.url.isNotEmpty).toList();
     for (Relay relay in list) {
       try {

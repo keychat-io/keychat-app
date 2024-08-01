@@ -3,29 +3,34 @@
 // Every Member in the group has the same signal id key pair, it's a virtual Member in group
 // Every member send message to virtual member
 
-import 'dart:convert' show jsonDecode;
-
+import 'dart:convert' show base64, jsonDecode;
+import 'dart:typed_data' show Uint8List;
+import 'package:app/models/keychat/prekey_message_model.dart';
+import 'package:app/service/chatx.service.dart';
+import 'package:app/service/signal_chat_util.dart';
+import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rustSignal;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
 import 'package:app/constants.dart';
 import 'package:app/models/db_provider.dart';
 import 'package:app/models/embedded/msg_reply.dart';
 import 'package:app/models/event_log.dart';
 import 'package:app/models/identity.dart';
-import 'package:app/models/keychat/group_message.dart';
 import 'package:app/models/keychat/keychat_message.dart';
 import 'package:app/models/message.dart';
 import 'package:app/models/mykey.dart';
 import 'package:app/models/relay.dart';
 import 'package:app/models/room.dart';
+import 'package:app/models/signal_id.dart';
 import 'package:app/nostr-core/nostr_event.dart';
-import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/chat.service.dart';
 import 'package:app/service/group.service.dart';
+import 'package:app/service/identity.service.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:get/get.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
+import 'package:keychat_rust_ffi_plugin/api_signal.dart';
 
 class KdfGroupService extends BaseChatService {
   static KdfGroupService? _instance;
@@ -43,28 +48,43 @@ class KdfGroupService extends BaseChatService {
       bool save = true,
       MsgReply? reply,
       String? realMessage,
+      bool isPrekey = false,
       Function(bool)? sentCallback}) async {
     Mykey roomKey = room.mykey.value!;
-    String toEncryptedMessage = message;
-    if (reply != null) {
-      GroupMessage gm =
-          RoomUtil.getGroupMessage(room, message, pubkey: '', reply: reply);
-      toEncryptedMessage = gm.toString();
-      realMessage ??= message;
-    }
     Identity identity = room.getIdentity();
+    ChatxService cs = Get.find<ChatxService>();
 
-    String encryptedEvent = await rustNostr.getEncryptEvent(
+    String message0 = message;
+    SignalId? signalId = room.getGroupSharedSignalId();
+    if (signalId == null) throw Exception('signalId is null');
+    KeychatProtocolAddress kpa = await cs.getKPA(identity.id, signalId);
+    KeychatIdentityKeyPair keyPair =
+        await cs.getKeyPair(identity.curve25519PkHex, identity: identity);
+
+    PrekeyMessageModel? pmm;
+    if (isPrekey) {
+      pmm = await SignalChatUtil.getSignalPrekeyMessageContent(
+          room, room.getIdentity(), message);
+    }
+
+    (Uint8List, String?, String, List<String>?) enResult =
+        await rustSignal.encryptSignal(
+            keyPair: keyPair,
+            ptext: pmm?.toString() ?? message0,
+            remoteAddress: kpa);
+    String encryptedContent = base64.encode(enResult.$1);
+
+    String unEncryptedEvent = await rustNostr.getUnencryptEvent(
         senderKeys: identity.secp256k1SKHex,
         receiverPubkey: roomKey.pubkey,
-        content: toEncryptedMessage);
+        content: encryptedContent);
 
     NostrEventModel event =
-        NostrEventModel.fromJson(jsonDecode(encryptedEvent), verify: false);
+        NostrEventModel.fromJson(jsonDecode(unEncryptedEvent), verify: false);
 
     List<String> relays = await Get.find<WebsocketService>().writeNostrEvent(
         event: event,
-        encryptedEvent: encryptedEvent,
+        eventString: unEncryptedEvent,
         roomId: room.id,
         sentCallback: sentCallback);
 
@@ -208,18 +228,16 @@ class KdfGroupService extends BaseChatService {
       {List<String> toUsers = const []}) async {
     Room room =
         await GroupService().createGroup(groupName, identity, GroupType.kdf);
+
+    IdentityService identityService = IdentityService();
+    SignalId signalId = await identityService.createSignalId(identity.id,
+        isGroupSharedKey: true);
+    room.sharedSignalID = signalId.pubkey;
+    await RoomService().updateRoom(room);
+
     if (toUsers.isNotEmpty) {
       await GroupService().inviteToJoinGroup(room, toUsers: toUsers);
     }
-    // IdentityService identityService = IdentityService();
-    // SignalId signalId = await identityService.createSignalId(identity.id,
-    //     isGroupSharedKey: true);
-    // room.sharedSignalID = signalId.pubkey;
-    // await RoomService().updateRoom(room);
-    // KeychatMessage sm = await KeychatMessage(
-    //         c: MessageType.nip04, type: KeyChatEventKinds.kdfHelloMessage)
-    //     .setHelloMessagge(identity, greeting: 'Joined Group');
-
     // send hello message
     KeychatMessage sm = await KeychatMessage(
             c: MessageType.signal, type: KeyChatEventKinds.kdfHelloMessage)
@@ -233,21 +251,12 @@ class KdfGroupService extends BaseChatService {
 
   _processHelloMessage(Room room, NostrEventModel event, KeychatMessage km,
       NostrEventModel? sourceEvent) async {
-    if (km.name == null) {
-      logger.e('name is null');
-      return;
-    }
+    if (km.name == null) return;
 
     await RoomService().receiveDM(room, event, sourceEvent,
         km: km, decodedContent: km.toString(), realMessage: km.msg);
     // QRUserModel um = QRUserModel.fromJson(jsonDecode(km.name!));
 
-    Identity identity = room.getIdentity();
-    // self message
-    if (identity.secp256k1PKHex == event.pubkey) {
-      logger.i('self message');
-    }
-    // response my hello message
-    // sharedSignalID encrypt a message to identity
+    // TODO update contact name
   }
 }

@@ -81,7 +81,8 @@ class ChatxService extends GetxService {
     // Alice Signal id keypair
     KeychatIdentityKeyPair keyPair;
     if (room.signalIdPubkey != null) {
-      keyPair = await getKeyPair(room.signalIdPubkey!, room.getIdentity());
+      keyPair =
+          await getKeyPair(room.signalIdPubkey!, identity: room.getIdentity());
     } else {
       keyPair = getKeyPairOld(room.getIdentity());
     }
@@ -116,7 +117,7 @@ class ChatxService extends GetxService {
         name: room.curve25519PkHex!, deviceId: room.identityId);
     KeychatIdentityKeyPair keyPair;
     if (room.signalIdPubkey != null) {
-      keyPair = await getKeyPair(room.signalIdPubkey!, room.getIdentity());
+      keyPair = await getKeyPair(room.signalIdPubkey!);
     } else {
       keyPair = getKeyPairOld(room.getIdentity());
     }
@@ -128,6 +129,27 @@ class ChatxService extends GetxService {
       return remoteAddress;
     }
     return null;
+  }
+
+  Future<KeychatProtocolAddress> getKPA(
+      int identityId, SignalId signalId) async {
+    String key = '$identityId:${signalId.pubkey}';
+    if (roomKPA[key] != null) {
+      return roomKPA[key]!;
+    }
+
+    final remoteAddress =
+        KeychatProtocolAddress(name: signalId.pubkey, deviceId: identityId);
+    KeychatIdentityKeyPair keyPair =
+        await getKeyPair(signalId.pubkey, signalId: signalId);
+
+    final contains = await rustSignal.containsSession(
+        keyPair: keyPair, address: remoteAddress);
+
+    if (!contains) throw Exception('no_signal_session');
+
+    roomKPA[key] = remoteAddress;
+    return remoteAddress;
   }
 
   Future<ChatxService> init(String dbpath) async {
@@ -154,19 +176,22 @@ class ChatxService extends GetxService {
     return this;
   }
 
-  Future<KeychatIdentityKeyPair> getKeyPair(
-      String pubkey, Identity identity) async {
+  Future<KeychatIdentityKeyPair> getKeyPair(String pubkey,
+      {SignalId? signalId, Identity? identity}) async {
     if (keypairs[pubkey] != null) {
       return keypairs[pubkey]!;
     }
     String? prikey;
-    SignalId? signalId = await IdentityService().getSignalIdByPubkey(pubkey);
-    if (signalId != null) {
-      prikey = signalId.prikey;
+    signalId ??= await IdentityService().getSignalIdByPubkey(pubkey);
+    if (signalId == null) {
+      if (identity == null) {
+        throw Exception('signalId_is_null');
+      } else {
+        pubkey = identity.curve25519PkHex;
+        prikey = identity.curve25519SkHex;
+      }
     } else {
-      // compatible with older version
-      pubkey = identity.curve25519PkHex;
-      prikey = identity.curve25519SkHex;
+      prikey = signalId.prikey;
     }
 
     KeychatIdentityKeyPair identityKeyPair = KeychatIdentityKeyPair(
@@ -191,7 +216,9 @@ class ChatxService extends GetxService {
   setupIdentitySignalStore(SignalId signalId, Identity identity,
       [int deviceId = 1]) async {
     await rustSignal.initKeypair(
-        keyPair: await getKeyPair(signalId.pubkey, identity), regId: 0);
+        keyPair: await getKeyPair(signalId.pubkey,
+            signalId: signalId, identity: identity),
+        regId: 0);
   }
 
   // compatible with older version
@@ -224,7 +251,8 @@ class ChatxService extends GetxService {
         name: room.curve25519PkHex!, deviceId: room.identityId);
     KeychatIdentityKeyPair keyPair;
     if (room.signalIdPubkey != null) {
-      keyPair = await getKeyPair(room.signalIdPubkey!, room.getIdentity());
+      keyPair =
+          await getKeyPair(room.signalIdPubkey!, identity: room.getIdentity());
     } else {
       keyPair = getKeyPairOld(room.getIdentity());
     }
@@ -259,8 +287,8 @@ class ChatxService extends GetxService {
     return signalIds;
   }
 
-  Future getQRCodeData(Identity identity, SignalId signalId) async {
-    var keypair = await getKeyPair(signalId.pubkey, identity);
+  Future getQRCodeData(SignalId signalId) async {
+    var keypair = await getKeyPair(signalId.pubkey);
 
     var signalPrivateKey = Uint8List.fromList(hex.decode(signalId.prikey));
     var res = await rustSignal.generateSignedKeyApi(

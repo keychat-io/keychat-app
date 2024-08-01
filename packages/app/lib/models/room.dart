@@ -1,5 +1,6 @@
 import 'package:app/controller/home.controller.dart';
 import 'package:app/models/models.dart';
+import 'package:app/models/signal_id.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/utils.dart';
 import 'package:equatable/equatable.dart';
@@ -133,6 +134,15 @@ class Room extends Equatable {
 
   Identity getIdentity() {
     return Get.find<HomeController>().identities[identityId]!;
+  }
+
+  SignalId? getGroupSharedSignalId() {
+    return sharedSignalID == null
+        ? null
+        : DBProvider.database.signalIds
+            .filter()
+            .pubkeyEqualTo(sharedSignalID!)
+            .findFirstSync();
   }
 
   Future<RoomMember?> getMemberByIdPubkey(String pubkey) async {

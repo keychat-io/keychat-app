@@ -618,7 +618,7 @@ class GroupService extends BaseChatService {
 
     List<String> relays = await Get.find<WebsocketService>().writeNostrEvent(
         event: event,
-        encryptedEvent: encryptedEvent,
+        eventString: encryptedEvent,
         roomId: room.id,
         sentCallback: sentCallback);
 

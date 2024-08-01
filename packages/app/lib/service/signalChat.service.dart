@@ -13,6 +13,7 @@ import 'package:app/service/chatx.service.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/nip4Chat.service.dart';
 import 'package:app/service/notify.service.dart';
+import 'package:app/service/signal_chat_util.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:convert/convert.dart';
@@ -57,7 +58,7 @@ class SignalChatService extends BaseChatService {
     }
     KeychatIdentityKeyPair keyPair;
     if (room.signalIdPubkey != null) {
-      keyPair = await cs.getKeyPair(room.signalIdPubkey!, room.getIdentity());
+      keyPair = await cs.getKeyPair(room.signalIdPubkey!);
     } else {
       keyPair = cs.getKeyPairOld(room.getIdentity());
     }
@@ -65,7 +66,7 @@ class SignalChatService extends BaseChatService {
     PrekeyMessageModel? pmm;
     if (room.onetimekey != null) {
       if (to == room.onetimekey) {
-        pmm = await getSignalPrekeyMessageContent(
+        pmm = await SignalChatUtil.getSignalPrekeyMessageContent(
             room, room.getIdentity(), message);
         // realMessage = pmm.toString();
       }
@@ -147,7 +148,7 @@ class SignalChatService extends BaseChatService {
     ChatxService cs = Get.find<ChatxService>();
     KeychatIdentityKeyPair keyPair;
     if (room.signalIdPubkey != null) {
-      keyPair = await cs.getKeyPair(room.signalIdPubkey!, room.getIdentity());
+      keyPair = await cs.getKeyPair(room.signalIdPubkey!);
     } else {
       keyPair = cs.getKeyPairOld(room.getIdentity());
     }
@@ -448,25 +449,6 @@ Let's talk on this server.''';
     await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
   }
 
-  Future<PrekeyMessageModel> getSignalPrekeyMessageContent(
-      Room room, Identity identity, String message) async {
-    String sourceContent =
-        _getPrekeySigContent([room.myIdPubkey, room.toMainPubkey, message]);
-    String sig = await rustNostr.signSchnorr(
-        senderKeys: identity.secp256k1SKHex, content: sourceContent);
-    return PrekeyMessageModel(
-        nostrId: identity.secp256k1PKHex,
-        name: identity.displayName,
-        sig: sig,
-        message: message);
-  }
-
-  String _getPrekeySigContent(List ids) {
-    ids.sort((a, b) => a.compareTo(b));
-    String sourceContent = ids.join(',');
-    return sourceContent;
-  }
-
   // decrypt the first signal message
   Future decryptPreKeyMessage(String to, Mykey mykey,
       {required NostrEventModel event,
@@ -479,10 +461,12 @@ Let's talk on this server.''';
     SignalId? singalId = await IdentityService().getSignalIdByKeyId(prekey.$2);
     Identity identity =
         Get.find<HomeController>().identities[mykey.identityId]!;
-
+    KeychatIdentityKeyPair keyPair = singalId == null
+        ? Get.find<ChatxService>().getKeyPairOld(identity)
+        : await Get.find<ChatxService>()
+            .getKeyPair(singalId.pubkey, signalId: singalId);
     var (plaintext, msgKeyHash, _) = await rustSignal.decryptSignal(
-        keyPair: await Get.find<ChatxService>()
-            .getKeyPair(singalId!.pubkey, identity),
+        keyPair: keyPair,
         ciphertext: ciphertext,
         remoteAddress:
             KeychatProtocolAddress(name: signalIdPubkey, deviceId: identity.id),
@@ -494,7 +478,7 @@ Let's talk on this server.''';
     logger.i(
         'decryptPreKeyMessage, plainrtext: $prekeyMessageModel, msgKeyHash: $msgKeyHash');
 
-    String sourceContent = _getPrekeySigContent([
+    String sourceContent = SignalChatUtil.getPrekeySigContent([
       prekeyMessageModel.nostrId,
       identity.secp256k1PKHex,
       prekeyMessageModel.message

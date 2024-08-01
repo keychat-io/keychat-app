@@ -336,7 +336,7 @@ Tags: ${event.tags}''',
     }
     List<String> relays = await Get.find<WebsocketService>().writeNostrEvent(
         event: event,
-        encryptedEvent: encryptedEvent,
+        eventString: encryptedEvent,
         roomId: room.parentRoom?.id ?? room.id,
         hisRelay: hisRelay);
     if (save && relays.isEmpty) {
@@ -388,7 +388,7 @@ Tags: ${event.tags}''',
     }
     List<String> relays = await Get.find<WebsocketService>().writeNostrEvent(
         event: event,
-        encryptedEvent: encryptedEvent,
+        eventString: encryptedEvent,
         roomId: room.parentRoom?.id ?? room.id,
         hisRelay: hisRelay);
     if (save && relays.isEmpty) {

@@ -233,7 +233,7 @@ class WebsocketService extends GetxService {
 
   Future<List<String>> writeNostrEvent(
       {required NostrEventModel event,
-      required String encryptedEvent,
+      required String eventString,
       required int roomId,
       String? hisRelay,
       Function(bool)? sentCallback}) async {
@@ -257,7 +257,7 @@ class WebsocketService extends GetxService {
 
     List<Future> tasks = [];
     Map failedRelay = {};
-    String toSendMesage = "[\"EVENT\",$encryptedEvent]";
+    String toSendMesage = "[\"EVENT\",$eventString]";
     for (String relay in relays) {
       tasks.add(() async {
         try {

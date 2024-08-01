@@ -124,8 +124,7 @@ class IdentityService {
         String? signalIdPubkey = element.signalIdPubkey;
         KeychatIdentityKeyPair keyPair;
         if (signalIdPubkey != null) {
-          keyPair = await Get.find<ChatxService>()
-              .getKeyPair(signalIdPubkey, identity);
+          keyPair = await Get.find<ChatxService>().getKeyPair(signalIdPubkey);
         } else {
           keyPair = Get.find<ChatxService>().getKeyPairOld(identity);
         }

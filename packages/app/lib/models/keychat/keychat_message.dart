@@ -55,7 +55,7 @@ class KeychatMessage {
   String toString() => jsonEncode(toJson());
 
   Future<KeychatMessage> setHelloMessagge(Identity identity,
-      {String? greeting, String? relay}) async {
+      {String? greeting, bool isGroup = false}) async {
     List<Mykey> oneTimeKeys =
         await ChatxService().getOneTimePubkey(identity.id);
     String onetimekey = '';
@@ -63,8 +63,7 @@ class KeychatMessage {
       onetimekey = oneTimeKeys.first.pubkey;
     }
     SignalId signalId = await IdentityService().createSignalId(identity.id);
-    Map userInfo =
-        await Get.find<ChatxService>().getQRCodeData(identity, signalId);
+    Map userInfo = await Get.find<ChatxService>().getQRCodeData(signalId);
 
     Map<String, dynamic> data = {
       'name': identity.displayName,
@@ -77,7 +76,9 @@ class KeychatMessage {
       ...userInfo
     };
     name = QRUserModel.fromJson(data).toString();
-    msg = '''
+    msg = isGroup
+        ? greeting
+        : '''
 😄Hi, I'm ${identity.displayName}.
 Let's start an encrypted chat.''';
     if (greeting != null && greeting.isNotEmpty) {

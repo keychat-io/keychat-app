@@ -10,6 +10,7 @@ import 'package:app/service/websocket.service.dart';
 import 'package:convert/convert.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
+import 'package:keychat_rust_ffi_plugin/api_signal.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rustSignal;
 
@@ -121,9 +122,13 @@ class IdentityService {
         final remoteAddress = rustSignal.KeychatProtocolAddress(
             name: element.toMainPubkey, deviceId: element.identityId);
         String? signalIdPubkey = element.signalIdPubkey;
-        if (signalIdPubkey == null) continue;
-        final keyPair =
-            await Get.find<ChatxService>().getKeyPair(signalIdPubkey);
+        KeychatIdentityKeyPair keyPair;
+        if (signalIdPubkey != null) {
+          keyPair = await Get.find<ChatxService>()
+              .getKeyPair(signalIdPubkey, identity);
+        } else {
+          keyPair = Get.find<ChatxService>().getKeyPairOld(identity);
+        }
         await rustSignal.deleteSession(
             keyPair: keyPair, address: remoteAddress);
         // delete signal session by identity id
@@ -303,7 +308,11 @@ class IdentityService {
       await database.signalIds.put(signalId);
     });
     // should init store when create
-    await ChatxService().setupIdentitySignalStore(signalId);
+    Identity? identity = await IdentityService().getIdentityById(identityId);
+    if (identity == null) {
+      throw Exception("not found identity by create signalId");
+    }
+    await ChatxService().setupIdentitySignalStore(signalId, identity);
     return signalId;
   }
 
@@ -337,6 +346,15 @@ class IdentityService {
         .filter()
         .pubkeyEqualTo(pubkey)
         .findFirst();
+  }
+
+  Future deleteSignalIdByPubkey(String pubkey) async {
+    await DBProvider.database.writeTxn(() async {
+      await DBProvider.database.signalIds
+          .filter()
+          .pubkeyEqualTo(pubkey)
+          .deleteAll();
+    });
   }
 
   Future<SignalId?> getSignalIdByKeyId(int signalKeyId) async {

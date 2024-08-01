@@ -6,6 +6,7 @@ import 'package:app/models/models.dart';
 import 'package:app/models/signal_id.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/group.service.dart';
+import 'package:app/service/identity.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:get/get.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -62,18 +63,14 @@ class KeychatMessage {
     if (oneTimeKeys.isNotEmpty) {
       onetimekey = oneTimeKeys.first.pubkey;
     }
-    List<SignalId> signalIds = await ChatxService().getSignalIds(identity.id);
-    String signalIdPubkey = '';
-    if (signalIds.isNotEmpty) {
-      signalIdPubkey = signalIds.first.pubkey;
-    }
+    SignalId signalId = await IdentityService().createSignalId(identity.id);
     Map userInfo =
-        await Get.find<ChatxService>().getQRCodeData(identity, signalIds.first);
+        await Get.find<ChatxService>().getQRCodeData(identity, signalId);
 
     Map<String, dynamic> data = {
       'name': identity.displayName,
       'pubkey': identity.secp256k1PKHex,
-      'curve25519PkHex': signalIdPubkey,
+      'curve25519PkHex': signalId.pubkey,
       'onetimekey': onetimekey,
       'time': -1,
       'relay': "",

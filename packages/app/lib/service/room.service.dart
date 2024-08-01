@@ -221,6 +221,14 @@ class RoomService extends BaseChatService {
     return await database.rooms.filter().idEqualTo(id).findFirst();
   }
 
+  Future<List<Room?>> getRoomBySignalIdPubkey(String pubkey) async {
+    Isar database = DBProvider.database;
+    return await database.rooms
+        .filter()
+        .signalIdPubkeyEqualTo(pubkey)
+        .findAll();
+  }
+
   Future<Room?> getRoomByIdentity(String from, int identityId) async {
     Isar database = DBProvider.database;
 

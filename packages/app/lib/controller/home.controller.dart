@@ -309,6 +309,7 @@ class HomeController extends GetxController
   }
 
   DateTime? pausedTime;
+  List<AppLifecycleState> appstates = [];
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
@@ -317,19 +318,36 @@ class HomeController extends GetxController
     // apprun-> inactive -> resumed
     // apprun->inactive -> hidden-> paused ->hidden->inactive->resumed
     // macos:  apprun->inactive -> resumed
+    appstates.add(state);
     switch (state) {
       case AppLifecycleState.resumed:
         resumed = true;
 
-        EasyThrottle.throttle(
-            'AppLifecycleState.resumed', const Duration(seconds: 3), () {
-          Get.find<WebsocketService>().checkOnlineAndConnect();
-
-          Utils.initLoggger(Get.find<SettingController>().appFolder);
-          NotifyService.initNofityConfig(true);
-          if (kReleaseMode) {
-            _startCheckWebsocketTimer();
+        // if app running background > 20s, then reconnect. Otherwise check status first
+        bool isPaused = false;
+        if (GetPlatform.isMobile &&
+            appstates.contains(AppLifecycleState.paused)) {
+          if (pausedTime != null) {
+            isPaused = DateTime.now()
+                .subtract(const Duration(seconds: 10))
+                .isAfter(pausedTime!);
           }
+        }
+        appstates.clear();
+
+        EasyThrottle.throttle(
+            'AppLifecycleState.resumed', const Duration(seconds: 2), () {
+          if (isPaused) {
+            Get.find<WebsocketService>().start();
+
+            Utils.initLoggger(Get.find<SettingController>().appFolder);
+            NotifyService.initNofityConfig(true);
+            if (kReleaseMode) {
+              _startCheckWebsocketTimer();
+            }
+            return;
+          }
+          Get.find<WebsocketService>().checkOnlineAndConnect();
         });
 
         return;

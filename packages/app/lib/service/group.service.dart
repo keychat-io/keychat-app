@@ -5,6 +5,7 @@ import 'package:app/controller/chat.controller.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
+import 'package:app/models/signal_id.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/GroupTx.dart';
@@ -770,10 +771,12 @@ class GroupService extends BaseChatService {
       required Identity identity,
       required int version,
       Mykey? sharedKey,
-      String? groupRelay}) async {
+      String? groupRelay,
+      SignalId? signalId}) async {
     if (groupType == GroupType.shareKey && sharedKey == null) {
       throw Exception('sharedKey is required');
     }
+
     Room room = Room(
         toMainPubkey: toMainPubkey,
         npub: rustNostr.getBech32PubkeyByHex(hex: toMainPubkey),
@@ -786,6 +789,10 @@ class GroupService extends BaseChatService {
       ..groupRelay = groupRelay;
     if (sharedKey != null) {
       room.mykey.value = sharedKey;
+    }
+    if (groupType == GroupType.sendAll) {
+      signalId ??= await IdentityService().createSignalId(identity.id);
+      room.signalIdPubkey = signalId!.pubkey;
     }
 
     room = await roomService.updateRoom(room, updateMykey: sharedKey != null);

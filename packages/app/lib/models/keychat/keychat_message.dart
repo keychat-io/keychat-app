@@ -6,6 +6,7 @@ import 'package:app/models/models.dart';
 import 'package:app/models/signal_id.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/group.service.dart';
+import 'package:app/service/identity.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:get/get.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -55,18 +56,15 @@ class KeychatMessage {
 
   Future<KeychatMessage> setHelloMessagge(Identity identity,
       {String? greeting, String? relay}) async {
-    List<SignalId> signalIds = await ChatxService().getSignalIds(identity.id);
-    if (signalIds.isEmpty) throw Exception('No signalId found');
-    SignalId signalId = signalIds.first;
-
     List<Mykey> oneTimeKeys =
         await ChatxService().getOneTimePubkey(identity.id);
     String onetimekey = '';
     if (oneTimeKeys.isNotEmpty) {
       onetimekey = oneTimeKeys.first.pubkey;
     }
-
-    Map userInfo = await Get.find<ChatxService>().getQRCodeData(signalId);
+    SignalId signalId = await IdentityService().createSignalId(identity.id);
+    Map userInfo =
+        await Get.find<ChatxService>().getQRCodeData(identity, signalId);
 
     Map<String, dynamic> data = {
       'name': identity.displayName,

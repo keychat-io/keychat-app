@@ -55,7 +55,12 @@ class SignalChatService extends BaseChatService {
     if (kpa == null) {
       throw Exception("signal_session_is_null");
     }
-    final keyPair = await cs.getKeyPair(room.signalIdPubkey!);
+    KeychatIdentityKeyPair keyPair;
+    if (room.signalIdPubkey != null) {
+      keyPair = await cs.getKeyPair(room.signalIdPubkey!, room.getIdentity());
+    } else {
+      keyPair = cs.getKeyPairOld(room.getIdentity());
+    }
     String to = await _getSignalToAddress(keyPair, room);
     PrekeyMessageModel? pmm;
     if (room.onetimekey != null) {
@@ -140,8 +145,12 @@ class SignalChatService extends BaseChatService {
   Future<String> decryptDMMessage(Room room, NostrEventModel event, Relay relay,
       {NostrEventModel? sourceEvent, EventLog? eventLog}) async {
     ChatxService cs = Get.find<ChatxService>();
-
-    final keyPair = await cs.getKeyPair(room.signalIdPubkey!);
+    KeychatIdentityKeyPair keyPair;
+    if (room.signalIdPubkey != null) {
+      keyPair = await cs.getKeyPair(room.signalIdPubkey!, room.getIdentity());
+    } else {
+      keyPair = cs.getKeyPairOld(room.getIdentity());
+    }
     Uint8List message = Uint8List.fromList(base64Decode(event.content));
 
     late Uint8List plaintext;
@@ -472,7 +481,8 @@ Let's talk on this server.''';
         Get.find<HomeController>().identities[mykey.identityId]!;
 
     var (plaintext, msgKeyHash, _) = await rustSignal.decryptSignal(
-        keyPair: await Get.find<ChatxService>().getKeyPair(singalId!.pubkey),
+        keyPair: await Get.find<ChatxService>()
+            .getKeyPair(singalId!.pubkey, identity),
         ciphertext: ciphertext,
         remoteAddress:
             KeychatProtocolAddress(name: signalIdPubkey, deviceId: identity.id),

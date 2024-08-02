@@ -593,8 +593,7 @@ class MessageWidget extends StatelessWidget {
     return AnyLinkPreview(
         key: Key(content),
         link: content,
-        errorTitle: content,
-        errorBody: 'Click to open',
+        errorBody: content,
         onTap: () {
           Utils.hideKeyboard(Get.context!);
           launchUrl(Uri.parse(content));

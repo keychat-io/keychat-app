@@ -1,4 +1,4 @@
-import 'dart:convert' show jsonEncode;
+import 'dart:convert' show jsonDecode, jsonEncode;
 
 import 'package:app/constants.dart';
 
@@ -55,15 +55,19 @@ class KeychatMessage {
   String toString() => jsonEncode(toJson());
 
   Future<KeychatMessage> setHelloMessagge(Identity identity,
-      {String? greeting, bool isGroup = false}) async {
+      {SignalId? signalId, String? greeting}) async {
     List<Mykey> oneTimeKeys =
         await ChatxService().getOneTimePubkey(identity.id);
     String onetimekey = '';
     if (oneTimeKeys.isNotEmpty) {
       onetimekey = oneTimeKeys.first.pubkey;
     }
-    SignalId signalId = await IdentityService().createSignalId(identity.id);
-    Map userInfo = await Get.find<ChatxService>().getQRCodeData(signalId);
+    signalId ??= await IdentityService().createSignalId(identity);
+    if (signalId == null) throw Exception('signalId is null');
+
+    Map userInfo = signalId.keys == null
+        ? await Get.find<ChatxService>().getQRCodeData(signalId)
+        : jsonDecode(signalId.keys!);
 
     Map<String, dynamic> data = {
       'name': identity.displayName,
@@ -76,9 +80,7 @@ class KeychatMessage {
       ...userInfo
     };
     name = QRUserModel.fromJson(data).toString();
-    msg = isGroup
-        ? greeting
-        : '''
+    msg = '''
 😄Hi, I'm ${identity.displayName}.
 Let's start an encrypted chat.''';
     if (greeting != null && greeting.isNotEmpty) {

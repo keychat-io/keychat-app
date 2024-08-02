@@ -791,7 +791,7 @@ class GroupService extends BaseChatService {
       room.mykey.value = sharedKey;
     }
     if (groupType == GroupType.sendAll) {
-      signalId ??= await IdentityService().createSignalId(identity.id);
+      signalId ??= await IdentityService().createSignalId(identity);
       room.signalIdPubkey = signalId!.pubkey;
     }
 

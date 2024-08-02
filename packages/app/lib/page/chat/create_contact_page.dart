@@ -109,10 +109,9 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                         await RoomUtil.processUserQRCode(model);
                       }
                       return;
-                    } else {
-                      await RoomService().createRoomAndsendInvite(input,
-                          greeting: _helloController.text.trim());
                     }
+                    await RoomService().createRoomAndsendInvite(input,
+                        greeting: _helloController.text.trim());
                   },
                   child: const Text(
                     'Send',

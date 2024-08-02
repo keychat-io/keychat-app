@@ -60,7 +60,7 @@ class SignalChatService extends BaseChatService {
     if (room.signalIdPubkey != null) {
       keyPair = await cs.getKeyPair(room.signalIdPubkey!);
     } else {
-      keyPair = cs.getKeyPairOld(room.getIdentity());
+      keyPair = cs.getKeyPairByIdentity(room.getIdentity());
     }
     String to = await _getSignalToAddress(keyPair, room);
     PrekeyMessageModel? pmm;
@@ -150,7 +150,7 @@ class SignalChatService extends BaseChatService {
     if (room.signalIdPubkey != null) {
       keyPair = await cs.getKeyPair(room.signalIdPubkey!);
     } else {
-      keyPair = cs.getKeyPairOld(room.getIdentity());
+      keyPair = cs.getKeyPairByIdentity(room.getIdentity());
     }
     Uint8List message = Uint8List.fromList(base64Decode(event.content));
 
@@ -224,11 +224,9 @@ class SignalChatService extends BaseChatService {
           relay: relay);
       return decodeString;
     }
-    await RoomService().receiveDM(
-        room,
-        event,
+    await RoomService().receiveDM(room, event,
         decodedContent: decodeString,
-        sourceEvent,
+        sourceEvent: sourceEvent,
         msgKeyHash: msgKeyHash);
     return decodeString;
   }
@@ -252,8 +250,8 @@ class SignalChatService extends BaseChatService {
       required Relay relay}) async {
     switch (km.type) {
       case KeyChatEventKinds.dm: // commom chat, may be contain: reply
-        await RoomService().receiveDM(room, event, sourceEvent,
-            km: km, msgKeyHash: msgKeyHash);
+        await RoomService().receiveDM(room, event,
+            sourceEvent: sourceEvent, km: km, msgKeyHash: msgKeyHash);
         break;
       case KeyChatEventKinds.dmAddContactFromAlice:
       case KeyChatEventKinds.dmAddContactFromBob:
@@ -354,7 +352,8 @@ class SignalChatService extends BaseChatService {
 
     room = await RoomService().updateRoom(room);
     room.contact = contact;
-    await RoomService().receiveDM(room, event, sourceEvent,
+    await RoomService().receiveDM(room, event,
+        sourceEvent: sourceEvent,
         km: keychatMessage,
         decodedContent: keychatMessage.toString(),
         realMessage: keychatMessage.msg);
@@ -441,8 +440,11 @@ Let's talk on this server.''';
   Future _processReject(Room room, NostrEventModel event, KeychatMessage km,
       NostrEventModel? sourceEvent) async {
     room.status = RoomStatus.rejected;
-    await RoomService().receiveDM(room, event, sourceEvent,
-        km: km, decodedContent: km.toString(), realMessage: 'Rejected');
+    await RoomService().receiveDM(room, event,
+        sourceEvent: sourceEvent,
+        km: km,
+        decodedContent: km.toString(),
+        realMessage: 'Rejected');
 
     await RoomService().updateRoom(room);
     RoomService().updateChatRoomPage(room);
@@ -462,7 +464,7 @@ Let's talk on this server.''';
     Identity identity =
         Get.find<HomeController>().identities[mykey.identityId]!;
     KeychatIdentityKeyPair keyPair = singalId == null
-        ? Get.find<ChatxService>().getKeyPairOld(identity)
+        ? Get.find<ChatxService>().getKeyPairByIdentity(identity)
         : await Get.find<ChatxService>()
             .getKeyPair(singalId.pubkey, signalId: singalId);
     var (plaintext, msgKeyHash, _) = await rustSignal.decryptSignal(
@@ -478,18 +480,8 @@ Let's talk on this server.''';
     logger.i(
         'decryptPreKeyMessage, plainrtext: $prekeyMessageModel, msgKeyHash: $msgKeyHash');
 
-    String sourceContent = SignalChatUtil.getPrekeySigContent([
-      prekeyMessageModel.nostrId,
-      identity.secp256k1PKHex,
-      prekeyMessageModel.message
-    ]);
-    bool verify = await rustNostr.verifySchnorr(
-      pubkey: prekeyMessageModel.nostrId,
-      content: sourceContent,
-      sig: prekeyMessageModel.sig,
-      hash: true,
-    );
-    if (!verify) throw Exception('Signature verification failed');
+    await SignalChatUtil.verifyPrekeyMessage(
+        prekeyMessageModel, identity.secp256k1PKHex);
 
     Room? room = await RoomService()
         .getRoomByIdentity(prekeyMessageModel.nostrId, identity.id);
@@ -513,8 +505,8 @@ Let's talk on this server.''';
       await RoomService().updateChatRoomPage(room);
       await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
     }
-    await RoomService().receiveDM(room, event, null,
-        decodedContent: prekeyMessageModel.message);
+    await RoomService().receiveDM(room, event,
+        sourceEvent: null, decodedContent: prekeyMessageModel.message);
     // todo add pre decode content
     return;
   }

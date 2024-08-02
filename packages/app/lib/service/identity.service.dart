@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
@@ -126,7 +129,7 @@ class IdentityService {
         if (signalIdPubkey != null) {
           keyPair = await Get.find<ChatxService>().getKeyPair(signalIdPubkey);
         } else {
-          keyPair = Get.find<ChatxService>().getKeyPairOld(identity);
+          keyPair = Get.find<ChatxService>().getKeyPairByIdentity(identity);
         }
         await rustSignal.deleteSession(
             keyPair: keyPair, address: remoteAddress);
@@ -302,24 +305,38 @@ class IdentityService {
     return prikey;
   }
 
-  Future createSignalId(int identityId, {bool isGroupSharedKey = false}) async {
+  Future createSignalId(Identity identity,
+      {bool isGroupSharedKey = false}) async {
     Isar database = DBProvider.database;
     var keychain = await rustSignal.generateSignalIds();
     var signalId = SignalId(
         prikey: hex.encode(keychain.$1),
-        identityId: identityId,
+        identityId: identity.id,
         pubkey: hex.encode(keychain.$2))
       ..isGroupSharedKey = isGroupSharedKey
       ..isUsed = false;
+    ChatxService chatxService = Get.find<ChatxService>();
+    KeychatIdentityKeyPair keypair = await chatxService.setupSignalId(signalId);
+    var signalPrivateKey = Uint8List.fromList(hex.decode(signalId.prikey));
+    var res = await rustSignal.generateSignedKeyApi(
+        keyPair: keypair, signalIdentityPrivateKey: signalPrivateKey);
+
+    signalId.signalKeyId = res.$1;
+    Map<String, dynamic> data = {};
+    data['signedId'] = res.$1;
+    data['signedPublic'] = hex.encode(res.$2);
+    data['signedSignature'] = hex.encode(res.$3);
+
+    var res2 = await rustSignal.generatePrekeyApi(keyPair: keypair);
+    data['prekeyId'] = res2.$1;
+    data['prekeyPubkey'] = hex.encode(res2.$2);
+    signalId.keys = jsonEncode(data);
+
     await database.writeTxn(() async {
       await database.signalIds.put(signalId);
     });
-    // should init store when create
-    Identity? identity = await IdentityService().getIdentityById(identityId);
-    if (identity == null) {
-      throw Exception("not found identity by create signalId");
-    }
-    await ChatxService().setupIdentitySignalStore(signalId, identity);
+
+    await ChatxService().setupSignalId(signalId);
     return signalId;
   }
 

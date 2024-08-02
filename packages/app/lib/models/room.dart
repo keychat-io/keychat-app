@@ -136,13 +136,15 @@ class Room extends Equatable {
     return Get.find<HomeController>().identities[identityId]!;
   }
 
-  SignalId? getGroupSharedSignalId() {
-    return sharedSignalID == null
-        ? null
-        : DBProvider.database.signalIds
-            .filter()
-            .pubkeyEqualTo(sharedSignalID!)
-            .findFirstSync();
+  SignalId getGroupSharedSignalId() {
+    if (sharedSignalID == null) throw Exception('signalId is null');
+
+    SignalId? res = DBProvider.database.signalIds
+        .filter()
+        .pubkeyEqualTo(sharedSignalID!)
+        .findFirstSync();
+    if (res == null) throw Exception('signalId is null');
+    return res;
   }
 
   Future<RoomMember?> getMemberByIdPubkey(String pubkey) async {
@@ -418,5 +420,17 @@ class Room extends Equatable {
       memberRooms[rm.idPubkey] = idRoom;
     }
     return memberRooms;
+  }
+
+  Future<RoomMember?> getMemberByNostrPubkey(String pubkey) async {
+    return await DBProvider.database.roomMembers
+        .filter()
+        .roomIdEqualTo(id)
+        .idPubkeyEqualTo(pubkey)
+        .findFirst();
+  }
+
+  int getDeviceIdForSignal() {
+    return type == RoomType.common ? identityId : 10000 + id;
   }
 }

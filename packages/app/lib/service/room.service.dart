@@ -64,7 +64,7 @@ class RoomService extends BaseChatService {
     int identityId = identity.id;
     Room? exist = await getRoomByIdentity(toMainPubkey, identityId);
     if (exist != null) return exist;
-    signalId ??= await IdentityService().createSignalId(identityId);
+    signalId ??= await IdentityService().createSignalId(identity);
 
     Room room = Room(
       toMainPubkey: toMainPubkey,
@@ -178,12 +178,11 @@ class RoomService extends BaseChatService {
     Room? room = await getRoomByIdentity(toMainPubkey, identity.id);
     if (room != null) return room;
 
-    room = await createPrivateRoom(
+    return await createPrivateRoom(
         encryptMode: EncryptMode.nip04,
         toMainPubkey: toMainPubkey,
         identity: identity,
         status: status);
-    return room;
   }
 
   Future<Room?> getRoom(String from, String to) async {
@@ -427,9 +426,9 @@ class RoomService extends BaseChatService {
     }
   }
 
-  Future receiveDM(
-      Room room, NostrEventModel event, NostrEventModel? sourceEvent,
+  Future receiveDM(Room room, NostrEventModel event,
       {bool? isSystem,
+      NostrEventModel? sourceEvent,
       KeychatMessage? km,
       String? realMessage,
       String? decodedContent,
@@ -659,44 +658,43 @@ class RoomService extends BaseChatService {
       {bool autoJump = true, Identity? identity, String? greeting}) async {
     identity ??= homeController.getSelectedIdentity();
     // input is a hex string, decode in json
-    if (input.length == 64 || input.length == 63) {
-      String hexPubkey = input;
-      if (input.startsWith('npub') && input.length == 63) {
-        hexPubkey = rustNostr.getHexPubkeyByBech32(bech32: input);
+    if (!(input.length == 64 || input.length == 63)) return null;
+    String hexPubkey = input;
+    if (input.startsWith('npub') && input.length == 63) {
+      hexPubkey = rustNostr.getHexPubkeyByBech32(bech32: input);
+    }
+
+    try {
+      late Room room;
+      // add myself
+      if (identity.secp256k1PKHex == hexPubkey) {
+        room = await RoomService()
+            .getOrCreateRoomByIdentity(hexPubkey, identity, RoomStatus.enabled);
+      } else {
+        for (var iden in homeController.identities.values) {
+          if (iden.secp256k1PKHex == hexPubkey) {
+            throw Exception('Can not add other identity\' pubkey');
+          }
+        }
+        room = await RoomService().getOrCreateRoomByIdentity(
+            hexPubkey, identity, RoomStatus.requesting);
+        await SignalChatService()
+            .sendHelloMessage(room, identity, greeting: greeting);
+        if (room.status != RoomStatus.requesting) {
+          room.status = RoomStatus.requesting;
+          await RoomService().updateRoom(room);
+        }
+        EasyLoading.showSuccess('Request sent successfully');
       }
 
-      try {
-        late Room room;
-        // add myself
-        if (identity.secp256k1PKHex == hexPubkey) {
-          room = await RoomService().getOrCreateRoomByIdentity(
-              hexPubkey, identity, RoomStatus.enabled);
-        } else {
-          for (var iden in homeController.identities.values) {
-            if (iden.secp256k1PKHex == hexPubkey) {
-              throw Exception('Can not add other identity\' pubkey');
-            }
-          }
-          room = await RoomService().getOrCreateRoomByIdentity(
-              hexPubkey, identity, RoomStatus.requesting);
-          await SignalChatService()
-              .sendHelloMessage(room, identity, greeting: greeting);
-          if (room.status != RoomStatus.requesting) {
-            room.status = RoomStatus.requesting;
-            await RoomService().updateRoom(room);
-          }
-          EasyLoading.showSuccess('Request sent successfully');
-        }
-
-        if (autoJump) {
-          await Get.offAndToNamed('/room/${room.id}', arguments: room);
-          await homeController.loadIdentityRoomList(identity.id);
-        }
-        return room;
-      } catch (e, s) {
-        logger.e('add contact failed', error: e, stackTrace: s);
-        EasyLoading.showError(e.toString());
+      if (autoJump) {
+        await Get.offAndToNamed('/room/${room.id}', arguments: room);
+        await homeController.loadIdentityRoomList(identity.id);
       }
+      return room;
+    } catch (e, s) {
+      logger.e('add contact failed', error: e, stackTrace: s);
+      EasyLoading.showError(e.toString());
     }
     return null;
   }

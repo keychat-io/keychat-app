@@ -499,8 +499,15 @@ Tags: ${event.tags}''',
             return await dmNip4Proccess(event, relay, exist);
           }
 
-          // if signal message , to_address is myIDPubkey or one-time-key
+          // try kdf group
           String to = event.tags[0][1];
+          Room? kdfRoom = await roomService.getGroupByReceivePubkey(to);
+          if (kdfRoom != null) {
+            return await KdfGroupService.instance
+                .decryptMessage(kdfRoom, event, relay);
+          }
+
+          // if signal message , to_address is myIDPubkey or one-time-key
           Room? room = await roomService.getRoomByReceiveKey(to);
           if (room != null) {
             return await SignalChatService()
@@ -531,14 +538,6 @@ Tags: ${event.tags}''',
 
   Future dmNip4Proccess(
       NostrEventModel event, Relay relay, EventLog? eventLog) async {
-    // try kdf group
-    String to = event.tags[0][1];
-    Room? kdfRoom = await roomService.getGroupByReceivePubkey(to);
-    if (kdfRoom != null) {
-      return await KdfGroupService.instance
-          .decryptMessage(kdfRoom, event, relay, eventLog: eventLog);
-    }
-
     String? content = await getDecodeNip4Content(event);
     if (content == null) {
       logger.e('decode error: ${event.id}');

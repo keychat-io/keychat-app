@@ -340,6 +340,38 @@ class IdentityService {
     return signalId;
   }
 
+  Future importSignalId(Identity identity, String pubkey, String prikey,
+      Map<String, dynamic> keys) async {
+    Isar database = DBProvider.database;
+    var signalId =
+        SignalId(prikey: prikey, identityId: identity.id, pubkey: pubkey)
+          ..isGroupSharedKey = true
+          ..isUsed = false;
+    ChatxService chatxService = Get.find<ChatxService>();
+    KeychatIdentityKeyPair keypair = await chatxService.setupSignalId(signalId);
+    var signalPrivateKey = Uint8List.fromList(hex.decode(signalId.prikey));
+    var res = await rustSignal.generateSignedKeyApi(
+        keyPair: keypair, signalIdentityPrivateKey: signalPrivateKey);
+
+    signalId.signalKeyId = res.$1;
+    Map<String, dynamic> data = {};
+    data['signedId'] = res.$1;
+    data['signedPublic'] = hex.encode(res.$2);
+    data['signedSignature'] = hex.encode(res.$3);
+
+    var res2 = await rustSignal.generatePrekeyApi(keyPair: keypair);
+    data['prekeyId'] = res2.$1;
+    data['prekeyPubkey'] = hex.encode(res2.$2);
+    signalId.keys = jsonEncode(data);
+
+    await database.writeTxn(() async {
+      await database.signalIds.put(signalId);
+    });
+
+    await ChatxService().setupSignalId(signalId);
+    return signalId;
+  }
+
   Future<SignalId?> isFromSignalId(String toAddress) async {
     var res = await DBProvider.database.signalIds
         .filter()

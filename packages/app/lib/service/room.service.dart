@@ -721,8 +721,13 @@ class RoomService extends BaseChatService {
   //   return;
   // }
 
-  Future sendNip17Message(Room room, Identity identity,
-      {required String sourceContent, String? realMessage}) async {
+  Future sendNip17Message(
+    Room room,
+    Identity identity, {
+    required String sourceContent,
+    String? realMessage,
+    bool? timestampTweaked,
+  }) async {
     String result = await rustNostr.createGiftJson(
         kind: 14,
         senderKeys: identity.secp256k1SKHex,

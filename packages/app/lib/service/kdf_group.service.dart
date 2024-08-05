@@ -283,6 +283,9 @@ class KdfGroupService extends BaseChatService {
     } catch (e, s) {
       String msg = Utils.getErrorMessage(e);
       logger.e(msg, error: e, stackTrace: s);
+      await RoomService().receiveDM(room, event,
+          decodedContent: 'Decrypt error: $msg', sourceEvent: sourceEvent);
+      return;
     }
 
     String decodeString = utf8.decode(plaintext);
@@ -292,9 +295,8 @@ class KdfGroupService extends BaseChatService {
     try {
       decodedContent = jsonDecode(decodeString);
       km = KeychatMessage.fromJson(decodedContent);
-    } catch (e) {
-      // logger.e('decodeString error,', error: e);
-    }
+      // ignore: empty_catches
+    } catch (e) {}
 
     if (km != null) {
       await processMessage(
@@ -313,31 +315,6 @@ class KdfGroupService extends BaseChatService {
     return decodeString;
   }
 
-  // Future decryptMessage(Room kdfRoom, NostrEventModel event, Relay relay,
-  //     {EventLog? eventLog}) async {
-  //   String prikey = kdfRoom.mykey.value!.prikey;
-
-  //   String decodedContent = await rustNostr.decrypt(
-  //       senderKeys: prikey,
-  //       receiverPubkey: event.pubkey,
-  //       content: event.content);
-  //   logger.d('from ${event.pubkey}, decodedContent: $decodedContent');
-  //   KeychatMessage? km;
-  //   try {
-  //     km = KeychatMessage.fromJson(jsonDecode(decodedContent));
-  //   } catch (e) {}
-  //   if (km != null) {
-  //     return await processMessage(
-  //         room: kdfRoom, event: event, km: km, relay: relay);
-  //   }
-  //   await RoomService().receiveDM(
-  //     kdfRoom,
-  //     event,
-  //     null,
-  //     decodedContent: decodedContent,
-  //   );
-  // }
-
   // create a group
   // setup room's sharedSignalID
   // setup room's signal session
@@ -347,22 +324,26 @@ class KdfGroupService extends BaseChatService {
   // shared signal init signal session
   Future<Room> createGroup(String groupName, Identity identity,
       {List<String> toUsers = const []}) async {
-    ChatxService chatxService = Get.find<ChatxService>();
-
+    SignalId signalId = await IdentityService()
+        .createSignalId(identity, isGroupSharedKey: true);
     Room room =
         await GroupService().createGroup(groupName, identity, GroupType.kdf);
-
-    IdentityService identityService = IdentityService();
-    SignalId signalId =
-        await identityService.createSignalId(identity, isGroupSharedKey: true);
     room.sharedSignalID = signalId.pubkey;
     await RoomService().updateRoom(room);
     if (toUsers.isNotEmpty) {
-      await GroupService().inviteToJoinGroup(room, toUsers: toUsers);
+      await GroupService()
+          .inviteToJoinGroup(room, toUsers: toUsers, signalId: signalId);
     }
-    // create my signal session with sharedSignalId
-    await chatxService.addKPAForSharedSignalId(
-        identity, signalId.pubkey, signalId.keys!);
+    await sendHelloMessage(identity, signalId, room);
+
+    return room;
+  }
+
+  // create my signal session with sharedSignalId
+  Future<void> sendHelloMessage(
+      Identity identity, SignalId signalId, Room room) async {
+    await Get.find<ChatxService>()
+        .addKPAForSharedSignalId(identity, signalId.pubkey, signalId.keys!);
     // send hello message
     KeychatMessage sm = KeychatMessage(
         c: MessageType.signal, type: KeyChatEventKinds.kdfHelloMessage)
@@ -371,8 +352,6 @@ class KdfGroupService extends BaseChatService {
 
     await KdfGroupService.instance
         .sendMessage(room, isPrekey: true, sm.toString(), save: false);
-
-    return room;
   }
 
   _processHelloMessage(Room room, NostrEventModel event, KeychatMessage km,

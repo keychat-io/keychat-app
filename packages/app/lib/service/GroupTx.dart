@@ -78,6 +78,7 @@ class GroupTx {
       ..groupType = groupType
       ..version = version
       ..groupRelay = groupRelay;
+
     room = await updateRoom(room, updateMykey: true);
     await room.updateAllMemberTx(members);
     RoomMember? me = await room.getMember(identity.secp256k1PKHex);
@@ -113,7 +114,7 @@ class GroupTx {
     if ((roomProfile.groupType == GroupType.shareKey ||
             roomProfile.groupType == GroupType.kdf) &&
         toRoomPriKey == null) {
-      throw Exception('Prikey is null');
+      throw Exception('Prikey is null, failed to join group.');
     } else if (toRoomPriKey != null) {
       roomKey = await importMykeyTx(
           identity, await rustNostr.importKey(senderKeys: toRoomPriKey));
@@ -127,6 +128,9 @@ class GroupTx {
         groupType: roomProfile.groupType,
         version: version,
         groupRelay: groupRelay);
+    if (groupRoom.isKDFGroup && roomProfile.signalPubkey != null) {
+      groupRoom.sharedSignalID = roomProfile.signalPubkey;
+    }
     return groupRoom;
   }
 }

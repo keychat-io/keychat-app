@@ -628,10 +628,10 @@ class MessageWidget extends StatelessWidget {
               ? (msg.realMessage ?? msg.content)
               : msg.mediaType.name;
           subTitleChild = Text(content,
-              style: Theme.of(Get.context!).textTheme.bodyMedium?.copyWith(
-                    color: fontColor.withOpacity(0.7),
-                    height: 1,
-                  ),
+              style: Theme.of(Get.context!)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: fontColor.withOpacity(0.7), height: 1),
               maxLines: 5);
         }
       }

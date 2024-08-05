@@ -17,7 +17,10 @@ RoomProfile _$RoomProfileFromJson(Map<String, dynamic> json) => RoomProfile(
       ..oldToRoomPubKey = json['oldToRoomPubKey'] as String?
       ..ext = json['ext'] as String?
       ..groupRelay = json['groupRelay'] as String?
-      ..updatedAt = (json['updatedAt'] as num?)?.toInt();
+      ..updatedAt = (json['updatedAt'] as num?)?.toInt()
+      ..signalKeys = json['signalKeys'] as String?
+      ..signalPubkey = json['signalPubkey'] as String?
+      ..signaliPrikey = json['signaliPrikey'] as String?;
 
 Map<String, dynamic> _$RoomProfileToJson(RoomProfile instance) {
   final val = <String, dynamic>{
@@ -39,6 +42,9 @@ Map<String, dynamic> _$RoomProfileToJson(RoomProfile instance) {
   writeNotNull('updatedAt', instance.updatedAt);
   val['name'] = instance.name;
   val['users'] = instance.users;
+  writeNotNull('signalKeys', instance.signalKeys);
+  writeNotNull('signalPubkey', instance.signalPubkey);
+  writeNotNull('signaliPrikey', instance.signaliPrikey);
   return val;
 }
 

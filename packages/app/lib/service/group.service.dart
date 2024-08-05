@@ -3,7 +3,6 @@ import 'dart:convert' show jsonEncode, jsonDecode;
 
 import 'package:app/controller/chat.controller.dart';
 import 'package:app/controller/home.controller.dart';
-import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/models/signal_id.dart';
 import 'package:app/nostr-core/nostr_event.dart';
@@ -304,7 +303,7 @@ class GroupService extends BaseChatService {
       String realMessage) async {
     String? toRoomPriKey = roomProfile.prikey; // shared private key
     String groupName = roomProfile.name;
-    String groupRelay = roomProfile.groupRelay ?? KeychatGlobal.defaultRelay;
+    String? groupRelay = roomProfile.groupRelay;
     List<dynamic> users = roomProfile.users;
     List groupInviteMsg = jsonDecode(realMessage);
     String senderIdPubkey = groupInviteMsg[1];
@@ -343,7 +342,7 @@ class GroupService extends BaseChatService {
             realMessage: 'Invite you to join group: $groupName');
         return;
       }
-      if (roomProfile.groupType == GroupType.kdf) {
+      if (roomProfile.groupType == GroupType.sendAll) {
         await DBProvider.database.writeTxn(() async {
           try {
             groupRoom = await GroupTx().joinGroup(roomProfile, identity);
@@ -509,7 +508,8 @@ class GroupService extends BaseChatService {
   // 1. If the room id already exists locally, check whether the sending user is in the group
   // 2. If not, throw an exception
   // 3. Check if the secret key matches. There is a situation where the roomID is the same, but the shared secret key has been changed.
-  inviteToJoinGroup(Room groupRoom, {List<String> toUsers = const []}) async {
+  inviteToJoinGroup(Room groupRoom,
+      {List<String> toUsers = const [], SignalId? signalId}) async {
     if (toUsers.isEmpty) return;
     Identity identity = groupRoom.getIdentity();
     await roomService.checkRoomStatus(groupRoom);
@@ -555,6 +555,13 @@ class GroupService extends BaseChatService {
       ..prikey = roomMykey?.prikey
       ..groupRelay = groupRoom.groupRelay
       ..updatedAt = DateTime.now().millisecondsSinceEpoch;
+
+    // shared signalId's QRCode
+    if (groupRoom.isKDFGroup && signalId != null) {
+      roomProfile.signalKeys = signalId.keys;
+      roomProfile.signalPubkey = signalId.pubkey;
+      roomProfile.signaliPrikey = signalId.prikey;
+    }
 
     List<String> addUsersName = toMembers.map((e) => e.name).toList();
     String realMessage = '🤖 Invite ${addUsersName.join(',')} to join group';
@@ -881,28 +888,30 @@ class GroupService extends BaseChatService {
         if (identity.secp256k1PKHex == hexPubkey) return;
         try {
           await nostrAPI.sendNip4Message(
-            save: groupRoom.isSendAllGroup,
-            hexPubkey,
-            km.toString(),
-            room: groupRoom,
-            encryptType: MessageEncryptType.nip4,
-            prikey: identity.secp256k1SKHex,
-            from: identity.secp256k1PKHex,
-            realMessage: realMessage,
-          );
+              save: groupRoom.isSendAllGroup,
+              hexPubkey,
+              km.toString(),
+              room: groupRoom,
+              encryptType: MessageEncryptType.nip4,
+              prikey: identity.secp256k1SKHex,
+              from: identity.secp256k1PKHex,
+              realMessage: realMessage);
         } catch (e, s) {
           logger.e(e.toString(), error: e, stackTrace: s);
         }
       });
     }
     await queue.onComplete;
-    Mykey roomMykey = groupRoom.mykey.value!;
-    await nostrAPI.sendNip4Message(roomMykey.pubkey, km.toString(),
-        room: groupRoom,
-        prikey: roomMykey.prikey,
-        from: roomMykey.pubkey,
-        encryptType: MessageEncryptType.nip4,
-        realMessage: realMessage);
+    // exclude kdf group
+    if (groupRoom.isShareKeyGroup) {
+      Mykey roomMykey = groupRoom.mykey.value!;
+      await nostrAPI.sendNip4Message(roomMykey.pubkey, km.toString(),
+          room: groupRoom,
+          prikey: roomMykey.prikey,
+          from: roomMykey.pubkey,
+          encryptType: MessageEncryptType.nip4,
+          realMessage: realMessage);
+    }
   }
 
   Future _processGroupHi(

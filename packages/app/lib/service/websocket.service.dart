@@ -13,6 +13,7 @@ import 'package:app/service/message.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
+import 'package:easy_debounce/easy_debounce.dart';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -66,6 +67,8 @@ class WebsocketService extends GetxService {
     for (RelayWebsocket rw in channels.values) {
       var status = await rw.checkOnlineStatus();
       if (!status) {
+        rw.channel?.disconnect('goingAway');
+        rw.channel?.close();
         _startConnectRelay(rw);
       }
     }
@@ -332,17 +335,20 @@ class WebsocketService extends GetxService {
     }
   }
 
-  Future<RelayWebsocket> _startConnectRelay(RelayWebsocket rw) async {
+  Future<RelayWebsocket> _startConnectRelay(RelayWebsocket rw,
+      [bool skipCheck = false]) async {
     Relay relay = rw.relay;
-    if (!relay.active) {
-      // skip inactive relay
-      return rw;
-    }
 
-    if (rw.failedTimes > failedTimesLimit) {
-      rw.channelStatus = RelayStatusEnum.failed;
-      rw.channel?.disconnect('Failed times too many');
-      return rw;
+    if (skipCheck == false) {
+      if (!relay.active) {
+        return rw;
+      }
+
+      if (rw.failedTimes > failedTimesLimit) {
+        rw.channelStatus = RelayStatusEnum.failed;
+        rw.channel?.disconnect('Failed times too many');
+        return rw;
+      }
     }
 
     loggerNoLine
@@ -366,26 +372,10 @@ class WebsocketService extends GetxService {
     );
     rw.channel = textSocketHandler;
     textSocketHandler.socketHandlerStateStream.listen((stateEvent) {
-      // delay 100ms
-      loggerNoLine.i('[${relay.url}] status: ${stateEvent.status}');
-
-      switch (stateEvent.status) {
-        case SocketStatus.connected:
-          rw.connectSuccess(textSocketHandler);
-
-          break;
-        case SocketStatus.connecting:
-          if (rw.channelStatus != RelayStatusEnum.connecting) {
-            rw.connecting();
-          }
-          break;
-        case SocketStatus.disconnected:
-          if (rw.channelStatus != RelayStatusEnum.failed) {
-            rw.disconnected();
-          }
-          break;
-        default:
-      }
+      EasyDebounce.debounce(
+          'relayStatus_${relay.url}', const Duration(milliseconds: 100), () {
+        _processBySocketStatus(stateEvent, rw, textSocketHandler);
+      });
     });
     NostrAPI nostrAPI = NostrAPI();
     textSocketHandler.incomingMessagesStream.listen((inMsg) {
@@ -399,6 +389,27 @@ class WebsocketService extends GetxService {
     }
 
     return rw;
+  }
+
+  void _processBySocketStatus(ISocketState stateEvent, RelayWebsocket rw,
+      IWebSocketHandler<dynamic, dynamic> textSocketHandler) {
+    loggerNoLine.i('[${rw.relay.url}] status: ${stateEvent.status}');
+    switch (stateEvent.status) {
+      case SocketStatus.connected:
+        rw.connectSuccess(textSocketHandler);
+        break;
+      case SocketStatus.connecting:
+        if (rw.channelStatus != RelayStatusEnum.connecting) {
+          rw.connecting();
+        }
+        break;
+      case SocketStatus.disconnected:
+        if (rw.channelStatus != RelayStatusEnum.failed) {
+          rw.disconnected();
+        }
+        break;
+      default:
+    }
   }
 
   bool existFreeRelay() {

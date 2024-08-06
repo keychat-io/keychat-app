@@ -115,10 +115,14 @@ class HomeController extends GetxController
 
   void _startCheckWebsocketTimer() async {
     _stopCheckWebsocketTimer();
-    await Future.delayed(const Duration(seconds: 3));
-    _checkWebsocketTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
-      loggerNoLine.i('checkOnlineAndConnect');
-      Get.find<WebsocketService>().checkOnlineAndConnect();
+    EasyDebounce.debounce('checkOnlineAndConnect', const Duration(seconds: 10),
+        () async {
+      if (!resumed) return;
+      _checkWebsocketTimer =
+          Timer.periodic(const Duration(minutes: 1), (timer) {
+        loggerNoLine.i('checkOnlineAndConnect');
+        Get.find<WebsocketService>().checkOnlineAndConnect();
+      });
     });
   }
 

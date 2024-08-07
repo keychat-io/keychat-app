@@ -6,8 +6,8 @@ import 'package:app/models/models.dart';
 import 'package:app/models/signal_id.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/group.service.dart';
-import 'package:app/service/identity.service.dart';
 import 'package:app/service/room.service.dart';
+import 'package:app/service/signalId.service.dart';
 import 'package:get/get.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -58,14 +58,14 @@ class KeychatMessage {
       {String? greeting, String? relay}) async {
     // String? relay = await RelayService().getDefaultOnlineRelay();
     List<Mykey> oneTimeKeys =
-        await ChatxService().getOneTimePubkey(identity.id);
+        await Get.find<ChatxService>().getOneTimePubkey(identity.id);
     String onetimekey = '';
     if (oneTimeKeys.isNotEmpty) {
       onetimekey = oneTimeKeys.first.pubkey;
     }
-    SignalId signalId = await IdentityService().createSignalId(identity.id);
-    Map userInfo =
-        await Get.find<ChatxService>().getQRCodeData(identity, signalId);
+    SignalId signalId =
+        await SignalIdService.instance.createSignalId(identity.id);
+    Map userInfo = await SignalIdService.instance.getQRCodeData(signalId);
 
     Map<String, dynamic> data = {
       'name': identity.displayName,

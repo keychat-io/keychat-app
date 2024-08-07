@@ -69,10 +69,19 @@ class MinePage extends GetView<SettingController> {
                               size: 22,
                             ),
                             onPressed: (context) {
+                              List<Identity> identities =
+                                  Get.find<HomeController>()
+                                      .identities
+                                      .values
+                                      .toList();
+                              List<String> npubs =
+                                  identities.map((e) => e.npub).toList();
+                              String mnemonic = identities.first.mnemonic;
                               Get.to(
-                                  () => const CreateAccount(
-                                        type: "me",
-                                      ),
+                                  () => CreateAccount(
+                                      type: "me",
+                                      mnemonic: mnemonic,
+                                      npubs: npubs),
                                   arguments: 'create');
                             }),
                         // SettingsTile.navigation(

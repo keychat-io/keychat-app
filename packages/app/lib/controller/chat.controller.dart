@@ -732,7 +732,6 @@ class ChatController extends GetxController with StateMixin<Type> {
   }
 
   _initRoom(Room room) async {
-    await Get.find<ChatxService>().initRoomSignalStore(room);
     if (room.type == RoomType.group) {
       await resetMembers();
       Identity identity = room.getIdentity();
@@ -745,9 +744,7 @@ class ChatController extends GetxController with StateMixin<Type> {
         ..curve25519PkHex = room.getIdentity().curve25519PkHex;
       return;
     }
-    // private chat
     if (room.contact == null) {
-      // await Get.find<ChatxService>().initRoomSignalStore(room);
       Contact contact = await ContactService().getOrCreateContact(
           roomObs.value.identityId, roomObs.value.toMainPubkey);
       roomObs.value.contact = contact;

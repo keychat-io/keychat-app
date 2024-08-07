@@ -4,6 +4,7 @@ import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/chat_settings_more.dart.dart';
 import 'package:app/page/chat/message_bill/message_bill_page.dart';
 import 'package:app/page/routes.dart';
+import 'package:app/service/signalId.service.dart';
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rustSignal;
 
 import 'package:app/service/chatx.service.dart';
@@ -190,11 +191,11 @@ class _ShowContactDetailState extends State<ShowContactDetail> {
                     await RoomService().getRoomBySignalIdPubkey(signalIdPubkey);
                 if (rooms.length <= 1) {
                   //only one room used this signalIdPubkey, need delete
-                  await IdentityService()
+                  await SignalIdService.instance
                       .deleteSignalIdByPubkey(signalIdPubkey);
                 }
                 final keyPair = await Get.find<ChatxService>()
-                    .getKeyPair(signalIdPubkey, identity);
+                    .getKeyPairBySignalIdPubkey(signalIdPubkey);
                 // delete signal session
                 await rustSignal.deleteSession(
                     keyPair: keyPair, address: remoteAddress);

@@ -50,14 +50,12 @@ class SignalChatService extends BaseChatService {
     Function? sentCallback,
   }) async {
     ChatxService cs = Get.find<ChatxService>();
-    KeychatIdentityKeyPair keyPair = await cs.getAndSetupKeyPairByRoom(room);
     rustSignal.KeychatProtocolAddress? kpa = await cs.getRoomKPA(room);
     if (kpa == null) {
       throw Exception("signal_session_is_null");
     }
     String message0 = message;
-
-    String to = await _getSignalToAddress(keyPair, room);
+    String to = await _getSignalToAddress(room.keyPair!, room);
     PrekeyMessageModel? pmm;
     if (room.onetimekey != null) {
       if (to == room.onetimekey) {
@@ -68,7 +66,7 @@ class SignalChatService extends BaseChatService {
     }
     (Uint8List, String?, String, List<String>?) enResult =
         await rustSignal.encryptSignal(
-            keyPair: keyPair,
+            keyPair: room.keyPair!,
             ptext: pmm?.toString() ?? message0,
             remoteAddress: kpa);
     Uint8List ciphertext = enResult.$1;
@@ -140,10 +138,6 @@ class SignalChatService extends BaseChatService {
 
   Future<String> decryptDMMessage(Room room, NostrEventModel event, Relay relay,
       {NostrEventModel? sourceEvent, EventLog? eventLog}) async {
-    KeychatIdentityKeyPair? keyPair =
-        await Get.find<ChatxService>().initRoomSignalStore(room);
-    if (keyPair == null) throw Exception('keypair_is_null');
-
     Uint8List message = Uint8List.fromList(base64Decode(event.content));
 
     late Uint8List plaintext;
@@ -157,7 +151,7 @@ class SignalChatService extends BaseChatService {
       }
       try {
         (plaintext, msgKeyHash, _) = await rustSignal.decryptSignal(
-            keyPair: keyPair,
+            keyPair: room.keyPair!,
             ciphertext: message,
             remoteAddress: kpa,
             roomId: room.id,
@@ -165,17 +159,13 @@ class SignalChatService extends BaseChatService {
       } catch (e, s) {
         String msg = Utils.getErrorMessage(e);
         logger.i(msg, error: e, stackTrace: s);
-        // first msg in decryptSignal must be isPrekey = true
-        (plaintext, msgKeyHash, _) = await rustSignal.decryptSignal(
-            keyPair: keyPair,
-            ciphertext: message,
-            remoteAddress: kpa,
-            roomId: room.id,
-            isPrekey: true);
       }
       await setRoomSignalDecodeStatus(room, false);
-      // get hash
-      msgKeyHash = await rustNostr.generateMessageKeyHash(seedKey: msgKeyHash);
+      // get encrypt msg key's hash
+      if (msgKeyHash != null) {
+        msgKeyHash =
+            await rustNostr.generateMessageKeyHash(seedKey: msgKeyHash);
+      }
       // if receive address is signalAddress, then remove room.onetimekey
       if (room.onetimekey != null) {
         String toAddress = (sourceEvent ?? event).tags[0][1];
@@ -523,7 +513,7 @@ Let's talk on this server.''';
       await RoomService().updateChatRoomPage(room);
       await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
     }
-    await Get.find<ChatxService>().initRoomSignalStore(room);
+
     await RoomService().receiveDM(room, event, null,
         decodedContent: prekeyMessageModel.message);
     // todo add pre decode content

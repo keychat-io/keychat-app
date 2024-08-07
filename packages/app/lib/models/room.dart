@@ -1,10 +1,12 @@
 import 'package:app/controller/home.controller.dart';
 import 'package:app/models/models.dart';
+import 'package:app/service/chatx.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/utils.dart';
 import 'package:equatable/equatable.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
+import 'package:keychat_rust_ffi_plugin/api_signal.dart';
 
 import 'db_provider.dart';
 
@@ -129,6 +131,13 @@ class Room extends Equatable {
       ];
 
   String get myIdPubkey => getIdentity().secp256k1PKHex;
+  KeychatIdentityKeyPair? get keyPair {
+    ChatxService chatxService = Get.find<ChatxService>();
+    if (signalIdPubkey == null) {
+      return chatxService.getKeyPairByIdentity(getIdentity());
+    }
+    return chatxService.keypairs[signalIdPubkey];
+  }
 
   Identity getIdentity() {
     return Get.find<HomeController>().identities[identityId]!;

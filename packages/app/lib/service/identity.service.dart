@@ -11,6 +11,7 @@ import 'package:convert/convert.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_signal.dart';
+import 'package:keychat_rust_ffi_plugin/api_signal.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rustSignal;
 

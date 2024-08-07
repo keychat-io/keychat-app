@@ -312,7 +312,7 @@ class IdentityService {
     if (identity == null) {
       throw Exception("not found identity by create signalId");
     }
-    await ChatxService().setupIdentitySignalStore(signalId, identity);
+    await ChatxService().setupIdentitySignalStore(signalId.pubkey, identity);
     return signalId;
   }
 

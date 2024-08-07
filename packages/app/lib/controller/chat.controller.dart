@@ -586,6 +586,7 @@ class ChatController extends GetxController with StateMixin<Type> {
         .toList();
     if (room.isSendAllGroup) {
       memberRooms = await room.getEnableMemberRooms();
+      // await Get.find<ChatxService>().initGroupSignalStore(room, memberRooms);
       kpaIsNullRooms.value = await getKpaIsNullRooms(); // get null list
     }
   }
@@ -731,6 +732,7 @@ class ChatController extends GetxController with StateMixin<Type> {
   }
 
   _initRoom(Room room) async {
+    await Get.find<ChatxService>().initRoomSignalStore(room);
     if (room.type == RoomType.group) {
       await resetMembers();
       Identity identity = room.getIdentity();
@@ -745,6 +747,7 @@ class ChatController extends GetxController with StateMixin<Type> {
     }
     // private chat
     if (room.contact == null) {
+      // await Get.find<ChatxService>().initRoomSignalStore(room);
       Contact contact = await ContactService().getOrCreateContact(
           roomObs.value.identityId, roomObs.value.toMainPubkey);
       roomObs.value.contact = contact;

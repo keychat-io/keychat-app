@@ -1,18 +1,17 @@
-//
 import 'dart:math';
 
 import 'package:app/constants.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/nostr-core/nostr_nip4_req.dart';
 import 'package:test/test.dart';
-import 'package:websocket_universal/websocket_universal.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 // const String relay = 'wss://nos.lol';
 const String relay = 'wss://backup.keychat.io';
 
 void main() {
   test('NIP17-send', () async {
-    Future task(IWebSocketHandler<String, String> textSocketHandler) async {
+    Future task(WebSocketChannel textSocketHandler) async {
       NostrEventModel nip17Event = NostrEventModel.partial(
           id:
               "2886780f7349afc1344047524540ee716f7bdc1b64191699855662330bf235d8",
@@ -31,7 +30,7 @@ void main() {
           sig:
               'a3c6ce632b145c0869423c1afaff4a6d764a9b64dedaf15f170b944ead67227518a72e455567ca1c2a0d187832cecbde7ed478395ec4c95dd3e71749ed66c480');
 
-      textSocketHandler.sendMessage(nip17Event.serialize());
+      textSocketHandler.sink.add(nip17Event.serialize());
     }
 
     await connectWebSocket(task);
@@ -39,7 +38,7 @@ void main() {
   });
 
   test('NIP17-receive', () async {
-    Future task(IWebSocketHandler<String, String> textSocketHandler) async {
+    Future task(WebSocketChannel textSocketHandler) async {
       NostrNip4Req req = NostrNip4Req(
           reqId: 'a${Random().nextInt(900000).toString()}',
           pubkeys: [
@@ -47,7 +46,7 @@ void main() {
           ],
           kinds: [EventKinds.nip17],
           since: DateTime.fromMillisecondsSinceEpoch(1703128310 * 1000));
-      textSocketHandler.sendMessage(req.toString());
+      textSocketHandler.sink.add(req.toString());
     }
 
     await connectWebSocket(task);
@@ -57,32 +56,14 @@ void main() {
 
 // Connect to websocket
 Future<void> connectWebSocket(
-    Future Function(IWebSocketHandler<String, String> textSocketHandler)
-        handleTask) async {
-  final IMessageProcessor<String, String> textSocketProcessor =
-      SocketSimpleTextProcessor();
+    Future Function(WebSocketChannel textSocketHandler) handleTask) async {
+  final wsUrl = Uri.parse(relay);
+  final channel = WebSocketChannel.connect(wsUrl);
 
-  final textSocketHandler = IWebSocketHandler<String, String>.createClient(
-      relay, textSocketProcessor,
-      connectionOptions: const SocketConnectionOptions(
-          timeoutConnectionMs: 6000, pingRestrictionForce: true));
+  await channel.ready;
 
-  /// 2. Listen to webSocket messages:
-  textSocketHandler.incomingMessagesStream.listen((inMsg) {
-    print('> webSocket  got text message from server: "$inMsg" '
-        '[ping: ${textSocketHandler.pingDelayMs}]');
+  channel.stream.listen((message) {
+    channel.sink.add('received!');
   });
-  textSocketHandler.outgoingMessagesStream.listen((inMsg) {
-    print('> webSocket sent text message to   server: "$inMsg" '
-        '[ping: ${textSocketHandler.pingDelayMs}]');
-  });
-
-  /// 3. Connect & send message:
-  await textSocketHandler.connect();
-  await handleTask(textSocketHandler);
-  await Future<void>.delayed(const Duration(seconds: 4));
-
-  // 4. Disconnect & close connection:
-  await textSocketHandler.disconnect('manual disconnect');
-  textSocketHandler.close();
+  handleTask(channel);
 }

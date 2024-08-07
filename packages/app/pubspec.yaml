@@ -68,7 +68,6 @@ dependencies:
   carousel_slider: ^4.2.1
   flutter_staggered_grid_view: ^0.7.0
   flutter_floating: ^1.0.8
-  websocket_universal: ^1.2.5
   image_compression_flutter: ^1.0.4
   video_player: ^2.9.1
   video_compress: ^3.1.2
@@ -84,6 +83,7 @@ dependencies:
   crypto: ^3.0.3
   sentry_flutter: ^8.4.0
   app_badge_plus: ^1.1.1
+  web_socket_channel: ^2.4.5
 
 dev_dependencies:
   flutter_test:

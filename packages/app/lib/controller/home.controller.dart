@@ -13,7 +13,6 @@ import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:easy_debounce/easy_throttle.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
@@ -99,7 +98,6 @@ class HomeController extends GetxController
     NotifyService.initOnesignal().catchError((e, s) {
       logger.e('initNotifycation error', error: e, stackTrace: s);
     });
-    _startCheckWebsocketTimer();
 
     try {
       await RoomUtil.executeAutoDelete();
@@ -343,12 +341,8 @@ class HomeController extends GetxController
             'AppLifecycleState.resumed', const Duration(seconds: 2), () {
           if (isPaused) {
             Get.find<WebsocketService>().start();
-
             Utils.initLoggger(Get.find<SettingController>().appFolder);
             NotifyService.initNofityConfig(true);
-            if (kReleaseMode) {
-              _startCheckWebsocketTimer();
-            }
             return;
           }
           Get.find<WebsocketService>().checkOnlineAndConnect();

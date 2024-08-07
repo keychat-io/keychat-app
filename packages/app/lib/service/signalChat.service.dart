@@ -145,6 +145,7 @@ class SignalChatService extends BaseChatService {
   Future<String> decryptDMMessage(Room room, NostrEventModel event, Relay relay,
       {NostrEventModel? sourceEvent, EventLog? eventLog}) async {
     ChatxService cs = Get.find<ChatxService>();
+    await cs.initRoomSignalStore(room);
     KeychatIdentityKeyPair keyPair;
     if (room.signalIdPubkey != null) {
       keyPair = await cs.getKeyPair(room.signalIdPubkey!, room.getIdentity());
@@ -529,6 +530,7 @@ Let's talk on this server.''';
       await RoomService().updateChatRoomPage(room);
       await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
     }
+    await Get.find<ChatxService>().initRoomSignalStore(room);
     await RoomService().receiveDM(room, event, null,
         decodedContent: prekeyMessageModel.message);
     // todo add pre decode content

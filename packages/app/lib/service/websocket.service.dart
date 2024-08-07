@@ -196,12 +196,19 @@ class WebsocketService extends GetxService {
     relayStatusInt.value = RelayStatusEnum.connecting.name;
   }
 
+  bool startLock = false;
   start([List<Relay>? list]) async {
-    initAt = DateTime.now();
-    WriteEventStatus.clear();
-    await stopListening();
-    list ??= await RelayService().list();
-    await _createChannels(list);
+    if (startLock) return;
+    try {
+      startLock = true;
+      initAt = DateTime.now();
+      WriteEventStatus.clear();
+      await stopListening();
+      list ??= await RelayService().list();
+      await _createChannels(list);
+    } finally {
+      startLock = false;
+    }
   }
 
   Future stopListening() async {
@@ -322,12 +329,11 @@ class WebsocketService extends GetxService {
   }
 
   Future _createChannels([List<Relay> list = const []]) async {
-    list = list.where((element) => element.url.isNotEmpty).toList();
-    for (Relay relay in list) {
+    await Future.wait(list.map((Relay relay) async {
       RelayWebsocket rw = RelayWebsocket(relay);
       channels[relay.url] = rw;
-      _startConnectRelay(rw);
-    }
+      await _startConnectRelay(rw);
+    }));
   }
 
   Future<RelayWebsocket> _startConnectRelay(RelayWebsocket rw,
@@ -354,10 +360,10 @@ class WebsocketService extends GetxService {
         connectTimeout: const Duration(seconds: 8));
     try {
       await channel.ready;
-      rw.connectSuccess(channel);
     } catch (e, s) {
       logger.e(e.toString(), error: e, stackTrace: s);
       onErrorProcess(rw, e.toString());
+      return rw;
     }
     String? errorMessage;
     channel.stream.listen((message) {
@@ -369,6 +375,8 @@ class WebsocketService extends GetxService {
       errorMessage = e.toString();
       logger.e('${rw.relay.url} onError ${e.toString()}');
     });
+    // connect success
+    rw.connectSuccess(channel);
     return rw;
   }
 

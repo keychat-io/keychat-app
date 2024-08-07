@@ -103,12 +103,8 @@ class ChatxService extends GetxService {
     return true;
   }
 
-  Future<KeychatProtocolAddress?> getRoomKPA(
-    Room room,
-  ) async {
-    if (room.curve25519PkHex == null) {
-      return null;
-    }
+  Future<KeychatProtocolAddress?> getRoomKPA(Room room) async {
+    if (room.curve25519PkHex == null) return null;
     String key = '${room.identityId}:${room.curve25519PkHex}';
     if (roomKPA[key] != null) {
       return roomKPA[key]!;
@@ -116,12 +112,8 @@ class ChatxService extends GetxService {
 
     final remoteAddress = KeychatProtocolAddress(
         name: room.curve25519PkHex!, deviceId: room.identityId);
-    KeychatIdentityKeyPair keyPair;
-    if (room.signalIdPubkey != null) {
-      keyPair = await getKeyPairBySignalIdPubkey(room.signalIdPubkey!);
-    } else {
-      keyPair = getKeyPairByIdentity(room.getIdentity());
-    }
+    KeychatIdentityKeyPair? keyPair = await _initRoomSignalStore(room);
+    if (keyPair == null) return null;
     final contains = await rustSignal.containsSession(
         keyPair: keyPair, address: remoteAddress);
 
@@ -133,6 +125,11 @@ class ChatxService extends GetxService {
   }
 
   Future<ChatxService> init(String dbpath) async {
+    _initSignalDB(dbpath);
+    return this;
+  }
+
+  Future<void> _initSignalDB(String dbpath) async {
     try {
       String signalPath = '$dbpath${KeychatGlobal.signalProcotolDBFile}';
       await rustSignal.initSignalDb(dbPath: signalPath);
@@ -144,11 +141,9 @@ class ChatxService extends GetxService {
     } catch (e, s) {
       logger.e(e.toString(), error: e, stackTrace: s);
     }
-
-    return this;
   }
 
-  Future<KeychatIdentityKeyPair?> initRoomSignalStore(Room room) async {
+  Future<KeychatIdentityKeyPair?> _initRoomSignalStore(Room room) async {
     if (room.signalIdPubkey == null) {
       String identityPubkey = room.getIdentity().curve25519PkHex;
       return keypairs[identityPubkey];

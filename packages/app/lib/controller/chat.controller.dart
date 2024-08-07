@@ -586,7 +586,6 @@ class ChatController extends GetxController with StateMixin<Type> {
         .toList();
     if (room.isSendAllGroup) {
       memberRooms = await room.getEnableMemberRooms();
-      // await Get.find<ChatxService>().initGroupSignalStore(room, memberRooms);
       kpaIsNullRooms.value = await getKpaIsNullRooms(); // get null list
     }
   }

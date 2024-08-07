@@ -23,7 +23,11 @@ import 'package:random_avatar/random_avatar.dart';
 Logger logger = Logger(
     filter: kReleaseMode ? MyLogFilter() : null,
     output: MyOutput(),
-    printer: PrettyPrinter(printTime: true, colors: false, methodCount: 5));
+    printer: PrettyPrinter(
+        dateTimeFormat:
+            kDebugMode ? DateTimeFormat.onlyTime : DateTimeFormat.dateAndTime,
+        colors: false,
+        methodCount: 5));
 
 Logger loggerNoLine = Logger(printer: PrettyPrinter(methodCount: 0));
 

@@ -4,16 +4,15 @@ import 'dart:convert' show jsonEncode;
 import 'package:app/models/models.dart';
 import 'package:app/models/signal_id.dart';
 import 'package:app/page/components.dart';
+import 'package:app/service/signalId.service.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
 
-import 'package:app/service/chatx.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/utils.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
 
 class MyQRCode extends StatefulWidget {
@@ -160,9 +159,7 @@ class _MyQRCodeState extends State<MyQRCode> {
 
   Future<String> _initQRCodeData(Identity identity, String onetimekey,
       SignalId signalId, int? time) async {
-    // String? relay = await RelayService().getDefaultOnlineRelay();
-    Map userInfo =
-        await Get.put(ChatxService()).getQRCodeData(identity, signalId);
+    Map userInfo = await SignalIdService.instance.getQRCodeData(signalId);
     String globalSignStr =
         "Keychat-${identity.secp256k1PKHex}-${signalId.pubkey}-$time";
     // add gloabl sign

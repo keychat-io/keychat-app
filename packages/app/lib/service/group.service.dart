@@ -13,6 +13,7 @@ import 'package:app/service/chatx.service.dart';
 import 'package:app/service/nip4Chat.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/signalChat.service.dart';
+import 'package:app/service/signalId.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
@@ -799,7 +800,7 @@ class GroupService extends BaseChatService {
       room.mykey.value = sharedKey;
     }
     if (groupType == GroupType.sendAll) {
-      signalId ??= await IdentityService().createSignalId(identity.id);
+      signalId ??= await SignalIdService.instance.createSignalId(identity.id);
       room.signalIdPubkey = signalId!.pubkey;
     }
 

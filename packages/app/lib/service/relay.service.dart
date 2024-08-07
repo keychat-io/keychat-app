@@ -280,7 +280,7 @@ class RelayService {
       });
       list = await RelayService().list();
     }
-    list = await checkDefaultRelay(list);
+    // list = await checkDefaultRelay(list);
     return list;
   }
 

@@ -9,7 +9,7 @@ import 'package:app/service/relay.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:get/get.dart';
-import 'package:websocket_universal/websocket_universal.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 import '../utils.dart' as utils;
 
 const _maxReqCount = 20; // max pool size is 32. be setting by relay server
@@ -18,7 +18,7 @@ class RelayWebsocket {
   RelayService rs = RelayService();
   late Relay relay;
   RelayStatusEnum channelStatus = RelayStatusEnum.init;
-  IWebSocketHandler? channel;
+  WebSocketChannel? channel;
   List<String> notices = [];
   int maxReqCount = _maxReqCount;
   int sentReqCount = 0;
@@ -95,7 +95,7 @@ class RelayWebsocket {
       throw Exception(
           'Not connected with relay server ${relay.url}: ${channelStatus.name}');
     }
-    channel!.sendMessage(message);
+    channel!.sink.add(message);
     logger.i('Send[${relay.url}] $message');
   }
 
@@ -105,8 +105,7 @@ class RelayWebsocket {
       return false;
     }
     notices.clear();
-    channel!.sendMessage('ping');
-
+    channel!.sink.add('ping');
     final deadline = DateTime.now().add(const Duration(seconds: 1));
     while (DateTime.now().isBefore(deadline)) {
       await Future.delayed(const Duration(milliseconds: 50));
@@ -117,11 +116,11 @@ class RelayWebsocket {
     return false;
   }
 
-  void connectSuccess(IWebSocketHandler textSocketHandler) {
+  void connectSuccess(WebSocketChannel textSocketHandler) async {
     failedTimes = 0;
     _reset();
     channel = textSocketHandler;
-    Get.find<WebsocketService>()
+    await Get.find<WebsocketService>()
         .setChannelStatus(relay.url, RelayStatusEnum.success);
     _start();
   }
@@ -131,9 +130,9 @@ class RelayWebsocket {
         .setChannelStatus(relay.url, RelayStatusEnum.connecting);
   }
 
-  void disconnected() {
+  void disconnected(String? errorMessage) {
     failedTimes++;
     Get.find<WebsocketService>()
-        .setChannelStatus(relay.url, RelayStatusEnum.failed);
+        .setChannelStatus(relay.url, RelayStatusEnum.failed, errorMessage);
   }
 }

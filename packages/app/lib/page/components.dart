@@ -8,7 +8,7 @@ import 'package:app/models/signal_id.dart';
 
 import 'package:app/page/setting/my_qrcode.dart';
 import 'package:app/service/chatx.service.dart';
-import 'package:app/service/identity.service.dart';
+import 'package:app/service/signalId.service.dart';
 import 'package:app/utils.dart';
 
 import 'package:flutter/cupertino.dart';
@@ -578,9 +578,11 @@ showSearchContactsPage2(BuildContext context) async {
 Future showMyQrCode(
     BuildContext context, Identity identity, bool showMore) async {
   // get one time keys from db
-  List<Mykey> oneTimeKeys = await ChatxService().getOneTimePubkey(identity.id);
+  List<Mykey> oneTimeKeys =
+      await Get.find<ChatxService>().getOneTimePubkey(identity.id);
   // every time create one, due to need update signalKeyId
-  SignalId signalId = await IdentityService().createSignalId(identity);
+  SignalId signalId =
+      await SignalIdService.instance.createSignalId(identity.id);
 
   int expiredTime = DateTime.now().millisecondsSinceEpoch +
       KeychatGlobal.oneTimePubkeysLifetime * 3600 * 1000;

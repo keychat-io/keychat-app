@@ -743,7 +743,6 @@ class ChatController extends GetxController with StateMixin<Type> {
         ..curve25519PkHex = room.getIdentity().curve25519PkHex;
       return;
     }
-    // private chat
     if (room.contact == null) {
       Contact contact = await ContactService().getOrCreateContact(
           roomObs.value.identityId, roomObs.value.toMainPubkey);

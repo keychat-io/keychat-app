@@ -13,11 +13,13 @@ import 'package:app/service/message.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
+import 'package:easy_debounce/easy_debounce.dart';
+import 'package:web_socket_channel/io.dart';
+import 'package:web_socket_channel/status.dart' as status;
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
-import 'package:websocket_universal/websocket_universal.dart';
 
 import '../utils.dart' as utils;
 
@@ -25,7 +27,7 @@ const int failedTimesLimit = 3;
 
 class WebsocketService extends GetxService {
   RelayService rs = RelayService();
-
+  NostrAPI nostrAPI = NostrAPI();
   RxString relayStatusInt = RelayStatusEnum.init.name.obs;
   final RxMap<String, RelayWebsocket> channels = <String, RelayWebsocket>{}.obs;
   final RxMap<String, RelayMessageFee> relayMessageFeeModels =
@@ -64,8 +66,11 @@ class WebsocketService extends GetxService {
 
   void checkOnlineAndConnect() async {
     for (RelayWebsocket rw in channels.values) {
-      var status = await rw.checkOnlineStatus();
-      if (!status) {
+      logger.d(
+          '> checkOnlineAndConnect ${rw.relay.url}: ${rw.channelStatus.name} ${rw.channel?.closeCode} _ ${rw.channel?.closeReason}');
+      var relayStatus = await rw.checkOnlineStatus();
+      if (!relayStatus) {
+        rw.channel?.sink.close(status.goingAway);
         _startConnectRelay(rw);
       }
     }
@@ -73,8 +78,7 @@ class WebsocketService extends GetxService {
 
   deleteRelay(Relay value) {
     if (channels[value.url] != null) {
-      channels[value.url]!.channel?.disconnect('goingAway');
-      channels[value.url]!.channel?.close();
+      channels[value.url]!.channel?.sink.close(status.goingAway);
     }
     channels.remove(value.url);
   }
@@ -192,18 +196,24 @@ class WebsocketService extends GetxService {
     relayStatusInt.value = RelayStatusEnum.connecting.name;
   }
 
+  bool startLock = false;
   start([List<Relay>? list]) async {
-    initAt = DateTime.now();
-    WriteEventStatus.clear();
-    await stopListening();
-    list ??= await RelayService().list();
-    await _createChannels(list);
+    if (startLock) return;
+    try {
+      startLock = true;
+      initAt = DateTime.now();
+      WriteEventStatus.clear();
+      await stopListening();
+      list ??= await RelayService().list();
+      await _createChannels(list);
+    } finally {
+      startLock = false;
+    }
   }
 
   Future stopListening() async {
     for (RelayWebsocket rw in channels.values) {
-      rw.channel?.disconnect('goingAway');
-      rw.channel?.close();
+      rw.channel?.sink.close(status.goingAway);
     }
     channels.clear();
   }
@@ -266,7 +276,7 @@ class WebsocketService extends GetxService {
           if (channels[relay]?.channel != null) {
             logger.i(
                 'to:[$relay]: $eventRaw }'); // ${eventRaw.length > 200 ? eventRaw.substring(0, 400) : eventRaw}');
-            channels[relay]!.channel!.sendMessage(eventRaw);
+            channels[relay]!.channel!.sink.add(eventRaw);
           } else {
             failedRelay[relay] = 'Relay not connected';
           }
@@ -319,85 +329,54 @@ class WebsocketService extends GetxService {
   }
 
   Future _createChannels([List<Relay> list = const []]) async {
-    list = list.where((element) => element.url.isNotEmpty).toList();
-    for (Relay relay in list) {
-      try {
-        RelayWebsocket rw = RelayWebsocket(relay);
-        channels[relay.url] = rw;
-
-        await _startConnectRelay(rw);
-      } catch (e, s) {
-        logger.e(e.toString(), error: e, stackTrace: s);
-      }
-    }
+    await Future.wait(list.map((Relay relay) async {
+      RelayWebsocket rw = RelayWebsocket(relay);
+      channels[relay.url] = rw;
+      await _startConnectRelay(rw);
+    }));
   }
 
-  Future<RelayWebsocket> _startConnectRelay(RelayWebsocket rw) async {
-    Relay relay = rw.relay;
-    if (!relay.active) {
-      // skip inactive relay
-      return rw;
-    }
+  Future<RelayWebsocket> _startConnectRelay(RelayWebsocket rw,
+      [bool skipCheck = false]) async {
+    if (skipCheck == false) {
+      if (!rw.relay.active) {
+        return rw;
+      }
 
-    if (rw.failedTimes > failedTimesLimit) {
-      rw.channelStatus = RelayStatusEnum.failed;
-      rw.channel?.disconnect('Failed times too many');
-      return rw;
+      if (rw.failedTimes > failedTimesLimit) {
+        rw.channelStatus = RelayStatusEnum.failed;
+        rw.channel?.sink.close(status.goingAway);
+        return rw;
+      }
     }
 
     loggerNoLine
-        .i('start connect ${relay.url} ,failedTimes: ${rw.failedTimes}');
-    SocketConnectionOptions connectionOptions = SocketConnectionOptions(
-        timeoutConnectionMs: 6000,
-        failedReconnectionAttemptsLimit:
-            GetPlatform.isMacOS ? 99 : failedTimesLimit,
-        reconnectionDelay: GetPlatform.isMacOS
-            ? const Duration(seconds: 5)
-            : const Duration(seconds: 2),
-        pingRestrictionForce: true); // disable ping
+        .i('start onnect ${rw.relay.url}, failedTimes: ${rw.failedTimes}');
 
-    final IMessageProcessor<String, String> textSocketProcessor =
-        SocketSimpleTextProcessor();
-    IWebSocketHandler textSocketHandler =
-        IWebSocketHandler<String, String>.createClient(
-      relay.url,
-      textSocketProcessor,
-      connectionOptions: connectionOptions,
-    );
-    rw.channel = textSocketHandler;
-    textSocketHandler.socketHandlerStateStream.listen((stateEvent) {
-      // delay 100ms
-      loggerNoLine.i('[${relay.url}] status: ${stateEvent.status}');
+    rw.connecting();
 
-      switch (stateEvent.status) {
-        case SocketStatus.connected:
-          rw.connectSuccess(textSocketHandler);
-
-          break;
-        case SocketStatus.connecting:
-          if (rw.channelStatus != RelayStatusEnum.connecting) {
-            rw.connecting();
-          }
-          break;
-        case SocketStatus.disconnected:
-          if (rw.channelStatus != RelayStatusEnum.failed) {
-            rw.disconnected();
-          }
-          break;
-        default:
-      }
-    });
-    NostrAPI nostrAPI = NostrAPI();
-    textSocketHandler.incomingMessagesStream.listen((inMsg) {
-      nostrAPI.processWebsocketMessage(relay, inMsg);
-    });
-
-    final isTextSocketConnected = await textSocketHandler.connect();
-    if (!isTextSocketConnected) {
-      logger.e('Connection to [${relay.url}] failed for some reason!');
-      rw.disconnected();
+    final channel = IOWebSocketChannel.connect(Uri.parse(rw.relay.url),
+        pingInterval: const Duration(seconds: 10),
+        connectTimeout: const Duration(seconds: 8));
+    try {
+      await channel.ready;
+    } catch (e, s) {
+      logger.e(e.toString(), error: e, stackTrace: s);
+      onErrorProcess(rw, e.toString());
+      return rw;
     }
-
+    String? errorMessage;
+    channel.stream.listen((message) {
+      nostrAPI.processWebsocketMessage(rw.relay, message);
+    }, onDone: () {
+      logger.d('${rw.relay.url} websocket onDone');
+      onErrorProcess(rw, errorMessage);
+    }, onError: (e) {
+      errorMessage = e.toString();
+      logger.e('${rw.relay.url} onError ${e.toString()}');
+    });
+    // connect success
+    rw.connectSuccess(channel);
     return rw;
   }
 
@@ -429,5 +408,16 @@ class WebsocketService extends GetxService {
         relayFileFeeModels[entry.key] = RelayFileFee.fromJson(entry.value);
       }
     }
+  }
+
+  void onErrorProcess(RelayWebsocket rw, [String? errorMessage]) {
+    EasyDebounce.debounce('_startConnectRelay_${rw.relay.url}',
+        const Duration(milliseconds: 1000), () async {
+      rw.disconnected(errorMessage);
+      rw.failedTimes += 1;
+      logger.d(
+          '${rw.relay.url} onErrorProcess _reconnectTimes: ${rw.failedTimes}');
+      await _startConnectRelay(rw);
+    });
   }
 }

@@ -4,6 +4,7 @@ import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/service/kdf_group.service.dart';
+import 'package:app/service/signalId.service.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
 import 'package:app/service/chat.service.dart';
 import 'package:app/service/chatx.service.dart';
@@ -64,7 +65,7 @@ class RoomService extends BaseChatService {
     int identityId = identity.id;
     Room? exist = await getRoomByIdentity(toMainPubkey, identityId);
     if (exist != null) return exist;
-    signalId ??= await IdentityService().createSignalId(identity);
+    signalId ??= await SignalIdService.instance.createSignalId(identityId);
 
     Room room = Room(
       toMainPubkey: toMainPubkey,

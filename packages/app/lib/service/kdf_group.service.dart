@@ -8,6 +8,7 @@ import 'dart:typed_data' show Uint8List;
 import 'package:app/models/keychat/prekey_message_model.dart';
 import 'package:app/models/room_member.dart';
 import 'package:app/service/chatx.service.dart';
+import 'package:app/service/signalId.service.dart';
 import 'package:app/service/signal_chat_util.dart';
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rustSignal;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
@@ -25,7 +26,6 @@ import 'package:app/models/signal_id.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/service/chat.service.dart';
 import 'package:app/service/group.service.dart';
-import 'package:app/service/identity.service.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/websocket.service.dart';
@@ -57,8 +57,7 @@ class KdfGroupService extends BaseChatService {
 
     String message0 = message;
     SignalId sharedSignalID = room.getGroupSharedSignalId();
-    KeychatIdentityKeyPair keyPair =
-        await cs.getKeyPair(identity.curve25519PkHex, identity: identity);
+    KeychatIdentityKeyPair keyPair = cs.getKeyPairByIdentity(identity);
     KeychatProtocolAddress? kpa = await cs.getSignalSession(
         myCurve25519PkHex: identity.curve25519PkHex,
         toCurve25519PkHex: sharedSignalID.pubkey,
@@ -244,20 +243,23 @@ class KdfGroupService extends BaseChatService {
       {NostrEventModel? sourceEvent, EventLog? eventLog}) async {
     if (room.sharedSignalID == null) throw Exception('sharedSignalID is null');
 
+    // setup shared signal id
     ChatxService chatxService = Get.find<ChatxService>();
     SignalId signalId = room.getGroupSharedSignalId();
-    var keyPair = await chatxService.getKeyPairBySignalId(signalId.pubkey,
-        signalId: signalId);
-    rustSignal.KeychatProtocolAddress? kpa;
+    var keyPair = chatxService.getKeyPairBySignalId(signalId);
+    await chatxService.setupSignalStoreBySignalId(signalId.pubkey, signalId);
+
     RoomMember? roomMember = await room.getMemberByNostrPubkey(event.pubkey);
     if (roomMember == null) throw Exception('roomMember is null');
     if (roomMember.curve25519PkHex == null) {
       throw Exception('roomMember.curve25519PkHex is null');
     }
-    kpa = await Get.find<ChatxService>().getSignalSession(
-        myCurve25519PkHex: signalId.pubkey,
-        toCurve25519PkHex: roomMember.curve25519PkHex!,
-        keyPair: keyPair);
+    rustSignal.KeychatProtocolAddress? kpa = await Get.find<ChatxService>()
+        .getSignalSession(
+            myCurve25519PkHex: signalId.pubkey,
+            toCurve25519PkHex: roomMember.curve25519PkHex!,
+            keyPair: keyPair);
+
     if (kpa == null) {
       return await decryptPreKeyMessage(
           fromMember: roomMember,
@@ -324,8 +326,8 @@ class KdfGroupService extends BaseChatService {
   // shared signal init signal session
   Future<Room> createGroup(String groupName, Identity identity,
       {List<String> toUsers = const []}) async {
-    SignalId signalId = await IdentityService()
-        .createSignalId(identity, isGroupSharedKey: true);
+    SignalId signalId =
+        await SignalIdService.instance.createSignalId(identity.id, true);
     Room room =
         await GroupService().createGroup(groupName, identity, GroupType.kdf);
     room.sharedSignalID = signalId.pubkey;

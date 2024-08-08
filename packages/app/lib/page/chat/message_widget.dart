@@ -594,16 +594,15 @@ class MessageWidget extends StatelessWidget {
         key: Key(content),
         link: content,
         errorBody: content,
+        bodyMaxLines: 3,
         onTap: () {
           Utils.hideKeyboard(Get.context!);
           launchUrl(Uri.parse(content));
         },
         placeholderWidget: _getTextContainer(getLinkify(content, fontColor),
             isMeSend: message.isMeSend),
-        displayDirection: UIDirection.uiDirectionVertical,
         backgroundColor: Get.isDarkMode ? Colors.black26 : Colors.grey[300],
-        errorImage:
-            "https://raw.githubusercontent.com/keychat-io/docs/main/docs/_media/empty2.png",
+        showMultimedia: false,
         errorWidget: _getTextContainer(getLinkify(content, fontColor),
             isMeSend: message.isMeSend));
   }

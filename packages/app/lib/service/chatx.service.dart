@@ -216,9 +216,9 @@ class ChatxService extends GetxService {
     return identityKeyPair;
   }
 
-  Future<KeychatIdentityKeyPair?> setupSignalStoreBySignalId(String pubkey,
+  Future<KeychatIdentityKeyPair> setupSignalStoreBySignalId(String pubkey,
       [SignalId? signalId]) async {
-    if (initedSignalStorePubkeySet.contains(pubkey)) return keypairs[pubkey];
+    if (initedSignalStorePubkeySet.contains(pubkey)) return keypairs[pubkey]!;
     var keyPair = await getKeyPairBySignalIdPubkey(pubkey, signalId);
     await rustSignal.initKeypair(keyPair: keyPair, regId: 0);
     initedSignalStorePubkeySet.add(pubkey);
@@ -293,7 +293,6 @@ class ChatxService extends GetxService {
     KeychatIdentityKeyPair? keyPair;
     if (room.signalIdPubkey != null) {
       keyPair = await setupSignalStoreBySignalId(room.signalIdPubkey!);
-      if (keyPair == null) throw Exception('signalIdPubkey\'s keypair is null');
       return keyPair;
     }
     return getKeyPairByIdentity(room.getIdentity());

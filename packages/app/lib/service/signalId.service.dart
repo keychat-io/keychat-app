@@ -1,3 +1,4 @@
+import 'dart:convert' show jsonEncode;
 import 'dart:typed_data' show Uint8List;
 
 import 'package:app/global.dart';
@@ -8,6 +9,7 @@ import 'package:convert/convert.dart' show hex;
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rustSignal;
+import 'package:keychat_rust_ffi_plugin/api_signal.dart';
 
 class SignalIdService {
   static SignalIdService? _instance;
@@ -24,6 +26,24 @@ class SignalIdService {
         pubkey: hex.encode(keychain.$2))
       ..isGroupSharedKey = isGroupSharedKey
       ..isUsed = false;
+    ChatxService chatxService = Get.find<ChatxService>();
+    KeychatIdentityKeyPair keypair = await chatxService
+        .setupSignalStoreBySignalId(signalId.pubkey, signalId);
+    var signalPrivateKey = Uint8List.fromList(hex.decode(signalId.prikey));
+    var res = await rustSignal.generateSignedKeyApi(
+        keyPair: keypair, signalIdentityPrivateKey: signalPrivateKey);
+
+    signalId.signalKeyId = res.$1;
+    Map<String, dynamic> data = {};
+    data['signedId'] = res.$1;
+    data['signedPublic'] = hex.encode(res.$2);
+    data['signedSignature'] = hex.encode(res.$3);
+
+    var res2 = await rustSignal.generatePrekeyApi(keyPair: keypair);
+    data['prekeyId'] = res2.$1;
+    data['prekeyPubkey'] = hex.encode(res2.$2);
+    signalId.keys = jsonEncode(data);
+
     await database.writeTxn(() async {
       await database.signalIds.put(signalId);
     });

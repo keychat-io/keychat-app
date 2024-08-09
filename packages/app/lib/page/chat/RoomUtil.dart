@@ -486,11 +486,11 @@ Let's start an encrypted chat.''';
   static String getGroupModeName(GroupType type) {
     switch (type) {
       case GroupType.shareKey:
-        return 'Shared Key';
+        return 'Big Group';
       case GroupType.kdf:
-        return 'KDF Group';
+        return 'Medium Group';
       case GroupType.sendAll:
-        return 'Pairwise';
+        return 'Small Group';
       default:
     }
     return 'common';
@@ -499,17 +499,22 @@ Let's start an encrypted chat.''';
   static String getGroupModeDescription(GroupType type) {
     switch (type) {
       case GroupType.kdf:
-        return '''1. All members hold a same nostr private key and a same signal key pair.
-2. Encrypt message by signal protocol''';
+        return '''✅ 1. Anti-Forgery
+✅ 2. End-to-End Encryption
+✅ 3. Forward Secrecy
+❌ 4. Backward Secrecy
+✅ 5. Break-in Recovery
+❌ 6. Metadata Privacy''';
       case GroupType.shareKey:
         return '''1. Members < 30
 2. All members hold the same private key''';
       case GroupType.sendAll:
-        return '''1. All members must already be one-to-one friends with each other on Keychat.
-When a group member sends a message in the group, it is essentially sending a one-to-one message to each group member, which is more secure and costly.
-2. All members must already be one-to-one friends with each other on Keychat.
-3. When a group member sends a message in the group, it is essentially sending a one-to-one message to each group member, which is more secure and costly.
-''';
+        return '''✅ 1. Anti-Forgery
+✅ 2. End-to-End Encryption
+✅ 3. Forward Secrecy
+✅ 4. Backward Secrecy
+✅ 5. Break-in Recovery
+✅ 6. Metadata Privacy''';
       default:
     }
     return 'common';

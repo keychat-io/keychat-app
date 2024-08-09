@@ -302,15 +302,11 @@ getGroupInfoBottomSheetWidget(BuildContext context) {
     'Group Type Info',
     [
       ListTile(
-        title: const Text('1. KDF Group'),
+        title: const Text('1. Medium Group'),
         subtitle: Text(RoomUtil.getGroupModeDescription(GroupType.kdf)),
       ),
       ListTile(
-        title: const Text('2. Shared Key Group'),
-        subtitle: Text(RoomUtil.getGroupModeDescription(GroupType.shareKey)),
-      ),
-      ListTile(
-        title: const Text('3. Pairwise Group'),
+        title: const Text('2. Small Group'),
         subtitle: Text(RoomUtil.getGroupModeDescription(GroupType.sendAll)),
       ),
     ],

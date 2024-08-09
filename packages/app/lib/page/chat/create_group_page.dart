@@ -1,3 +1,4 @@
+import 'package:app/models/room.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/addGroupSelectMember.dart';
 import 'package:app/service/websocket.service.dart';
@@ -20,7 +21,7 @@ class _AddGroupPageState extends State<AddGroupPage>
     with TickerProviderStateMixin {
   GroupService groupService = GroupService();
   ContactService contactService = ContactService();
-
+  GroupType selectedGroupType = GroupType.kdf;
   late TextEditingController _groupNameController;
   GroupType groupType = GroupType.kdf;
   List<String> relays = [];
@@ -63,7 +64,8 @@ class _AddGroupPageState extends State<AddGroupPage>
                           ),
                         )),
                     Container(
-                      padding: const EdgeInsets.only(left: 16, top: 16),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 8, horizontal: 16),
                       child: Text(
                         "Select Group Mode",
                         style: Theme.of(context).textTheme.titleMedium,
@@ -71,11 +73,11 @@ class _AddGroupPageState extends State<AddGroupPage>
                     ),
                     ListTile(
                       title: Text(
-                        "KDF Mode",
+                        "Medium Group",
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
                       subtitle: Text(
-                        RoomUtil.getGroupModeDescription(GroupType.shareKey),
+                        RoomUtil.getGroupModeDescription(GroupType.kdf),
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                       leading: Radio<GroupType>(
@@ -84,25 +86,35 @@ class _AddGroupPageState extends State<AddGroupPage>
                         onChanged: (value) {
                           setState(() {
                             groupType = value as GroupType;
+                            selectedGroupType = GroupType.kdf;
                           });
                         },
                       ),
+                      selected: selectedGroupType == GroupType.kdf,
+                      selectedTileColor: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withOpacity(0.1),
                     ),
                     ListTile(
-                      title: Text(
-                        'Pairwise Mode',
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
+                      selectedTileColor: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withOpacity(0.1),
+                      title: Text('Small Group',
+                          style: Theme.of(context).textTheme.titleSmall),
                       subtitle: Text(
                         RoomUtil.getGroupModeDescription(GroupType.sendAll),
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
+                      selected: selectedGroupType == GroupType.sendAll,
                       leading: Radio<GroupType>(
                         value: GroupType.sendAll,
                         groupValue: groupType,
                         onChanged: (value) {
                           setState(() {
                             groupType = value as GroupType;
+                            selectedGroupType = GroupType.sendAll;
                           });
                         },
                       ),

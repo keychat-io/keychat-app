@@ -161,7 +161,9 @@ class SignalIdService {
     await DBProvider.database.signalIds.put(signalId);
 
     Map keys = jsonDecode(roomProfile.signalKeys!);
-    var keyPair = Get.find<ChatxService>().getKeyPairBySignalId(signalId);
+    var keyPair = await Get.find<ChatxService>()
+        .setupSignalStoreBySignalId(signalId.pubkey, signalId);
+
     await rustSignal.storePrekeyApi(
         keyPair: keyPair,
         prekeyId: keys['prekeyId'],

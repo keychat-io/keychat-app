@@ -106,17 +106,17 @@ class ChatxService extends GetxService {
     return true;
   }
 
-  Future<bool> addKPAForSharedSignalId(
-      Identity identity, String sharedPubkey, String sginalKeys) async {
+  Future<bool> addKPAForSharedSignalId(Identity identity, String sharedPubkey,
+      String sginalKeys, int sharedSignalIdentityId) async {
     KeychatIdentityKeyPair keyPair = getKeyPairByIdentity(identity);
-    final remoteAddress =
-        KeychatProtocolAddress(name: sharedPubkey, deviceId: identity.id);
+    final remoteAddress = KeychatProtocolAddress(
+        name: sharedPubkey, deviceId: sharedSignalIdentityId);
 
     Map<String, dynamic> keys = jsonDecode(sginalKeys);
     await rustSignal.processPrekeyBundleApi(
         keyPair: keyPair,
         regId: getRegistrationId(sharedPubkey),
-        deviceId: identity.id,
+        deviceId: sharedSignalIdentityId,
         identityKey: KeychatIdentityKey(
             publicKey: U8Array33(Uint8List.fromList(hex.decode(sharedPubkey)))),
         remoteAddress: remoteAddress,
@@ -150,15 +150,14 @@ class ChatxService extends GetxService {
   }
 
   Future<KeychatProtocolAddress?> getSignalSession(
-      {required String myCurve25519PkHex,
+      {required int sharedSignalRoomId,
       required String toCurve25519PkHex,
-      required KeychatIdentityKeyPair keyPair,
-      int deviceId = 0}) async {
-    String key = '$myCurve25519PkHex:$toCurve25519PkHex';
+      required KeychatIdentityKeyPair keyPair}) async {
+    String key = '$sharedSignalRoomId:$toCurve25519PkHex';
     if (roomKPA[key] != null) return roomKPA[key]!;
 
-    final remoteAddress =
-        KeychatProtocolAddress(name: toCurve25519PkHex, deviceId: deviceId);
+    final remoteAddress = KeychatProtocolAddress(
+        name: toCurve25519PkHex, deviceId: sharedSignalRoomId);
 
     final contains = await rustSignal.containsSession(
         keyPair: keyPair, address: remoteAddress);

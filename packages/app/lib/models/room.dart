@@ -1,5 +1,7 @@
 import 'package:app/controller/home.controller.dart';
 import 'package:app/models/models.dart';
+
+import 'package:app/models/signal_id.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/utils.dart';
@@ -18,7 +20,7 @@ enum RoomType {
   group,
 }
 
-enum GroupType { shareKey, sendAll }
+enum GroupType { shareKey, sendAll, kdf }
 
 enum EncryptMode { nip04, signal }
 
@@ -43,7 +45,8 @@ enum RoomStatus {
   'isSendAllGroup',
   'isShareKeyGroup',
   'parentRoom',
-  'messageType'
+  'messageType',
+  'keyPair'
 })
 // ignore: must_be_immutable
 class Room extends Equatable {
@@ -99,7 +102,7 @@ class Room extends Equatable {
   Room? parentRoom; // for group room
 
   String? onetimekey;
-
+  String? sharedSignalID; // a shared virtual signal id for group
   Room(
       {required this.toMainPubkey,
       required this.npub,
@@ -113,6 +116,7 @@ class Room extends Equatable {
       groupType == GroupType.sendAll && type == RoomType.group;
   bool get isShareKeyGroup =>
       groupType == GroupType.shareKey && type == RoomType.group;
+  bool get isKDFGroup => groupType == GroupType.kdf && type == RoomType.group;
 
   MessageType get messageType =>
       type == RoomType.common && encryptMode == EncryptMode.nip04
@@ -141,6 +145,17 @@ class Room extends Equatable {
 
   Identity getIdentity() {
     return Get.find<HomeController>().identities[identityId]!;
+  }
+
+  SignalId getGroupSharedSignalId() {
+    if (sharedSignalID == null) throw Exception('signalId is null');
+
+    SignalId? res = DBProvider.database.signalIds
+        .filter()
+        .pubkeyEqualTo(sharedSignalID!)
+        .findFirstSync();
+    if (res == null) throw Exception('signalId is null');
+    return res;
   }
 
   Future<RoomMember?> getMemberByIdPubkey(String pubkey) async {
@@ -416,5 +431,17 @@ class Room extends Equatable {
       memberRooms[rm.idPubkey] = idRoom;
     }
     return memberRooms;
+  }
+
+  Future<RoomMember?> getMemberByNostrPubkey(String pubkey) async {
+    return await DBProvider.database.roomMembers
+        .filter()
+        .roomIdEqualTo(id)
+        .idPubkeyEqualTo(pubkey)
+        .findFirst();
+  }
+
+  int getDeviceIdForSignal() {
+    return type == RoomType.common ? identityId : 10000 + id;
   }
 }

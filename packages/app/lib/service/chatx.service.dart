@@ -1,3 +1,4 @@
+import 'dart:convert' show jsonDecode;
 import 'dart:typed_data' show Uint8List;
 
 import 'package:app/controller/home.controller.dart';
@@ -53,11 +54,13 @@ class ChatxService extends GetxService {
   Future<List<SignalId>> getSignalIds(int identityId) async {
     // delete expired signal ids
     // await deleteExpiredSignalIds();
+    Identity? identity = await IdentityService().getIdentityById(identityId);
+    if (identity == null) throw Exception('Identity not found');
     List<SignalId> signalIds =
         await SignalIdService.instance.getSignalIdByIdentity(identityId);
     if (signalIds.length < KeychatGlobal.signalIdsPoolLength) {
       List<SignalId> signalIds2 = await _generateSignalIds(
-          identityId, KeychatGlobal.signalIdsPoolLength - signalIds.length);
+          identity.id, KeychatGlobal.signalIdsPoolLength - signalIds.length);
       signalIds.addAll(signalIds2);
     }
     return signalIds;
@@ -103,6 +106,28 @@ class ChatxService extends GetxService {
     return true;
   }
 
+  Future<bool> addKPAForSharedSignalId(Identity identity, String sharedPubkey,
+      String sginalKeys, int identityId) async {
+    KeychatIdentityKeyPair keyPair = getKeyPairByIdentity(identity);
+    final remoteAddress =
+        KeychatProtocolAddress(name: sharedPubkey, deviceId: identityId);
+
+    Map<String, dynamic> keys = jsonDecode(sginalKeys);
+    await rustSignal.processPrekeyBundleApi(
+        keyPair: keyPair,
+        regId: getRegistrationId(sharedPubkey),
+        deviceId: identityId,
+        identityKey: KeychatIdentityKey(
+            publicKey: U8Array33(Uint8List.fromList(hex.decode(sharedPubkey)))),
+        remoteAddress: remoteAddress,
+        bobSignedId: keys['signedId'],
+        bobSignedPublic: Uint8List.fromList(hex.decode(keys['signedPublic'])),
+        bobSigedSig: Uint8List.fromList(hex.decode(keys['signedSignature'])),
+        bobPrekeyId: keys['prekeyId'],
+        bobPrekeyPublic: Uint8List.fromList(hex.decode(keys['prekeyPubkey'])));
+    return true;
+  }
+
   Future<KeychatProtocolAddress?> getRoomKPA(Room room) async {
     if (room.curve25519PkHex == null) return null;
     String key = '${room.identityId}:${room.curve25519PkHex}';
@@ -122,6 +147,25 @@ class ChatxService extends GetxService {
       return remoteAddress;
     }
     return null;
+  }
+
+  Future<KeychatProtocolAddress?> getSignalSession(
+      {required int sharedSignalRoomId,
+      required String toCurve25519PkHex,
+      required KeychatIdentityKeyPair keyPair}) async {
+    String key = '$sharedSignalRoomId:$toCurve25519PkHex';
+    if (roomKPA[key] != null) return roomKPA[key]!;
+
+    final remoteAddress = KeychatProtocolAddress(
+        name: toCurve25519PkHex, deviceId: sharedSignalRoomId);
+
+    final contains = await rustSignal.containsSession(
+        keyPair: keyPair, address: remoteAddress);
+
+    if (!contains) return null;
+
+    roomKPA[key] = remoteAddress;
+    return remoteAddress;
   }
 
   Future<ChatxService> init(String dbpath) async {
@@ -171,9 +215,9 @@ class ChatxService extends GetxService {
     return identityKeyPair;
   }
 
-  Future<KeychatIdentityKeyPair?> setupSignalStoreBySignalId(String pubkey,
+  Future<KeychatIdentityKeyPair> setupSignalStoreBySignalId(String pubkey,
       [SignalId? signalId]) async {
-    if (initedSignalStorePubkeySet.contains(pubkey)) return keypairs[pubkey];
+    if (initedSignalStorePubkeySet.contains(pubkey)) return keypairs[pubkey]!;
     var keyPair = await getKeyPairBySignalIdPubkey(pubkey, signalId);
     await rustSignal.initKeypair(keyPair: keyPair, regId: 0);
     initedSignalStorePubkeySet.add(pubkey);
@@ -248,7 +292,6 @@ class ChatxService extends GetxService {
     KeychatIdentityKeyPair? keyPair;
     if (room.signalIdPubkey != null) {
       keyPair = await setupSignalStoreBySignalId(room.signalIdPubkey!);
-      if (keyPair == null) throw Exception('signalIdPubkey\'s keypair is null');
       return keyPair;
     }
     return getKeyPairByIdentity(room.getIdentity());

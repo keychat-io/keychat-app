@@ -4,6 +4,7 @@ import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
 
 import 'package:app/service/notify.service.dart';
@@ -343,6 +344,9 @@ class HomeController extends GetxController
             Get.find<WebsocketService>().start();
             Utils.initLoggger(Get.find<SettingController>().appFolder);
             NotifyService.initNofityConfig(true);
+            if (kReleaseMode) {
+              _startCheckWebsocketTimer();
+            }
             return;
           }
           Get.find<WebsocketService>().checkOnlineAndConnect();

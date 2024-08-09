@@ -1,7 +1,6 @@
 import 'package:app/app.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
@@ -20,7 +19,7 @@ class LightningBillController extends GetxController {
     refreshController = RefreshController();
     getTransactions().then((list) {
       status.value = true;
-      getPendings(list).then(checkPendings);
+      rustCashu.getLnPendingTransactions().then(checkPendings);
     });
   }
 
@@ -47,30 +46,13 @@ class LightningBillController extends GetxController {
     return res;
   }
 
-  Future<List<LNTransaction>> getPendings([List<LNTransaction>? list]) async {
-    list ??= await getTransactions();
-    int now = DateTime.now().millisecondsSinceEpoch;
-    List<LNTransaction> pendings = [];
-    for (var element in list) {
-      if (element.status == TransactionStatus.pending) {
-        InvoiceInfo ii =
-            await rustCashu.decodeInvoice(encodedInvoice: element.pr);
-        if (ii.expiryTs.toInt() > now || ii.expiryTs.toInt() == 0) {
-          pendings.add(element);
-        }
-      }
-    }
-
-    return pendings;
-  }
-
   checkPendings(List<LNTransaction> pendings) async {
     if (pendings.isEmpty) return;
     int length = pendings.length;
     while (true) {
       if (!run) return;
       await rustCashu.checkPending();
-      var list = await getPendings();
+      var list = await rustCashu.getLnPendingTransactions();
       if (list.isEmpty) {
         run = false;
         ecashController.getBalance();

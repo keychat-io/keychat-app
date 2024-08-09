@@ -191,8 +191,23 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                       onPressed: (context) async {
                         Get.dialog(CupertinoAlertDialog(
                           title: const Text("Delete ID?"),
-                          content: const Text(
-                              "Please make sure you have backed up your seed phrase. This cannot be undone."),
+                          content: Column(
+                            children: [
+                              const Text(
+                                  "Please make sure you have backed up your seed phrase."),
+                              Text(
+                                  "Input your name ${controller.identity.value.displayName} to confirm"),
+                              const SizedBox(height: 10),
+                              TextField(
+                                controller: controller.confirmDeleteController,
+                                autofocus: true,
+                                decoration: const InputDecoration(
+                                  labelText: 'Name',
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
+                            ],
+                          ),
                           actions: <Widget>[
                             CupertinoDialogAction(
                               child: const Text("Cancel"),
@@ -206,6 +221,12 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                                 style: TextStyle(color: Colors.red),
                               ),
                               onPressed: () async {
+                                if (controller.confirmDeleteController.text !=
+                                    controller.identity.value.displayName) {
+                                  EasyLoading.showError("Name does not match");
+                                  return;
+                                }
+                                controller.confirmDeleteController.clear();
                                 HomeController hc = Get.find<HomeController>();
                                 List<Identity> identities =
                                     await IdentityService().getIdentityList();

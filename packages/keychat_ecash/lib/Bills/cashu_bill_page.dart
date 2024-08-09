@@ -33,7 +33,8 @@ class CashuBillPage extends GetView<EcashBillController> {
                     int success = 0;
                     int failed = 0;
                     List<String> errors = [];
-                    for (var tx in controller.transactions) {
+                    var list = await rustCashu.getCashuPendingTransactions();
+                    for (var tx in list) {
                       if (tx.status == TransactionStatus.pending) {
                         try {
                           await RustAPI.receiveToken(encodedToken: tx.token);

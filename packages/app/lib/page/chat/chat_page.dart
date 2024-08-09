@@ -102,7 +102,7 @@ class ChatPage extends StatelessWidget {
             Obx(() => debugWidget(hc)),
             if (controller.room.isSendAllGroup)
               Obx(() => _kpaIsNull(controller)),
-            if (!controller.room.isSendAllGroup)
+            if (controller.room.type == RoomType.common)
               Obx(() => _receiveInPostOfficeStatus(controller)),
             Obx(() => controller.roomObs.value.signalDecodeError
                 ? MyErrorText(

@@ -3,6 +3,7 @@ import 'dart:convert' show jsonDecode;
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr_event.dart';
+import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/signalId.service.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
 import 'package:app/service/chat.service.dart';
@@ -145,7 +146,10 @@ class RoomService extends BaseChatService {
     return await DBProvider.database.rooms
         .filter()
         .typeEqualTo(RoomType.group)
-        .groupTypeEqualTo(GroupType.shareKey)
+        .group((q) => q
+            .groupTypeEqualTo(GroupType.shareKey)
+            .or()
+            .groupTypeEqualTo(GroupType.kdf))
         .findAll();
   }
 
@@ -158,7 +162,7 @@ class RoomService extends BaseChatService {
       return room;
     }
 
-    Identity? identity = await IdentityService().getIdentityByPubkey(to);
+    Identity? identity = await IdentityService().getIdentityByNostrPubkey(to);
     if (identity == null) {
       throw Exception('no this identity');
     }
@@ -175,12 +179,11 @@ class RoomService extends BaseChatService {
     Room? room = await getRoomByIdentity(toMainPubkey, identity.id);
     if (room != null) return room;
 
-    room = await createPrivateRoom(
+    return await createPrivateRoom(
         encryptMode: EncryptMode.nip04,
         toMainPubkey: toMainPubkey,
         identity: identity,
         status: status);
-    return room;
   }
 
   Future<Room?> getRoom(String from, String to) async {
@@ -212,6 +215,15 @@ class RoomService extends BaseChatService {
         .filter()
         .typeEqualTo(RoomType.group)
         .groupTypeEqualTo(GroupType.shareKey)
+        .mykey((q) => q.pubkeyEqualTo(to))
+        .findFirst();
+  }
+
+  Future<Room?> getGroupByReceivePubkey(String to) async {
+    return await DBProvider.database.rooms
+        .filter()
+        .typeEqualTo(RoomType.group)
+        .groupTypeEqualTo(GroupType.kdf)
         .mykey((q) => q.pubkeyEqualTo(to))
         .findFirst();
   }
@@ -261,9 +273,7 @@ class RoomService extends BaseChatService {
   }
 
   Room? getRoomByIdSync(int id) {
-    Isar database = DBProvider.database;
-
-    return database.rooms.filter().idEqualTo(id).findFirstSync();
+    return DBProvider.database.rooms.filter().idEqualTo(id).findFirstSync();
   }
 
   Future<Map<String, List<Room>>> getRoomList({required int indetityId}) async {
@@ -417,13 +427,14 @@ class RoomService extends BaseChatService {
     }
   }
 
-  Future receiveDM(
-      Room room, NostrEventModel event, NostrEventModel? sourceEvent,
+  Future receiveDM(Room room, NostrEventModel event,
       {bool? isSystem,
+      NostrEventModel? sourceEvent,
       KeychatMessage? km,
       String? realMessage,
       String? decodedContent,
       bool? isRead,
+      String? idPubkey,
       String? msgKeyHash}) async {
     MsgReply? reply;
     if (km != null) {
@@ -435,11 +446,12 @@ class RoomService extends BaseChatService {
         } catch (e) {}
       }
     }
-    late String idPubkey;
-    if (room.type == RoomType.common) {
-      idPubkey = room.toMainPubkey;
-    } else {
-      idPubkey = event.pubkey;
+    if (idPubkey == null) {
+      if (room.type == RoomType.common) {
+        idPubkey = room.toMainPubkey;
+      } else {
+        idPubkey = event.pubkey;
+      }
     }
 
     var encryptType = (sourceEvent ?? event).encryptType;
@@ -461,7 +473,7 @@ class RoomService extends BaseChatService {
         encryptType: encryptType,
         reply: reply,
         sent: SendStatusType.success,
-        isMeSend: false,
+        isMeSend: idPubkey == room.getIdentity().secp256k1PKHex,
         isRead: isRead,
         createdAt: event.createdAt,
         msgKeyHash: msgKeyHash);
@@ -609,13 +621,17 @@ class RoomService extends BaseChatService {
     MsgReply? reply,
   }) async {
     await checkRoomStatus(room);
-    if (room.groupType == GroupType.shareKey) {
-      return await groupService.sendMessage(room, message,
-          reply: reply, realMessage: realMessage, mediaType: mediaType);
-    }
-    if (room.groupType == GroupType.sendAll) {
-      return await groupService.sendToAllMessage(room, message,
-          reply: reply, realMessage: realMessage, mediaType: mediaType);
+    switch (room.groupType) {
+      case GroupType.shareKey:
+        return await groupService.sendMessage(room, message,
+            reply: reply, realMessage: realMessage, mediaType: mediaType);
+      case GroupType.sendAll:
+        return await groupService.sendToAllMessage(room, message,
+            reply: reply, realMessage: realMessage, mediaType: mediaType);
+      case GroupType.kdf:
+        return await KdfGroupService.instance.sendMessage(room, message,
+            reply: reply, realMessage: realMessage, mediaType: mediaType);
+      default:
     }
     throw Exception('not support group type');
   }
@@ -643,44 +659,43 @@ class RoomService extends BaseChatService {
       {bool autoJump = true, Identity? identity, String? greeting}) async {
     identity ??= homeController.getSelectedIdentity();
     // input is a hex string, decode in json
-    if (input.length == 64 || input.length == 63) {
-      String hexPubkey = input;
-      if (input.startsWith('npub') && input.length == 63) {
-        hexPubkey = rustNostr.getHexPubkeyByBech32(bech32: input);
+    if (!(input.length == 64 || input.length == 63)) return null;
+    String hexPubkey = input;
+    if (input.startsWith('npub') && input.length == 63) {
+      hexPubkey = rustNostr.getHexPubkeyByBech32(bech32: input);
+    }
+
+    try {
+      late Room room;
+      // add myself
+      if (identity.secp256k1PKHex == hexPubkey) {
+        room = await RoomService()
+            .getOrCreateRoomByIdentity(hexPubkey, identity, RoomStatus.enabled);
+      } else {
+        for (var iden in homeController.identities.values) {
+          if (iden.secp256k1PKHex == hexPubkey) {
+            throw Exception('Can not add other identity\' pubkey');
+          }
+        }
+        room = await RoomService().getOrCreateRoomByIdentity(
+            hexPubkey, identity, RoomStatus.requesting);
+        await SignalChatService()
+            .sendHelloMessage(room, identity, greeting: greeting);
+        if (room.status != RoomStatus.requesting) {
+          room.status = RoomStatus.requesting;
+          await RoomService().updateRoom(room);
+        }
+        EasyLoading.showSuccess('Request sent successfully');
       }
 
-      try {
-        late Room room;
-        // add myself
-        if (identity.secp256k1PKHex == hexPubkey) {
-          room = await RoomService().getOrCreateRoomByIdentity(
-              hexPubkey, identity, RoomStatus.enabled);
-        } else {
-          for (var iden in homeController.identities.values) {
-            if (iden.secp256k1PKHex == hexPubkey) {
-              throw Exception('Can not add other identity\' pubkey');
-            }
-          }
-          room = await RoomService().getOrCreateRoomByIdentity(
-              hexPubkey, identity, RoomStatus.requesting);
-          await SignalChatService()
-              .sendHelloMessage(room, identity, greeting: greeting);
-          if (room.status != RoomStatus.requesting) {
-            room.status = RoomStatus.requesting;
-            await RoomService().updateRoom(room);
-          }
-          EasyLoading.showSuccess('Request sent successfully');
-        }
-
-        if (autoJump) {
-          await Get.offAndToNamed('/room/${room.id}', arguments: room);
-          await homeController.loadIdentityRoomList(identity.id);
-        }
-        return room;
-      } catch (e, s) {
-        logger.e('add contact failed', error: e, stackTrace: s);
-        EasyLoading.showError(e.toString());
+      if (autoJump) {
+        await Get.offAndToNamed('/room/${room.id}', arguments: room);
+        await homeController.loadIdentityRoomList(identity.id);
       }
+      return room;
+    } catch (e, s) {
+      logger.e('add contact failed', error: e, stackTrace: s);
+      EasyLoading.showError(e.toString());
     }
     return null;
   }
@@ -707,8 +722,13 @@ class RoomService extends BaseChatService {
   //   return;
   // }
 
-  Future sendNip17Message(Room room, Identity identity,
-      {required String sourceContent, String? realMessage}) async {
+  Future sendNip17Message(
+    Room room,
+    Identity identity, {
+    required String sourceContent,
+    String? realMessage,
+    bool? timestampTweaked,
+  }) async {
     String result = await rustNostr.createGiftJson(
         kind: 14,
         senderKeys: identity.secp256k1SKHex,

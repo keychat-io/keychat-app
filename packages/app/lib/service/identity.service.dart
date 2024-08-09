@@ -266,10 +266,17 @@ class IdentityService {
     return await DBProvider.database.identitys.where().findAll();
   }
 
-  Future<Identity?> getIdentityByPubkey(String to) async {
+  Future<Identity?> getIdentityByNostrPubkey(String pubkey) async {
     return await DBProvider.database.identitys
         .filter()
-        .secp256k1PKHexEqualTo(to)
+        .secp256k1PKHexEqualTo(pubkey)
+        .findFirst();
+  }
+
+  Future<Identity?> getIdentityBySignalPubkey(String pubkey) async {
+    return await DBProvider.database.identitys
+        .filter()
+        .curve25519SkHexEqualTo(pubkey)
         .findFirst();
   }
 

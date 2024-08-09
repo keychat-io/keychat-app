@@ -90,7 +90,7 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                             embeddedImage: null))),
               textSmallGray(context, tx.mint),
               Text(
-                maxLines: 1,
+                maxLines: tx.token.length < 4000 ? 1 : 3,
                 tx.token,
                 overflow: TextOverflow.ellipsis,
               ),

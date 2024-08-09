@@ -194,6 +194,7 @@ class _ShowContactDetailState extends State<ShowContactDetail> {
                   await SignalIdService.instance
                       .deleteSignalIdByPubkey(signalIdPubkey);
                 }
+
                 final keyPair = await Get.find<ChatxService>()
                     .getKeyPairBySignalIdPubkey(signalIdPubkey);
                 // delete signal session

@@ -42,7 +42,7 @@ class Nip4ChatService extends BaseChatService {
         await RoomService().receiveDM(
           room,
           event,
-          sourceEvent,
+          sourceEvent: sourceEvent,
           km: km,
         );
         break;

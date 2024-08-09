@@ -14,18 +14,21 @@ class EncryptModeWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var signalIntro = [
-      'Signal Protocol is a well-known encryption protocol. It is used by Signal, WhatsApp, and many other apps.',
-      '✅Encryption key: A one-time key for each message',
-      '✅Sender address: Another one-time key',
-      '✅Recipient address: A one-time key of each round conversation',
-      '✅Impact of leaking private key: Leaking one message'
+      '''✅ 1. Anti-Forgery
+✅ 2. End-to-End Encryption
+✅ 3. Forward Secrecy
+✅ 4. Backward Secrecy
+✅ 5. Break-in Recovery
+✅ 6. Metadata Privacy'''
     ];
 
     var nostrIntro = [
-      'It\'s an end-to-end encryption technology. Use this to chat with other nostr clients.',
-      '❌Encryption key, Sender address, Recipient address: immutable',
-      '❌Without metadata protection, servers can analyze the sender and recipient of messages, as well as the frequency of communication.',
-      '❌Impact of leaking private key: Leaking all message'
+      '''✅ 1. Anti-Forgery
+✅ 2. End-to-End Encryption
+❌ 3. Forward Secrecy
+❌ 4. Backward Secrecy
+❌ 5. Break-in Recovery
+❌ 6. Metadata Privacy'''
     ];
 
     return Padding(

@@ -1,4 +1,4 @@
-import 'dart:convert' show jsonEncode;
+import 'dart:convert' show jsonDecode, jsonEncode;
 
 import 'package:app/constants.dart';
 
@@ -55,17 +55,21 @@ class KeychatMessage {
   String toString() => jsonEncode(toJson());
 
   Future<KeychatMessage> setHelloMessagge(Identity identity,
-      {String? greeting, String? relay}) async {
-    // String? relay = await RelayService().getDefaultOnlineRelay();
+      {SignalId? signalId, String? greeting}) async {
     List<Mykey> oneTimeKeys =
         await Get.find<ChatxService>().getOneTimePubkey(identity.id);
     String onetimekey = '';
     if (oneTimeKeys.isNotEmpty) {
       onetimekey = oneTimeKeys.first.pubkey;
     }
-    SignalId signalId =
-        await SignalIdService.instance.createSignalId(identity.id);
-    Map userInfo = await SignalIdService.instance.getQRCodeData(signalId);
+
+    signalId ??=
+        await await SignalIdService.instance.createSignalId(identity.id);
+    if (signalId == null) throw Exception('signalId is null');
+
+    Map userInfo = signalId.keys == null
+        ? await SignalIdService.instance.getQRCodeData(signalId)
+        : jsonDecode(signalId.keys!);
 
     Map<String, dynamic> data = {
       'name': identity.displayName,

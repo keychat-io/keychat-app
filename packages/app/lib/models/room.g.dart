@@ -64,75 +64,85 @@ const RoomSchema = CollectionSchema(
       name: r'identityId',
       type: IsarType.long,
     ),
-    r'isMute': PropertySchema(
+    r'isKDFGroup': PropertySchema(
       id: 9,
+      name: r'isKDFGroup',
+      type: IsarType.bool,
+    ),
+    r'isMute': PropertySchema(
+      id: 10,
       name: r'isMute',
       type: IsarType.bool,
     ),
     r'myIdPubkey': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'myIdPubkey',
       type: IsarType.string,
     ),
     r'name': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'name',
       type: IsarType.string,
     ),
     r'npub': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'npub',
       type: IsarType.string,
     ),
     r'onetimekey': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'onetimekey',
       type: IsarType.string,
     ),
     r'pin': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'pin',
       type: IsarType.bool,
     ),
     r'pinAt': PropertySchema(
-      id: 15,
+      id: 16,
       name: r'pinAt',
       type: IsarType.dateTime,
     ),
+    r'sharedSignalID': PropertySchema(
+      id: 17,
+      name: r'sharedSignalID',
+      type: IsarType.string,
+    ),
     r'signalDecodeError': PropertySchema(
-      id: 16,
+      id: 18,
       name: r'signalDecodeError',
       type: IsarType.bool,
     ),
     r'signalIdPubkey': PropertySchema(
-      id: 17,
+      id: 19,
       name: r'signalIdPubkey',
       type: IsarType.string,
     ),
     r'status': PropertySchema(
-      id: 18,
+      id: 20,
       name: r'status',
       type: IsarType.int,
       enumMap: _RoomstatusEnumValueMap,
     ),
     r'stringify': PropertySchema(
-      id: 19,
+      id: 21,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'toMainPubkey': PropertySchema(
-      id: 20,
+      id: 22,
       name: r'toMainPubkey',
       type: IsarType.string,
     ),
     r'type': PropertySchema(
-      id: 21,
+      id: 23,
       name: r'type',
       type: IsarType.int,
       enumMap: _RoomtypeEnumValueMap,
     ),
     r'version': PropertySchema(
-      id: 22,
+      id: 24,
       name: r'version',
       type: IsarType.long,
     )
@@ -222,6 +232,12 @@ int _roomEstimateSize(
     }
   }
   {
+    final value = object.sharedSignalID;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.signalIdPubkey;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -246,20 +262,22 @@ void _roomSerialize(
   writer.writeInt(offsets[6], object.groupType.index);
   writer.writeLong(offsets[7], object.hashCode);
   writer.writeLong(offsets[8], object.identityId);
-  writer.writeBool(offsets[9], object.isMute);
-  writer.writeString(offsets[10], object.myIdPubkey);
-  writer.writeString(offsets[11], object.name);
-  writer.writeString(offsets[12], object.npub);
-  writer.writeString(offsets[13], object.onetimekey);
-  writer.writeBool(offsets[14], object.pin);
-  writer.writeDateTime(offsets[15], object.pinAt);
-  writer.writeBool(offsets[16], object.signalDecodeError);
-  writer.writeString(offsets[17], object.signalIdPubkey);
-  writer.writeInt(offsets[18], object.status.index);
-  writer.writeBool(offsets[19], object.stringify);
-  writer.writeString(offsets[20], object.toMainPubkey);
-  writer.writeInt(offsets[21], object.type.index);
-  writer.writeLong(offsets[22], object.version);
+  writer.writeBool(offsets[9], object.isKDFGroup);
+  writer.writeBool(offsets[10], object.isMute);
+  writer.writeString(offsets[11], object.myIdPubkey);
+  writer.writeString(offsets[12], object.name);
+  writer.writeString(offsets[13], object.npub);
+  writer.writeString(offsets[14], object.onetimekey);
+  writer.writeBool(offsets[15], object.pin);
+  writer.writeDateTime(offsets[16], object.pinAt);
+  writer.writeString(offsets[17], object.sharedSignalID);
+  writer.writeBool(offsets[18], object.signalDecodeError);
+  writer.writeString(offsets[19], object.signalIdPubkey);
+  writer.writeInt(offsets[20], object.status.index);
+  writer.writeBool(offsets[21], object.stringify);
+  writer.writeString(offsets[22], object.toMainPubkey);
+  writer.writeInt(offsets[23], object.type.index);
+  writer.writeLong(offsets[24], object.version);
 }
 
 Room _roomDeserialize(
@@ -270,11 +288,11 @@ Room _roomDeserialize(
 ) {
   final object = Room(
     identityId: reader.readLong(offsets[8]),
-    npub: reader.readString(offsets[12]),
-    status: _RoomstatusValueEnumMap[reader.readIntOrNull(offsets[18])] ??
+    npub: reader.readString(offsets[13]),
+    status: _RoomstatusValueEnumMap[reader.readIntOrNull(offsets[20])] ??
         RoomStatus.init,
-    toMainPubkey: reader.readString(offsets[20]),
-    type: _RoomtypeValueEnumMap[reader.readIntOrNull(offsets[21])] ??
+    toMainPubkey: reader.readString(offsets[22]),
+    type: _RoomtypeValueEnumMap[reader.readIntOrNull(offsets[23])] ??
         RoomType.common,
   );
   object.autoDeleteDays = reader.readLong(offsets[0]);
@@ -289,14 +307,15 @@ Room _roomDeserialize(
       _RoomgroupTypeValueEnumMap[reader.readIntOrNull(offsets[6])] ??
           GroupType.shareKey;
   object.id = id;
-  object.isMute = reader.readBool(offsets[9]);
-  object.name = reader.readStringOrNull(offsets[11]);
-  object.onetimekey = reader.readStringOrNull(offsets[13]);
-  object.pin = reader.readBool(offsets[14]);
-  object.pinAt = reader.readDateTimeOrNull(offsets[15]);
-  object.signalDecodeError = reader.readBool(offsets[16]);
-  object.signalIdPubkey = reader.readStringOrNull(offsets[17]);
-  object.version = reader.readLong(offsets[22]);
+  object.isMute = reader.readBool(offsets[10]);
+  object.name = reader.readStringOrNull(offsets[12]);
+  object.onetimekey = reader.readStringOrNull(offsets[14]);
+  object.pin = reader.readBool(offsets[15]);
+  object.pinAt = reader.readDateTimeOrNull(offsets[16]);
+  object.sharedSignalID = reader.readStringOrNull(offsets[17]);
+  object.signalDecodeError = reader.readBool(offsets[18]);
+  object.signalIdPubkey = reader.readStringOrNull(offsets[19]);
+  object.version = reader.readLong(offsets[24]);
   return object;
 }
 
@@ -330,32 +349,36 @@ P _roomDeserializeProp<P>(
     case 9:
       return (reader.readBool(offset)) as P;
     case 10:
-      return (reader.readString(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 11:
-      return (reader.readStringOrNull(offset)) as P;
-    case 12:
       return (reader.readString(offset)) as P;
-    case 13:
+    case 12:
       return (reader.readStringOrNull(offset)) as P;
+    case 13:
+      return (reader.readString(offset)) as P;
     case 14:
-      return (reader.readBool(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 15:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 16:
       return (reader.readBool(offset)) as P;
+    case 16:
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 17:
       return (reader.readStringOrNull(offset)) as P;
     case 18:
+      return (reader.readBool(offset)) as P;
+    case 19:
+      return (reader.readStringOrNull(offset)) as P;
+    case 20:
       return (_RoomstatusValueEnumMap[reader.readIntOrNull(offset)] ??
           RoomStatus.init) as P;
-    case 19:
-      return (reader.readBoolOrNull(offset)) as P;
-    case 20:
-      return (reader.readString(offset)) as P;
     case 21:
+      return (reader.readBoolOrNull(offset)) as P;
+    case 22:
+      return (reader.readString(offset)) as P;
+    case 23:
       return (_RoomtypeValueEnumMap[reader.readIntOrNull(offset)] ??
           RoomType.common) as P;
-    case 22:
+    case 24:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -373,10 +396,12 @@ const _RoomencryptModeValueEnumMap = {
 const _RoomgroupTypeEnumValueMap = {
   'shareKey': 0,
   'sendAll': 1,
+  'kdf': 2,
 };
 const _RoomgroupTypeValueEnumMap = {
   0: GroupType.shareKey,
   1: GroupType.sendAll,
+  2: GroupType.kdf,
 };
 const _RoomstatusEnumValueMap = {
   'init': 0,
@@ -1543,6 +1568,16 @@ extension RoomQueryFilter on QueryBuilder<Room, Room, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Room, Room, QAfterFilterCondition> isKDFGroupEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isKDFGroup',
+        value: value,
+      ));
+    });
+  }
+
   QueryBuilder<Room, Room, QAfterFilterCondition> isMuteEqualTo(bool value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -2174,6 +2209,152 @@ extension RoomQueryFilter on QueryBuilder<Room, Room, QFilterCondition> {
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> sharedSignalIDIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'sharedSignalID',
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> sharedSignalIDIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'sharedSignalID',
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> sharedSignalIDEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'sharedSignalID',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> sharedSignalIDGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'sharedSignalID',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> sharedSignalIDLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'sharedSignalID',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> sharedSignalIDBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'sharedSignalID',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> sharedSignalIDStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'sharedSignalID',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> sharedSignalIDEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'sharedSignalID',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> sharedSignalIDContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'sharedSignalID',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> sharedSignalIDMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'sharedSignalID',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> sharedSignalIDIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'sharedSignalID',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> sharedSignalIDIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'sharedSignalID',
+        value: '',
       ));
     });
   }
@@ -2829,6 +3010,18 @@ extension RoomQuerySortBy on QueryBuilder<Room, Room, QSortBy> {
     });
   }
 
+  QueryBuilder<Room, Room, QAfterSortBy> sortByIsKDFGroup() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isKDFGroup', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> sortByIsKDFGroupDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isKDFGroup', Sort.desc);
+    });
+  }
+
   QueryBuilder<Room, Room, QAfterSortBy> sortByIsMute() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isMute', Sort.asc);
@@ -2910,6 +3103,18 @@ extension RoomQuerySortBy on QueryBuilder<Room, Room, QSortBy> {
   QueryBuilder<Room, Room, QAfterSortBy> sortByPinAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'pinAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> sortBySharedSignalID() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sharedSignalID', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> sortBySharedSignalIDDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sharedSignalID', Sort.desc);
     });
   }
 
@@ -3119,6 +3324,18 @@ extension RoomQuerySortThenBy on QueryBuilder<Room, Room, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Room, Room, QAfterSortBy> thenByIsKDFGroup() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isKDFGroup', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> thenByIsKDFGroupDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isKDFGroup', Sort.desc);
+    });
+  }
+
   QueryBuilder<Room, Room, QAfterSortBy> thenByIsMute() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isMute', Sort.asc);
@@ -3200,6 +3417,18 @@ extension RoomQuerySortThenBy on QueryBuilder<Room, Room, QSortThenBy> {
   QueryBuilder<Room, Room, QAfterSortBy> thenByPinAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'pinAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> thenBySharedSignalID() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sharedSignalID', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> thenBySharedSignalIDDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sharedSignalID', Sort.desc);
     });
   }
 
@@ -3347,6 +3576,12 @@ extension RoomQueryWhereDistinct on QueryBuilder<Room, Room, QDistinct> {
     });
   }
 
+  QueryBuilder<Room, Room, QDistinct> distinctByIsKDFGroup() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isKDFGroup');
+    });
+  }
+
   QueryBuilder<Room, Room, QDistinct> distinctByIsMute() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isMute');
@@ -3390,6 +3625,14 @@ extension RoomQueryWhereDistinct on QueryBuilder<Room, Room, QDistinct> {
   QueryBuilder<Room, Room, QDistinct> distinctByPinAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'pinAt');
+    });
+  }
+
+  QueryBuilder<Room, Room, QDistinct> distinctBySharedSignalID(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'sharedSignalID',
+          caseSensitive: caseSensitive);
     });
   }
 
@@ -3500,6 +3743,12 @@ extension RoomQueryProperty on QueryBuilder<Room, Room, QQueryProperty> {
     });
   }
 
+  QueryBuilder<Room, bool, QQueryOperations> isKDFGroupProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isKDFGroup');
+    });
+  }
+
   QueryBuilder<Room, bool, QQueryOperations> isMuteProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isMute');
@@ -3539,6 +3788,12 @@ extension RoomQueryProperty on QueryBuilder<Room, Room, QQueryProperty> {
   QueryBuilder<Room, DateTime?, QQueryOperations> pinAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'pinAt');
+    });
+  }
+
+  QueryBuilder<Room, String?, QQueryOperations> sharedSignalIDProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'sharedSignalID');
     });
   }
 

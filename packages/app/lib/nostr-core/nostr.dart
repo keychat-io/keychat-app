@@ -11,6 +11,7 @@ import 'package:app/nostr-core/relay_event_status.dart';
 import 'package:app/nostr-core/request.dart';
 
 import 'package:app/service/identity.service.dart';
+import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/nip4Chat.service.dart';
 import 'package:app/service/signalChat.service.dart';
 import 'package:app/service/websocket.service.dart';
@@ -335,7 +336,7 @@ Tags: ${event.tags}''',
     }
     List<String> relays = await Get.find<WebsocketService>().writeNostrEvent(
         event: event,
-        encryptedEvent: encryptedEvent,
+        eventString: encryptedEvent,
         roomId: room.parentRoom?.id ?? room.id,
         hisRelay: hisRelay);
     if (save && relays.isEmpty) {
@@ -387,7 +388,7 @@ Tags: ${event.tags}''',
     }
     List<String> relays = await Get.find<WebsocketService>().writeNostrEvent(
         event: event,
-        encryptedEvent: encryptedEvent,
+        eventString: encryptedEvent,
         roomId: room.parentRoom?.id ?? room.id,
         hisRelay: hisRelay);
     if (save && relays.isEmpty) {
@@ -498,8 +499,15 @@ Tags: ${event.tags}''',
             return await dmNip4Proccess(event, relay, exist);
           }
 
-          // if signal message , to_address is myIDPubkey or one-time-key
+          // try kdf group
           String to = event.tags[0][1];
+          Room? kdfRoom = await roomService.getGroupByReceivePubkey(to);
+          if (kdfRoom != null) {
+            return await KdfGroupService.instance
+                .decryptMessage(kdfRoom, event, relay);
+          }
+
+          // if signal message , to_address is myIDPubkey or one-time-key
           Room? room = await roomService.getRoomByReceiveKey(to);
           if (room != null) {
             return await SignalChatService()
@@ -648,7 +656,7 @@ Tags: ${event.tags}''',
   Future _processNip17Message(NostrEventModel event, Relay relay) async {
     String to = event.tags[0][1];
     String? myPrivateKey;
-    Identity? identity = await IdentityService().getIdentityByPubkey(to);
+    Identity? identity = await IdentityService().getIdentityByNostrPubkey(to);
     if (identity != null) {
       myPrivateKey = identity.secp256k1SKHex;
     } else {

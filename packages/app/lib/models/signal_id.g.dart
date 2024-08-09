@@ -32,38 +32,48 @@ const SignalIdSchema = CollectionSchema(
       name: r'identityId',
       type: IsarType.long,
     ),
-    r'isUsed': PropertySchema(
+    r'isGroupSharedKey': PropertySchema(
       id: 3,
+      name: r'isGroupSharedKey',
+      type: IsarType.bool,
+    ),
+    r'isUsed': PropertySchema(
+      id: 4,
       name: r'isUsed',
       type: IsarType.bool,
     ),
+    r'keys': PropertySchema(
+      id: 5,
+      name: r'keys',
+      type: IsarType.string,
+    ),
     r'needDelete': PropertySchema(
-      id: 4,
+      id: 6,
       name: r'needDelete',
       type: IsarType.bool,
     ),
     r'prikey': PropertySchema(
-      id: 5,
+      id: 7,
       name: r'prikey',
       type: IsarType.string,
     ),
     r'pubkey': PropertySchema(
-      id: 6,
+      id: 8,
       name: r'pubkey',
       type: IsarType.string,
     ),
     r'signalKeyId': PropertySchema(
-      id: 7,
+      id: 9,
       name: r'signalKeyId',
       type: IsarType.long,
     ),
     r'stringify': PropertySchema(
-      id: 8,
+      id: 10,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'updatedAt': PropertySchema(
-      id: 9,
+      id: 11,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -107,6 +117,12 @@ int _signalIdEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  {
+    final value = object.keys;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.prikey.length * 3;
   bytesCount += 3 + object.pubkey.length * 3;
   return bytesCount;
@@ -121,13 +137,15 @@ void _signalIdSerialize(
   writer.writeDateTime(offsets[0], object.createdAt);
   writer.writeLong(offsets[1], object.hashCode);
   writer.writeLong(offsets[2], object.identityId);
-  writer.writeBool(offsets[3], object.isUsed);
-  writer.writeBool(offsets[4], object.needDelete);
-  writer.writeString(offsets[5], object.prikey);
-  writer.writeString(offsets[6], object.pubkey);
-  writer.writeLong(offsets[7], object.signalKeyId);
-  writer.writeBool(offsets[8], object.stringify);
-  writer.writeDateTime(offsets[9], object.updatedAt);
+  writer.writeBool(offsets[3], object.isGroupSharedKey);
+  writer.writeBool(offsets[4], object.isUsed);
+  writer.writeString(offsets[5], object.keys);
+  writer.writeBool(offsets[6], object.needDelete);
+  writer.writeString(offsets[7], object.prikey);
+  writer.writeString(offsets[8], object.pubkey);
+  writer.writeLong(offsets[9], object.signalKeyId);
+  writer.writeBool(offsets[10], object.stringify);
+  writer.writeDateTime(offsets[11], object.updatedAt);
 }
 
 SignalId _signalIdDeserialize(
@@ -138,15 +156,17 @@ SignalId _signalIdDeserialize(
 ) {
   final object = SignalId(
     identityId: reader.readLong(offsets[2]),
-    prikey: reader.readString(offsets[5]),
-    pubkey: reader.readString(offsets[6]),
+    prikey: reader.readString(offsets[7]),
+    pubkey: reader.readString(offsets[8]),
   );
   object.createdAt = reader.readDateTime(offsets[0]);
   object.id = id;
-  object.isUsed = reader.readBool(offsets[3]);
-  object.needDelete = reader.readBool(offsets[4]);
-  object.signalKeyId = reader.readLongOrNull(offsets[7]);
-  object.updatedAt = reader.readDateTime(offsets[9]);
+  object.isGroupSharedKey = reader.readBool(offsets[3]);
+  object.isUsed = reader.readBool(offsets[4]);
+  object.keys = reader.readStringOrNull(offsets[5]);
+  object.needDelete = reader.readBool(offsets[6]);
+  object.signalKeyId = reader.readLongOrNull(offsets[9]);
+  object.updatedAt = reader.readDateTime(offsets[11]);
   return object;
 }
 
@@ -168,14 +188,18 @@ P _signalIdDeserializeProp<P>(
     case 4:
       return (reader.readBool(offset)) as P;
     case 5:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 6:
-      return (reader.readString(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 7:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 8:
-      return (reader.readBoolOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 9:
+      return (reader.readLongOrNull(offset)) as P;
+    case 10:
+      return (reader.readBoolOrNull(offset)) as P;
+    case 11:
       return (reader.readDateTime(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -711,12 +735,168 @@ extension SignalIdQueryFilter
     });
   }
 
+  QueryBuilder<SignalId, SignalId, QAfterFilterCondition>
+      isGroupSharedKeyEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isGroupSharedKey',
+        value: value,
+      ));
+    });
+  }
+
   QueryBuilder<SignalId, SignalId, QAfterFilterCondition> isUsedEqualTo(
       bool value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'isUsed',
         value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SignalId, SignalId, QAfterFilterCondition> keysIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'keys',
+      ));
+    });
+  }
+
+  QueryBuilder<SignalId, SignalId, QAfterFilterCondition> keysIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'keys',
+      ));
+    });
+  }
+
+  QueryBuilder<SignalId, SignalId, QAfterFilterCondition> keysEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'keys',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SignalId, SignalId, QAfterFilterCondition> keysGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'keys',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SignalId, SignalId, QAfterFilterCondition> keysLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'keys',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SignalId, SignalId, QAfterFilterCondition> keysBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'keys',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SignalId, SignalId, QAfterFilterCondition> keysStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'keys',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SignalId, SignalId, QAfterFilterCondition> keysEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'keys',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SignalId, SignalId, QAfterFilterCondition> keysContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'keys',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SignalId, SignalId, QAfterFilterCondition> keysMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'keys',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SignalId, SignalId, QAfterFilterCondition> keysIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'keys',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SignalId, SignalId, QAfterFilterCondition> keysIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'keys',
+        value: '',
       ));
     });
   }
@@ -1185,6 +1365,18 @@ extension SignalIdQuerySortBy on QueryBuilder<SignalId, SignalId, QSortBy> {
     });
   }
 
+  QueryBuilder<SignalId, SignalId, QAfterSortBy> sortByIsGroupSharedKey() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isGroupSharedKey', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SignalId, SignalId, QAfterSortBy> sortByIsGroupSharedKeyDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isGroupSharedKey', Sort.desc);
+    });
+  }
+
   QueryBuilder<SignalId, SignalId, QAfterSortBy> sortByIsUsed() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isUsed', Sort.asc);
@@ -1194,6 +1386,18 @@ extension SignalIdQuerySortBy on QueryBuilder<SignalId, SignalId, QSortBy> {
   QueryBuilder<SignalId, SignalId, QAfterSortBy> sortByIsUsedDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isUsed', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SignalId, SignalId, QAfterSortBy> sortByKeys() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'keys', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SignalId, SignalId, QAfterSortBy> sortByKeysDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'keys', Sort.desc);
     });
   }
 
@@ -1320,6 +1524,18 @@ extension SignalIdQuerySortThenBy
     });
   }
 
+  QueryBuilder<SignalId, SignalId, QAfterSortBy> thenByIsGroupSharedKey() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isGroupSharedKey', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SignalId, SignalId, QAfterSortBy> thenByIsGroupSharedKeyDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isGroupSharedKey', Sort.desc);
+    });
+  }
+
   QueryBuilder<SignalId, SignalId, QAfterSortBy> thenByIsUsed() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isUsed', Sort.asc);
@@ -1329,6 +1545,18 @@ extension SignalIdQuerySortThenBy
   QueryBuilder<SignalId, SignalId, QAfterSortBy> thenByIsUsedDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isUsed', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SignalId, SignalId, QAfterSortBy> thenByKeys() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'keys', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SignalId, SignalId, QAfterSortBy> thenByKeysDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'keys', Sort.desc);
     });
   }
 
@@ -1425,9 +1653,22 @@ extension SignalIdQueryWhereDistinct
     });
   }
 
+  QueryBuilder<SignalId, SignalId, QDistinct> distinctByIsGroupSharedKey() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isGroupSharedKey');
+    });
+  }
+
   QueryBuilder<SignalId, SignalId, QDistinct> distinctByIsUsed() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isUsed');
+    });
+  }
+
+  QueryBuilder<SignalId, SignalId, QDistinct> distinctByKeys(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'keys', caseSensitive: caseSensitive);
     });
   }
 
@@ -1496,9 +1737,21 @@ extension SignalIdQueryProperty
     });
   }
 
+  QueryBuilder<SignalId, bool, QQueryOperations> isGroupSharedKeyProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isGroupSharedKey');
+    });
+  }
+
   QueryBuilder<SignalId, bool, QQueryOperations> isUsedProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isUsed');
+    });
+  }
+
+  QueryBuilder<SignalId, String?, QQueryOperations> keysProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'keys');
     });
   }
 

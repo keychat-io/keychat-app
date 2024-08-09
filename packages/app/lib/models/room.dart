@@ -45,7 +45,8 @@ enum RoomStatus {
   'isSendAllGroup',
   'isShareKeyGroup',
   'parentRoom',
-  'messageType'
+  'messageType',
+  'keyPair'
 })
 // ignore: must_be_immutable
 class Room extends Equatable {

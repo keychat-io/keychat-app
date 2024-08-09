@@ -209,7 +209,9 @@ class KdfGroupService extends BaseChatService {
     var prekey = await rustSignal.parseIdentityFromPrekeySignalMessage(
         ciphertext: ciphertext);
     String signalIdPubkey = prekey.$1;
-
+    if (fromMember.curve25519PkHex == null) {
+      await fromMember.updateCurve25519PkHex(signalIdPubkey);
+    }
     var (plaintext, msgKeyHash, _) = await rustSignal.decryptSignal(
         keyPair: keyPair,
         ciphertext: ciphertext,
@@ -251,9 +253,18 @@ class KdfGroupService extends BaseChatService {
 
     RoomMember? roomMember = await room.getMemberByNostrPubkey(event.pubkey);
     if (roomMember == null) throw Exception('roomMember is null');
+
     if (roomMember.curve25519PkHex == null) {
-      throw Exception('roomMember.curve25519PkHex is null');
+      return await decryptPreKeyMessage(
+          fromMember: roomMember,
+          sharedSignalId: signalId,
+          keyPair: keyPair,
+          room: room,
+          event: event,
+          relay: relay,
+          eventLog: eventLog);
     }
+
     rustSignal.KeychatProtocolAddress? kpa = await Get.find<ChatxService>()
         .getSignalSession(
             myCurve25519PkHex: signalId.pubkey,

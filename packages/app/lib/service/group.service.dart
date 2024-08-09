@@ -7,7 +7,7 @@ import 'package:app/models/models.dart';
 import 'package:app/models/signal_id.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/service/GroupTx.dart';
+import 'package:app/service/group_tx.dart';
 import 'package:app/service/chat.service.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/nip4Chat.service.dart';
@@ -562,6 +562,7 @@ class GroupService extends BaseChatService {
       roomProfile.signalKeys = signalId.keys;
       roomProfile.signalPubkey = signalId.pubkey;
       roomProfile.signaliPrikey = signalId.prikey;
+      roomProfile.signalKeyId = signalId.signalKeyId;
     }
 
     List<String> addUsersName = toMembers.map((e) => e.name).toList();

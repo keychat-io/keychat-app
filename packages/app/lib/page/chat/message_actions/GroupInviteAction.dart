@@ -7,7 +7,7 @@ import 'package:app/models/keychat/room_profile.dart';
 import 'package:app/models/models.dart';
 
 import 'package:app/page/chat/message_actions/GroupInfoWidget.dart';
-import 'package:app/service/GroupTx.dart';
+import 'package:app/service/group_tx.dart';
 import 'package:app/service/group.service.dart';
 import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/message.service.dart';

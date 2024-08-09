@@ -1,8 +1,9 @@
-import 'dart:convert' show jsonEncode;
+import 'dart:convert' show jsonDecode, jsonEncode;
 import 'dart:typed_data' show Uint8List;
 
 import 'package:app/global.dart';
 import 'package:app/models/db_provider.dart';
+import 'package:app/models/keychat/room_profile.dart';
 import 'package:app/models/signal_id.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:convert/convert.dart' show hex;
@@ -30,18 +31,22 @@ class SignalIdService {
     KeychatIdentityKeyPair keypair = await chatxService
         .setupSignalStoreBySignalId(signalId.pubkey, signalId);
     var signalPrivateKey = Uint8List.fromList(hex.decode(signalId.prikey));
-    var res = await rustSignal.generateSignedKeyApi(
+    var signKeyResult = await rustSignal.generateSignedKeyApi(
         keyPair: keypair, signalIdentityPrivateKey: signalPrivateKey);
 
-    signalId.signalKeyId = res.$1;
+    signalId.signalKeyId = signKeyResult.$1;
     Map<String, dynamic> data = {};
-    data['signedId'] = res.$1;
-    data['signedPublic'] = hex.encode(res.$2);
-    data['signedSignature'] = hex.encode(res.$3);
+    data['signedId'] = signKeyResult.$1;
+    data['signedPublic'] = hex.encode(signKeyResult.$2);
+    data['signedSignature'] = hex.encode(signKeyResult.$3);
 
-    var res2 = await rustSignal.generatePrekeyApi(keyPair: keypair);
-    data['prekeyId'] = res2.$1;
-    data['prekeyPubkey'] = hex.encode(res2.$2);
+    var prekeyResult = await rustSignal.generatePrekeyApi(keyPair: keypair);
+    data['prekeyId'] = prekeyResult.$1;
+    data['prekeyPubkey'] = hex.encode(prekeyResult.$2);
+    if (isGroupSharedKey) {
+      data['signedRecord'] = hex.encode(signKeyResult.$4);
+      data['prekeyRecord'] = hex.encode(prekeyResult.$3);
+    }
     signalId.keys = jsonEncode(data);
 
     await database.writeTxn(() async {
@@ -137,5 +142,35 @@ class SignalIdService {
     data['prekeyId'] = res2.$1;
     data['prekeyPubkey'] = hex.encode(res2.$2);
     return data;
+  }
+
+  Future<SignalId> importSignalId(
+      int identityId, RoomProfile roomProfile) async {
+    if (roomProfile.signalKeys == null) {
+      throw Exception('Signal keys is null, failed to join group.');
+    }
+    var signalId = SignalId(
+        prikey: roomProfile.signaliPrikey!,
+        pubkey: roomProfile.signalPubkey!,
+        identityId: identityId)
+      ..signalKeyId = roomProfile.signalKeyId
+      ..keys = roomProfile.signalKeys
+      ..isGroupSharedKey = true
+      ..createdAt = DateTime.now()
+      ..updatedAt = DateTime.now();
+    await DBProvider.database.signalIds.put(signalId);
+
+    Map keys = jsonDecode(roomProfile.signalKeys!);
+    var keyPair = Get.find<ChatxService>().getKeyPairBySignalId(signalId);
+    await rustSignal.storePrekeyApi(
+        keyPair: keyPair,
+        prekeyId: keys['prekeyId'],
+        record: hex.decode(keys['prekeyRecord']));
+    await rustSignal.storeSignedKeyApi(
+        keyPair: keyPair,
+        signedKeyId: keys['signedId'],
+        record: hex.decode(keys['signedRecord']));
+
+    return signalId;
   }
 }

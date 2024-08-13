@@ -60,19 +60,21 @@ class WebsocketService extends GetxService {
     rw = await _startConnectRelay(rw);
     if (pubkeys.isNotEmpty) {
       DateTime since = await MessageService().getNostrListenStartAt(relay.url);
-      rw.startListen(pubkeys, since);
+      rw.listenPubkeys(pubkeys, since);
     }
   }
 
-  void checkOnlineAndConnect() async {
-    for (RelayWebsocket rw in channels.values) {
+  Future checkOnlineAndConnect() async {
+    // fix ConcurrentModificationError
+    for (RelayWebsocket rw in List.from(channels.values)) {
       logger.d(
           '> checkOnlineAndConnect ${rw.relay.url}: ${rw.channelStatus.name} ${rw.channel?.closeCode} _ ${rw.channel?.closeReason}');
-      var relayStatus = await rw.checkOnlineStatus();
-      if (!relayStatus) {
-        rw.channel?.sink.close(status.goingAway);
-        _startConnectRelay(rw);
-      }
+      rw.checkOnlineStatus().then((relayStatus) {
+        if (!relayStatus) {
+          rw.channel?.sink.close(status.goingAway);
+          _startConnectRelay(rw);
+        }
+      });
     }
   }
 
@@ -177,23 +179,27 @@ class WebsocketService extends GetxService {
             element.channelStatus == RelayStatusEnum.success)
         .length;
 
-    if (success > 0) {
-      if (relayStatusInt.value != RelayStatusEnum.success.name) {
-        relayStatusInt.value = RelayStatusEnum.success.name;
-      }
-
-      return;
-    }
+    if (success > 0) return setRelayStatusInt(RelayStatusEnum.success.name);
 
     if (success == 0) {
       int diff =
           DateTime.now().millisecondsSinceEpoch - initAt.millisecondsSinceEpoch;
       if (diff > 2000) {
-        relayStatusInt.value = RelayStatusEnum.allFailed.name;
-        return;
+        return setRelayStatusInt(RelayStatusEnum.allFailed.name);
       }
     }
-    relayStatusInt.value = RelayStatusEnum.connecting.name;
+    setRelayStatusInt(RelayStatusEnum.connecting.name);
+  }
+
+  String? lastRelayStatus;
+  Future setRelayStatusInt(String name) async {
+    lastRelayStatus = name;
+    EasyDebounce.debounce(
+        'setRelayStatusInt', const Duration(milliseconds: 100), () {
+      if (relayStatusInt.value != name) {
+        relayStatusInt.value = name;
+      }
+    });
   }
 
   bool startLock = false;
@@ -205,7 +211,7 @@ class WebsocketService extends GetxService {
       WriteEventStatus.clear();
       await stopListening();
       list ??= await RelayService().list();
-      await _createChannels(list);
+      await createChannels(list);
     } finally {
       startLock = false;
     }
@@ -214,6 +220,7 @@ class WebsocketService extends GetxService {
   Future stopListening() async {
     for (RelayWebsocket rw in channels.values) {
       rw.channel?.sink.close(status.goingAway);
+      rw.channel = null;
     }
     channels.clear();
   }
@@ -272,7 +279,7 @@ class WebsocketService extends GetxService {
       tasks.add(() async {
         try {
           String eventRaw =
-              await _addCashuToMessage(toSendMesage, relay, roomId, event.id);
+              await addCashuToMessage(toSendMesage, relay, roomId, event.id);
           if (channels[relay]?.channel != null) {
             logger.i(
                 'to:[$relay]: $eventRaw }'); // ${eventRaw.length > 200 ? eventRaw.substring(0, 400) : eventRaw}');
@@ -301,7 +308,7 @@ class WebsocketService extends GetxService {
     return relays;
   }
 
-  Future<String> _addCashuToMessage(
+  Future<String> addCashuToMessage(
       String message, String relay, int roomId, String eventId) async {
     RelayMessageFee? payInfoModel = relayMessageFeeModels[relay];
     if (payInfoModel == null) return message;
@@ -328,7 +335,7 @@ class WebsocketService extends GetxService {
     return message;
   }
 
-  Future _createChannels([List<Relay> list = const []]) async {
+  Future createChannels([List<Relay> list = const []]) async {
     await Future.wait(list.map((Relay relay) async {
       RelayWebsocket rw = RelayWebsocket(relay);
       channels[relay.url] = rw;
@@ -374,6 +381,7 @@ class WebsocketService extends GetxService {
     }, onError: (e) {
       errorMessage = e.toString();
       logger.e('${rw.relay.url} onError ${e.toString()}');
+      onErrorProcess(rw, errorMessage);
     });
     // connect success
     rw.connectSuccess(channel);
@@ -411,8 +419,9 @@ class WebsocketService extends GetxService {
   }
 
   void onErrorProcess(RelayWebsocket rw, [String? errorMessage]) {
-    EasyDebounce.debounce('_startConnectRelay_${rw.relay.url}',
-        const Duration(milliseconds: 1000), () async {
+    EasyDebounce.debounce(
+        '_startConnectRelay_${rw.relay.url}', const Duration(milliseconds: 500),
+        () async {
       rw.disconnected(errorMessage);
       rw.failedTimes += 1;
       logger.d(

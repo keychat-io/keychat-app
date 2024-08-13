@@ -122,6 +122,7 @@ class RelayWebsocket {
 
     await _reset();
     channel = textSocketHandler;
+    channelStatus = RelayStatusEnum.success;
     await Get.find<WebsocketService>()
         .setChannelStatus(relay.url, RelayStatusEnum.success);
     _startListen();

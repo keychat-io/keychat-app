@@ -172,7 +172,6 @@ class WebsocketService extends GetxService {
     if (channels[relay] != null) {
       channels[relay]!.relay.errorMessage = errorMessage;
     }
-    channels.refresh();
 
     int success = channels.values
         .where((RelayWebsocket element) =>

@@ -3,6 +3,7 @@ import 'dart:io' show Directory;
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -38,34 +39,26 @@ void main() async {
       defaultPopGesture: true,
       defaultTransition: Transition.cupertino);
   String initialRoute = await getInitRoute(isLogin);
+  var getMaterialApp = GetMaterialApp(
+    initialRoute: initialRoute,
+    getPages: Pages.routes,
+    builder: EasyLoading.init(),
+    locale: Get.deviceLocale,
+    debugShowCheckedModeBanner: false,
+    themeMode: themeMode,
+    theme: AppThemeCustom.light(),
+    darkTheme: AppThemeCustom.dark(),
+  );
+  if (kReleaseMode) return runApp(getMaterialApp);
 
   try {
     // start with sentry
     String sentryDNS = dotenv.get('SENTRY_DNS');
     await SentryFlutter.init((options) {
       options.dsn = sentryDNS;
-    },
-        appRunner: () => runApp(GetMaterialApp(
-              initialRoute: initialRoute,
-              getPages: Pages.routes,
-              builder: EasyLoading.init(),
-              locale: Get.deviceLocale,
-              debugShowCheckedModeBanner: false,
-              themeMode: themeMode,
-              theme: AppThemeCustom.light(),
-              darkTheme: AppThemeCustom.dark(),
-            )));
+    }, appRunner: () => runApp(getMaterialApp));
   } catch (e) {
-    runApp(GetMaterialApp(
-      initialRoute: initialRoute,
-      getPages: Pages.routes,
-      builder: EasyLoading.init(),
-      locale: Get.deviceLocale,
-      debugShowCheckedModeBanner: false,
-      themeMode: themeMode,
-      theme: AppThemeCustom.light(),
-      darkTheme: AppThemeCustom.dark(),
-    ));
+    runApp(getMaterialApp);
   }
 }
 

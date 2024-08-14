@@ -87,11 +87,14 @@ class HomeController extends GetxController
       } else {
         // network from disconnected to connected
         if (!isConnectedNetwork.value) {
-          WebsocketService ws = Get.find<WebsocketService>();
-          ws.start();
-          if (ws.relayFileFeeModels.entries.isEmpty) {
-            RelayService().initRelayFeeInfo();
-          }
+          EasyDebounce.debounce(
+              'isConnectedNetwork', const Duration(seconds: 1), () {
+            WebsocketService ws = Get.find<WebsocketService>();
+            ws.start();
+            if (ws.relayFileFeeModels.entries.isEmpty) {
+              RelayService().initRelayFeeInfo();
+            }
+          });
         }
         isConnectedNetwork.value = true;
       }
@@ -107,13 +110,13 @@ class HomeController extends GetxController
     }
   }
 
-  void _stopCheckWebsocketTimer() {
+  void _stopConnectHeartbeat() {
     _checkWebsocketTimer?.cancel();
     _checkWebsocketTimer = null;
   }
 
-  void _startCheckWebsocketTimer() async {
-    _stopCheckWebsocketTimer();
+  void _startConnectHeartbeat() async {
+    _stopConnectHeartbeat();
     EasyDebounce.debounce('checkOnlineAndConnect', const Duration(seconds: 10),
         () async {
       if (!resumed) return;
@@ -341,7 +344,11 @@ class HomeController extends GetxController
         EasyThrottle.throttle(
             'AppLifecycleState.resumed', const Duration(seconds: 2), () {
           if (isPaused) {
-            Get.find<WebsocketService>().start();
+            Get.find<WebsocketService>().start().then(() {
+              if (kReleaseMode) {
+                _startConnectHeartbeat();
+              }
+            });
             Utils.initLoggger(Get.find<SettingController>().appFolder);
             NotifyService.initNofityConfig(true);
             if (kReleaseMode) {
@@ -356,7 +363,7 @@ class HomeController extends GetxController
       case AppLifecycleState.paused:
         resumed = false;
         pausedTime = DateTime.now();
-        _stopCheckWebsocketTimer();
+        _stopConnectHeartbeat();
         break;
       case AppLifecycleState.detached:
         // app been killed

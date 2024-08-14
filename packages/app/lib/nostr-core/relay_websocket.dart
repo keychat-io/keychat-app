@@ -27,29 +27,30 @@ class RelayWebsocket {
 
   RelayWebsocket(this.relay);
 
-  _reset() {
+  Future _reset() async {
     subscriptions.clear();
     notices.clear();
     maxReqCount = _maxReqCount;
     sentReqCount = 0;
     channelStatus = RelayStatusEnum.init;
+    await channel?.sink.close();
     channel = null;
   }
 
   // listen identity key will take position.
-  _start() async {
+  _startListen() async {
     DateTime since = await MessageService().getNostrListenStartAt(relay.url);
     List<String> pubkeys = await IdentityService().getListenPubkeys();
-    startListen(pubkeys, since);
-    startListen(pubkeys, DateTime.now().subtract(const Duration(days: 2)),
+    listenPubkeys(pubkeys, since);
+    listenPubkeys(pubkeys, DateTime.now().subtract(const Duration(days: 2)),
         [EventKinds.nip17]);
 
     List<String> signal = await ContactService().getAllReceiveKeys();
-    startListen(signal, since);
+    listenPubkeys(signal, since);
     NostrAPI().checkFaildEvent();
   }
 
-  Future startListen(List<String> pubkeys, DateTime since,
+  Future listenPubkeys(List<String> pubkeys, DateTime since,
       [List<int> kinds = const [EventKinds.encryptedDirectMessage]]) async {
     List<List<String>> groups = utils.listToGroupList(pubkeys, 120);
 
@@ -60,10 +61,10 @@ class RelayWebsocket {
           reqId: subId, kinds: kinds, pubkeys: group, since: since, limit: 300);
       try {
         sendRawREQ(req.toString());
-        logger.e(
-            'start listen success: ${relay.url} - ${req.pubkeys.length} pubkeys');
+        logger
+            .i('listen success: ${relay.url} - ${req.pubkeys.length} pubkeys');
       } catch (e) {
-        logger.e('startListen error', error: e);
+        logger.e('Listen error', error: e);
       }
     }
   }
@@ -118,11 +119,13 @@ class RelayWebsocket {
 
   void connectSuccess(WebSocketChannel textSocketHandler) async {
     failedTimes = 0;
-    _reset();
+
+    await _reset();
     channel = textSocketHandler;
+    channelStatus = RelayStatusEnum.success;
     await Get.find<WebsocketService>()
         .setChannelStatus(relay.url, RelayStatusEnum.success);
-    _start();
+    _startListen();
   }
 
   void connecting() {

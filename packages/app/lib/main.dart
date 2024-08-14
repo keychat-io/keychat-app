@@ -49,7 +49,7 @@ void main() async {
     theme: AppThemeCustom.light(),
     darkTheme: AppThemeCustom.dark(),
   );
-  if (kReleaseMode) return runApp(getMaterialApp);
+  if (kDebugMode) return runApp(getMaterialApp);
 
   try {
     // start with sentry
@@ -117,5 +117,5 @@ Future initServices() async {
 }
 
 void _logWriterCallback(String text, {bool isError = false}) {
-  isError ? logger.e(text) : loggerNoLine.i(text);
+  isError ? debugPrint(text) : loggerNoLine.i(text);
 }

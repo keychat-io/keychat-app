@@ -17,40 +17,16 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
-import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../controller/home.controller.dart';
 import 'components.dart';
 
-class RoomList extends StatefulWidget {
+class RoomList extends StatelessWidget {
   const RoomList({super.key});
-  @override
-  _MyListViewState createState() => _MyListViewState();
-}
-
-class _MyListViewState extends State<RoomList> {
-  GlobalKey<ScaffoldState> scaffoldKey =
-      GlobalKey<ScaffoldState>(debugLabel: 'home');
-  HomeController homeController = Get.find<HomeController>();
-
-  @override
-  void initState() {
-    super.initState();
-    if (GetPlatform.isDesktop) {
-      WakelockPlus.enable();
-    }
-  }
-
-  @override
-  void dispose() {
-    if (GetPlatform.isDesktop) {
-      WakelockPlus.disable();
-    }
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
+    HomeController homeController = Get.find<HomeController>();
     Color pinTileBackground =
         Get.isDarkMode ? const Color(0xFF202020) : const Color(0xFFEDEDED);
 
@@ -120,7 +96,6 @@ class _MyListViewState extends State<RoomList> {
                       ],
                     ),
                   )))),
-      key: scaffoldKey,
       body: Obx(() => TabBarView(
           key: const Key('roomlistTabview'),
           controller: homeController.tabController,
@@ -135,7 +110,7 @@ class _MyListViewState extends State<RoomList> {
                     rooms[2].length == 0
                 ? _noRoomsView(context, homeController, data.identity)
                 : ListView.separated(
-                    key: PageStorageKey('roomlist_tab_$identityId'),
+                    key: ObjectKey('roomlist_tab_$identityId'),
                     padding: const EdgeInsets.only(
                         bottom: kMinInteractiveDimension * 2),
                     separatorBuilder: (context, index) {
@@ -150,7 +125,7 @@ class _MyListViewState extends State<RoomList> {
                     itemCount: friendsCount,
                     itemBuilder: (context, index) {
                       if (index == 0) {
-                        return getSearchWidget(pinTileBackground);
+                        return getSearchWidget(context, pinTileBackground);
                       }
                       if (index == 1) {
                         return getNewFriendsWidget(data, rooms[1] as List<Room>,
@@ -162,7 +137,7 @@ class _MyListViewState extends State<RoomList> {
                       }
                       Room room = rooms[index];
                       return GestureDetector(
-                          key: PageStorageKey('${index}_room${room.id}'),
+                          key: ObjectKey('${index}_room${room.id}'),
                           onTap: () async {
                             await Get.toNamed('/room/${room.id}',
                                 arguments: room);
@@ -188,14 +163,15 @@ class _MyListViewState extends State<RoomList> {
                                 subtitle: RoomUtil.getSubtitleDisplay(
                                         room, messageExpired) ??
                                     const Text(''),
-                                trailing: _getRoomTrailing(room),
+                                trailing: _getRoomTrailing(context, room),
                               )));
                     });
           }).toList())),
     );
   }
 
-  GestureDetector getSearchWidget(Color pinTileBackground) {
+  GestureDetector getSearchWidget(
+      BuildContext context, Color pinTileBackground) {
     return GestureDetector(
       onTap: () {
         Get.to(() => const SearchPage());
@@ -442,7 +418,7 @@ class _MyListViewState extends State<RoomList> {
     ));
   }
 
-  Widget? _getRoomTrailing(Room room) {
+  Widget? _getRoomTrailing(BuildContext context, Room room) {
     if (room.lastMessageModel?.createdAt != null) {
       return Wrap(
         direction: Axis.vertical,

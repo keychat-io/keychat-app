@@ -59,13 +59,10 @@ class Login extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     FilledButton(
-                        onPressed: () => Get.to(() => const CreateAccount(
-                              type: "init",
-                            )),
-                        child: const Text(
-                          "Create ID",
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        )),
+                        onPressed: () =>
+                            Get.to(() => const CreateAccount(type: "init")),
+                        child: const Text("Create ID",
+                            style: TextStyle(fontWeight: FontWeight.bold))),
                     // const SizedBox(height: 16.0),
                     // OutlinedButton(
                     //     onPressed: () async {

@@ -27,78 +27,63 @@ const IdentitySchema = CollectionSchema(
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
-    r'curve25519Pk': PropertySchema(
-      id: 2,
-      name: r'curve25519Pk',
-      type: IsarType.byteList,
-    ),
     r'curve25519PkHex': PropertySchema(
-      id: 3,
+      id: 2,
       name: r'curve25519PkHex',
       type: IsarType.string,
     ),
-    r'curve25519Sk': PropertySchema(
-      id: 4,
-      name: r'curve25519Sk',
-      type: IsarType.byteList,
-    ),
     r'curve25519SkHex': PropertySchema(
-      id: 5,
+      id: 3,
       name: r'curve25519SkHex',
       type: IsarType.string,
     ),
     r'hashCode': PropertySchema(
-      id: 6,
+      id: 4,
       name: r'hashCode',
       type: IsarType.long,
     ),
     r'isDefault': PropertySchema(
-      id: 7,
+      id: 5,
       name: r'isDefault',
       type: IsarType.bool,
     ),
     r'mnemonic': PropertySchema(
-      id: 8,
+      id: 6,
       name: r'mnemonic',
       type: IsarType.string,
     ),
     r'name': PropertySchema(
-      id: 9,
+      id: 7,
       name: r'name',
       type: IsarType.string,
     ),
     r'note': PropertySchema(
-      id: 10,
+      id: 8,
       name: r'note',
       type: IsarType.string,
     ),
     r'npub': PropertySchema(
-      id: 11,
+      id: 9,
       name: r'npub',
       type: IsarType.string,
     ),
-    r'nsec': PropertySchema(
-      id: 12,
-      name: r'nsec',
-      type: IsarType.string,
-    ),
     r'secp256k1PKHex': PropertySchema(
-      id: 13,
+      id: 10,
       name: r'secp256k1PKHex',
       type: IsarType.string,
     ),
     r'secp256k1SKHex': PropertySchema(
-      id: 14,
+      id: 11,
       name: r'secp256k1SKHex',
       type: IsarType.string,
     ),
     r'stringify': PropertySchema(
-      id: 15,
+      id: 12,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'weight': PropertySchema(
-      id: 16,
+      id: 13,
       name: r'weight',
       type: IsarType.long,
     )
@@ -143,9 +128,7 @@ int _identityEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
-  bytesCount += 3 + object.curve25519Pk.length;
   bytesCount += 3 + object.curve25519PkHex.length * 3;
-  bytesCount += 3 + object.curve25519Sk.length;
   bytesCount += 3 + object.curve25519SkHex.length * 3;
   bytesCount += 3 + object.mnemonic.length * 3;
   bytesCount += 3 + object.name.length * 3;
@@ -156,7 +139,6 @@ int _identityEstimateSize(
     }
   }
   bytesCount += 3 + object.npub.length * 3;
-  bytesCount += 3 + object.nsec.length * 3;
   bytesCount += 3 + object.secp256k1PKHex.length * 3;
   bytesCount += 3 + object.secp256k1SKHex.length * 3;
   return bytesCount;
@@ -170,21 +152,18 @@ void _identitySerialize(
 ) {
   writer.writeString(offsets[0], object.about);
   writer.writeDateTime(offsets[1], object.createdAt);
-  writer.writeByteList(offsets[2], object.curve25519Pk);
-  writer.writeString(offsets[3], object.curve25519PkHex);
-  writer.writeByteList(offsets[4], object.curve25519Sk);
-  writer.writeString(offsets[5], object.curve25519SkHex);
-  writer.writeLong(offsets[6], object.hashCode);
-  writer.writeBool(offsets[7], object.isDefault);
-  writer.writeString(offsets[8], object.mnemonic);
-  writer.writeString(offsets[9], object.name);
-  writer.writeString(offsets[10], object.note);
-  writer.writeString(offsets[11], object.npub);
-  writer.writeString(offsets[12], object.nsec);
-  writer.writeString(offsets[13], object.secp256k1PKHex);
-  writer.writeString(offsets[14], object.secp256k1SKHex);
-  writer.writeBool(offsets[15], object.stringify);
-  writer.writeLong(offsets[16], object.weight);
+  writer.writeString(offsets[2], object.curve25519PkHex);
+  writer.writeString(offsets[3], object.curve25519SkHex);
+  writer.writeLong(offsets[4], object.hashCode);
+  writer.writeBool(offsets[5], object.isDefault);
+  writer.writeString(offsets[6], object.mnemonic);
+  writer.writeString(offsets[7], object.name);
+  writer.writeString(offsets[8], object.note);
+  writer.writeString(offsets[9], object.npub);
+  writer.writeString(offsets[10], object.secp256k1PKHex);
+  writer.writeString(offsets[11], object.secp256k1SKHex);
+  writer.writeBool(offsets[12], object.stringify);
+  writer.writeLong(offsets[13], object.weight);
 }
 
 Identity _identityDeserialize(
@@ -194,23 +173,20 @@ Identity _identityDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Identity(
-    curve25519Pk: reader.readByteList(offsets[2]) ?? [],
-    curve25519PkHex: reader.readString(offsets[3]),
-    curve25519Sk: reader.readByteList(offsets[4]) ?? [],
-    curve25519SkHex: reader.readString(offsets[5]),
-    mnemonic: reader.readString(offsets[8]),
-    name: reader.readString(offsets[9]),
-    note: reader.readStringOrNull(offsets[10]),
-    npub: reader.readString(offsets[11]),
-    nsec: reader.readString(offsets[12]),
-    secp256k1PKHex: reader.readString(offsets[13]),
-    secp256k1SKHex: reader.readString(offsets[14]),
+    curve25519PkHex: reader.readString(offsets[2]),
+    curve25519SkHex: reader.readString(offsets[3]),
+    mnemonic: reader.readString(offsets[6]),
+    name: reader.readString(offsets[7]),
+    note: reader.readStringOrNull(offsets[8]),
+    npub: reader.readString(offsets[9]),
+    secp256k1PKHex: reader.readString(offsets[10]),
+    secp256k1SKHex: reader.readString(offsets[11]),
   );
   object.about = reader.readStringOrNull(offsets[0]);
   object.createdAt = reader.readDateTime(offsets[1]);
   object.id = id;
-  object.isDefault = reader.readBool(offsets[7]);
-  object.weight = reader.readLong(offsets[16]);
+  object.isDefault = reader.readBool(offsets[5]);
+  object.weight = reader.readLong(offsets[13]);
   return object;
 }
 
@@ -226,34 +202,28 @@ P _identityDeserializeProp<P>(
     case 1:
       return (reader.readDateTime(offset)) as P;
     case 2:
-      return (reader.readByteList(offset) ?? []) as P;
+      return (reader.readString(offset)) as P;
     case 3:
       return (reader.readString(offset)) as P;
     case 4:
-      return (reader.readByteList(offset) ?? []) as P;
-    case 5:
-      return (reader.readString(offset)) as P;
-    case 6:
       return (reader.readLong(offset)) as P;
-    case 7:
+    case 5:
       return (reader.readBool(offset)) as P;
-    case 8:
+    case 6:
       return (reader.readString(offset)) as P;
+    case 7:
+      return (reader.readString(offset)) as P;
+    case 8:
+      return (reader.readStringOrNull(offset)) as P;
     case 9:
       return (reader.readString(offset)) as P;
     case 10:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 11:
       return (reader.readString(offset)) as P;
     case 12:
-      return (reader.readString(offset)) as P;
-    case 13:
-      return (reader.readString(offset)) as P;
-    case 14:
-      return (reader.readString(offset)) as P;
-    case 15:
       return (reader.readBoolOrNull(offset)) as P;
-    case 16:
+    case 13:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -651,151 +621,6 @@ extension IdentityQueryFilter
   }
 
   QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      curve25519PkElementEqualTo(int value) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'curve25519Pk',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      curve25519PkElementGreaterThan(
-    int value, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'curve25519Pk',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      curve25519PkElementLessThan(
-    int value, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'curve25519Pk',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      curve25519PkElementBetween(
-    int lower,
-    int upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'curve25519Pk',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      curve25519PkLengthEqualTo(int length) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'curve25519Pk',
-        length,
-        true,
-        length,
-        true,
-      );
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      curve25519PkIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'curve25519Pk',
-        0,
-        true,
-        0,
-        true,
-      );
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      curve25519PkIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'curve25519Pk',
-        0,
-        false,
-        999999,
-        true,
-      );
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      curve25519PkLengthLessThan(
-    int length, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'curve25519Pk',
-        0,
-        true,
-        length,
-        include,
-      );
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      curve25519PkLengthGreaterThan(
-    int length, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'curve25519Pk',
-        length,
-        include,
-        999999,
-        true,
-      );
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      curve25519PkLengthBetween(
-    int lower,
-    int upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'curve25519Pk',
-        lower,
-        includeLower,
-        upper,
-        includeUpper,
-      );
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
       curve25519PkHexEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -928,151 +753,6 @@ extension IdentityQueryFilter
         property: r'curve25519PkHex',
         value: '',
       ));
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      curve25519SkElementEqualTo(int value) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'curve25519Sk',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      curve25519SkElementGreaterThan(
-    int value, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'curve25519Sk',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      curve25519SkElementLessThan(
-    int value, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'curve25519Sk',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      curve25519SkElementBetween(
-    int lower,
-    int upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'curve25519Sk',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      curve25519SkLengthEqualTo(int length) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'curve25519Sk',
-        length,
-        true,
-        length,
-        true,
-      );
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      curve25519SkIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'curve25519Sk',
-        0,
-        true,
-        0,
-        true,
-      );
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      curve25519SkIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'curve25519Sk',
-        0,
-        false,
-        999999,
-        true,
-      );
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      curve25519SkLengthLessThan(
-    int length, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'curve25519Sk',
-        0,
-        true,
-        length,
-        include,
-      );
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      curve25519SkLengthGreaterThan(
-    int length, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'curve25519Sk',
-        length,
-        include,
-        999999,
-        true,
-      );
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      curve25519SkLengthBetween(
-    int lower,
-    int upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'curve25519Sk',
-        lower,
-        includeLower,
-        upper,
-        includeUpper,
-      );
     });
   }
 
@@ -1863,136 +1543,6 @@ extension IdentityQueryFilter
     });
   }
 
-  QueryBuilder<Identity, Identity, QAfterFilterCondition> nsecEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'nsec',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition> nsecGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'nsec',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition> nsecLessThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'nsec',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition> nsecBetween(
-    String lower,
-    String upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'nsec',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition> nsecStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'nsec',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition> nsecEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'nsec',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition> nsecContains(
-      String value,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'nsec',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition> nsecMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'nsec',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition> nsecIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'nsec',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition> nsecIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'nsec',
-        value: '',
-      ));
-    });
-  }
-
   QueryBuilder<Identity, Identity, QAfterFilterCondition> secp256k1PKHexEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -2470,18 +2020,6 @@ extension IdentityQuerySortBy on QueryBuilder<Identity, Identity, QSortBy> {
     });
   }
 
-  QueryBuilder<Identity, Identity, QAfterSortBy> sortByNsec() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'nsec', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterSortBy> sortByNsecDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'nsec', Sort.desc);
-    });
-  }
-
   QueryBuilder<Identity, Identity, QAfterSortBy> sortBySecp256k1PKHex() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'secp256k1PKHex', Sort.asc);
@@ -2665,18 +2203,6 @@ extension IdentityQuerySortThenBy
     });
   }
 
-  QueryBuilder<Identity, Identity, QAfterSortBy> thenByNsec() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'nsec', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterSortBy> thenByNsecDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'nsec', Sort.desc);
-    });
-  }
-
   QueryBuilder<Identity, Identity, QAfterSortBy> thenBySecp256k1PKHex() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'secp256k1PKHex', Sort.asc);
@@ -2741,23 +2267,11 @@ extension IdentityQueryWhereDistinct
     });
   }
 
-  QueryBuilder<Identity, Identity, QDistinct> distinctByCurve25519Pk() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'curve25519Pk');
-    });
-  }
-
   QueryBuilder<Identity, Identity, QDistinct> distinctByCurve25519PkHex(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'curve25519PkHex',
           caseSensitive: caseSensitive);
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QDistinct> distinctByCurve25519Sk() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'curve25519Sk');
     });
   }
 
@@ -2806,13 +2320,6 @@ extension IdentityQueryWhereDistinct
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'npub', caseSensitive: caseSensitive);
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QDistinct> distinctByNsec(
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'nsec', caseSensitive: caseSensitive);
     });
   }
 
@@ -2865,21 +2372,9 @@ extension IdentityQueryProperty
     });
   }
 
-  QueryBuilder<Identity, List<int>, QQueryOperations> curve25519PkProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'curve25519Pk');
-    });
-  }
-
   QueryBuilder<Identity, String, QQueryOperations> curve25519PkHexProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'curve25519PkHex');
-    });
-  }
-
-  QueryBuilder<Identity, List<int>, QQueryOperations> curve25519SkProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'curve25519Sk');
     });
   }
 
@@ -2922,12 +2417,6 @@ extension IdentityQueryProperty
   QueryBuilder<Identity, String, QQueryOperations> npubProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'npub');
-    });
-  }
-
-  QueryBuilder<Identity, String, QQueryOperations> nsecProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'nsec');
     });
   }
 

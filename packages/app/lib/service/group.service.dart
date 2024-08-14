@@ -607,7 +607,7 @@ class GroupService extends BaseChatService {
     GroupMessage gm = _getGroupMessage(room, message,
         pubkey: '', reply: reply, subtype: subtype, ext: ext);
     String subEncryptedEvent = await rustNostr.getEncryptEvent(
-        senderKeys: room.getIdentity().secp256k1SKHex,
+        senderKeys: await room.getIdentity().getSecp256k1SKHex(),
         receiverPubkey: roomKey.pubkey,
         content: gm.toString());
 
@@ -912,7 +912,7 @@ class GroupService extends BaseChatService {
             km.toString(),
             room: groupRoom,
             encryptType: MessageEncryptType.nip4,
-            prikey: identity.secp256k1SKHex,
+            prikey: await identity.getSecp256k1SKHex(),
             from: identity.secp256k1PKHex,
             realMessage: realMessage,
           );
@@ -1026,7 +1026,7 @@ ${rm.idPubkey}
       kmToRemove.toString(),
       room: room,
       encryptType: MessageEncryptType.nip4,
-      prikey: identity.secp256k1SKHex,
+      prikey: await identity.getSecp256k1SKHex(),
       from: identity.secp256k1PKHex,
       realMessage: '$realMessage Send to: ${rm.name}',
     );
@@ -1049,7 +1049,7 @@ ${rm.idPubkey}
         km.toString(),
         room: room,
         encryptType: MessageEncryptType.nip4,
-        prikey: identity.secp256k1SKHex,
+        prikey: await identity.getSecp256k1SKHex(),
         from: identity.secp256k1PKHex,
         realMessage: '$realMessage Send to: ${element.name}',
       );

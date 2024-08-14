@@ -49,6 +49,8 @@ void main() async {
     theme: AppThemeCustom.light(),
     darkTheme: AppThemeCustom.dark(),
   );
+  if (kReleaseMode) return runApp(getMaterialApp);
+
   try {
     // start with sentry
     String sentryDNS = dotenv.get('SENTRY_DNS');

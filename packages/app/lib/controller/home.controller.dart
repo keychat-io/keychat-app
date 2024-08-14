@@ -351,9 +351,6 @@ class HomeController extends GetxController
             });
             Utils.initLoggger(Get.find<SettingController>().appFolder);
             NotifyService.initNofityConfig(true);
-            if (kReleaseMode) {
-              _startCheckWebsocketTimer();
-            }
             return;
           }
           Get.find<WebsocketService>().checkOnlineAndConnect();

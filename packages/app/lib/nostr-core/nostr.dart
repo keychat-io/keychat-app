@@ -9,6 +9,7 @@ import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/nostr-core/relay_event_status.dart';
 
 import 'package:app/nostr-core/request.dart';
+import 'package:app/service/SecureStorage.dart';
 
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/kdf_group.service.dart';
@@ -658,7 +659,8 @@ Tags: ${event.tags}''',
     String? myPrivateKey;
     Identity? identity = await IdentityService().getIdentityByNostrPubkey(to);
     if (identity != null) {
-      myPrivateKey = identity.secp256k1SKHex;
+      myPrivateKey = await SecureStorage.instance
+          .readPrikeyOrFail(identity.secp256k1PKHex);
     } else {
       Mykey? mykey = await IdentityService().getMykeyByPubkey(to);
       if (mykey != null) {

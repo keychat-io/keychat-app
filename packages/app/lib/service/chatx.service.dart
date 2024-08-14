@@ -7,6 +7,7 @@ import 'package:app/models/identity.dart';
 import 'package:app/models/mykey.dart';
 import 'package:app/models/room.dart';
 import 'package:app/models/signal_id.dart';
+import 'package:app/service/SecureStorage.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/signalId.service.dart';
@@ -88,7 +89,7 @@ class ChatxService extends GetxService {
     if (room.signalIdPubkey != null) {
       keyPair = await getKeyPairBySignalIdPubkey(room.signalIdPubkey!);
     } else {
-      keyPair = getKeyPairByIdentity(room.getIdentity());
+      keyPair = await getKeyPairByIdentity(room.getIdentity());
     }
     await rustSignal.processPrekeyBundleApi(
         keyPair: keyPair,
@@ -200,8 +201,10 @@ class ChatxService extends GetxService {
   }
 
   // compatible with older version about identityId:signalId = 1:1
-  KeychatIdentityKeyPair getKeyPairByIdentity(Identity identity) {
-    return _getKeyPair(identity.curve25519PkHex, identity.curve25519SkHex);
+  Future<KeychatIdentityKeyPair> getKeyPairByIdentity(Identity identity) async {
+    var prikey =
+        await SecureStorage.instance.readPrikeyOrFail(identity.curve25519PkHex);
+    return _getKeyPair(identity.curve25519PkHex, prikey);
   }
 
   KeychatIdentityKeyPair _getKeyPair(String pubkey, String prikey) {
@@ -226,7 +229,7 @@ class ChatxService extends GetxService {
 
   Future<KeychatIdentityKeyPair> setupSignalStoreByIdentity(
       Identity identity) async {
-    var keyPair = getKeyPairByIdentity(identity);
+    var keyPair = await getKeyPairByIdentity(identity);
     await rustSignal.initKeypair(keyPair: keyPair, regId: 0);
     initedSignalStorePubkeySet.add(identity.curve25519PkHex);
     return keyPair;
@@ -244,7 +247,7 @@ class ChatxService extends GetxService {
     if (room.signalIdPubkey != null) {
       keyPair = await getKeyPairBySignalIdPubkey(room.signalIdPubkey!);
     } else {
-      keyPair = getKeyPairByIdentity(room.getIdentity());
+      keyPair = await getKeyPairByIdentity(room.getIdentity());
     }
     await rustSignal.deleteSession(keyPair: keyPair, address: remoteAddress);
     await rustSignal.deleteIdentity(

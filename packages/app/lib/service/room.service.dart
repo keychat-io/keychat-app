@@ -548,7 +548,7 @@ class RoomService extends BaseChatService {
       String sm =
           KeychatMessage.getTextMessage(MessageType.nip04, content, reply);
       map = await NostrAPI().sendNip4Message(toAddress ?? room.toMainPubkey, sm,
-          prikey: identity.secp256k1SKHex,
+          prikey: await identity.getSecp256k1SKHex(),
           from: identity.secp256k1PKHex,
           room: room,
           reply: reply,
@@ -731,7 +731,7 @@ class RoomService extends BaseChatService {
   }) async {
     String result = await rustNostr.createGiftJson(
         kind: 14,
-        senderKeys: identity.secp256k1SKHex,
+        senderKeys: await identity.getSecp256k1SKHex(),
         receiverPubkey: room.toMainPubkey,
         content: sourceContent);
     await NostrAPI().sendAndSaveGiftMessage(

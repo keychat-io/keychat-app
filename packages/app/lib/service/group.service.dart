@@ -608,7 +608,7 @@ class GroupService extends BaseChatService {
     GroupMessage gm = RoomUtil.getGroupMessage(room, message,
         pubkey: '', reply: reply, subtype: subtype, ext: ext);
     String subEncryptedEvent = await rustNostr.getEncryptEvent(
-        senderKeys: room.getIdentity().secp256k1SKHex,
+        senderKeys: await room.getIdentity().getSecp256k1SKHex(),
         receiverPubkey: roomKey.pubkey,
         content: gm.toString());
 
@@ -890,14 +890,15 @@ class GroupService extends BaseChatService {
         if (identity.secp256k1PKHex == hexPubkey) return;
         try {
           await nostrAPI.sendNip4Message(
-              save: groupRoom.isSendAllGroup,
-              hexPubkey,
-              km.toString(),
-              room: groupRoom,
-              encryptType: MessageEncryptType.nip4,
-              prikey: identity.secp256k1SKHex,
-              from: identity.secp256k1PKHex,
-              realMessage: realMessage);
+            save: groupRoom.isSendAllGroup,
+            hexPubkey,
+            km.toString(),
+            room: groupRoom,
+            encryptType: MessageEncryptType.nip4,
+            prikey: await identity.getSecp256k1SKHex(),
+            from: identity.secp256k1PKHex,
+            realMessage: realMessage,
+          );
         } catch (e, s) {
           logger.e(e.toString(), error: e, stackTrace: s);
         }
@@ -1011,7 +1012,7 @@ ${rm.idPubkey}
       kmToRemove.toString(),
       room: room,
       encryptType: MessageEncryptType.nip4,
-      prikey: identity.secp256k1SKHex,
+      prikey: await identity.getSecp256k1SKHex(),
       from: identity.secp256k1PKHex,
       realMessage: '$realMessage Send to: ${rm.name}',
     );
@@ -1034,7 +1035,7 @@ ${rm.idPubkey}
         km.toString(),
         room: room,
         encryptType: MessageEncryptType.nip4,
-        prikey: identity.secp256k1SKHex,
+        prikey: await identity.getSecp256k1SKHex(),
         from: identity.secp256k1PKHex,
         realMessage: '$realMessage Send to: ${element.name}',
       );

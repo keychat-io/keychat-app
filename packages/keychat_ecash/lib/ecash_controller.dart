@@ -130,7 +130,7 @@ class EcashController extends GetxController {
     try {
       await rustCashu.initDb(
           dbpath: '$dbPath${KeychatGlobal.ecashDBFile}',
-          words: identity.mnemonic);
+          words: await identity.getMnemonic());
       logger.i('rust api init success');
     } catch (e, s) {
       logger.e(e.toString(), error: e, stackTrace: s);
@@ -298,7 +298,7 @@ class EcashController extends GetxController {
   Future setupNewIdentity(Identity identity) async {
     currentIdentity = identity;
 
-    await rustCashu.setMnemonic(words: identity.mnemonic);
+    await rustCashu.setMnemonic(words: await identity.getMnemonic());
     await initMintUrl();
     await _restore(currentIdentity!);
 
@@ -339,7 +339,7 @@ class EcashController extends GetxController {
       if (nuts.nut09.supported) {
         await rustCashu.restore(
             mint: m.url,
-            words: iden.mnemonic,
+            words: await iden.getMnemonic(),
             sleepmsAfterCheckABatch: BigInt.from(1000));
       }
     }

@@ -77,7 +77,7 @@ class _CreateAccountState extends State<CreateAccount> {
                       try {
                         EasyLoading.show(status: 'Loading...');
                         var identity = await IdentityService().createIdentity(
-                            name: name, keychain: accounts[selected]);
+                            name: name, account: accounts[selected]);
                         textEditingController.clear();
                         bool isFirstAccount =
                             await IdentityService().count() == 1;

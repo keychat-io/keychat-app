@@ -4,6 +4,7 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/routes.dart';
+import 'package:app/service/SecureStorage.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
@@ -126,18 +127,22 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                                   ),
                                   SettingsTile.navigation(
                                     title: const Text("Seed Phrase"),
-                                    onPressed: (context) {
+                                    onPressed: (context) async {
+                                      String? mnemonic =
+                                          controller.identity.value.mnemonic;
+                                      if (mnemonic.isEmpty) {
+                                        mnemonic = await SecureStorage.instance
+                                            .getPhraseWords();
+                                      }
                                       Get.dialog(CupertinoAlertDialog(
                                         title: const Text("Seed Phrase"),
-                                        content: Text(
-                                            controller.identity.value.mnemonic),
+                                        content: Text(mnemonic ?? ''),
                                         actions: <Widget>[
                                           CupertinoDialogAction(
                                             isDefaultAction: true,
                                             onPressed: () {
                                               Clipboard.setData(ClipboardData(
-                                                  text: controller.identity
-                                                      .value.mnemonic));
+                                                  text: mnemonic ?? ''));
                                               EasyLoading.showSuccess("Copied");
                                               Get.back();
                                             },

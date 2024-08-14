@@ -164,8 +164,10 @@ class _MyQRCodeState extends State<MyQRCode> {
         : jsonDecode(signalId.keys!);
     String globalSignStr =
         "Keychat-${identity.secp256k1PKHex}-${signalId.pubkey}-$time";
+    // add gloabl sign
+
     String globalSignResult = await rustNostr.signSchnorr(
-        senderKeys: identity.secp256k1SKHex, content: globalSignStr);
+        senderKeys: await identity.getSecp256k1SKHex(), content: globalSignStr);
     Map<String, dynamic> data = {
       'pubkey': identity.secp256k1PKHex,
       'curve25519PkHex': signalId.pubkey,

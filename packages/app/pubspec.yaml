@@ -84,6 +84,7 @@ dependencies:
   sentry_flutter: ^8.4.0
   app_badge_plus: ^1.1.1
   web_socket_channel: ^2.4.5
+  flutter_secure_storage: ^9.2.2
 
 dev_dependencies:
   flutter_test:

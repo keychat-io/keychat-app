@@ -56,7 +56,8 @@ class SignalChatService extends BaseChatService {
       throw Exception("signal_session_is_null");
     }
     String message0 = message;
-    String to = await _getSignalToAddress(room.keyPair!, room);
+    var keypair = await room.getKeyPair();
+    String to = await _getSignalToAddress(keypair, room);
     PrekeyMessageModel? pmm;
     if (room.onetimekey != null) {
       if (to == room.onetimekey) {
@@ -65,9 +66,10 @@ class SignalChatService extends BaseChatService {
         // realMessage = pmm.toString();
       }
     }
+
     (Uint8List, String?, String, List<String>?) enResult =
         await rustSignal.encryptSignal(
-            keyPair: room.keyPair!,
+            keyPair: keypair,
             ptext: pmm?.toString() ?? message0,
             remoteAddress: kpa);
     Uint8List ciphertext = enResult.$1;
@@ -151,8 +153,9 @@ class SignalChatService extends BaseChatService {
         throw Exception("signal_session_is_null");
       }
       try {
+        var keypair = await room.getKeyPair();
         (plaintext, msgKeyHash, _) = await rustSignal.decryptSignal(
-            keyPair: room.keyPair!,
+            keyPair: keypair,
             ciphertext: message,
             remoteAddress: kpa,
             roomId: room.id,
@@ -432,6 +435,25 @@ Let's talk on this server.''';
     await RoomService().updateRoom(room);
     RoomService().updateChatRoomPage(room);
     await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
+  }
+
+  Future<PrekeyMessageModel> getSignalPrekeyMessageContent(
+      Room room, Identity identity, String message) async {
+    String sourceContent =
+        _getPrekeySigContent([room.myIdPubkey, room.toMainPubkey, message]);
+    String sig = await rustNostr.signSchnorr(
+        senderKeys: await identity.getSecp256k1SKHex(), content: sourceContent);
+    return PrekeyMessageModel(
+        nostrId: identity.secp256k1PKHex,
+        name: identity.displayName,
+        sig: sig,
+        message: message);
+  }
+
+  String _getPrekeySigContent(List ids) {
+    ids.sort((a, b) => a.compareTo(b));
+    String sourceContent = ids.join(',');
+    return sourceContent;
   }
 
   // decrypt the first signal message

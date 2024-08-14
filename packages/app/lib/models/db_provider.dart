@@ -39,18 +39,19 @@ class DBProvider {
 
   static Future<void> performMigrationIfNeeded(Isar isar) async {
     int currentVersion = await Storage.getIntOrZero(StorageKeyString.dbVersion);
+
+    if (currentVersion < 30) {
+      await _migrateToVersion30();
+      await Storage.setInt(StorageKeyString.dbVersion, 30);
+      return;
+    }
+
     switch (currentVersion) {
       case 0:
       default:
         break;
       //throw Exception('Unknown version: $currentVersion');
     }
-    if (currentVersion < 30) {
-      currentVersion = 30;
-      await _migrateToVersion30();
-    }
-
-    await Storage.setInt(StorageKeyString.dbVersion, ++currentVersion);
   }
 
   static close() async {
@@ -168,17 +169,22 @@ class DBProvider {
     List<Identity> list = await database.identitys.where().findAll();
     if (list.isEmpty) return;
     await SecureStorage.instance.writePhraseWords(list[0].mnemonic);
+    var i = 0;
     for (var item in list) {
       await SecureStorage.instance
           .writePrikey(item.secp256k1PKHex, item.secp256k1SKHex);
       await SecureStorage.instance
           .writePrikey(item.curve25519PkHex, item.curve25519SkHex);
-      item.mnemonic = '';
+      // only remove the first mnemonic
+      if (i == 0) {
+        item.mnemonic = '';
+      }
       item.secp256k1SKHex = '';
       item.curve25519SkHex = '';
       await database.writeTxn(() async {
         await database.identitys.put(item);
       });
+      i++;
     }
     // Map<String, String> allValues = await SecureStorage.instance.readAll();
     // logger.d(allValues);

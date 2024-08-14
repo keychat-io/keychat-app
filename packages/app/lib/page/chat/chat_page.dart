@@ -29,18 +29,31 @@ import 'chat_setting_group_page.dart';
 import '../../service/room.service.dart';
 
 // ignore: must_be_immutable
-class ChatPage extends StatelessWidget {
+class ChatPage extends StatefulWidget {
+  const ChatPage({super.key});
+
+  @override
+  _ChatPage2State createState() => _ChatPage2State();
+}
+
+class _ChatPage2State extends State<ChatPage> {
   late ChatController controller;
   DateTime searchDt = DateTime.now();
   bool isFromSearch = false;
-  ChatPage({super.key});
+
+  @override
+  void dispose() {
+    try {
+      Get.delete<ChatController>(tag: controller.room.id.toString());
+      // ignore: empty_catches
+    } catch (e) {}
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     Room room = _getRoomAndInit(context);
-
     HomeController hc = Get.find<HomeController>();
-
     Widget myAavtar = getRandomAvatar(room.getIdentity().secp256k1PKHex,
         height: 40, width: 40);
     bool isGroup = room.type == RoomType.group;
@@ -102,8 +115,8 @@ class ChatPage extends StatelessWidget {
             Obx(() => debugWidget(hc)),
             if (controller.room.isSendAllGroup)
               Obx(() => _kpaIsNull(controller)),
-            if (controller.room.type == RoomType.common)
-              Obx(() => _receiveInPostOfficeStatus(controller)),
+            // if (!controller.room.isSendAllGroup)
+            //   Obx(() => _receiveInPostOfficeStatus(controller)),
             Obx(() => controller.roomObs.value.signalDecodeError
                 ? MyErrorText(
                     errorText: 'Messages decrypted failed',
@@ -165,7 +178,7 @@ class ChatPage extends StatelessWidget {
                                       .colorScheme
                                       .inversePrimary,
                                   child: MessageWidget(
-                                      key: PageStorageKey('msg:${message.id}'),
+                                      key: ObjectKey('msg:${message.id}'),
                                       myAavtar: myAavtar,
                                       contact: contact,
                                       index: index,
@@ -218,7 +231,7 @@ class ChatPage extends StatelessWidget {
                       children: <Widget>[
                         Expanded(
                           child: KeyboardListener(
-                            focusNode: FocusNode(),
+                            focusNode: controller.keyboardFocus,
                             onKeyEvent: (KeyEvent event) {
                               if (event.runtimeType == KeyDownEvent &&
                                   event.physicalKey ==

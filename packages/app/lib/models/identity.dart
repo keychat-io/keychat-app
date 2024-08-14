@@ -65,7 +65,7 @@ class Identity extends Equatable {
 
   Future<String> getMnemonic() async {
     var res = await SecureStorage.instance.getPhraseWords();
-    if (res == null) {
+    if (res == null || res.isEmpty) {
       throw Exception('mnemonic not found');
     }
     return res;

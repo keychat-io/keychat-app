@@ -109,7 +109,7 @@ class ChatxService extends GetxService {
 
   Future<bool> addKPAForSharedSignalId(Identity identity, String sharedPubkey,
       String sginalKeys, int sharedSignalIdentityId) async {
-    KeychatIdentityKeyPair keyPair = getKeyPairByIdentity(identity);
+    KeychatIdentityKeyPair keyPair = await getKeyPairByIdentity(identity);
     final remoteAddress = KeychatProtocolAddress(
         name: sharedPubkey, deviceId: sharedSignalIdentityId);
 

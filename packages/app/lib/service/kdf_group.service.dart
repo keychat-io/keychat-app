@@ -55,7 +55,7 @@ class KdfGroupService extends BaseChatService {
 
     String message0 = message;
     SignalId sharedSignalID = room.getGroupSharedSignalId();
-    KeychatIdentityKeyPair keyPair = cs.getKeyPairByIdentity(identity);
+    KeychatIdentityKeyPair keyPair = await cs.getKeyPairByIdentity(identity);
     KeychatProtocolAddress? kpa = await cs.getSignalSession(
         sharedSignalRoomId: getKDFRoomIdentityForShared(room.id),
         toCurve25519PkHex: sharedSignalID.pubkey,

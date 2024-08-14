@@ -58,10 +58,7 @@ class Pages {
         name: Routes.contact,
         page: () => const ContactDetailPage(),
         binding: ContactDetailBindings()),
-    GetPage(
-      name: Routes.room,
-      page: () => ChatPage(),
-    ),
+    GetPage(name: Routes.room, page: () => const ChatPage()),
     GetPage(name: Routes.ecash, page: () => const CashuPage()),
     GetPage(name: Routes.ecashBillCashu, page: () => const CashuBillPage()),
     GetPage(

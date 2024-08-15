@@ -418,9 +418,8 @@ class WebsocketService extends GetxService {
   }
 
   void onErrorProcess(RelayWebsocket rw, [String? errorMessage]) {
-    EasyDebounce.debounce(
-        '_startConnectRelay_${rw.relay.url}', const Duration(milliseconds: 500),
-        () async {
+    EasyDebounce.debounce('_startConnectRelay_${rw.relay.url}',
+        const Duration(milliseconds: 1000), () async {
       rw.disconnected(errorMessage);
       rw.failedTimes += 1;
       logger.d(

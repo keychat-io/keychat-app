@@ -360,8 +360,8 @@ class RoomList extends StatelessWidget {
                 height: 20,
               ),
               OutlinedButton(
-                  onPressed: () async {
-                    await showMyQrCode(context, identity, false);
+                  onPressed: () {
+                    showMyQrCode(context, identity, false);
                   },
                   style: ButtonStyle(
                       minimumSize: WidgetStateProperty.all(

@@ -223,7 +223,6 @@ class AccountSettingPage extends GetView<AccountSettingController> {
 
                                 EcashController ec =
                                     Get.find<EcashController>();
-                                bool isRemoveFirstID = false;
                                 if (ec.currentIdentity?.curve25519PkHex ==
                                     controller.identity.value.curve25519PkHex) {
                                   int balance = ec.getTotalByMints();
@@ -232,22 +231,13 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                                         'Please withdraw all balance');
                                     return;
                                   }
-                                  if (identities[0].curve25519PkHex ==
-                                      controller
-                                          .identity.value.curve25519PkHex) {
-                                    isRemoveFirstID = true;
-                                  }
                                 }
                                 try {
                                   EasyLoading.showInfo('Deleting...');
                                   await IdentityService()
                                       .delete(controller.identity.value);
-                                  var list = await hc.loadIdentity();
                                   hc.identities.refresh();
-                                  // reset new ecash id
-                                  if (isRemoveFirstID) {
-                                    ec.setupNewIdentity(list[0]);
-                                  }
+
                                   EasyLoading.showSuccess("ID deleted");
                                   Get.back();
                                   Get.back();

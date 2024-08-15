@@ -1,6 +1,7 @@
 import 'package:app/global.dart';
 import 'package:app/page/login/CreateAccount.dart';
 import 'package:app/page/login/OnboardingPage2Detail.dart';
+import 'package:app/service/SecureStorage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -59,8 +60,12 @@ class Login extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     FilledButton(
-                        onPressed: () =>
-                            Get.to(() => const CreateAccount(type: "init")),
+                        onPressed: () async {
+                          String? mnemonic =
+                              await SecureStorage.instance.getPhraseWords();
+                          Get.to(() =>
+                              CreateAccount(type: "init", mnemonic: mnemonic));
+                        },
                         child: const Text("Create ID",
                             style: TextStyle(fontWeight: FontWeight.bold))),
                     // const SizedBox(height: 16.0),

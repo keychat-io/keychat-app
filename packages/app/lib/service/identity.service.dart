@@ -65,7 +65,8 @@ class IdentityService {
 
   Future<Identity> createIdentity(
       {required String name,
-      required rustNostr.Secp256k1Account account}) async {
+      required rustNostr.Secp256k1Account account,
+      bool isFirstAccount = false}) async {
     if (account.mnemonic == null) throw Exception('mnemonic is null');
     Isar database = DBProvider.database;
     Identity iden = Identity(
@@ -79,7 +80,9 @@ class IdentityService {
     await database.writeTxn(() async {
       await database.identitys.put(iden);
       // store the prikey in secure storage
-      await SecureStorage.instance.writePhraseWordsWhenNull(account.mnemonic!);
+      if (isFirstAccount) {
+        await SecureStorage.instance.writePhraseWords(account.mnemonic!);
+      }
       await SecureStorage.instance
           .writePrikey(iden.secp256k1PKHex, account.prikey);
       await SecureStorage.instance

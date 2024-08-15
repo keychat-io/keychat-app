@@ -148,8 +148,7 @@ class _ImportKey extends State<ImportKey> {
                           Get.find<HomeController>().identities.length == 1;
                       if (isFirstAccount) {
                         // init ecash from server
-                        Get.find<EcashController>()
-                            .setupNewIdentity(newIdentity);
+                        Get.find<EcashController>().initIdentity(newIdentity);
                       }
                       EasyLoading.showSuccess('Import successfully');
                       Get.back();

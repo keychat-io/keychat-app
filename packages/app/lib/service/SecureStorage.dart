@@ -15,12 +15,6 @@ class SecureStorage {
     await storage.write(key: mnemonicKey, value: words);
   }
 
-  Future writePhraseWordsWhenNull(String words) async {
-    String? res = await getPhraseWords();
-    if (res != null) return;
-    await storage.write(key: mnemonicKey, value: words);
-  }
-
   Future<String?> getPhraseWords() async {
     return await storage.read(key: mnemonicKey);
   }

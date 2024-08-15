@@ -295,16 +295,6 @@ class EcashController extends GetxController {
     }
   }
 
-  Future setupNewIdentity(Identity identity) async {
-    currentIdentity = identity;
-
-    await rustCashu.setMnemonic(words: await identity.getMnemonic());
-    await initMintUrl();
-    await _restore(currentIdentity!);
-
-    await getBalance();
-  }
-
   Future initMintUrl() async {
     mints.value = await rustCashu.getMints();
 
@@ -332,17 +322,20 @@ class EcashController extends GetxController {
     await getBalance();
   }
 
-  Future _restore(Identity iden) async {
+  Future restore() async {
+    if (currentIdentity == null) return;
+    String mnemonic = await currentIdentity!.getMnemonic();
     for (Mint m in mints) {
       Nuts? nuts = m.info?.nuts;
       if (nuts == null) continue;
       if (nuts.nut09.supported) {
         await rustCashu.restore(
             mint: m.url,
-            words: await iden.getMnemonic(),
+            words: mnemonic,
             sleepmsAfterCheckABatch: BigInt.from(1000));
       }
     }
+    await getBalance();
   }
 
   bool supportMint(String mint) {

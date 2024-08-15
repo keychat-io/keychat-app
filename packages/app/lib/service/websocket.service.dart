@@ -202,7 +202,7 @@ class WebsocketService extends GetxService {
   }
 
   bool startLock = false;
-  start([List<Relay>? list]) async {
+  Future start([List<Relay>? list]) async {
     if (startLock) return;
     try {
       startLock = true;
@@ -359,31 +359,34 @@ class WebsocketService extends GetxService {
     loggerNoLine
         .i('start onnect ${rw.relay.url}, failedTimes: ${rw.failedTimes}');
 
-    rw.connecting();
-
     final channel = IOWebSocketChannel.connect(Uri.parse(rw.relay.url),
         pingInterval: const Duration(seconds: 10),
         connectTimeout: const Duration(seconds: 8));
-    try {
-      await channel.ready;
-    } catch (e, s) {
-      logger.e(e.toString(), error: e, stackTrace: s);
-      onErrorProcess(rw, e.toString());
-      return rw;
-    }
+
+    rw.connecting();
+    rw.channel = channel;
+
     String? errorMessage;
     channel.stream.listen((message) {
       nostrAPI.processWebsocketMessage(rw.relay, message);
     }, onDone: () {
       logger.d('${rw.relay.url} websocket onDone');
-      onErrorProcess(rw, errorMessage);
+      onErrorProcess(rw.relay.url, errorMessage);
     }, onError: (e) {
       errorMessage = e.toString();
       logger.e('${rw.relay.url} onError ${e.toString()}');
-      onErrorProcess(rw, errorMessage);
+      onErrorProcess(rw.relay.url, errorMessage);
     });
-    // connect success
-    rw.connectSuccess(channel);
+
+    try {
+      await channel.ready;
+      rw.connectSuccess(channel);
+    } catch (e, s) {
+      logger.e(e.toString(), error: e, stackTrace: s);
+      onErrorProcess(rw.relay.url, e.toString());
+      return rw;
+    }
+
     return rw;
   }
 
@@ -417,14 +420,15 @@ class WebsocketService extends GetxService {
     }
   }
 
-  void onErrorProcess(RelayWebsocket rw, [String? errorMessage]) {
-    EasyDebounce.debounce('_startConnectRelay_${rw.relay.url}',
-        const Duration(milliseconds: 1000), () async {
-      rw.disconnected(errorMessage);
-      rw.failedTimes += 1;
+  void onErrorProcess(String relay, [String? errorMessage]) {
+    EasyDebounce.debounce(
+        '_startConnectRelay_$relay', const Duration(milliseconds: 1000),
+        () async {
+      if (channels[relay] == null) return;
+      channels[relay]?.disconnected(errorMessage);
       logger.d(
-          '${rw.relay.url} onErrorProcess _reconnectTimes: ${rw.failedTimes}');
-      await _startConnectRelay(rw);
+          '$relay onErrorProcess _reconnectTimes: ${channels[relay]?.failedTimes}');
+      await _startConnectRelay(channels[relay]!);
     });
   }
 }

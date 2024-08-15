@@ -78,6 +78,7 @@ class _CreateAccountState extends State<CreateAccount> {
                         EasyLoading.show(status: 'Loading...');
                         bool isFirstAccount =
                             await IdentityService().count() == 0;
+
                         var identity = await IdentityService().createIdentity(
                             name: name,
                             account: accounts[selected],

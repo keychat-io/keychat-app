@@ -61,10 +61,8 @@ class Login extends StatelessWidget {
                   children: [
                     FilledButton(
                         onPressed: () async {
-                          String? mnemonic =
-                              await SecureStorage.instance.getPhraseWords();
-                          Get.to(() =>
-                              CreateAccount(type: "init", mnemonic: mnemonic));
+                          await SecureStorage.instance.clearAll();
+                          Get.to(() => const CreateAccount(type: "init"));
                         },
                         child: const Text("Create ID",
                             style: TextStyle(fontWeight: FontWeight.bold))),

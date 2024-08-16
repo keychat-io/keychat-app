@@ -44,7 +44,7 @@ class SecureStorage {
       keys[pubkey] = res; // store in memory
       return res;
     }
-    throw Exception('private key not found');
+    throw Exception('$pubkey \'s private key not found');
   }
 
   String _getPrivateKeyName(String pubkey) => "prikey:$pubkey";
@@ -59,10 +59,8 @@ class SecureStorage {
   }
 
   Future clearAll() async {
-    await storage.deleteAll();
+    await storage.deleteAll(
+        iOptions: const IOSOptions(
+            accessibility: KeychainAccessibility.first_unlock));
   }
-
-  // Future deleteMnemonic(String pubkey) async {
-  //   await storage.delete(key: pubkey);
-  // }
 }

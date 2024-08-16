@@ -76,17 +76,19 @@ class _CreateAccountState extends State<CreateAccount> {
                       }
                       try {
                         EasyLoading.show(status: 'Loading...');
-                        var identity = await IdentityService().createIdentity(
-                            name: name, keychain: accounts[selected]);
-                        textEditingController.clear();
                         bool isFirstAccount =
-                            await IdentityService().count() == 1;
+                            await IdentityService().count() == 0;
+
+                        var identity = await IdentityService().createIdentity(
+                            name: name,
+                            account: accounts[selected],
+                            isFirstAccount: isFirstAccount);
+                        textEditingController.clear();
                         if (isFirstAccount) {
-                          Get.find<EcashController>()
-                              .setupNewIdentity(identity);
+                          Get.find<EcashController>().initIdentity(identity);
                         }
+                        EasyLoading.dismiss();
                         if (Get.arguments == 'create') {
-                          EasyLoading.dismiss();
                           await Get.find<HomeController>().loadIdentity();
                           Get.back();
                           return;
@@ -95,8 +97,6 @@ class _CreateAccountState extends State<CreateAccount> {
                       } catch (e, s) {
                         logger.e(e.toString(), error: e, stackTrace: s);
                         EasyLoading.showToast(e.toString());
-                      } finally {
-                        EasyLoading.dismiss();
                       }
                     },
                     child: const Text(

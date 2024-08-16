@@ -104,7 +104,7 @@ class WorldPage extends StatelessWidget {
                               imageBuilder: (Uri uri, title, alt) {
                                 try {
                                   return CachedNetworkImage(
-                                      key: PageStorageKey(uri.toString()),
+                                      key: ObjectKey(uri.toString()),
                                       imageUrl: uri.toString(),
                                       httpHeaders: const {'accept': 'image/*'},
                                       cacheKey: uri.toString(),

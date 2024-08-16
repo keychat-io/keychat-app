@@ -59,10 +59,9 @@ class SecureStorage {
   }
 
   Future clearAll() async {
-    await storage.deleteAll();
+    await storage.deleteAll(
+        iOptions: const IOSOptions(
+            accessibility: KeychainAccessibility.first_unlock));
   }
 
-  // Future deleteMnemonic(String pubkey) async {
-  //   await storage.delete(key: pubkey);
-  // }
 }

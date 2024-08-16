@@ -3,6 +3,7 @@ import 'package:app/page/login/CreateAccount.dart';
 import 'package:app/page/login/OnboardingPage2.dart';
 import 'package:app/page/setting/file_storage_server.dart';
 import 'package:app/page/setting/UploadedPubkeys.dart';
+import 'package:app/service/SecureStorage.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
@@ -68,7 +69,7 @@ class MinePage extends GetView<SettingController> {
                                   ?.withOpacity(0.5),
                               size: 22,
                             ),
-                            onPressed: (context) {
+                            onPressed: (context) async {
                               List<Identity> identities =
                                   Get.find<HomeController>()
                                       .identities
@@ -76,7 +77,8 @@ class MinePage extends GetView<SettingController> {
                                       .toList();
                               List<String> npubs =
                                   identities.map((e) => e.npub).toList();
-                              String mnemonic = identities.first.mnemonic;
+                              String? mnemonic =
+                                  await SecureStorage.instance.getPhraseWords();
                               Get.to(
                                   () => CreateAccount(
                                       type: "me",

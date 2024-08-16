@@ -3,6 +3,7 @@ import 'dart:convert' show jsonEncode;
 import 'package:app/app.dart';
 import 'package:app/models/signal_id.dart';
 import 'package:app/nostr-core/nostr_event.dart';
+import 'package:app/service/SecureStorage.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:get/get.dart';
@@ -38,21 +39,19 @@ class DBProvider {
 
   static Future<void> performMigrationIfNeeded(Isar isar) async {
     int currentVersion = await Storage.getIntOrZero(StorageKeyString.dbVersion);
-    int latest = 2;
+
+    if (currentVersion < 30) {
+      await _migrateToVersion30();
+      await Storage.setInt(StorageKeyString.dbVersion, 30);
+      return;
+    }
+
     switch (currentVersion) {
       case 0:
-        await Storage.setInt(StorageKeyString.dbVersion, latest);
-        break;
-      case 1:
-        await mykeySetUpdate();
-        await Storage.setInt(StorageKeyString.dbVersion, latest);
-        break;
       default:
         break;
       //throw Exception('Unknown version: $currentVersion');
     }
-
-    // await Storage.setInt(StorageKeyString.dbVersion, 24);
   }
 
   static close() async {
@@ -74,15 +73,7 @@ class DBProvider {
     });
   }
 
-  static Future mykeySetUpdate() async {
-    List list = await database.mykeys.where().findAll();
-    await database.writeTxn(() async {
-      for (var item in list) {
-        item.updatedAt = DateTime.now();
-        await database.mykeys.put(item);
-      }
-    });
-  }
+  static Future mykeySetUpdate() async {}
 
   Future<EventLog?> getEventLog(String eventId, String to) async {
     return await database.eventLogs
@@ -172,5 +163,30 @@ class DBProvider {
     } catch (e) {
       // logger.i('save event error ${s.toString()}');
     }
+  }
+
+  static Future _migrateToVersion30() async {
+    List<Identity> list = await database.identitys.where().findAll();
+    if (list.isEmpty) return;
+    await SecureStorage.instance.writePhraseWords(list[0].mnemonic);
+    var i = 0;
+    for (var item in list) {
+      await SecureStorage.instance
+          .writePrikey(item.secp256k1PKHex, item.secp256k1SKHex);
+      await SecureStorage.instance
+          .writePrikey(item.curve25519PkHex, item.curve25519SkHex);
+      // only remove the first mnemonic
+      if (i == 0) {
+        item.mnemonic = '';
+      }
+      item.secp256k1SKHex = '';
+      item.curve25519SkHex = '';
+      await database.writeTxn(() async {
+        await database.identitys.put(item);
+      });
+      i++;
+    }
+    // Map<String, String> allValues = await SecureStorage.instance.readAll();
+    // logger.d(allValues);
   }
 }

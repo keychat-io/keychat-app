@@ -9,9 +9,6 @@ class AccountSettingController extends GetxController {
           secp256k1PKHex: '',
           secp256k1SKHex: '',
           npub: '',
-          nsec: '',
-          curve25519Sk: const [],
-          curve25519Pk: const [],
           curve25519SkHex: '',
           curve25519PkHex: '')
       .obs;

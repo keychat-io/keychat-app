@@ -49,7 +49,7 @@ void main() async {
     theme: AppThemeCustom.light(),
     darkTheme: AppThemeCustom.dark(),
   );
-  if (kReleaseMode) return runApp(getMaterialApp);
+  if (kDebugMode) return runApp(getMaterialApp);
 
   try {
     // start with sentry
@@ -108,7 +108,6 @@ Future initServices() async {
 
   await DBProvider.initDB(dbPath);
   SettingController sc = Get.put(SettingController(), permanent: true);
-  // RustAPI.initEcashDB(dbPath);
   Get.put(EcashController(dbPath), permanent: true);
   Get.putAsync(() => ChatxService().init(dbPath));
   Get.putAsync(() => WebsocketService().init());
@@ -117,5 +116,5 @@ Future initServices() async {
 }
 
 void _logWriterCallback(String text, {bool isError = false}) {
-  isError ? logger.e(text) : loggerNoLine.i(text);
+  isError ? debugPrint(text) : loggerNoLine.i(text);
 }

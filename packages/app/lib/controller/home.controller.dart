@@ -344,7 +344,7 @@ class HomeController extends GetxController
         EasyThrottle.throttle(
             'AppLifecycleState.resumed', const Duration(seconds: 2), () {
           if (isPaused) {
-            Get.find<WebsocketService>().start().then(() {
+            Get.find<WebsocketService>().start().then((c) async {
               if (kReleaseMode) {
                 _startConnectHeartbeat();
               }

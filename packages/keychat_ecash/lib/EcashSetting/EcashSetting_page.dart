@@ -55,7 +55,7 @@ class EcashSettingPage extends GetView<EcashSettingController> {
                   EasyLoading.showError('No mnemonic');
                   return;
                 }
-                ec.setupNewIdentity(ec.currentIdentity!);
+                await ec.restore();
                 await EasyLoading.showToast('Successfully');
               } catch (e, s) {
                 String msg = Utils.getErrorMessage(e);

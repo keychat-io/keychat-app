@@ -31,7 +31,7 @@ import '../service/room.service.dart';
 const int messageLimitPerPage = 30;
 String newlineChar = String.fromCharCode(13);
 
-class ChatController extends GetxController with StateMixin<Type> {
+class ChatController extends GetxController {
   RxList<Message> messages = <Message>[].obs;
   List<Message> messagesMore = <Message>[];
   RxList<Message> inputReplys = <Message>[].obs;
@@ -84,6 +84,7 @@ class ChatController extends GetxController with StateMixin<Type> {
   late TextEditingController textEditingController;
 
   late FocusNode chatContentFocus;
+  late FocusNode keyboardFocus;
   late AutoScrollController autoScrollController;
   late ScrollController textFieldScrollController;
   Room room;
@@ -111,6 +112,18 @@ class ChatController extends GetxController with StateMixin<Type> {
 
   ChatController(this.room) {
     roomObs.value = room;
+  }
+
+  @override
+  void onClose() {
+    messages.clear();
+    _timer?.cancel();
+    chatContentFocus.dispose();
+    keyboardFocus.dispose();
+    textEditingController.dispose();
+    textFieldScrollController.dispose();
+    autoScrollController.dispose();
+    super.onClose();
   }
 
   addMessage(Message message) {
@@ -171,17 +184,6 @@ class ChatController extends GetxController with StateMixin<Type> {
   deleteMessage(Message message) async {
     await MessageService().deleteMessageById(message.id);
     messages.remove(message);
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    chatContentFocus.dispose();
-    textEditingController.dispose();
-    // scrollController.dispose();
-    textFieldScrollController.dispose();
-    autoScrollController.dispose();
-    super.dispose();
   }
 
   emoticonClick(String name) {
@@ -427,6 +429,7 @@ class ChatController extends GetxController with StateMixin<Type> {
   @override
   void onInit() async {
     chatContentFocus = FocusNode();
+    keyboardFocus = FocusNode();
     chatContentFocus.addListener(() {
       if (GetPlatform.isMobile) {
         jumpToBottom2(10);

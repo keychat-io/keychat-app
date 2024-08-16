@@ -1,3 +1,4 @@
+import 'package:app/service/SecureStorage.dart';
 import 'package:equatable/equatable.dart';
 import 'package:isar/isar.dart';
 
@@ -9,14 +10,19 @@ class Identity extends Equatable {
   Id id = Isar.autoIncrement;
   int weight = 0;
   bool isDefault = false;
+
+  @Deprecated('mnemonic is stored in the keychain')
   late String mnemonic;
-  late List<byte> curve25519Sk;
-  late List<byte> curve25519Pk;
+
+  @Deprecated('calculate by mnemonic and offset')
   late String curve25519SkHex;
+
   late String secp256k1PKHex;
+
+  @Deprecated('calculate by mnemonic and offset')
   late String secp256k1SKHex;
   late String npub;
-  late String nsec;
+
   String name;
   String? about;
   String get displayName => name;
@@ -33,9 +39,6 @@ class Identity extends Equatable {
     required this.secp256k1PKHex,
     required this.secp256k1SKHex,
     required this.npub,
-    required this.nsec,
-    required this.curve25519Sk,
-    required this.curve25519Pk,
     required this.curve25519SkHex,
     required this.curve25519PkHex,
     this.note,
@@ -46,10 +49,25 @@ class Identity extends Equatable {
   @override
   List get props => [
         id,
-        curve25519Pk,
         weight,
         isDefault,
         note,
         createdAt,
       ];
+
+  Future<String> getSecp256k1SKHex() async {
+    return await SecureStorage.instance.readPrikeyOrFail(secp256k1PKHex);
+  }
+
+  Future<String> getCurve25519SkHex() async {
+    return await SecureStorage.instance.readPrikeyOrFail(curve25519PkHex);
+  }
+
+  Future<String> getMnemonic() async {
+    var res = await SecureStorage.instance.getPhraseWords();
+    if (res == null || res.isEmpty) {
+      throw Exception('mnemonic not found');
+    }
+    return res;
+  }
 }

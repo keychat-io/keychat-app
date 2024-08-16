@@ -5,6 +5,7 @@ import 'dart:io' show exit;
 import 'package:app/controller/home.controller.dart';
 
 import 'package:app/page/FileExplore.dart';
+import 'package:app/service/SecureStorage.dart';
 
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
@@ -193,6 +194,7 @@ class MoreSetting extends StatelessWidget {
                 await deleteAllFolder(); // delete all files
                 await Get.find<WebsocketService>().stopListening();
                 await Storage.clearAll();
+                await SecureStorage.instance.clearAll();
                 Storage.setInt(StorageKeyString.onboarding, 0);
                 EasyLoading.dismiss();
                 Get.offAllNamed(Routes.login);

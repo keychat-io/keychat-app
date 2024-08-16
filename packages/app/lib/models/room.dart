@@ -131,12 +131,13 @@ class Room extends Equatable {
       ];
 
   String get myIdPubkey => getIdentity().secp256k1PKHex;
-  KeychatIdentityKeyPair? get keyPair {
+
+  Future<KeychatIdentityKeyPair> getKeyPair() async {
     ChatxService chatxService = Get.find<ChatxService>();
     if (signalIdPubkey == null) {
-      return chatxService.getKeyPairByIdentity(getIdentity());
+      return await chatxService.getKeyPairByIdentity(getIdentity());
     }
-    return chatxService.keypairs[signalIdPubkey];
+    return chatxService.keypairs[signalIdPubkey]!;
   }
 
   Identity getIdentity() {

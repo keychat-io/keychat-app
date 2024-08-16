@@ -9,6 +9,7 @@ import 'package:app/service/relay.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:get/get.dart';
+import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import '../utils.dart' as utils;
 
@@ -26,16 +27,6 @@ class RelayWebsocket {
   Map<String, Set<String>> subscriptions = {};
 
   RelayWebsocket(this.relay);
-
-  Future _reset() async {
-    subscriptions.clear();
-    notices.clear();
-    maxReqCount = _maxReqCount;
-    sentReqCount = 0;
-    channelStatus = RelayStatusEnum.init;
-    await channel?.sink.close();
-    channel = null;
-  }
 
   // listen identity key will take position.
   _startListen() async {
@@ -117,12 +108,15 @@ class RelayWebsocket {
     return false;
   }
 
-  void connectSuccess(WebSocketChannel textSocketHandler) async {
+  void connectSuccess(IOWebSocketChannel socket) async {
     failedTimes = 0;
-
-    await _reset();
-    channel = textSocketHandler;
+    subscriptions.clear();
+    notices.clear();
+    maxReqCount = _maxReqCount;
+    sentReqCount = 0;
+    channel = socket;
     channelStatus = RelayStatusEnum.success;
+
     await Get.find<WebsocketService>()
         .setChannelStatus(relay.url, RelayStatusEnum.success);
     _startListen();

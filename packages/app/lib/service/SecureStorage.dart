@@ -44,7 +44,7 @@ class SecureStorage {
       keys[pubkey] = res; // store in memory
       return res;
     }
-    throw Exception('private key not found');
+    throw Exception('$pubkey \'s private key not found');
   }
 
   String _getPrivateKeyName(String pubkey) => "prikey:$pubkey";

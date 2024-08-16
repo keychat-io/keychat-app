@@ -39,12 +39,14 @@ class DBProvider {
 
   static Future<void> performMigrationIfNeeded(Isar isar) async {
     int currentVersion = await Storage.getIntOrZero(StorageKeyString.dbVersion);
-
+    logger.i('current db version: $currentVersion');
     if (currentVersion < 30) {
       await _migrateToVersion30();
       await Storage.setInt(StorageKeyString.dbVersion, 30);
       return;
     }
+    Map<String, String> allValues = await SecureStorage.instance.readAll();
+    logger.d(allValues);
 
     switch (currentVersion) {
       case 0:
@@ -168,15 +170,17 @@ class DBProvider {
   static Future _migrateToVersion30() async {
     List<Identity> list = await database.identitys.where().findAll();
     if (list.isEmpty) return;
-    await SecureStorage.instance.writePhraseWords(list[0].mnemonic);
     var i = 0;
     for (var item in list) {
+      if (item.secp256k1SKHex.isEmpty) continue;
+
       await SecureStorage.instance
           .writePrikey(item.secp256k1PKHex, item.secp256k1SKHex);
       await SecureStorage.instance
           .writePrikey(item.curve25519PkHex, item.curve25519SkHex);
       // only remove the first mnemonic
       if (i == 0) {
+        await SecureStorage.instance.writePhraseWords(item.mnemonic);
         item.mnemonic = '';
       }
       item.secp256k1SKHex = '';

@@ -9,6 +9,7 @@ import 'package:app/models/room_member.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/signalId.service.dart';
 import 'package:app/service/websocket.service.dart';
+import 'package:app/utils.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
@@ -91,6 +92,7 @@ class GroupTx {
       me.status = UserStatusType.invited;
       await DBProvider.database.roomMembers.put(me);
     }
+    logger.d('me?.status ${me?.status.name}');
     if (room.isShareKeyGroup || room.isKDFGroup) {
       await Get.find<WebsocketService>()
           .listenPubkey([toMainPubkey], limit: 300);

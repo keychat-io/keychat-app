@@ -588,7 +588,7 @@ class RoomService extends BaseChatService {
     return room;
   }
 
-  _checkWebsocketConnect() async {
+  Future _checkWebsocketConnect() async {
     bool netStatus = homeController.isConnectedNetwork.value;
     if (!netStatus) {
       throw Exception('Lost Network');

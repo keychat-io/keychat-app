@@ -10,7 +10,7 @@ class SignalChatUtil {
         [identity.secp256k1PKHex, room.toMainPubkey, message]);
 
     String sig = await rustNostr.signSchnorr(
-        senderKeys: identity.secp256k1SKHex, content: sourceContent);
+        senderKeys: await identity.getSecp256k1SKHex(), content: sourceContent);
     return PrekeyMessageModel(
         nostrId: identity.secp256k1PKHex,
         name: identity.displayName,

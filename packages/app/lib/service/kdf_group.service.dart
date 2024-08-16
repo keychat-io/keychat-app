@@ -48,7 +48,7 @@ class KdfGroupService extends BaseChatService {
       bool save = true,
       MsgReply? reply,
       String? realMessage,
-      bool isPrekey = false,
+      bool notPrekey = true,
       Function(bool)? sentCallback}) async {
     Identity identity = room.getIdentity();
     ChatxService cs = Get.find<ChatxService>();
@@ -62,7 +62,7 @@ class KdfGroupService extends BaseChatService {
         keyPair: keyPair);
     if (kpa == null) throw Exception('kdf group session not found');
     PrekeyMessageModel? pmm;
-    if (isPrekey) {
+    if (!notPrekey) {
       pmm = await SignalChatUtil.getSignalPrekeyMessageContent(
           room, room.getIdentity(), message);
     }
@@ -71,11 +71,12 @@ class KdfGroupService extends BaseChatService {
         await rustSignal.encryptSignal(
             keyPair: keyPair,
             ptext: pmm?.toString() ?? message0,
-            remoteAddress: kpa);
+            remoteAddress: kpa,
+            isPrekey: notPrekey);
     String encryptedContent = base64.encode(enResult.$1);
 
     String unEncryptedEvent = await rustNostr.getUnencryptEvent(
-        senderKeys: identity.secp256k1SKHex,
+        senderKeys: await identity.getSecp256k1SKHex(),
         receiverPubkey: room.mykey.value!.pubkey,
         content: encryptedContent);
 
@@ -381,7 +382,7 @@ class KdfGroupService extends BaseChatService {
       ..msg = '${identity.displayName} joined group';
 
     await KdfGroupService.instance
-        .sendMessage(room, isPrekey: true, sm.toString(), save: false);
+        .sendMessage(room, notPrekey: false, sm.toString(), save: false);
   }
 
   _processHelloMessage(Room room, NostrEventModel event, KeychatMessage km,

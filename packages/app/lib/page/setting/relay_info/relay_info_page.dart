@@ -54,7 +54,7 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                             RelayStatusEnum.failed) {
                           rw.failedTimes = 1;
                           EasyLoading.showToast('Reconnecting');
-                          ws.onErrorProcess(rw);
+                          ws.onErrorProcess(controller.relay.value.url);
                         }
                       }
                     },

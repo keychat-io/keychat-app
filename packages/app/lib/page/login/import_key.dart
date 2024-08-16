@@ -143,13 +143,12 @@ class _ImportKey extends State<ImportKey> {
                       }
                       var kc = await rustNostr.importFromPhrase(phrase: input);
                       var newIdentity = await IdentityService()
-                          .createIdentity(name: name, keychain: kc);
+                          .createIdentity(name: name, account: kc);
                       bool isFirstAccount =
                           Get.find<HomeController>().identities.length == 1;
                       if (isFirstAccount) {
                         // init ecash from server
-                        Get.find<EcashController>()
-                            .setupNewIdentity(newIdentity);
+                        Get.find<EcashController>().initIdentity(newIdentity);
                       }
                       EasyLoading.showSuccess('Import successfully');
                       Get.back();

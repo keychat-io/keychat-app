@@ -148,11 +148,11 @@ class NotifyService {
 
   static Future<bool> addPubkeys(List<String> toAddPubkeys,
       [List<String> toRemovePubkeys = const []]) async {
+    if (OneSignal.User.pushSubscription.id == null) return false;
     List<String> relays = Get.find<WebsocketService>().getActiveRelayString();
     if (relays.isEmpty) return false;
     bool res = await checkAllNotifyPermission();
     if (!res) return false;
-
     try {
       var res =
           await Dio().post('${KeychatGlobal.notifycationServer}/add', data: {
@@ -205,7 +205,8 @@ class NotifyService {
       Storage.setInt(StorageKeyString.settingNotifyStatus,
           state ? NotifyStatus.enable : NotifyStatus.disable);
       if (state) {
-        await initNofityConfig(true);
+        Future.delayed(
+            const Duration(seconds: 10), () => initNofityConfig(true));
       }
     });
     // for init

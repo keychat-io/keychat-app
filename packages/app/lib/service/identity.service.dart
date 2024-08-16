@@ -1,6 +1,7 @@
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
+import 'package:app/service/SecureStorage.dart';
 
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/notify.service.dart';
@@ -64,29 +65,34 @@ class IdentityService {
 
   Future<Identity> createIdentity(
       {required String name,
-      required rustNostr.Secp256k1Account keychain}) async {
-    if (keychain.mnemonic == null) throw Exception('mnemonic is null');
+      required rustNostr.Secp256k1Account account,
+      bool isFirstAccount = false}) async {
+    if (account.mnemonic == null) throw Exception('mnemonic is null');
     Isar database = DBProvider.database;
     Identity iden = Identity(
         name: name,
-        mnemonic: keychain.mnemonic!,
-        secp256k1PKHex: keychain.pubkey,
-        secp256k1SKHex: keychain.prikey,
-        curve25519Pk: keychain.curve25519Pk!,
-        curve25519PkHex: keychain.curve25519PkHex!,
-        curve25519Sk: keychain.curve25519Sk!,
-        curve25519SkHex: keychain.curve25519SkHex!,
-        npub: keychain.pubkeyBech32,
-        nsec: keychain.prikeyBech32);
-
+        mnemonic: '',
+        secp256k1PKHex: account.pubkey,
+        secp256k1SKHex: '',
+        curve25519PkHex: account.curve25519PkHex!,
+        curve25519SkHex: '',
+        npub: account.pubkeyBech32);
     await database.writeTxn(() async {
       await database.identitys.put(iden);
+      // store the prikey in secure storage
+      if (isFirstAccount) {
+        await SecureStorage.instance.writePhraseWords(account.mnemonic!);
+      }
+      await SecureStorage.instance
+          .writePrikey(iden.secp256k1PKHex, account.prikey);
+      await SecureStorage.instance
+          .writePrikey(iden.curve25519PkHex, account.curve25519SkHex!);
     });
 
     await Get.find<HomeController>().loadRoomList(init: true);
-    Get.find<WebsocketService>().listenPubkey([keychain.pubkey]);
-    Get.find<WebsocketService>().listenPubkeyNip17([keychain.pubkey]);
-    NotifyService.addPubkeys([keychain.pubkey]);
+    Get.find<WebsocketService>().listenPubkey([account.pubkey]);
+    Get.find<WebsocketService>().listenPubkeyNip17([account.pubkey]);
+    NotifyService.addPubkeys([account.pubkey]);
     return iden;
   }
 
@@ -94,6 +100,8 @@ class IdentityService {
     Isar database = DBProvider.database;
 
     int id = identity.id;
+    String secp256k1PKHex = identity.secp256k1PKHex;
+    String curve25519PkHex = identity.curve25519PkHex;
     await database.writeTxn(() async {
       await database.identitys.delete(id);
       await database.mykeys.filter().identityIdEqualTo(id).deleteAll();
@@ -125,7 +133,8 @@ class IdentityService {
           keyPair = await Get.find<ChatxService>()
               .getKeyPairBySignalIdPubkey(signalIdPubkey);
         } else {
-          keyPair = Get.find<ChatxService>().getKeyPairByIdentity(identity);
+          keyPair =
+              await Get.find<ChatxService>().getKeyPairByIdentity(identity);
         }
         await rustSignal.deleteSession(
             keyPair: keyPair, address: remoteAddress);
@@ -138,6 +147,8 @@ class IdentityService {
       }
       await database.contacts.filter().identityIdEqualTo(id).deleteAll();
       await deleteAllByIdentity(id);
+      await SecureStorage.instance.deletePrikey(secp256k1PKHex);
+      await SecureStorage.instance.deletePrikey(curve25519PkHex);
     });
     Get.find<HomeController>().loadRoomList(init: true);
     NotifyService.initNofityConfig();
@@ -284,7 +295,7 @@ class IdentityService {
         .toList();
     String? prikey;
     if (identities.isNotEmpty) {
-      prikey = identities[0].secp256k1SKHex;
+      prikey = await identities[0].getSecp256k1SKHex();
     } else {
       Mykey? mykey = await IdentityService().getMykeyByPubkey(pubkey);
       if (mykey == null) return null;

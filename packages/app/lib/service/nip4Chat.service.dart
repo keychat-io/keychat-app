@@ -106,7 +106,7 @@ class Nip4ChatService extends BaseChatService {
     Identity identity = room.getIdentity();
 
     String mainSign = await rustNostr.getEncryptEvent(
-        senderKeys: identity.secp256k1SKHex,
+        senderKeys: await identity.getSecp256k1SKHex(),
         receiverPubkey: room.toMainPubkey,
         content: message);
 
@@ -141,7 +141,7 @@ class Nip4ChatService extends BaseChatService {
       room: room,
       save: save,
       encryptType: MessageEncryptType.nip4,
-      prikey: identity.secp256k1SKHex,
+      prikey: await identity.getSecp256k1SKHex(),
       from: identity.secp256k1PKHex,
       realMessage: realMessage,
     );

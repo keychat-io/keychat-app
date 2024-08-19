@@ -3,6 +3,7 @@ import 'dart:convert' show jsonDecode;
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr_event.dart';
+import 'package:app/page/routes.dart';
 import 'package:app/service/signalId.service.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
 import 'package:app/service/chat.service.dart';
@@ -99,12 +100,41 @@ class RoomService extends BaseChatService {
     return room;
   }
 
+  Future deleteRoomHandler(String pubkey, int identityId) async {
+    Room? room;
+    // try {
+    EasyLoading.show(status: 'Loading...');
+    await ContactService().deleteContactByPubkey(pubkey, identityId);
+    room = await RoomService().getRoomByIdentity(pubkey, identityId);
+    if (room != null) {
+      await RoomService().deleteRoom(room);
+    }
+    EasyLoading.showSuccess('Deleted');
+    // } catch (e, s) {
+    //   logger.e(e.toString(), error: s, stackTrace: s);
+    //   EasyLoading.showError(e.toString());
+    //   return;
+    // }
+    if (room != null) {
+      await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
+      await Get.offAllNamed(Routes.root);
+    }
+  }
+
   Future deleteRoom(Room room) async {
     Isar database = DBProvider.database;
     int? roomMykeyId = room.mykey.value?.id;
     var groupType = room.groupType;
     var roomType = room.type;
     int roomId = room.id;
+
+    // delete room's signalId
+    String? signalIdPubkey = room.signalIdPubkey;
+    List<Room> sameSignalIdrooms = [];
+    if (signalIdPubkey != null) {
+      sameSignalIdrooms =
+          await RoomService().getRoomBySignalIdPubkey(signalIdPubkey);
+    }
     await database.writeTxn(() async {
       if (room.type == RoomType.group) {
         if (roomMykeyId != null) {
@@ -112,6 +142,13 @@ class RoomService extends BaseChatService {
         }
         await database.roomMembers.filter().roomIdEqualTo(roomId).deleteAll();
       } else {
+        if (signalIdPubkey != null && sameSignalIdrooms.length <= 1) {
+          await DBProvider.database.signalIds
+              .filter()
+              .pubkeyEqualTo(signalIdPubkey)
+              .identityIdEqualTo(room.identityId)
+              .deleteAll();
+        }
         if (room.curve25519PkHex != null) {
           await Get.find<ChatxService>().deleteSignalSessionKPA(room);
         }
@@ -222,7 +259,7 @@ class RoomService extends BaseChatService {
     return await database.rooms.filter().idEqualTo(id).findFirst();
   }
 
-  Future<List<Room?>> getRoomBySignalIdPubkey(String pubkey) async {
+  Future<List<Room>> getRoomBySignalIdPubkey(String pubkey) async {
     Isar database = DBProvider.database;
     return await database.rooms
         .filter()

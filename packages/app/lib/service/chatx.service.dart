@@ -199,15 +199,19 @@ class ChatxService extends GetxService {
     if (identity == null) return;
     final remoteAddress = KeychatProtocolAddress(
         name: room.curve25519PkHex!, deviceId: room.identityId);
-    KeychatIdentityKeyPair keyPair;
-    if (room.signalIdPubkey != null) {
-      keyPair = await getKeyPairBySignalIdPubkey(room.signalIdPubkey!);
-    } else {
-      keyPair = await getKeyPairByIdentity(room.getIdentity());
+    KeychatIdentityKeyPair? keyPair;
+    try {
+      if (room.signalIdPubkey != null) {
+        keyPair = await getKeyPairBySignalIdPubkey(room.signalIdPubkey!);
+      } else {
+        keyPair = await getKeyPairByIdentity(room.getIdentity());
+      }
+    } catch (e) {}
+    if (keyPair != null) {
+      await rustSignal.deleteSession(keyPair: keyPair, address: remoteAddress);
+      await rustSignal.deleteIdentity(
+          keyPair: keyPair, address: remoteAddress.name);
     }
-    await rustSignal.deleteSession(keyPair: keyPair, address: remoteAddress);
-    await rustSignal.deleteIdentity(
-        keyPair: keyPair, address: remoteAddress.name);
     room.signalDecodeError = false;
     String key = '${room.identityId}:${room.curve25519PkHex}';
     roomKPA.remove(key);

@@ -7,13 +7,13 @@ import 'dart:convert' show base64, base64Decode, jsonDecode, utf8;
 import 'dart:typed_data' show Uint8List;
 import 'package:app/models/keychat/prekey_message_model.dart';
 import 'package:app/models/room_member.dart';
+import 'package:app/nostr-core/nostr.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/signalId.service.dart';
 import 'package:app/service/signal_chat_util.dart';
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rustSignal;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
 import 'package:app/constants.dart';
-import 'package:app/models/db_provider.dart';
 import 'package:app/models/embedded/msg_reply.dart';
 import 'package:app/models/event_log.dart';
 import 'package:app/models/identity.dart';
@@ -25,9 +25,7 @@ import 'package:app/models/signal_id.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/service/chat.service.dart';
 import 'package:app/service/group.service.dart';
-import 'package:app/service/message.service.dart';
 import 'package:app/service/room.service.dart';
-import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_signal.dart';
@@ -42,6 +40,7 @@ class KdfGroupService extends BaseChatService {
 
   Future leaveGroup() async {}
 
+  // nip4 wrap signal message
   @override
   Future<SendMessageResponse> sendMessage(Room room, String message,
       {MessageMediaType? mediaType,
@@ -64,7 +63,7 @@ class KdfGroupService extends BaseChatService {
     PrekeyMessageModel? pmm;
     if (!notPrekey) {
       pmm = await SignalChatUtil.getSignalPrekeyMessageContent(
-          room, room.getIdentity(), message);
+          room, identity, message);
     }
 
     (Uint8List, String?, String, List<String>?) enResult =
@@ -77,39 +76,48 @@ class KdfGroupService extends BaseChatService {
 
     String unEncryptedEvent = await rustNostr.getUnencryptEvent(
         senderKeys: await identity.getSecp256k1SKHex(),
-        receiverPubkey: room.mykey.value!.pubkey,
+        receiverPubkey: room.toMainPubkey,
         content: encryptedContent);
 
-    NostrEventModel event =
-        NostrEventModel.fromJson(jsonDecode(unEncryptedEvent), verify: false);
-
-    List<String> relays = await Get.find<WebsocketService>().writeNostrEvent(
-        event: event,
-        eventString: unEncryptedEvent,
-        roomId: room.id,
-        sentCallback: sentCallback);
-
-    if (!save) {
-      return SendMessageResponse(
-          relays: relays, events: [event], message: null);
-    }
-
-    await DBProvider().saveMyEventLog(event: event, relays: relays);
-    Message? model = await MessageService().saveMessageToDB(
-        events: [event],
+    var randomAccount = await rustNostr.generateSimple();
+    return await NostrAPI().sendNip4Message(room.toMainPubkey, unEncryptedEvent,
+        prikey: randomAccount.prikey,
+        from: randomAccount.pubkey,
         room: room,
-        reply: reply,
-        content: message,
-        from: identity.secp256k1PKHex,
-        idPubkey: identity.secp256k1PKHex,
-        to: room.toMainPubkey,
-        realMessage: realMessage,
-        isMeSend: true,
-        encryptType: MessageEncryptType.signal,
-        mediaType: mediaType,
-        isRead: true);
+        encryptType: MessageEncryptType.nip4WrapSignal,
+        save: save,
+        realMessage: realMessage ?? message0);
 
-    return SendMessageResponse(relays: relays, events: [event], message: model);
+    // NostrEventModel event =
+    //     NostrEventModel.fromJson(jsonDecode(unEncryptedEvent), verify: false);
+
+    // List<String> relays = await Get.find<WebsocketService>().writeNostrEvent(
+    //     event: event,
+    //     eventString: unEncryptedEvent,
+    //     roomId: room.id,
+    //     sentCallback: sentCallback);
+
+    // if (!save) {
+    //   return SendMessageResponse(
+    //       relays: relays, events: [event], message: null);
+    // }
+
+    // await DBProvider().saveMyEventLog(event: event, relays: relays);
+    // Message? model = await MessageService().saveMessageToDB(
+    //     events: [event],
+    //     room: room,
+    //     reply: reply,
+    //     content: message,
+    //     from: identity.secp256k1PKHex,
+    //     idPubkey: identity.secp256k1PKHex,
+    //     to: room.toMainPubkey,
+    //     realMessage: realMessage,
+    //     isMeSend: true,
+    //     encryptType: MessageEncryptType.signal,
+    //     mediaType: mediaType,
+    //     isRead: true);
+
+    // return SendMessageResponse(relays: relays, events: [event], message: model);
   }
 
   // Future<SendMessageResponse> sendFeatureMessage(Room room, String message,
@@ -235,7 +243,7 @@ class KdfGroupService extends BaseChatService {
     }
 
     await RoomService().receiveDM(room, event,
-        sourceEvent: null,
+        sourceEvent: sourceEvent,
         km: km,
         decodedContent: prekeyMessageModel?.message ?? decryptedContent,
         realMessage: km?.msg);
@@ -243,8 +251,9 @@ class KdfGroupService extends BaseChatService {
   }
 
   // shared key receive message then decrypt message
-  Future decryptMessage(Room room, NostrEventModel event, Relay relay,
-      {NostrEventModel? sourceEvent, EventLog? eventLog}) async {
+  // message struct: nip4 wrap signal
+  Future decryptMessage(Room room, NostrEventModel nostrEvent, Relay relay,
+      {required String nip4DecodedContent, EventLog? eventLog}) async {
     if (room.sharedSignalID == null) throw Exception('sharedSignalID is null');
 
     // setup shared signal id
@@ -253,7 +262,12 @@ class KdfGroupService extends BaseChatService {
     var keyPair = chatxService.getKeyPairBySignalId(signalId);
     await chatxService.setupSignalStoreBySignalId(signalId.pubkey, signalId);
 
-    RoomMember? roomMember = await room.getMemberByNostrPubkey(event.pubkey);
+    // sub event
+    NostrEventModel signalEvent =
+        NostrEventModel.fromJson(jsonDecode(nip4DecodedContent));
+    String from = signalEvent.pubkey;
+    RoomMember? roomMember = await room.getMemberByNostrPubkey(from);
+
     if (roomMember == null) throw Exception('roomMember is null');
 
     if (roomMember.curve25519PkHex == null) {
@@ -262,7 +276,8 @@ class KdfGroupService extends BaseChatService {
           sharedSignalId: signalId,
           keyPair: keyPair,
           room: room,
-          event: event,
+          event: signalEvent,
+          sourceEvent: nostrEvent,
           relay: relay,
           eventLog: eventLog);
     }
@@ -279,12 +294,13 @@ class KdfGroupService extends BaseChatService {
           sharedSignalId: signalId,
           keyPair: keyPair,
           room: room,
-          event: event,
+          event: signalEvent,
+          sourceEvent: nostrEvent,
           relay: relay,
           eventLog: eventLog);
     }
 
-    Uint8List message = Uint8List.fromList(base64Decode(event.content));
+    Uint8List message = Uint8List.fromList(base64Decode(signalEvent.content));
 
     late Uint8List plaintext;
     String? msgKeyHash;
@@ -302,7 +318,8 @@ class KdfGroupService extends BaseChatService {
             sharedSignalId: signalId,
             keyPair: keyPair,
             room: room,
-            event: event,
+            event: signalEvent,
+            sourceEvent: nostrEvent,
             relay: relay,
             eventLog: eventLog);
         return;
@@ -312,8 +329,8 @@ class KdfGroupService extends BaseChatService {
       }
       String msg = Utils.getErrorMessage(e);
       logger.e(msg, error: e, stackTrace: s);
-      await RoomService().receiveDM(room, event,
-          decodedContent: 'Decrypt error: $msg', sourceEvent: sourceEvent);
+      await RoomService().receiveDM(room, signalEvent,
+          decodedContent: 'Decrypt error: $msg', sourceEvent: nostrEvent);
       return;
     }
 
@@ -330,16 +347,17 @@ class KdfGroupService extends BaseChatService {
     if (km != null) {
       await processMessage(
           room: room,
-          event: event,
           km: km,
           msgKeyHash: msgKeyHash,
-          sourceEvent: sourceEvent,
+          event: signalEvent,
+          sourceEvent: nostrEvent,
           relay: relay);
       return decodeString;
     }
-    await RoomService().receiveDM(room, event,
-        decodedContent: decodeString,
-        sourceEvent: sourceEvent,
+    await RoomService().receiveDM(room, signalEvent,
+        decodedContent: nip4DecodedContent,
+        realMessage: decodeString,
+        sourceEvent: nostrEvent,
         msgKeyHash: msgKeyHash);
     return decodeString;
   }

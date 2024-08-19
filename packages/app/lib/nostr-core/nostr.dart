@@ -495,17 +495,23 @@ Tags: ${event.tags}''',
     exist = await dbProvider.receiveNewEventLog(event: event, relay: relay.url);
     switch (event.kind) {
       case EventKinds.encryptedDirectMessage:
+        String to = event.tags[0][1];
         try {
           if (event.isNip4) {
+            // try kdf group
+            Room? kdfRoom = await roomService.getGroupByReceivePubkey(to);
+            if (kdfRoom != null) {
+              String? content = await getDecodeNip4Content(event);
+              if (content == null) {
+                logger.e('decode error: ${event.id}');
+                exist.setNote('Nip04 decode error');
+                return;
+              }
+              return await KdfGroupService.instance.decryptMessage(
+                  kdfRoom, event, relay,
+                  nip4DecodedContent: content);
+            }
             return await dmNip4Proccess(event, relay, exist);
-          }
-
-          // try kdf group
-          String to = event.tags[0][1];
-          Room? kdfRoom = await roomService.getGroupByReceivePubkey(to);
-          if (kdfRoom != null) {
-            return await KdfGroupService.instance
-                .decryptMessage(kdfRoom, event, relay);
           }
 
           // if signal message , to_address is myIDPubkey or one-time-key

@@ -7,6 +7,7 @@ import 'package:app/models/event_log.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/models/keychat/group_message.dart';
 import 'package:app/models/keychat/qrcode_user_model.dart';
+import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/ChatMediaFilesPage.dart';
 import 'package:app/page/chat/contact_page.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
@@ -518,5 +519,14 @@ Let's start an encrypted chat.''';
       default:
     }
     return 'common';
+  }
+
+  static MessageEncryptType getEncryptMode(
+      NostrEventModel event, NostrEventModel? sourceEvent) {
+    if (sourceEvent == null) return event.encryptType;
+    if (event.isNip4) return MessageEncryptType.nip4WrapNip4;
+    if (event.isSignal) return MessageEncryptType.nip4WrapSignal;
+
+    return event.encryptType;
   }
 }

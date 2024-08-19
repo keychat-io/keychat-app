@@ -3,6 +3,7 @@ import 'dart:convert' show jsonDecode;
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr_event.dart';
+import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/signalId.service.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
@@ -446,21 +447,8 @@ class RoomService extends BaseChatService {
         } catch (e) {}
       }
     }
-    if (idPubkey == null) {
-      if (room.type == RoomType.common) {
-        idPubkey = room.toMainPubkey;
-      } else {
-        idPubkey = event.pubkey;
-      }
-    }
-
-    var encryptType = (sourceEvent ?? event).encryptType;
-    // todo delete for nip17
-    if (encryptType == MessageEncryptType.nip4 && sourceEvent != null) {
-      if (sourceEvent.encryptType == MessageEncryptType.nip4) {
-        encryptType = MessageEncryptType.nip4WrapNip4;
-      }
-    }
+    idPubkey ??=
+        room.type == RoomType.common ? room.toMainPubkey : event.pubkey;
     await MessageService().saveMessageToDB(
         events: [sourceEvent ?? event],
         room: room,
@@ -470,7 +458,7 @@ class RoomService extends BaseChatService {
         isSystem: isSystem,
         realMessage: realMessage,
         content: decodedContent ?? km?.msg ?? event.content,
-        encryptType: encryptType,
+        encryptType: RoomUtil.getEncryptMode(event, sourceEvent),
         reply: reply,
         sent: SendStatusType.success,
         isMeSend: idPubkey == room.getIdentity().secp256k1PKHex,

@@ -72,17 +72,14 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                 "${chatController.roomObs.value.name ?? ""}(${chatController.enableMembers.length})",
               )),
           actions: [
-            IconButton(
-                onPressed: () {
-                  Get.to(
-                    () => AddGroupMember(
-                      room: chatController.roomObs.value,
-                    ),
-                  );
-                },
-                icon: const Icon(
-                  CupertinoIcons.plus_circle_fill,
-                ))
+            if (chatController.room.isSendAllGroup)
+              IconButton(
+                  onPressed: () {
+                    Get.to(
+                      () => AddGroupMember(room: chatController.roomObs.value),
+                    );
+                  },
+                  icon: const Icon(CupertinoIcons.plus_circle_fill))
           ],
         ),
         body: Obx(
@@ -145,9 +142,6 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
   }
 
   Widget getImageGridView(List<RoomMember> list) {
-    // List<RoomMember> list =
-    //     source.map((e) => RoomMember.fromJson(e.toJson())).toList();
-
     return Padding(
         padding: const EdgeInsets.only(top: 10),
         child: SizedBox(
@@ -218,7 +212,8 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                             Get.back();
                           },
                         ),
-                        if (chatController.meMember.value.isAdmin)
+                        if (chatController.room.isSendAllGroup &&
+                            chatController.meMember.value.isAdmin)
                           CupertinoDialogAction(
                             isDestructiveAction: true,
                             onPressed: () {
@@ -340,29 +335,13 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
   generalSection() {
     String pubkey = chatController.roomObs.value.toMainPubkey;
     return SettingsSection(tiles: [
-      SettingsTile.navigation(
+      SettingsTile(
           title: const Text("Group ID"),
           leading: const Icon(CupertinoIcons.person_3),
           value: textP(getPublicKeyDisplay(pubkey)),
           onPressed: (context) {
-            Get.dialog(CupertinoAlertDialog(
-              content: Text(pubkey),
-              actions: <Widget>[
-                CupertinoDialogAction(
-                  child: const Text("Cancel"),
-                  onPressed: () {
-                    Get.back();
-                  },
-                ),
-                CupertinoDialogAction(
-                  child: const Text("Copy"),
-                  onPressed: () {
-                    Clipboard.setData(ClipboardData(text: pubkey));
-                    Get.back();
-                  },
-                ),
-              ],
-            ));
+            Clipboard.setData(ClipboardData(text: pubkey));
+            EasyLoading.showToast('Copied');
           }),
       SettingsTile.navigation(
           leading: const Icon(CupertinoIcons.chart_bar),
@@ -375,6 +354,8 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
         leading: const Icon(CupertinoIcons.pencil),
         value: Text("${chatController.roomObs.value.name}"),
         onPressed: (context) async {
+          if (!chatController.room.isSendAllGroup) return;
+
           if (!chatController.meMember.value.isAdmin) {
             EasyLoading.showError("Admin only");
             return;
@@ -389,7 +370,9 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
           chatController.meMember.value.name,
         ),
         onPressed: (context) async {
-          _showMyNameDialog();
+          if (chatController.room.isSendAllGroup) {
+            _showMyNameDialog();
+          }
         },
       ),
       RoomUtil.pinRoomSection(chatController),

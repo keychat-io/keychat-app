@@ -2,23 +2,25 @@ import 'dart:convert' show JsonEncoder, jsonEncode, jsonDecode;
 import 'dart:io' show Directory, File, FileMode, Platform;
 import 'dart:math' show Random;
 
+import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/utils/config.dart';
 import 'package:app/utils/log_file.dart';
+import 'package:avatar_plus/avatar_plus.dart';
 import 'package:convert/convert.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/index.dart';
 import 'package:logger/logger.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:random_avatar/random_avatar.dart';
 
 Logger logger = Logger(
     filter: kReleaseMode ? MyLogFilter() : null,
@@ -116,8 +118,21 @@ getPublicKeyDisplay(String publicKey, [int size = 6]) {
 }
 
 Widget getRandomAvatar(String id,
-    {double? height, double? width, BoxFit fit = BoxFit.contain}) {
-  return RandomAvatar(id, height: height, width: width, fit: fit);
+    {double height = 40, double width = 40, BoxFit fit = BoxFit.contain}) {
+  var avatarsFolder = Get.find<SettingController>().avatarsFolder;
+  final filePath = '$avatarsFolder/$id.svg';
+  final file = File(filePath);
+  if (file.existsSync()) {
+    return SvgPicture.asset(filePath, width: width, height: height);
+  } else {
+    String svgCode = AvatarPlusGen.instance.generate(id);
+    file.writeAsStringSync(svgCode);
+    return SvgPicture.string(
+      svgCode,
+      width: width,
+      height: height,
+    );
+  }
 }
 
 int getRegistrationId(String pubkey) {

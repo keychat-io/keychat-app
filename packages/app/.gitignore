@@ -44,3 +44,6 @@ app.*.map.json
 
 #
 *gradle.properties
+
+# FVM Version Cache
+.fvm/

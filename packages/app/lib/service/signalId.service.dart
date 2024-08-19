@@ -64,15 +64,6 @@ class SignalIdService {
         .findFirst();
   }
 
-  Future deleteSignalIdByPubkey(String pubkey) async {
-    await DBProvider.database.writeTxn(() async {
-      await DBProvider.database.signalIds
-          .filter()
-          .pubkeyEqualTo(pubkey)
-          .deleteAll();
-    });
-  }
-
   Future<SignalId?> getSignalIdByKeyId(int signalKeyId) async {
     return await DBProvider.database.signalIds
         .filter()

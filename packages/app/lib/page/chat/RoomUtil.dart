@@ -257,7 +257,8 @@ Let's start an encrypted chat.''';
       text = '[${room.unReadCount} messages] $text';
     }
     var style = TextStyle(
-        color: Theme.of(Get.context!).colorScheme.onSurface.withOpacity(0.6));
+        color: Theme.of(Get.context!).colorScheme.onSurface.withOpacity(0.6),
+        fontSize: 14);
     if (m.isMeSend) {
       if (m.sent == SendStatusType.failed ||
           (m.sent == SendStatusType.sending &&

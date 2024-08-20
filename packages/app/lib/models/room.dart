@@ -4,6 +4,7 @@ import 'package:app/models/models.dart';
 import 'package:app/models/signal_id.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/room.service.dart';
+import 'package:app/service/signalId.service.dart';
 import 'package:app/utils.dart';
 import 'package:equatable/equatable.dart';
 import 'package:get/get.dart';
@@ -444,5 +445,39 @@ class Room extends Equatable {
 
   int getDeviceIdForSignal() {
     return type == RoomType.common ? identityId : 10000 + id;
+  }
+
+  Future createMember(
+      String pubkey, String displayName, UserStatusType status) async {
+    var me = RoomMember(idPubkey: pubkey, name: displayName, roomId: id)
+      ..status = status
+      ..createdAt = DateTime.now()
+      ..updatedAt = DateTime.now();
+    await DBProvider.database.writeTxn(() async {
+      await DBProvider.database.roomMembers.put(me);
+    });
+    return getMemberByNostrPubkey(pubkey);
+  }
+
+  Future incrMessageCountForMemeber(RoomMember meMember) async {
+    await DBProvider.database.writeTxn(() async {
+      meMember.messageCount++;
+      await DBProvider.database.roomMembers.put(meMember);
+    });
+  }
+
+  Future checkAndCleanSignalKeys() async {
+    int count = await DBProvider.database.roomMembers
+        .filter()
+        .roomIdEqualTo(id)
+        .messageCountEqualTo(0)
+        .count();
+    if (count > 0) return;
+    if (sharedSignalID == null) return;
+    SignalId? signalId =
+        await SignalIdService.instance.getSignalIdByPubkey(sharedSignalID!);
+    if (signalId == null) return;
+    signalId.keys = "";
+    await SignalIdService.instance.updateSignalId(signalId);
   }
 }

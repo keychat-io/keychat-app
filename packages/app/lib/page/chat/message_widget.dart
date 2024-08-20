@@ -231,6 +231,10 @@ class MessageWidget extends StatelessWidget {
                         overflow: TextOverflow.ellipsis, style: style),
                     Text('EncryptionKeyHash: ${message.msgKeyHash ?? ''}',
                         overflow: TextOverflow.ellipsis, style: style),
+                    Text(
+                        'SendAt: ${formatTime(message.createdAt.millisecondsSinceEpoch)}',
+                        overflow: TextOverflow.ellipsis,
+                        style: style),
                   ]),
             ))
         : const SizedBox();
@@ -313,11 +317,8 @@ class MessageWidget extends StatelessWidget {
         return;
       },
       text: text,
-      style: Theme.of(Get.context!)
-          .textTheme
-          .bodyLarge
-          ?.copyWith(color: fontColor, fontSize: 16),
-      linkStyle: const TextStyle(decoration: TextDecoration.none, fontSize: 16),
+      linkStyle: TextStyle(
+          decoration: TextDecoration.none, color: fontColor, fontSize: 14),
     );
   }
 
@@ -593,7 +594,6 @@ class MessageWidget extends StatelessWidget {
     return AnyLinkPreview(
         key: Key(content),
         link: content,
-        errorBody: content,
         bodyMaxLines: 3,
         onTap: () {
           Utils.hideKeyboard(Get.context!);
@@ -601,7 +601,6 @@ class MessageWidget extends StatelessWidget {
         },
         placeholderWidget: _getTextContainer(getLinkify(content, fontColor),
             isMeSend: message.isMeSend),
-        backgroundColor: Get.isDarkMode ? Colors.black26 : Colors.grey[300],
         showMultimedia: false,
         errorWidget: _getTextContainer(getLinkify(content, fontColor),
             isMeSend: message.isMeSend));
@@ -630,7 +629,7 @@ class MessageWidget extends StatelessWidget {
               style: Theme.of(Get.context!)
                   .textTheme
                   .bodyMedium
-                  ?.copyWith(color: fontColor.withOpacity(0.7), height: 1),
+                  ?.copyWith(color: fontColor, height: 1),
               maxLines: 5);
         }
       }

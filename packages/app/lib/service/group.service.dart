@@ -244,7 +244,7 @@ class GroupService extends BaseChatService {
     switch (subType) {
       case KeyChatEventKinds.groupHi:
         String newName = groupMessage.message.split(joinGreeting)[0];
-        await _processGroupHi(room, signPubkey, updatedAt, newName);
+        await _processHelloMessage(room, signPubkey, updatedAt, newName);
         break;
       case KeyChatEventKinds.groupChangeNickname:
         String newName = groupMessage.message.split(changeNickName)[1];
@@ -917,7 +917,7 @@ class GroupService extends BaseChatService {
     }
   }
 
-  Future _processGroupHi(
+  Future _processHelloMessage(
       Room groupRoom, String idPubkey, DateTime updatedAt, String name) async {
     RoomMember? rm = await groupRoom.getMember(idPubkey);
     if (rm == null) {

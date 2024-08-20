@@ -42,29 +42,34 @@ const RoomMemberSchema = CollectionSchema(
       name: r'isAdmin',
       type: IsarType.bool,
     ),
-    r'name': PropertySchema(
+    r'messageCount': PropertySchema(
       id: 5,
+      name: r'messageCount',
+      type: IsarType.long,
+    ),
+    r'name': PropertySchema(
+      id: 6,
       name: r'name',
       type: IsarType.string,
     ),
     r'roomId': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'roomId',
       type: IsarType.long,
     ),
     r'status': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'status',
       type: IsarType.int,
       enumMap: _RoomMemberstatusEnumValueMap,
     ),
     r'stringify': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'updatedAt': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -130,11 +135,12 @@ void _roomMemberSerialize(
   writer.writeLong(offsets[2], object.hashCode);
   writer.writeString(offsets[3], object.idPubkey);
   writer.writeBool(offsets[4], object.isAdmin);
-  writer.writeString(offsets[5], object.name);
-  writer.writeLong(offsets[6], object.roomId);
-  writer.writeInt(offsets[7], object.status.index);
-  writer.writeBool(offsets[8], object.stringify);
-  writer.writeDateTime(offsets[9], object.updatedAt);
+  writer.writeLong(offsets[5], object.messageCount);
+  writer.writeString(offsets[6], object.name);
+  writer.writeLong(offsets[7], object.roomId);
+  writer.writeInt(offsets[8], object.status.index);
+  writer.writeBool(offsets[9], object.stringify);
+  writer.writeDateTime(offsets[10], object.updatedAt);
 }
 
 RoomMember _roomMemberDeserialize(
@@ -145,17 +151,18 @@ RoomMember _roomMemberDeserialize(
 ) {
   final object = RoomMember(
     idPubkey: reader.readString(offsets[3]),
-    name: reader.readString(offsets[5]),
-    roomId: reader.readLong(offsets[6]),
+    name: reader.readString(offsets[6]),
+    roomId: reader.readLong(offsets[7]),
   );
   object.createdAt = reader.readDateTimeOrNull(offsets[0]);
   object.curve25519PkHex = reader.readStringOrNull(offsets[1]);
   object.id = id;
   object.isAdmin = reader.readBool(offsets[4]);
+  object.messageCount = reader.readLong(offsets[5]);
   object.status =
-      _RoomMemberstatusValueEnumMap[reader.readIntOrNull(offsets[7])] ??
+      _RoomMemberstatusValueEnumMap[reader.readIntOrNull(offsets[8])] ??
           UserStatusType.inviting;
-  object.updatedAt = reader.readDateTimeOrNull(offsets[9]);
+  object.updatedAt = reader.readDateTimeOrNull(offsets[10]);
   return object;
 }
 
@@ -177,15 +184,17 @@ P _roomMemberDeserializeProp<P>(
     case 4:
       return (reader.readBool(offset)) as P;
     case 5:
-      return (reader.readString(offset)) as P;
-    case 6:
       return (reader.readLong(offset)) as P;
+    case 6:
+      return (reader.readString(offset)) as P;
     case 7:
+      return (reader.readLong(offset)) as P;
+    case 8:
       return (_RoomMemberstatusValueEnumMap[reader.readIntOrNull(offset)] ??
           UserStatusType.inviting) as P;
-    case 8:
-      return (reader.readBoolOrNull(offset)) as P;
     case 9:
+      return (reader.readBoolOrNull(offset)) as P;
+    case 10:
       return (reader.readDateTimeOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1001,6 +1010,62 @@ extension RoomMemberQueryFilter
     });
   }
 
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition>
+      messageCountEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'messageCount',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition>
+      messageCountGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'messageCount',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition>
+      messageCountLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'messageCount',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition>
+      messageCountBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'messageCount',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
   QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> nameEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -1407,6 +1472,18 @@ extension RoomMemberQuerySortBy
     });
   }
 
+  QueryBuilder<RoomMember, RoomMember, QAfterSortBy> sortByMessageCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'messageCount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterSortBy> sortByMessageCountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'messageCount', Sort.desc);
+    });
+  }
+
   QueryBuilder<RoomMember, RoomMember, QAfterSortBy> sortByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -1543,6 +1620,18 @@ extension RoomMemberQuerySortThenBy
     });
   }
 
+  QueryBuilder<RoomMember, RoomMember, QAfterSortBy> thenByMessageCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'messageCount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterSortBy> thenByMessageCountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'messageCount', Sort.desc);
+    });
+  }
+
   QueryBuilder<RoomMember, RoomMember, QAfterSortBy> thenByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -1639,6 +1728,12 @@ extension RoomMemberQueryWhereDistinct
     });
   }
 
+  QueryBuilder<RoomMember, RoomMember, QDistinct> distinctByMessageCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'messageCount');
+    });
+  }
+
   QueryBuilder<RoomMember, RoomMember, QDistinct> distinctByName(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -1710,6 +1805,12 @@ extension RoomMemberQueryProperty
     });
   }
 
+  QueryBuilder<RoomMember, int, QQueryOperations> messageCountProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'messageCount');
+    });
+  }
+
   QueryBuilder<RoomMember, String, QQueryOperations> nameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'name');
@@ -1758,7 +1859,8 @@ RoomMember _$RoomMemberFromJson(Map<String, dynamic> json) => RoomMember(
           ? null
           : DateTime.parse(json['updatedAt'] as String)
       ..isAdmin = json['isAdmin'] as bool
-      ..status = $enumDecode(_$UserStatusTypeEnumMap, json['status']);
+      ..status = $enumDecode(_$UserStatusTypeEnumMap, json['status'])
+      ..messageCount = (json['messageCount'] as num).toInt();
 
 Map<String, dynamic> _$RoomMemberToJson(RoomMember instance) {
   final val = <String, dynamic>{
@@ -1778,6 +1880,7 @@ Map<String, dynamic> _$RoomMemberToJson(RoomMember instance) {
   writeNotNull('updatedAt', instance.updatedAt?.toIso8601String());
   val['isAdmin'] = instance.isAdmin;
   val['status'] = _$UserStatusTypeEnumMap[instance.status]!;
+  val['messageCount'] = instance.messageCount;
   return val;
 }
 

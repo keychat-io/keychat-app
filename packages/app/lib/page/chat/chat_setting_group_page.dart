@@ -91,6 +91,22 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                 platform: DevicePlatform.iOS,
                 sections: [
                   generalSection(),
+                  SettingsSection(tiles: [
+                    RoomUtil.pinRoomSection(chatController),
+                    if (chatController.room.isShareKeyGroup ||
+                        chatController.room.isKDFGroup)
+                      RoomUtil.muteSection(chatController),
+                    if (chatController.room.isKDFGroup)
+                      SettingsTile.switchTile(
+                        title: const Text('Show Addresses'),
+                        initialValue: chatController.showFromAndTo.value,
+                        onToggle: (value) async {
+                          chatController.showFromAndTo.toggle();
+                          Get.back();
+                        },
+                        leading: const Icon(CupertinoIcons.mail),
+                      ),
+                  ]),
                   payToRelaySection(),
                   if (chatController.roomObs.value.isShareKeyGroup)
                     receiveInPostOffice(),
@@ -375,22 +391,6 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
           }
         },
       ),
-      RoomUtil.pinRoomSection(chatController),
-      if (chatController.room.isShareKeyGroup)
-        RoomUtil.muteSection(chatController)
-      // SettingsTile.navigation(
-      //   title: const Text("Sync room info to members"),
-      //   leading: const Icon(CupertinoIcons.person_3_fill),
-      //   onPressed: (context) async {
-      //     if (chatController.meMember.value.isAdmin) {
-      //       await groupService.reInvite(chatController.roomObs.value.id);
-      //       EasyLoading.showSuccess(
-      //           "Send room info to all members successfully");
-      //     } else {
-      //       EasyLoading.showError("Admin only");
-      //     }
-      //   },
-      // ),
     ]);
   }
 
@@ -399,18 +399,21 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
       tiles: [
         RoomUtil.autoCleanMessage(chatController),
         RoomUtil.clearHistory(chatController),
-        SettingsTile(
-          leading: const Icon(
-            CupertinoIcons.trash,
-            color: Colors.pink,
+        if (!chatController.room.isKDFGroup)
+          SettingsTile(
+            leading: const Icon(
+              CupertinoIcons.trash,
+              color: Colors.pink,
+            ),
+            title: Text(
+                chatController.meMember.value.isAdmin
+                    ? "Delete Group"
+                    : "Leave",
+                style: const TextStyle(color: Colors.pink)),
+            onPressed: (context) {
+              _deleteAndExist(context);
+            },
           ),
-          title: Text(
-              chatController.meMember.value.isAdmin ? "Delete Group" : "Leave",
-              style: const TextStyle(color: Colors.pink)),
-          onPressed: (context) {
-            _deleteAndExist(context);
-          },
-        ),
       ],
     );
   }

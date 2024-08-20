@@ -57,10 +57,15 @@ class _ChatPage2State extends State<ChatPage> {
     Widget myAavtar = getRandomAvatar(room.getIdentity().secp256k1PKHex,
         height: 40, width: 40);
     bool isGroup = room.type == RoomType.group;
-    Color defaultFontColor = Get.isDarkMode ? Colors.white70 : Colors.black87;
-    Color defaultBackgroundColor =
-        Get.isDarkMode ? const Color(0xFF2c2c2c) : const Color(0xFFFFFFFF);
     double screenWidth = Get.width;
+
+    Color fontColor = Get.isDarkMode ? Colors.white : Colors.black87;
+    Color toBackgroundColor =
+        Get.isDarkMode ? const Color(0xFF2c2c2c) : const Color(0xFFFFFFFF);
+
+    Color meBackgroundColor =
+        Get.isDarkMode ? const Color(0xff7748FF) : const Color(0xFFF5E2FF);
+
     return Scaffold(
       appBar: AppBar(
         scrolledUnderElevation: 0.0,
@@ -178,20 +183,19 @@ class _ChatPage2State extends State<ChatPage> {
                                       .colorScheme
                                       .inversePrimary,
                                   child: MessageWidget(
-                                      key: ObjectKey('msg:${message.id}'),
-                                      myAavtar: myAavtar,
-                                      contact: contact,
-                                      index: index,
-                                      isGroup: isGroup,
-                                      roomMember: rm,
-                                      chatController: controller,
-                                      screenWidth: screenWidth,
-                                      backgroundColor: message.isMeSend
-                                          ? const Color(0xffefdbff)
-                                          : defaultBackgroundColor,
-                                      fontColor: message.isMeSend
-                                          ? Colors.black87
-                                          : defaultFontColor));
+                                    key: ObjectKey('msg:${message.id}'),
+                                    myAavtar: myAavtar,
+                                    contact: contact,
+                                    index: index,
+                                    isGroup: isGroup,
+                                    roomMember: rm,
+                                    chatController: controller,
+                                    screenWidth: screenWidth,
+                                    backgroundColor: message.isMeSend
+                                        ? meBackgroundColor
+                                        : toBackgroundColor,
+                                    fontColor: fontColor,
+                                  ));
                             },
                           ))),
                     ))),

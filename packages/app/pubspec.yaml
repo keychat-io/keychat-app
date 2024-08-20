@@ -81,14 +81,9 @@ dependencies:
   crypto: ^3.0.3
   sentry_flutter: ^8.4.0
   app_badge_plus: ^1.1.1
-<<<<<<< HEAD
-  web_socket_channel: ^2.4.5
-  flutter_secure_storage: ^9.2.2
-=======
   web_socket_channel: ^3.0.1
   flutter_secure_storage: ^9.2.2
   avatar_plus: ^0.0.4
->>>>>>> dev
 
 dev_dependencies:
   flutter_test:

@@ -35,7 +35,7 @@ class KdfGroupService extends BaseChatService {
   // Avoid self instance
   KdfGroupService._();
   static KdfGroupService get instance => _instance ??= KdfGroupService._();
-
+  static int prekeyMessageCount = 5;
   Future joinGroup() async {}
 
   Future leaveGroup() async {}
@@ -51,7 +51,10 @@ class KdfGroupService extends BaseChatService {
       Function(bool)? sentCallback}) async {
     Identity identity = room.getIdentity();
     ChatxService cs = Get.find<ChatxService>();
-
+    RoomMember? meMember =
+        await room.getMemberByNostrPubkey(identity.secp256k1PKHex);
+    meMember ??= await room.createMember(
+        identity.secp256k1PKHex, identity.displayName, UserStatusType.invited);
     String message0 = message;
     SignalId sharedSignalID = room.getGroupSharedSignalId();
     KeychatIdentityKeyPair keyPair = await cs.getKeyPairByIdentity(identity);
@@ -61,7 +64,11 @@ class KdfGroupService extends BaseChatService {
         keyPair: keyPair);
     if (kpa == null) throw Exception('kdf group session not found');
     PrekeyMessageModel? pmm;
+    if (meMember!.messageCount < prekeyMessageCount) {
+      notPrekey = false;
+    }
     if (!notPrekey) {
+      logger.d('send prekey message ${meMember.messageCount}');
       pmm = await SignalChatUtil.getSignalPrekeyMessageContent(
           room, identity, message);
     }
@@ -80,105 +87,17 @@ class KdfGroupService extends BaseChatService {
         content: encryptedContent);
 
     var randomAccount = await rustNostr.generateSimple();
+
     return await NostrAPI().sendNip4Message(room.toMainPubkey, unEncryptedEvent,
         prikey: randomAccount.prikey,
         from: randomAccount.pubkey,
         room: room,
         encryptType: MessageEncryptType.nip4WrapSignal,
-        save: save,
-        realMessage: realMessage ?? message0);
-
-    // NostrEventModel event =
-    //     NostrEventModel.fromJson(jsonDecode(unEncryptedEvent), verify: false);
-
-    // List<String> relays = await Get.find<WebsocketService>().writeNostrEvent(
-    //     event: event,
-    //     eventString: unEncryptedEvent,
-    //     roomId: room.id,
-    //     sentCallback: sentCallback);
-
-    // if (!save) {
-    //   return SendMessageResponse(
-    //       relays: relays, events: [event], message: null);
-    // }
-
-    // await DBProvider().saveMyEventLog(event: event, relays: relays);
-    // Message? model = await MessageService().saveMessageToDB(
-    //     events: [event],
-    //     room: room,
-    //     reply: reply,
-    //     content: message,
-    //     from: identity.secp256k1PKHex,
-    //     idPubkey: identity.secp256k1PKHex,
-    //     to: room.toMainPubkey,
-    //     realMessage: realMessage,
-    //     isMeSend: true,
-    //     encryptType: MessageEncryptType.signal,
-    //     mediaType: mediaType,
-    //     isRead: true);
-
-    // return SendMessageResponse(relays: relays, events: [event], message: model);
+        save: false,
+        mediaType: mediaType,
+        sourceContent: message0,
+        realMessage: realMessage);
   }
-
-  // Future<SendMessageResponse> sendFeatureMessage(Room room, String message,
-  //     {MessageMediaType? mediaType,
-  //     bool save = true,
-  //     MsgReply? reply,
-  //     String? realMessage,
-  //     int? subtype,
-  //     String? ext,
-  //     Function(bool)? sentCallback}) async {
-  //   Mykey roomKey = room.mykey.value!;
-
-  //   GroupMessage gm = RoomUtil.getGroupMessage(room, message,
-  //       pubkey: '', reply: reply, subtype: subtype, ext: ext);
-  //   String subEncryptedEvent = await rustNostr.getEncryptEvent(
-  //       senderKeys: room.getIdentity().secp256k1SKHex,
-  //       receiverPubkey: roomKey.pubkey,
-  //       content: gm.toString());
-
-  //   KeychatMessage km = KeychatMessage(
-  //       c: MessageType.group,
-  //       type: KeyChatEventKinds.groupSharedKeyMessage,
-  //       msg: subEncryptedEvent);
-
-  //   String encryptedEvent = await rustNostr.getEncryptEvent(
-  //       senderKeys: roomKey.prikey,
-  //       receiverPubkey: roomKey.pubkey,
-  //       content: km.toString());
-
-  //   NostrEventModel event =
-  //       NostrEventModel.fromJson(jsonDecode(encryptedEvent), verify: false);
-
-  //   List<String> relays = await Get.find<WebsocketService>().writeNostrEvent(
-  //       event: event,
-  //       encryptedEvent: encryptedEvent,
-  //       roomId: room.id,
-  //       sentCallback: sentCallback);
-
-  //   Message? model;
-  //   if (subtype == null && ext == null) {
-  //     await DBProvider().saveMyEventLog(event: event, relays: relays);
-  //     Identity identity = room.getIdentity();
-
-  //     model = await MessageService().saveMessageToDB(
-  //         events: [event],
-  //         room: room,
-  //         reply: reply,
-  //         content: message,
-  //         from: identity.secp256k1PKHex,
-  //         idPubkey: identity.secp256k1PKHex,
-  //         to: room.toMainPubkey,
-  //         realMessage: realMessage,
-  //         isMeSend: true,
-  //         encryptType: MessageEncryptType.nip4WrapNip4,
-  //         mediaType: mediaType,
-  //         isRead: true);
-  //   }
-  //   return SendMessageResponse(relays: relays, events: [event], message: model);
-  // }
-
-  Future getGroupMembers() async {}
 
   @override
   Future processMessage(
@@ -218,7 +137,8 @@ class KdfGroupService extends BaseChatService {
     if (fromMember.curve25519PkHex == null) {
       await fromMember.updateCurve25519PkHex(signalIdPubkey);
     }
-    var (plaintext, _, _) = await rustSignal.decryptSignal(
+    room.checkAndCleanSignalKeys();
+    var (plaintext, msgKeyHash, _) = await rustSignal.decryptSignal(
         keyPair: keyPair,
         ciphertext: ciphertext,
         remoteAddress: KeychatProtocolAddress(
@@ -226,6 +146,7 @@ class KdfGroupService extends BaseChatService {
             deviceId: getKDFRoomIdentityForShared(room.id)),
         roomId: 0,
         isPrekey: true);
+
     String decryptedContent = utf8.decode(plaintext);
     PrekeyMessageModel? prekeyMessageModel;
     KeychatMessage? km;
@@ -239,13 +160,24 @@ class KdfGroupService extends BaseChatService {
           prekeyMessageModel, room.toMainPubkey);
       try {
         km = KeychatMessage.fromJson(jsonDecode(prekeyMessageModel.message));
+        // ignore: empty_catches
       } catch (e) {}
+      if (km != null) {
+        return await processMessage(
+            room: room,
+            km: km,
+            msgKeyHash: msgKeyHash,
+            event: event,
+            sourceEvent: sourceEvent,
+            relay: relay);
+      }
     }
 
     await RoomService().receiveDM(room, event,
         sourceEvent: sourceEvent,
         km: km,
         decodedContent: prekeyMessageModel?.message ?? decryptedContent,
+        msgKeyHash: msgKeyHash,
         realMessage: km?.msg);
     return;
   }
@@ -269,7 +201,7 @@ class KdfGroupService extends BaseChatService {
     RoomMember? roomMember = await room.getMemberByNostrPubkey(from);
 
     if (roomMember == null) throw Exception('roomMember is null');
-
+    room.incrMessageCountForMemeber(roomMember);
     if (roomMember.curve25519PkHex == null) {
       return await decryptPreKeyMessage(
           fromMember: roomMember,
@@ -336,30 +268,41 @@ class KdfGroupService extends BaseChatService {
 
     String decodeString = utf8.decode(plaintext);
 
-    Map<String, dynamic> decodedContent;
+    // try km message
+    Map<String, dynamic>? decodedContentMap;
     KeychatMessage? km;
     try {
-      decodedContent = jsonDecode(decodeString);
-      km = KeychatMessage.fromJson(decodedContent);
-      // ignore: empty_catches
+      decodedContentMap = jsonDecode(decodeString);
+      km = KeychatMessage.fromJson(decodedContentMap!);
     } catch (e) {}
-
     if (km != null) {
-      await processMessage(
+      return await processMessage(
           room: room,
           km: km,
           msgKeyHash: msgKeyHash,
           event: signalEvent,
           sourceEvent: nostrEvent,
           relay: relay);
-      return decodeString;
     }
+
+    // try prekey message
+    PrekeyMessageModel? prekeyMessageModel;
+    if (decodedContentMap != null && km == null) {
+      try {
+        prekeyMessageModel = PrekeyMessageModel.fromJson(decodedContentMap);
+        logger.i('decryptPreKeyMessage, plainrtext: $prekeyMessageModel');
+        // ignore: empty_catches
+      } catch (e) {}
+      if (prekeyMessageModel != null) {
+        await SignalChatUtil.verifyPrekeyMessage(
+            prekeyMessageModel, room.toMainPubkey);
+      }
+    }
+
     await RoomService().receiveDM(room, signalEvent,
-        decodedContent: nip4DecodedContent,
-        realMessage: decodeString,
+        decodedContent: prekeyMessageModel?.message ?? decodeString,
         sourceEvent: nostrEvent,
         msgKeyHash: msgKeyHash);
-    return decodeString;
   }
 
   int getKDFRoomIdentityForShared(int identityId) => 10000 + identityId;
@@ -407,13 +350,24 @@ class KdfGroupService extends BaseChatService {
       NostrEventModel? sourceEvent) async {
     if (km.name == null) return;
 
+    // update room member
+    RoomMember? rm = await room.getMemberByIdPubkey(event.pubkey);
+    rm ??=
+        await room.createMember(event.pubkey, km.name!, UserStatusType.invited);
+    if (rm != null) {
+      if (rm.status != UserStatusType.invited) {
+        rm.status = UserStatusType.invited;
+        rm.name = km.name!;
+        await room.updateMember(rm);
+        RoomService.getController(room.id)?.resetMembers();
+      }
+    }
+
+    // receive message
     await RoomService().receiveDM(room, event,
         sourceEvent: sourceEvent,
         km: km,
         decodedContent: km.toString(),
         realMessage: km.msg);
-    // QRUserModel um = QRUserModel.fromJson(jsonDecode(km.name!));
-
-    // TODO update contact name
   }
 }

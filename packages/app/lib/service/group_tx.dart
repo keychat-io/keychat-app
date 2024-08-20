@@ -2,6 +2,7 @@ import 'package:app/global.dart';
 import 'package:app/models/db_provider.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/models/keychat/room_profile.dart';
+import 'package:app/models/message.dart';
 import 'package:app/models/mykey.dart';
 import 'package:app/models/room.dart';
 import 'package:app/models/room_member.dart';
@@ -9,7 +10,6 @@ import 'package:app/models/room_member.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/signalId.service.dart';
 import 'package:app/service/websocket.service.dart';
-import 'package:app/utils.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
@@ -92,7 +92,6 @@ class GroupTx {
       me.status = UserStatusType.invited;
       await DBProvider.database.roomMembers.put(me);
     }
-    logger.d('me?.status ${me?.status.name}');
     if (room.isShareKeyGroup || room.isKDFGroup) {
       await Get.find<WebsocketService>()
           .listenPubkey([toMainPubkey], limit: 300);
@@ -109,7 +108,8 @@ class GroupTx {
     return room;
   }
 
-  Future joinGroup(RoomProfile roomProfile, Identity identity) async {
+  Future joinGroup(RoomProfile roomProfile, Identity identity,
+      [Message? message]) async {
     String? toRoomPriKey = roomProfile.prikey;
     String groupName = roomProfile.name;
     String groupRelay = roomProfile.groupRelay ?? KeychatGlobal.defaultRelay;
@@ -138,6 +138,10 @@ class GroupTx {
 
     // import signalId for kdf group
     if (groupRoom.isKDFGroup && roomProfile.signalPubkey != null) {
+      if (message != null) {
+        message.content = "******";
+        await DBProvider.database.messages.put(message);
+      }
       await SignalIdService.instance
           .importSignalId(groupRoom.identityId, roomProfile);
     }

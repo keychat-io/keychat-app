@@ -26,17 +26,16 @@ class MessageService {
   MessageService._internal();
 
   Future saveMessageModel(Message model, [bool persist = true]) async {
+    if (!model.isMeSend) {
+      model.receiveAt = DateTime.now();
+    }
     if (!model.isRead) {
       bool isCurrentPage = dbProvider.isCurrentPage(model.roomId);
       if (isCurrentPage) model.isRead = true;
     }
-    // cashuA
-    if (model.mediaType == MessageMediaType.cashuA ||
-        model.content.startsWith('cashu')) {
-      model = await _cashuAInfo(model);
-    } else if (!model.isMeSend) {
-      model = await _fillTypeForMessage(model);
-    }
+    // none text type: media, file, cashu...
+    model = await _fillTypeForMessage(model);
+
     if (persist) {
       await DBProvider.database.writeTxn(() async {
         await DBProvider.database.messages.put(model);
@@ -493,6 +492,11 @@ class MessageService {
   }
 
   Future<Message> _fillTypeForMessage(Message m) async {
+    // cashuA
+    if (m.mediaType == MessageMediaType.cashuA ||
+        m.content.startsWith('cashu')) {
+      return await _cashuAInfo(m);
+    }
     if (m.realMessage != null) return m;
 
     // image

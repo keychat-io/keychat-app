@@ -3,7 +3,9 @@ import 'dart:convert' show jsonDecode;
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr_event.dart';
+import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/routes.dart';
+import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/signalId.service.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
 import 'package:app/service/chat.service.dart';
@@ -652,7 +654,10 @@ class RoomService extends BaseChatService {
         return await groupService.sendToAllMessage(room, message,
             reply: reply, realMessage: realMessage, mediaType: mediaType);
       case GroupType.kdf:
-        return await KdfGroupService.instance.sendMessage(room, message,
+        String sm =
+            KeychatMessage.getTextMessage(MessageType.signal, message, reply);
+
+        return await KdfGroupService.instance.sendMessage(room, sm,
             reply: reply, realMessage: realMessage, mediaType: mediaType);
       default:
     }

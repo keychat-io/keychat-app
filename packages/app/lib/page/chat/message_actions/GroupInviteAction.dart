@@ -54,8 +54,8 @@ class GroupInviteAction extends StatelessWidget {
                   Isar database = DBProvider.database;
                   await database.writeTxn(() async {
                     await database.messages.put(message);
-                    groupRoom =
-                        await GroupTx().joinGroup(roomProfile, identity);
+                    groupRoom = await GroupTx()
+                        .joinGroup(roomProfile, identity, message);
                   });
                   if (groupRoom == null) {
                     EasyLoading.dismiss();

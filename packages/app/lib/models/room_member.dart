@@ -33,6 +33,7 @@ class RoomMember extends Equatable {
 
   @JsonKey(includeToJson: false, includeFromJson: false)
   bool isCheck = false;
+  int messageCount = 0;
 
   RoomMember(
       {required this.idPubkey, required this.roomId, required this.name}) {

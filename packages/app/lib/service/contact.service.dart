@@ -1,6 +1,7 @@
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
+import 'package:app/service/notify.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
@@ -62,13 +63,44 @@ class ContactService {
 
   Future deleteContact(Contact contact) async {
     Isar database = DBProvider.database;
-
     await database.writeTxn(() async {
       await database.contacts.filter().idEqualTo(contact.id).deleteFirst();
     });
   }
 
-  void deleteReceiveKey(
+  Future deleteContactByPubkey(String pubkey, int identity) async {
+    Isar database = DBProvider.database;
+    Contact? contact = await getContact(identity, pubkey);
+    if (contact == null) return;
+    await database.writeTxn(() async {
+      await database.contacts.filter().idEqualTo(contact.id).deleteFirst();
+    });
+  }
+
+  Future deleteContactReceiveKeys(Contact contact) async {
+    Isar database = DBProvider.database;
+    ContactReceiveKey? model = await database.contactReceiveKeys
+        .filter()
+        .pubkeyEqualTo(contact.pubkey)
+        .identityIdEqualTo(contact.identityId)
+        .findFirst();
+    if (model == null) return;
+
+    await database.writeTxn(() async {
+      await database.contactReceiveKeys
+          .filter()
+          .pubkeyEqualTo(contact.pubkey)
+          .identityIdEqualTo(contact.identityId)
+          .deleteAll();
+    });
+    List<String> pubkeys = [...model.receiveKeys, ...model.removeReceiveKeys];
+    if (model.receiveKeys.isNotEmpty || model.removeReceiveKeys.isNotEmpty) {
+      Get.find<WebsocketService>().removePubkeysFromSubscription(pubkeys);
+      NotifyService.removePubkeys(pubkeys);
+    }
+  }
+
+  Future deleteReceiveKey(
       int identityId, String toMainPubkey, String pubkey) async {
     await myReceiveKeyMutex.acquire();
     try {

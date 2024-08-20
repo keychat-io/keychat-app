@@ -5,6 +5,10 @@ packages:
   - shared/**
   - packages/**
 
+ignore:
+  - packages/app/build/**
+  - packages/keychat_rust_ffi_plugin/cargokit/**
+
 scripts:
   postclean:
     run: melos run clean:flutter --no-select

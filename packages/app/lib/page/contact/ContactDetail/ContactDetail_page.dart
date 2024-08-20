@@ -1,11 +1,9 @@
 import 'dart:ui' show ImageFilter;
 
 import 'package:app/controller/chat.controller.dart';
-import 'package:app/controller/home.controller.dart';
 import 'package:app/models/contact.dart';
 import 'package:app/models/room.dart';
 import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/page/routes.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/utils.dart';
@@ -215,30 +213,10 @@ class ContactDetailPage extends GetView<ContactDetailController> {
                     child: const Text(
                       'Delete',
                     ),
-                    onPressed: () async {
-                      Room? room;
-                      try {
-                        EasyLoading.show(status: 'Loading...');
-                        await ContactService()
-                            .deleteContact(controller.contact.value);
-                        room = await RoomService().getRoomByIdentity(
-                            controller.contact.value.pubkey,
-                            controller.contact.value.identityId);
-                        if (room != null) {
-                          await RoomService().deleteRoom(room);
-
-                          EasyLoading.showSuccess('Deleted');
-                        }
-                      } catch (e, s) {
-                        logger.e(e.toString(), error: s, stackTrace: s);
-                        EasyLoading.showError(e.toString());
-                        return;
-                      }
-                      if (room != null) {
-                        await Get.find<HomeController>()
-                            .loadIdentityRoomList(room.identityId);
-                        await Get.offAllNamed(Routes.root);
-                      }
+                    onPressed: () {
+                      RoomService().deleteRoomHandler(
+                          controller.contact.value.pubkey,
+                          controller.contact.value.identityId);
                     }),
               ],
             ));

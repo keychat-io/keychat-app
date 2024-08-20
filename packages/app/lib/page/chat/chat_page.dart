@@ -187,7 +187,7 @@ class _ChatPage2State extends State<ChatPage> {
                                       chatController: controller,
                                       screenWidth: screenWidth,
                                       backgroundColor: message.isMeSend
-                                          ? const Color(0xFFd1e3ff)
+                                          ? const Color(0xffefdbff)
                                           : defaultBackgroundColor,
                                       fontColor: message.isMeSend
                                           ? Colors.black87

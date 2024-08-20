@@ -235,6 +235,15 @@ class WebsocketService extends GetxService {
     }
   }
 
+  removePubkeysFromSubscription(List<String> keys) {
+    for (RelayWebsocket rw in channels.values) {
+      for (var entry in rw.subscriptions.entries) {
+        rw.subscriptions[entry.key]?.removeAll(keys);
+        break;
+      }
+    }
+  }
+
   void updateRelayWidget(Relay value) {
     if (channels[value.url] != null) {
       if (!value.active) {

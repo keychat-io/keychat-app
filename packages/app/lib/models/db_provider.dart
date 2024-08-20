@@ -45,8 +45,6 @@ class DBProvider {
       await Storage.setInt(StorageKeyString.dbVersion, 30);
       return;
     }
-    Map<String, String> allValues = await SecureStorage.instance.readAll();
-    logger.d(allValues);
 
     switch (currentVersion) {
       case 0:

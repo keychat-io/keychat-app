@@ -175,9 +175,7 @@ class _AddGroupPageState extends State<AddGroupPage>
                               Get.to(() =>
                                   AddGroupSelectMember(groupName, groupType));
                             },
-                            child: const Text(
-                              'Next',
-                            ))),
+                            child: const Text('Next'))),
                   ]))),
         ));
   }

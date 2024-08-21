@@ -166,14 +166,4 @@ class SignalIdService {
 
     return signalId;
   }
-
-  Future remove(String s, int identity) async {
-    await DBProvider.database.writeTxn(() async {
-      await DBProvider.database.signalIds
-          .filter()
-          .identityIdEqualTo(identity)
-          .pubkeyEqualTo(s)
-          .deleteAll();
-    });
-  }
 }

@@ -124,7 +124,7 @@ class _AddGroupSelectMemberState extends State<AddGroupSelectMember>
           actions: [
             TextButton(
                 onPressed: () => EasyThrottle.throttle('_completeToCreatGroup',
-                    const Duration(seconds: 2), _completeToCreatGroup),
+                    const Duration(seconds: 4), _completeToCreatGroup),
                 child: const Text("Create Group"))
           ],
         ),

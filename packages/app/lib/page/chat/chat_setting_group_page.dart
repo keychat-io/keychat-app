@@ -523,7 +523,8 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                     : await groupService
                         .exitGroup(chatController.roomObs.value);
                 EasyLoading.showSuccess('Success');
-              } catch (e) {
+              } catch (e, s) {
+                logger.e(e.toString(), error: e, stackTrace: s);
                 EasyLoading.showError(e.toString());
                 return;
               }

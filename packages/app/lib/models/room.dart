@@ -1,4 +1,5 @@
 import 'package:app/controller/home.controller.dart';
+import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 
 import 'package:app/models/signal_id.dart';
@@ -465,11 +466,12 @@ class Room extends Equatable {
     });
   }
 
-  // clear keys. if all member has kpa
+  // clear keys. if receive all member's prekey message
   Future checkAndCleanSignalKeys() async {
     int count = await DBProvider.database.roomMembers
         .filter()
         .roomIdEqualTo(id)
+        .messageCountLessThan(KeychatGlobal.kdfGroupPrekeyMessageCount + 2)
         .count();
     if (count > 0) return;
     if (sharedSignalID == null) return;

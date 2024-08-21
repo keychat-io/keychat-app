@@ -216,11 +216,8 @@ class KdfGroupService extends BaseChatService {
     RoomMember? roomMember = await room.getMemberByNostrPubkey(from);
 
     if (roomMember == null) throw Exception('roomMember is null');
-    // send same prekey message to group, in case other member not create session
-    if (from == room.getIdentity().secp256k1PKHex &&
-        roomMember.messageCount < KeychatGlobal.kdfGroupPrekeyMessageCount) {
-      room.incrMessageCountForMemeber(roomMember);
-    }
+    room.incrMessageCountForMemeber(roomMember);
+
     if (roomMember.curve25519PkHex == null) {
       return await decryptPreKeyMessage(
           fromMember: roomMember,

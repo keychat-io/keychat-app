@@ -58,7 +58,6 @@ class GroupInviteAction extends StatelessWidget {
                         .joinGroup(roomProfile, identity, message);
                   });
                   if (groupRoom == null) {
-                    EasyLoading.dismiss();
                     EasyLoading.showError('Join group failed');
                     return;
                   }

@@ -5,6 +5,7 @@
 
 import 'dart:convert' show base64, base64Decode, jsonDecode, utf8;
 import 'dart:typed_data' show Uint8List;
+import 'package:app/global.dart';
 import 'package:app/models/keychat/prekey_message_model.dart';
 import 'package:app/models/room_member.dart';
 import 'package:app/nostr-core/nostr.dart';
@@ -35,7 +36,6 @@ class KdfGroupService extends BaseChatService {
   // Avoid self instance
   KdfGroupService._();
   static KdfGroupService get instance => _instance ??= KdfGroupService._();
-  static int prekeyMessageCount = 5;
   Future joinGroup() async {}
 
   Future leaveGroup() async {}
@@ -64,11 +64,11 @@ class KdfGroupService extends BaseChatService {
         keyPair: keyPair);
     if (kpa == null) throw Exception('kdf group session not found');
     PrekeyMessageModel? pmm;
-    if (meMember!.messageCount < prekeyMessageCount) {
+    if (meMember!.messageCount < KeychatGlobal.kdfGroupPrekeyMessageCount) {
       notPrekey = false;
     }
     if (!notPrekey) {
-      logger.d('send prekey message ${meMember.messageCount}');
+      logger.d('prekey message, count: ${meMember.messageCount}');
       pmm = await SignalChatUtil.getSignalPrekeyMessageContent(
           room, identity, message);
     }
@@ -108,12 +108,23 @@ class KdfGroupService extends BaseChatService {
       required KeychatMessage km,
       required Relay relay}) async {
     switch (km.type) {
-      case KeyChatEventKinds.dm: // commom chat, may be contain: reply
-        await RoomService().receiveDM(room, event,
-            sourceEvent: sourceEvent, km: km, msgKeyHash: msgKeyHash);
-        break;
       case KeyChatEventKinds.kdfHelloMessage:
         await _processHelloMessage(room, event, km, sourceEvent);
+        break;
+      case KeyChatEventKinds.groupExist:
+        // self exit group
+        if (event.pubkey == room.myIdPubkey) {
+          return;
+        }
+        await room.removeMember(event.pubkey);
+        RoomService.getController(room.id)?.resetMembers();
+        RoomService().receiveDM(room, event,
+            sourceEvent: sourceEvent, realMessage: km.msg);
+        break;
+
+      case KeyChatEventKinds.groupDissolve:
+        room.status = RoomStatus.dissolved;
+        await RoomService().updateRoom(room);
         break;
 
       default:
@@ -134,10 +145,7 @@ class KdfGroupService extends BaseChatService {
     var prekey = await rustSignal.parseIdentityFromPrekeySignalMessage(
         ciphertext: ciphertext);
     String signalIdPubkey = prekey.$1;
-    if (fromMember.curve25519PkHex == null) {
-      await fromMember.updateCurve25519PkHex(signalIdPubkey);
-    }
-    room.checkAndCleanSignalKeys();
+
     var (plaintext, msgKeyHash, _) = await rustSignal.decryptSignal(
         keyPair: keyPair,
         ciphertext: ciphertext,
@@ -146,7 +154,14 @@ class KdfGroupService extends BaseChatService {
             deviceId: getKDFRoomIdentityForShared(room.id)),
         roomId: 0,
         isPrekey: true);
+    // update room member
+    if (fromMember.curve25519PkHex == null) {
+      fromMember.curve25519PkHex = signalIdPubkey;
+      await room.updateMember(fromMember);
+      room.checkAndCleanSignalKeys();
+    }
 
+    // process message
     String decryptedContent = utf8.decode(plaintext);
     PrekeyMessageModel? prekeyMessageModel;
     KeychatMessage? km;
@@ -163,7 +178,7 @@ class KdfGroupService extends BaseChatService {
         // ignore: empty_catches
       } catch (e) {}
       if (km != null) {
-        return await processMessage(
+        return await km.service.processMessage(
             room: room,
             km: km,
             msgKeyHash: msgKeyHash,
@@ -201,7 +216,11 @@ class KdfGroupService extends BaseChatService {
     RoomMember? roomMember = await room.getMemberByNostrPubkey(from);
 
     if (roomMember == null) throw Exception('roomMember is null');
-    room.incrMessageCountForMemeber(roomMember);
+    // send same prekey message to group, in case other member not create session
+    if (from == room.getIdentity().secp256k1PKHex &&
+        roomMember.messageCount < KeychatGlobal.kdfGroupPrekeyMessageCount) {
+      room.incrMessageCountForMemeber(roomMember);
+    }
     if (roomMember.curve25519PkHex == null) {
       return await decryptPreKeyMessage(
           fromMember: roomMember,
@@ -213,7 +232,6 @@ class KdfGroupService extends BaseChatService {
           relay: relay,
           eventLog: eventLog);
     }
-
     rustSignal.KeychatProtocolAddress? kpa = await Get.find<ChatxService>()
         .getSignalSession(
             sharedSignalRoomId: getKDFRoomIdentityForShared(room.id),
@@ -276,7 +294,7 @@ class KdfGroupService extends BaseChatService {
       km = KeychatMessage.fromJson(decodedContentMap!);
     } catch (e) {}
     if (km != null) {
-      return await processMessage(
+      return await km.service.processMessage(
           room: room,
           km: km,
           msgKeyHash: msgKeyHash,
@@ -285,7 +303,7 @@ class KdfGroupService extends BaseChatService {
           relay: relay);
     }
 
-    // try prekey message
+    // try prekey struct message
     PrekeyMessageModel? prekeyMessageModel;
     if (decodedContentMap != null && km == null) {
       try {
@@ -296,6 +314,21 @@ class KdfGroupService extends BaseChatService {
       if (prekeyMessageModel != null) {
         await SignalChatUtil.verifyPrekeyMessage(
             prekeyMessageModel, room.toMainPubkey);
+
+        // try km message
+        try {
+          decodedContentMap = jsonDecode(prekeyMessageModel.message);
+          km = KeychatMessage.fromJson(decodedContentMap!);
+        } catch (e) {}
+        if (km != null) {
+          return await km.service.processMessage(
+              room: room,
+              km: km,
+              msgKeyHash: msgKeyHash,
+              event: signalEvent,
+              sourceEvent: nostrEvent,
+              relay: relay);
+        }
       }
     }
 
@@ -338,7 +371,7 @@ class KdfGroupService extends BaseChatService {
         signalId.pubkey, signalId.keys!, getKDFRoomIdentityForShared(room.id));
     // send hello message
     KeychatMessage sm = KeychatMessage(
-        c: MessageType.signal, type: KeyChatEventKinds.kdfHelloMessage)
+        c: MessageType.kdfGroup, type: KeyChatEventKinds.kdfHelloMessage)
       ..name = identity.displayName
       ..msg = '${identity.displayName} joined group';
 

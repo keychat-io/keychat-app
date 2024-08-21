@@ -1,4 +1,3 @@
-import 'package:app/models/db_provider.dart';
 import 'package:equatable/equatable.dart';
 import 'package:isar/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -17,6 +16,7 @@ class RoomMember extends Equatable {
   @Index(unique: true, composite: [CompositeIndex('roomId')])
   late String idPubkey; // secp256k1
 
+  @JsonKey(includeToJson: false, includeFromJson: false)
   String? curve25519PkHex;
 
   late int roomId;
@@ -49,13 +49,4 @@ class RoomMember extends Equatable {
   @override
   List<Object?> get props =>
       [id, roomId, idPubkey, name, isAdmin, status, createdAt, updatedAt];
-
-  Future<RoomMember> updateCurve25519PkHex(String signalIdPubkey) async {
-    curve25519PkHex = signalIdPubkey;
-    Isar database = DBProvider.database;
-    await database.writeTxn(() async {
-      await database.roomMembers.put(this);
-    });
-    return this;
-  }
 }

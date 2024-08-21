@@ -358,7 +358,7 @@ class MessageWidget extends StatelessWidget {
                     child: const Text('Resend'),
                     onPressed: () async {
                       Get.back();
-                      // 如果resend reply content 是个JSON, 需要解析成reply的结构
+
                       if (message.reply != null) {
                         Identity identity = Get.find<HomeController>()
                             .identities[chatController.room.identityId]!;
@@ -434,7 +434,7 @@ class MessageWidget extends StatelessWidget {
   }
 
   Future _handleShowRawdata(BuildContext context) async {
-    Get.back(); // 关闭 popup
+    Get.back();
     if (message.eventIds.isEmpty) {
       EasyLoading.showInfo('Metadata Cleaned');
       return;
@@ -472,7 +472,6 @@ class MessageWidget extends StatelessWidget {
         fullscreenDialog: true, transition: Transition.fadeIn);
   }
 
-  // 消息正文，状态和 icon
   Widget myTextContainer() {
     Widget? messageStatus = getMessageStatus();
     return Container(
@@ -505,7 +504,7 @@ class MessageWidget extends StatelessWidget {
       TableCell(
           child: Padding(
               padding:
-                  const EdgeInsets.only(left: 10, right: 5, top: 10, bottom: 5),
+                  const EdgeInsets.only(left: 10, right: 4, top: 8, bottom: 4),
               child: Text(
                 title,
               ))),
@@ -723,7 +722,6 @@ class MessageWidget extends StatelessWidget {
     return _textCallback('[Image Crashed]');
   }
 
-  //删除对话框
   Future<void> _showDeleteDialog(Message message) async {
     Get.dialog(CupertinoAlertDialog(
       title: const Text('Delete This Message?'),
@@ -773,11 +771,11 @@ class MessageWidget extends StatelessWidget {
   }
 
   Map encryptText = {
-    'signal': 'Signal-Double-Ratchet-Algorithm',
+    'signal': 'Signal Protocol',
     'nip4': 'NIP4',
     'nip17': 'NIP17',
     'nip4WrapNip4': 'NIP4(NIP4(raw message))',
-    'nip4WrapSignal': 'NIP4(Signal-Double-Ratchet-Algorithm(raw message))'
+    'nip4WrapSignal': 'NIP4(Signal Protocol(raw message))'
   };
   _showRawData(Message message, NostrEventModel event, List<EventLog> eventLogs,
       [List<MessageBill> bills = const []]) {
@@ -816,14 +814,16 @@ class MessageWidget extends StatelessWidget {
                               //     TableBorder.all(width: 0.5, color: Colors.grey.shade400),
                               children: [
                             tableRow("ID", event.id),
-                            tableRow("Source Content", message.content),
-                            tableRow("Encrypted Content", event.content),
                             tableRow("From", event.pubkey),
                             tableRow("To", event.tags[0][1]),
                             tableRow(
                                 "Time",
                                 timestampToDateTime(event.createdAt)
                                     .toString()),
+                            tableRow("Source Content", message.content),
+                            if (message.subEvent != null)
+                              tableRow("Sub Event", message.subEvent!),
+                            tableRow("Encrypted Content", event.content),
                             if (message.msgKeyHash != null)
                               tableRow("Encryption Keys Hash",
                                   message.msgKeyHash ?? ''),
@@ -881,7 +881,7 @@ class MessageWidget extends StatelessWidget {
                                     color: Colors.green)
                                 : const Icon(Icons.error_outline,
                                     color: Colors.red),
-                            const SizedBox(width: 10), //增加空白间距
+                            const SizedBox(width: 10),
                             Text('To: ${rm?.name ?? idPubkey}'),
                           ],
                         ),
@@ -927,7 +927,7 @@ class MessageWidget extends StatelessWidget {
         : '[${message.mediaType.name}]';
     Room? forwardRoom = await Get.to(() => ForwardSelectRoom(rooms, content),
         fullscreenDialog: true, transition: Transition.downToUp);
-    Get.back(); // close popup
+    Get.back();
     if (forwardRoom == null) return;
     EasyLoading.show(status: 'Sending...');
     if (message.mediaType == MessageMediaType.text) {

@@ -60,10 +60,6 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
     super.dispose();
   }
 
-  void _deleteAndExist(BuildContext context) {
-    Get.dialog(_exitGroup(context));
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -108,8 +104,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                       ),
                   ]),
                   payToRelaySection(),
-                  if (chatController.roomObs.value.isShareKeyGroup)
-                    receiveInPostOffice(),
+                  // receiveInPostOffice(),
                   dangerZoom(context)
                 ],
               )),
@@ -399,21 +394,20 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
       tiles: [
         RoomUtil.autoCleanMessage(chatController),
         RoomUtil.clearHistory(chatController),
-        if (!chatController.room.isKDFGroup)
-          SettingsTile(
-            leading: const Icon(
-              CupertinoIcons.trash,
-              color: Colors.pink,
-            ),
-            title: Text(
-                chatController.meMember.value.isAdmin
-                    ? "Delete Group"
-                    : "Leave",
-                style: const TextStyle(color: Colors.pink)),
-            onPressed: (context) {
-              _deleteAndExist(context);
-            },
+        SettingsTile(
+          leading: const Icon(
+            CupertinoIcons.trash,
+            color: Colors.pink,
           ),
+          title: Text(
+              chatController.meMember.value.isAdmin
+                  ? "Delete Group"
+                  : "Leave Group",
+              style: const TextStyle(color: Colors.pink)),
+          onPressed: (context) {
+            Get.dialog(_exitGroup(context));
+          },
+        ),
       ],
     );
   }
@@ -502,23 +496,6 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
     ));
   }
 
-  Widget deleteAndExist(BuildContext context) {
-    return InkWell(
-      onTap: () {
-        _deleteAndExist(context);
-      },
-      child: Container(
-        width: double.infinity,
-        alignment: Alignment.center,
-        margin: const EdgeInsets.only(top: 12, bottom: 12),
-        child: Text(
-          chatController.meMember.value.isAdmin ? "Delete group" : "Leave",
-          style: const TextStyle(fontSize: 20, color: Colors.red),
-        ),
-      ),
-    );
-  }
-
   Widget _exitGroup(BuildContext context) {
     return CupertinoAlertDialog(
       title: Text(chatController.meMember.value.isAdmin ? "Delete?" : "Leave?"),
@@ -545,14 +522,14 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                         .dissolveGroup(chatController.roomObs.value)
                     : await groupService
                         .exitGroup(chatController.roomObs.value);
-                await Get.find<HomeController>()
-                    .loadIdentityRoomList(room.identityId);
-                Get.offAllNamed(Routes.root);
+                EasyLoading.showSuccess('Success');
               } catch (e) {
                 EasyLoading.showError(e.toString());
-              } finally {
-                EasyLoading.dismiss();
+                return;
               }
+              await Get.find<HomeController>()
+                  .loadIdentityRoomList(room.identityId);
+              Get.offAllNamed(Routes.root);
             }),
       ],
     );

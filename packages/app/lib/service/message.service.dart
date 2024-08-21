@@ -83,6 +83,7 @@ class MessageService {
       required MessageEncryptType encryptType,
       bool persist = true,
       String? realMessage,
+      String? subEvent,
       MsgReply? reply,
       SendStatusType sent = SendStatusType.sending,
       MessageMediaType? mediaType,
@@ -107,7 +108,8 @@ class MessageService {
         encryptType: encryptType,
         msgKeyHash: msgKeyHash,
         createdAt: DateTime.fromMillisecondsSinceEpoch(
-            (createdAt ?? events[0].createdAt) * 1000));
+            (createdAt ?? events[0].createdAt) * 1000))
+      ..subEvent = subEvent;
     if (isRead != null) model.isRead = isRead;
     if (isSystem != null) model.isSystem = isSystem;
     if (mediaType != null) model.mediaType = mediaType;

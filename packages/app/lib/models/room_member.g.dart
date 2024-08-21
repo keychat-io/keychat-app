@@ -1851,7 +1851,6 @@ RoomMember _$RoomMemberFromJson(Map<String, dynamic> json) => RoomMember(
       roomId: (json['roomId'] as num).toInt(),
       name: json['name'] as String,
     )
-      ..curve25519PkHex = json['curve25519PkHex'] as String?
       ..createdAt = json['createdAt'] == null
           ? null
           : DateTime.parse(json['createdAt'] as String)
@@ -1865,6 +1864,8 @@ RoomMember _$RoomMemberFromJson(Map<String, dynamic> json) => RoomMember(
 Map<String, dynamic> _$RoomMemberToJson(RoomMember instance) {
   final val = <String, dynamic>{
     'idPubkey': instance.idPubkey,
+    'roomId': instance.roomId,
+    'name': instance.name,
   };
 
   void writeNotNull(String key, dynamic value) {
@@ -1873,9 +1874,6 @@ Map<String, dynamic> _$RoomMemberToJson(RoomMember instance) {
     }
   }
 
-  writeNotNull('curve25519PkHex', instance.curve25519PkHex);
-  val['roomId'] = instance.roomId;
-  val['name'] = instance.name;
   writeNotNull('createdAt', instance.createdAt?.toIso8601String());
   writeNotNull('updatedAt', instance.updatedAt?.toIso8601String());
   val['isAdmin'] = instance.isAdmin;

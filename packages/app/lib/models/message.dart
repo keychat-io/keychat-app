@@ -36,8 +36,7 @@ class Message extends Equatable {
   late String to; // event's to address
   late String content; // event's content
   String? realMessage; // show in room page
-  late DateTime createdAt; // event's createdAt
-  DateTime? receiveAt;
+  late DateTime createdAt; // event's creat]edAt
 
   late int identityId;
   late String idPubkey; // the sender id pubkey
@@ -63,6 +62,9 @@ class Message extends Equatable {
 
   @Enumerated(EnumType.ordinal32)
   RequestConfrimEnum? requestConfrim;
+
+  String? subEvent;
+  DateTime? receiveAt;
 
   FromContact? fromContact; // show for message
 

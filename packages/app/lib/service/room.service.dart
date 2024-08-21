@@ -143,6 +143,12 @@ class RoomService extends BaseChatService {
           await database.mykeys.filter().idEqualTo(roomMykeyId).deleteFirst();
         }
         await database.roomMembers.filter().roomIdEqualTo(roomId).deleteAll();
+
+        // remove shared signalId
+        if (room.isKDFGroup && room.sharedSignalID != null) {
+          await SignalIdService.instance
+              .remove(room.sharedSignalID!, room.identityId);
+        }
       } else {
         if (signalIdPubkey != null && sameSignalIdrooms.length <= 1) {
           await DBProvider.database.signalIds
@@ -494,6 +500,7 @@ class RoomService extends BaseChatService {
         idPubkey: idPubkey,
         isSystem: isSystem,
         realMessage: realMessage,
+        subEvent: sourceEvent != null ? event.toJson().toString() : null,
         content: decodedContent ?? km?.msg ?? event.content,
         encryptType: RoomUtil.getEncryptMode(event, sourceEvent),
         reply: reply,

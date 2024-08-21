@@ -522,8 +522,8 @@ Let's start an encrypted chat.''';
     return 'common';
   }
 
-  static MessageEncryptType getEncryptMode(
-      NostrEventModel event, NostrEventModel? sourceEvent) {
+  static MessageEncryptType getEncryptMode(NostrEventModel event,
+      [NostrEventModel? sourceEvent]) {
     if (sourceEvent == null) return event.encryptType;
     if (event.isNip4) return MessageEncryptType.nip4WrapNip4;
     if (event.isSignal) return MessageEncryptType.nip4WrapSignal;

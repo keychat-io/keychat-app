@@ -8,6 +8,7 @@ import 'package:app/service/SecureStorage.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
@@ -125,6 +126,18 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                                       EasyLoading.showSuccess("Copied");
                                     },
                                   ),
+                                  if (kDebugMode)
+                                    SettingsTile(
+                                      title: const Text("Secp256k1 Pubkey"),
+                                      description: Obx(() => Text(controller
+                                          .identity.value.secp256k1PKHex)),
+                                    ),
+                                  if (kDebugMode)
+                                    SettingsTile(
+                                      title: const Text("Curve25519 Pubkey"),
+                                      description: Obx(() => Text(controller
+                                          .identity.value.curve25519PkHex)),
+                                    ),
                                   SettingsTile.navigation(
                                     title: const Text("Seed Phrase"),
                                     onPressed: (context) async {

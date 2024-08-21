@@ -6,7 +6,7 @@ import 'package:app/models/models.dart';
 import 'package:app/models/signal_id.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/group.service.dart';
-import 'package:app/service/room.service.dart';
+import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/signalId.service.dart';
 import 'package:get/get.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -31,11 +31,6 @@ class KeychatMessage {
     this.name,
   });
   BaseChatService get service {
-    // common proccess
-    if (type > 2000) {
-      return RoomService();
-    }
-
     switch (c) {
       case MessageType.nip04:
         return Nip4ChatService();
@@ -43,6 +38,8 @@ class KeychatMessage {
         return SignalChatService();
       case MessageType.group:
         return GroupService();
+      case MessageType.kdfGroup:
+        return KdfGroupService.instance;
     }
   }
 
@@ -108,4 +105,4 @@ $greeting''';
   }
 }
 
-enum MessageType { nip04, signal, group }
+enum MessageType { nip04, signal, group, kdfGroup }

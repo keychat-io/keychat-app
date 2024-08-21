@@ -259,7 +259,6 @@ class Room extends Equatable {
     RoomMember? rm = await getMemberByIdPubkey(idPubkey);
     if (rm == null) {
       rm = RoomMember(idPubkey: idPubkey, name: name, roomId: id)
-        ..curve25519PkHex = curve25519PkHex
         ..createdAt = createdAt
         ..updatedAt = updatedAt;
       rm.isAdmin = isAdmin;
@@ -466,11 +465,11 @@ class Room extends Equatable {
     });
   }
 
+  // clear keys. if all member has kpa
   Future checkAndCleanSignalKeys() async {
     int count = await DBProvider.database.roomMembers
         .filter()
         .roomIdEqualTo(id)
-        .messageCountEqualTo(0)
         .count();
     if (count > 0) return;
     if (sharedSignalID == null) return;

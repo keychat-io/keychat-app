@@ -36,7 +36,7 @@ class Message extends Equatable {
   late String to; // event's to address
   late String content; // event's content
   String? realMessage; // show in room page
-  late DateTime createdAt; // event's creat]edAt
+  late DateTime createdAt; // event's createdAt
 
   late int identityId;
   late String idPubkey; // the sender id pubkey

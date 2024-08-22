@@ -318,7 +318,7 @@ class MessageWidget extends StatelessWidget {
       },
       text: text,
       linkStyle: TextStyle(
-          decoration: TextDecoration.none, color: fontColor, fontSize: 14),
+          decoration: TextDecoration.none, color: fontColor, fontSize: 16),
     );
   }
 

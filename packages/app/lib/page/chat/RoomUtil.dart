@@ -505,8 +505,7 @@ Let's start an encrypted chat.''';
 ✅ 2. End-to-End Encryption
 ✅ 3. Forward Secrecy
 ❌ 4. Backward Secrecy
-✅ 5. Break-in Recovery
-❌ 6. Metadata Privacy''';
+✔️ 5. Metadata Privacy (Partially supported)''';
       case GroupType.shareKey:
         return '''1. Members < 30
 2. All members hold the same private key''';
@@ -515,8 +514,7 @@ Let's start an encrypted chat.''';
 ✅ 2. End-to-End Encryption
 ✅ 3. Forward Secrecy
 ✅ 4. Backward Secrecy
-✅ 5. Break-in Recovery
-✅ 6. Metadata Privacy''';
+✅ 5. Metadata Privacy''';
       default:
     }
     return 'common';

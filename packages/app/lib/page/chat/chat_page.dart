@@ -245,8 +245,7 @@ class _ChatPage2State extends State<ChatPage> {
                                         .instance.isControlPressed ||
                                     HardwareKeyboard.instance.isShiftPressed ||
                                     HardwareKeyboard.instance.isAltPressed)) {
-                                  controller.handleSubmitted(
-                                      controller.textEditingController.text);
+                                  controller.handleSubmitted();
                                 }
                               }
                             },
@@ -273,10 +272,7 @@ class _ChatPage2State extends State<ChatPage> {
                                     focusedBorder: InputBorder.none,
                                     contentPadding: EdgeInsets.all(0)),
                                 textInputAction: TextInputAction.send,
-                                onEditingComplete: () => {
-                                  controller.handleSubmitted(
-                                      controller.textEditingController.text)
-                                },
+                                onEditingComplete: controller.handleSubmitted,
                                 maxLines: 8,
                                 minLines: 1,
                                 scrollController:
@@ -292,7 +288,9 @@ class _ChatPage2State extends State<ChatPage> {
                                   controller.hideAdd.value = true;
                                 },
                                 onChanged: handleOnChanged,
-                                onFieldSubmitted: controller.handleSubmitted,
+                                onFieldSubmitted: (c) {
+                                  controller.handleSubmitted();
+                                },
                                 enabled: true,
                               ),
                             ),
@@ -385,7 +383,7 @@ class _ChatPage2State extends State<ChatPage> {
       controller.chatContentFocus.unfocus();
       return;
     }
-    await controller.handleSubmitted(controller.textEditingController.text);
+    await controller.handleSubmitted();
   }
 
   Future goToSetting() async {

@@ -67,8 +67,8 @@ class WebsocketService extends GetxService {
   Future checkOnlineAndConnect() async {
     // fix ConcurrentModificationError
     for (RelayWebsocket rw in List.from(channels.values)) {
-      logger.d(
-          '> checkOnlineAndConnect ${rw.relay.url}: ${rw.channelStatus.name} ${rw.channel?.closeCode} _ ${rw.channel?.closeReason}');
+      // logger.d(
+      //     '> checkOnlineAndConnect ${rw.relay.url}: ${rw.channelStatus.name} ${rw.channel?.closeCode} _ ${rw.channel?.closeReason}');
       rw.checkOnlineStatus().then((relayStatus) {
         if (!relayStatus) {
           rw.channel?.sink.close(status.goingAway);
@@ -303,7 +303,6 @@ class WebsocketService extends GetxService {
       }());
     }
     Future.wait(tasks).whenComplete(() {
-      // all failed
       if (relays.length == failedRelay.entries.length) {
         String messages = failedRelay.entries
             .map((item) => '${item.key}: ${item.value}')
@@ -323,10 +322,8 @@ class WebsocketService extends GetxService {
     if (payInfoModel.amount == 0) return message;
     CashuInfoModel? cashuA;
 
-    cashuA = await CashuUtil.getCashuA(
-        amount: payInfoModel.amount,
-        token: payInfoModel.unit.name,
-        mints: payInfoModel.mints);
+    cashuA = await CashuUtil.getStamp(
+        amount: payInfoModel.amount, token: payInfoModel.unit.name);
 
     message = message.substring(0, message.length - 1);
     message += ',"${cashuA.token}"]';

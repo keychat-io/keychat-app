@@ -250,14 +250,15 @@ class ChatController extends GetxController {
         .count();
   }
 
-  Future handleSubmitted(String text) async {
-    text = text.trim();
+  Future handleSubmitted() async {
+    String text = textEditingController.text.trim();
     if (text.isEmpty) {
       return;
     }
     textEditingController.clear();
     try {
       MsgReply? reply;
+
       if (inputReplys.isNotEmpty) {
         reply = MsgReply()
           ..content = inputReplys.first.realMessage ?? inputReplys.first.content

@@ -316,9 +316,12 @@ class MessageWidget extends StatelessWidget {
         launchUrl(uri);
         return;
       },
+      style: Theme.of(Get.context!)
+          .textTheme
+          .bodyLarge
+          ?.copyWith(color: fontColor, fontSize: 15),
       text: text,
-      linkStyle: TextStyle(
-          decoration: TextDecoration.none, color: fontColor, fontSize: 16),
+      linkStyle: const TextStyle(decoration: TextDecoration.none, fontSize: 15),
     );
   }
 

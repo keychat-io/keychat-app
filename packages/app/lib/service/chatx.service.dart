@@ -197,15 +197,26 @@ class ChatxService extends GetxService {
     }
     Identity? identity = Get.find<HomeController>().identities[room.identityId];
     if (identity == null) return;
-    final remoteAddress = KeychatProtocolAddress(
-        name: room.curve25519PkHex!, deviceId: room.identityId);
     KeychatIdentityKeyPair keyPair;
     if (room.signalIdPubkey != null) {
       keyPair = await getKeyPairBySignalIdPubkey(room.signalIdPubkey!);
     } else {
       keyPair = await getKeyPairByIdentity(room.getIdentity());
     }
-    await rustSignal.deleteSession(keyPair: keyPair, address: remoteAddress);
+
+    KeychatProtocolAddress remoteAddress = KeychatProtocolAddress(
+        name: room.curve25519PkHex!, deviceId: room.identityId);
+
+    // compatible with older version about identityId:signalId = 1:1
+    await rustSignal.initKeypair(keyPair: keyPair, regId: 0);
+    logger.d(
+        "room curve25519PkHex signalIdPubkey is ${room.curve25519PkHex!}, ${room.signalIdPubkey}");
+
+    bool isDel = await rustSignal.deleteSession(
+        keyPair: keyPair, address: remoteAddress);
+
+    logger.d("The deleteSignalSessionKPA flag is $isDel");
+
     await rustSignal.deleteIdentity(
         keyPair: keyPair, address: remoteAddress.name);
     room.signalDecodeError = false;

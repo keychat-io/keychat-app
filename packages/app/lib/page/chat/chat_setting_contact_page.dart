@@ -180,8 +180,6 @@ class _ShowContactDetailState extends State<ShowContactDetail> {
               try {
                 EasyLoading.show(status: 'Loading...');
                 await RoomService().deleteRoom(room);
-                final remoteAddress = rustSignal.KeychatProtocolAddress(
-                    name: room.toMainPubkey, deviceId: room.identityId);
                 Identity? identity =
                     await IdentityService().getIdentityById(room.identityId);
                 if (identity == null) return;
@@ -194,11 +192,7 @@ class _ShowContactDetailState extends State<ShowContactDetail> {
                   await SignalIdService.instance
                       .deleteSignalIdByPubkey(signalIdPubkey);
                 }
-                final keyPair = await Get.find<ChatxService>()
-                    .getKeyPairBySignalIdPubkey(signalIdPubkey);
-                // delete signal session
-                await rustSignal.deleteSession(
-                    keyPair: keyPair, address: remoteAddress);
+
                 EasyLoading.showSuccess('Successfully');
                 await Get.find<HomeController>()
                     .loadIdentityRoomList(room.identityId);

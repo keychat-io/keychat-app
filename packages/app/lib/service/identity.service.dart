@@ -124,9 +124,6 @@ class IdentityService {
             .filter()
             .roomIdEqualTo(element.id)
             .deleteAll();
-        // delete signal session by remote address
-        final remoteAddress = rust_signal.KeychatProtocolAddress(
-            name: element.toMainPubkey, deviceId: element.identityId);
         String? signalIdPubkey = element.signalIdPubkey;
         KeychatIdentityKeyPair keyPair;
         if (signalIdPubkey != null) {
@@ -136,14 +133,11 @@ class IdentityService {
           keyPair =
               await Get.find<ChatxService>().getKeyPairByIdentity(identity);
         }
-        await rust_signal.deleteSession(
-            keyPair: keyPair, address: remoteAddress);
+        // delete signal session by remote address
+        await Get.find<ChatxService>().deleteSignalSessionKPA(element);
         // delete signal session by identity id
         await rust_signal.deleteSessionByDeviceId(
             keyPair: keyPair, deviceId: id);
-        // delete signal identity
-        await rust_signal.deleteIdentity(
-            keyPair: keyPair, address: identity.secp256k1PKHex);
       }
       await database.contacts.filter().identityIdEqualTo(id).deleteAll();
       await deleteAllByIdentity(id);

@@ -1,5 +1,6 @@
 import 'package:app/nostr-core/relay_websocket.dart';
 import 'package:app/page/chat/SelectRoomRelay.dart';
+import 'package:app/service/chatx.service.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/websocket.service.dart';
@@ -75,6 +76,9 @@ class ChatSettingsMoreDart extends StatelessWidget {
                           CupertinoDialogAction(
                             child: const Text('OK'),
                             onPressed: () async {
+                              await Get.find<ChatxService>()
+                                  .deleteSignalSessionKPA(chatController
+                                      .room); // delete old session
                               await SignalChatService().sendHelloMessage(
                                   chatController.room,
                                   chatController.room.getIdentity(),

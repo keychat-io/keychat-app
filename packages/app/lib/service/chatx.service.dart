@@ -266,22 +266,23 @@ class ChatxService extends GetxService {
     }
     Identity? identity = Get.find<HomeController>().identities[room.identityId];
     if (identity == null) return;
-    final remoteAddress = KeychatProtocolAddress(
-        name: room.curve25519PkHex!, deviceId: room.identityId);
-    KeychatIdentityKeyPair? keyPair;
-    try {
-      if (room.signalIdPubkey != null) {
-        keyPair = await getKeyPairBySignalIdPubkey(room.signalIdPubkey!);
-      } else {
-        keyPair = await getKeyPairByIdentity(room.getIdentity());
-      }
-      // ignore: empty_catches
-    } catch (e) {}
-    if (keyPair != null) {
-      await rust_signal.deleteSession(keyPair: keyPair, address: remoteAddress);
-      await rust_signal.deleteIdentity(
-          keyPair: keyPair, address: remoteAddress.name);
+    KeychatIdentityKeyPair keyPair;
+    if (room.signalIdPubkey != null) {
+      keyPair = await getKeyPairBySignalIdPubkey(room.signalIdPubkey!);
+    } else {
+      keyPair = await getKeyPairByIdentity(room.getIdentity());
     }
+
+    KeychatProtocolAddress remoteAddress = KeychatProtocolAddress(
+        name: room.curve25519PkHex!, deviceId: room.identityId);
+
+    // compatible with older version about identityId:signalId = 1:1
+    await rust_signal.initKeypair(keyPair: keyPair, regId: 0);
+
+    await rust_signal.deleteSession(keyPair: keyPair, address: remoteAddress);
+
+    await rust_signal.deleteIdentity(
+        keyPair: keyPair, address: remoteAddress.name);
     room.signalDecodeError = false;
     String key = '${room.identityId}:${room.curve25519PkHex}';
     roomKPA.remove(key);

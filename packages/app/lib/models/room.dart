@@ -61,7 +61,7 @@ class Room extends Equatable {
 
   // their(Bob) signal id pubkey
   String? curve25519PkHex;
-  // my signalid for this room
+  // my(alice) signal id pubkey
   String? signalIdPubkey;
 
   String? avatar;

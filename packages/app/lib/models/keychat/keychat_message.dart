@@ -54,7 +54,7 @@ class KeychatMessage {
   @override
   String toString() => jsonEncode(toJson());
 
-  Future<KeychatMessage> setHelloMessagge(Identity identity,
+  Future<KeychatMessage> setHelloMessagge(SignalId signalId, Identity identity,
       {String? greeting, String? relay}) async {
     // String? relay = await RelayService().getDefaultOnlineRelay();
     List<Mykey> oneTimeKeys =
@@ -63,8 +63,6 @@ class KeychatMessage {
     if (oneTimeKeys.isNotEmpty) {
       onetimekey = oneTimeKeys.first.pubkey;
     }
-    SignalId signalId =
-        await SignalIdService.instance.createSignalId(identity.id);
     Map userInfo = await SignalIdService.instance.getQRCodeData(signalId);
 
     Map<String, dynamic> data = {

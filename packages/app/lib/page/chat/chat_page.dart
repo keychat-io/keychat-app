@@ -63,9 +63,8 @@ class _ChatPage2State extends State<ChatPage> {
     Color toBackgroundColor =
         Get.isDarkMode ? const Color(0xFF2c2c2c) : const Color(0xFFFFFFFF);
 
-    Color meBackgroundColor = Get.isDarkMode
-        ? const Color(0xff7748FF)
-        : const Color(0xFFF5E2FF).withOpacity(0.8);
+    //const Color(0xFFF5E2FF).withOpacity(0.8); // for light mode
+    Color meBackgroundColor = const Color(0xff7748FF);
 
     return Scaffold(
       appBar: AppBar(

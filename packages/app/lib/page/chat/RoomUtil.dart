@@ -503,9 +503,9 @@ Let's start an encrypted chat.''';
       case GroupType.kdf:
         return '''1. Anti-Forgery ✅
 2. End-to-End Encryption ✅
-3. Forward Secrecy 🟢 70%
-4. Backward Secrecy ❌ 
-5. Metadata Privacy 🟢 70%''';
+3. Forward Secrecy ✅
+4. Backward Secrecy 🟢70% 
+5. Metadata Privacy 🟢70%''';
       case GroupType.shareKey:
         return '''1. Members < 30
 2. All members hold the same private key''';

@@ -319,7 +319,7 @@ class MessageWidget extends StatelessWidget {
       style: Theme.of(Get.context!)
           .textTheme
           .bodyLarge
-          ?.copyWith(color: fontColor, fontSize: 15),
+          ?.copyWith(color: fontColor, fontSize: 16),
       text: text,
       linkStyle: const TextStyle(decoration: TextDecoration.none, fontSize: 15),
     );
@@ -429,11 +429,9 @@ class MessageWidget extends StatelessWidget {
   }
 
   Widget _getTextView(Message message) {
-    return message.reply == null
-        ? GestureDetector(
-            onLongPress: _handleTextLongPress, child: getSubContent())
-        : GestureDetector(
-            onLongPress: _handleTextLongPress, child: _getReplyWidget(message));
+    return GestureDetector(
+        onLongPress: _handleTextLongPress,
+        child: message.reply == null ? getSubContent() : _getReplyWidget());
   }
 
   Future _handleShowRawdata(BuildContext context) async {
@@ -608,7 +606,7 @@ class MessageWidget extends StatelessWidget {
             isMeSend: message.isMeSend));
   }
 
-  Widget _getReplyWidget(Message message) {
+  Widget _getReplyWidget() {
     Widget? subTitleChild;
     if (message.reply!.id == null) {
       subTitleChild = Text(message.reply!.content,
@@ -704,7 +702,8 @@ class MessageWidget extends StatelessWidget {
       return _getLinkPreviewWidget(message);
     }
     return _getTextContainer(
-        getLinkify(message.realMessage ?? message.content, fontColor),
+        getLinkify(message.realMessage ?? message.content,
+            message.isMeSend ? Colors.white : fontColor),
         isMeSend: message.isMeSend);
   }
 

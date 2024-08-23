@@ -19,7 +19,7 @@ import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:get/get.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 import 'package:keychat_rust_ffi_plugin/index.dart';
 
@@ -317,12 +317,12 @@ Tags: ${event.tags}''',
       String? msgKeyHash}) async {
     late String encryptedEvent;
     if (isSignalMessage) {
-      encryptedEvent = await rustNostr.getUnencryptEvent(
+      encryptedEvent = await rust_nostr.getUnencryptEvent(
           senderKeys: prikey,
           receiverPubkey: toPublicKey,
           content: toEncryptText);
     } else {
-      encryptedEvent = await rustNostr.getEncryptEvent(
+      encryptedEvent = await rust_nostr.getEncryptEvent(
           senderKeys: prikey,
           receiverPubkey: toPublicKey,
           content: toEncryptText);
@@ -423,7 +423,7 @@ Tags: ${event.tags}''',
     String? prikey = await IdentityService().getPrikeyByPubkey(decodePubkey);
     if (prikey == null) return null;
     try {
-      return await rustNostr.decrypt(
+      return await rust_nostr.decrypt(
           senderKeys: prikey,
           receiverPubkey: event.pubkey,
           content: event.content);
@@ -468,7 +468,7 @@ Tags: ${event.tags}''',
 
     // verify
     try {
-      await rustNostr.verifyEvent(json: jsonEncode(eventList[2]));
+      await rust_nostr.verifyEvent(json: jsonEncode(eventList[2]));
     } catch (e, s) {
       if (e is AnyhowException) {
         if (e.message.contains('malformed public key')) {
@@ -678,7 +678,7 @@ Tags: ${event.tags}''',
       return;
     }
 
-    NostrEvent result = await rustNostr.decryptGift(
+    NostrEvent result = await rust_nostr.decryptGift(
         senderKeys: myPrivateKey,
         receiver: event.pubkey,
         content: event.content);

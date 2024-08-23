@@ -10,8 +10,8 @@ import 'package:app/service/websocket.service.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_signal.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
-import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rustSignal;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
+import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
 
 import '../models/db_provider.dart';
 import '../nostr-core/nostr.dart';
@@ -50,7 +50,7 @@ class IdentityService {
 
   Future createOneTimeKey(int identityId) async {
     Isar database = DBProvider.database;
-    var keychain = await rustNostr.generateSecp256K1();
+    var keychain = await rust_nostr.generateSecp256K1();
     var ontTimeKey = Mykey(
         prikey: keychain.prikey,
         identityId: identityId,
@@ -65,7 +65,7 @@ class IdentityService {
 
   Future<Identity> createIdentity(
       {required String name,
-      required rustNostr.Secp256k1Account account,
+      required rust_nostr.Secp256k1Account account,
       bool isFirstAccount = false}) async {
     if (account.mnemonic == null) throw Exception('mnemonic is null');
     Isar database = DBProvider.database;
@@ -125,7 +125,7 @@ class IdentityService {
             .roomIdEqualTo(element.id)
             .deleteAll();
         // delete signal session by remote address
-        final remoteAddress = rustSignal.KeychatProtocolAddress(
+        final remoteAddress = rust_signal.KeychatProtocolAddress(
             name: element.toMainPubkey, deviceId: element.identityId);
         String? signalIdPubkey = element.signalIdPubkey;
         KeychatIdentityKeyPair keyPair;
@@ -136,13 +136,13 @@ class IdentityService {
           keyPair =
               await Get.find<ChatxService>().getKeyPairByIdentity(identity);
         }
-        await rustSignal.deleteSession(
+        await rust_signal.deleteSession(
             keyPair: keyPair, address: remoteAddress);
         // delete signal session by identity id
-        await rustSignal.deleteSessionByDeviceId(
+        await rust_signal.deleteSessionByDeviceId(
             keyPair: keyPair, deviceId: id);
         // delete signal identity
-        await rustSignal.deleteIdentity(
+        await rust_signal.deleteIdentity(
             keyPair: keyPair, address: identity.secp256k1PKHex);
       }
       await database.contacts.filter().identityIdEqualTo(id).deleteAll();

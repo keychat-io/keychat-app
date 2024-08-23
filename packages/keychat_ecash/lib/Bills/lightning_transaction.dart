@@ -9,7 +9,7 @@ import 'package:get/get.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 class LightningTransactionPage extends StatefulWidget {
   final LNTransaction transaction;
@@ -26,7 +26,7 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
   @override
   void initState() {
     tx = widget.transaction;
-    rustCashu.decodeInvoice(encodedInvoice: tx.pr).then((value) {
+    rust_cashu.decodeInvoice(encodedInvoice: tx.pr).then((value) {
       setState(() {
         expiryTs = value.expiryTs.toInt();
       });

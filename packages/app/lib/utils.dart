@@ -296,7 +296,9 @@ class Utils {
     setLogger(Logger(
         filter: kReleaseMode ? MyLogFilter() : null,
         printer: PrettyPrinter(
-            printTime: kReleaseMode,
+            dateTimeFormat: kDebugMode
+                ? DateTimeFormat.onlyTime
+                : DateTimeFormat.dateAndTime,
             colors: false,
             methodCount: kReleaseMode ? 1 : 4),
         output: kReleaseMode

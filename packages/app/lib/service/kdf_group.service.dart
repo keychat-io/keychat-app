@@ -20,8 +20,8 @@ import 'package:app/service/signalId.service.dart';
 import 'package:app/service/signal_chat_util.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:isar/isar.dart';
-import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rustSignal;
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
+import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:app/constants.dart';
 import 'package:app/models/embedded/msg_reply.dart';
 import 'package:app/models/event_log.dart';
@@ -82,19 +82,19 @@ class KdfGroupService extends BaseChatService {
     }
 
     (Uint8List, String?, String, List<String>?) enResult =
-        await rustSignal.encryptSignal(
+        await rust_signal.encryptSignal(
             keyPair: keyPair,
             ptext: pmm?.toString() ?? message0,
             remoteAddress: kpa,
             isPrekey: notPrekey);
     String encryptedContent = base64.encode(enResult.$1);
     String receiverPubkey = room.mykey.value!.pubkey;
-    String unEncryptedEvent = await rustNostr.getUnencryptEvent(
+    String unEncryptedEvent = await rust_nostr.getUnencryptEvent(
         senderKeys: await identity.getSecp256k1SKHex(),
         receiverPubkey: room.toMainPubkey,
         content: encryptedContent);
 
-    var randomAccount = await rustNostr.generateSimple();
+    var randomAccount = await rust_nostr.generateSimple();
 
     return await NostrAPI().sendNip4Message(receiverPubkey, unEncryptedEvent,
         prikey: randomAccount.prikey,
@@ -151,11 +151,11 @@ class KdfGroupService extends BaseChatService {
       NostrEventModel? sourceEvent,
       EventLog? eventLog}) async {
     var ciphertext = Uint8List.fromList(base64Decode(event.content));
-    var prekey = await rustSignal.parseIdentityFromPrekeySignalMessage(
+    var prekey = await rust_signal.parseIdentityFromPrekeySignalMessage(
         ciphertext: ciphertext);
     String signalIdPubkey = prekey.$1;
 
-    var (plaintext, msgKeyHash, _) = await rustSignal.decryptSignal(
+    var (plaintext, msgKeyHash, _) = await rust_signal.decryptSignal(
         keyPair: keyPair,
         ciphertext: ciphertext,
         remoteAddress: KeychatProtocolAddress(
@@ -178,6 +178,7 @@ class KdfGroupService extends BaseChatService {
       prekeyMessageModel =
           PrekeyMessageModel.fromJson(jsonDecode(decryptedContent));
       logger.i('decryptPreKeyMessage, plainrtext: $prekeyMessageModel');
+      // ignore: empty_catches
     } catch (e) {}
     if (prekeyMessageModel != null) {
       await SignalChatUtil.verifyPrekeyMessage(
@@ -238,7 +239,7 @@ class KdfGroupService extends BaseChatService {
           relay: relay,
           eventLog: eventLog);
     }
-    rustSignal.KeychatProtocolAddress? kpa = await Get.find<ChatxService>()
+    rust_signal.KeychatProtocolAddress? kpa = await Get.find<ChatxService>()
         .getSignalSession(
             sharedSignalRoomId: getKDFRoomIdentityForShared(room.id),
             toCurve25519PkHex: roomMember.curve25519PkHex!,
@@ -261,7 +262,7 @@ class KdfGroupService extends BaseChatService {
     late Uint8List plaintext;
     String? msgKeyHash;
     try {
-      (plaintext, msgKeyHash, _) = await rustSignal.decryptSignal(
+      (plaintext, msgKeyHash, _) = await rust_signal.decryptSignal(
           keyPair: keyPair,
           ciphertext: message,
           remoteAddress: kpa,
@@ -298,6 +299,7 @@ class KdfGroupService extends BaseChatService {
     try {
       decodedContentMap = jsonDecode(decodeString);
       km = KeychatMessage.fromJson(decodedContentMap!);
+      // ignore: empty_catches
     } catch (e) {}
     if (km != null) {
       return await km.service.processMessage(
@@ -325,6 +327,7 @@ class KdfGroupService extends BaseChatService {
         try {
           decodedContentMap = jsonDecode(prekeyMessageModel.message);
           km = KeychatMessage.fromJson(decodedContentMap!);
+          // ignore: empty_catches
         } catch (e) {}
         if (km != null) {
           return await km.service.processMessage(
@@ -436,7 +439,7 @@ class KdfGroupService extends BaseChatService {
     Identity identity = room.getIdentity();
     RoomProfile roomProfile = RoomProfile.fromJson(jsonDecode(km.name!));
 
-    var keychain = rustNostr.Secp256k1Account(
+    var keychain = rust_nostr.Secp256k1Account(
         prikey: roomProfile.prikey!,
         pubkey: roomProfile.pubkey,
         pubkeyBech32: '',
@@ -457,7 +460,7 @@ class KdfGroupService extends BaseChatService {
         final sharedKeyAddress = KeychatProtocolAddress(
             name: toDeleteSignalId.pubkey, deviceId: deviceId);
         try {
-          await rustSignal.deleteSession(
+          await rust_signal.deleteSession(
               keyPair: myKeypair, address: sharedKeyAddress);
         } catch (e) {
           logger.e('deleteSession error: $e');
@@ -470,7 +473,7 @@ class KdfGroupService extends BaseChatService {
           final memberAddress = KeychatProtocolAddress(
               name: member.curve25519PkHex!, deviceId: deviceId);
           try {
-            await rustSignal.deleteSession(
+            await rust_signal.deleteSession(
                 keyPair: sharedKeypair, address: memberAddress);
           } catch (e) {
             logger.e('deleteSession error: $e');

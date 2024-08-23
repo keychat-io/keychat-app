@@ -1,5 +1,5 @@
 import 'package:app/service/kdf_group.service.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
@@ -82,7 +82,7 @@ class _AddGroupSelectMemberState extends State<AddGroupSelectMember>
       String input = _userNameController.text.trim();
       bool isCheck = nostrKeyInputCheck(input);
       if (!isCheck) return;
-      String pubkey = rustNostr.getHexPubkeyByBech32(bech32: input);
+      String pubkey = rust_nostr.getHexPubkeyByBech32(bech32: input);
       selectAccounts[pubkey] = '';
     }
 

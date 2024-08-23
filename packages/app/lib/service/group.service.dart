@@ -19,7 +19,7 @@ import 'package:app/service/websocket.service.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_signal.dart';
 import 'package:queue/queue.dart';
 
@@ -104,7 +104,7 @@ class GroupService extends BaseChatService {
       sharedKey = await GroupTx().createMykey(identity);
       toMainPubkey = sharedKey.pubkey;
     } else {
-      var key = await rustNostr.generateSimple();
+      var key = await rust_nostr.generateSimple();
       toMainPubkey = key.pubkey;
     }
     DateTime now = DateTime.now();
@@ -192,7 +192,7 @@ class GroupService extends BaseChatService {
     if (newPrikey == null) throw Exception('newPrikey is null');
     String oldToRoomPubKey = roomProfile.oldToRoomPubKey!;
     List<dynamic> users = roomProfile.users;
-    String newPubkey = rustNostr.getHexPubkeyByPrikey(prikey: newPrikey);
+    String newPubkey = rust_nostr.getHexPubkeyByPrikey(prikey: newPrikey);
 
     Room? room =
         await roomService.getRoomByIdentity(oldToRoomPubKey, idRoom.identityId);
@@ -206,7 +206,7 @@ class GroupService extends BaseChatService {
     late Mykey newkey;
     await DBProvider.database.writeTxn(() async {
       newkey = await GroupTx().importMykeyTx(room!.getIdentity(),
-          await rustNostr.importKey(senderKeys: newPrikey));
+          await rust_nostr.importKey(senderKeys: newPrikey));
       room.mykey.value = newkey;
     });
     await Get.find<WebsocketService>().listenPubkey([newPubkey], limit: 1000);
@@ -427,7 +427,7 @@ class GroupService extends BaseChatService {
         isKeyChange = true;
         await DBProvider.database.writeTxn(() async {
           roomKey = await GroupTx().importMykeyTx(
-              identity, await rustNostr.importKey(senderKeys: toRoomPriKey));
+              identity, await rust_nostr.importKey(senderKeys: toRoomPriKey));
         });
         groupRoom.mykey.value = roomKey;
         groupRoom =
@@ -639,7 +639,7 @@ class GroupService extends BaseChatService {
 
     GroupMessage gm = RoomUtil.getGroupMessage(room, message,
         pubkey: '', reply: reply, subtype: subtype, ext: ext);
-    String subEncryptedEvent = await rustNostr.getEncryptEvent(
+    String subEncryptedEvent = await rust_nostr.getEncryptEvent(
         senderKeys: await room.getIdentity().getSecp256k1SKHex(),
         receiverPubkey: roomKey.pubkey,
         content: gm.toString());
@@ -649,7 +649,7 @@ class GroupService extends BaseChatService {
         type: KeyChatEventKinds.groupSharedKeyMessage,
         msg: subEncryptedEvent);
 
-    String encryptedEvent = await rustNostr.getEncryptEvent(
+    String encryptedEvent = await rust_nostr.getEncryptEvent(
         senderKeys: roomKey.prikey,
         receiverPubkey: roomKey.pubkey,
         content: km.toString());
@@ -820,7 +820,7 @@ class GroupService extends BaseChatService {
 
     Room room = Room(
         toMainPubkey: toMainPubkey,
-        npub: rustNostr.getBech32PubkeyByHex(hex: toMainPubkey),
+        npub: rust_nostr.getBech32PubkeyByHex(hex: toMainPubkey),
         identityId: identity.id,
         status: RoomStatus.enabled,
         type: RoomType.group)
@@ -918,7 +918,7 @@ class GroupService extends BaseChatService {
       queue.add(() async {
         if (todo.isEmpty) return;
         RoomMember rm = todo.removeFirst();
-        String hexPubkey = rustNostr.getHexPubkeyByBech32(bech32: rm.idPubkey);
+        String hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: rm.idPubkey);
         if (identity.secp256k1PKHex == hexPubkey) return;
         Room? room =
             await roomService.getRoom(hexPubkey, identity.secp256k1PKHex);

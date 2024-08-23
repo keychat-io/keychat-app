@@ -12,7 +12,7 @@ import 'package:app/page/chat/message_actions/GroupInviteAction.dart';
 import 'package:app/page/chat/message_actions/SetRoomRelayAction.dart';
 import 'package:app/page/theme.dart';
 import 'package:app/page/widgets/image_preview_widget.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 // import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
@@ -169,7 +169,7 @@ class MessageWidget extends StatelessWidget {
                 ]),
             if (mfi.ecashToken != null)
               FutureBuilder(
-                  future: rustCashu.decodeToken(encodedToken: mfi.ecashToken!),
+                  future: rust_cashu.decodeToken(encodedToken: mfi.ecashToken!),
                   builder: (context, snapshot) =>
                       snapshot.connectionState == ConnectionState.done
                           ? ListTile(

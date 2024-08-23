@@ -1,7 +1,7 @@
 import 'package:app/models/identity.dart';
 import 'package:app/models/keychat/prekey_message_model.dart';
 import 'package:app/models/room.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class SignalChatUtil {
   static Future<PrekeyMessageModel> getSignalPrekeyMessageContent(
@@ -9,7 +9,7 @@ class SignalChatUtil {
     String sourceContent = getPrekeySigContent(
         [identity.secp256k1PKHex, room.toMainPubkey, message]);
 
-    String sig = await rustNostr.signSchnorr(
+    String sig = await rust_nostr.signSchnorr(
         senderKeys: await identity.getSecp256k1SKHex(), content: sourceContent);
     return PrekeyMessageModel(
         nostrId: identity.secp256k1PKHex,
@@ -31,7 +31,7 @@ class SignalChatUtil {
       receivePubkey,
       prekeyMessageModel.message
     ]);
-    bool verify = await rustNostr.verifySchnorr(
+    bool verify = await rust_nostr.verifySchnorr(
       pubkey: prekeyMessageModel.nostrId,
       content: sourceContent,
       sig: prekeyMessageModel.sig,

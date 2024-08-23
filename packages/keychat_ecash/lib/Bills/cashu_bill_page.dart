@@ -3,7 +3,7 @@
 import 'package:keychat_ecash/Bills/ecash_bill_controller.dart';
 import 'package:keychat_ecash/Bills/cashu_transaction.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:app/page/components.dart';
@@ -33,7 +33,7 @@ class CashuBillPage extends GetView<EcashBillController> {
                     int success = 0;
                     int failed = 0;
                     List<String> errors = [];
-                    var list = await rustCashu.getCashuPendingTransactions();
+                    var list = await rust_cashu.getCashuPendingTransactions();
                     for (var tx in list) {
                       if (tx.status == TransactionStatus.pending) {
                         try {
@@ -98,7 +98,7 @@ class CashuBillPage extends GetView<EcashBillController> {
             : Obx(() => SmartRefresher(
                 enablePullDown: true,
                 onRefresh: () async {
-                  await rustCashu.checkPending();
+                  await rust_cashu.checkPending();
                   await controller.getTransactions();
                   controller.refreshController.refreshCompleted();
                 },

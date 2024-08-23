@@ -15,7 +15,7 @@ import 'package:app/service/websocket.service.dart';
 import 'package:convert/convert.dart';
 import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_signal.dart';
-import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rustSignal;
+import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
 import 'package:keychat_rust_ffi_plugin/index.dart';
 
 import '../utils.dart';
@@ -91,7 +91,7 @@ class ChatxService extends GetxService {
     } else {
       keyPair = await getKeyPairByIdentity(room.getIdentity());
     }
-    await rustSignal.processPrekeyBundleApi(
+    await rust_signal.processPrekeyBundleApi(
         keyPair: keyPair,
         regId: getRegistrationId(room.curve25519PkHex!),
         deviceId: room.identityId,
@@ -114,7 +114,7 @@ class ChatxService extends GetxService {
         name: sharedPubkey, deviceId: sharedSignalIdentityId);
 
     Map<String, dynamic> keys = jsonDecode(sginalKeys);
-    await rustSignal.processPrekeyBundleApi(
+    await rust_signal.processPrekeyBundleApi(
         keyPair: keyPair,
         regId: getRegistrationId(sharedPubkey),
         deviceId: sharedSignalIdentityId,
@@ -140,7 +140,7 @@ class ChatxService extends GetxService {
         name: room.curve25519PkHex!, deviceId: room.identityId);
     KeychatIdentityKeyPair? keyPair = await _initRoomSignalStore(room);
     if (keyPair == null) return null;
-    final contains = await rustSignal.containsSession(
+    final contains = await rust_signal.containsSession(
         keyPair: keyPair, address: remoteAddress);
 
     if (contains) {
@@ -160,7 +160,7 @@ class ChatxService extends GetxService {
     final remoteAddress = KeychatProtocolAddress(
         name: toCurve25519PkHex, deviceId: sharedSignalRoomId);
 
-    final contains = await rustSignal.containsSession(
+    final contains = await rust_signal.containsSession(
         keyPair: keyPair, address: remoteAddress);
 
     if (!contains) return null;
@@ -177,7 +177,7 @@ class ChatxService extends GetxService {
   Future<void> _initSignalDB(String dbpath) async {
     try {
       String signalPath = '$dbpath${KeychatGlobal.signalProcotolDBFile}';
-      await rustSignal.initSignalDb(dbPath: signalPath);
+      await rust_signal.initSignalDb(dbPath: signalPath);
       await Future.delayed(const Duration(milliseconds: 100));
       var identities = await IdentityService().getIdentityList();
       for (var element in identities) {
@@ -222,7 +222,7 @@ class ChatxService extends GetxService {
       [SignalId? signalId]) async {
     if (initedSignalStorePubkeySet.contains(pubkey)) return keypairs[pubkey]!;
     var keyPair = await getKeyPairBySignalIdPubkey(pubkey, signalId);
-    await rustSignal.initKeypair(keyPair: keyPair, regId: 0);
+    await rust_signal.initKeypair(keyPair: keyPair, regId: 0);
     initedSignalStorePubkeySet.add(pubkey);
     return keyPair;
   }
@@ -230,7 +230,7 @@ class ChatxService extends GetxService {
   Future<KeychatIdentityKeyPair> setupSignalStoreByIdentity(
       Identity identity) async {
     var keyPair = await getKeyPairByIdentity(identity);
-    await rustSignal.initKeypair(keyPair: keyPair, regId: 0);
+    await rust_signal.initKeypair(keyPair: keyPair, regId: 0);
     initedSignalStorePubkeySet.add(identity.curve25519PkHex);
     return keyPair;
   }
@@ -250,10 +250,11 @@ class ChatxService extends GetxService {
       } else {
         keyPair = await getKeyPairByIdentity(room.getIdentity());
       }
+      // ignore: empty_catches
     } catch (e) {}
     if (keyPair != null) {
-      await rustSignal.deleteSession(keyPair: keyPair, address: remoteAddress);
-      await rustSignal.deleteIdentity(
+      await rust_signal.deleteSession(keyPair: keyPair, address: remoteAddress);
+      await rust_signal.deleteIdentity(
           keyPair: keyPair, address: remoteAddress.name);
     }
     room.signalDecodeError = false;

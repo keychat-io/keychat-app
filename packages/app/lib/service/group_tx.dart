@@ -12,7 +12,7 @@ import 'package:app/service/signalId.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class GroupTx {
   static final GroupTx _singleton = GroupTx._internal();
@@ -23,7 +23,7 @@ class GroupTx {
   GroupTx._internal();
 
   Future<Mykey> importMykeyTx(
-      Identity identity, rustNostr.Secp256k1Account keychain,
+      Identity identity, rust_nostr.Secp256k1Account keychain,
       [int? roomId]) async {
     Isar database = DBProvider.database;
     Mykey? mykey = await database.mykeys
@@ -42,7 +42,7 @@ class GroupTx {
   }
 
   Future<Mykey> createMykey(Identity identity, [int? roomId]) async {
-    rustNostr.Secp256k1Account keychain = await rustNostr.generateSecp256K1();
+    rust_nostr.Secp256k1Account keychain = await rust_nostr.generateSecp256K1();
     Isar database = DBProvider.database;
     Mykey? mykey = await database.mykeys
         .filter()
@@ -74,7 +74,7 @@ class GroupTx {
       String? sharedSignalID}) async {
     Room room = Room(
         toMainPubkey: toMainPubkey,
-        npub: rustNostr.getBech32PubkeyByHex(hex: toMainPubkey),
+        npub: rust_nostr.getBech32PubkeyByHex(hex: toMainPubkey),
         identityId: identity.id,
         status: RoomStatus.enabled,
         type: RoomType.group)
@@ -128,7 +128,7 @@ class GroupTx {
       throw Exception('Prikey is null, failed to join group.');
     } else if (toRoomPriKey != null) {
       roomKey = await importMykeyTx(
-          identity, await rustNostr.importKey(senderKeys: toRoomPriKey));
+          identity, await rust_nostr.importKey(senderKeys: toRoomPriKey));
     }
 
     Room groupRoom = await _createGroupToDB(

@@ -1,5 +1,5 @@
 import 'package:keychat_ecash/ecash_controller.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
@@ -24,7 +24,7 @@ class EcashBillController extends GetxController {
   }
 
   initPageData() {
-    rustCashu.checkPending().then(
+    rust_cashu.checkPending().then(
       (value) async {
         await Get.find<EcashController>().getBalance();
         status.value = true;
@@ -38,7 +38,7 @@ class EcashBillController extends GetxController {
     int limit = 15,
   }) async {
     List<CashuTransaction> list =
-        await rustCashu.getCashuTransactionsWithOffset(
+        await rust_cashu.getCashuTransactionsWithOffset(
             offset: BigInt.from(offset), limit: BigInt.from(limit));
     list.sort((a, b) => b.time.compareTo(a.time));
 
@@ -55,7 +55,7 @@ class EcashBillController extends GetxController {
       return;
     }
     while (true) {
-      Transaction item = await rustCashu.checkTransaction(id: tx.id);
+      Transaction item = await rust_cashu.checkTransaction(id: tx.id);
       CashuTransaction ln = item.field0 as CashuTransaction;
       if (ln.status == TransactionStatus.success ||
           ln.status == TransactionStatus.failed) {

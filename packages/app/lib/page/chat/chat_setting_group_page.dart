@@ -1,7 +1,7 @@
 import 'package:app/app.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/message_bill/message_bill_page.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:app/service/contact.service.dart';
 
@@ -180,7 +180,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                     Contact? contact = await ContactService().getContact(
                         chatController.room.identityId, rm.idPubkey);
                     String npub =
-                        rustNostr.getBech32PubkeyByHex(hex: rm.idPubkey);
+                        rust_nostr.getBech32PubkeyByHex(hex: rm.idPubkey);
                     contact ??= Contact(
                         pubkey: rm.idPubkey,
                         npubkey: npub,
@@ -221,7 +221,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                         CupertinoDialogAction(
                           child: const Text("Copy Pubkey"),
                           onPressed: () {
-                            String npub = rustNostr.getBech32PubkeyByHex(
+                            String npub = rust_nostr.getBech32PubkeyByHex(
                                 hex: rm.idPubkey);
                             Clipboard.setData(ClipboardData(text: npub));
                             EasyLoading.showToast('Copied');

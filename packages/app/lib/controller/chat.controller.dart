@@ -19,7 +19,7 @@ import 'package:haptic_feedback/haptic_feedback.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
-import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rustSignal;
+import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 
@@ -224,7 +224,7 @@ class ChatController extends GetxController {
     ChatxService cs = Get.find<ChatxService>();
 
     for (var element in memberRooms.values) {
-      rustSignal.KeychatProtocolAddress? kpa = await cs.getRoomKPA(element);
+      rust_signal.KeychatProtocolAddress? kpa = await cs.getRoomKPA(element);
       if (kpa == null) {
         rooms.add(element);
       }

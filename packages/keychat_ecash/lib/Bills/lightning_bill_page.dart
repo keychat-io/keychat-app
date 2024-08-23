@@ -1,6 +1,6 @@
 // ignore_for_file: depend_on_referenced_packages
 
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 import 'package:keychat_ecash/Bills/lightning_bill_controller.dart';
 import 'package:keychat_ecash/Bills/lightning_transaction.dart';
@@ -37,7 +37,7 @@ class LightningBillPage extends GetView<LightningBillController> {
             : Obx(() => SmartRefresher(
                 enablePullDown: true,
                 onRefresh: () async {
-                  await rustCashu.checkPending();
+                  await rust_cashu.checkPending();
                   await controller.getTransactions();
                   controller.refreshController.refreshCompleted();
                 },

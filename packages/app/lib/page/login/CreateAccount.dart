@@ -6,7 +6,7 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/utils.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import '../../service/identity.service.dart';
 import '../routes.dart';
@@ -166,11 +166,11 @@ class _CreateAccountState extends State<CreateAccount> {
 
   void generateAccount(String? mnemonic) async {
     if (mnemonic == null) {
-      var account = await rustNostr.generateFromMnemonic();
+      var account = await rust_nostr.generateFromMnemonic();
       mnemonic = account.mnemonic!;
     }
 
-    List<Secp256k1Account> list = await rustNostr.importFromPhraseWith(
+    List<Secp256k1Account> list = await rust_nostr.importFromPhraseWith(
         phrase: mnemonic, offset: 0, count: 10);
 
     setState(() {

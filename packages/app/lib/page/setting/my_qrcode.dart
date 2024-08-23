@@ -5,7 +5,7 @@ import 'package:app/models/models.dart';
 import 'package:app/models/signal_id.dart';
 import 'package:app/page/components.dart';
 import 'package:app/service/signalId.service.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:app/service/relay.service.dart';
 import 'package:app/utils.dart';
@@ -166,7 +166,7 @@ class _MyQRCodeState extends State<MyQRCode> {
         "Keychat-${identity.secp256k1PKHex}-${signalId.pubkey}-$time";
     // add gloabl sign
 
-    String globalSignResult = await rustNostr.signSchnorr(
+    String globalSignResult = await rust_nostr.signSchnorr(
         senderKeys: await identity.getSecp256k1SKHex(), content: globalSignStr);
     Map<String, dynamic> data = {
       'pubkey': identity.secp256k1PKHex,

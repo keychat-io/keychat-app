@@ -7,7 +7,7 @@ import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/signalId.service.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:app/service/chat.service.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/notify.service.dart';
@@ -73,7 +73,7 @@ class RoomService extends BaseChatService {
       toMainPubkey: toMainPubkey,
       identityId: identityId,
       status: status,
-      npub: rustNostr.getBech32PubkeyByHex(hex: toMainPubkey),
+      npub: rust_nostr.getBech32PubkeyByHex(hex: toMainPubkey),
     )
       ..onetimekey = onetimekey
       ..status = status
@@ -92,7 +92,7 @@ class RoomService extends BaseChatService {
     contact ??= Contact(
         identityId: room.identityId,
         pubkey: room.toMainPubkey,
-        npubkey: rustNostr.getBech32PubkeyByHex(hex: room.toMainPubkey))
+        npubkey: rust_nostr.getBech32PubkeyByHex(hex: room.toMainPubkey))
       ..name = name;
     await ContactService().saveContact(contact);
     contact = await ContactService().getContact(identityId, room.toMainPubkey);
@@ -703,7 +703,7 @@ class RoomService extends BaseChatService {
     if (!(input.length == 64 || input.length == 63)) return null;
     String hexPubkey = input;
     if (input.startsWith('npub') && input.length == 63) {
-      hexPubkey = rustNostr.getHexPubkeyByBech32(bech32: input);
+      hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: input);
     }
 
     try {
@@ -770,7 +770,7 @@ class RoomService extends BaseChatService {
     String? realMessage,
     bool? timestampTweaked,
   }) async {
-    String result = await rustNostr.createGiftJson(
+    String result = await rust_nostr.createGiftJson(
         kind: 14,
         senderKeys: await identity.getSecp256k1SKHex(),
         receiverPubkey: room.toMainPubkey,

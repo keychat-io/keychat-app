@@ -9,7 +9,7 @@ import 'package:keychat_ecash/Bills/ecash_bill_controller.dart';
 import 'package:keychat_ecash/Bills/lightning_bill_controller.dart';
 import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 import 'package:app/global.dart';
@@ -83,7 +83,7 @@ class EcashController extends GetxController {
 
   Future initWithoutIdentity() async {
     try {
-      await rustCashu.initDb(
+      await rust_cashu.initDb(
         dbpath: '$dbPath${KeychatGlobal.ecashDBFile}',
       );
       logger.i('rust api init success');
@@ -100,7 +100,7 @@ class EcashController extends GetxController {
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
       try {
         mints.value = [];
-        var res = await rustCashu.initCashu(
+        var res = await rust_cashu.initCashu(
             prepareSatsOnceTime: KeychatGlobal.cashuPrepareAmount);
         logger.i('initCashu success');
         for (var item in res) {
@@ -128,7 +128,7 @@ class EcashController extends GetxController {
     currentIdentity = identity;
 
     try {
-      await rustCashu.initDb(
+      await rust_cashu.initDb(
           dbpath: '$dbPath${KeychatGlobal.ecashDBFile}',
           words: await identity.getMnemonic());
       logger.i('rust api init success');
@@ -148,11 +148,11 @@ class EcashController extends GetxController {
 
   Future getPendingCount() async {
     pendingCount.value =
-        (await rustCashu.getPendingTransactionsCount()).toInt();
+        (await rust_cashu.getPendingTransactionsCount()).toInt();
   }
 
   Future<Map> getBalance() async {
-    String res = await rustCashu.getBalances();
+    String res = await rust_cashu.getBalances();
     Map<String, dynamic> resMap = jsonDecode(res);
     if (resMap.keys.isEmpty) {
       return {};
@@ -275,7 +275,7 @@ class EcashController extends GetxController {
   }
 
   Future updateMessageStatus() async {
-    List txs = await rustCashu.getPendingTransactions();
+    List txs = await rust_cashu.getPendingTransactions();
     List<Message> messages = await MessageService().getCashuPendingMessage();
     for (Message m in messages) {
       for (var i = 0; i < txs.length; i++) {
@@ -296,12 +296,12 @@ class EcashController extends GetxController {
   }
 
   Future initMintUrl() async {
-    mints.value = await rustCashu.getMints();
+    mints.value = await rust_cashu.getMints();
 
     if (mints.isEmpty) {
-      await rustCashu.addMint(url: KeychatGlobal.defaultCashuMintURL);
+      await rust_cashu.addMint(url: KeychatGlobal.defaultCashuMintURL);
       latestMintUrl.value = KeychatGlobal.defaultCashuMintURL;
-      mints.value = await rustCashu.getMints();
+      mints.value = await rust_cashu.getMints();
       return;
     }
     // check latestMintUrl in mints
@@ -318,7 +318,7 @@ class EcashController extends GetxController {
   }
 
   Future addMintUrl(String mint) async {
-    await rustCashu.addMint(url: mint);
+    await rust_cashu.addMint(url: mint);
     await getBalance();
   }
 
@@ -329,7 +329,7 @@ class EcashController extends GetxController {
       Nuts? nuts = m.info?.nuts;
       if (nuts == null) continue;
       if (nuts.nut09.supported) {
-        await rustCashu.restore(
+        await rust_cashu.restore(
             mint: m.url,
             words: mnemonic,
             sleepmsAfterCheckABatch: BigInt.from(1000));
@@ -362,12 +362,12 @@ class EcashController extends GetxController {
 
   Future requestPageRefresh() async {
     var lightningBillController = Get.find<LightningBillController>();
-    await rustCashu.checkPending();
+    await rust_cashu.checkPending();
     await getBalance();
     await Get.find<EcashBillController>().getTransactions();
     try {
       await lightningBillController.getTransactions();
-      var pendings = await rustCashu.getLnPendingTransactions();
+      var pendings = await rust_cashu.getLnPendingTransactions();
       lightningBillController.checkPendings(pendings);
     } catch (e) {}
     refreshController.refreshCompleted();

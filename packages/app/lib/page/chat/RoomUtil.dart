@@ -10,8 +10,8 @@ import 'package:app/models/keychat/qrcode_user_model.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/ChatMediaFilesPage.dart';
 import 'package:app/page/chat/contact_page.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/storage.dart';
@@ -97,11 +97,11 @@ Let's start an encrypted chat.''';
     // room setting > global setting
     DateTime fromAt = DateTime.now().subtract(const Duration(days: 180));
     var start = BigInt.from(fromAt.millisecondsSinceEpoch);
-    rustCashu.removeTransactions(
+    rust_cashu.removeTransactions(
         unixTimestampMsLe: start, kind: TransactionStatus.success);
-    rustCashu.removeTransactions(
+    rust_cashu.removeTransactions(
         unixTimestampMsLe: start, kind: TransactionStatus.expired);
-    rustCashu.removeTransactions(
+    rust_cashu.removeTransactions(
         unixTimestampMsLe: start, kind: TransactionStatus.failed);
   }
 
@@ -457,12 +457,12 @@ Let's start an encrypted chat.''';
     }
     Identity identity = Get.find<HomeController>().getSelectedIdentity();
 
-    String pubkey = rustNostr.getHexPubkeyByBech32(bech32: model.pubkey);
-    String npub = rustNostr.getBech32PubkeyByHex(hex: model.pubkey);
+    String pubkey = rust_nostr.getHexPubkeyByBech32(bech32: model.pubkey);
+    String npub = rust_nostr.getBech32PubkeyByHex(hex: model.pubkey);
     String globalSign = model.globalSign;
     String needVerifySignStr =
         "Keychat-${model.pubkey}-${model.curve25519PkHex}-${model.time}";
-    bool sign = await rustNostr.verifySchnorr(
+    bool sign = await rust_nostr.verifySchnorr(
         pubkey: pubkey,
         sig: globalSign,
         content: needVerifySignStr,

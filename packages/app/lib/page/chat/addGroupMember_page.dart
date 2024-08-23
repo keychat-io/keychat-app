@@ -1,7 +1,7 @@
 import 'package:app/controller/home.controller.dart';
 import 'package:app/models/models.dart';
 import 'package:app/service/kdf_group.service.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
@@ -65,7 +65,7 @@ class _AddGroupMemberState extends State<AddGroupMember>
     EasyLoading.show(status: 'Proccessing');
     Map<String, String> selectAccounts = {};
     if (_userNameController.text.trim().length >= 63) {
-      String hexPubkey = rustNostr.getHexPubkeyByBech32(
+      String hexPubkey = rust_nostr.getHexPubkeyByBech32(
           bech32: _userNameController.text.trim());
       selectAccounts[hexPubkey] = '';
     }

@@ -1,4 +1,5 @@
 import 'package:app/page/chat/RoomUtil.dart';
+import 'package:avatar_plus/avatar_plus.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
 
@@ -10,9 +11,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:random_avatar/random_avatar.dart';
-import 'package:settings_ui/settings_ui.dart';
 
+import 'package:settings_ui/settings_ui.dart';
 import '../../controller/home.controller.dart';
 import 'package:app/models/models.dart';
 
@@ -46,7 +46,7 @@ class ContactPage extends StatelessWidget {
           tiles: [
             SettingsTile(
               title: const Text('Avatar'),
-              value: RandomAvatar(
+              value: AvatarPlus(
                 contact.pubkey,
                 height: 40,
                 width: 40,

@@ -14,7 +14,6 @@ dependencies:
   keychat_rust_ffi_plugin: 1.0.0
   app: 1.0.0
   timer_builder: ^2.0.0
-  carousel_slider: ^4.2.1
 
 dev_dependencies:
   test: ^1.21.0

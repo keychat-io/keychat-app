@@ -1,18 +1,11 @@
 import 'package:app/controller/chat.controller.dart';
-import 'package:app/controller/home.controller.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/chat_settings_more.dart.dart';
 import 'package:app/page/chat/message_bill/message_bill_page.dart';
 import 'package:app/page/routes.dart';
-import 'package:app/service/signalId.service.dart';
-import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rustSignal;
-
-import 'package:app/service/chatx.service.dart';
-import 'package:app/service/identity.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
 import 'package:settings_ui/settings_ui.dart';
@@ -177,32 +170,8 @@ class _ShowContactDetailState extends State<ShowContactDetail> {
               'Delete',
             ),
             onPressed: () async {
-              try {
-                EasyLoading.show(status: 'Loading...');
-                await RoomService().deleteRoom(room);
-                Identity? identity =
-                    await IdentityService().getIdentityById(room.identityId);
-                if (identity == null) return;
-                String? signalIdPubkey = room.signalIdPubkey;
-                if (signalIdPubkey == null) return;
-                List<Room?> rooms =
-                    await RoomService().getRoomBySignalIdPubkey(signalIdPubkey);
-                if (rooms.length <= 1) {
-                  //only one room used this signalIdPubkey, need delete
-                  await SignalIdService.instance
-                      .deleteSignalIdByPubkey(signalIdPubkey);
-                }
-
-                EasyLoading.showSuccess('Successfully');
-                await Get.find<HomeController>()
-                    .loadIdentityRoomList(room.identityId);
-                Get.offAllNamed(Routes.root);
-              } catch (e, s) {
-                logger.e('delete faild', error: e, stackTrace: s);
-                EasyLoading.showError(e.toString());
-              } finally {
-                EasyLoading.dismiss();
-              }
+              RoomService()
+                  .deleteRoomHandler(room.toMainPubkey, room.identityId);
             }),
       ],
     ));

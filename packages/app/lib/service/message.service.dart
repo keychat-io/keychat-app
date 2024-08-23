@@ -109,11 +109,12 @@ class MessageService {
         msgKeyHash: msgKeyHash,
         createdAt: DateTime.fromMillisecondsSinceEpoch(
             (createdAt ?? events[0].createdAt) * 1000))
-      ..subEvent = subEvent;
+      ..subEvent = subEvent
+      ..requestConfrim = requestConfrim;
+
     if (isRead != null) model.isRead = isRead;
     if (isSystem != null) model.isSystem = isSystem;
     if (mediaType != null) model.mediaType = mediaType;
-    if (requestConfrim != null) model.requestConfrim = requestConfrim;
 
     await saveMessageModel(model, persist);
     return model;

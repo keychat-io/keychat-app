@@ -53,9 +53,7 @@ class _CreateAccountState extends State<CreateAccount> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: widget.type != "tab"
-            ? AppBar(
-                title: const Text('Create ID'),
-              )
+            ? AppBar(title: const Text('Create ID'))
             : null,
         floatingActionButton: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -99,9 +97,7 @@ class _CreateAccountState extends State<CreateAccount> {
                         EasyLoading.showToast(e.toString());
                       }
                     },
-                    child: const Text(
-                      'Confirm',
-                    ),
+                    child: const Text('Confirm'),
                   )
                 ])),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,

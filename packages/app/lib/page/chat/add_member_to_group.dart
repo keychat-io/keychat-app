@@ -1,6 +1,7 @@
 import 'package:app/controller/home.controller.dart';
 import 'package:app/models/models.dart';
 import 'package:app/service/kdf_group.service.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:app/utils.dart';
@@ -12,16 +13,17 @@ import 'package:get/get.dart';
 import '../../service/contact.service.dart';
 import '../../service/group.service.dart';
 
-class AddGroupMember extends StatefulWidget {
+class AddMemberToGroup extends StatefulWidget {
   final Room room;
   final Set<String> members;
-  const AddGroupMember({super.key, required this.room, required this.members});
+  const AddMemberToGroup(
+      {super.key, required this.room, required this.members});
 
   @override
-  State<StatefulWidget> createState() => _AddGroupMemberState();
+  State<StatefulWidget> createState() => _AddMemberToGroupState();
 }
 
-class _AddGroupMemberState extends State<AddGroupMember>
+class _AddMemberToGroupState extends State<AddMemberToGroup>
     with TickerProviderStateMixin {
   List<Contact> _contactList = [];
   bool isLoading = false;
@@ -29,7 +31,7 @@ class _AddGroupMemberState extends State<AddGroupMember>
   final List<String> _tabs = ["Select Members", "Input"];
   late TabController _tabController;
 
-  _AddGroupMemberState();
+  _AddMemberToGroupState();
 
   late ScrollController _scrollController;
   late TextEditingController _userNameController;
@@ -62,6 +64,8 @@ class _AddGroupMemberState extends State<AddGroupMember>
   }
 
   void _completeFromInput() async {
+    String myPubkey =
+        Get.find<HomeController>().getSelectedIdentity().secp256k1PKHex;
     EasyLoading.show(status: 'Proccessing');
     Map<String, String> selectAccounts = {};
     if (_userNameController.text.trim().length >= 63) {
@@ -69,7 +73,7 @@ class _AddGroupMemberState extends State<AddGroupMember>
           bech32: _userNameController.text.trim());
       selectAccounts[hexPubkey] = '';
     }
-    _sendInvite(selectAccounts);
+    await _sendInvite(myPubkey, selectAccounts);
   }
 
   void _completeFromContacts() async {
@@ -89,13 +93,35 @@ class _AddGroupMemberState extends State<AddGroupMember>
         selectAccounts[selectAccount] = contact.displayName;
       }
     }
-    _sendInvite(selectAccounts);
+    _sendInvite(myPubkey, selectAccounts);
   }
 
-  Future _sendInvite(Map<String, String> selectAccounts) async {
+  Future _sendInvite(
+      String myPubkey, Map<String, String> selectAccounts) async {
     if (selectAccounts.isEmpty) {
       EasyLoading.showError('user not found or input error ');
       return;
+    }
+    RoomMember? meMember = await widget.room.getMember(myPubkey);
+    if (meMember != null) {
+      if (!meMember.isAdmin) {
+        await GroupService().sendInviteToAdmin(widget.room, selectAccounts);
+        EasyLoading.dismiss();
+        Get.dialog(CupertinoAlertDialog(
+          title: const Text('Success'),
+          content: const Text('The invitation has been sent to the admin'),
+          actions: <Widget>[
+            CupertinoDialogAction(
+              child: const Text('OK'),
+              onPressed: () {
+                Get.back();
+                Get.back();
+              },
+            ),
+          ],
+        ));
+        return;
+      }
     }
     try {
       if (widget.room.isKDFGroup) {

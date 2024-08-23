@@ -1858,8 +1858,7 @@ RoomMember _$RoomMemberFromJson(Map<String, dynamic> json) => RoomMember(
           ? null
           : DateTime.parse(json['updatedAt'] as String)
       ..isAdmin = json['isAdmin'] as bool
-      ..status = $enumDecode(_$UserStatusTypeEnumMap, json['status'])
-      ..messageCount = (json['messageCount'] as num).toInt();
+      ..status = $enumDecode(_$UserStatusTypeEnumMap, json['status']);
 
 Map<String, dynamic> _$RoomMemberToJson(RoomMember instance) {
   final val = <String, dynamic>{
@@ -1878,7 +1877,6 @@ Map<String, dynamic> _$RoomMemberToJson(RoomMember instance) {
   writeNotNull('updatedAt', instance.updatedAt?.toIso8601String());
   val['isAdmin'] = instance.isAdmin;
   val['status'] = _$UserStatusTypeEnumMap[instance.status]!;
-  val['messageCount'] = instance.messageCount;
   return val;
 }
 

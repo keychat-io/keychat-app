@@ -522,6 +522,8 @@ class GroupService extends BaseChatService {
         }
         return await processGroupMessage(groupRoom, event, gm,
             member: member, idRoom: room, relay: relay, msgKeyHash: msgKeyHash);
+      case KeyChatEventKinds.inviteToGroupRequest:
+        return await _processinviteToGroupRequest(room, event, km);
       default:
     }
   }
@@ -1107,5 +1109,35 @@ ${rm.idPubkey}
       return await sendToAllMessage(room, message,
           subtype: subtype, ext: ext, realMessage: realMessage);
     }
+  }
+
+  Future sendInviteToAdmin(
+      Room room, Map<String, String> selectAccounts) async {
+    RoomMember? roomMember = await room.getAdmin();
+    if (roomMember == null) {
+      throw Exception('No admin in group');
+    }
+    Identity identity = room.getIdentity();
+    String names = selectAccounts.values.join(',');
+    KeychatMessage sm = KeychatMessage(
+        c: MessageType.group, type: KeyChatEventKinds.inviteToGroupRequest)
+      ..name = jsonEncode([room.toMainPubkey, selectAccounts])
+      ..msg =
+          'Invite [${names.isNotEmpty ? names : selectAccounts.keys.join(',').toString()}] to join group ${room.name}, Please confirm';
+
+    Room adminRoom = await RoomService().getOrCreateRoom(
+        roomMember.idPubkey, identity.secp256k1PKHex, RoomStatus.init);
+    Get.find<HomeController>().loadIdentityRoomList(adminRoom.identityId);
+    await RoomService()
+        .sendTextMessage(adminRoom, sm.toString(), realMessage: sm.msg);
+  }
+
+  Future _processinviteToGroupRequest(
+      Room room, NostrEventModel event, KeychatMessage km) async {
+    RoomService().receiveDM(room, event,
+        decodedContent: km.name,
+        realMessage: km.msg,
+        requestConfrim: RequestConfrimEnum.request,
+        mediaType: MessageMediaType.groupInviteConfirm);
   }
 }

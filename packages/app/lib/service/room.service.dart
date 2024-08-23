@@ -482,6 +482,8 @@ class RoomService extends BaseChatService {
       String? decodedContent,
       bool? isRead,
       String? idPubkey,
+      RequestConfrimEnum? requestConfrim,
+      MessageMediaType? mediaType,
       String? msgKeyHash}) async {
     MsgReply? reply;
     if (km != null) {
@@ -510,6 +512,8 @@ class RoomService extends BaseChatService {
         sent: SendStatusType.success,
         isMeSend: idPubkey == room.getIdentity().secp256k1PKHex,
         isRead: isRead,
+        mediaType: mediaType,
+        requestConfrim: requestConfrim,
         createdAt: event.createdAt,
         msgKeyHash: msgKeyHash);
   }

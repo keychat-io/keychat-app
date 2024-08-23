@@ -17,7 +17,7 @@ import '../../controller/home.controller.dart';
 import '../components.dart';
 import '../routes.dart';
 import '../../service/group.service.dart';
-import 'addGroupMember_page.dart';
+import 'add_member_to_group.dart';
 
 class GroupChatSettingPage extends StatefulWidget {
   final ChatController chatController;
@@ -76,7 +76,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                   for (RoomMember rm in members) {
                     memberPubkeys.add(rm.idPubkey);
                   }
-                  Get.to(() => AddGroupMember(
+                  Get.to(() => AddMemberToGroup(
                       room: chatController.roomObs.value,
                       members: memberPubkeys));
                 },

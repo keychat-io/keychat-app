@@ -77,16 +77,12 @@ class GroupInfoWidget extends StatelessWidget {
                             },
                           ),
                         ),
-                        child: const Text(
-                          'Reject',
-                        )),
+                        child: const Text('Reject')),
                     FilledButton(
                         onPressed: () {
                           Get.back(result: true);
                         },
-                        child: const Text(
-                          'Join Group',
-                        )),
+                        child: const Text('Join Group')),
                   ]))
         ],
       ),

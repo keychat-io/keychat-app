@@ -20,7 +20,8 @@ enum MessageMediaType {
   pdf,
   setPostOffice,
   groupInvite,
-  file
+  file,
+  groupInviteConfirm, // For administrators to use to accept or deny new users from joining the group
 }
 
 enum RequestConfrimEnum { none, request, approved, rejected }

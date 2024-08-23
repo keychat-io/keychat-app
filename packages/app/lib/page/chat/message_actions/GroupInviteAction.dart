@@ -27,7 +27,7 @@ class GroupInviteAction extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (message.requestConfrim) {
       case RequestConfrimEnum.request:
-        return OutlinedButton(
+        return FilledButton(
             onPressed: () async {
               EasyThrottle.throttle('joingroup', const Duration(seconds: 2),
                   () async {

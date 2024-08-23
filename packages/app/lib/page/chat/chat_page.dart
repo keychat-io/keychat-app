@@ -680,9 +680,7 @@ class _ChatPage2State extends State<ChatPage> {
               },
               style: ButtonStyle(
                   backgroundColor: WidgetStateProperty.all(Colors.red)),
-              child: const Text(
-                'Reject',
-              ),
+              child: const Text('Reject'),
             ),
           ],
         )

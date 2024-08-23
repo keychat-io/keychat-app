@@ -15,7 +15,6 @@ import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:web_socket_channel/io.dart';
-import 'package:web_socket_channel/status.dart' as status;
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -71,7 +70,7 @@ class WebsocketService extends GetxService {
       //     '> checkOnlineAndConnect ${rw.relay.url}: ${rw.channelStatus.name} ${rw.channel?.closeCode} _ ${rw.channel?.closeReason}');
       rw.checkOnlineStatus().then((relayStatus) {
         if (!relayStatus) {
-          rw.channel?.sink.close(status.goingAway);
+          rw.channel?.sink.close();
           _startConnectRelay(rw);
         }
       });
@@ -80,7 +79,7 @@ class WebsocketService extends GetxService {
 
   deleteRelay(Relay value) {
     if (channels[value.url] != null) {
-      channels[value.url]!.channel?.sink.close(status.goingAway);
+      channels[value.url]!.channel?.sink.close();
     }
     channels.remove(value.url);
   }
@@ -218,7 +217,7 @@ class WebsocketService extends GetxService {
 
   Future stopListening() async {
     for (RelayWebsocket rw in channels.values) {
-      rw.channel?.sink.close(status.goingAway);
+      rw.channel?.sink.close();
       rw.channel = null;
     }
     channels.clear();
@@ -357,7 +356,7 @@ class WebsocketService extends GetxService {
 
       if (rw.failedTimes > failedTimesLimit) {
         rw.channelStatus = RelayStatusEnum.failed;
-        rw.channel?.sink.close(status.goingAway);
+        rw.channel?.sink.close();
         return rw;
       }
     }

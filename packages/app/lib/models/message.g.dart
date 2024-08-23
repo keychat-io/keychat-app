@@ -420,6 +420,7 @@ const _MessagemediaTypeEnumValueMap = {
   'setPostOffice': 6,
   'groupInvite': 7,
   'file': 8,
+  'groupInviteConfirm': 9,
 };
 const _MessagemediaTypeValueEnumMap = {
   0: MessageMediaType.text,
@@ -431,6 +432,7 @@ const _MessagemediaTypeValueEnumMap = {
   6: MessageMediaType.setPostOffice,
   7: MessageMediaType.groupInvite,
   8: MessageMediaType.file,
+  9: MessageMediaType.groupInviteConfirm,
 };
 const _MessagerequestConfrimEnumValueMap = {
   'none': 0,

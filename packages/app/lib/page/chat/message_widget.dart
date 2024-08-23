@@ -36,6 +36,7 @@ import 'chat_bubble.dart';
 import 'chat_bubble_clipper_4.dart';
 
 import 'message_actions/FileMessageWidget.dart';
+import 'message_actions/GroupInviteConfirmAction.dart';
 import 'message_actions/VideoMessageWidget.dart';
 
 // ignore: must_be_immutable
@@ -419,6 +420,8 @@ class MessageWidget extends StatelessWidget {
         case MessageMediaType.groupInvite:
           return _getActionWidget(
               GroupInviteAction(message, chatController.room.getIdentity()));
+        case MessageMediaType.groupInviteConfirm:
+          return _getActionWidget(GroupInviteConfirmAction(message));
         default:
       }
     } catch (e, s) {
@@ -900,10 +903,15 @@ class MessageWidget extends StatelessWidget {
   }
 
   Widget _getActionWidget(Widget statusWidget) {
-    return Wrap(
-      direction: Axis.vertical,
-      spacing: 10,
-      children: [_getTextItemView(), statusWidget],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _getTextItemView(),
+        const SizedBox(
+          height: 10,
+        ),
+        statusWidget
+      ],
     );
   }
 

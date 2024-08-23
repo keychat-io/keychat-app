@@ -233,7 +233,7 @@ class ContactService {
   }
 
   Future<Contact> getOrCreateContact(int identityId, String npubkey,
-      {String? curve25519PkHex}) async {
+      {String? name, String? curve25519PkHex}) async {
     String pubkey = rustNostr.getHexPubkeyByBech32(bech32: npubkey);
     Contact? c = await getContact(identityId, pubkey);
 
@@ -244,6 +244,7 @@ class ContactService {
     return await createContact(
         identityId: identityId,
         pubkey: pubkey,
+        name: name,
         curve25519PkHex: curve25519PkHex);
   }
 

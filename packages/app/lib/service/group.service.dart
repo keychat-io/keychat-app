@@ -535,9 +535,10 @@ class GroupService extends BaseChatService {
   // 1. If the room id already exists locally, check whether the sending user is in the group
   // 2. If not, throw an exception
   // 3. Check if the secret key matches. There is a situation where the roomID is the same, but the shared secret key has been changed.
-  inviteToJoinGroup(Room groupRoom,
-      {List<String> toUsers = const [], SignalId? signalId}) async {
-    if (toUsers.isEmpty) return;
+  Future<RoomProfile> inviteToJoinGroup(
+      Room groupRoom, Map<String, String> toUsers,
+      {SignalId? signalId, Mykey? mykey}) async {
+    if (toUsers.isEmpty) throw Exception('no users to invite');
     Identity identity = groupRoom.getIdentity();
     await roomService.checkRoomStatus(groupRoom);
     List<RoomMember> allMembers = await groupRoom.getMembers();
@@ -548,15 +549,17 @@ class GroupService extends BaseChatService {
     DateTime now = DateTime.now();
 
     // Add to the local contact list in batches, update if it exists, create if it does not exist
-    for (var idPubkey in toUsers) {
+    for (var idPubkey in toUsers.keys) {
       RoomMember? rm = allMembers
           .firstWhereOrNull((element) => element.idPubkey == idPubkey);
       if (rm == null) {
         Contact c = await contactService.getOrCreateContact(
-            groupRoom.identityId, idPubkey);
+            groupRoom.identityId, idPubkey,
+            name: (toUsers[idPubkey]?.length ?? 0) > 0
+                ? toUsers[idPubkey]
+                : null);
         rm = await groupRoom.addMember(
             name: c.displayName,
-            curve25519PkHex: c.curve25519PkHex,
             idPubkey: idPubkey,
             status: status,
             createdAt: now,
@@ -575,13 +578,13 @@ class GroupService extends BaseChatService {
 
     Mykey? roomMykey = groupRoom.mykey.value;
     String roomPubkey =
-        roomMykey == null ? groupRoom.toMainPubkey : roomMykey.pubkey;
+        mykey?.pubkey ?? roomMykey?.pubkey ?? groupRoom.toMainPubkey;
     RoomProfile roomProfile = RoomProfile(
         roomPubkey, groupRoom.name!, allMembers, groupRoom.groupType)
       ..oldToRoomPubKey = groupRoom.toMainPubkey
-      ..prikey = roomMykey?.prikey
+      ..prikey = mykey?.prikey ?? roomMykey?.prikey
       ..groupRelay = groupRoom.groupRelay
-      ..updatedAt = DateTime.now().millisecondsSinceEpoch;
+      ..updatedAt = now.millisecondsSinceEpoch;
 
     // shared signalId's QRCode
     if (groupRoom.isKDFGroup && signalId != null) {
@@ -592,7 +595,9 @@ class GroupService extends BaseChatService {
     }
 
     List<String> addUsersName = toMembers.map((e) => e.name).toList();
-    String realMessage = '🤖 Invite ${addUsersName.join(',')} to join group';
+    String names = addUsersName.join(',');
+    String realMessage =
+        '🤖 Invite ${names.isNotEmpty ? names : toUsers.keys.toString()} to join group';
 
     KeychatMessage km = KeychatMessage(
         c: MessageType.group,
@@ -607,6 +612,7 @@ class GroupService extends BaseChatService {
     }
 
     RoomService.getController(groupRoom.id)?.resetMembers();
+    return roomProfile;
   }
 
   Future removeMember(Room room, RoomMember rm) async {

@@ -60,7 +60,7 @@ class KeyChatEventKinds {
   static const int kdfHelloMessage = 3001;
   static const int kdfWelcomeMessage = 3002;
   static const int kdfInvite = 3003;
-  static const int kdfDHMessage = 3004;
+  static const int kdfInviteToGroup = 3004;
 }
 
 class EventKinds {

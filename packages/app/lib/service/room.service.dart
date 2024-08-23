@@ -604,13 +604,16 @@ class RoomService extends BaseChatService {
     return map;
   }
 
-  updateChatRoomPage(Room room) async {
+  Future<ChatController?> updateChatRoomPage(Room room) async {
     ChatController? cc = RoomService.getController(room.id);
-    if (cc == null) return;
+    if (cc == null) return null;
 
-    room.contact ??=
-        await contactService.getContact(room.identityId, room.toMainPubkey);
+    if (room.type == RoomType.common) {
+      room.contact ??=
+          await contactService.getContact(room.identityId, room.toMainPubkey);
+    }
     cc.setRoom(room);
+    return null;
   }
 
   Future<Room> updateRoom(Room room, {bool updateMykey = false}) async {

@@ -68,6 +68,7 @@ class GroupTx {
       required GroupType groupType,
       required Identity identity,
       required int version,
+      int? roomUpdateAt,
       Mykey? sharedKey,
       String? groupRelay,
       String? sharedSignalID}) async {
@@ -93,9 +94,13 @@ class GroupTx {
       await DBProvider.database.roomMembers.put(me);
     }
     if (room.isShareKeyGroup || room.isKDFGroup) {
+      DateTime? since = roomUpdateAt != null
+          ? DateTime.fromMillisecondsSinceEpoch(roomUpdateAt)
+          : null;
+      String listenKey = sharedKey?.pubkey ?? toMainPubkey;
       await Get.find<WebsocketService>()
-          .listenPubkey([toMainPubkey], limit: 300);
-      NotifyService.addPubkeys([toMainPubkey]);
+          .listenPubkey([listenKey], since: since, limit: 300);
+      NotifyService.addPubkeys([listenKey]);
     }
     return room;
   }
@@ -134,7 +139,8 @@ class GroupTx {
         groupType: roomProfile.groupType,
         version: version,
         groupRelay: groupRelay,
-        sharedSignalID: roomProfile.signalPubkey);
+        sharedSignalID: roomProfile.signalPubkey,
+        roomUpdateAt: roomProfile.updatedAt);
 
     // import signalId for kdf group
     if (groupRoom.isKDFGroup && roomProfile.signalPubkey != null) {

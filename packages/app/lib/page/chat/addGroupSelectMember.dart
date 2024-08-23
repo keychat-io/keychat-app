@@ -64,7 +64,7 @@ class _AddGroupSelectMemberState extends State<AddGroupSelectMember>
   }
 
   void _completeToCreatGroup() async {
-    Set<String> selectAccounts = {};
+    Map<String, String> selectAccounts = {};
     for (int i = 0; i < _contactList.length; i++) {
       Contact contact = _contactList[i];
       if (contact.isCheck) {
@@ -74,7 +74,7 @@ class _AddGroupSelectMemberState extends State<AddGroupSelectMember>
         } else {
           selectAccount = contact.pubkey;
         }
-        selectAccounts.add(selectAccount);
+        selectAccounts[selectAccount] = contact.displayName;
       }
     }
     // from input, check public key
@@ -83,7 +83,7 @@ class _AddGroupSelectMemberState extends State<AddGroupSelectMember>
       bool isCheck = nostrKeyInputCheck(input);
       if (!isCheck) return;
       String pubkey = rustNostr.getHexPubkeyByBech32(bech32: input);
-      selectAccounts.add(pubkey);
+      selectAccounts[pubkey] = '';
     }
 
     if (selectAccounts.isEmpty) {
@@ -96,12 +96,10 @@ class _AddGroupSelectMemberState extends State<AddGroupSelectMember>
       if (widget.groupType == GroupType.sendAll) {
         room = await GroupService()
             .createGroup(widget.groupName, identity, widget.groupType);
-        await GroupService()
-            .inviteToJoinGroup(room, toUsers: selectAccounts.toList());
+        await GroupService().inviteToJoinGroup(room, selectAccounts);
       } else if (widget.groupType == GroupType.kdf) {
-        room = await KdfGroupService.instance.createGroup(
-            widget.groupName, identity,
-            toUsers: selectAccounts.toList());
+        room = await KdfGroupService.instance
+            .createGroup(widget.groupName, identity, selectAccounts);
       }
     } catch (e, s) {
       logger.e('create room', error: e, stackTrace: s);

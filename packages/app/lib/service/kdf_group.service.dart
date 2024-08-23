@@ -5,13 +5,21 @@
 
 import 'dart:convert' show base64, base64Decode, jsonDecode, utf8;
 import 'dart:typed_data' show Uint8List;
+import 'package:app/controller/chat.controller.dart';
 import 'package:app/global.dart';
+import 'package:app/models/db_provider.dart';
 import 'package:app/models/keychat/prekey_message_model.dart';
+import 'package:app/models/keychat/room_profile.dart';
+import 'package:app/models/mykey.dart';
 import 'package:app/models/room_member.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/service/chatx.service.dart';
+import 'package:app/service/group_tx.dart';
+import 'package:app/service/notify.service.dart';
 import 'package:app/service/signalId.service.dart';
 import 'package:app/service/signal_chat_util.dart';
+import 'package:app/service/websocket.service.dart';
+import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rustSignal;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
 import 'package:app/constants.dart';
@@ -80,7 +88,7 @@ class KdfGroupService extends BaseChatService {
             remoteAddress: kpa,
             isPrekey: notPrekey);
     String encryptedContent = base64.encode(enResult.$1);
-
+    String receiverPubkey = room.mykey.value!.pubkey;
     String unEncryptedEvent = await rustNostr.getUnencryptEvent(
         senderKeys: await identity.getSecp256k1SKHex(),
         receiverPubkey: room.toMainPubkey,
@@ -88,7 +96,7 @@ class KdfGroupService extends BaseChatService {
 
     var randomAccount = await rustNostr.generateSimple();
 
-    return await NostrAPI().sendNip4Message(room.toMainPubkey, unEncryptedEvent,
+    return await NostrAPI().sendNip4Message(receiverPubkey, unEncryptedEvent,
         prikey: randomAccount.prikey,
         from: randomAccount.pubkey,
         room: room,
@@ -109,8 +117,8 @@ class KdfGroupService extends BaseChatService {
       required Relay relay}) async {
     switch (km.type) {
       case KeyChatEventKinds.kdfHelloMessage:
-        await _processHelloMessage(room, event, km, sourceEvent);
-        break;
+        return await _processHelloMessage(room, event, km,
+            sourceEvent: sourceEvent, msgKeyHash: msgKeyHash);
       case KeyChatEventKinds.groupExist:
         // self exit group
         if (event.pubkey == room.myIdPubkey) {
@@ -118,17 +126,18 @@ class KdfGroupService extends BaseChatService {
         }
         await room.removeMember(event.pubkey);
         RoomService.getController(room.id)?.resetMembers();
-        RoomService().receiveDM(room, event,
+        return RoomService().receiveDM(room, event,
             sourceEvent: sourceEvent, realMessage: km.msg);
-        break;
 
       case KeyChatEventKinds.groupDissolve:
         room.status = RoomStatus.dissolved;
-        await RoomService().updateRoom(room);
-        break;
-
+        return await RoomService().updateRoom(room);
+      case KeyChatEventKinds.kdfInviteToGroup:
+        return await _processInviteToGroup(room, event, km, sourceEvent);
       default:
     }
+    logger.d(km.toString());
+    RoomService().receiveDM(room, event, sourceEvent: sourceEvent, km: km);
   }
 
   // decrypt the first signal message
@@ -161,7 +170,7 @@ class KdfGroupService extends BaseChatService {
       room.checkAndCleanSignalKeys();
     }
 
-    // process message
+    // proccess message
     String decryptedContent = utf8.decode(plaintext);
     PrekeyMessageModel? prekeyMessageModel;
     KeychatMessage? km;
@@ -270,9 +279,9 @@ class KdfGroupService extends BaseChatService {
             relay: relay,
             eventLog: eventLog);
         return;
-      } catch (e) {
+      } catch (e, s) {
         String msg = Utils.getErrorMessage(e);
-        logger.e(msg, error: e);
+        logger.e(msg, error: e, stackTrace: s);
       }
       String msg = Utils.getErrorMessage(e);
       logger.e(msg, error: e, stackTrace: s);
@@ -344,8 +353,8 @@ class KdfGroupService extends BaseChatService {
   // inti identity's signal session
   // send hello message to group shared key but not save
   // shared signal init signal session
-  Future<Room> createGroup(String groupName, Identity identity,
-      {List<String> toUsers = const []}) async {
+  Future<Room> createGroup(
+      String groupName, Identity identity, Map<String, String> toUsers) async {
     SignalId signalId =
         await SignalIdService.instance.createSignalId(identity.id, true);
     Room room =
@@ -353,8 +362,7 @@ class KdfGroupService extends BaseChatService {
     room.sharedSignalID = signalId.pubkey;
     await RoomService().updateRoom(room);
     if (toUsers.isNotEmpty) {
-      await GroupService()
-          .inviteToJoinGroup(room, toUsers: toUsers, signalId: signalId);
+      await GroupService().inviteToJoinGroup(room, toUsers, signalId: signalId);
     }
     await sendHelloMessage(identity, signalId, room);
 
@@ -377,7 +385,7 @@ class KdfGroupService extends BaseChatService {
   }
 
   _processHelloMessage(Room room, NostrEventModel event, KeychatMessage km,
-      NostrEventModel? sourceEvent) async {
+      {String? msgKeyHash, NostrEventModel? sourceEvent}) async {
     if (km.name == null) return;
 
     // update room member
@@ -397,7 +405,116 @@ class KdfGroupService extends BaseChatService {
     await RoomService().receiveDM(room, event,
         sourceEvent: sourceEvent,
         km: km,
+        msgKeyHash: msgKeyHash,
         decodedContent: km.toString(),
         realMessage: km.msg);
+  }
+
+  Future inviteToJoinGroup(Room room, Map<String, String> users) async {
+    SignalId signalId =
+        await SignalIdService.instance.createSignalId(room.id, true);
+    Mykey mykey = await GroupTx().createMykey(room.getIdentity());
+    RoomProfile roomProfile = await GroupService()
+        .inviteToJoinGroup(room, users, signalId: signalId, mykey: mykey);
+
+    String names = users.values.toList().join(',');
+    KeychatMessage sm = KeychatMessage(
+        c: MessageType.kdfGroup, type: KeyChatEventKinds.kdfInviteToGroup)
+      ..name = roomProfile.toString()
+      ..msg =
+          'Invite ${names.isNotEmpty ? names : users.keys.join(',').toString()} to join group';
+
+    await KdfGroupService.instance
+        .sendMessage(room, sm.toString(), save: false);
+  }
+
+  // receive new message: member invite to join group
+  // update room member,signal id ,mykey info
+  // send hello to group
+  Future _processInviteToGroup(Room room, NostrEventModel event,
+      KeychatMessage km, NostrEventModel? sourceEvent) async {
+    Identity identity = room.getIdentity();
+    RoomProfile roomProfile = RoomProfile.fromJson(jsonDecode(km.name!));
+
+    var keychain = rustNostr.Secp256k1Account(
+        prikey: roomProfile.prikey!,
+        pubkey: roomProfile.pubkey,
+        pubkeyBech32: '',
+        prikeyBech32: '');
+    late SignalId signalId;
+    SignalId? toDeleteSignalId = await DBProvider.database.signalIds
+        .filter()
+        .pubkeyEqualTo(room.sharedSignalID!)
+        .findFirst();
+    List<RoomMember> members = await room.getMembers();
+    Mykey toDeleteMykey = room.mykey.value!;
+    await DBProvider.database.writeTxn(() async {
+      // clear signalid session and config
+      if (toDeleteSignalId != null) {
+        int deviceId = getKDFRoomIdentityForShared(room.id);
+        var myKeypair =
+            await Get.find<ChatxService>().getKeyPairByIdentity(identity);
+        final sharedKeyAddress = KeychatProtocolAddress(
+            name: toDeleteSignalId.pubkey, deviceId: deviceId);
+        try {
+          await rustSignal.deleteSession(
+              keyPair: myKeypair, address: sharedKeyAddress);
+        } catch (e) {
+          logger.e('deleteSession error: $e');
+        }
+
+        var sharedKeypair = await room.getKeyPair();
+        for (var member in members) {
+          if (member.curve25519PkHex == null) continue;
+
+          final memberAddress = KeychatProtocolAddress(
+              name: member.curve25519PkHex!, deviceId: deviceId);
+          try {
+            await rustSignal.deleteSession(
+                keyPair: sharedKeypair, address: memberAddress);
+          } catch (e) {
+            logger.e('deleteSession error: $e');
+          }
+        }
+      }
+      await DBProvider.database.signalIds
+          .filter()
+          .pubkeyEqualTo(room.sharedSignalID!)
+          .deleteFirst();
+      // import new signalId
+      signalId = await SignalIdService.instance
+          .importSignalId(identity.id, roomProfile);
+
+      // update room members
+      await room.updateAllMemberTx(roomProfile.users);
+
+      // delete old mykey and import new one
+      await DBProvider.database.mykeys
+          .filter()
+          .idEqualTo(toDeleteMykey.id)
+          .identityIdEqualTo(room.identityId)
+          .deleteFirst();
+      Mykey mykey = await GroupTx().importMykeyTx(identity, keychain);
+      room.sharedSignalID = signalId.pubkey;
+      room.mykey.value = mykey;
+      await GroupTx().updateRoom(room, updateMykey: true);
+    });
+
+    // start listen
+    await Get.find<WebsocketService>().listenPubkey([keychain.pubkey],
+        since: DateTime.fromMillisecondsSinceEpoch(roomProfile.updatedAt!));
+    NotifyService.addPubkeys([keychain.pubkey]);
+
+    // not save private keys to message
+    await RoomService().receiveDM(room, event,
+        sourceEvent: sourceEvent, decodedContent: km.msg);
+
+    ChatController? chatController =
+        await RoomService().updateChatRoomPage(room);
+    chatController?.resetMembers();
+
+    await Future.delayed(
+        const Duration(seconds: 1)); // message delay for multi task
+    await sendHelloMessage(identity, signalId, room);
   }
 }

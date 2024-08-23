@@ -68,14 +68,19 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                 "${chatController.roomObs.value.name ?? ""}(${chatController.enableMembers.length})",
               )),
           actions: [
-            if (chatController.room.isSendAllGroup)
-              IconButton(
-                  onPressed: () {
-                    Get.to(
-                      () => AddGroupMember(room: chatController.roomObs.value),
-                    );
-                  },
-                  icon: const Icon(CupertinoIcons.plus_circle_fill))
+            IconButton(
+                onPressed: () async {
+                  List<RoomMember> members =
+                      await chatController.room.getActiveMembers();
+                  Set<String> memberPubkeys = {};
+                  for (RoomMember rm in members) {
+                    memberPubkeys.add(rm.idPubkey);
+                  }
+                  Get.to(() => AddGroupMember(
+                      room: chatController.roomObs.value,
+                      members: memberPubkeys));
+                },
+                icon: const Icon(CupertinoIcons.plus_circle_fill))
           ],
         ),
         body: Obx(
@@ -297,12 +302,12 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
           child: InkWell(
             onTap: () async {
               var members = await chatController.roomObs.value.getMembers();
-              List<String> toUsers = [];
+              Map<String, String> selectAccounts = {};
               for (RoomMember rm in members) {
-                toUsers.add(rm.idPubkey);
+                selectAccounts[rm.idPubkey] = rm.name;
               }
-              await groupService.inviteToJoinGroup(chatController.roomObs.value,
-                  toUsers: toUsers);
+              await groupService.inviteToJoinGroup(
+                  chatController.roomObs.value, selectAccounts);
               EasyLoading.showSuccess("Send invitation successfully");
             },
             child: Row(
@@ -354,6 +359,17 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
             Clipboard.setData(ClipboardData(text: pubkey));
             EasyLoading.showToast('Copied');
           }),
+      if (chatController.roomObs.value.sharedSignalID != null)
+        SettingsTile(
+            title: const Text("Virtual ID"),
+            leading: const Icon(Icons.person),
+            value: textP(getPublicKeyDisplay(
+                chatController.roomObs.value.sharedSignalID!)),
+            onPressed: (context) {
+              Clipboard.setData(ClipboardData(
+                  text: chatController.roomObs.value.sharedSignalID!));
+              EasyLoading.showToast('Copied');
+            }),
       SettingsTile.navigation(
           leading: const Icon(CupertinoIcons.chart_bar),
           title: const Text('Group Mode'),

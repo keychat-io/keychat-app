@@ -319,10 +319,15 @@ class SignalChatService extends BaseChatService {
     if (keychatMessage.type == KeyChatEventKinds.dmAddContactFromAlice) {
       room.onetimekey = model.onetimekey;
     }
-
+    // delete old session
+    await Get.find<ChatxService>().deleteSignalSessionKPA(room);
+    // must be delete session then give a new data
     room.curve25519PkHex = model.curve25519PkHex;
-    await Get.find<ChatxService>()
-        .deleteSignalSessionKPA(room); // delete old session
+    RoomService.getController(room.id)?.room.curve25519PkHex =
+        model.curve25519PkHex;
+    logger.d(
+        "after del room curve25519PkHex signalIdPubkey is ${room.curve25519PkHex!}, ${room.signalIdPubkey}");
+
     bool res = await Get.find<ChatxService>().addRoomKPA(
         room: room,
         bobSignedId: model.signedId,
@@ -336,9 +341,9 @@ class SignalChatService extends BaseChatService {
       // logger.i('signal session create success');
       room.encryptMode = EncryptMode.signal;
     }
-
-    room = await RoomService().updateRoom(room);
     room.contact = contact;
+    room = await RoomService().updateRoom(room);
+
     await RoomService().receiveDM(room, event, sourceEvent,
         km: keychatMessage,
         decodedContent: keychatMessage.toString(),
@@ -398,8 +403,13 @@ Let's talk on this server.''';
       {int type = KeyChatEventKinds.dmAddContactFromAlice,
       String? onetimekey,
       String? greeting}) async {
+    SignalId signalId =
+        await SignalIdService.instance.createSignalId(identity.id);
+    // after reset session, the room signal key need update
+    room.signalIdPubkey = signalId.pubkey;
+    room = await RoomService().updateRoom(room);
     KeychatMessage sm = await KeychatMessage(c: MessageType.signal, type: type)
-        .setHelloMessagge(identity, greeting: greeting);
+        .setHelloMessagge(signalId, identity, greeting: greeting);
     await Nip4ChatService().sendIncognitoNip4Message(
       room,
       sm.toString(),

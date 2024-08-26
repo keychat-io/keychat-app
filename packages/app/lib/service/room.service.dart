@@ -50,7 +50,7 @@ class RoomService extends BaseChatService {
     }
 
     if (room.status == RoomStatus.removedFromGroup) {
-      throw Exception('You have been removed from the group.');
+      throw Exception('You have been removed by admin.');
     }
   }
 

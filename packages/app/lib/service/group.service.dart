@@ -307,7 +307,7 @@ class GroupService extends BaseChatService {
           // Check if I am still in the group, otherwise I will be marked as kicked out of the group
           RoomMember? rm = await room.getMemberByIdPubkey(room.myIdPubkey);
           if (rm == null || rm.status == UserStatusType.removed) {
-            toSaveMsg.content = '🤖 You have been removed from the group.';
+            toSaveMsg.content = '🤖 You have been removed by admin.';
             room.status = RoomStatus.removedFromGroup;
             room = await RoomService().updateRoom(room);
             updateChatControllerMembers(room.id);
@@ -500,11 +500,7 @@ class GroupService extends BaseChatService {
         RoomProfile roomProfile = RoomProfile.fromJson(jsonDecode(km.msg!));
         return await processChangeSignKey(room, event, roomProfile);
       case KeyChatEventKinds.groupRemoveSingleMember:
-        return await _processGroupRemoveSingleMember(
-          room,
-          km,
-          event,
-        );
+        return await _processGroupRemoveSingleMember(room, km, event);
       case KeyChatEventKinds.groupSendToAllMessage:
         GroupMessage gm = GroupMessage.fromJson(jsonDecode(km.msg!));
 
@@ -576,25 +572,8 @@ class GroupService extends BaseChatService {
       toMembers.add(rm);
     }
 
-    allMembers = await groupRoom.getMembers();
-
-    Mykey? roomMykey = groupRoom.mykey.value;
-    String roomPubkey =
-        mykey?.pubkey ?? roomMykey?.pubkey ?? groupRoom.toMainPubkey;
-    RoomProfile roomProfile = RoomProfile(
-        roomPubkey, groupRoom.name!, allMembers, groupRoom.groupType)
-      ..oldToRoomPubKey = groupRoom.toMainPubkey
-      ..prikey = mykey?.prikey ?? roomMykey?.prikey
-      ..groupRelay = groupRoom.groupRelay
-      ..updatedAt = now.millisecondsSinceEpoch;
-
-    // shared signalId's QRCode
-    if (groupRoom.isKDFGroup && signalId != null) {
-      roomProfile.signalKeys = signalId.keys;
-      roomProfile.signalPubkey = signalId.pubkey;
-      roomProfile.signaliPrikey = signalId.prikey;
-      roomProfile.signalKeyId = signalId.signalKeyId;
-    }
+    RoomProfile roomProfile =
+        await getRoomProfile(groupRoom, signalId: signalId, mykey: mykey);
 
     List<String> addUsersName = toMembers.map((e) => e.name).toList();
     String names = addUsersName.join(',');
@@ -606,11 +585,28 @@ class GroupService extends BaseChatService {
         type: KeyChatEventKinds.groupInvite,
         msg: jsonEncode(roomProfile.toJson()))
       ..name = jsonEncode([realMessage, groupRoom.myIdPubkey]);
-    if (groupRoom.isShareKeyGroup || groupRoom.isKDFGroup) {
-      await _inviteSharekeyGroup(
-          realMessage, toMembers, identity, groupRoom, km);
-    } else if (groupRoom.isSendAllGroup) {
-      await _invitePairwiseGroup(realMessage, identity, groupRoom, km);
+
+    switch (groupRoom.groupType) {
+      case GroupType.shareKey:
+        await send1to1MessageToRoomMembers(
+            realMessage, toMembers, identity, groupRoom, km);
+        Mykey roomMykey = groupRoom.mykey.value!;
+        await nostrAPI.sendNip4Message(roomMykey.pubkey, km.toString(),
+            room: groupRoom,
+            prikey: roomMykey.prikey,
+            from: roomMykey.pubkey,
+            encryptType: MessageEncryptType.nip4,
+            realMessage: realMessage);
+
+        break;
+      case GroupType.kdf:
+        await send1to1MessageToRoomMembers(
+            realMessage, toMembers, identity, groupRoom, km);
+        break;
+      case GroupType.sendAll:
+        await _invitePairwiseGroup(realMessage, identity, groupRoom, km);
+        break;
+      default:
     }
 
     RoomService.getController(groupRoom.id)?.resetMembers();
@@ -618,10 +614,14 @@ class GroupService extends BaseChatService {
   }
 
   Future removeMember(Room room, RoomMember rm) async {
-    if (room.isShareKeyGroup) {
-      await _removeMemberSharekey(room, rm);
-    } else if (room.isSendAllGroup) {
-      await _removeMemberPairwise(room, rm);
+    switch (room.groupType) {
+      case GroupType.sendAll:
+        return await _removeMemberPairwise(room, rm);
+      case GroupType.shareKey:
+        return await _removeMemberSharekey(room, rm);
+      case GroupType.kdf:
+        return await KdfGroupService.instance.removeMembers(room, [rm]);
+      default:
     }
   }
 
@@ -911,8 +911,13 @@ class GroupService extends BaseChatService {
     await MessageService().saveMessageModel(message);
   }
 
-  Future _inviteSharekeyGroup(String realMessage, List<RoomMember> toUsers,
-      Identity identity, Room groupRoom, KeychatMessage km) async {
+  // send message to users, but skip meMember
+  Future send1to1MessageToRoomMembers(
+      String realMessage,
+      List<RoomMember> toUsers,
+      Identity identity,
+      Room groupRoom,
+      KeychatMessage km) async {
     final queue = Queue(parallel: 5);
     var todo = collection.Queue.from(toUsers);
     int membersLength = todo.length;
@@ -946,16 +951,6 @@ class GroupService extends BaseChatService {
       });
     }
     await queue.onComplete;
-    // exclude kdf group
-    if (groupRoom.isShareKeyGroup) {
-      Mykey roomMykey = groupRoom.mykey.value!;
-      await nostrAPI.sendNip4Message(roomMykey.pubkey, km.toString(),
-          room: groupRoom,
-          prikey: roomMykey.prikey,
-          from: roomMykey.pubkey,
-          encryptType: MessageEncryptType.nip4,
-          realMessage: realMessage);
-    }
   }
 
   Future _processHelloMessage(
@@ -1139,5 +1134,29 @@ ${rm.idPubkey}
         realMessage: km.msg,
         requestConfrim: RequestConfrimEnum.request,
         mediaType: MessageMediaType.groupInviteConfirm);
+  }
+
+  Future<RoomProfile> getRoomProfile(Room groupRoom,
+      {SignalId? signalId, Mykey? mykey}) async {
+    List<RoomMember> allMembers = await groupRoom.getMembers();
+
+    Mykey? roomMykey = groupRoom.mykey.value;
+    String roomPubkey =
+        mykey?.pubkey ?? roomMykey?.pubkey ?? groupRoom.toMainPubkey;
+    RoomProfile roomProfile = RoomProfile(
+        roomPubkey, groupRoom.name!, allMembers, groupRoom.groupType)
+      ..oldToRoomPubKey = groupRoom.toMainPubkey
+      ..prikey = mykey?.prikey ?? roomMykey?.prikey
+      ..groupRelay = groupRoom.groupRelay
+      ..updatedAt = DateTime.now().millisecondsSinceEpoch;
+
+    // shared signalId's QRCode
+    if (groupRoom.isKDFGroup && signalId != null) {
+      roomProfile.signalKeys = signalId.keys;
+      roomProfile.signalPubkey = signalId.pubkey;
+      roomProfile.signaliPrikey = signalId.prikey;
+      roomProfile.signalKeyId = signalId.signalKeyId;
+    }
+    return roomProfile;
   }
 }

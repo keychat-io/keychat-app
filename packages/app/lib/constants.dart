@@ -62,6 +62,8 @@ class KeyChatEventKinds {
   static const int kdfInvite = 3003;
   static const int kdfInviteToGroup = 3004;
   static const int inviteToGroupRequest = 3005;
+  static const int kdfUpdateKeys = 3006;
+  static const int kdfAdminRemoveMembers = 3007;
 }
 
 class EventKinds {

@@ -148,6 +148,21 @@ class CashuUtil {
     return CashuInfoModel.fromRustModel(ct.field0 as CashuTransaction);
   }
 
+  static Future<CashuInfoModel> getStamp(
+      {required int amount, String token = 'sat'}) async {
+    String filledMint = KeychatGlobal.defaultCashuMintURL;
+    EcashController controller = Get.find<EcashController>();
+    for (var mint in controller.getMintsString()) {
+      if (controller.getBalanceByMint(mint) >= amount) {
+        filledMint = mint;
+        break;
+      }
+    }
+    var ct = await rustCashu.sendStamp(
+        amount: BigInt.from(amount), activeMint: filledMint);
+    return CashuInfoModel.fromRustModel(ct.field0 as CashuTransaction);
+  }
+
   static Widget getStatusIcon(TransactionStatus status) {
     switch (status) {
       case TransactionStatus.success:

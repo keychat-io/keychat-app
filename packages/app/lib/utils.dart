@@ -129,7 +129,7 @@ Widget getRandomAvatar(String id,
   final filePath = '$avatarsFolder/$id.svg';
   final file = File(filePath);
   if (file.existsSync()) {
-    return SvgPicture.asset(filePath, width: width, height: height);
+    return SvgPicture.file(file, width: width, height: height);
   } else {
     String svgCode = AvatarPlusGen.instance.generate(id);
     file.writeAsStringSync(svgCode);

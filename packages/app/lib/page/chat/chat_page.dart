@@ -21,7 +21,7 @@ import 'package:app/models/models.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 
 import '../../controller/chat.controller.dart';
-import '../../service/signalChat.service.dart';
+import '../../service/signal_chat.service.dart';
 import '../routes.dart';
 import '../widgets/error_text.dart';
 import 'chat_setting_contact_page.dart';

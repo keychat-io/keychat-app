@@ -9,12 +9,12 @@ import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/nostr-core/relay_event_status.dart';
 
 import 'package:app/nostr-core/request.dart';
-import 'package:app/service/SecureStorage.dart';
+import 'package:app/service/secure_storage.dart';
 
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/kdf_group.service.dart';
-import 'package:app/service/nip4Chat.service.dart';
-import 'package:app/service/signalChat.service.dart';
+import 'package:app/service/nip4_chat.service.dart';
+import 'package:app/service/signal_chat.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_debounce.dart';

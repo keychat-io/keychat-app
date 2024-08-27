@@ -46,6 +46,7 @@ enum RoomStatus {
   'lastMessageModel',
   'isSendAllGroup',
   'isShareKeyGroup',
+  'isKDFGroup',
   'parentRoom',
   'messageType',
   'keyPair'
@@ -60,6 +61,7 @@ class Room extends Equatable {
 
   // their(Bob) signal id pubkey
   String? curve25519PkHex;
+  // my signalid for this room
   String? signalIdPubkey;
 
   String? avatar;
@@ -83,7 +85,6 @@ class Room extends Equatable {
   int version = 0;
 
   final mykey = IsarLink<Mykey>();
-  final members = IsarLinks<RoomMember>();
 
   late DateTime createdAt;
 
@@ -138,12 +139,19 @@ class Room extends Equatable {
 
   String get myIdPubkey => getIdentity().secp256k1PKHex;
 
+  // if exist signalIdPubkey return it ,else use identity's keypair
   Future<KeychatIdentityKeyPair> getKeyPair() async {
     ChatxService chatxService = Get.find<ChatxService>();
     if (signalIdPubkey == null) {
       return await chatxService.getKeyPairByIdentity(getIdentity());
     }
-    return chatxService.keypairs[signalIdPubkey]!;
+    var exist = chatxService.keypairs[signalIdPubkey];
+    if (exist != null) return exist;
+    SignalId? si = getMySignalId();
+    if (si != null) {
+      return chatxService.setupSignalStoreBySignalId(si.pubkey, si);
+    }
+    return throw Exception('signalId is null');
   }
 
   Future<KeychatIdentityKeyPair?> getSharedKeyPair() async {
@@ -158,6 +166,17 @@ class Room extends Equatable {
 
   Identity getIdentity() {
     return Get.find<HomeController>().identities[identityId]!;
+  }
+
+  SignalId? getMySignalId() {
+    if (signalIdPubkey == null) return null;
+
+    SignalId? res = DBProvider.database.signalIds
+        .filter()
+        .pubkeyEqualTo(signalIdPubkey!)
+        .identityIdEqualTo(identityId)
+        .findFirstSync();
+    return res;
   }
 
   SignalId getGroupSharedSignalId() {

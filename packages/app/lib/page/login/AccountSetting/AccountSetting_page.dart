@@ -4,7 +4,7 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/routes.dart';
-import 'package:app/service/SecureStorage.dart';
+import 'package:app/service/secure_storage.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';

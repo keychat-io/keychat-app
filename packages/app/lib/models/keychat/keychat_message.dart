@@ -12,8 +12,8 @@ import 'package:get/get.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 import '../../service/chat.service.dart';
-import '../../service/nip4Chat.service.dart';
-import '../../service/signalChat.service.dart';
+import '../../service/nip4_chat.service.dart';
+import '../../service/signal_chat.service.dart';
 
 part 'keychat_message.g.dart';
 

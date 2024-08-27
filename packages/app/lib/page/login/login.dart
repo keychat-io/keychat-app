@@ -1,7 +1,7 @@
 import 'package:app/global.dart';
 import 'package:app/page/login/CreateAccount.dart';
 import 'package:app/page/login/OnboardingPage2Detail.dart';
-import 'package:app/service/SecureStorage.dart';
+import 'package:app/service/secure_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 

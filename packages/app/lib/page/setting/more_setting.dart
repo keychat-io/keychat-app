@@ -5,7 +5,7 @@ import 'dart:io' show exit;
 import 'package:app/controller/home.controller.dart';
 
 import 'package:app/page/FileExplore.dart';
-import 'package:app/service/SecureStorage.dart';
+import 'package:app/service/secure_storage.dart';
 
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';

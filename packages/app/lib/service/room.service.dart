@@ -11,7 +11,7 @@ import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:app/service/chat.service.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/notify.service.dart';
-import 'package:app/service/signalChat.service.dart';
+import 'package:app/service/signal_chat.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:aws/aws.dart';

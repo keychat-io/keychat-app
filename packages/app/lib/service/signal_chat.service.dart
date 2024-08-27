@@ -11,7 +11,7 @@ import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/chat.service.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/identity.service.dart';
-import 'package:app/service/nip4Chat.service.dart';
+import 'package:app/service/nip4_chat.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/signal_chat_util.dart';
 import 'package:app/service/signalId.service.dart';

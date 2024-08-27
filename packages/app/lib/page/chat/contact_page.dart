@@ -4,7 +4,7 @@ import 'package:easy_debounce/easy_throttle.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:app/service/chatx.service.dart';
-import 'package:app/service/signalChat.service.dart';
+import 'package:app/service/signal_chat.service.dart';
 import 'package:convert/convert.dart';
 
 import 'package:flutter/material.dart';

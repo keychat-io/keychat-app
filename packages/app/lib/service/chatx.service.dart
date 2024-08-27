@@ -7,7 +7,7 @@ import 'package:app/models/identity.dart';
 import 'package:app/models/mykey.dart';
 import 'package:app/models/room.dart';
 import 'package:app/models/signal_id.dart';
-import 'package:app/service/SecureStorage.dart';
+import 'package:app/service/secure_storage.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/signalId.service.dart';
@@ -110,6 +110,31 @@ class ChatxService extends GetxService {
   Future<bool> addKPAForSharedSignalId(Identity identity, String sharedPubkey,
       String sginalKeys, int sharedSignalIdentityId) async {
     KeychatIdentityKeyPair keyPair = await getKeyPairByIdentity(identity);
+    final remoteAddress = KeychatProtocolAddress(
+        name: sharedPubkey, deviceId: sharedSignalIdentityId);
+
+    Map<String, dynamic> keys = jsonDecode(sginalKeys);
+    await rust_signal.processPrekeyBundleApi(
+        keyPair: keyPair,
+        regId: getRegistrationId(sharedPubkey),
+        deviceId: sharedSignalIdentityId,
+        identityKey: KeychatIdentityKey(
+            publicKey: U8Array33(Uint8List.fromList(hex.decode(sharedPubkey)))),
+        remoteAddress: remoteAddress,
+        bobSignedId: keys['signedId'],
+        bobSignedPublic: Uint8List.fromList(hex.decode(keys['signedPublic'])),
+        bobSigedSig: Uint8List.fromList(hex.decode(keys['signedSignature'])),
+        bobPrekeyId: keys['prekeyId'],
+        bobPrekeyPublic: Uint8List.fromList(hex.decode(keys['prekeyPubkey'])));
+    return true;
+  }
+
+  Future<bool> addKPAByRoomSignalId(
+      SignalId myRoomSignalId,
+      String sharedPubkey,
+      String sginalKeys,
+      int sharedSignalIdentityId) async {
+    KeychatIdentityKeyPair keyPair = getKeyPairBySignalId(myRoomSignalId);
     final remoteAddress = KeychatProtocolAddress(
         name: sharedPubkey, deviceId: sharedSignalIdentityId);
 

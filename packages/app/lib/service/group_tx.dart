@@ -1,4 +1,3 @@
-import 'package:app/global.dart';
 import 'package:app/models/db_provider.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/models/keychat/room_profile.dart';
@@ -8,7 +7,6 @@ import 'package:app/models/room.dart';
 import 'package:app/models/room_member.dart';
 
 import 'package:app/service/notify.service.dart';
-import 'package:app/service/room.service.dart';
 import 'package:app/service/signalId.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:get/get.dart';
@@ -118,8 +116,6 @@ class GroupTx {
       [Message? message]) async {
     String toMainPubkey = roomProfile.oldToRoomPubKey ?? roomProfile.pubkey;
     String? toRoomPriKey = roomProfile.prikey;
-    String groupName = roomProfile.name;
-    String groupRelay = roomProfile.groupRelay ?? KeychatGlobal.defaultRelay;
     int version =
         roomProfile.updatedAt ?? DateTime.now().millisecondsSinceEpoch;
     List<dynamic> users = roomProfile.users;
@@ -133,13 +129,12 @@ class GroupTx {
           identity, await rust_nostr.importKey(senderKeys: toRoomPriKey));
     }
 
-    Room groupRoom = await _createGroupToDB(toMainPubkey, groupName,
+    Room groupRoom = await _createGroupToDB(toMainPubkey, roomProfile.name,
         sharedKey: roomKey,
         members: users,
         identity: identity,
         groupType: roomProfile.groupType,
         version: version,
-        groupRelay: groupRelay,
         sharedSignalID: roomProfile.signalPubkey,
         roomUpdateAt: roomProfile.updatedAt);
 
@@ -150,7 +145,7 @@ class GroupTx {
         await DBProvider.database.messages.put(message);
       }
       await SignalIdService.instance
-          .importSignalId(groupRoom.identityId, roomProfile);
+          .importOrGetSignalId(groupRoom.identityId, roomProfile);
     }
     return groupRoom;
   }

@@ -11,9 +11,9 @@ import 'package:app/service/group_tx.dart';
 import 'package:app/service/chat.service.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/kdf_group.service.dart';
-import 'package:app/service/nip4Chat.service.dart';
+import 'package:app/service/nip4_chat.service.dart';
 import 'package:app/service/notify.service.dart';
-import 'package:app/service/signalChat.service.dart';
+import 'package:app/service/signal_chat.service.dart';
 import 'package:app/service/signalId.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:get/get.dart';
@@ -849,8 +849,7 @@ class GroupService extends BaseChatService {
         type: RoomType.group)
       ..name = groupName
       ..groupType = groupType
-      ..version = version
-      ..groupRelay = groupRelay;
+      ..version = version;
     if (sharedKey != null) {
       room.mykey.value = sharedKey;
     }
@@ -1130,11 +1129,11 @@ ${rm.idPubkey}
       throw Exception('No admin in group');
     }
     Identity identity = room.getIdentity();
-    // String names = selectAccounts.values.join(',');
+    String names = selectAccounts.values.join(',');
     KeychatMessage sm = KeychatMessage(
         c: MessageType.group, type: KeyChatEventKinds.inviteToGroupRequest)
       ..name = jsonEncode([room.toMainPubkey, selectAccounts])
-      ..msg = 'Invite you to join group ${room.name}, Please confirm';
+      ..msg = 'Invite [$names] to join group ${room.name}, Please confirm';
 
     Room adminRoom = await RoomService().getOrCreateRoom(
         roomMember.idPubkey, identity.secp256k1PKHex, RoomStatus.init);

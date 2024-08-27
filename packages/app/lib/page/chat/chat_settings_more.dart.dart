@@ -12,7 +12,7 @@ import 'package:settings_ui/settings_ui.dart';
 
 import '../../controller/chat.controller.dart';
 import '../../models/room.dart';
-import '../../service/signalChat.service.dart';
+import '../../service/signal_chat.service.dart';
 import '../components.dart';
 import 'encrypt_mode_widget.dart.dart';
 

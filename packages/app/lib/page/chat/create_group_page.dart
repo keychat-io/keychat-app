@@ -1,6 +1,6 @@
 import 'package:app/models/room.dart';
 import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/page/chat/addGroupSelectMember.dart';
+import 'package:app/page/chat/create_group_select_member.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -172,8 +172,8 @@ class _AddGroupPageState extends State<AddGroupPage>
                                 return;
                               }
 
-                              Get.to(() =>
-                                  AddGroupSelectMember(groupName, groupType));
+                              Get.to(() => CreateGroupSelectMember(
+                                  groupName, groupType));
                             },
                             child: const Text('Next'))),
                   ]))),

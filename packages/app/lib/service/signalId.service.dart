@@ -83,6 +83,14 @@ class SignalIdService {
         .findAll();
   }
 
+  Future<SignalId?> getSignalId(int identityId, String pubkey) async {
+    return await DBProvider.database.signalIds
+        .filter()
+        .identityIdEqualTo(identityId)
+        .pubkeyEqualTo(pubkey)
+        .findFirst();
+  }
+
   Future<SignalId?> getSignalIdByPubkey(String pubkey) async {
     return await DBProvider.database.signalIds
         .filter()
@@ -135,11 +143,14 @@ class SignalIdService {
     return data;
   }
 
-  Future<SignalId> importSignalId(
+  Future<SignalId> importOrGetSignalId(
       int identityId, RoomProfile roomProfile) async {
     if (roomProfile.signalKeys == null) {
       throw Exception('Signal keys is null, failed to join group.');
     }
+    SignalId? exist = await getSignalId(identityId, roomProfile.signalPubkey!);
+    if (exist != null) return exist;
+
     var signalId = SignalId(
         prikey: roomProfile.signaliPrikey!,
         pubkey: roomProfile.signalPubkey!,

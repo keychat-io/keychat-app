@@ -12,17 +12,18 @@ import '../common.dart';
 import '../../service/contact.service.dart';
 import '../../service/group.service.dart';
 
-class AddGroupSelectMember extends StatefulWidget {
+class CreateGroupSelectMember extends StatefulWidget {
   final String groupName;
   final GroupType groupType;
 
-  const AddGroupSelectMember(this.groupName, this.groupType, {super.key});
+  const CreateGroupSelectMember(this.groupName, this.groupType, {super.key});
 
   @override
-  _AddGroupSelectMemberState createState() => _AddGroupSelectMemberState();
+  _CreateGroupSelectMemberState createState() =>
+      _CreateGroupSelectMemberState();
 }
 
-class _AddGroupSelectMemberState extends State<AddGroupSelectMember>
+class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
     with TickerProviderStateMixin {
   GroupService groupService = GroupService();
   ContactService contactService = ContactService();

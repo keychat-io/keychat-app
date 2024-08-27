@@ -228,14 +228,14 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                             Get.back();
                           },
                         ),
-                        if (chatController.room.isSendAllGroup &&
-                            chatController.meMember.value.isAdmin)
+                        if (chatController.meMember.value.isAdmin)
                           CupertinoDialogAction(
                             isDestructiveAction: true,
                             onPressed: () {
                               Get.back();
                               Get.dialog(CupertinoAlertDialog(
-                                title: Text("Remove ${rm.name}?"),
+                                title:
+                                    Text("Are you sure to remove ${rm.name} ?"),
                                 actions: <Widget>[
                                   CupertinoDialogAction(
                                     child: const Text("Cancel"),
@@ -269,7 +269,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                                 ],
                               ));
                             },
-                            child: const Text("Remove"),
+                            child: const Text("Remove Member"),
                           ),
                         CupertinoDialogAction(
                           isDefaultAction: true,

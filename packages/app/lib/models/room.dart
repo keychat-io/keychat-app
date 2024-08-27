@@ -146,6 +146,16 @@ class Room extends Equatable {
     return chatxService.keypairs[signalIdPubkey]!;
   }
 
+  Future<KeychatIdentityKeyPair?> getSharedKeyPair() async {
+    SignalId? id;
+    try {
+      id = getGroupSharedSignalId();
+    } catch (e) {}
+    if (id == null) return null;
+
+    return Get.find<ChatxService>().getKeyPairBySignalId(id);
+  }
+
   Identity getIdentity() {
     return Get.find<HomeController>().identities[identityId]!;
   }

@@ -73,7 +73,7 @@ abstract class MenuItems {
   static const List<MenuItem> firstItems = [addContact, addGroup, scan];
 
   static const addContact =
-      MenuItem(text: 'Add contact', icon: Icons.person_add);
+      MenuItem(text: 'Add Contact', icon: Icons.person_add);
   static const addGroup =
       MenuItem(text: 'New Group', icon: CupertinoIcons.group_solid);
   static const scan =

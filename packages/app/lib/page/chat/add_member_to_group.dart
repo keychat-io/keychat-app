@@ -160,14 +160,10 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
         ],
         bottom: TabBar(controller: _tabController, tabs: const <Widget>[
           Tab(
-            child: Text(
-              "Select",
-            ),
+            child: Text("Select"),
           ),
           Tab(
-            child: Text(
-              "Input",
-            ),
+            child: Text("Input"),
           ),
         ]),
       ),
@@ -211,14 +207,15 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
                 _contactList[index].npubkey,
                 overflow: TextOverflow.ellipsis,
               ),
-              trailing: widget.members.contains(_contactList[index].pubkey)
-                  ? const Icon(Icons.check_box, color: Colors.grey, size: 30)
-                  : Checkbox(
-                      value: _contactList[index].isCheck,
-                      onChanged: (isCheck) {
-                        _contactList[index].isCheck = isCheck!;
-                        setState(() {});
-                      }));
+
+              // widget.members.contains(_contactList[index].pubkey)
+              // ? const Icon(Icons.check_box, color: Colors.grey, size: 30)
+              trailing: Checkbox(
+                  value: _contactList[index].isCheck,
+                  onChanged: (isCheck) {
+                    _contactList[index].isCheck = isCheck!;
+                    setState(() {});
+                  }));
         });
   }
 }

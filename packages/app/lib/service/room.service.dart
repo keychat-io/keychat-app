@@ -406,6 +406,7 @@ class RoomService extends BaseChatService {
     Relay relay, [
     NostrEventModel? sourceEvent, // parent event
   ]) async {
+    logger.d(content);
     KeychatMessage km = KeychatMessage.fromJson(content);
     String toAddress = event.tags[0][1];
     String from = event.pubkey;
@@ -566,6 +567,7 @@ class RoomService extends BaseChatService {
       MsgReply? reply,
       String? realMessage,
       String? toAddress,
+      bool save = true,
       bool? isSystem}) async {
     String? realMessageContent = realMessage;
     if (realMessage == null && reply != null) {
@@ -591,6 +593,7 @@ class RoomService extends BaseChatService {
           from: identity.secp256k1PKHex,
           room: room,
           reply: reply,
+          save: save,
           realMessage: realMessageContent,
           mediaType: mediaType,
           encryptType: MessageEncryptType.nip4,
@@ -603,7 +606,8 @@ class RoomService extends BaseChatService {
           realMessage: realMessageContent,
           reply: reply,
           isSystem: isSystem,
-          mediaType: mediaType);
+          mediaType: mediaType,
+          save: save);
     }
     return map;
   }

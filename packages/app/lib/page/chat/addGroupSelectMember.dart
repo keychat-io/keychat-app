@@ -91,8 +91,8 @@ class _AddGroupSelectMemberState extends State<AddGroupSelectMember>
       return;
     }
     late Room room;
+    Identity identity = hc.getSelectedIdentity();
     try {
-      Identity identity = hc.getSelectedIdentity();
       if (widget.groupType == GroupType.sendAll) {
         room = await GroupService()
             .createGroup(widget.groupName, identity, widget.groupType);
@@ -101,11 +101,12 @@ class _AddGroupSelectMemberState extends State<AddGroupSelectMember>
         room = await KdfGroupService.instance
             .createGroup(widget.groupName, identity, selectAccounts);
       }
+      Get.back();
     } catch (e, s) {
       logger.e('create room', error: e, stackTrace: s);
       EasyLoading.showError(e.toString());
+      return;
     }
-    Get.back();
 
     await Get.offAndToNamed('/room/${room.id}', arguments: room);
     await Get.find<HomeController>().loadIdentityRoomList(room.identityId);

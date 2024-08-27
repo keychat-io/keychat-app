@@ -11,6 +11,7 @@ import 'package:app/service/group_tx.dart';
 import 'package:app/service/group.service.dart';
 import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/message.service.dart';
+import 'package:app/service/room.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
@@ -52,10 +53,20 @@ class GroupInviteAction extends StatelessWidget {
                   // accept
                   EasyLoading.show(status: 'Loading...');
                   Isar database = DBProvider.database;
+                  Room? exist = await database.rooms
+                      .filter()
+                      .toMainPubkeyEqualTo(
+                          roomProfile.oldToRoomPubKey ?? roomProfile.pubkey)
+                      .identityIdEqualTo(identity.id)
+                      .findFirst();
+                  if (exist != null) {
+                    await RoomService().deleteRoom(exist);
+                  }
+
                   await database.writeTxn(() async {
-                    await database.messages.put(message);
                     groupRoom = await GroupTx()
                         .joinGroup(roomProfile, identity, message);
+                    await database.messages.put(message);
                   });
                   if (groupRoom == null) {
                     EasyLoading.showError('Join group failed');

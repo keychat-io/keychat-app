@@ -600,12 +600,14 @@ class ChatController extends GetxController {
     meMember.value = me;
   }
 
-  setRoom(Room room) {
-    roomObs.value = room;
-    if (room.contact != null) {
-      roomContact.value = room.contact!;
+  ChatController setRoom(Room newRoom) {
+    room = newRoom;
+    roomObs.value = newRoom;
+    if (newRoom.contact != null) {
+      roomContact.value = newRoom.contact!;
     }
     roomObs.refresh();
+    return this;
   }
 
   sortMessageById(List<Message> list) {

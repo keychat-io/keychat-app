@@ -8,6 +8,7 @@ import 'package:app/models/room.dart';
 import 'package:app/models/room_member.dart';
 
 import 'package:app/service/notify.service.dart';
+import 'package:app/service/room.service.dart';
 import 'package:app/service/signalId.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:get/get.dart';
@@ -115,6 +116,7 @@ class GroupTx {
 
   Future joinGroup(RoomProfile roomProfile, Identity identity,
       [Message? message]) async {
+    String toMainPubkey = roomProfile.oldToRoomPubKey ?? roomProfile.pubkey;
     String? toRoomPriKey = roomProfile.prikey;
     String groupName = roomProfile.name;
     String groupRelay = roomProfile.groupRelay ?? KeychatGlobal.defaultRelay;
@@ -131,8 +133,7 @@ class GroupTx {
           identity, await rust_nostr.importKey(senderKeys: toRoomPriKey));
     }
 
-    Room groupRoom = await _createGroupToDB(
-        roomProfile.oldToRoomPubKey ?? roomProfile.pubkey, groupName,
+    Room groupRoom = await _createGroupToDB(toMainPubkey, groupName,
         sharedKey: roomKey,
         members: users,
         identity: identity,

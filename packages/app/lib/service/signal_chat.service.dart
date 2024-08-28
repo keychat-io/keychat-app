@@ -324,8 +324,6 @@ class SignalChatService extends BaseChatService {
     room.curve25519PkHex = model.curve25519PkHex;
     RoomService.getController(room.id)?.room.curve25519PkHex =
         model.curve25519PkHex;
-    logger.d(
-        "after del room curve25519PkHex signalIdPubkey is ${room.curve25519PkHex!}, ${room.signalIdPubkey}");
 
     bool res = await Get.find<ChatxService>().addRoomKPA(
         room: room,

@@ -17,6 +17,10 @@ class RoomProfile {
   int? updatedAt;
   final String name;
   final List users;
+  String? signalKeys;
+  String? signalPubkey;
+  String? signaliPrikey;
+  int? signalKeyId;
   RoomProfile(this.pubkey, this.name, this.users, this.groupType);
 
   factory RoomProfile.fromJson(Map<String, dynamic> json) =>

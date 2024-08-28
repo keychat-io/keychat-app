@@ -1,6 +1,6 @@
 import 'package:app/models/keychat/room_profile.dart';
-import 'package:app/models/room.dart';
 import 'package:app/models/room_member.dart';
+import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/components.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/material.dart';
@@ -44,9 +44,8 @@ class GroupInfoWidget extends StatelessWidget {
                 ),
                 SettingsTile(
                     title: const Text('Group mode'),
-                    value: Text(roomProfile.groupType == GroupType.shareKey
-                        ? 'Shared Key'
-                        : 'Pairwise')),
+                    value:
+                        Text(RoomUtil.getGroupModeName(roomProfile.groupType))),
                 SettingsTile(
                   title: const Text("Members Count"),
                   value: Text(members.length.toString()),
@@ -78,16 +77,12 @@ class GroupInfoWidget extends StatelessWidget {
                             },
                           ),
                         ),
-                        child: const Text(
-                          'Reject',
-                        )),
+                        child: const Text('Reject')),
                     FilledButton(
                         onPressed: () {
                           Get.back(result: true);
                         },
-                        child: const Text(
-                          'Join Group',
-                        )),
+                        child: const Text('Join Group')),
                   ]))
         ],
       ),

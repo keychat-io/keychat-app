@@ -4,10 +4,11 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/routes.dart';
-import 'package:app/service/SecureStorage.dart';
+import 'package:app/service/secure_storage.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
@@ -125,6 +126,18 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                                       EasyLoading.showSuccess("Copied");
                                     },
                                   ),
+                                  if (kDebugMode)
+                                    SettingsTile(
+                                      title: const Text("Secp256k1 Pubkey"),
+                                      description: Obx(() => Text(controller
+                                          .identity.value.secp256k1PKHex)),
+                                    ),
+                                  if (kDebugMode)
+                                    SettingsTile(
+                                      title: const Text("Curve25519 Pubkey"),
+                                      description: Obx(() => Text(controller
+                                          .identity.value.curve25519PkHex)),
+                                    ),
                                   SettingsTile.navigation(
                                     title: const Text("Seed Phrase"),
                                     onPressed: (context) async {
@@ -196,8 +209,23 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                       onPressed: (context) async {
                         Get.dialog(CupertinoAlertDialog(
                           title: const Text("Delete ID?"),
-                          content: const Text(
-                              "Please make sure you have backed up your seed phrase. This cannot be undone."),
+                          content: Column(
+                            children: [
+                              const Text(
+                                  "Please make sure you have backed up your seed phrase."),
+                              Text(
+                                  "Input your name ${controller.identity.value.displayName} to confirm"),
+                              const SizedBox(height: 10),
+                              TextField(
+                                controller: controller.confirmDeleteController,
+                                autofocus: true,
+                                decoration: const InputDecoration(
+                                  labelText: 'Name',
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
+                            ],
+                          ),
                           actions: <Widget>[
                             CupertinoDialogAction(
                               child: const Text("Cancel"),
@@ -211,6 +239,12 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                                 style: TextStyle(color: Colors.red),
                               ),
                               onPressed: () async {
+                                if (controller.confirmDeleteController.text !=
+                                    controller.identity.value.displayName) {
+                                  EasyLoading.showError("Name does not match");
+                                  return;
+                                }
+                                controller.confirmDeleteController.clear();
                                 HomeController hc = Get.find<HomeController>();
                                 List<Identity> identities =
                                     await IdentityService().getIdentityList();

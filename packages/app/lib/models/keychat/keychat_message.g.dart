@@ -35,4 +35,5 @@ const _$MessageTypeEnumMap = {
   MessageType.nip04: 'nip04',
   MessageType.signal: 'signal',
   MessageType.group: 'group',
+  MessageType.kdfGroup: 'kdfGroup',
 };

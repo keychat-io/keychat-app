@@ -20,7 +20,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 
@@ -228,7 +228,7 @@ class CashuPage extends GetView<EcashController> {
                                                 return;
                                               }
                                               if (balance == 0) {
-                                                await rustCashu.removeMint(
+                                                await rust_cashu.removeMint(
                                                     url: server.mint);
                                               }
                                               await ec.getBalance();

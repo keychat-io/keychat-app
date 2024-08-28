@@ -9,16 +9,17 @@ import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/nostr-core/relay_event_status.dart';
 
 import 'package:app/nostr-core/request.dart';
-import 'package:app/service/SecureStorage.dart';
+import 'package:app/service/secure_storage.dart';
 
 import 'package:app/service/identity.service.dart';
-import 'package:app/service/nip4Chat.service.dart';
-import 'package:app/service/signalChat.service.dart';
+import 'package:app/service/kdf_group.service.dart';
+import 'package:app/service/nip4_chat.service.dart';
+import 'package:app/service/signal_chat.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:get/get.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 import 'package:keychat_rust_ffi_plugin/index.dart';
 
@@ -316,12 +317,12 @@ Tags: ${event.tags}''',
       String? msgKeyHash}) async {
     late String encryptedEvent;
     if (isSignalMessage) {
-      encryptedEvent = await rustNostr.getUnencryptEvent(
+      encryptedEvent = await rust_nostr.getUnencryptEvent(
           senderKeys: prikey,
           receiverPubkey: toPublicKey,
           content: toEncryptText);
     } else {
-      encryptedEvent = await rustNostr.getEncryptEvent(
+      encryptedEvent = await rust_nostr.getEncryptEvent(
           senderKeys: prikey,
           receiverPubkey: toPublicKey,
           content: toEncryptText);
@@ -336,7 +337,7 @@ Tags: ${event.tags}''',
     }
     List<String> relays = await Get.find<WebsocketService>().writeNostrEvent(
         event: event,
-        encryptedEvent: encryptedEvent,
+        eventString: encryptedEvent,
         roomId: room.parentRoom?.id ?? room.id,
         hisRelay: hisRelay);
     if (save && relays.isEmpty) {
@@ -388,7 +389,7 @@ Tags: ${event.tags}''',
     }
     List<String> relays = await Get.find<WebsocketService>().writeNostrEvent(
         event: event,
-        encryptedEvent: encryptedEvent,
+        eventString: encryptedEvent,
         roomId: room.parentRoom?.id ?? room.id,
         hisRelay: hisRelay);
     if (save && relays.isEmpty) {
@@ -422,7 +423,7 @@ Tags: ${event.tags}''',
     String? prikey = await IdentityService().getPrikeyByPubkey(decodePubkey);
     if (prikey == null) return null;
     try {
-      return await rustNostr.decrypt(
+      return await rust_nostr.decrypt(
           senderKeys: prikey,
           receiverPubkey: event.pubkey,
           content: event.content);
@@ -467,7 +468,7 @@ Tags: ${event.tags}''',
 
     // verify
     try {
-      await rustNostr.verifyEvent(json: jsonEncode(eventList[2]));
+      await rust_nostr.verifyEvent(json: jsonEncode(eventList[2]));
     } catch (e, s) {
       if (e is AnyhowException) {
         if (e.message.contains('malformed public key')) {
@@ -494,13 +495,26 @@ Tags: ${event.tags}''',
     exist = await dbProvider.receiveNewEventLog(event: event, relay: relay.url);
     switch (event.kind) {
       case EventKinds.encryptedDirectMessage:
+        String to = event.tags[0][1];
         try {
           if (event.isNip4) {
+            // try kdf group
+            Room? kdfRoom = await roomService.getGroupByReceivePubkey(to);
+            if (kdfRoom != null) {
+              String? content = await getDecodeNip4Content(event);
+              if (content == null) {
+                logger.e('decode error: ${event.id}');
+                exist.setNote('Nip04 decode error');
+                return;
+              }
+              return await KdfGroupService.instance.decryptMessage(
+                  kdfRoom, event, relay,
+                  nip4DecodedContent: content);
+            }
             return await dmNip4Proccess(event, relay, exist);
           }
 
           // if signal message , to_address is myIDPubkey or one-time-key
-          String to = event.tags[0][1];
           Room? room = await roomService.getRoomByReceiveKey(to);
           if (room != null) {
             return await SignalChatService()
@@ -649,7 +663,7 @@ Tags: ${event.tags}''',
   Future _processNip17Message(NostrEventModel event, Relay relay) async {
     String to = event.tags[0][1];
     String? myPrivateKey;
-    Identity? identity = await IdentityService().getIdentityByPubkey(to);
+    Identity? identity = await IdentityService().getIdentityByNostrPubkey(to);
     if (identity != null) {
       myPrivateKey = await SecureStorage.instance
           .readPrikeyOrFail(identity.secp256k1PKHex);
@@ -664,7 +678,7 @@ Tags: ${event.tags}''',
       return;
     }
 
-    NostrEvent result = await rustNostr.decryptGift(
+    NostrEvent result = await rust_nostr.decryptGift(
         senderKeys: myPrivateKey,
         receiver: event.pubkey,
         content: event.content);

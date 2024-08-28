@@ -1,6 +1,6 @@
 import 'package:keychat_ecash/Bills/lightning_transaction.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:intl/intl.dart' show DateFormat;
 
 import 'package:app/utils.dart';
@@ -37,7 +37,7 @@ class PayInvoiceController extends GetxController {
     }
     try {
       EcashController cc = Get.find<EcashController>();
-      InvoiceInfo ii = await rustCashu.decodeInvoice(encodedInvoice: invoice);
+      InvoiceInfo ii = await rust_cashu.decodeInvoice(encodedInvoice: invoice);
       Get.dialog(CupertinoAlertDialog(
         title: Text('Pay ${ii.amount} ${EcashTokenSymbol.sat.name}'),
         content: Text('''
@@ -66,7 +66,7 @@ Hash: ${ii.hash}
               try {
                 EasyLoading.show(status: 'Proccess...');
                 var tx =
-                    await rustCashu.melt(invoice: invoice, activeMint: mint);
+                    await rust_cashu.melt(invoice: invoice, activeMint: mint);
                 EasyLoading.showSuccess('Success');
                 Get.back();
                 textController.clear();

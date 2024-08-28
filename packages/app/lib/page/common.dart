@@ -37,9 +37,7 @@ Widget getAvatarDot(Room room, {double width = 50}) {
   late Widget child;
   if (chatType == RoomType.group) {
     String account = room.getRoomName();
-    List<Color> colors = room.groupType == GroupType.shareKey
-        ? [const Color(0xff823C70), const Color(0xffAF362D)]
-        : [const Color(0xff0044C1), const Color(0xff4D77FF)];
+    List<Color> colors = _getGroupColor(room.groupType);
     child = getAvatorByName(account,
         room: room, width: width, borderRadius: 5, backgroudColors: colors);
   } else {
@@ -62,6 +60,17 @@ Widget getAvatarDot(Room room, {double width = 50}) {
     position: badges.BadgePosition.topEnd(top: -8, end: -5),
     child: child,
   );
+}
+
+List<Color> _getGroupColor(GroupType groupType) {
+  switch (groupType) {
+    case GroupType.kdf:
+      return [const Color(0xffCE9FFC), const Color(0xff7367F0)];
+    case GroupType.shareKey:
+      return [const Color(0xff823C70), const Color(0xffAF362D)];
+    default:
+  }
+  return [const Color(0xff0044C1), const Color(0xff4D77FF)];
 }
 
 Widget getAvatorByName(String account,

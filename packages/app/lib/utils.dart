@@ -87,6 +87,12 @@ String formatTimeToYYYYMMDDhhmm(int time) {
   return dateFormat.format(dateTime);
 }
 
+String formatTime(int time) {
+  DateTime dateTime = DateTime.fromMillisecondsSinceEpoch(time);
+  final dateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
+  return dateFormat.format(dateTime);
+}
+
 String generate64RandomHexChars([int size = 32]) {
   final random = Random.secure();
   final randomBytes = List<int>.generate(size, (i) => random.nextInt(256));
@@ -290,7 +296,9 @@ class Utils {
     setLogger(Logger(
         filter: kReleaseMode ? MyLogFilter() : null,
         printer: PrettyPrinter(
-            printTime: kReleaseMode,
+            dateTimeFormat: kDebugMode
+                ? DateTimeFormat.onlyTime
+                : DateTimeFormat.dateAndTime,
             colors: false,
             methodCount: kReleaseMode ? 1 : 4),
         output: kReleaseMode

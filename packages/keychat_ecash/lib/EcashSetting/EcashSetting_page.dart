@@ -1,4 +1,4 @@
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:app/utils.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:flutter/cupertino.dart';
@@ -74,7 +74,7 @@ class EcashSettingPage extends GetView<EcashSettingController> {
             onPressed: (context) async {
               try {
                 EasyLoading.show(status: 'Proccessing');
-                var res = await rustCashu.checkProofs();
+                var res = await rust_cashu.checkProofs();
                 EasyLoading.showToast(
                     ''' Deleted: ${res.$1}, Hidden: ${res.$2}, Total: ${res.$3}''');
               } catch (e) {

@@ -2,13 +2,17 @@ import 'dart:convert' show jsonDecode;
 
 import 'package:app/constants.dart';
 import 'package:app/controller/home.controller.dart';
+import 'package:app/global.dart';
 import 'package:app/models/db_provider.dart';
 import 'package:app/models/keychat/room_profile.dart';
 import 'package:app/models/models.dart';
+
 import 'package:app/page/chat/message_actions/GroupInfoWidget.dart';
-import 'package:app/service/GroupTx.dart';
+import 'package:app/service/group_tx.dart';
 import 'package:app/service/group.service.dart';
+import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/message.service.dart';
+import 'package:app/service/room.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
@@ -25,39 +29,61 @@ class GroupInviteAction extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (message.requestConfrim) {
       case RequestConfrimEnum.request:
-        return OutlinedButton(
+        return FilledButton(
             onPressed: () async {
               EasyThrottle.throttle('joingroup', const Duration(seconds: 2),
                   () async {
-                late RoomProfile roomProfile;
-                try {
-                  roomProfile =
-                      RoomProfile.fromJson(jsonDecode(message.content));
-                  bool? accept = await Get.bottomSheet(
-                      ignoreSafeArea: false,
-                      isScrollControlled: true,
-                      GroupInfoWidget(roomProfile, identity.secp256k1PKHex));
-                  if (accept == null) return;
-                  message.requestConfrim = accept == true
-                      ? RequestConfrimEnum.approved
-                      : RequestConfrimEnum.rejected;
-                  message.isRead = true;
-                  if (accept == false) {
-                    await MessageService().updateMessageAndRefresh(message);
-                    return;
-                  }
+                RoomProfile roomProfile =
+                    RoomProfile.fromJson(jsonDecode(message.content));
 
-                  // accept
+                if (roomProfile.groupType == GroupType.kdf) {
+                  if (roomProfile.updatedAt != null) {
+                    DateTime expiredAt = DateTime.fromMillisecondsSinceEpoch(
+                            roomProfile.updatedAt!)
+                        .add(Duration(days: KeychatGlobal.kdfGroupKeysExpired));
+                    if (expiredAt.isBefore(DateTime.now())) {
+                      message.requestConfrim = RequestConfrimEnum.expired;
+                      message.isRead = true;
+                      await MessageService().updateMessageAndRefresh(message);
+                      EasyLoading.showError('The invitation has expired');
+                      return;
+                    }
+                  }
+                }
+                bool? accept = await Get.bottomSheet(
+                    ignoreSafeArea: false,
+                    isScrollControlled: true,
+                    GroupInfoWidget(roomProfile, identity.secp256k1PKHex));
+                if (accept == null) return;
+                message.requestConfrim = accept == true
+                    ? RequestConfrimEnum.approved
+                    : RequestConfrimEnum.rejected;
+
+                message.isRead = true;
+                if (accept == false) {
+                  await MessageService().updateMessageAndRefresh(message);
+                  return;
+                }
+                Room? groupRoom;
+                try {
                   EasyLoading.show(status: 'Loading...');
                   Isar database = DBProvider.database;
-                  Room? groupRoom;
+                  Room? exist = await database.rooms
+                      .filter()
+                      .toMainPubkeyEqualTo(
+                          roomProfile.oldToRoomPubKey ?? roomProfile.pubkey)
+                      .identityIdEqualTo(identity.id)
+                      .findFirst();
+                  if (exist != null) {
+                    await RoomService().deleteRoom(exist);
+                  }
+
                   await database.writeTxn(() async {
+                    groupRoom = await GroupTx()
+                        .joinGroup(roomProfile, identity, message);
                     await database.messages.put(message);
-                    groupRoom =
-                        await GroupTx().joinGroup(roomProfile, identity);
                   });
                   if (groupRoom == null) {
-                    EasyLoading.dismiss();
                     EasyLoading.showError('Join group failed');
                     return;
                   }
@@ -66,20 +92,23 @@ class GroupInviteAction extends StatelessWidget {
                         groupRoom!, '${identity.displayName} joined group.',
                         subtype: KeyChatEventKinds.groupHi,
                         sentCallback: (res) {});
+                  } else if (groupRoom!.isKDFGroup) {
+                    await KdfGroupService.instance.sendHelloMessage(identity,
+                        groupRoom!.getGroupSharedSignalId(), groupRoom!);
                   }
                   MessageService().refreshMessageInPage(message);
-                  EasyLoading.dismiss();
                   EasyLoading.showSuccess('Join group success');
-                  await Get.offAndToNamed('/room/${groupRoom!.id}',
-                      arguments: groupRoom);
-                  await Get.find<HomeController>()
-                      .loadIdentityRoomList(groupRoom!.identityId);
                 } catch (e, s) {
-                  EasyLoading.dismiss();
                   logger.e(e.toString(), error: e, stackTrace: s);
-                  EasyLoading.showError('room info error: ${e.toString()}',
+                  EasyLoading.showError('Join Group Error: ${e.toString()}',
                       duration: const Duration(seconds: 2));
+                  return;
                 }
+
+                await Get.offAndToNamed('/room/${groupRoom!.id}',
+                    arguments: groupRoom);
+                await Get.find<HomeController>()
+                    .loadIdentityRoomList(groupRoom!.identityId);
               });
             },
             child: const Text('Group Info >'));
@@ -87,6 +116,8 @@ class GroupInviteAction extends StatelessWidget {
         return const Text('  Approved', style: TextStyle(color: Colors.green));
       case RequestConfrimEnum.rejected:
         return const Text('  Rejected', style: TextStyle(color: Colors.red));
+      case RequestConfrimEnum.expired:
+        return const Text('  Expired', style: TextStyle(color: Colors.black54));
       default:
         return Text(message.content);
     }

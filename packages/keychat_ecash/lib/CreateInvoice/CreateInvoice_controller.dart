@@ -1,7 +1,7 @@
 import 'package:app/utils.dart';
 import 'package:keychat_ecash/Bills/lightning_bill_controller.dart';
 import 'package:keychat_ecash/Bills/lightning_transaction.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
@@ -41,7 +41,7 @@ class CreateInvoiceController extends GetxController {
 
     try {
       EasyLoading.show(status: 'Generating...');
-      Transaction tr = await rustCashu.requestMint(
+      Transaction tr = await rust_cashu.requestMint(
           amount: BigInt.from(amount), activeMint: selectedMint.value);
       LNTransaction ln = tr.field0 as LNTransaction;
       EasyLoading.dismiss();

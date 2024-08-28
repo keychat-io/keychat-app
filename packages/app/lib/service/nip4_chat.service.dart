@@ -3,7 +3,7 @@ import 'package:app/nostr-core/nostr_event.dart';
 
 import 'package:app/service/chat.service.dart';
 
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import '../constants.dart';
 import '../models/db_provider.dart';
@@ -42,7 +42,7 @@ class Nip4ChatService extends BaseChatService {
         await RoomService().receiveDM(
           room,
           event,
-          sourceEvent,
+          sourceEvent: sourceEvent,
           km: km,
         );
         break;
@@ -105,14 +105,14 @@ class Nip4ChatService extends BaseChatService {
       String? toAddress}) async {
     Identity identity = room.getIdentity();
 
-    String mainSign = await rustNostr.getEncryptEvent(
+    String mainSign = await rust_nostr.getEncryptEvent(
         senderKeys: await identity.getSecp256k1SKHex(),
         receiverPubkey: room.toMainPubkey,
         content: message);
 
     mainSign = "[\"EVENT\",$mainSign]";
 
-    var secp256K1Account = await rustNostr.generateSimple();
+    var secp256K1Account = await rust_nostr.generateSimple();
     return await nostrAPI.sendNip4Message(
         toAddress ?? room.toMainPubkey, mainSign,
         prikey: secp256K1Account.prikey,

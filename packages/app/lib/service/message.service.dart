@@ -26,17 +26,16 @@ class MessageService {
   MessageService._internal();
 
   Future saveMessageModel(Message model, [bool persist = true]) async {
+    if (!model.isMeSend) {
+      model.receiveAt = DateTime.now();
+    }
     if (!model.isRead) {
       bool isCurrentPage = dbProvider.isCurrentPage(model.roomId);
       if (isCurrentPage) model.isRead = true;
     }
-    // cashuA
-    if (model.mediaType == MessageMediaType.cashuA ||
-        model.content.startsWith('cashu')) {
-      model = await _cashuAInfo(model);
-    } else if (!model.isMeSend) {
-      model = await _fillTypeForMessage(model);
-    }
+    // none text type: media, file, cashu...
+    model = await _fillTypeForMessage(model);
+
     if (persist) {
       await DBProvider.database.writeTxn(() async {
         await DBProvider.database.messages.put(model);
@@ -84,6 +83,7 @@ class MessageService {
       required MessageEncryptType encryptType,
       bool persist = true,
       String? realMessage,
+      String? subEvent,
       MsgReply? reply,
       SendStatusType sent = SendStatusType.sending,
       MessageMediaType? mediaType,
@@ -108,11 +108,13 @@ class MessageService {
         encryptType: encryptType,
         msgKeyHash: msgKeyHash,
         createdAt: DateTime.fromMillisecondsSinceEpoch(
-            (createdAt ?? events[0].createdAt) * 1000));
+            (createdAt ?? events[0].createdAt) * 1000))
+      ..subEvent = subEvent
+      ..requestConfrim = requestConfrim;
+
     if (isRead != null) model.isRead = isRead;
     if (isSystem != null) model.isSystem = isSystem;
     if (mediaType != null) model.mediaType = mediaType;
-    if (requestConfrim != null) model.requestConfrim = requestConfrim;
 
     await saveMessageModel(model, persist);
     return model;
@@ -437,6 +439,19 @@ class MessageService {
     });
   }
 
+  Future clearUnreadMessage() async {
+    Isar database = DBProvider.database;
+    List<Message> messages =
+        await database.messages.filter().isReadEqualTo(false).findAll();
+
+    await database.writeTxn(() async {
+      for (var item in messages) {
+        item.isRead = true;
+        await database.messages.put(item);
+      }
+    });
+  }
+
   Future updateMessage(Message message) async {
     await DBProvider.database.writeTxn(() async {
       return await DBProvider.database.messages.put(message);
@@ -493,6 +508,11 @@ class MessageService {
   }
 
   Future<Message> _fillTypeForMessage(Message m) async {
+    // cashuA
+    if (m.mediaType == MessageMediaType.cashuA ||
+        m.content.startsWith('cashu')) {
+      return await _cashuAInfo(m);
+    }
     if (m.realMessage != null) return m;
 
     // image

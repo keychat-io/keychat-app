@@ -16,6 +16,7 @@ class RoomMember extends Equatable {
   @Index(unique: true, composite: [CompositeIndex('roomId')])
   late String idPubkey; // secp256k1
 
+  @JsonKey(includeToJson: false, includeFromJson: false)
   String? curve25519PkHex;
 
   late int roomId;
@@ -32,6 +33,9 @@ class RoomMember extends Equatable {
 
   @JsonKey(includeToJson: false, includeFromJson: false)
   bool isCheck = false;
+
+  @JsonKey(includeToJson: false, includeFromJson: false)
+  int messageCount = 0;
 
   RoomMember(
       {required this.idPubkey, required this.roomId, required this.name}) {

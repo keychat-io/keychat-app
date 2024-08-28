@@ -3,7 +3,7 @@ library keychat.global;
 class KeychatGlobal {
   static const String selfName = 'Note to Self';
   static const String search = 'SEARCH';
-  static const int remainReceiveKeyPerRoom = 2;
+  static const int remainReceiveKeyPerRoom = 3;
   static const String baseFilePath = 'file';
   static const String signalProcotolDBFile = 'signal_procotol.db';
   static const String ecashDBFile = 'ecash.db';
@@ -61,4 +61,7 @@ The content of the letter can be exposed easily by opening the envelope. Keychat
 The addresses of both parties on the envelope can be tracked. In theory, this problem is solved if they change addresses daily. So Keychat reuses Signal protocol to update sending and receiving addresses for nearly every message.
 
 Like the postal system, Keychat requires no registration. Users just generate Nostr keys as ID.''';
+
+  static int kdfGroupPrekeyMessageCount = 2;
+  static int kdfGroupKeysExpired = 30;
 }

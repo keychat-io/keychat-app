@@ -1,7 +1,7 @@
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
-import 'package:app/service/SecureStorage.dart';
+import 'package:app/service/secure_storage.dart';
 
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/notify.service.dart';
@@ -10,8 +10,8 @@ import 'package:app/service/websocket.service.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_signal.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
-import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rustSignal;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
+import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
 
 import '../models/db_provider.dart';
 import '../nostr-core/nostr.dart';
@@ -50,7 +50,7 @@ class IdentityService {
 
   Future createOneTimeKey(int identityId) async {
     Isar database = DBProvider.database;
-    var keychain = await rustNostr.generateSecp256K1();
+    var keychain = await rust_nostr.generateSecp256K1();
     var ontTimeKey = Mykey(
         prikey: keychain.prikey,
         identityId: identityId,
@@ -65,7 +65,7 @@ class IdentityService {
 
   Future<Identity> createIdentity(
       {required String name,
-      required rustNostr.Secp256k1Account account,
+      required rust_nostr.Secp256k1Account account,
       bool isFirstAccount = false}) async {
     if (account.mnemonic == null) throw Exception('mnemonic is null');
     Isar database = DBProvider.database;
@@ -136,7 +136,7 @@ class IdentityService {
         // delete signal session by remote address
         await Get.find<ChatxService>().deleteSignalSessionKPA(element);
         // delete signal session by identity id
-        await rustSignal.deleteSessionByDeviceId(
+        await rust_signal.deleteSessionByDeviceId(
             keyPair: keyPair, deviceId: id);
       }
       await database.contacts.filter().identityIdEqualTo(id).deleteAll();
@@ -271,10 +271,17 @@ class IdentityService {
     return await DBProvider.database.identitys.where().findAll();
   }
 
-  Future<Identity?> getIdentityByPubkey(String to) async {
+  Future<Identity?> getIdentityByNostrPubkey(String pubkey) async {
     return await DBProvider.database.identitys
         .filter()
-        .secp256k1PKHexEqualTo(to)
+        .secp256k1PKHexEqualTo(pubkey)
+        .findFirst();
+  }
+
+  Future<Identity?> getIdentityBySignalPubkey(String pubkey) async {
+    return await DBProvider.database.identitys
+        .filter()
+        .curve25519SkHexEqualTo(pubkey)
         .findFirst();
   }
 

@@ -6,7 +6,7 @@ import 'package:app/service/websocket.service.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:mutex/mutex.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import '../models/db_provider.dart';
 import '../nostr-core/nostr.dart';
 
@@ -44,7 +44,7 @@ class ContactService {
       String? petname,
       String? name,
       String? curve25519PkHex}) async {
-    String pubKeyHex = rustNostr.getHexPubkeyByBech32(bech32: pubkey);
+    String pubKeyHex = rust_nostr.getHexPubkeyByBech32(bech32: pubkey);
     Contact contact =
         Contact(pubkey: pubKeyHex, npubkey: '', identityId: identityId)
           ..curve25519PkHex = curve25519PkHex;
@@ -233,8 +233,8 @@ class ContactService {
   }
 
   Future<Contact> getOrCreateContact(int identityId, String npubkey,
-      {String? curve25519PkHex}) async {
-    String pubkey = rustNostr.getHexPubkeyByBech32(bech32: npubkey);
+      {String? name, String? curve25519PkHex}) async {
+    String pubkey = rust_nostr.getHexPubkeyByBech32(bech32: npubkey);
     Contact? c = await getContact(identityId, pubkey);
 
     if (c != null) {
@@ -244,6 +244,7 @@ class ContactService {
     return await createContact(
         identityId: identityId,
         pubkey: pubkey,
+        name: name,
         curve25519PkHex: curve25519PkHex);
   }
 
@@ -264,7 +265,7 @@ class ContactService {
   }
 
   Contact? getOrCreateContactSync(int identityId, String toMainPubkey) {
-    String pubkey = rustNostr.getHexPubkeyByBech32(bech32: toMainPubkey);
+    String pubkey = rust_nostr.getHexPubkeyByBech32(bech32: toMainPubkey);
     Contact? c = DBProvider.database.contacts
         .filter()
         .pubkeyEqualTo(pubkey)
@@ -274,7 +275,7 @@ class ContactService {
     if (c != null) {
       return c;
     }
-    String npub = rustNostr.getBech32PubkeyByHex(hex: toMainPubkey);
+    String npub = rust_nostr.getBech32PubkeyByHex(hex: toMainPubkey);
     c = Contact(identityId: identityId, npubkey: npub, pubkey: pubkey);
     DBProvider.database.writeTxnSync(() {
       int id = DBProvider.database.contacts.putSync(c!);
@@ -327,7 +328,7 @@ class ContactService {
     String? petname,
     String? name,
   }) async {
-    String pubKeyHex = rustNostr.getHexPubkeyByBech32(bech32: pubkey);
+    String pubKeyHex = rust_nostr.getHexPubkeyByBech32(bech32: pubkey);
 
     var contact = await getContact(identityId, pubKeyHex);
     if (contact == null) {

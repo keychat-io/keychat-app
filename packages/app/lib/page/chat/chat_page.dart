@@ -21,7 +21,7 @@ import 'package:app/models/models.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 
 import '../../controller/chat.controller.dart';
-import '../../service/signalChat.service.dart';
+import '../../service/signal_chat.service.dart';
 import '../routes.dart';
 import '../widgets/error_text.dart';
 import 'chat_setting_contact_page.dart';
@@ -57,10 +57,15 @@ class _ChatPage2State extends State<ChatPage> {
     Widget myAavtar = getRandomAvatar(room.getIdentity().secp256k1PKHex,
         height: 40, width: 40);
     bool isGroup = room.type == RoomType.group;
-    Color defaultFontColor = Get.isDarkMode ? Colors.white70 : Colors.black87;
-    Color defaultBackgroundColor =
-        Get.isDarkMode ? const Color(0xFF2c2c2c) : const Color(0xFFFFFFFF);
     double screenWidth = Get.width;
+
+    Color fontColor = Get.isDarkMode ? Colors.white : Colors.black87;
+    Color toBackgroundColor =
+        Get.isDarkMode ? const Color(0xFF2c2c2c) : const Color(0xFFFFFFFF);
+
+    //const Color(0xFFF5E2FF).withOpacity(0.8); // for light mode
+    Color meBackgroundColor = const Color(0xff7748FF);
+
     return Scaffold(
       appBar: AppBar(
         scrolledUnderElevation: 0.0,
@@ -178,20 +183,19 @@ class _ChatPage2State extends State<ChatPage> {
                                       .colorScheme
                                       .inversePrimary,
                                   child: MessageWidget(
-                                      key: ObjectKey('msg:${message.id}'),
-                                      myAavtar: myAavtar,
-                                      contact: contact,
-                                      index: index,
-                                      isGroup: isGroup,
-                                      roomMember: rm,
-                                      chatController: controller,
-                                      screenWidth: screenWidth,
-                                      backgroundColor: message.isMeSend
-                                          ? const Color(0xffefdbff)
-                                          : defaultBackgroundColor,
-                                      fontColor: message.isMeSend
-                                          ? Colors.black87
-                                          : defaultFontColor));
+                                    key: ObjectKey('msg:${message.id}'),
+                                    myAavtar: myAavtar,
+                                    contact: contact,
+                                    index: index,
+                                    isGroup: isGroup,
+                                    roomMember: rm,
+                                    chatController: controller,
+                                    screenWidth: screenWidth,
+                                    backgroundColor: message.isMeSend
+                                        ? meBackgroundColor
+                                        : toBackgroundColor,
+                                    fontColor: fontColor,
+                                  ));
                             },
                           ))),
                     ))),
@@ -240,8 +244,7 @@ class _ChatPage2State extends State<ChatPage> {
                                         .instance.isControlPressed ||
                                     HardwareKeyboard.instance.isShiftPressed ||
                                     HardwareKeyboard.instance.isAltPressed)) {
-                                  controller.handleSubmitted(
-                                      controller.textEditingController.text);
+                                  controller.handleSubmitted();
                                 }
                               }
                             },
@@ -268,10 +271,7 @@ class _ChatPage2State extends State<ChatPage> {
                                     focusedBorder: InputBorder.none,
                                     contentPadding: EdgeInsets.all(0)),
                                 textInputAction: TextInputAction.send,
-                                onEditingComplete: () => {
-                                  controller.handleSubmitted(
-                                      controller.textEditingController.text)
-                                },
+                                onEditingComplete: controller.handleSubmitted,
                                 maxLines: 8,
                                 minLines: 1,
                                 scrollController:
@@ -287,7 +287,9 @@ class _ChatPage2State extends State<ChatPage> {
                                   controller.hideAdd.value = true;
                                 },
                                 onChanged: handleOnChanged,
-                                onFieldSubmitted: controller.handleSubmitted,
+                                onFieldSubmitted: (c) {
+                                  controller.handleSubmitted();
+                                },
                                 enabled: true,
                               ),
                             ),
@@ -380,7 +382,7 @@ class _ChatPage2State extends State<ChatPage> {
       controller.chatContentFocus.unfocus();
       return;
     }
-    await controller.handleSubmitted(controller.textEditingController.text);
+    await controller.handleSubmitted();
   }
 
   Future goToSetting() async {
@@ -678,9 +680,7 @@ class _ChatPage2State extends State<ChatPage> {
               },
               style: ButtonStyle(
                   backgroundColor: WidgetStateProperty.all(Colors.red)),
-              child: const Text(
-                'Reject',
-              ),
+              child: const Text('Reject'),
             ),
           ],
         )

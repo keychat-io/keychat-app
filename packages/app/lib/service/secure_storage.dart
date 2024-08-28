@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:app/utils/config.dart';
 
 class SecureStorage {
   static SecureStorage? _instance;
@@ -8,7 +10,7 @@ class SecureStorage {
   static FlutterSecureStorage storage = const FlutterSecureStorage(
       iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock));
 
-  String mnemonicKey = 'mnemonic';
+  String mnemonicKey = kReleaseMode ? 'mnemonic' : '${Config.env}:mnemonic';
   static Map<String, String> keys = {};
 
   Future writePhraseWords(String words) async {
@@ -47,7 +49,12 @@ class SecureStorage {
     throw Exception('$pubkey \'s private key not found');
   }
 
-  String _getPrivateKeyName(String pubkey) => "prikey:$pubkey";
+  String _getPrivateKeyName(String pubkey) {
+    if (kReleaseMode) {
+      return "prikey:$pubkey";
+    }
+    return "${Config.env}:prikey:$pubkey";
+  }
 
   Future<Map<String, String>> readAll() {
     return storage.readAll();
@@ -58,9 +65,12 @@ class SecureStorage {
     await storage.delete(key: key);
   }
 
-  Future clearAll() async {
-    await storage.deleteAll(
-        iOptions: const IOSOptions(
-            accessibility: KeychainAccessibility.first_unlock));
+  // in debug model, if you open multi clients, all of them share the same keychain
+  Future clearAll([bool force = false]) async {
+    if (force || kReleaseMode) {
+      await storage.deleteAll(
+          iOptions: const IOSOptions(
+              accessibility: KeychainAccessibility.first_unlock));
+    }
   }
 }

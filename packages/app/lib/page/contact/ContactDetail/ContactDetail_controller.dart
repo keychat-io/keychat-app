@@ -1,5 +1,5 @@
 import 'package:app/models/contact.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
@@ -11,7 +11,7 @@ class ContactDetailController extends GetxController {
   void onInit() async {
     var c = Get.arguments as Contact;
     if (c.npubkey.isEmpty) {
-      c.npubkey = rustNostr.getBech32PubkeyByHex(hex: c.pubkey);
+      c.npubkey = rust_nostr.getBech32PubkeyByHex(hex: c.pubkey);
     }
     contact.value = c;
     usernameController = TextEditingController();

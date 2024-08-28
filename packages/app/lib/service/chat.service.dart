@@ -13,8 +13,7 @@ abstract class BaseChatService {
 
   Future<SendMessageResponse> sendMessage(Room room, String message,
       {MessageMediaType? mediaType,
-      bool save =
-          true, // default to save message to db. if false, just boardcast
+      bool save = true,
       MsgReply? reply,
       String? realMessage,
       Function(bool)? sentCallback});

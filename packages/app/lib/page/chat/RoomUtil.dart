@@ -1,13 +1,17 @@
 import 'dart:convert' show jsonDecode;
+import 'package:app/constants.dart';
 import 'package:app/global.dart';
 import 'package:app/models/contact.dart';
+import 'package:app/models/embedded/msg_reply.dart';
 import 'package:app/models/event_log.dart';
 import 'package:app/models/identity.dart';
+import 'package:app/models/keychat/group_message.dart';
 import 'package:app/models/keychat/qrcode_user_model.dart';
+import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/ChatMediaFilesPage.dart';
 import 'package:app/page/chat/contact_page.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/storage.dart';
@@ -35,6 +39,23 @@ import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart' hide Contact;
 import 'package:settings_ui/settings_ui.dart';
 
 class RoomUtil {
+  static GroupMessage getGroupMessage(Room room, String message,
+      {int? subtype,
+      required String pubkey,
+      String? ext,
+      String? sig,
+      MsgReply? reply}) {
+    GroupMessage gm = GroupMessage(message: message, pubkey: pubkey, sig: sig)
+      ..subtype = subtype
+      ..ext = ext;
+
+    if (reply != null) {
+      gm.subtype = KeyChatEventKinds.dm;
+      gm.ext = reply.toString(); // EventId
+    }
+    return gm;
+  }
+
   static String getHelloMessage(String name) {
     return '''
 😄 Hi, I'm $name.
@@ -76,11 +97,11 @@ Let's start an encrypted chat.''';
     // room setting > global setting
     DateTime fromAt = DateTime.now().subtract(const Duration(days: 180));
     var start = BigInt.from(fromAt.millisecondsSinceEpoch);
-    rustCashu.removeTransactions(
+    rust_cashu.removeTransactions(
         unixTimestampMsLe: start, kind: TransactionStatus.success);
-    rustCashu.removeTransactions(
+    rust_cashu.removeTransactions(
         unixTimestampMsLe: start, kind: TransactionStatus.expired);
-    rustCashu.removeTransactions(
+    rust_cashu.removeTransactions(
         unixTimestampMsLe: start, kind: TransactionStatus.failed);
   }
 
@@ -236,7 +257,8 @@ Let's start an encrypted chat.''';
       text = '[${room.unReadCount} messages] $text';
     }
     var style = TextStyle(
-        color: Theme.of(Get.context!).colorScheme.onSurface.withOpacity(0.6));
+        color: Theme.of(Get.context!).colorScheme.onSurface.withOpacity(0.6),
+        fontSize: 14);
     if (m.isMeSend) {
       if (m.sent == SendStatusType.failed ||
           (m.sent == SendStatusType.sending &&
@@ -435,12 +457,12 @@ Let's start an encrypted chat.''';
     }
     Identity identity = Get.find<HomeController>().getSelectedIdentity();
 
-    String pubkey = rustNostr.getHexPubkeyByBech32(bech32: model.pubkey);
-    String npub = rustNostr.getBech32PubkeyByHex(hex: model.pubkey);
+    String pubkey = rust_nostr.getHexPubkeyByBech32(bech32: model.pubkey);
+    String npub = rust_nostr.getBech32PubkeyByHex(hex: model.pubkey);
     String globalSign = model.globalSign;
     String needVerifySignStr =
         "Keychat-${model.pubkey}-${model.curve25519PkHex}-${model.time}";
-    bool sign = await rustNostr.verifySchnorr(
+    bool sign = await rust_nostr.verifySchnorr(
         pubkey: pubkey,
         sig: globalSign,
         content: needVerifySignStr,
@@ -461,5 +483,49 @@ Let's start an encrypted chat.''';
           contact: contact,
           title: 'Add Contact',
         )..model = model);
+  }
+
+  static String getGroupModeName(GroupType type) {
+    switch (type) {
+      case GroupType.shareKey:
+        return 'Big Group';
+      case GroupType.kdf:
+        return 'Medium Group';
+      case GroupType.sendAll:
+        return 'Small Group';
+      default:
+    }
+    return 'common';
+  }
+
+  static String getGroupModeDescription(GroupType type) {
+    switch (type) {
+      case GroupType.kdf:
+        return '''1. Anti-Forgery ✅
+2. End-to-End Encryption ✅
+3. Forward Secrecy ✅
+4. Backward Secrecy 🟢70% 
+5. Metadata Privacy 🟢70%''';
+      case GroupType.shareKey:
+        return '''1. Members < 30
+2. All members hold the same private key''';
+      case GroupType.sendAll:
+        return '''1. Anti-Forgery ✅ 
+2. End-to-End Encryption ✅
+3. Forward Secrecy ✅ 
+4. Backward Secrecy ✅ 
+5. Metadata Privacy ✅''';
+      default:
+    }
+    return 'common';
+  }
+
+  static MessageEncryptType getEncryptMode(NostrEventModel event,
+      [NostrEventModel? sourceEvent]) {
+    if (sourceEvent == null) return event.encryptType;
+    if (event.isNip4) return MessageEncryptType.nip4WrapNip4;
+    if (event.isSignal) return MessageEncryptType.nip4WrapSignal;
+
+    return event.encryptType;
   }
 }

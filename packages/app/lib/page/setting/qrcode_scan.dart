@@ -6,7 +6,7 @@ import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/utils.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 import 'package:app/rust_api.dart';
 import 'package:flutter/cupertino.dart';
@@ -162,7 +162,7 @@ class _QRCodeViewState extends State<QRCodeView> {
 
   _proccessPayLightingBill(String str) async {
     try {
-      InvoiceInfo ii = await rustCashu.decodeInvoice(encodedInvoice: str);
+      InvoiceInfo ii = await rust_cashu.decodeInvoice(encodedInvoice: str);
     } catch (e) {
       return handleText(str);
     }

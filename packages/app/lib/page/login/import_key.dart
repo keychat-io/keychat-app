@@ -1,6 +1,6 @@
 import 'package:app/controller/home.controller.dart';
 import 'package:app/page/components.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:app/utils.dart';
 import 'package:flutter/material.dart';
@@ -141,7 +141,7 @@ class _ImportKey extends State<ImportKey> {
                             'This seed phrase already exists');
                         return;
                       }
-                      var kc = await rustNostr.importFromPhrase(phrase: input);
+                      var kc = await rust_nostr.importFromPhrase(phrase: input);
                       var newIdentity = await IdentityService()
                           .createIdentity(name: name, account: kc);
                       bool isFirstAccount =

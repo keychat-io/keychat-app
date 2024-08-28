@@ -20,10 +20,11 @@ enum MessageMediaType {
   pdf,
   setPostOffice,
   groupInvite,
-  file
+  file,
+  groupInviteConfirm, // For administrators to use to accept or deny new users from joining the group
 }
 
-enum RequestConfrimEnum { none, request, approved, rejected }
+enum RequestConfrimEnum { none, request, approved, rejected, expired }
 
 @Collection(ignore: {'props', 'relayStatusMap', 'fromContact'})
 // ignore: must_be_immutable
@@ -63,6 +64,9 @@ class Message extends Equatable {
   @Enumerated(EnumType.ordinal32)
   RequestConfrimEnum? requestConfrim;
 
+  String? subEvent;
+  DateTime? receiveAt;
+
   FromContact? fromContact; // show for message
 
   Message(
@@ -86,17 +90,17 @@ class Message extends Equatable {
   @override
   List<Object?> get props => [
         id,
+        content,
+        realMessage,
         msgid,
         roomId,
         from,
         to,
-        createdAt,
         isSystem,
         isMeSend,
-        sent,
         isRead,
-        reply,
-        msgKeyHash,
+        mediaType,
+        createdAt,
       ];
 
   MsgFileInfo? convertToMsgFileInfo() {

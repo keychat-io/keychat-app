@@ -1,6 +1,8 @@
 import 'package:app/controller/home.controller.dart';
 import 'package:app/models/models.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
+import 'package:app/service/kdf_group.service.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
@@ -11,16 +13,17 @@ import 'package:get/get.dart';
 import '../../service/contact.service.dart';
 import '../../service/group.service.dart';
 
-// ignore: must_be_immutable
-class AddGroupMember extends StatefulWidget {
-  Room room;
-  AddGroupMember({super.key, required this.room});
+class AddMemberToGroup extends StatefulWidget {
+  final Room room;
+  final Set<String> members;
+  const AddMemberToGroup(
+      {super.key, required this.room, required this.members});
 
   @override
-  State<StatefulWidget> createState() => _AddGroupMemberState();
+  State<StatefulWidget> createState() => _AddMemberToGroupState();
 }
 
-class _AddGroupMemberState extends State<AddGroupMember>
+class _AddMemberToGroupState extends State<AddMemberToGroup>
     with TickerProviderStateMixin {
   List<Contact> _contactList = [];
   bool isLoading = false;
@@ -28,7 +31,7 @@ class _AddGroupMemberState extends State<AddGroupMember>
   final List<String> _tabs = ["Select Members", "Input"];
   late TabController _tabController;
 
-  _AddGroupMemberState();
+  _AddMemberToGroupState();
 
   late ScrollController _scrollController;
   late TextEditingController _userNameController;
@@ -61,35 +64,23 @@ class _AddGroupMemberState extends State<AddGroupMember>
   }
 
   void _completeFromInput() async {
+    String myPubkey =
+        Get.find<HomeController>().getSelectedIdentity().secp256k1PKHex;
     EasyLoading.show(status: 'Proccessing');
-    List<String> selectAccounts = [];
+    Map<String, String> selectAccounts = {};
     if (_userNameController.text.trim().length >= 63) {
-      String hexPubkey = rustNostr.getHexPubkeyByBech32(
+      String hexPubkey = rust_nostr.getHexPubkeyByBech32(
           bech32: _userNameController.text.trim());
-      selectAccounts.add(hexPubkey);
+      selectAccounts[hexPubkey] = '';
     }
-    if (selectAccounts.isEmpty) {
-      EasyLoading.dismiss();
-      EasyLoading.showError('user not found or input error ');
-      return;
-    }
-    try {
-      await GroupService()
-          .inviteToJoinGroup(widget.room, toUsers: selectAccounts);
-      EasyLoading.dismiss();
-      Get.back();
-    } catch (e) {
-      EasyLoading.dismiss();
-      EasyLoading.showError(e.toString());
-      logger.e(e.toString(), error: e);
-    }
+    await _sendInvite(myPubkey, selectAccounts);
   }
 
   void _completeFromContacts() async {
     EasyLoading.show(status: 'Proccessing');
-    List<String> selectAccounts = [];
     String myPubkey =
         Get.find<HomeController>().getSelectedIdentity().secp256k1PKHex;
+    Map<String, String> selectAccounts = {};
     for (int i = 0; i < _contactList.length; i++) {
       Contact contact = _contactList[i];
       if (contact.isCheck) {
@@ -99,24 +90,51 @@ class _AddGroupMemberState extends State<AddGroupMember>
         } else {
           selectAccount = contact.pubkey;
         }
-
-        selectAccounts.add(selectAccount);
+        selectAccounts[selectAccount] = contact.displayName;
       }
     }
+    _sendInvite(myPubkey, selectAccounts);
+  }
+
+  Future _sendInvite(
+      String myPubkey, Map<String, String> selectAccounts) async {
     if (selectAccounts.isEmpty) {
-      EasyLoading.dismiss();
-      EasyLoading.showToast('Please select at least one member');
+      EasyLoading.showError('user not found or input error ');
       return;
     }
+    RoomMember? meMember = await widget.room.getMember(myPubkey);
+    if (meMember != null) {
+      if (!meMember.isAdmin) {
+        await GroupService().sendInviteToAdmin(widget.room, selectAccounts);
+        EasyLoading.dismiss();
+        Get.dialog(CupertinoAlertDialog(
+          title: const Text('Success'),
+          content: const Text('The invitation has been sent to the admin'),
+          actions: <Widget>[
+            CupertinoDialogAction(
+              child: const Text('OK'),
+              onPressed: () {
+                Get.back();
+                Get.back();
+              },
+            ),
+          ],
+        ));
+        return;
+      }
+    }
     try {
-      await GroupService()
-          .inviteToJoinGroup(widget.room, toUsers: selectAccounts);
-      EasyLoading.dismiss();
+      if (widget.room.isKDFGroup) {
+        await KdfGroupService.instance
+            .inviteToJoinGroup(widget.room, selectAccounts);
+      } else {
+        await GroupService().inviteToJoinGroup(widget.room, selectAccounts);
+      }
+      EasyLoading.showSuccess('Success');
       Get.back();
-    } catch (e, s) {
-      EasyLoading.dismiss();
+    } catch (e) {
       EasyLoading.showError(e.toString());
-      logger.e(e.toString(), error: e, stackTrace: s);
+      logger.e(e.toString(), error: e);
     }
   }
 
@@ -125,9 +143,7 @@ class _AddGroupMemberState extends State<AddGroupMember>
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: const Text(
-          "Add Member",
-        ),
+        title: const Text("Add Member"),
         actions: [
           TextButton(
             onPressed: () {
@@ -144,14 +160,10 @@ class _AddGroupMemberState extends State<AddGroupMember>
         ],
         bottom: TabBar(controller: _tabController, tabs: const <Widget>[
           Tab(
-            child: Text(
-              "Select",
-            ),
+            child: Text("Select"),
           ),
           Tab(
-            child: Text(
-              "Input",
-            ),
+            child: Text("Input"),
           ),
         ]),
       ),
@@ -186,22 +198,24 @@ class _AddGroupMemberState extends State<AddGroupMember>
         controller: _scrollController,
         itemBuilder: (context, index) {
           return ListTile(
-            leading: getRandomAvatar(_contactList[index].pubkey,
-                height: 40, width: 40),
-            title: Text(
-              _contactList[index].displayName,
-            ),
-            subtitle: Text(
-              _contactList[index].npubkey,
-              overflow: TextOverflow.ellipsis,
-            ),
-            trailing: Checkbox(
-                value: _contactList[index].isCheck,
-                onChanged: (isCheck) {
-                  _contactList[index].isCheck = isCheck!;
-                  setState(() {});
-                }),
-          );
+              leading: getRandomAvatar(_contactList[index].pubkey,
+                  height: 40, width: 40),
+              title: Text(
+                _contactList[index].displayName,
+              ),
+              subtitle: Text(
+                _contactList[index].npubkey,
+                overflow: TextOverflow.ellipsis,
+              ),
+
+              // widget.members.contains(_contactList[index].pubkey)
+              // ? const Icon(Icons.check_box, color: Colors.grey, size: 30)
+              trailing: Checkbox(
+                  value: _contactList[index].isCheck,
+                  onChanged: (isCheck) {
+                    _contactList[index].isCheck = isCheck!;
+                    setState(() {});
+                  }));
         });
   }
 }

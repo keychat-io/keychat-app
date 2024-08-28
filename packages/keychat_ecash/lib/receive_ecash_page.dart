@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 class ReceiveEcash extends StatefulWidget {
@@ -16,7 +16,7 @@ class ReceiveEcash extends StatefulWidget {
 class _ReceiveEcashState extends State<ReceiveEcash> {
   EcashController controller = Get.find<EcashController>();
   late TextEditingController receiveTextController;
-  rustCashu.TokenInfo? decodedModel;
+  rust_cashu.TokenInfo? decodedModel;
   bool supported = true;
   @override
   void initState() {
@@ -25,7 +25,7 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
       String? text = receiveTextController.text.trim();
       if (text.isNotEmpty) {
         try {
-          var res = await rustCashu.decodeToken(encodedToken: text);
+          var res = await rust_cashu.decodeToken(encodedToken: text);
 
           setState(() {
             decodedModel = res;

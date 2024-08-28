@@ -3,7 +3,7 @@ import 'dart:convert' show jsonEncode;
 import 'package:app/app.dart';
 import 'package:app/models/signal_id.dart';
 import 'package:app/nostr-core/nostr_event.dart';
-import 'package:app/service/SecureStorage.dart';
+import 'package:app/service/secure_storage.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:get/get.dart';

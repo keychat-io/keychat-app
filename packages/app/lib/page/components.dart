@@ -2,8 +2,10 @@
 
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
+import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app/page/chat/create_contact_page.dart';
 import 'package:app/models/signal_id.dart';
-import 'package:app/page/chat/addContact_page.dart';
+
 import 'package:app/page/setting/my_qrcode.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/signalId.service.dart';
@@ -299,18 +301,13 @@ getGroupInfoBottomSheetWidget(BuildContext context) {
     context,
     'Group Type Info',
     [
-      const ListTile(
-        title: Text('Shared Key Group'),
-        subtitle: Text('''1. Data is encrypted by shared private key. 
-2. Send only one message to the relay. 
-3. Members > 10'''),
+      ListTile(
+        title: const Text('1. Medium Group'),
+        subtitle: Text(RoomUtil.getGroupModeDescription(GroupType.kdf)),
       ),
-      const ListTile(
-        title: Text('Pairwise Group'),
-        subtitle:
-            Text('''1. Messages will be sent separately to each group member. 
-2. If there are N members, then N messages are sent.
-3. Members < 10'''),
+      ListTile(
+        title: const Text('2. Small Group'),
+        subtitle: Text(RoomUtil.getGroupModeDescription(GroupType.sendAll)),
       ),
     ],
   );

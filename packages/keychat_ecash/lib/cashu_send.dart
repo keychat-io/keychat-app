@@ -1,4 +1,4 @@
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_ecash/Bills/ecash_bill_controller.dart';
 import 'package:keychat_ecash/components/SelectMint.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
@@ -121,7 +121,7 @@ class _CashuSendPageState extends State<CashuSendPage> {
                       } catch (e, s) {
                         String msg = Utils.getErrorMessage(e);
                         if (msg.startsWith('11001')) {
-                          await rustCashu.checkProofs();
+                          await rust_cashu.checkProofs();
                           EasyLoading.showError(
                               'Exception: Token already spent. Please retry',
                               duration: const Duration(seconds: 3));

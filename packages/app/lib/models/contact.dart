@@ -1,4 +1,4 @@
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:app/service/contact.service.dart';
 import 'package:equatable/equatable.dart';
@@ -60,7 +60,7 @@ class Contact extends Equatable {
     required this.pubkey,
   }) {
     if (npubkey.isEmpty && pubkey.length == 64) {
-      npubkey = rustNostr.getBech32PubkeyByHex(hex: pubkey);
+      npubkey = rust_nostr.getBech32PubkeyByHex(hex: pubkey);
     }
     createdAt ??= DateTime.now();
     updatedAt ??= DateTime.now();

@@ -1,7 +1,11 @@
 import 'package:app/controller/home.controller.dart';
+import 'package:app/global.dart';
 import 'package:app/models/models.dart';
+
+import 'package:app/models/signal_id.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/room.service.dart';
+import 'package:app/service/signalId.service.dart';
 import 'package:app/utils.dart';
 import 'package:equatable/equatable.dart';
 import 'package:get/get.dart';
@@ -18,7 +22,7 @@ enum RoomType {
   group,
 }
 
-enum GroupType { shareKey, sendAll }
+enum GroupType { shareKey, sendAll, kdf }
 
 enum EncryptMode { nip04, signal }
 
@@ -42,8 +46,10 @@ enum RoomStatus {
   'lastMessageModel',
   'isSendAllGroup',
   'isShareKeyGroup',
+  'isKDFGroup',
   'parentRoom',
-  'messageType'
+  'messageType',
+  'keyPair'
 })
 // ignore: must_be_immutable
 class Room extends Equatable {
@@ -79,7 +85,6 @@ class Room extends Equatable {
   int version = 0;
 
   final mykey = IsarLink<Mykey>();
-  final members = IsarLinks<RoomMember>();
 
   late DateTime createdAt;
 
@@ -100,7 +105,7 @@ class Room extends Equatable {
   Room? parentRoom; // for group room
 
   String? onetimekey;
-
+  String? sharedSignalID; // a shared virtual signal id for group
   Room(
       {required this.toMainPubkey,
       required this.npub,
@@ -114,6 +119,7 @@ class Room extends Equatable {
       groupType == GroupType.sendAll && type == RoomType.group;
   bool get isShareKeyGroup =>
       groupType == GroupType.shareKey && type == RoomType.group;
+  bool get isKDFGroup => groupType == GroupType.kdf && type == RoomType.group;
 
   MessageType get messageType =>
       type == RoomType.common && encryptMode == EncryptMode.nip04
@@ -133,16 +139,55 @@ class Room extends Equatable {
 
   String get myIdPubkey => getIdentity().secp256k1PKHex;
 
+  // if exist signalIdPubkey return it ,else use identity's keypair
   Future<KeychatIdentityKeyPair> getKeyPair() async {
     ChatxService chatxService = Get.find<ChatxService>();
     if (signalIdPubkey == null) {
       return await chatxService.getKeyPairByIdentity(getIdentity());
     }
-    return chatxService.keypairs[signalIdPubkey]!;
+    var exist = chatxService.keypairs[signalIdPubkey];
+    if (exist != null) return exist;
+    SignalId? si = getMySignalId();
+    if (si != null) {
+      return chatxService.setupSignalStoreBySignalId(si.pubkey, si);
+    }
+    return throw Exception('signalId is null');
+  }
+
+  Future<KeychatIdentityKeyPair?> getSharedKeyPair() async {
+    SignalId? id;
+    try {
+      id = getGroupSharedSignalId();
+    } catch (e) {}
+    if (id == null) return null;
+
+    return Get.find<ChatxService>().getKeyPairBySignalId(id);
   }
 
   Identity getIdentity() {
     return Get.find<HomeController>().identities[identityId]!;
+  }
+
+  SignalId? getMySignalId() {
+    if (signalIdPubkey == null) return null;
+
+    SignalId? res = DBProvider.database.signalIds
+        .filter()
+        .pubkeyEqualTo(signalIdPubkey!)
+        .identityIdEqualTo(identityId)
+        .findFirstSync();
+    return res;
+  }
+
+  SignalId getGroupSharedSignalId() {
+    if (sharedSignalID == null) throw Exception('signalId is null');
+
+    SignalId? res = DBProvider.database.signalIds
+        .filter()
+        .pubkeyEqualTo(sharedSignalID!)
+        .findFirstSync();
+    if (res == null) throw Exception('signalId is null');
+    return res;
   }
 
   Future<RoomMember?> getMemberByIdPubkey(String pubkey) async {
@@ -244,7 +289,6 @@ class Room extends Equatable {
     RoomMember? rm = await getMemberByIdPubkey(idPubkey);
     if (rm == null) {
       rm = RoomMember(idPubkey: idPubkey, name: name, roomId: id)
-        ..curve25519PkHex = curve25519PkHex
         ..createdAt = createdAt
         ..updatedAt = updatedAt;
       rm.isAdmin = isAdmin;
@@ -309,8 +353,14 @@ class Room extends Equatable {
     Isar database = DBProvider.database;
     if (list.isEmpty) return;
     for (var user in list) {
-      user['roomId'] = id;
-      RoomMember rm = RoomMember.fromJson(user);
+      late RoomMember rm;
+      if (user is RoomMember) {
+        user.roomId = id;
+        rm = user;
+      } else {
+        user['roomId'] = id;
+        rm = RoomMember.fromJson(user);
+      }
       RoomMember? exist = await database.roomMembers
           .filter()
           .roomIdEqualTo(id)
@@ -418,5 +468,59 @@ class Room extends Equatable {
       memberRooms[rm.idPubkey] = idRoom;
     }
     return memberRooms;
+  }
+
+  Future<RoomMember?> getMemberByNostrPubkey(String pubkey) async {
+    return await DBProvider.database.roomMembers
+        .filter()
+        .roomIdEqualTo(id)
+        .idPubkeyEqualTo(pubkey)
+        .findFirst();
+  }
+
+  int getDeviceIdForSignal() {
+    return type == RoomType.common ? identityId : 10000 + id;
+  }
+
+  Future createMember(
+      String pubkey, String displayName, UserStatusType status) async {
+    var me = RoomMember(idPubkey: pubkey, name: displayName, roomId: id)
+      ..status = status
+      ..createdAt = DateTime.now()
+      ..updatedAt = DateTime.now();
+    await DBProvider.database.writeTxn(() async {
+      await DBProvider.database.roomMembers.put(me);
+    });
+    return getMemberByNostrPubkey(pubkey);
+  }
+
+  Future incrMessageCountForMemeber(RoomMember meMember) async {
+    await DBProvider.database.writeTxn(() async {
+      meMember.messageCount++;
+      await DBProvider.database.roomMembers.put(meMember);
+    });
+  }
+
+  // clear keys. if receive all member's prekey message
+  // clear keys. if reach the expired time
+  Future checkAndCleanSignalKeys() async {
+    if (groupType != GroupType.kdf) return;
+    int count = await DBProvider.database.roomMembers
+        .filter()
+        .roomIdEqualTo(id)
+        .messageCountLessThan(KeychatGlobal.kdfGroupPrekeyMessageCount + 1)
+        .count();
+    SignalId? signalId =
+        await SignalIdService.instance.getSignalIdByPubkey(sharedSignalID);
+    if (signalId == null) return;
+    if (count > 0) {
+      DateTime expiredAt = signalId.updatedAt
+          .add(Duration(days: KeychatGlobal.kdfGroupKeysExpired));
+      if (expiredAt.isAfter(DateTime.now())) return; // not need to delete keys
+    }
+    if (signalId.keys == null || (signalId.keys?.isEmpty ?? true)) return;
+    logger.i('clean signal keys: $toMainPubkey');
+    signalId.keys = "";
+    await SignalIdService.instance.updateSignalId(signalId);
   }
 }

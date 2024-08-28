@@ -22,7 +22,6 @@ class KeyChatEventKinds {
   static const int dmEnd = 200; // chat end
 
   // share key group
-  static const int groupShreKeyBegin = 10;
   static const int groupInvite = 11;
   static const int groupSharedKeyMessage = 12;
   static const int groupHi = 14;
@@ -56,6 +55,14 @@ class KeyChatEventKinds {
   static const int webrtcCancel = 2004; // cancel call when waiting page
   static const int webrtcReject = 2005;
   static const int webrtcEnd = 2006;
+
+  // kdf group
+  static const int kdfHelloMessage = 3001;
+  static const int kdfWelcomeMessage = 3002;
+  static const int inviteNewMember = 3004;
+  static const int inviteToGroupRequest = 3005;
+  static const int kdfUpdateKeys = 3006;
+  static const int kdfAdminRemoveMembers = 3007;
 }
 
 class EventKinds {

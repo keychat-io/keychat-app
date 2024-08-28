@@ -12,7 +12,7 @@ import 'package:app/page/chat/message_actions/GroupInviteAction.dart';
 import 'package:app/page/chat/message_actions/SetRoomRelayAction.dart';
 import 'package:app/page/theme.dart';
 import 'package:app/page/widgets/image_preview_widget.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 // import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
@@ -36,6 +36,7 @@ import 'chat_bubble.dart';
 import 'chat_bubble_clipper_4.dart';
 
 import 'message_actions/FileMessageWidget.dart';
+import 'message_actions/GroupInviteConfirmAction.dart';
 import 'message_actions/VideoMessageWidget.dart';
 
 // ignore: must_be_immutable
@@ -169,7 +170,7 @@ class MessageWidget extends StatelessWidget {
                 ]),
             if (mfi.ecashToken != null)
               FutureBuilder(
-                  future: rustCashu.decodeToken(encodedToken: mfi.ecashToken!),
+                  future: rust_cashu.decodeToken(encodedToken: mfi.ecashToken!),
                   builder: (context, snapshot) =>
                       snapshot.connectionState == ConnectionState.done
                           ? ListTile(
@@ -231,6 +232,10 @@ class MessageWidget extends StatelessWidget {
                         overflow: TextOverflow.ellipsis, style: style),
                     Text('EncryptionKeyHash: ${message.msgKeyHash ?? ''}',
                         overflow: TextOverflow.ellipsis, style: style),
+                    Text(
+                        'SendAt: ${formatTime(message.createdAt.millisecondsSinceEpoch)}',
+                        overflow: TextOverflow.ellipsis,
+                        style: style),
                   ]),
             ))
         : const SizedBox();
@@ -312,12 +317,12 @@ class MessageWidget extends StatelessWidget {
         launchUrl(uri);
         return;
       },
-      text: text,
       style: Theme.of(Get.context!)
           .textTheme
           .bodyLarge
           ?.copyWith(color: fontColor, fontSize: 16),
-      linkStyle: const TextStyle(decoration: TextDecoration.none, fontSize: 16),
+      text: text,
+      linkStyle: const TextStyle(decoration: TextDecoration.none, fontSize: 15),
     );
   }
 
@@ -357,7 +362,7 @@ class MessageWidget extends StatelessWidget {
                     child: const Text('Resend'),
                     onPressed: () async {
                       Get.back();
-                      // 如果resend reply content 是个JSON, 需要解析成reply的结构
+
                       if (message.reply != null) {
                         Identity identity = Get.find<HomeController>()
                             .identities[chatController.room.identityId]!;
@@ -415,6 +420,8 @@ class MessageWidget extends StatelessWidget {
         case MessageMediaType.groupInvite:
           return _getActionWidget(
               GroupInviteAction(message, chatController.room.getIdentity()));
+        case MessageMediaType.groupInviteConfirm:
+          return _getActionWidget(GroupInviteConfirmAction(message));
         default:
       }
     } catch (e, s) {
@@ -425,15 +432,13 @@ class MessageWidget extends StatelessWidget {
   }
 
   Widget _getTextView(Message message) {
-    return message.reply == null
-        ? GestureDetector(
-            onLongPress: _handleTextLongPress, child: getSubContent())
-        : GestureDetector(
-            onLongPress: _handleTextLongPress, child: _getReplyWidget(message));
+    return GestureDetector(
+        onLongPress: _handleTextLongPress,
+        child: message.reply == null ? getSubContent() : _getReplyWidget());
   }
 
   Future _handleShowRawdata(BuildContext context) async {
-    Get.back(); // 关闭 popup
+    Get.back();
     if (message.eventIds.isEmpty) {
       EasyLoading.showInfo('Metadata Cleaned');
       return;
@@ -471,7 +476,6 @@ class MessageWidget extends StatelessWidget {
         fullscreenDialog: true, transition: Transition.fadeIn);
   }
 
-  // 消息正文，状态和 icon
   Widget myTextContainer() {
     Widget? messageStatus = getMessageStatus();
     return Container(
@@ -504,7 +508,7 @@ class MessageWidget extends StatelessWidget {
       TableCell(
           child: Padding(
               padding:
-                  const EdgeInsets.only(left: 10, right: 5, top: 10, bottom: 5),
+                  const EdgeInsets.only(left: 10, right: 4, top: 8, bottom: 4),
               child: Text(
                 title,
               ))),
@@ -593,23 +597,19 @@ class MessageWidget extends StatelessWidget {
     return AnyLinkPreview(
         key: Key(content),
         link: content,
-        errorTitle: content,
-        errorBody: 'Click to open',
+        bodyMaxLines: 3,
         onTap: () {
           Utils.hideKeyboard(Get.context!);
           launchUrl(Uri.parse(content));
         },
         placeholderWidget: _getTextContainer(getLinkify(content, fontColor),
             isMeSend: message.isMeSend),
-        displayDirection: UIDirection.uiDirectionVertical,
-        backgroundColor: Get.isDarkMode ? Colors.black26 : Colors.grey[300],
-        errorImage:
-            "https://raw.githubusercontent.com/keychat-io/docs/main/docs/_media/empty2.png",
+        showMultimedia: false,
         errorWidget: _getTextContainer(getLinkify(content, fontColor),
             isMeSend: message.isMeSend));
   }
 
-  Widget _getReplyWidget(Message message) {
+  Widget _getReplyWidget() {
     Widget? subTitleChild;
     if (message.reply!.id == null) {
       subTitleChild = Text(message.reply!.content,
@@ -629,10 +629,10 @@ class MessageWidget extends StatelessWidget {
               ? (msg.realMessage ?? msg.content)
               : msg.mediaType.name;
           subTitleChild = Text(content,
-              style: Theme.of(Get.context!).textTheme.bodyMedium?.copyWith(
-                    color: fontColor.withOpacity(0.7),
-                    height: 1,
-                  ),
+              style: Theme.of(Get.context!)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: fontColor, height: 1.2),
               maxLines: 5);
         }
       }
@@ -649,9 +649,9 @@ class MessageWidget extends StatelessWidget {
                         ? MaterialTheme.lightScheme().surface
                         : Theme.of(Get.context!).colorScheme.surface)
                     .withOpacity(0.5),
-                border: const Border(
+                border: Border(
                   left: BorderSide(
-                    color: Colors.blue,
+                    color: Colors.purple.shade200,
                     width: 2.0,
                   ),
                 ),
@@ -664,7 +664,7 @@ class MessageWidget extends StatelessWidget {
                       style: Theme.of(Get.context!)
                           .textTheme
                           .bodyMedium
-                          ?.copyWith(color: Colors.blue, height: 1)),
+                          ?.copyWith(color: Colors.purple, height: 1)),
                   subTitleChild ??
                       Text(message.reply!.content,
                           style: Theme.of(Get.context!)
@@ -674,7 +674,8 @@ class MessageWidget extends StatelessWidget {
                 ],
               ),
             ),
-            getLinkify(message.realMessage ?? message.content, fontColor)
+            getLinkify(message.realMessage ?? message.content,
+                message.isMeSend ? Colors.white : fontColor)
           ],
         ),
         isMeSend: message.isMeSend);
@@ -705,7 +706,8 @@ class MessageWidget extends StatelessWidget {
       return _getLinkPreviewWidget(message);
     }
     return _getTextContainer(
-        getLinkify(message.realMessage ?? message.content, fontColor),
+        getLinkify(message.realMessage ?? message.content,
+            message.isMeSend ? Colors.white : fontColor),
         isMeSend: message.isMeSend);
   }
 
@@ -726,7 +728,6 @@ class MessageWidget extends StatelessWidget {
     return _textCallback('[Image Crashed]');
   }
 
-  //删除对话框
   Future<void> _showDeleteDialog(Message message) async {
     Get.dialog(CupertinoAlertDialog(
       title: const Text('Delete This Message?'),
@@ -776,11 +777,11 @@ class MessageWidget extends StatelessWidget {
   }
 
   Map encryptText = {
-    'signal': 'Signal-Double-Ratchet-Algorithm',
+    'signal': 'Signal Protocol',
     'nip4': 'NIP4',
     'nip17': 'NIP17',
     'nip4WrapNip4': 'NIP4(NIP4(raw message))',
-    'nip4WrapSignal': 'NIP4(Signal-Double-Ratchet-Algorithm(raw message))'
+    'nip4WrapSignal': 'NIP4(Signal Protocol(raw message))'
   };
   _showRawData(Message message, NostrEventModel event, List<EventLog> eventLogs,
       [List<MessageBill> bills = const []]) {
@@ -819,14 +820,16 @@ class MessageWidget extends StatelessWidget {
                               //     TableBorder.all(width: 0.5, color: Colors.grey.shade400),
                               children: [
                             tableRow("ID", event.id),
-                            tableRow("Source Content", message.content),
-                            tableRow("Encrypted Content", event.content),
                             tableRow("From", event.pubkey),
                             tableRow("To", event.tags[0][1]),
                             tableRow(
                                 "Time",
                                 timestampToDateTime(event.createdAt)
                                     .toString()),
+                            tableRow("Source Content", message.content),
+                            if (message.subEvent != null)
+                              tableRow("Sub Event", message.subEvent!),
+                            tableRow("Encrypted Content", event.content),
                             if (message.msgKeyHash != null)
                               tableRow("Encryption Keys Hash",
                                   message.msgKeyHash ?? ''),
@@ -884,7 +887,7 @@ class MessageWidget extends StatelessWidget {
                                     color: Colors.green)
                                 : const Icon(Icons.error_outline,
                                     color: Colors.red),
-                            const SizedBox(width: 10), //增加空白间距
+                            const SizedBox(width: 10),
                             Text('To: ${rm?.name ?? idPubkey}'),
                           ],
                         ),
@@ -901,10 +904,15 @@ class MessageWidget extends StatelessWidget {
   }
 
   Widget _getActionWidget(Widget statusWidget) {
-    return Wrap(
-      direction: Axis.vertical,
-      spacing: 10,
-      children: [_getTextItemView(), statusWidget],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _getTextItemView(),
+        const SizedBox(
+          height: 10,
+        ),
+        statusWidget
+      ],
     );
   }
 
@@ -930,7 +938,7 @@ class MessageWidget extends StatelessWidget {
         : '[${message.mediaType.name}]';
     Room? forwardRoom = await Get.to(() => ForwardSelectRoom(rooms, content),
         fullscreenDialog: true, transition: Transition.downToUp);
-    Get.back(); // close popup
+    Get.back();
     if (forwardRoom == null) return;
     EasyLoading.show(status: 'Sending...');
     if (message.mediaType == MessageMediaType.text) {

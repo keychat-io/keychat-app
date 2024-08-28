@@ -1,4 +1,5 @@
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
+import 'package:app/service/kdf_group.service.dart';
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
@@ -11,19 +12,18 @@ import '../common.dart';
 import '../../service/contact.service.dart';
 import '../../service/group.service.dart';
 
-class AddGroupSelectMember extends StatefulWidget {
+class CreateGroupSelectMember extends StatefulWidget {
   final String groupName;
   final GroupType groupType;
-  final String? groupRelay;
 
-  const AddGroupSelectMember(this.groupName, this.groupType, this.groupRelay,
-      {super.key});
+  const CreateGroupSelectMember(this.groupName, this.groupType, {super.key});
 
   @override
-  _AddGroupSelectMemberState createState() => _AddGroupSelectMemberState();
+  _CreateGroupSelectMemberState createState() =>
+      _CreateGroupSelectMemberState();
 }
 
-class _AddGroupSelectMemberState extends State<AddGroupSelectMember>
+class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
     with TickerProviderStateMixin {
   GroupService groupService = GroupService();
   ContactService contactService = ContactService();
@@ -65,7 +65,7 @@ class _AddGroupSelectMemberState extends State<AddGroupSelectMember>
   }
 
   void _completeToCreatGroup() async {
-    Set<String> selectAccounts = {};
+    Map<String, String> selectAccounts = {};
     for (int i = 0; i < _contactList.length; i++) {
       Contact contact = _contactList[i];
       if (contact.isCheck) {
@@ -75,7 +75,7 @@ class _AddGroupSelectMemberState extends State<AddGroupSelectMember>
         } else {
           selectAccount = contact.pubkey;
         }
-        selectAccounts.add(selectAccount);
+        selectAccounts[selectAccount] = contact.displayName;
       }
     }
     // from input, check public key
@@ -83,36 +83,34 @@ class _AddGroupSelectMemberState extends State<AddGroupSelectMember>
       String input = _userNameController.text.trim();
       bool isCheck = nostrKeyInputCheck(input);
       if (!isCheck) return;
-      String pubkey = rustNostr.getHexPubkeyByBech32(bech32: input);
-      selectAccounts.add(pubkey);
+      String pubkey = rust_nostr.getHexPubkeyByBech32(bech32: input);
+      selectAccounts[pubkey] = '';
     }
 
     if (selectAccounts.isEmpty) {
       EasyLoading.showError("Please select at least one user");
       return;
     }
-    if (widget.groupType == GroupType.shareKey) {
-      if (selectAccounts.length > 10) {
-        EasyLoading.showToast('Select up to 10 users per invitation');
-        return;
-      }
-    }
-    // try {
+    late Room room;
     Identity identity = hc.getSelectedIdentity();
-
-    Room room = await groupService.createGroup(
-        widget.groupName, identity, widget.groupType, widget.groupRelay);
-    await GroupService()
-        .inviteToJoinGroup(room, toUsers: selectAccounts.toList());
-
-    Get.back();
+    try {
+      if (widget.groupType == GroupType.sendAll) {
+        room = await GroupService()
+            .createGroup(widget.groupName, identity, widget.groupType);
+        await GroupService().inviteToJoinGroup(room, selectAccounts);
+      } else if (widget.groupType == GroupType.kdf) {
+        room = await KdfGroupService.instance
+            .createGroup(widget.groupName, identity, selectAccounts);
+      }
+      Get.back();
+    } catch (e, s) {
+      logger.e('create room', error: e, stackTrace: s);
+      EasyLoading.showError(e.toString());
+      return;
+    }
 
     await Get.offAndToNamed('/room/${room.id}', arguments: room);
     await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
-    // } catch (e, s) {
-    //   util.logger.e('create room', error: e, stackTrace: s);
-    //   EasyLoading.showError(e.toString());
-    // }
   }
 
   @override
@@ -126,24 +124,18 @@ class _AddGroupSelectMemberState extends State<AddGroupSelectMember>
           actions: [
             TextButton(
                 onPressed: () => EasyThrottle.throttle('_completeToCreatGroup',
-                    const Duration(seconds: 2), _completeToCreatGroup),
-                child: const Text(
-                  "Create Group",
-                ))
+                    const Duration(seconds: 4), _completeToCreatGroup),
+                child: const Text("Create Group"))
           ],
         ),
         body: SafeArea(
             child: Column(children: [
           TabBar(controller: _tabController, tabs: const <Widget>[
             Tab(
-              child: Text(
-                "Contacts",
-              ),
+              child: Text("Contacts"),
             ),
             Tab(
-              child: Text(
-                "Input",
-              ),
+              child: Text("Input"),
             ),
           ]),
           Expanded(

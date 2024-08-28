@@ -19,7 +19,7 @@ import 'package:haptic_feedback/haptic_feedback.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
-import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rustSignal;
+import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 
@@ -224,7 +224,7 @@ class ChatController extends GetxController {
     ChatxService cs = Get.find<ChatxService>();
 
     for (var element in memberRooms.values) {
-      rustSignal.KeychatProtocolAddress? kpa = await cs.getRoomKPA(element);
+      rust_signal.KeychatProtocolAddress? kpa = await cs.getRoomKPA(element);
       if (kpa == null) {
         rooms.add(element);
       }
@@ -250,14 +250,15 @@ class ChatController extends GetxController {
         .count();
   }
 
-  Future handleSubmitted(String text) async {
-    text = text.trim();
+  Future handleSubmitted() async {
+    String text = textEditingController.text.trim();
     if (text.isEmpty) {
       return;
     }
     textEditingController.clear();
     try {
       MsgReply? reply;
+
       if (inputReplys.isNotEmpty) {
         reply = MsgReply()
           ..content = inputReplys.first.realMessage ?? inputReplys.first.content
@@ -599,12 +600,14 @@ class ChatController extends GetxController {
     meMember.value = me;
   }
 
-  setRoom(Room room) {
-    roomObs.value = room;
-    if (room.contact != null) {
-      roomContact.value = room.contact!;
+  ChatController setRoom(Room newRoom) {
+    room = newRoom;
+    roomObs.value = newRoom;
+    if (newRoom.contact != null) {
+      roomContact.value = newRoom.contact!;
     }
     roomObs.refresh();
+    return this;
   }
 
   sortMessageById(List<Message> list) {
@@ -743,7 +746,10 @@ class ChatController extends GetxController {
               idPubkey: identity.secp256k1PKHex,
               name: identity.displayName,
               roomId: room.id)
-        ..curve25519PkHex = room.getIdentity().curve25519PkHex;
+        ..curve25519PkHex = identity.curve25519PkHex;
+
+      // for kdf group
+      room.checkAndCleanSignalKeys();
       return;
     }
     if (room.contact == null) {

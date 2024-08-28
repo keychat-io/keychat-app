@@ -1,4 +1,4 @@
-import 'package:app/service/SecureStorage.dart';
+import 'package:app/service/secure_storage.dart';
 import 'package:equatable/equatable.dart';
 import 'package:isar/isar.dart';
 

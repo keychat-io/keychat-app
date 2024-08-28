@@ -5,7 +5,7 @@ import 'package:app/global.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
 import 'package:flutter/foundation.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/relay.service.dart';
@@ -133,7 +133,7 @@ class HomeController extends GetxController
     tabController.dispose();
     WidgetsBinding.instance.removeObserver(this);
     // scrollControllers.values.map((e) => e.dispose());
-    rustCashu.closeDb();
+    rust_cashu.closeDb();
     subscription.cancel();
     Get.find<WebsocketService>().stopListening();
     if (Get.context != null) {

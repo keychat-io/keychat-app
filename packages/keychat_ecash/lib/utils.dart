@@ -1,7 +1,7 @@
 import 'package:app/global.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rustCashu;
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:app/models/embedded/cashu_info.dart';
 import 'package:app/rust_api.dart';
@@ -28,9 +28,9 @@ class CashuUtil {
     if (!retry) {
       EasyLoading.show(status: 'Receiving...');
     }
-    late rustCashu.TokenInfo decoded;
+    late rust_cashu.TokenInfo decoded;
     try {
-      decoded = await rustCashu.decodeToken(encodedToken: token);
+      decoded = await rust_cashu.decodeToken(encodedToken: token);
     } catch (e, s) {
       EasyLoading.dismiss();
       EasyLoading.showError('Error: ${e.toString()}',
@@ -128,7 +128,7 @@ class CashuUtil {
         break;
       }
     }
-    var ct = await rustCashu.send(
+    var ct = await rust_cashu.send(
         amount: BigInt.from(amount), activeMint: filledMint);
     return CashuInfoModel.fromRustModel(ct.field0 as CashuTransaction);
   }
@@ -143,7 +143,7 @@ class CashuUtil {
         break;
       }
     }
-    var ct = await rustCashu.sendStamp(
+    var ct = await rust_cashu.sendStamp(
         amount: BigInt.from(amount), activeMint: filledMint);
     return CashuInfoModel.fromRustModel(ct.field0 as CashuTransaction);
   }

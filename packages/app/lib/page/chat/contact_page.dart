@@ -1,10 +1,10 @@
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:avatar_plus/avatar_plus.dart';
 import 'package:easy_debounce/easy_throttle.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rustNostr;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:app/service/chatx.service.dart';
-import 'package:app/service/signalChat.service.dart';
+import 'package:app/service/signal_chat.service.dart';
 import 'package:convert/convert.dart';
 
 import 'package:flutter/material.dart';
@@ -61,7 +61,7 @@ class ContactPage extends StatelessWidget {
               value: Flexible(
                 child: Text(contact.npubkey.isNotEmpty
                     ? contact.npubkey
-                    : rustNostr.getBech32PubkeyByHex(hex: contact.pubkey)),
+                    : rust_nostr.getBech32PubkeyByHex(hex: contact.pubkey)),
               ),
               onPressed: (context) async {
                 if (contact.npubkey.isNotEmpty) {
@@ -69,7 +69,7 @@ class ContactPage extends StatelessWidget {
                   return;
                 }
                 String npubkey =
-                    rustNostr.getBech32PubkeyByHex(hex: contact.pubkey);
+                    rust_nostr.getBech32PubkeyByHex(hex: contact.pubkey);
                 Clipboard.setData(ClipboardData(text: npubkey));
                 Get.back();
               },

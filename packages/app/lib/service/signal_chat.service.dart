@@ -322,8 +322,6 @@ class SignalChatService extends BaseChatService {
     await Get.find<ChatxService>().deleteSignalSessionKPA(room);
     // must be delete session then give a new data
     room.curve25519PkHex = model.curve25519PkHex;
-    RoomService.getController(room.id)?.room.curve25519PkHex =
-        model.curve25519PkHex;
 
     bool res = await Get.find<ChatxService>().addRoomKPA(
         room: room,
@@ -335,7 +333,6 @@ class SignalChatService extends BaseChatService {
         bobPrekeyId: model.prekeyId,
         bobPrekeyPublic: Uint8List.fromList(hex.decode(model.prekeyPubkey)));
     if (res) {
-      // logger.i('signal session create success');
       room.encryptMode = EncryptMode.signal;
     }
     room.contact = contact;

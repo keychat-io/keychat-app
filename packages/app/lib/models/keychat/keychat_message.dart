@@ -64,9 +64,7 @@ class KeychatMessage {
         await await SignalIdService.instance.createSignalId(identity.id);
     if (signalId == null) throw Exception('signalId is null');
 
-    Map userInfo = signalId.keys == null
-        ? await SignalIdService.instance.getQRCodeData(signalId)
-        : jsonDecode(signalId.keys!);
+    Map userInfo = await SignalIdService.instance.getQRCodeData(signalId);
 
     Map<String, dynamic> data = {
       'name': identity.displayName,

@@ -279,7 +279,10 @@ class ChatxService extends GetxService {
     // compatible with older version about identityId:signalId = 1:1
     await rust_signal.initKeypair(keyPair: keyPair, regId: 0);
 
-    await rust_signal.deleteSession(keyPair: keyPair, address: remoteAddress);
+    bool isDel = await rust_signal.deleteSession(
+        keyPair: keyPair, address: remoteAddress);
+
+    logger.d("The deleteSignalSessionKPA flag is $isDel");
 
     await rust_signal.deleteIdentity(
         keyPair: keyPair, address: remoteAddress.name);

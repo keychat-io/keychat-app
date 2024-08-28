@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'dart:convert' show jsonDecode;
 
 import 'package:app/models/models.dart';
 import 'package:app/service/room.service.dart';
@@ -44,6 +44,8 @@ class GroupInviteConfirmAction extends StatelessWidget {
         return const Text('  Approved', style: TextStyle(color: Colors.green));
       case RequestConfrimEnum.rejected:
         return const Text('  Rejected', style: TextStyle(color: Colors.red));
+      case RequestConfrimEnum.expired:
+        return const Text('  Expired', style: TextStyle(color: Colors.black54));
       default:
         return Text(message.content);
     }

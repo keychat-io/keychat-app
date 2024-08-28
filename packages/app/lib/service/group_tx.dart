@@ -40,18 +40,18 @@ class GroupTx {
     return (await database.mykeys.get(savedId))!;
   }
 
-  Future<Mykey> createMykey(Identity identity, [int? roomId]) async {
+  Future<Mykey> createMykey(int identityId, [int? roomId]) async {
     rust_nostr.Secp256k1Account keychain = await rust_nostr.generateSecp256K1();
     Isar database = DBProvider.database;
     Mykey? mykey = await database.mykeys
         .filter()
-        .identityIdEqualTo(identity.id)
+        .identityIdEqualTo(identityId)
         .pubkeyEqualTo(keychain.pubkey)
         .findFirst();
     if (mykey != null) return mykey;
     final newUser = Mykey(
         prikey: keychain.prikey,
-        identityId: identity.id,
+        identityId: identityId,
         pubkey: keychain.pubkey)
       ..roomId = roomId;
     late Mykey savedMykey;

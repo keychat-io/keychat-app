@@ -63,4 +63,5 @@ The addresses of both parties on the envelope can be tracked. In theory, this pr
 Like the postal system, Keychat requires no registration. Users just generate Nostr keys as ID.''';
 
   static int kdfGroupPrekeyMessageCount = 2;
+  static int kdfGroupKeysExpired = 30;
 }

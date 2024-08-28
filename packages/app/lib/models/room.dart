@@ -353,8 +353,14 @@ class Room extends Equatable {
     Isar database = DBProvider.database;
     if (list.isEmpty) return;
     for (var user in list) {
-      user['roomId'] = id;
-      RoomMember rm = RoomMember.fromJson(user);
+      late RoomMember rm;
+      if (user is RoomMember) {
+        user.roomId = id;
+        rm = user;
+      } else {
+        user['roomId'] = id;
+        rm = RoomMember.fromJson(user);
+      }
       RoomMember? exist = await database.roomMembers
           .filter()
           .roomIdEqualTo(id)
@@ -496,17 +502,24 @@ class Room extends Equatable {
   }
 
   // clear keys. if receive all member's prekey message
+  // clear keys. if reach the expired time
   Future checkAndCleanSignalKeys() async {
+    if (groupType != GroupType.kdf) return;
     int count = await DBProvider.database.roomMembers
         .filter()
         .roomIdEqualTo(id)
         .messageCountLessThan(KeychatGlobal.kdfGroupPrekeyMessageCount + 1)
         .count();
-    if (count > 0) return;
-    if (sharedSignalID == null) return;
     SignalId? signalId =
-        await SignalIdService.instance.getSignalIdByPubkey(sharedSignalID!);
+        await SignalIdService.instance.getSignalIdByPubkey(sharedSignalID);
     if (signalId == null) return;
+    if (count > 0) {
+      DateTime expiredAt = signalId.updatedAt
+          .add(Duration(days: KeychatGlobal.kdfGroupKeysExpired));
+      if (expiredAt.isAfter(DateTime.now())) return; // not need to delete keys
+    }
+    if (signalId.keys == null || (signalId.keys?.isEmpty ?? true)) return;
+    logger.i('clean signal keys: $toMainPubkey');
     signalId.keys = "";
     await SignalIdService.instance.updateSignalId(signalId);
   }

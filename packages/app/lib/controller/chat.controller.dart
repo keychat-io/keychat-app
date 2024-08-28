@@ -746,7 +746,10 @@ class ChatController extends GetxController {
               idPubkey: identity.secp256k1PKHex,
               name: identity.displayName,
               roomId: room.id)
-        ..curve25519PkHex = room.getIdentity().curve25519PkHex;
+        ..curve25519PkHex = identity.curve25519PkHex;
+
+      // for kdf group
+      room.checkAndCleanSignalKeys();
       return;
     }
     if (room.contact == null) {

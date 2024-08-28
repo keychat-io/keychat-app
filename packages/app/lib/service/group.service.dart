@@ -101,7 +101,7 @@ class GroupService extends BaseChatService {
     Mykey? sharedKey;
     late String toMainPubkey;
     if (groupType == GroupType.shareKey || groupType == GroupType.kdf) {
-      sharedKey = await GroupTx().createMykey(identity);
+      sharedKey = await GroupTx().createMykey(identity.id);
       toMainPubkey = sharedKey.pubkey;
     } else {
       var key = await rust_nostr.generateSimple();
@@ -1038,7 +1038,7 @@ ${rm.idPubkey}
     }
     Identity identity = room.getIdentity();
 
-    Mykey myID = await GroupTx().createMykey(identity);
+    Mykey myID = await GroupTx().createMykey(identity.id);
 
     // room.toMainPubkey = myID.pubkey;
     await updateRoomMykey(room, myID);
@@ -1133,7 +1133,8 @@ ${rm.idPubkey}
     KeychatMessage sm = KeychatMessage(
         c: MessageType.group, type: KeyChatEventKinds.inviteToGroupRequest)
       ..name = jsonEncode([room.toMainPubkey, selectAccounts])
-      ..msg = 'Invite [$names] to join group ${room.name}, Please confirm';
+      ..msg =
+          'Invite [${names.isEmpty ? selectAccounts.keys.join(',') : names}] to join group ${room.name}, Please confirm';
 
     Room adminRoom = await RoomService().getOrCreateRoom(
         roomMember.idPubkey, identity.secp256k1PKHex, RoomStatus.init);

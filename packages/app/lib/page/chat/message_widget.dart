@@ -632,7 +632,7 @@ class MessageWidget extends StatelessWidget {
               style: Theme.of(Get.context!)
                   .textTheme
                   .bodyMedium
-                  ?.copyWith(color: fontColor, height: 1),
+                  ?.copyWith(color: fontColor, height: 1.2),
               maxLines: 5);
         }
       }
@@ -649,9 +649,9 @@ class MessageWidget extends StatelessWidget {
                         ? MaterialTheme.lightScheme().surface
                         : Theme.of(Get.context!).colorScheme.surface)
                     .withOpacity(0.5),
-                border: const Border(
+                border: Border(
                   left: BorderSide(
-                    color: Colors.blue,
+                    color: Colors.purple.shade200,
                     width: 2.0,
                   ),
                 ),
@@ -664,7 +664,7 @@ class MessageWidget extends StatelessWidget {
                       style: Theme.of(Get.context!)
                           .textTheme
                           .bodyMedium
-                          ?.copyWith(color: Colors.blue, height: 1)),
+                          ?.copyWith(color: Colors.purple, height: 1)),
                   subTitleChild ??
                       Text(message.reply!.content,
                           style: Theme.of(Get.context!)
@@ -674,7 +674,8 @@ class MessageWidget extends StatelessWidget {
                 ],
               ),
             ),
-            getLinkify(message.realMessage ?? message.content, fontColor)
+            getLinkify(message.realMessage ?? message.content,
+                message.isMeSend ? Colors.white : fontColor)
           ],
         ),
         isMeSend: message.isMeSend);

@@ -439,6 +439,19 @@ class MessageService {
     });
   }
 
+  Future clearUnreadMessage() async {
+    Isar database = DBProvider.database;
+    List<Message> messages =
+        await database.messages.filter().isReadEqualTo(false).findAll();
+
+    await database.writeTxn(() async {
+      for (var item in messages) {
+        item.isRead = true;
+        await database.messages.put(item);
+      }
+    });
+  }
+
   Future updateMessage(Message message) async {
     await DBProvider.database.writeTxn(() async {
       return await DBProvider.database.messages.put(message);

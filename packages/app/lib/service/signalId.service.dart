@@ -91,7 +91,8 @@ class SignalIdService {
         .findFirst();
   }
 
-  Future<SignalId?> getSignalIdByPubkey(String pubkey) async {
+  Future<SignalId?> getSignalIdByPubkey(String? pubkey) async {
+    if (pubkey == null) return null;
     return await DBProvider.database.signalIds
         .filter()
         .pubkeyEqualTo(pubkey)
@@ -176,5 +177,13 @@ class SignalIdService {
         record: hex.decode(keys['signedRecord']));
 
     return signalId;
+  }
+
+  Future<bool> deleteSignalId(SignalId? model) async {
+    if (model == null) return false;
+    return await DBProvider.database.signalIds
+        .filter()
+        .idEqualTo(model.id)
+        .deleteFirst();
   }
 }

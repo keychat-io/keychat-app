@@ -2,6 +2,7 @@ import 'dart:convert' show jsonDecode;
 
 import 'package:app/constants.dart';
 import 'package:app/controller/home.controller.dart';
+import 'package:app/global.dart';
 import 'package:app/models/db_provider.dart';
 import 'package:app/models/keychat/room_profile.dart';
 import 'package:app/models/models.dart';
@@ -32,9 +33,23 @@ class GroupInviteAction extends StatelessWidget {
             onPressed: () async {
               EasyThrottle.throttle('joingroup', const Duration(seconds: 2),
                   () async {
-                late RoomProfile roomProfile;
+                RoomProfile roomProfile =
+                    RoomProfile.fromJson(jsonDecode(message.content));
 
-                roomProfile = RoomProfile.fromJson(jsonDecode(message.content));
+                if (roomProfile.groupType == GroupType.kdf) {
+                  if (roomProfile.updatedAt != null) {
+                    DateTime expiredAt = DateTime.fromMillisecondsSinceEpoch(
+                            roomProfile.updatedAt!)
+                        .add(Duration(days: KeychatGlobal.kdfGroupKeysExpired));
+                    if (expiredAt.isBefore(DateTime.now())) {
+                      message.requestConfrim = RequestConfrimEnum.expired;
+                      message.isRead = true;
+                      await MessageService().updateMessageAndRefresh(message);
+                      EasyLoading.showError('The invitation has expired');
+                      return;
+                    }
+                  }
+                }
                 bool? accept = await Get.bottomSheet(
                     ignoreSafeArea: false,
                     isScrollControlled: true,
@@ -43,6 +58,7 @@ class GroupInviteAction extends StatelessWidget {
                 message.requestConfrim = accept == true
                     ? RequestConfrimEnum.approved
                     : RequestConfrimEnum.rejected;
+
                 message.isRead = true;
                 if (accept == false) {
                   await MessageService().updateMessageAndRefresh(message);
@@ -50,7 +66,6 @@ class GroupInviteAction extends StatelessWidget {
                 }
                 Room? groupRoom;
                 try {
-                  // accept
                   EasyLoading.show(status: 'Loading...');
                   Isar database = DBProvider.database;
                   Room? exist = await database.rooms
@@ -101,6 +116,8 @@ class GroupInviteAction extends StatelessWidget {
         return const Text('  Approved', style: TextStyle(color: Colors.green));
       case RequestConfrimEnum.rejected:
         return const Text('  Rejected', style: TextStyle(color: Colors.red));
+      case RequestConfrimEnum.expired:
+        return const Text('  Expired', style: TextStyle(color: Colors.black54));
       default:
         return Text(message.content);
     }

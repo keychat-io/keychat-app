@@ -361,10 +361,21 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
           }),
       if (chatController.roomObs.value.sharedSignalID != null)
         SettingsTile(
-            title: const Text("Virtual ID"),
+            title: const Text("Shared Virtual ID"),
             leading: const Icon(Icons.person),
             value: textP(getPublicKeyDisplay(
                 chatController.roomObs.value.sharedSignalID!)),
+            onPressed: (context) {
+              Clipboard.setData(ClipboardData(
+                  text: chatController.roomObs.value.sharedSignalID!));
+              EasyLoading.showToast('Copied');
+            }),
+      if (chatController.roomObs.value.signalIdPubkey != null)
+        SettingsTile(
+            title: const Text("My Virtual ID"),
+            leading: const Icon(Icons.person),
+            value: textP(getPublicKeyDisplay(
+                chatController.roomObs.value.signalIdPubkey!)),
             onPressed: (context) {
               Clipboard.setData(ClipboardData(
                   text: chatController.roomObs.value.sharedSignalID!));

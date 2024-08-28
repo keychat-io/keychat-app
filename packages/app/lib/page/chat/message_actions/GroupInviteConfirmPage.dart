@@ -27,7 +27,7 @@ class GroupInviteConfirmPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(title: const Text('Request To Join Group')),
+        appBar: AppBar(title: const Text('Invite New Members')),
         floatingActionButton: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
@@ -87,7 +87,8 @@ class GroupInviteConfirmPage extends StatelessWidget {
                   ),
                   Flexible(
                       flex: 1,
-                      child: ListView.builder(
+                      child: Card(
+                          child: ListView.builder(
                         scrollDirection: Axis.horizontal,
                         itemCount: members.length,
                         itemBuilder: (context, index) {
@@ -101,7 +102,7 @@ class GroupInviteConfirmPage extends StatelessWidget {
                                     Text(members[index].name)
                                   ]));
                         },
-                      )),
+                      ))),
                   Row(
                     children: [
                       Text(
@@ -111,7 +112,7 @@ class GroupInviteConfirmPage extends StatelessWidget {
                     ],
                   ),
                   Flexible(
-                      flex: 2,
+                      flex: 1,
                       child: ListView.builder(
                         itemCount: toJoinUserMap.keys.length,
                         itemBuilder: (context, index) {

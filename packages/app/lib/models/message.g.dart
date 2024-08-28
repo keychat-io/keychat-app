@@ -439,12 +439,14 @@ const _MessagerequestConfrimEnumValueMap = {
   'request': 1,
   'approved': 2,
   'rejected': 3,
+  'expired': 4,
 };
 const _MessagerequestConfrimValueEnumMap = {
   0: RequestConfrimEnum.none,
   1: RequestConfrimEnum.request,
   2: RequestConfrimEnum.approved,
   3: RequestConfrimEnum.rejected,
+  4: RequestConfrimEnum.expired,
 };
 const _MessagesentEnumValueMap = {
   'sending': 0,

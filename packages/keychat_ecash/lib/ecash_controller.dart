@@ -5,6 +5,7 @@ import 'package:app/models/embedded/relay_file_fee.dart';
 import 'package:app/models/models.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/websocket.service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:keychat_ecash/Bills/ecash_bill_controller.dart';
 import 'package:keychat_ecash/Bills/lightning_bill_controller.dart';
 import 'package:keychat_ecash/utils.dart';
@@ -84,8 +85,7 @@ class EcashController extends GetxController {
   Future initWithoutIdentity() async {
     try {
       await rust_cashu.initDb(
-        dbpath: '$dbPath${KeychatGlobal.ecashDBFile}',
-      );
+          dbpath: '$dbPath${KeychatGlobal.ecashDBFile}', dev: kDebugMode);
       logger.i('rust api init success');
     } catch (e, s) {
       logger.e('init cashu error', error: e, stackTrace: s);
@@ -130,6 +130,7 @@ class EcashController extends GetxController {
     try {
       await rust_cashu.initDb(
           dbpath: '$dbPath${KeychatGlobal.ecashDBFile}',
+          dev: kDebugMode,
           words: await identity.getMnemonic());
       logger.i('rust api init success');
     } catch (e, s) {

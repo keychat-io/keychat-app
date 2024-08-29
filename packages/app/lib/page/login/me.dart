@@ -17,8 +17,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:app/models/models.dart';
 
@@ -317,9 +317,9 @@ class MinePage extends GetView<SettingController> {
                             bool isGrant =
                                 await NotifyService.hasNotifyPermission();
                             if (!isGrant) {
-                              bool canRequest =
-                                  await OneSignal.Notifications.canRequest();
-                              if (!canRequest) {
+                              PermissionStatus ps =
+                                  await Permission.notification.request();
+                              if (ps.isDenied) {
                                 EasyLoading.dismiss();
                                 EasyLoading.showSuccess(
                                     "Please enable this config in system setting");
@@ -329,8 +329,6 @@ class MinePage extends GetView<SettingController> {
                               }
                             }
                             try {
-                              await OneSignal.Notifications.requestPermission(
-                                  true);
                               await NotifyService.updateNotificationUserSetting(
                                   true);
                               EasyLoading.dismiss();

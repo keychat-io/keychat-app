@@ -3,6 +3,8 @@ import 'dart:io' show Directory;
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -21,6 +23,7 @@ import 'page/app_theme.dart';
 import 'page/pages.dart';
 import 'service/identity.service.dart';
 import 'utils/config.dart' as env_config;
+import 'firebase_options.dart';
 
 bool isProdEnv = true;
 
@@ -83,6 +86,15 @@ void initEasyLoading() {
     ..fontSize = 16;
 }
 
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // If you're going to use other Firebase services in the background, such as Firestore,
+  // make sure you call `initializeApp` before using other Firebase services.
+  await Firebase.initializeApp();
+
+  print("Handling a background message: ${message.messageId}");
+}
+
 Future initServices() async {
   FlutterNativeSplash.preserve(
       widgetsBinding: WidgetsFlutterBinding.ensureInitialized());
@@ -92,8 +104,14 @@ Future initServices() async {
       DeviceOrientation.portraitDown,
     ],
   );
-  await RustLib.init();
   await dotenv.load(fileName: ".env");
+  if (dotenv.get('FCMapiKey', fallback: '') != '') {
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform);
+  }
+
+  await RustLib.init();
   String env = const String.fromEnvironment("MYENV", defaultValue: "prod");
   env_config.Config().init(env);
   isProdEnv = env_config.Config.isProd();

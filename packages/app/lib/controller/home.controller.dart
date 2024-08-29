@@ -99,7 +99,7 @@ class HomeController extends GetxController
         isConnectedNetwork.value = true;
       }
     });
-    NotifyService.initOnesignal().catchError((e, s) {
+    NotifyService.init().catchError((e, s) {
       logger.e('initNotifycation error', error: e, stackTrace: s);
     });
 

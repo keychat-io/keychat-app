@@ -39,7 +39,6 @@ dependencies:
   qr_flutter: "^4.1.0"
   url_launcher: ^6.2.3
   settings_ui: ^2.0.2
-  onesignal_flutter: ^5.2.2
   search_page: ^2.3.0
   app_settings: ^5.1.1
   flutter_native_splash: ^2.4.1
@@ -84,6 +83,8 @@ dependencies:
   web_socket_channel: ^3.0.1
   flutter_secure_storage: ^9.2.2
   avatar_plus: ^0.0.4
+  firebase_core: ^3.4.0
+  firebase_messaging: ^15.1.0
 
 dev_dependencies:
   flutter_test:

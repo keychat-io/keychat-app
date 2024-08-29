@@ -322,7 +322,9 @@ class WebsocketService extends GetxService {
     CashuInfoModel? cashuA;
 
     cashuA = await CashuUtil.getStamp(
-        amount: payInfoModel.amount, token: payInfoModel.unit.name);
+        amount: payInfoModel.amount,
+        token: payInfoModel.unit.name,
+        mints: payInfoModel.mints);
 
     message = message.substring(0, message.length - 1);
     message += ',"${cashuA.token}"]';

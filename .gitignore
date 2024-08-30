@@ -40,3 +40,7 @@ packages/app/ios/Framework
 
 # FVM Version Cache
 .fvm/
+packages/app/ios/Runner/GoogleService-Info.plist
+packages/app/android/app/google-services.json
+packages/app/macos/Runner/GoogleService-Info.plist
+packages/app/firebase.json

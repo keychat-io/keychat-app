@@ -16,8 +16,12 @@ import '../../service/group.service.dart';
 class AddMemberToGroup extends StatefulWidget {
   final Room room;
   final Set<String> members;
+  final String adminPubkey;
   const AddMemberToGroup(
-      {super.key, required this.room, required this.members});
+      {super.key,
+      required this.room,
+      required this.members,
+      required this.adminPubkey});
 
   @override
   State<StatefulWidget> createState() => _AddMemberToGroupState();
@@ -207,15 +211,14 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
                 _contactList[index].npubkey,
                 overflow: TextOverflow.ellipsis,
               ),
-
-              // widget.members.contains(_contactList[index].pubkey)
-              // ? const Icon(Icons.check_box, color: Colors.grey, size: 30)
-              trailing: Checkbox(
-                  value: _contactList[index].isCheck,
-                  onChanged: (isCheck) {
-                    _contactList[index].isCheck = isCheck!;
-                    setState(() {});
-                  }));
+              trailing: widget.adminPubkey == _contactList[index].pubkey
+                  ? const Icon(Icons.check_box, color: Colors.grey, size: 30)
+                  : Checkbox(
+                      value: _contactList[index].isCheck,
+                      onChanged: (isCheck) {
+                        _contactList[index].isCheck = isCheck!;
+                        setState(() {});
+                      }));
         });
   }
 }

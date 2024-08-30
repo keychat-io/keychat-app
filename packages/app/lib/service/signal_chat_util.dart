@@ -8,7 +8,6 @@ class SignalChatUtil {
       Room room, Identity identity, String message) async {
     String sourceContent = getPrekeySigContent(
         [identity.secp256k1PKHex, room.toMainPubkey, message]);
-
     String sig = await rust_nostr.signSchnorr(
         senderKeys: await identity.getSecp256k1SKHex(), content: sourceContent);
     return PrekeyMessageModel(
@@ -25,10 +24,10 @@ class SignalChatUtil {
   }
 
   static Future<void> verifyPrekeyMessage(
-      PrekeyMessageModel prekeyMessageModel, String receivePubkey) async {
+      PrekeyMessageModel prekeyMessageModel, String myIdentityPubkey) async {
     String sourceContent = SignalChatUtil.getPrekeySigContent([
       prekeyMessageModel.nostrId,
-      receivePubkey,
+      myIdentityPubkey,
       prekeyMessageModel.message
     ]);
     bool verify = await rust_nostr.verifySchnorr(

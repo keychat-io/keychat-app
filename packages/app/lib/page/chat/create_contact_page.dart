@@ -44,9 +44,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
     return Scaffold(
         appBar: AppBar(
           centerTitle: true,
-          title: const Text(
-            "Send Friend Request",
-          ),
+          title: const Text("Send Friend Request"),
         ),
         body: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 20),

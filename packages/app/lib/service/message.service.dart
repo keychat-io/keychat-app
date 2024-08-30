@@ -47,6 +47,7 @@ class MessageService {
     logger.i(
         'message_room:${model.roomId} ${model.isMeSend ? 'Send' : 'Receive'}: ${model.content} ');
 
+    // todo change to refresh room
     await Get.find<HomeController>().loadIdentityRoomList(model.identityId);
 
     await RoomService.getController(model.roomId)?.addMessage(model);
@@ -427,7 +428,7 @@ class MessageService {
     });
   }
 
-  Future setViewedMessage(int roomId) async {
+  Future<bool> setViewedMessage(int roomId) async {
     List messages = await listMessageUnread(roomId);
     Isar database = DBProvider.database;
 
@@ -437,6 +438,7 @@ class MessageService {
         await database.messages.put(item);
       }
     });
+    return messages.isNotEmpty;
   }
 
   Future clearUnreadMessage() async {

@@ -49,7 +49,7 @@ class RelayWebsocket {
       String subId = utils.generate64RandomHexChars(16);
 
       NostrNip4Req req = NostrNip4Req(
-          reqId: subId, kinds: kinds, pubkeys: group, since: since, limit: 300);
+          reqId: subId, kinds: kinds, pubkeys: group, since: since);
       try {
         sendRawREQ(req.toString());
         logger

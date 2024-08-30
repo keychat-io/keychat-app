@@ -36,7 +36,6 @@ typedef OnMessageReceived = void Function(int type, dynamic message);
 
 class NostrAPI {
   static DBProvider dbProvider = DBProvider();
-  static RoomService roomService = RoomService();
   Set<String> processedEventIds = {};
   String nip05SubscriptionId = '';
   bool _processingLock = false;
@@ -138,8 +137,8 @@ Tags: ${event.tags}''',
       }
     } finally {
       _processingLock = false;
+      await _processWebsocketMessage2();
     }
-    await _processWebsocketMessage2();
   }
 
   _proccessEOSE(Relay relay, List res) async {
@@ -418,7 +417,7 @@ Tags: ${event.tags}''',
     return SendMessageResponse(events: [event], relays: relays, message: model);
   }
 
-  Future<String?> getDecodeNip4Content(NostrEventModel event) async {
+  Future<String?> decryptNip4Content(NostrEventModel event) async {
     String decodePubkey = event.tags[0][1];
     String? prikey = await IdentityService().getPrikeyByPubkey(decodePubkey);
     if (prikey == null) return null;
@@ -454,7 +453,7 @@ Tags: ${event.tags}''',
     });
   }
 
-  _processNip4Message(
+  Future _processNip4Message(
       List eventList, NostrEventModel event, Relay relay) async {
     if (processedEventIds.contains(event.id)) {
       logger.i('duplicate: ${event.id}');
@@ -498,24 +497,15 @@ Tags: ${event.tags}''',
         String to = event.tags[0][1];
         try {
           if (event.isNip4) {
-            // try kdf group
-            Room? kdfRoom = await roomService.getGroupByReceivePubkey(to);
+            Room? kdfRoom = await RoomService().getGroupByReceivePubkey(to);
             if (kdfRoom != null) {
-              String? content = await getDecodeNip4Content(event);
-              if (content == null) {
-                logger.e('decode error: ${event.id}');
-                exist.setNote('Nip04 decode error');
-                return;
-              }
-              return await KdfGroupService.instance.decryptMessage(
-                  kdfRoom, event, relay,
-                  nip4DecodedContent: content);
+              return await _proccessByKDFRoom(event, exist, kdfRoom, relay);
             }
             return await dmNip4Proccess(event, relay, exist);
           }
 
           // if signal message , to_address is myIDPubkey or one-time-key
-          Room? room = await roomService.getRoomByReceiveKey(to);
+          Room? room = await RoomService().getRoomByReceiveKey(to);
           if (room != null) {
             return await SignalChatService()
                 .decryptDMMessage(room, event, relay, eventLog: exist);
@@ -543,12 +533,24 @@ Tags: ${event.tags}''',
     }
   }
 
+  Future<dynamic> _proccessByKDFRoom(
+      NostrEventModel event, EventLog exist, Room kdfRoom, Relay relay) async {
+    String? content = await decryptNip4Content(event);
+    if (content == null) {
+      logger.e('ecrypt error: ${event.toString()}');
+      exist.setNote('Nip04 ecrypt error');
+      return;
+    }
+    return await KdfGroupService.instance
+        .decryptMessage(kdfRoom, event, relay, nip4DecodedContent: content);
+  }
+
   Future dmNip4Proccess(
       NostrEventModel event, Relay relay, EventLog? eventLog) async {
-    String? content = await getDecodeNip4Content(event);
+    String? content = await decryptNip4Content(event);
     if (content == null) {
-      logger.e('decode error: ${event.id}');
-      eventLog?.setNote('Nip04 decode error');
+      logger.e('ecryptecrypt error: ${event.id}');
+      eventLog?.setNote('Nip04 ecrypt error');
       return;
     }
 
@@ -558,52 +560,67 @@ Tags: ${event.tags}''',
     } catch (e) {
       return await Nip4ChatService().receiveNip4Message(event, content);
     }
-    // keychatMessage class message
-    if (decodedContent is Map<String, dynamic>) {
-      return await roomService.processKeychatMessage(
-          event, decodedContent, relay);
-    }
 
-    // nip4(nip4/signal) message
-    if (decodedContent is List) {
-      await _processSubEvent(event, relay, content, decodedContent);
+    KeychatMessage? km = getKeyChatMessageFromJson(decodedContent);
+    if (km != null) {
+      return await RoomService().processKeychatMessage(km, event, relay);
+    }
+    // todo check sub event
+
+    // nip4(nip4/signal) message for old version
+    NostrEventModel? subEvent;
+    try {
+      subEvent = NostrEventModel.deserialize(decodedContent);
+    } catch (e) {}
+    if (subEvent != null) {
+      await _processSubEvent(event, subEvent, relay);
       return;
     }
 
     return await Nip4ChatService().receiveNip4Message(event, content);
   }
 
-  _processSubEvent(NostrEventModel event, Relay relay, String content,
-      List decodedContent) async {
-    NostrEventModel subEvent = NostrEventModel.deserialize(decodedContent);
+  _processSubEvent(
+      NostrEventModel event, NostrEventModel subEvent, Relay relay) async {
     if (subEvent.kind != EventKinds.encryptedDirectMessage) return;
 
     // nip4(nip4)
     if (subEvent.isNip4) {
-      String? subContent = await getDecodeNip4Content(subEvent);
+      String? subContent = await decryptNip4Content(subEvent);
       if (subContent == null) {
-        return await Nip4ChatService().receiveNip4Message(event, content);
+        return await Nip4ChatService()
+            .receiveNip4Message(event, subEvent.serialize());
       }
-      // logger.i(subContent);
+
       dynamic subDecodedContent;
       try {
         subDecodedContent = jsonDecode(subContent);
       } catch (e) {
         logger.d('try decode error');
+        return await Nip4ChatService()
+            .receiveNip4Message(subEvent, subContent, event);
       }
-      // sub content is KeychatMessage Object
-      if (subDecodedContent is Map<String, dynamic>) {
-        return await roomService.processKeychatMessage(
-            subEvent, subDecodedContent, relay, event);
+
+      KeychatMessage? km = getKeyChatMessageFromJson(subDecodedContent);
+      if (km != null) {
+        return await RoomService()
+            .processKeychatMessage(km, subEvent, relay, event);
       }
       return await Nip4ChatService().receiveNip4Message(subEvent, subContent);
     }
 
     // nip4(signal)
-    Room room = await roomService.getOrCreateRoom(
-        subEvent.pubkey, subEvent.tags[0][1], RoomStatus.init);
+    Room room = await RoomService()
+        .getOrCreateRoom(subEvent.pubkey, subEvent.tags[0][1], RoomStatus.init);
     return await SignalChatService()
         .decryptDMMessage(room, subEvent, relay, sourceEvent: event);
+  }
+
+  KeychatMessage? getKeyChatMessageFromJson(dynamic str) {
+    try {
+      return KeychatMessage.fromJson(str);
+    } catch (e) {}
+    return null;
   }
 
   updateMyMetadata({
@@ -699,9 +716,11 @@ Tags: ${event.tags}''',
       return await Nip4ChatService()
           .receiveNip4Message(subEvent, subEvent.content, event);
     }
-    if (decodedContent is Map<String, dynamic>) {
-      return await roomService.processKeychatMessage(
-          subEvent, decodedContent, relay, event);
+    KeychatMessage? km = getKeyChatMessageFromJson(decodedContent);
+
+    if (km != null) {
+      return await RoomService()
+          .processKeychatMessage(km, subEvent, relay, event);
     }
 
     await Nip4ChatService()

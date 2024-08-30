@@ -205,6 +205,7 @@ class WebsocketService extends GetxService {
     if (startLock) return;
     try {
       startLock = true;
+      NostrAPI().processedEventIds.clear();
       initAt = DateTime.now();
       WriteEventStatus.clear();
       await stopListening();

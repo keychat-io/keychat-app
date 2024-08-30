@@ -72,12 +72,14 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                 onPressed: () async {
                   List<RoomMember> members =
                       await chatController.room.getActiveMembers();
+                  RoomMember? admin = await chatController.room.getAdmin();
                   Set<String> memberPubkeys = {};
                   for (RoomMember rm in members) {
                     memberPubkeys.add(rm.idPubkey);
                   }
                   Get.to(() => AddMemberToGroup(
                       room: chatController.roomObs.value,
+                      adminPubkey: admin?.idPubkey ?? '',
                       members: memberPubkeys));
                 },
                 icon: const Icon(CupertinoIcons.plus_circle_fill))
@@ -359,28 +361,6 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
             Clipboard.setData(ClipboardData(text: pubkey));
             EasyLoading.showToast('Copied');
           }),
-      if (chatController.roomObs.value.sharedSignalID != null)
-        SettingsTile(
-            title: const Text("Shared Virtual ID"),
-            leading: const Icon(Icons.person),
-            value: textP(getPublicKeyDisplay(
-                chatController.roomObs.value.sharedSignalID!)),
-            onPressed: (context) {
-              Clipboard.setData(ClipboardData(
-                  text: chatController.roomObs.value.sharedSignalID!));
-              EasyLoading.showToast('Copied');
-            }),
-      if (chatController.roomObs.value.signalIdPubkey != null)
-        SettingsTile(
-            title: const Text("My Virtual ID"),
-            leading: const Icon(Icons.person),
-            value: textP(getPublicKeyDisplay(
-                chatController.roomObs.value.signalIdPubkey!)),
-            onPressed: (context) {
-              Clipboard.setData(ClipboardData(
-                  text: chatController.roomObs.value.sharedSignalID!));
-              EasyLoading.showToast('Copied');
-            }),
       SettingsTile.navigation(
           leading: const Icon(CupertinoIcons.chart_bar),
           title: const Text('Group Mode'),

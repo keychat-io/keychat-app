@@ -12,6 +12,7 @@ import 'package:app/page/chat/message_actions/GroupInviteAction.dart';
 import 'package:app/page/chat/message_actions/SetRoomRelayAction.dart';
 import 'package:app/page/theme.dart';
 import 'package:app/page/widgets/image_preview_widget.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 // import 'package:cached_network_image/cached_network_image.dart';
@@ -226,6 +227,9 @@ class MessageWidget extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (kDebugMode)
+                      Text('ID: ${message.msgid}',
+                          overflow: TextOverflow.ellipsis, style: style),
                     Text('From: ${message.from}',
                         overflow: TextOverflow.ellipsis, style: style),
                     Text('To: ${message.to}',

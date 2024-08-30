@@ -644,17 +644,15 @@ class _ChatPage2State extends State<ChatPage> {
             FilledButton(
               onPressed: () async {
                 try {
-                  Room room = await RoomService()
-                      .getRoomByIdOrFail(controller.roomObs.value.id);
+                  Room room = controller.roomObs.value;
                   if (room.status == RoomStatus.approving) {
                     String displayName = room.getIdentity().displayName;
                     await SignalChatService().sendMessage(
                         room, RoomUtil.getHelloMessage(displayName));
                     room.status = RoomStatus.enabled;
                     await RoomService().updateRoom(room);
+                    controller.setRoom(room);
                   }
-
-                  controller.roomObs.value = room;
                 } catch (e, s) {
                   EasyLoading.showError(e.toString());
                   logger.e(e.toString(), error: e, stackTrace: s);

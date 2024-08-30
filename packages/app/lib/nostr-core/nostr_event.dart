@@ -184,6 +184,7 @@ class NostrEventModel {
   }
 
   /// Deserialize a nostr event message
+  /// - A Map: event JSON as defined above
   /// - ["EVENT", event JSON as defined above]
   /// - ["EVENT", subscription_id, event JSON as defined above]
   /// ```dart
@@ -206,7 +207,9 @@ class NostrEventModel {
   factory NostrEventModel.deserialize(input, {bool verify = true}) {
     Map<String, dynamic> json = {};
     String? subscriptionId;
-    if (input.length == 2) {
+    if (input.length == 1) {
+      json = input as Map<String, dynamic>;
+    } else if (input.length == 2) {
       json = input[1] as Map<String, dynamic>;
     } else if (input.length == 3) {
       json = input[2] as Map<String, dynamic>;

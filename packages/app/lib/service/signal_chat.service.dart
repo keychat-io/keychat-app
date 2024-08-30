@@ -319,7 +319,9 @@ class SignalChatService extends BaseChatService {
       room.onetimekey = model.onetimekey;
     }
     // delete old session
-    await Get.find<ChatxService>().deleteSignalSessionKPA(room);
+    if (room.curve25519PkHex != null) {
+      await Get.find<ChatxService>().deleteSignalSessionKPA(room);
+    }
     // must be delete session then give a new data
     room.curve25519PkHex = model.curve25519PkHex;
 
@@ -442,25 +444,6 @@ Let's talk on this server.''';
     await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
   }
 
-  Future<PrekeyMessageModel> getSignalPrekeyMessageContent(
-      Room room, Identity identity, String message) async {
-    String sourceContent =
-        _getPrekeySigContent([room.myIdPubkey, room.toMainPubkey, message]);
-    String sig = await rust_nostr.signSchnorr(
-        senderKeys: await identity.getSecp256k1SKHex(), content: sourceContent);
-    return PrekeyMessageModel(
-        nostrId: identity.secp256k1PKHex,
-        name: identity.displayName,
-        sig: sig,
-        message: message);
-  }
-
-  String _getPrekeySigContent(List ids) {
-    ids.sort((a, b) => a.compareTo(b));
-    String sourceContent = ids.join(',');
-    return sourceContent;
-  }
-
   // decrypt the first signal message
   Future decryptPreKeyMessage(String to, Mykey mykey,
       {required NostrEventModel event,
@@ -473,10 +456,11 @@ Let's talk on this server.''';
     SignalId? singalId =
         await SignalIdService.instance.getSignalIdByKeyId(prekey.$2);
     if (singalId == null) throw Exception('SignalId not found');
-    Identity identity =
-        Get.find<HomeController>().identities[mykey.identityId]!;
     KeychatIdentityKeyPair keyPair =
         Get.find<ChatxService>().getKeyPairBySignalId(singalId);
+    Identity identity =
+        Get.find<HomeController>().identities[singalId.identityId]!;
+
     var (plaintext, msgKeyHash, _) = await rust_signal.decryptSignal(
         keyPair: keyPair,
         ciphertext: ciphertext,
@@ -514,6 +498,20 @@ Let's talk on this server.''';
       await RoomService().updateRoom(room);
       await RoomService().updateChatRoomPage(room);
       await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
+    }
+    KeychatMessage? km;
+    try {
+      km = KeychatMessage.fromJson(jsonDecode(prekeyMessageModel.message));
+    } catch (e) {}
+    if (km != null) {
+      await km.service.processMessage(
+          room: room,
+          event: event,
+          km: km,
+          msgKeyHash: msgKeyHash,
+          sourceEvent: null,
+          relay: relay);
+      return;
     }
     await RoomService().receiveDM(room, event,
         sourceEvent: null, decodedContent: prekeyMessageModel.message);

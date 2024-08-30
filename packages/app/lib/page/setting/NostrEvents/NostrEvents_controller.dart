@@ -12,7 +12,7 @@ class NostrEventsController extends GetxController {
   void onInit() async {
     MessageService ms = MessageService();
 
-    var list = await DBProvider().getLatestEvens();
+    var list = await DBProvider().getLatestEvents();
     for (var el in list) {
       Message? m = await ms.getMessageByEventId(el.eventId);
       el.message = m;

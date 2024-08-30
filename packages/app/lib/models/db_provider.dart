@@ -83,7 +83,7 @@ class DBProvider {
         .findFirst();
   }
 
-  Future<List<EventLog>> getLatestEvens([int limit = 20]) async {
+  Future<List<EventLog>> getLatestEvents([int limit = 20]) async {
     return await database.eventLogs
         .where()
         .sortByCreatedAtDesc()

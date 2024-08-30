@@ -1,4 +1,5 @@
 import 'package:app/models/models.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import './NostrEvents_controller.dart';
@@ -25,6 +26,9 @@ class NostrEventsPage extends GetView<NostrEventsController> {
                         Text(el.createdAt.toString())
                       ],
                     ),
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: el.toString()));
+                    },
                   );
                 },
                 itemCount: controller.events.length))));

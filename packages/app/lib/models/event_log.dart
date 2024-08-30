@@ -35,8 +35,18 @@ class EventLog extends Equatable {
       required this.createdAt});
 
   @override
-  List<Object> get props =>
-      [eventId, to, resCode, snapshot, createdAt, kind, sentRelays, okRelays];
+  List<Object> get props => [
+        eventId,
+        to,
+        resCode,
+        snapshot,
+        createdAt,
+        kind,
+        sentRelays,
+        okRelays,
+        failedReasons,
+        failedRelays,
+      ];
 
   Map<String, int> getRelayStatusMap() {
     Map<String, int> relayStatusMap = {};

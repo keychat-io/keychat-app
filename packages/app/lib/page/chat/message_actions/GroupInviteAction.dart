@@ -75,6 +75,12 @@ class GroupInviteAction extends StatelessWidget {
                       .identityIdEqualTo(identity.id)
                       .findFirst();
                   if (exist != null && roomProfile.updatedAt != null) {
+                    if (exist.version == roomProfile.updatedAt) {
+                      EasyLoading.showSuccess(
+                          'The invitation has been auto proccessed',
+                          duration: const Duration(seconds: 3));
+                      return;
+                    }
                     if (roomProfile.updatedAt! < exist.version) {
                       EasyLoading.showError('The invitation has expired',
                           duration: const Duration(seconds: 3));

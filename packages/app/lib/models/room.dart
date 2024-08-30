@@ -508,7 +508,7 @@ class Room extends Equatable {
     int count = await DBProvider.database.roomMembers
         .filter()
         .roomIdEqualTo(id)
-        .messageCountLessThan(KeychatGlobal.kdfGroupPrekeyMessageCount + 1)
+        .messageCountLessThan(2)
         .count();
     SignalId? signalId =
         await SignalIdService.instance.getSignalIdByPubkey(sharedSignalID);

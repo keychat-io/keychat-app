@@ -275,7 +275,9 @@ class KdfGroupService extends BaseChatService {
       String msg = Utils.getErrorMessage(e);
       logger.e(msg, error: e, stackTrace: s);
       await RoomService().receiveDM(room, signalEvent,
-          decodedContent: 'Decrypt error: $msg', sourceEvent: nostrEvent);
+          decodedContent:
+              'Decrypt error: $msg, content: ${signalEvent.content}',
+          sourceEvent: nostrEvent);
       return;
     }
 

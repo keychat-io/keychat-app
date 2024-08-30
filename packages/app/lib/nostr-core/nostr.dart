@@ -1,4 +1,4 @@
-import 'dart:collection' show Queue;
+import 'package:queue/queue.dart';
 import 'dart:convert' show jsonDecode, jsonEncode;
 
 import 'package:app/controller/world.controller.dart';
@@ -38,8 +38,7 @@ class NostrAPI {
   static DBProvider dbProvider = DBProvider();
   Set<String> processedEventIds = {};
   String nip05SubscriptionId = '';
-  bool _processingLock = false;
-  final nostrEventQueue = Queue<List<dynamic>>();
+  final nostrEventQueue = Queue(delay: const Duration(milliseconds: 20));
   static final NostrAPI _instance = NostrAPI._internal();
   NostrAPI._internal();
 
@@ -93,70 +92,53 @@ Tags: ${event.tags}''',
     );
   }
 
-  processWebsocketMessage(Relay relay, dynamic message) async {
+  addNostrEventToQueue(Relay relay, dynamic message) {
     //logger.d('processWebsocketMessage, ${relay.url} $message');
-    nostrEventQueue.add([relay, message]);
-    if (_processingLock) return;
-    return await _processWebsocketMessage2();
-  }
-
-  Future _processWebsocketMessage2() async {
-    if (nostrEventQueue.isEmpty) {
-      _processingLock = false;
-      return;
-    }
-    _processingLock = true;
-    List data = nostrEventQueue.removeFirst();
-    Relay relay = data[0];
-    dynamic message = data[1];
-    var res = jsonDecode(message);
-    try {
-      switch (res[0]) {
-        case NostrResKinds.ok:
-          loggerNoLine.i('OK: ${relay.url}, $res');
-          await _processWriteEventResponse(res, relay);
-          break;
-        case NostrResKinds.event:
-          loggerNoLine.i('receive event: ${relay.url} $message');
-          await _processEvent(res, relay, message);
-          break;
-        case NostrResKinds.eose:
-          loggerNoLine.i('EOSE: ${relay.url} ${res[1]}');
-          await _proccessEOSE(relay, res);
-          break;
-        case NostrResKinds.notice:
-          String message = res[1];
-          if (message == 'could not parse command') {
-            message = 'ping respose';
-          }
-          loggerNoLine.i("Nostr notice: ${relay.url} $message");
-          _proccessNotice(relay, res[1]);
-          break;
-        default:
-          logger.i('${relay.url}: $message');
+    nostrEventQueue.add(() async {
+      var res = jsonDecode(message);
+      try {
+        switch (res[0]) {
+          case NostrResKinds.ok:
+            loggerNoLine.i('OK: ${relay.url}, $res');
+            await _processWriteEventResponse(res, relay);
+            break;
+          case NostrResKinds.event:
+            loggerNoLine.i('receive event: ${relay.url} $message');
+            await _proccessEvent(res, relay, message);
+            break;
+          case NostrResKinds.eose:
+            loggerNoLine.i('EOSE: ${relay.url} ${res[1]}');
+            await _proccessEOSE(relay, res);
+            break;
+          case NostrResKinds.notice:
+            String message = res[1];
+            if (message == 'could not parse command') {
+              message = 'ping respose';
+            }
+            loggerNoLine.i("Nostr notice: ${relay.url} $message");
+            _proccessNotice(relay, res[1]);
+            break;
+          default:
+            logger.i('${relay.url}: $message');
+        }
+      } catch (e, s) {
+        logger.e('processWebsocketMessage', error: e, stackTrace: s);
       }
-    } finally {
-      _processingLock = false;
-      await _processWebsocketMessage2();
-    }
+    });
   }
 
   _proccessEOSE(Relay relay, List res) async {
-    try {
-      String key = '${StorageKeyString.lastMessageAt}:${relay.url}';
-      int lastMessageAt = await Storage.getIntOrZero(key);
-      if (lastMessageAt == 0) return;
+    String key = '${StorageKeyString.lastMessageAt}:${relay.url}';
+    int lastMessageAt = await Storage.getIntOrZero(key);
+    if (lastMessageAt == 0) return;
 
-      DateTime? messageTime = await MessageService().getLastMessageTime();
-      if (messageTime == null) return;
-      if (lastMessageAt > (messageTime.millisecondsSinceEpoch ~/ 1000)) {
-        return;
-      }
-
-      Storage.setInt(key, lastMessageAt + 1);
-    } catch (e, s) {
-      logger.e(e.toString(), error: e, stackTrace: s);
+    DateTime? messageTime = await MessageService().getLastMessageTime();
+    if (messageTime == null) return;
+    if (lastMessageAt > (messageTime.millisecondsSinceEpoch ~/ 1000)) {
+      return;
     }
+
+    Storage.setInt(key, lastMessageAt + 1);
   }
 
   // ignore: unused_element
@@ -176,7 +158,7 @@ Tags: ${event.tags}''',
     // sendMessageFunction(serializeStr);
   }
 
-  _processEvent(List eventList, Relay relay, String message) async {
+  _proccessEvent(List eventList, Relay relay, String message) async {
     NostrEventModel event =
         NostrEventModel.deserialize(eventList, verify: false);
     // logger.i('${DateTime.now()} : ${event.createdAt}');

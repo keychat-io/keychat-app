@@ -99,8 +99,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                     await Permission.camera.request();
                               }
                               if (permissionStatus.isGranted) {
-                                var result =
-                                    await Get.toNamed(Routes.scanQRText);
+                                var result = await Get.toNamed(Routes.scanQR);
                                 if (result != null) {
                                   if (GetPlatform.isMobile) {
                                     await Haptics.vibrate(

@@ -13,7 +13,6 @@ import flutter_image_compress_macos
 import flutter_secure_storage_macos
 import image_compression_flutter
 import isar_flutter_libs
-import mobile_scanner
 import package_info_plus
 import path_provider_foundation
 import sentry_flutter
@@ -33,7 +32,6 @@ func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   FlutterSecureStoragePlugin.register(with: registry.registrar(forPlugin: "FlutterSecureStoragePlugin"))
   ImageCompressionFlutterPlugin.register(with: registry.registrar(forPlugin: "ImageCompressionFlutterPlugin"))
   IsarFlutterLibsPlugin.register(with: registry.registrar(forPlugin: "IsarFlutterLibsPlugin"))
-  MobileScannerPlugin.register(with: registry.registrar(forPlugin: "MobileScannerPlugin"))
   FPPPackageInfoPlusPlugin.register(with: registry.registrar(forPlugin: "FPPPackageInfoPlusPlugin"))
   PathProviderPlugin.register(with: registry.registrar(forPlugin: "PathProviderPlugin"))
   SentryFlutterPlugin.register(with: registry.registrar(forPlugin: "SentryFlutterPlugin"))

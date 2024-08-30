@@ -35,7 +35,6 @@ dependencies:
   share_plus: ^9.0.0
   flutter_linkify: ^6.0.0
   permission_handler: ^11.3.1
-  mobile_scanner: ^5.1.1
   qr_flutter: "^4.1.0"
   url_launcher: ^6.2.3
   settings_ui: ^2.0.2
@@ -85,6 +84,7 @@ dependencies:
   avatar_plus: ^0.0.4
   firebase_core: ^3.4.0
   firebase_messaging: ^15.1.0
+  barcode_scan2: ^4.3.3
 
 dev_dependencies:
   flutter_test:

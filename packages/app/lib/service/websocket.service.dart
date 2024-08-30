@@ -376,7 +376,7 @@ class WebsocketService extends GetxService {
 
     String? errorMessage;
     channel.stream.listen((message) {
-      nostrAPI.processWebsocketMessage(rw.relay, message);
+      nostrAPI.addNostrEventToQueue(rw.relay, message);
     }, onDone: () {
       logger.d('${rw.relay.url} websocket onDone');
       onErrorProcess(rw.relay.url, errorMessage);

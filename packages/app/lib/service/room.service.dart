@@ -400,13 +400,11 @@ class RoomService extends BaseChatService {
   }
 
   Future processKeychatMessage(
+    KeychatMessage km,
     NostrEventModel event, // as subEvent
-    Map<String, dynamic> content,
     Relay relay, [
     NostrEventModel? sourceEvent, // parent event
   ]) async {
-    logger.d(content);
-    KeychatMessage km = KeychatMessage.fromJson(content);
     String toAddress = event.tags[0][1];
     String from = event.pubkey;
     Room? room;
@@ -756,8 +754,8 @@ class RoomService extends BaseChatService {
   }
 
   Future markAllRead({required int identityId, required int roomId}) async {
-    await MessageService().setViewedMessage(roomId);
-    homeController.loadIdentityRoomList(identityId);
+    var refresh = await MessageService().setViewedMessage(roomId);
+    if (refresh) homeController.loadIdentityRoomList(identityId);
   }
 
   // Future sendHelloMessage(Room room, Identity identity,

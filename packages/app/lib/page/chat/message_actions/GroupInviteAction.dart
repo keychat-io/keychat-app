@@ -74,7 +74,12 @@ class GroupInviteAction extends StatelessWidget {
                           roomProfile.oldToRoomPubKey ?? roomProfile.pubkey)
                       .identityIdEqualTo(identity.id)
                       .findFirst();
-                  if (exist != null) {
+                  if (exist != null && roomProfile.updatedAt != null) {
+                    if (roomProfile.updatedAt! < exist.version) {
+                      EasyLoading.showError('The invitation has expired',
+                          duration: const Duration(seconds: 3));
+                      return;
+                    }
                     await RoomService().deleteRoom(exist);
                   }
 

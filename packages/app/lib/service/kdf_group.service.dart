@@ -130,13 +130,14 @@ class KdfGroupService extends BaseChatService {
         await groupRoom.checkAdminByIdPubkey(event.pubkey);
 
         await proccessUpdateKeys(groupRoom, roomProfile);
-        RoomService().receiveDM(groupRoom, event,
+        await RoomService().receiveDM(groupRoom, event,
             sourceEvent: sourceEvent, decodedContent: km.msg!);
         return;
       default:
     }
     logger.d(km.toString());
-    RoomService().receiveDM(room, event, sourceEvent: sourceEvent, km: km);
+    await RoomService()
+        .receiveDM(room, event, sourceEvent: sourceEvent, km: km);
   }
 
   // decrypt the first signal message
@@ -469,6 +470,10 @@ All members will update the shared-secret-keys and initial signal ratchet''';
 
   Future<Room> proccessUpdateKeys(
       Room groupRoom, RoomProfile roomProfile) async {
+    if (roomProfile.updatedAt! < groupRoom.version) {
+      throw Exception('The invitation has expired');
+    }
+
     var keychain = rust_nostr.Secp256k1Account(
         prikey: roomProfile.prikey!,
         pubkey: roomProfile.pubkey,
@@ -516,10 +521,12 @@ All members will update the shared-secret-keys and initial signal ratchet''';
       await groupRoom.updateAllMemberTx(roomProfile.users);
       // delete old mykey and import new one
 
-      Mykey mykey = await GroupTx().importMykeyTx(identity, keychain);
+      Mykey mykey = await GroupTx().importMykeyTx(identity.id, keychain);
       groupRoom.sharedSignalID = sharedSignalId.pubkey;
       groupRoom.mykey.value = mykey;
       groupRoom.status = RoomStatus.enabled;
+      groupRoom.version =
+          roomProfile.updatedAt ?? DateTime.now().millisecondsSinceEpoch;
       await GroupTx().updateRoom(groupRoom, updateMykey: true);
 
       await DBProvider.database.mykeys

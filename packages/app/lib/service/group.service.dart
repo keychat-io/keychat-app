@@ -108,7 +108,7 @@ class GroupService extends BaseChatService {
       toMainPubkey = key.pubkey;
     }
     DateTime now = DateTime.now();
-    Room room = await createGroupToDB(toMainPubkey, groupName,
+    Room room = await _createGroupToDB(toMainPubkey, groupName,
         members: [],
         sharedKey: sharedKey,
         identity: identity,
@@ -205,8 +205,8 @@ class GroupService extends BaseChatService {
 
     late Mykey newkey;
     await DBProvider.database.writeTxn(() async {
-      newkey = await GroupTx().importMykeyTx(room!.getIdentity(),
-          await rust_nostr.importKey(senderKeys: newPrikey));
+      newkey = await GroupTx().importMykeyTx(
+          room!.identityId, await rust_nostr.importKey(senderKeys: newPrikey));
       room.mykey.value = newkey;
     });
     await Get.find<WebsocketService>().listenPubkey([newPubkey], limit: 1000);
@@ -447,8 +447,8 @@ class GroupService extends BaseChatService {
       if (groupRoom.mykey.value!.prikey != toRoomPriKey) {
         isKeyChange = true;
         await DBProvider.database.writeTxn(() async {
-          roomKey = await GroupTx().importMykeyTx(
-              identity, await rust_nostr.importKey(senderKeys: toRoomPriKey));
+          roomKey = await GroupTx().importMykeyTx(identity.id,
+              await rust_nostr.importKey(senderKeys: toRoomPriKey));
         });
         groupRoom.mykey.value = roomKey;
         groupRoom =
@@ -513,7 +513,7 @@ class GroupService extends BaseChatService {
       case KeyChatEventKinds.groupSharedKeyMessage:
         NostrEventModel subEvent =
             NostrEventModel.fromJson(jsonDecode(km.msg!));
-        String? content = await NostrAPI().getDecodeNip4Content(subEvent);
+        String? content = await NostrAPI().decryptNip4Content(subEvent);
         content ??= '[GroupMessage decoded failed]';
         GroupMessage gm = GroupMessage.fromJson(jsonDecode(content));
         return await processGroupMessage(room, subEvent, gm,
@@ -829,7 +829,7 @@ class GroupService extends BaseChatService {
     });
   }
 
-  Future<Room> createGroupToDB(String toMainPubkey, String groupName,
+  Future<Room> _createGroupToDB(String toMainPubkey, String groupName,
       {List<dynamic> members = const [],
       required GroupType groupType,
       required Identity identity,

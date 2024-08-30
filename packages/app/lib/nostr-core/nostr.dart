@@ -118,7 +118,7 @@ Tags: ${event.tags}''',
           break;
         case NostrResKinds.event:
           loggerNoLine.i('receive event: ${relay.url} $message');
-          await _processEvent(res, relay, message);
+          await _proccessEvent(res, relay, message);
           break;
         case NostrResKinds.eose:
           loggerNoLine.i('EOSE: ${relay.url} ${res[1]}');
@@ -135,28 +135,26 @@ Tags: ${event.tags}''',
         default:
           logger.i('${relay.url}: $message');
       }
+    } catch (e, s) {
+      logger.e('processWebsocketMessage', error: e, stackTrace: s);
     } finally {
       _processingLock = false;
-      await _processWebsocketMessage2();
     }
+    await _processWebsocketMessage2();
   }
 
   _proccessEOSE(Relay relay, List res) async {
-    try {
-      String key = '${StorageKeyString.lastMessageAt}:${relay.url}';
-      int lastMessageAt = await Storage.getIntOrZero(key);
-      if (lastMessageAt == 0) return;
+    String key = '${StorageKeyString.lastMessageAt}:${relay.url}';
+    int lastMessageAt = await Storage.getIntOrZero(key);
+    if (lastMessageAt == 0) return;
 
-      DateTime? messageTime = await MessageService().getLastMessageTime();
-      if (messageTime == null) return;
-      if (lastMessageAt > (messageTime.millisecondsSinceEpoch ~/ 1000)) {
-        return;
-      }
-
-      Storage.setInt(key, lastMessageAt + 1);
-    } catch (e, s) {
-      logger.e(e.toString(), error: e, stackTrace: s);
+    DateTime? messageTime = await MessageService().getLastMessageTime();
+    if (messageTime == null) return;
+    if (lastMessageAt > (messageTime.millisecondsSinceEpoch ~/ 1000)) {
+      return;
     }
+
+    Storage.setInt(key, lastMessageAt + 1);
   }
 
   // ignore: unused_element
@@ -176,7 +174,7 @@ Tags: ${event.tags}''',
     // sendMessageFunction(serializeStr);
   }
 
-  _processEvent(List eventList, Relay relay, String message) async {
+  _proccessEvent(List eventList, Relay relay, String message) async {
     NostrEventModel event =
         NostrEventModel.deserialize(eventList, verify: false);
     // logger.i('${DateTime.now()} : ${event.createdAt}');

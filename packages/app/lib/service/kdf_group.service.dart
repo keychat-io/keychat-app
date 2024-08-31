@@ -4,7 +4,6 @@
 // Every member send message to virtual member
 
 import 'dart:convert' show base64, base64Decode, jsonDecode, jsonEncode, utf8;
-import 'dart:typed_data' show Uint8List;
 import 'package:app/global.dart';
 import 'package:app/models/db_provider.dart';
 import 'package:app/models/keychat/room_profile.dart';
@@ -13,9 +12,11 @@ import 'package:app/models/room_member.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/group_tx.dart';
+import 'package:app/service/message.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/signalId.service.dart';
 import 'package:app/service/websocket.service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
@@ -257,6 +258,9 @@ class KdfGroupService extends BaseChatService {
           roomId: room.id,
           isPrekey: false);
     } catch (e, s) {
+      String msg = Utils.getErrorMessage(e);
+      logger.e(msg, error: e, stackTrace: s);
+
       try {
         await decryptPreKeyMessage(
             fromMember: roomMember,
@@ -269,14 +273,11 @@ class KdfGroupService extends BaseChatService {
             eventLog: eventLog);
         return;
       } catch (e, s) {
-        String msg = Utils.getErrorMessage(e);
-        logger.e(msg, error: e, stackTrace: s);
+        msg = Utils.getErrorMessage(e);
+        logger.e('decryptPreKeyMessage error: $msg', error: e, stackTrace: s);
       }
-      String msg = Utils.getErrorMessage(e);
-      logger.e(msg, error: e, stackTrace: s);
       await RoomService().receiveDM(room, signalEvent,
-          decodedContent:
-              'Decrypt error: $msg, content: ${signalEvent.content}',
+          decodedContent: '$msg, content: ${signalEvent.content}',
           sourceEvent: nostrEvent);
       return;
     }
@@ -395,7 +396,7 @@ class KdfGroupService extends BaseChatService {
       ..name = roomProfile.toString()
       ..msg =
           '''Invite ${names.isNotEmpty ? names : users.keys.join(',').toString()} to join group.
-All members will update the shared-secret-keys and initial signal ratchet''';
+The shared-secret-keys and signal-ratchet will be updated''';
 
     await KdfGroupService.instance.sendMessage(room, sm.toString());
   }
@@ -549,9 +550,17 @@ All members will update the shared-secret-keys and initial signal ratchet''';
         since: DateTime.fromMillisecondsSinceEpoch(
             roomProfile.updatedAt! - 10 * 1000));
     NotifyService.addPubkeys([keychain.pubkey]);
+    String toSaveSystemMessage = kDebugMode
+        ? '''shared-secret-keys and signal-ratchet updated successfully,
+New pubkey is: ${groupRoom.sharedSignalID}
+Delete old shared-signal-id: ${toDeleteSharedSignalId?.pubkey}
+Delete old my-signal-id: ${toDeleteMySignalId?.pubkey}
+'''
+        : '''My shared-secret-keys and signal-ratchet updated successfully, New pubkey is: ${groupRoom.sharedSignalID}
+''';
+    MessageService().saveSystemMessage(groupRoom, toSaveSystemMessage);
 
-    await Future.delayed(
-        const Duration(seconds: 1)); // message delay for multi task
+    await Future.delayed(const Duration(milliseconds: 100));
 
     await sendHelloMessage(
         identity, groupRoom.getGroupSharedSignalId(), groupRoom);

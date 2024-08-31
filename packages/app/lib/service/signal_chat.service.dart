@@ -515,7 +515,5 @@ Let's talk on this server.''';
     }
     await RoomService().receiveDM(room, event,
         sourceEvent: null, decodedContent: prekeyMessageModel.message);
-    // todo add pre decode content
-    return;
   }
 }

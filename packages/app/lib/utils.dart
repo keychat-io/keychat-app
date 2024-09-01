@@ -423,4 +423,11 @@ class Utils {
     if (index == -1) return e.message;
     return e.message.substring(0, index).trim();
   }
+
+  static String randomString(int i) {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    final random = Random.secure();
+    return List.generate(i, (index) => chars[random.nextInt(chars.length)])
+        .join();
+  }
 }

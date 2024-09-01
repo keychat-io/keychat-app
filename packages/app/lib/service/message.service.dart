@@ -46,11 +46,32 @@ class MessageService {
 
     logger.i(
         'message_room:${model.roomId} ${model.isMeSend ? 'Send' : 'Receive'}: ${model.content} ');
-
-    // todo change to refresh room
-    await Get.find<HomeController>().loadIdentityRoomList(model.identityId);
+    if (!model.isRead) {
+      await Get.find<HomeController>().loadIdentityRoomList(model.identityId);
+    } else {
+      await Get.find<HomeController>().updateLatestMessage(model);
+    }
 
     await RoomService.getController(model.roomId)?.addMessage(model);
+  }
+
+  Future saveSystemMessage(Room room, String content) async {
+    Identity identity = room.getIdentity();
+    await saveMessageModel(Message(
+      msgid: Utils.randomString(16),
+      idPubkey: identity.secp256k1PKHex,
+      identityId: room.identityId,
+      roomId: room.id,
+      from: identity.secp256k1PKHex,
+      to: room.toMainPubkey,
+      content: '[SystemMessage] $content',
+      createdAt: DateTime.now(),
+      sent: SendStatusType.success,
+      isMeSend: true,
+      isSystem: true,
+      eventIds: const [],
+      encryptType: MessageEncryptType.signal,
+    ));
   }
 
   Future updateMessageAndRefresh(Message message) async {

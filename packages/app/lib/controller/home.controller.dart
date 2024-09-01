@@ -395,4 +395,24 @@ class HomeController extends GetxController
       EasyLoading.showToast('Debug model disabled');
     }
   }
+
+  updateLatestMessage(Message model) {
+    int identityId = model.identityId;
+    TabData? item = tabBodyDatas[identityId];
+    if (item == null) return;
+    List<dynamic> rooms = item.rooms;
+    for (var i = 0; i < rooms.length; i++) {
+      if (rooms[i] is Room) {
+        Room room = rooms[i];
+        if (room.id == model.roomId) {
+          room.lastMessageModel = model;
+          rooms[i] = room;
+          item.rooms = rooms;
+          tabBodyDatas[identityId] = item;
+          tabBodyDatas.refresh();
+          break;
+        }
+      }
+    }
+  }
 }

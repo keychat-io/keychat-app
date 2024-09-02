@@ -163,7 +163,7 @@ class SignalChatService extends BaseChatService {
       } catch (e, s) {
         String msg = Utils.getErrorMessage(e);
         logger.i(msg, error: e, stackTrace: s);
-        decodeString = "Decryption failed: $msg";
+        decodeString = "Decryption failed: $msg, \nSource: ${event.content}";
       }
 
       // get encrypt msg key's hash

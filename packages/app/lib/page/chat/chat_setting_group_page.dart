@@ -509,9 +509,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
       content: const Text('Are you sure to delete the group?'),
       actions: <Widget>[
         CupertinoDialogAction(
-          child: const Text(
-            'Cancel',
-          ),
+          child: const Text('Cancel'),
           onPressed: () {
             Get.back();
           },

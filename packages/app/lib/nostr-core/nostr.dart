@@ -524,7 +524,7 @@ Tags: ${event.tags}''',
       NostrEventModel event, Relay relay, EventLog? eventLog) async {
     String? content = await decryptNip4Content(event);
     if (content == null) {
-      logger.e('ecryptecrypt error: ${event.id}');
+      logger.e('decryptNip4Content error: ${event.id}');
       eventLog?.setNote('Nip04 ecrypt error');
       return;
     }

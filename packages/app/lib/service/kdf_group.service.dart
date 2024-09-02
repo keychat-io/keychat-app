@@ -113,12 +113,15 @@ class KdfGroupService extends BaseChatService {
         }
         await room.removeMember(event.pubkey);
         RoomService.getController(room.id)?.resetMembers();
-        return RoomService().receiveDM(room, event,
+        await RoomService().receiveDM(room, event,
             sourceEvent: sourceEvent, realMessage: km.msg, isSystem: true);
+        return;
       case KeyChatEventKinds.groupDissolve:
         await room.checkAdminByIdPubkey(event.pubkey);
         room.status = RoomStatus.dissolved;
-        return await RoomService().updateRoom(room);
+        await RoomService().updateRoom(room);
+        await RoomService().receiveDM(room, event,
+            sourceEvent: sourceEvent, decodedContent: km.msg!, isSystem: true);
       case KeyChatEventKinds.kdfAdminRemoveMembers:
         return await _proccessAdminRemoveMembers(room, event, km, sourceEvent);
       case KeyChatEventKinds.inviteNewMember:
@@ -127,7 +130,6 @@ class KdfGroupService extends BaseChatService {
         Room groupRoom = await getGroupRoomByIdRoom(room, roomProfile);
         // check sender is admin
         await groupRoom.checkAdminByIdPubkey(event.pubkey);
-
         await proccessUpdateKeys(groupRoom, roomProfile);
         await RoomService().receiveDM(groupRoom, event,
             sourceEvent: sourceEvent, decodedContent: km.msg!, isSystem: true);
@@ -217,15 +219,24 @@ class KdfGroupService extends BaseChatService {
         await _checkIsPrekeyByRoom(roomMember.curve25519PkHex, room, keyPair);
 
     if (kpa == null) {
-      return await decryptPreKeyMessage(
-          fromMember: roomMember,
-          sharedSignalId: signalId,
-          keyPair: keyPair,
-          room: room,
-          event: signalEvent,
-          sourceEvent: nostrEvent,
-          relay: relay,
-          eventLog: eventLog);
+      try {
+        await decryptPreKeyMessage(
+            fromMember: roomMember,
+            sharedSignalId: signalId,
+            keyPair: keyPair,
+            room: room,
+            event: signalEvent,
+            sourceEvent: nostrEvent,
+            relay: relay,
+            eventLog: eventLog);
+      } catch (e, s) {
+        String msg = Utils.getErrorMessage(e);
+        logger.e('decryptPreKeyMessage error: $msg', error: e, stackTrace: s);
+        await RoomService().receiveDM(room, signalEvent,
+            decodedContent: '$msg, content: ${signalEvent.content}',
+            sourceEvent: nostrEvent);
+      }
+      return;
     }
 
     Uint8List message = Uint8List.fromList(base64Decode(signalEvent.content));

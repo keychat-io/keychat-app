@@ -954,6 +954,7 @@ class GroupService extends BaseChatService {
               toIdPubkey: rm.idPubkey);
           await RoomService().receiveDM(groupRoom, smr.events[0],
               idPubkey: identity.secp256k1PKHex,
+              decodedContent: km.toString(),
               msgKeyHash: smr.msgKeyHash,
               realMessage:
                   'Send private message to [${rm.name}]: $realMessage');

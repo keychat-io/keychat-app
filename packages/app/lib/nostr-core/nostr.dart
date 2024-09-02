@@ -49,7 +49,6 @@ class NostrAPI {
   }
 
   Future checkFaildEvent() async {
-    await Future.delayed(const Duration(seconds: 6));
     String reqId = utils.generate64RandomHexChars(16);
     List<EventLog> list = await DBProvider().getFaildEventLog();
     if (list.isEmpty) return;
@@ -362,17 +361,10 @@ Tags: ${event.tags}''',
   }) async {
     NostrEventModel event =
         NostrEventModel.fromJson(jsonDecode(encryptedEvent), verify: false);
-    String? hisRelay;
-    if (room.type == RoomType.common) {
-      room.contact ??=
-          await ContactService().getContact(room.identityId, room.toMainPubkey);
-      hisRelay = room.contact?.hisRelay;
-    }
     List<String> relays = await Get.find<WebsocketService>().writeNostrEvent(
         event: event,
         eventString: encryptedEvent,
-        roomId: room.parentRoom?.id ?? room.id,
-        hisRelay: hisRelay);
+        roomId: room.parentRoom?.id ?? room.id);
     if (save && relays.isEmpty) {
       throw Exception(ErrorMessages.relayIsEmptyException);
     }
@@ -395,7 +387,8 @@ Tags: ${event.tags}''',
         mediaType: mediaType,
         encryptType: MessageEncryptType.nip17);
 
-    await dbProvider.saveMyEventLog(event: event, relays: relays);
+    await dbProvider.saveMyEventLog(
+        event: event, relays: relays, kind: EventKinds.nip17);
     return SendMessageResponse(events: [event], relays: relays, message: model);
   }
 

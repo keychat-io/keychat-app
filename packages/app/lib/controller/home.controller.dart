@@ -4,7 +4,6 @@ import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
-import 'package:flutter/foundation.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 import 'package:app/service/notify.service.dart';
@@ -104,6 +103,7 @@ class HomeController extends GetxController
     });
 
     try {
+      _startConnectHeartbeat();
       await RoomUtil.executeAutoDelete();
     } catch (e, s) {
       logger.e(e.toString(), stackTrace: s);
@@ -345,9 +345,7 @@ class HomeController extends GetxController
             'AppLifecycleState.resumed', const Duration(seconds: 2), () {
           if (isPaused) {
             Get.find<WebsocketService>().start().then((c) async {
-              if (kReleaseMode) {
-                _startConnectHeartbeat();
-              }
+              _startConnectHeartbeat();
             });
             Utils.initLoggger(Get.find<SettingController>().appFolder);
             NotifyService.initNofityConfig(true);

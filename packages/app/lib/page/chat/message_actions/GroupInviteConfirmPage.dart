@@ -37,8 +37,9 @@ class GroupInviteConfirmPage extends StatelessWidget {
                     onPressed: () async {
                       try {
                         if (groupRoom.isKDFGroup) {
-                          await KdfGroupService.instance
-                              .inviteToJoinGroup(groupRoom, toJoinUserMap);
+                          Identity identity = groupRoom.getIdentity();
+                          await KdfGroupService.instance.inviteToJoinGroup(
+                              groupRoom, toJoinUserMap, identity.displayName);
                         } else {
                           await GroupService()
                               .inviteToJoinGroup(groupRoom, toJoinUserMap);

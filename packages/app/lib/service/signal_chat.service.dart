@@ -48,7 +48,6 @@ class SignalChatService extends BaseChatService {
     MsgReply? reply,
     String? realMessage,
     MessageMediaType? mediaType,
-    Function? sentCallback,
   }) async {
     ChatxService cs = Get.find<ChatxService>();
     rust_signal.KeychatProtocolAddress? kpa = await cs.getRoomKPA(room);
@@ -63,7 +62,6 @@ class SignalChatService extends BaseChatService {
       if (to == room.onetimekey) {
         pmm = await SignalChatUtil.getSignalPrekeyMessageContent(
             room, room.getIdentity(), message);
-        // realMessage = pmm.toString();
       }
     }
 
@@ -141,9 +139,7 @@ class SignalChatService extends BaseChatService {
 
   Future<String> decryptDMMessage(Room room, NostrEventModel event, Relay relay,
       {NostrEventModel? sourceEvent, EventLog? eventLog}) async {
-    Uint8List message = Uint8List.fromList(base64Decode(event.content));
-
-    late Uint8List plaintext;
+    String? decodeString;
     String? msgKeyHash;
     try {
       rust_signal.KeychatProtocolAddress? kpa =
@@ -154,17 +150,22 @@ class SignalChatService extends BaseChatService {
       }
       try {
         var keypair = await room.getKeyPair();
+        Uint8List? plaintext;
+
         (plaintext, msgKeyHash, _) = await rust_signal.decryptSignal(
             keyPair: keypair,
-            ciphertext: message,
+            ciphertext: Uint8List.fromList(base64Decode(event.content)),
             remoteAddress: kpa,
             roomId: room.id,
             isPrekey: false);
+        decodeString = utf8.decode(plaintext);
+        await setRoomSignalDecodeStatus(room, false);
       } catch (e, s) {
         String msg = Utils.getErrorMessage(e);
         logger.i(msg, error: e, stackTrace: s);
+        decodeString = "Decryption failed: $msg, \nSource: ${event.content}";
       }
-      await setRoomSignalDecodeStatus(room, false);
+
       // get encrypt msg key's hash
       if (msgKeyHash != null) {
         msgKeyHash =
@@ -184,21 +185,15 @@ class SignalChatService extends BaseChatService {
       logger.e(e.toString(), error: e, stackTrace: s);
       await setRoomSignalDecodeStatus(room, true);
       eventLog?.setNote('Signal Decryption failed');
-
-      plaintext =
-          Uint8List.fromList(utf8.encode("Decryption failed: ${e.toString()}"));
+      decodeString = "Decryption failed: ${e.toString()}";
     }
-
-    String decodeString = utf8.decode(plaintext);
 
     Map<String, dynamic> decodedContent;
     KeychatMessage? km;
     try {
       decodedContent = jsonDecode(decodeString);
       km = KeychatMessage.fromJson(decodedContent);
-    } catch (e) {
-      // logger.e('decodeString error,', error: e);
-    }
+    } catch (e) {}
 
     if (km != null) {
       await km.service.processMessage(

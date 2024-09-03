@@ -1,6 +1,5 @@
 import 'package:app/constants.dart';
 import 'package:app/models/relay.dart';
-import 'package:app/nostr-core/nostr.dart';
 import 'package:app/nostr-core/nostr_nip4_req.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/identity.service.dart';
@@ -38,7 +37,6 @@ class RelayWebsocket {
 
     List<String> signal = await ContactService().getAllReceiveKeys();
     listenPubkeys(signal, since);
-    NostrAPI().checkFaildEvent();
   }
 
   Future listenPubkeys(List<String> pubkeys, DateTime since,
@@ -52,8 +50,6 @@ class RelayWebsocket {
           reqId: subId, kinds: kinds, pubkeys: group, since: since);
       try {
         sendRawREQ(req.toString());
-        logger
-            .i('listen success: ${relay.url} - ${req.pubkeys.length} pubkeys');
       } catch (e) {
         logger.e('Listen error', error: e);
       }

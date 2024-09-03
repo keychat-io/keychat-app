@@ -425,7 +425,8 @@ class MessageWidget extends StatelessWidget {
           return _getActionWidget(
               GroupInviteAction(message, chatController.room.getIdentity()));
         case MessageMediaType.groupInviteConfirm:
-          return _getActionWidget(GroupInviteConfirmAction(message));
+          return _getActionWidget(GroupInviteConfirmAction(
+              chatController.room.getRoomName(), message));
         default:
       }
     } catch (e, s) {

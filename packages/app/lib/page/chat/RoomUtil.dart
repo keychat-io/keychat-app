@@ -259,12 +259,8 @@ Let's start an encrypted chat.''';
     var style = TextStyle(
         color: Theme.of(Get.context!).colorScheme.onSurface.withOpacity(0.6),
         fontSize: 14);
-    if (m.isMeSend) {
-      if (m.sent == SendStatusType.failed ||
-          (m.sent == SendStatusType.sending &&
-              m.createdAt.isBefore(messageExpired))) {
-        style = style.copyWith(color: Colors.red);
-      }
+    if (m.isMeSend && m.sent == SendStatusType.failed) {
+      style = style.copyWith(color: Colors.red);
     }
 
     return Text(text,
@@ -526,6 +522,7 @@ Sending a message is essentially sending multiple one-on-one chats. More stamps 
   static MessageEncryptType getEncryptMode(NostrEventModel event,
       [NostrEventModel? sourceEvent]) {
     if (sourceEvent == null) return event.encryptType;
+    if (event.kind == EventKinds.nip17) return MessageEncryptType.nip17;
     if (event.isNip4) return MessageEncryptType.nip4WrapNip4;
     if (event.isSignal) return MessageEncryptType.nip4WrapSignal;
 

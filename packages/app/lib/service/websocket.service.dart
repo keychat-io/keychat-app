@@ -194,9 +194,7 @@ class WebsocketService extends GetxService {
     lastRelayStatus = name;
     EasyDebounce.debounce(
         'setRelayStatusInt', const Duration(milliseconds: 100), () {
-      if (relayStatusInt.value != name) {
-        relayStatusInt.value = name;
-      }
+      relayStatusInt.value = lastRelayStatus ?? name;
     });
   }
 
@@ -260,12 +258,10 @@ class WebsocketService extends GetxService {
       {required NostrEventModel event,
       required String eventString,
       required int roomId,
-      String? hisRelay,
-      Function(bool)? sentCallback}) async {
+      String? hisRelay}) async {
     List<String> relays = getOnlineRelayString();
     // set his relay
     if (hisRelay != null && hisRelay.isNotEmpty) {
-      relays = [];
       if (channels[hisRelay] != null) {
         if (channels[hisRelay]!.channelStatus == RelayStatusEnum.success) {
           relays = [hisRelay];
@@ -277,8 +273,7 @@ class WebsocketService extends GetxService {
     }
 
     // listen status
-    WriteEventStatus.addSubscripton(event.id, relays.length,
-        sentCallback: sentCallback);
+    WriteEventStatus.addSubscripton(event.id, relays.length);
 
     List<Future> tasks = [];
     Map failedRelay = {};
@@ -288,13 +283,13 @@ class WebsocketService extends GetxService {
         try {
           String eventRaw =
               await addCashuToMessage(toSendMesage, relay, roomId, event.id);
-          if (channels[relay]?.channel != null) {
-            logger.i(
-                'to:[$relay]: $eventRaw }'); // ${eventRaw.length > 200 ? eventRaw.substring(0, 400) : eventRaw}');
-            channels[relay]!.channel!.sink.add(eventRaw);
-          } else {
+          if (channels[relay]?.channel == null) {
             failedRelay[relay] = 'Relay not connected';
+            return;
           }
+          logger.i(
+              'to:[$relay]: $eventRaw }'); // ${eventRaw.length > 200 ? eventRaw.substring(0, 400) : eventRaw}');
+          channels[relay]!.channel!.sink.add(eventRaw);
         } catch (e, s) {
           String message = Utils.getErrorMessage(e);
           logger.e(message, error: e, stackTrace: s);

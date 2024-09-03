@@ -553,7 +553,6 @@ class RoomService extends BaseChatService {
     MsgReply? reply,
     String? realMessage,
     MessageMediaType? mediaType,
-    Function? sentCallback,
   }) {
     throw UnimplementedError();
   }
@@ -772,22 +771,24 @@ class RoomService extends BaseChatService {
     Room room,
     Identity identity, {
     required String sourceContent,
+    String? toPubkey,
     String? realMessage,
     bool? timestampTweaked,
+    bool save = true,
   }) async {
     String result = await rust_nostr.createGiftJson(
         kind: 14,
         senderKeys: await identity.getSecp256k1SKHex(),
-        receiverPubkey: room.toMainPubkey,
+        receiverPubkey: toPubkey ?? room.toMainPubkey,
+        timestampTweaked: timestampTweaked,
         content: sourceContent);
     await NostrAPI().sendAndSaveGiftMessage(
-      room.toMainPubkey,
-      sourceContent,
-      room: room,
-      encryptedEvent: result,
-      from: identity.secp256k1PKHex,
-      realMessage: realMessage,
-    );
+        toPubkey ?? room.toMainPubkey, sourceContent,
+        room: room,
+        encryptedEvent: result,
+        from: identity.secp256k1PKHex,
+        realMessage: realMessage,
+        save: save);
   }
 
   Future sendRejectMessage(Room room) async {

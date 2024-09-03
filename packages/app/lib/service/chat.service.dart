@@ -15,6 +15,5 @@ abstract class BaseChatService {
       {MessageMediaType? mediaType,
       bool save = true,
       MsgReply? reply,
-      String? realMessage,
-      Function(bool)? sentCallback});
+      String? realMessage});
 }

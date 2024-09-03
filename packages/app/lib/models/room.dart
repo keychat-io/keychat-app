@@ -387,6 +387,15 @@ class Room extends Equatable {
     }
   }
 
+  Future<void> setMemberInvited(RoomMember rm, String? name) async {
+    if (rm.status != UserStatusType.invited) {
+      rm.status = UserStatusType.invited;
+      if (name != null) rm.name = name;
+      await updateMember(rm);
+      RoomService.getController(id)?.resetMembers();
+    }
+  }
+
   Future updateMember(RoomMember rm) async {
     Isar database = DBProvider.database;
     await database.writeTxn(() async {
@@ -492,11 +501,19 @@ class Room extends Equatable {
     return getMemberByNostrPubkey(pubkey);
   }
 
-  Future incrMessageCountForMemeber(RoomMember meMember) async {
+  Future incrMessageCountForMember(RoomMember member) async {
+    bool changeMember = false;
+    if (member.status != UserStatusType.invited) {
+      member.status = UserStatusType.invited;
+      changeMember = true;
+    }
     await DBProvider.database.writeTxn(() async {
-      meMember.messageCount++;
-      await DBProvider.database.roomMembers.put(meMember);
+      member.messageCount++;
+      await DBProvider.database.roomMembers.put(member);
     });
+    if (changeMember) {
+      RoomService.getController(id)?.resetMembers();
+    }
   }
 
   // clear keys. if receive all member's prekey message

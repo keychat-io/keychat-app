@@ -105,8 +105,7 @@ class GroupInviteAction extends StatelessWidget {
                   if (groupRoom!.isShareKeyGroup) {
                     await GroupService().sendMessageToGroup(
                         groupRoom!, '${identity.displayName} joined group.',
-                        subtype: KeyChatEventKinds.groupHi,
-                        sentCallback: (res) {});
+                        subtype: KeyChatEventKinds.groupHi);
                   } else if (groupRoom!.isKDFGroup) {
                     await KdfGroupService.instance.sendHelloMessage(identity,
                         groupRoom!.getGroupSharedSignalId(), groupRoom!);

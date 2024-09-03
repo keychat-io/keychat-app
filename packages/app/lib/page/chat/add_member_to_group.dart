@@ -32,9 +32,6 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
   List<Contact> _contactList = [];
   bool isLoading = false;
 
-  final List<String> _tabs = ["Select Members", "Input"];
-  late TabController _tabController;
-
   _AddMemberToGroupState();
 
   late ScrollController _scrollController;
@@ -45,8 +42,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
     super.initState();
     _userNameController = TextEditingController(text: "");
     _scrollController = ScrollController();
-    _tabController = TabController(length: _tabs.length, vsync: this);
-    _tabController.addListener(() {});
+
     _getData();
   }
 
@@ -54,7 +50,6 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
   void dispose() {
     _userNameController.dispose();
     _scrollController.dispose();
-    _tabController.dispose();
     super.dispose();
   }
 
@@ -103,7 +98,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
   Future _sendInvite(
       String myPubkey, Map<String, String> selectAccounts) async {
     if (selectAccounts.isEmpty) {
-      EasyLoading.showError('user not found or input error ');
+      EasyLoading.showError("Please select at least one user");
       return;
     }
     RoomMember? meMember = await widget.room.getMember(myPubkey);
@@ -129,8 +124,11 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
     }
     try {
       if (widget.room.isKDFGroup) {
+        String sender = meMember == null
+            ? myPubkey
+            : '${meMember.name}-${meMember.idPubkey}';
         await KdfGroupService.instance
-            .inviteToJoinGroup(widget.room, selectAccounts);
+            .inviteToJoinGroup(widget.room, selectAccounts, sender);
       } else {
         await GroupService().inviteToJoinGroup(widget.room, selectAccounts);
       }
@@ -149,76 +147,40 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
         centerTitle: true,
         title: const Text("Add Member"),
         actions: [
-          TextButton(
+          FilledButton(
             onPressed: () {
-              var func = _tabController.index == 0
-                  ? _completeFromContacts
-                  : _completeFromInput;
-              EasyThrottle.throttle(
-                  '_completeFromContacts', const Duration(seconds: 2), func);
+              EasyThrottle.throttle('_completeFromContacts',
+                  const Duration(seconds: 2), _completeFromContacts);
             },
-            child: const Text(
-              "Done",
-            ),
+            child: const Text("Done"),
           ),
         ],
-        bottom: TabBar(controller: _tabController, tabs: const <Widget>[
-          Tab(
-            child: Text("Select"),
-          ),
-          Tab(
-            child: Text("Input"),
-          ),
-        ]),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: <Widget>[
-          _fromContacts(),
-          _fromInput(),
-        ],
-      ),
+      body: SafeArea(
+          child: ListView.builder(
+              itemCount: _contactList.length,
+              controller: _scrollController,
+              itemBuilder: (context, index) {
+                return ListTile(
+                    leading: getRandomAvatar(_contactList[index].pubkey,
+                        height: 40, width: 40),
+                    title: Text(
+                      _contactList[index].displayName,
+                    ),
+                    subtitle: Text(
+                      _contactList[index].npubkey,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: widget.adminPubkey == _contactList[index].pubkey
+                        ? const Icon(Icons.check_box,
+                            color: Colors.grey, size: 30)
+                        : Checkbox(
+                            value: _contactList[index].isCheck,
+                            onChanged: (isCheck) {
+                              _contactList[index].isCheck = isCheck!;
+                              setState(() {});
+                            }));
+              })),
     );
-  }
-
-  Widget _fromInput() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
-      child: TextField(
-        controller: _userNameController,
-        maxLines: null,
-        decoration: const InputDecoration(
-          labelText: 'Hex or npub...',
-          hintStyle: TextStyle(fontSize: 18),
-          border: OutlineInputBorder(),
-        ),
-      ),
-    );
-  }
-
-  Widget _fromContacts() {
-    return ListView.builder(
-        itemCount: _contactList.length,
-        controller: _scrollController,
-        itemBuilder: (context, index) {
-          return ListTile(
-              leading: getRandomAvatar(_contactList[index].pubkey,
-                  height: 40, width: 40),
-              title: Text(
-                _contactList[index].displayName,
-              ),
-              subtitle: Text(
-                _contactList[index].npubkey,
-                overflow: TextOverflow.ellipsis,
-              ),
-              trailing: widget.adminPubkey == _contactList[index].pubkey
-                  ? const Icon(Icons.check_box, color: Colors.grey, size: 30)
-                  : Checkbox(
-                      value: _contactList[index].isCheck,
-                      onChanged: (isCheck) {
-                        _contactList[index].isCheck = isCheck!;
-                        setState(() {});
-                      }));
-        });
   }
 }

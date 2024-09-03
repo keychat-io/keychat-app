@@ -93,37 +93,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                             context, controller.identity.value, true);
                       },
                     ),
-                    if (controller.identity.value.index == -1)
-                      SettingsTile.navigation(
-                        leading: const Icon(Icons.key),
-                        title: const Text("Nsec"),
-                        onPressed: (c) async {
-                          var sk = await controller.identity.value
-                              .getSecp256k1SKHex();
-                          var nsec = rust_nostr.getBech32PrikeyByHex(hex: sk);
-                          Get.dialog(CupertinoAlertDialog(
-                            title: const Text("Nsec"),
-                            content: Text(nsec),
-                            actions: <Widget>[
-                              CupertinoDialogAction(
-                                isDefaultAction: true,
-                                onPressed: () {
-                                  Clipboard.setData(ClipboardData(text: nsec));
-                                  EasyLoading.showSuccess("Copied");
-                                  Get.back();
-                                },
-                                child: const Text("Copy"),
-                              ),
-                              CupertinoDialogAction(
-                                child: const Text("Close"),
-                                onPressed: () {
-                                  Get.back();
-                                },
-                              ),
-                            ],
-                          ));
-                        },
-                      ),
+                    if (controller.identity.value.index == -1) _getNsec(true),
                     if (controller.identity.value.index > -1)
                       SettingsTile.navigation(
                         leading: const Icon(CupertinoIcons.person),
@@ -251,31 +221,42 @@ class AccountSettingPage extends GetView<AccountSettingController> {
         )));
   }
 
+  SettingsTile _getNsec(bool showIcon) {
+    return SettingsTile.navigation(
+      leading: showIcon ? const Icon(Icons.key) : null,
+      title: const Text("Nsec"),
+      onPressed: (c) async {
+        var sk = await controller.identity.value.getSecp256k1SKHex();
+        var nsec = rust_nostr.getBech32PrikeyByHex(hex: sk);
+        Get.dialog(CupertinoAlertDialog(
+          title: const Text("Nsec"),
+          content: Text(nsec),
+          actions: <Widget>[
+            CupertinoDialogAction(
+              isDefaultAction: true,
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: nsec));
+                EasyLoading.showSuccess("Copied");
+                Get.back();
+              },
+              child: const Text("Copy"),
+            ),
+            CupertinoDialogAction(
+              child: const Text("Close"),
+              onPressed: () {
+                Get.back();
+              },
+            ),
+          ],
+        ));
+      },
+    );
+  }
+
   _idKeysWidget() {
     return SettingsList(platform: DevicePlatform.iOS, sections: [
       SettingsSection(
         tiles: [
-          // SettingsTile(
-          //   title: GestureDetector(
-          //       onTap: () {
-          //         controller.isNpub.value = !controller.isNpub.value;
-          //       },
-          //       child: Obx(() => controller.isNpub.value
-          //           ? const Text("Npub Public Key")
-          //           : const Text("Hex Public Key"))),
-          //   description: Obx(() => controller.isNpub.value
-          //       ? Text(controller.identity.value.npub)
-          //       : Text(controller.identity.value.secp256k1PKHex)),
-          //   trailing: const Icon(Icons.copy),
-          //   onPressed: (context) {
-          //     String content = controller.isNpub.value
-          //         ? controller.identity.value.npub
-          //         : controller.identity.value.secp256k1PKHex;
-          //     Clipboard.setData(ClipboardData(text: content));
-          //     EasyLoading.showSuccess("Copied");
-          //   },
-          // ),
-
           if (kDebugMode)
             SettingsTile(
               title: const Text("Secp256k1 Pubkey"),
@@ -288,6 +269,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
               description:
                   Text(controller.identity.value.curve25519PkHex ?? ''),
             ),
+          _getNsec(false),
           SettingsTile.navigation(
             title: const Text("Seed Phrase"),
             onPressed: (context) async {

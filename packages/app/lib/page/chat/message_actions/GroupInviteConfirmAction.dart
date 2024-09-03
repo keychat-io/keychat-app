@@ -13,7 +13,8 @@ import 'package:get/get.dart';
 
 class GroupInviteConfirmAction extends StatelessWidget {
   final Message message;
-  const GroupInviteConfirmAction(this.message, {super.key});
+  final String senderName;
+  const GroupInviteConfirmAction(this.senderName, this.message, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -60,8 +61,8 @@ class GroupInviteConfirmAction extends StatelessWidget {
                         onPressed: () async {
                           try {
                             if (groupRoom.isKDFGroup) {
-                              await KdfGroupService.instance
-                                  .inviteToJoinGroup(groupRoom, toJoinUserMap);
+                              await KdfGroupService.instance.inviteToJoinGroup(
+                                  groupRoom, toJoinUserMap, senderName);
                             } else {
                               await GroupService()
                                   .inviteToJoinGroup(groupRoom, toJoinUserMap);

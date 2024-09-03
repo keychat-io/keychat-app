@@ -132,7 +132,6 @@ class Nip4ChatService extends BaseChatService {
     MsgReply? reply,
     String? realMessage,
     MessageMediaType? mediaType,
-    Function? sentCallback,
   }) async {
     Identity identity = room.getIdentity();
     return await nostrAPI.sendNip4Message(

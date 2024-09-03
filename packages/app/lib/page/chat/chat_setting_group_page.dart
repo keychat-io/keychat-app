@@ -351,7 +351,9 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
   }
 
   generalSection() {
-    String pubkey = chatController.roomObs.value.toMainPubkey;
+    String pubkey = chatController.roomObs.value.isSendAllGroup
+        ? chatController.roomObs.value.toMainPubkey
+        : chatController.roomObs.value.mykey.value!.pubkey;
     return SettingsSection(tiles: [
       SettingsTile(
           title: const Text("Group ID"),
@@ -384,9 +386,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
       SettingsTile.navigation(
         title: const Text("My Alias in Group"),
         leading: const Icon(CupertinoIcons.person),
-        value: textP(
-          chatController.meMember.value.name,
-        ),
+        value: textP(chatController.meMember.value.name),
         onPressed: (context) async {
           if (chatController.room.isSendAllGroup) {
             _showMyNameDialog();
@@ -509,9 +509,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
       content: const Text('Are you sure to delete the group?'),
       actions: <Widget>[
         CupertinoDialogAction(
-          child: const Text(
-            'Cancel',
-          ),
+          child: const Text('Cancel'),
           onPressed: () {
             Get.back();
           },

@@ -27,7 +27,7 @@ class NostrEventsPage extends GetView<NostrEventsController> {
                       ],
                     ),
                     onTap: () {
-                      Clipboard.setData(ClipboardData(text: el.toString()));
+                      Clipboard.setData(ClipboardData(text: el.eventId));
                     },
                   );
                 },

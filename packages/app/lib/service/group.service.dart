@@ -462,7 +462,7 @@ class GroupService extends BaseChatService {
       if (event.tags[0][1] != roomKey.pubkey) {
         await GroupService().sendMessageToGroup(
             groupRoom, '${identity.displayName} $joinGreeting',
-            subtype: KeyChatEventKinds.groupHi, sentCallback: (res) {});
+            subtype: KeyChatEventKinds.groupHi);
       }
     } else {
       await RoomService().updateRoom(groupRoom);
@@ -656,7 +656,6 @@ class GroupService extends BaseChatService {
       MsgReply? reply,
       String? realMessage,
       MessageMediaType? mediaType,
-      Function(bool)? sentCallback,
       bool save = true}) async {
     Mykey roomKey = room.mykey.value!;
 
@@ -681,10 +680,7 @@ class GroupService extends BaseChatService {
         NostrEventModel.fromJson(jsonDecode(encryptedEvent), verify: false);
 
     List<String> relays = await Get.find<WebsocketService>().writeNostrEvent(
-        event: event,
-        eventString: encryptedEvent,
-        roomId: room.id,
-        sentCallback: sentCallback);
+        event: event, eventString: encryptedEvent, roomId: room.id);
 
     Message? model;
     if (subtype == null && ext == null) {
@@ -950,20 +946,25 @@ class GroupService extends BaseChatService {
         if (room != null) {
           smr = await RoomService().sendTextMessage(room, km.toString(),
               realMessage: realMessage, save: false);
+
+          // save event log
+          await dbProvider.saveMyEventLog(
+              event: smr.events[0],
+              relays: smr.relays,
+              toIdPubkey: rm.idPubkey);
+          await RoomService().receiveDM(groupRoom, smr.events[0],
+              idPubkey: identity.secp256k1PKHex,
+              decodedContent: km.toString(),
+              msgKeyHash: smr.msgKeyHash,
+              realMessage:
+                  'Send private message to [${rm.name}]: $realMessage');
         } else {
-          smr = await nostrAPI.sendNip4Message(hexPubkey, km.toString(),
-              room: groupRoom,
-              encryptType: MessageEncryptType.nip4,
-              prikey: await identity.getSecp256k1SKHex(),
-              from: identity.secp256k1PKHex,
+          smr = await RoomService().sendNip17Message(groupRoom, identity,
+              toPubkey: rm.idPubkey,
+              sourceContent: km.toString(),
               realMessage: realMessage,
-              save: false);
+              timestampTweaked: false);
         }
-        await RoomService().receiveDM(
-            groupRoom,
-            idPubkey: identity.secp256k1PKHex,
-            smr.events[0],
-            realMessage: 'Send private message to ${rm.name}: $realMessage');
       });
     }
     await queue.onComplete;
@@ -1096,24 +1097,16 @@ ${rm.idPubkey}
     RoomService.getController(room.id)?.resetMembers();
   }
 
-  Future sendMessageToGroup(
-    Room room,
-    String message, {
-    bool save = true,
-    int? subtype,
-    String? ext,
-    String? realMessage,
-    Function(bool)? sentCallback,
-  }) async {
+  Future sendMessageToGroup(Room room, String message,
+      {bool save = true,
+      int? subtype,
+      String? ext,
+      String? realMessage}) async {
     if (room.type != RoomType.group) throw Exception('room type error');
 
     if (room.groupType == GroupType.shareKey) {
       return await sendMessage(room, message,
-          subtype: subtype,
-          ext: ext,
-          save: save,
-          realMessage: realMessage,
-          sentCallback: sentCallback);
+          subtype: subtype, ext: ext, save: save, realMessage: realMessage);
     }
 
     if (room.groupType == GroupType.sendAll) {

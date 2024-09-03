@@ -325,7 +325,7 @@ class EcashController extends GetxController {
 
   Future restore() async {
     if (currentIdentity == null) return;
-    String mnemonic = await currentIdentity!.getMnemonic();
+    String? mnemonic = await currentIdentity!.getMnemonic();
     for (Mint m in mints) {
       Nuts? nuts = m.info?.nuts;
       if (nuts == null) continue;

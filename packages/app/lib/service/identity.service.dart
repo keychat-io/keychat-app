@@ -35,14 +35,6 @@ class IdentityService {
     return res != null;
   }
 
-  Future<bool> checkMnemonicsExist(String mnemonics) async {
-    var res = await DBProvider.database.identitys
-        .filter()
-        .mnemonicEqualTo(mnemonics)
-        .findFirst();
-    return res != null;
-  }
-
   Future<int> count() async {
     Isar database = DBProvider.database;
     return await database.identitys.where().count();
@@ -66,17 +58,14 @@ class IdentityService {
   Future<Identity> createIdentity(
       {required String name,
       required rust_nostr.Secp256k1Account account,
+      required int index,
       bool isFirstAccount = false}) async {
     if (account.mnemonic == null) throw Exception('mnemonic is null');
     Isar database = DBProvider.database;
     Identity iden = Identity(
-        name: name,
-        mnemonic: '',
-        secp256k1PKHex: account.pubkey,
-        secp256k1SKHex: '',
-        curve25519PkHex: account.curve25519PkHex!,
-        curve25519SkHex: '',
-        npub: account.pubkeyBech32);
+        name: name, secp256k1PKHex: account.pubkey, npub: account.pubkeyBech32)
+      ..curve25519PkHex = account.curve25519PkHex!
+      ..index = index;
     await database.writeTxn(() async {
       await database.identitys.put(iden);
       // store the prikey in secure storage
@@ -86,7 +75,7 @@ class IdentityService {
       await SecureStorage.instance
           .writePrikey(iden.secp256k1PKHex, account.prikey);
       await SecureStorage.instance
-          .writePrikey(iden.curve25519PkHex, account.curve25519SkHex!);
+          .writePrikey(iden.curve25519PkHex!, account.curve25519SkHex!);
     });
 
     await Get.find<HomeController>().loadRoomList(init: true);
@@ -96,12 +85,32 @@ class IdentityService {
     return iden;
   }
 
+  Future<Identity> createIdentityByPrikey(
+      {required String name,
+      required String hexPubkey,
+      required String prikey}) async {
+    Isar database = DBProvider.database;
+    String npub = rust_nostr.getBech32PubkeyByHex(hex: hexPubkey);
+    Identity iden = Identity(name: name, secp256k1PKHex: hexPubkey, npub: npub)
+      ..index = -1;
+    await database.writeTxn(() async {
+      await database.identitys.put(iden);
+      await SecureStorage.instance.writePrikey(hexPubkey, prikey);
+    });
+
+    await Get.find<HomeController>().loadRoomList(init: true);
+    Get.find<WebsocketService>().listenPubkey([hexPubkey]);
+    Get.find<WebsocketService>().listenPubkeyNip17([hexPubkey]);
+    NotifyService.addPubkeys([hexPubkey]);
+    return iden;
+  }
+
   Future delete(Identity identity) async {
     Isar database = DBProvider.database;
 
     int id = identity.id;
     String secp256k1PKHex = identity.secp256k1PKHex;
-    String curve25519PkHex = identity.curve25519PkHex;
+    String? curve25519PkHex = identity.curve25519PkHex;
     await database.writeTxn(() async {
       await database.identitys.delete(id);
       await database.mykeys.filter().identityIdEqualTo(id).deleteAll();
@@ -142,7 +151,9 @@ class IdentityService {
       await database.contacts.filter().identityIdEqualTo(id).deleteAll();
       await deleteAllByIdentity(id);
       await SecureStorage.instance.deletePrikey(secp256k1PKHex);
-      await SecureStorage.instance.deletePrikey(curve25519PkHex);
+      if (curve25519PkHex != null) {
+        await SecureStorage.instance.deletePrikey(curve25519PkHex);
+      }
     });
     Get.find<HomeController>().loadRoomList(init: true);
     NotifyService.initNofityConfig();

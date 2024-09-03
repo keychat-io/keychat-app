@@ -205,8 +205,10 @@ class ChatxService extends GetxService {
       await rust_signal.initSignalDb(dbPath: signalPath);
       await Future.delayed(const Duration(milliseconds: 100));
       var identities = await IdentityService().getIdentityList();
-      for (var element in identities) {
-        await setupSignalStoreByIdentity(element);
+      for (var identity in identities) {
+        if (identity.curve25519PkHex != null) {
+          await setupSignalStoreByIdentity(identity);
+        }
       }
     } catch (e, s) {
       logger.e(e.toString(), error: e, stackTrace: s);
@@ -215,7 +217,8 @@ class ChatxService extends GetxService {
 
   Future<KeychatIdentityKeyPair?> _initRoomSignalStore(Room room) async {
     if (room.signalIdPubkey == null) {
-      String identityPubkey = room.getIdentity().curve25519PkHex;
+      String? identityPubkey = room.getIdentity().curve25519PkHex;
+      if (identityPubkey == null) return null;
       return keypairs[identityPubkey];
     }
     return await setupSignalStoreBySignalId(room.signalIdPubkey!);
@@ -227,9 +230,12 @@ class ChatxService extends GetxService {
 
   // compatible with older version about identityId:signalId = 1:1
   Future<KeychatIdentityKeyPair> getKeyPairByIdentity(Identity identity) async {
-    var prikey =
-        await SecureStorage.instance.readPrikeyOrFail(identity.curve25519PkHex);
-    return _getKeyPair(identity.curve25519PkHex, prikey);
+    if (identity.curve25519PkHex == null) {
+      throw Exception('curve25519PkHex_is_null');
+    }
+    var prikey = await SecureStorage.instance
+        .readPrikeyOrFail(identity.curve25519PkHex!);
+    return _getKeyPair(identity.curve25519PkHex!, prikey);
   }
 
   KeychatIdentityKeyPair _getKeyPair(String pubkey, String prikey) {

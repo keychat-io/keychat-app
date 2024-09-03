@@ -8,6 +8,8 @@ import 'package:flutter/foundation.dart';
 
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 
 class DBProvider {
   static bool _isInitializing = false;
@@ -47,7 +49,10 @@ class DBProvider {
     }
 
     switch (currentVersion) {
-      case 0:
+      case 30:
+        await _migrateToVersion31();
+        await Storage.setInt(StorageKeyString.dbVersion, 31);
+        return;
       default:
         break;
       //throw Exception('Unknown version: $currentVersion');
@@ -170,19 +175,24 @@ class DBProvider {
     if (list.isEmpty) return;
     var i = 0;
     for (var item in list) {
-      if (item.secp256k1SKHex.isEmpty) continue;
+      if (item.secp256k1SKHex == null) continue;
+      if (item.secp256k1SKHex!.isEmpty) continue;
 
-      await SecureStorage.instance
-          .writePrikey(item.secp256k1PKHex, item.secp256k1SKHex);
-      await SecureStorage.instance
-          .writePrikey(item.curve25519PkHex, item.curve25519SkHex);
-      // only remove the first mnemonic
-      if (i == 0) {
-        await SecureStorage.instance.writePhraseWords(item.mnemonic);
-        item.mnemonic = '';
+      if (item.secp256k1SKHex != null) {
+        await SecureStorage.instance
+            .writePrikey(item.secp256k1PKHex, item.secp256k1SKHex!);
       }
-      item.secp256k1SKHex = '';
-      item.curve25519SkHex = '';
+      if (item.curve25519PkHex != null && item.curve25519SkHex != null) {
+        await SecureStorage.instance
+            .writePrikey(item.curve25519PkHex!, item.curve25519SkHex!);
+      }
+      // only remove the first mnemonic
+      if (i == 0 && item.mnemonic != null) {
+        await SecureStorage.instance.writePhraseWords(item.mnemonic!);
+        item.mnemonic = null;
+      }
+      item.secp256k1SKHex = null;
+      item.curve25519SkHex = null;
       await database.writeTxn(() async {
         await database.identitys.put(item);
       });
@@ -190,5 +200,27 @@ class DBProvider {
     }
     // Map<String, String> allValues = await SecureStorage.instance.readAll();
     // logger.d(allValues);
+  }
+
+  // set index for identity
+  static _migrateToVersion31() async {
+    String? mnemonic = await SecureStorage.instance.getPhraseWords();
+    if (mnemonic == null) return;
+    List<Identity> identities =
+        await DBProvider.database.identitys.where().findAll();
+    List<Secp256k1Account> sa = await rust_nostr.importFromPhraseWith(
+        phrase: mnemonic, offset: 0, count: 10);
+    for (var i = 0; i < identities.length; i++) {
+      for (var j = 0; j < sa.length; j++) {
+        // if (identities[i].index > -1) continue;
+        if (identities[i].secp256k1PKHex == sa[j].pubkey) {
+          identities[i].index = j;
+          await DBProvider.database.writeTxn(() async {
+            await DBProvider.database.identitys.put(identities[i]);
+          });
+          break;
+        }
+      }
+    }
   }
 }

@@ -42,78 +42,74 @@ class _ImportNsec extends State<ImportNsec> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          centerTitle: true,
-          title: const Text("Import Nsec / Hex Private Key"),
-        ),
+        appBar: AppBar(centerTitle: true, title: const Text("Import ID")),
         body: SafeArea(
           child: Padding(
               padding:
                   const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
               child: Column(children: [
                 Form(
-                  autovalidateMode: AutovalidateMode.onUserInteraction,
-                  child: Expanded(
-                      child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      TextField(
-                          controller: nameController,
-                          textInputAction: TextInputAction.next,
-                          autofocus: true,
-                          decoration: const InputDecoration(
-                            labelText: 'My Nickname',
-                            hintText: 'Show to friends',
-                            border: OutlineInputBorder(),
-                          )),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _privateKeyController,
-                        textInputAction: TextInputAction.done,
-                        minLines: 1,
-                        maxLines: 2,
-                        focusNode: focusNode2,
-                        decoration: InputDecoration(
-                            labelText: 'Nsec / Hex Private Key',
-                            hintText: 'Nsec / Hex Private Key',
-                            border: const OutlineInputBorder(),
-                            suffixIcon: IconButton(
-                              icon: const Icon(Icons.paste),
-                              onPressed: () async {
-                                final clipboardData =
-                                    await Clipboard.getData('text/plain');
-                                if (clipboardData != null) {
-                                  final pastedText = clipboardData.text;
-                                  if (pastedText != null && pastedText != '') {
-                                    _privateKeyController.text = pastedText;
-                                    _privateKeyController.selection =
-                                        TextSelection.fromPosition(TextPosition(
-                                            offset: _privateKeyController
-                                                .text.length));
-                                  }
-                                }
-                              },
-                            )),
-                      ),
-                      const SizedBox(
-                        height: 10,
-                      ),
-                      ListTile(
-                          leading: Checkbox(
-                            value: _isChecked,
-                            onChanged: (bool? value) {
-                              setState(() {
-                                _isChecked = value!;
-                              });
-                            },
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                    child: Expanded(
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                          TextField(
+                              controller: nameController,
+                              textInputAction: TextInputAction.next,
+                              autofocus: true,
+                              decoration: const InputDecoration(
+                                  labelText: 'My Nickname',
+                                  hintText: 'Show to friends',
+                                  border: OutlineInputBorder())),
+                          const SizedBox(height: 16),
+                          TextField(
+                              controller: _privateKeyController,
+                              textInputAction: TextInputAction.done,
+                              minLines: 1,
+                              maxLines: 2,
+                              focusNode: focusNode2,
+                              decoration: InputDecoration(
+                                  labelText: 'Nsec / Hex Private Key',
+                                  hintText: 'Nsec / Hex Private Key',
+                                  border: const OutlineInputBorder(),
+                                  suffixIcon: IconButton(
+                                      icon: const Icon(Icons.paste),
+                                      onPressed: () async {
+                                        final clipboardData =
+                                            await Clipboard.getData(
+                                                'text/plain');
+                                        if (clipboardData != null) {
+                                          final pastedText = clipboardData.text;
+                                          if (pastedText != null &&
+                                              pastedText != '') {
+                                            _privateKeyController.text =
+                                                pastedText;
+                                            _privateKeyController.selection =
+                                                TextSelection.fromPosition(
+                                                    TextPosition(
+                                                        offset:
+                                                            _privateKeyController
+                                                                .text.length));
+                                          }
+                                        }
+                                      }))),
+                          const SizedBox(
+                            height: 10,
                           ),
-                          title: const Text('Warning'),
-                          subtitle: const Text(
-                              'Nostr ID can only be used on one device'))
-                    ],
-                  )),
-                ),
+                          ListTile(
+                              leading: Checkbox(
+                                  value: _isChecked,
+                                  onChanged: (bool? value) {
+                                    setState(() {
+                                      _isChecked = value!;
+                                    });
+                                  }),
+                              title: const Text('Warning'),
+                              subtitle: const Text(
+                                  'Nostr ID can only be used on one device'))
+                        ]))),
                 FilledButton(
                   style: ButtonStyle(
                       minimumSize: WidgetStateProperty.all(

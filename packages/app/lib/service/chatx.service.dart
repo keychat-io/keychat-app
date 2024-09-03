@@ -207,7 +207,9 @@ class ChatxService extends GetxService {
       var identities = await IdentityService().getIdentityList();
       for (var identity in identities) {
         if (identity.curve25519PkHex != null) {
-          await setupSignalStoreByIdentity(identity);
+          if (identity.curve25519PkHex!.isNotEmpty) {
+            await setupSignalStoreByIdentity(identity);
+          }
         }
       }
     } catch (e, s) {

@@ -59,14 +59,15 @@ class _CreateAccountState extends State<CreateAccount> {
                 bottom: const PreferredSize(
                     preferredSize: Size.fromHeight(0),
                     child: Text('Derived from seed phrase')),
-                actions: [
-                  TextButton(
-                      onPressed: () {
-                        Get.off(() => const ImportNsec());
-                      },
-                      child: const Text('Import Nsec'))
-                ],
-              )
+                actions: Get.previousRoute == '/login'
+                    ? []
+                    : [
+                        TextButton(
+                            onPressed: () {
+                              Get.off(() => const ImportNsec());
+                            },
+                            child: const Text('Import Nsec'))
+                      ])
             : null,
         floatingActionButton: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),

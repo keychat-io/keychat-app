@@ -9,7 +9,6 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 
 class DBProvider {
   static bool _isInitializing = false;
@@ -47,6 +46,11 @@ class DBProvider {
       await Storage.setInt(StorageKeyString.dbVersion, 30);
       return;
     }
+    // var model =
+    //     await DBProvider.database.identitys.filter().idEqualTo(4).findFirst();
+    // DBProvider.database.writeTxn(() async {
+    //   await DBProvider.database.identitys.delete(model!.id);
+    // });
 
     switch (currentVersion) {
       case 30:
@@ -189,8 +193,8 @@ class DBProvider {
       // only remove the first mnemonic
       if (i == 0 && item.mnemonic != null) {
         await SecureStorage.instance.writePhraseWords(item.mnemonic!);
-        item.mnemonic = null;
       }
+      item.mnemonic = null;
       item.secp256k1SKHex = null;
       item.curve25519SkHex = null;
       await database.writeTxn(() async {
@@ -208,8 +212,8 @@ class DBProvider {
     if (mnemonic == null) return;
     List<Identity> identities =
         await DBProvider.database.identitys.where().findAll();
-    List<Secp256k1Account> sa = await rust_nostr.importFromPhraseWith(
-        phrase: mnemonic, offset: 0, count: 10);
+    List<rust_nostr.Secp256k1Account> sa = await rust_nostr
+        .importFromPhraseWith(phrase: mnemonic, offset: 0, count: 10);
     for (var i = 0; i < identities.length; i++) {
       for (var j = 0; j < sa.length; j++) {
         // if (identities[i].index > -1) continue;

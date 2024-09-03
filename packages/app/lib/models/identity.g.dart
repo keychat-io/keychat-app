@@ -98,7 +98,21 @@ const IdentitySchema = CollectionSchema(
   deserialize: _identityDeserialize,
   deserializeProp: _identityDeserializeProp,
   idName: r'id',
-  indexes: {},
+  indexes: {
+    r'secp256k1PKHex': IndexSchema(
+      id: -364661618598356608,
+      name: r'secp256k1PKHex',
+      unique: true,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'secp256k1PKHex',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    )
+  },
   links: {},
   embeddedSchemas: {},
   getId: _identityGetId,
@@ -257,6 +271,63 @@ void _identityAttach(IsarCollection<dynamic> col, Id id, Identity object) {
   object.id = id;
 }
 
+extension IdentityByIndex on IsarCollection<Identity> {
+  Future<Identity?> getBySecp256k1PKHex(String secp256k1PKHex) {
+    return getByIndex(r'secp256k1PKHex', [secp256k1PKHex]);
+  }
+
+  Identity? getBySecp256k1PKHexSync(String secp256k1PKHex) {
+    return getByIndexSync(r'secp256k1PKHex', [secp256k1PKHex]);
+  }
+
+  Future<bool> deleteBySecp256k1PKHex(String secp256k1PKHex) {
+    return deleteByIndex(r'secp256k1PKHex', [secp256k1PKHex]);
+  }
+
+  bool deleteBySecp256k1PKHexSync(String secp256k1PKHex) {
+    return deleteByIndexSync(r'secp256k1PKHex', [secp256k1PKHex]);
+  }
+
+  Future<List<Identity?>> getAllBySecp256k1PKHex(
+      List<String> secp256k1PKHexValues) {
+    final values = secp256k1PKHexValues.map((e) => [e]).toList();
+    return getAllByIndex(r'secp256k1PKHex', values);
+  }
+
+  List<Identity?> getAllBySecp256k1PKHexSync(
+      List<String> secp256k1PKHexValues) {
+    final values = secp256k1PKHexValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'secp256k1PKHex', values);
+  }
+
+  Future<int> deleteAllBySecp256k1PKHex(List<String> secp256k1PKHexValues) {
+    final values = secp256k1PKHexValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'secp256k1PKHex', values);
+  }
+
+  int deleteAllBySecp256k1PKHexSync(List<String> secp256k1PKHexValues) {
+    final values = secp256k1PKHexValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'secp256k1PKHex', values);
+  }
+
+  Future<Id> putBySecp256k1PKHex(Identity object) {
+    return putByIndex(r'secp256k1PKHex', object);
+  }
+
+  Id putBySecp256k1PKHexSync(Identity object, {bool saveLinks = true}) {
+    return putByIndexSync(r'secp256k1PKHex', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllBySecp256k1PKHex(List<Identity> objects) {
+    return putAllByIndex(r'secp256k1PKHex', objects);
+  }
+
+  List<Id> putAllBySecp256k1PKHexSync(List<Identity> objects,
+      {bool saveLinks = true}) {
+    return putAllByIndexSync(r'secp256k1PKHex', objects, saveLinks: saveLinks);
+  }
+}
+
 extension IdentityQueryWhereSort on QueryBuilder<Identity, Identity, QWhere> {
   QueryBuilder<Identity, Identity, QAfterWhere> anyId() {
     return QueryBuilder.apply(this, (query) {
@@ -328,6 +399,51 @@ extension IdentityQueryWhere on QueryBuilder<Identity, Identity, QWhereClause> {
         upper: upperId,
         includeUpper: includeUpper,
       ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterWhereClause> secp256k1PKHexEqualTo(
+      String secp256k1PKHex) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'secp256k1PKHex',
+        value: [secp256k1PKHex],
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterWhereClause> secp256k1PKHexNotEqualTo(
+      String secp256k1PKHex) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'secp256k1PKHex',
+              lower: [],
+              upper: [secp256k1PKHex],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'secp256k1PKHex',
+              lower: [secp256k1PKHex],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'secp256k1PKHex',
+              lower: [secp256k1PKHex],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'secp256k1PKHex',
+              lower: [],
+              upper: [secp256k1PKHex],
+              includeUpper: false,
+            ));
+      }
     });
   }
 }

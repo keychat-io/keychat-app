@@ -131,9 +131,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                         onPressed: (context) {
                           Get.bottomSheet(_idKeysWidget());
                         },
-                        value: controller.identity.value.index == -1
-                            ? const Text('nesc')
-                            : const Text('seed phrase'),
+                        value: const Text('seed phrase'),
                       ),
                     SettingsTile.navigation(
                       leading: const Icon(CupertinoIcons.pen),
@@ -290,37 +288,36 @@ class AccountSettingPage extends GetView<AccountSettingController> {
               description:
                   Text(controller.identity.value.curve25519PkHex ?? ''),
             ),
-          if (controller.identity.value.index > -1)
-            SettingsTile.navigation(
-              title: const Text("Seed Phrase"),
-              onPressed: (context) async {
-                String? mnemonic = controller.identity.value.mnemonic;
-                if (mnemonic == null || mnemonic.isEmpty) {
-                  mnemonic = await SecureStorage.instance.getPhraseWords();
-                }
-                Get.dialog(CupertinoAlertDialog(
-                  title: const Text("Seed Phrase"),
-                  content: Text(mnemonic ?? ''),
-                  actions: <Widget>[
-                    CupertinoDialogAction(
-                      isDefaultAction: true,
-                      onPressed: () {
-                        Clipboard.setData(ClipboardData(text: mnemonic ?? ''));
-                        EasyLoading.showSuccess("Copied");
-                        Get.back();
-                      },
-                      child: const Text("Copy"),
-                    ),
-                    CupertinoDialogAction(
-                      child: const Text("Close"),
-                      onPressed: () {
-                        Get.back();
-                      },
-                    ),
-                  ],
-                ));
-              },
-            ),
+          SettingsTile.navigation(
+            title: const Text("Seed Phrase"),
+            onPressed: (context) async {
+              String? mnemonic = controller.identity.value.mnemonic;
+              if (mnemonic == null || mnemonic.isEmpty) {
+                mnemonic = await SecureStorage.instance.getPhraseWords();
+              }
+              Get.dialog(CupertinoAlertDialog(
+                title: const Text("Seed Phrase"),
+                content: Text(mnemonic ?? ''),
+                actions: <Widget>[
+                  CupertinoDialogAction(
+                    isDefaultAction: true,
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: mnemonic ?? ''));
+                      EasyLoading.showSuccess("Copied");
+                      Get.back();
+                    },
+                    child: const Text("Copy"),
+                  ),
+                  CupertinoDialogAction(
+                    child: const Text("Close"),
+                    onPressed: () {
+                      Get.back();
+                    },
+                  ),
+                ],
+              ));
+            },
+          ),
         ],
       )
     ]);

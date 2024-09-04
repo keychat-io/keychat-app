@@ -521,10 +521,10 @@ Tags: ${event.tags}''',
   }
 
   Future dmNip4Proccess(
-      NostrEventModel event, Relay relay, EventLog? eventLog) async {
-    String? content = await decryptNip4Content(event);
+      NostrEventModel sourceEvent, Relay relay, EventLog? eventLog) async {
+    String? content = await decryptNip4Content(sourceEvent);
     if (content == null) {
-      logger.e('decryptNip4Content error: ${event.id}');
+      logger.e('decryptNip4Content error: ${sourceEvent.id}');
       eventLog?.setNote('Nip04 ecrypt error');
       return;
     }
@@ -533,14 +533,13 @@ Tags: ${event.tags}''',
     try {
       decodedContent = jsonDecode(content);
     } catch (e) {
-      return await Nip4ChatService().receiveNip4Message(event, content);
+      return await Nip4ChatService().receiveNip4Message(sourceEvent, content);
     }
 
     KeychatMessage? km = getKeyChatMessageFromJson(decodedContent);
     if (km != null) {
-      return await RoomService().processKeychatMessage(km, event, relay);
+      return await RoomService().processKeychatMessage(km, sourceEvent, relay);
     }
-    // todo check sub event
 
     // nip4(nip4/signal) message for old version
     NostrEventModel? subEvent;
@@ -548,11 +547,11 @@ Tags: ${event.tags}''',
       subEvent = NostrEventModel.deserialize(decodedContent);
     } catch (e) {}
     if (subEvent != null) {
-      await _processSubEvent(event, subEvent, relay);
+      await _processSubEvent(sourceEvent, subEvent, relay);
       return;
     }
 
-    return await Nip4ChatService().receiveNip4Message(event, content);
+    return await Nip4ChatService().receiveNip4Message(sourceEvent, content);
   }
 
   _processSubEvent(

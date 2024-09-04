@@ -12,35 +12,33 @@ class Identity extends Equatable {
   bool isDefault = false;
 
   @Deprecated('mnemonic is stored in the keychain')
-  late String mnemonic;
+  String? mnemonic;
 
   @Deprecated('calculate by mnemonic and offset')
-  late String curve25519SkHex;
+  String? curve25519SkHex;
 
+  @Index(unique: true)
   late String secp256k1PKHex;
 
   @Deprecated('calculate by mnemonic and offset')
-  late String secp256k1SKHex;
+  String? secp256k1SKHex;
   late String npub;
 
   String name;
   String? about;
   String get displayName => name;
 
-  @Index(unique: true)
-  late String curve25519PkHex;
+  String? curve25519PkHex;
 
   String? note;
   late DateTime createdAt;
 
+  int index = 0;
+
   Identity({
     required this.name,
-    required this.mnemonic,
-    required this.secp256k1PKHex,
-    required this.secp256k1SKHex,
     required this.npub,
-    required this.curve25519SkHex,
-    required this.curve25519PkHex,
+    required this.secp256k1PKHex,
     this.note,
   }) {
     createdAt = DateTime.now();
@@ -59,15 +57,13 @@ class Identity extends Equatable {
     return await SecureStorage.instance.readPrikeyOrFail(secp256k1PKHex);
   }
 
-  Future<String> getCurve25519SkHex() async {
-    return await SecureStorage.instance.readPrikeyOrFail(curve25519PkHex);
+  Future<String?> getCurve25519SkHex() async {
+    if (curve25519PkHex == null) return null;
+    return await SecureStorage.instance.readPrikeyOrFail(curve25519PkHex!);
   }
 
-  Future<String> getMnemonic() async {
-    var res = await SecureStorage.instance.getPhraseWords();
-    if (res == null || res.isEmpty) {
-      throw Exception('mnemonic not found');
-    }
-    return res;
+  Future<String?> getMnemonic() async {
+    if (index == -1) return null;
+    return await SecureStorage.instance.getPhraseWords();
   }
 }

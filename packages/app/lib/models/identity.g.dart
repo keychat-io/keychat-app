@@ -42,48 +42,53 @@ const IdentitySchema = CollectionSchema(
       name: r'hashCode',
       type: IsarType.long,
     ),
-    r'isDefault': PropertySchema(
+    r'index': PropertySchema(
       id: 5,
+      name: r'index',
+      type: IsarType.long,
+    ),
+    r'isDefault': PropertySchema(
+      id: 6,
       name: r'isDefault',
       type: IsarType.bool,
     ),
     r'mnemonic': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'mnemonic',
       type: IsarType.string,
     ),
     r'name': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'name',
       type: IsarType.string,
     ),
     r'note': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'note',
       type: IsarType.string,
     ),
     r'npub': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'npub',
       type: IsarType.string,
     ),
     r'secp256k1PKHex': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'secp256k1PKHex',
       type: IsarType.string,
     ),
     r'secp256k1SKHex': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'secp256k1SKHex',
       type: IsarType.string,
     ),
     r'stringify': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'weight': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'weight',
       type: IsarType.long,
     )
@@ -94,14 +99,14 @@ const IdentitySchema = CollectionSchema(
   deserializeProp: _identityDeserializeProp,
   idName: r'id',
   indexes: {
-    r'curve25519PkHex': IndexSchema(
-      id: 2327133715061765490,
-      name: r'curve25519PkHex',
+    r'secp256k1PKHex': IndexSchema(
+      id: -364661618598356608,
+      name: r'secp256k1PKHex',
       unique: true,
       replace: false,
       properties: [
         IndexPropertySchema(
-          name: r'curve25519PkHex',
+          name: r'secp256k1PKHex',
           type: IndexType.hash,
           caseSensitive: true,
         )
@@ -128,9 +133,24 @@ int _identityEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
-  bytesCount += 3 + object.curve25519PkHex.length * 3;
-  bytesCount += 3 + object.curve25519SkHex.length * 3;
-  bytesCount += 3 + object.mnemonic.length * 3;
+  {
+    final value = object.curve25519PkHex;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.curve25519SkHex;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.mnemonic;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.name.length * 3;
   {
     final value = object.note;
@@ -140,7 +160,12 @@ int _identityEstimateSize(
   }
   bytesCount += 3 + object.npub.length * 3;
   bytesCount += 3 + object.secp256k1PKHex.length * 3;
-  bytesCount += 3 + object.secp256k1SKHex.length * 3;
+  {
+    final value = object.secp256k1SKHex;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   return bytesCount;
 }
 
@@ -155,15 +180,16 @@ void _identitySerialize(
   writer.writeString(offsets[2], object.curve25519PkHex);
   writer.writeString(offsets[3], object.curve25519SkHex);
   writer.writeLong(offsets[4], object.hashCode);
-  writer.writeBool(offsets[5], object.isDefault);
-  writer.writeString(offsets[6], object.mnemonic);
-  writer.writeString(offsets[7], object.name);
-  writer.writeString(offsets[8], object.note);
-  writer.writeString(offsets[9], object.npub);
-  writer.writeString(offsets[10], object.secp256k1PKHex);
-  writer.writeString(offsets[11], object.secp256k1SKHex);
-  writer.writeBool(offsets[12], object.stringify);
-  writer.writeLong(offsets[13], object.weight);
+  writer.writeLong(offsets[5], object.index);
+  writer.writeBool(offsets[6], object.isDefault);
+  writer.writeString(offsets[7], object.mnemonic);
+  writer.writeString(offsets[8], object.name);
+  writer.writeString(offsets[9], object.note);
+  writer.writeString(offsets[10], object.npub);
+  writer.writeString(offsets[11], object.secp256k1PKHex);
+  writer.writeString(offsets[12], object.secp256k1SKHex);
+  writer.writeBool(offsets[13], object.stringify);
+  writer.writeLong(offsets[14], object.weight);
 }
 
 Identity _identityDeserialize(
@@ -173,20 +199,21 @@ Identity _identityDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Identity(
-    curve25519PkHex: reader.readString(offsets[2]),
-    curve25519SkHex: reader.readString(offsets[3]),
-    mnemonic: reader.readString(offsets[6]),
-    name: reader.readString(offsets[7]),
-    note: reader.readStringOrNull(offsets[8]),
-    npub: reader.readString(offsets[9]),
-    secp256k1PKHex: reader.readString(offsets[10]),
-    secp256k1SKHex: reader.readString(offsets[11]),
+    name: reader.readString(offsets[8]),
+    note: reader.readStringOrNull(offsets[9]),
+    npub: reader.readString(offsets[10]),
+    secp256k1PKHex: reader.readString(offsets[11]),
   );
   object.about = reader.readStringOrNull(offsets[0]);
   object.createdAt = reader.readDateTime(offsets[1]);
+  object.curve25519PkHex = reader.readStringOrNull(offsets[2]);
+  object.curve25519SkHex = reader.readStringOrNull(offsets[3]);
   object.id = id;
-  object.isDefault = reader.readBool(offsets[5]);
-  object.weight = reader.readLong(offsets[13]);
+  object.index = reader.readLong(offsets[5]);
+  object.isDefault = reader.readBool(offsets[6]);
+  object.mnemonic = reader.readStringOrNull(offsets[7]);
+  object.secp256k1SKHex = reader.readStringOrNull(offsets[12]);
+  object.weight = reader.readLong(offsets[14]);
   return object;
 }
 
@@ -202,28 +229,30 @@ P _identityDeserializeProp<P>(
     case 1:
       return (reader.readDateTime(offset)) as P;
     case 2:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 3:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 4:
       return (reader.readLong(offset)) as P;
     case 5:
-      return (reader.readBool(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 6:
-      return (reader.readString(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 7:
-      return (reader.readString(offset)) as P;
-    case 8:
       return (reader.readStringOrNull(offset)) as P;
-    case 9:
+    case 8:
       return (reader.readString(offset)) as P;
+    case 9:
+      return (reader.readStringOrNull(offset)) as P;
     case 10:
       return (reader.readString(offset)) as P;
     case 11:
       return (reader.readString(offset)) as P;
     case 12:
-      return (reader.readBoolOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 13:
+      return (reader.readBoolOrNull(offset)) as P;
+    case 14:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -243,59 +272,59 @@ void _identityAttach(IsarCollection<dynamic> col, Id id, Identity object) {
 }
 
 extension IdentityByIndex on IsarCollection<Identity> {
-  Future<Identity?> getByCurve25519PkHex(String curve25519PkHex) {
-    return getByIndex(r'curve25519PkHex', [curve25519PkHex]);
+  Future<Identity?> getBySecp256k1PKHex(String secp256k1PKHex) {
+    return getByIndex(r'secp256k1PKHex', [secp256k1PKHex]);
   }
 
-  Identity? getByCurve25519PkHexSync(String curve25519PkHex) {
-    return getByIndexSync(r'curve25519PkHex', [curve25519PkHex]);
+  Identity? getBySecp256k1PKHexSync(String secp256k1PKHex) {
+    return getByIndexSync(r'secp256k1PKHex', [secp256k1PKHex]);
   }
 
-  Future<bool> deleteByCurve25519PkHex(String curve25519PkHex) {
-    return deleteByIndex(r'curve25519PkHex', [curve25519PkHex]);
+  Future<bool> deleteBySecp256k1PKHex(String secp256k1PKHex) {
+    return deleteByIndex(r'secp256k1PKHex', [secp256k1PKHex]);
   }
 
-  bool deleteByCurve25519PkHexSync(String curve25519PkHex) {
-    return deleteByIndexSync(r'curve25519PkHex', [curve25519PkHex]);
+  bool deleteBySecp256k1PKHexSync(String secp256k1PKHex) {
+    return deleteByIndexSync(r'secp256k1PKHex', [secp256k1PKHex]);
   }
 
-  Future<List<Identity?>> getAllByCurve25519PkHex(
-      List<String> curve25519PkHexValues) {
-    final values = curve25519PkHexValues.map((e) => [e]).toList();
-    return getAllByIndex(r'curve25519PkHex', values);
+  Future<List<Identity?>> getAllBySecp256k1PKHex(
+      List<String> secp256k1PKHexValues) {
+    final values = secp256k1PKHexValues.map((e) => [e]).toList();
+    return getAllByIndex(r'secp256k1PKHex', values);
   }
 
-  List<Identity?> getAllByCurve25519PkHexSync(
-      List<String> curve25519PkHexValues) {
-    final values = curve25519PkHexValues.map((e) => [e]).toList();
-    return getAllByIndexSync(r'curve25519PkHex', values);
+  List<Identity?> getAllBySecp256k1PKHexSync(
+      List<String> secp256k1PKHexValues) {
+    final values = secp256k1PKHexValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'secp256k1PKHex', values);
   }
 
-  Future<int> deleteAllByCurve25519PkHex(List<String> curve25519PkHexValues) {
-    final values = curve25519PkHexValues.map((e) => [e]).toList();
-    return deleteAllByIndex(r'curve25519PkHex', values);
+  Future<int> deleteAllBySecp256k1PKHex(List<String> secp256k1PKHexValues) {
+    final values = secp256k1PKHexValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'secp256k1PKHex', values);
   }
 
-  int deleteAllByCurve25519PkHexSync(List<String> curve25519PkHexValues) {
-    final values = curve25519PkHexValues.map((e) => [e]).toList();
-    return deleteAllByIndexSync(r'curve25519PkHex', values);
+  int deleteAllBySecp256k1PKHexSync(List<String> secp256k1PKHexValues) {
+    final values = secp256k1PKHexValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'secp256k1PKHex', values);
   }
 
-  Future<Id> putByCurve25519PkHex(Identity object) {
-    return putByIndex(r'curve25519PkHex', object);
+  Future<Id> putBySecp256k1PKHex(Identity object) {
+    return putByIndex(r'secp256k1PKHex', object);
   }
 
-  Id putByCurve25519PkHexSync(Identity object, {bool saveLinks = true}) {
-    return putByIndexSync(r'curve25519PkHex', object, saveLinks: saveLinks);
+  Id putBySecp256k1PKHexSync(Identity object, {bool saveLinks = true}) {
+    return putByIndexSync(r'secp256k1PKHex', object, saveLinks: saveLinks);
   }
 
-  Future<List<Id>> putAllByCurve25519PkHex(List<Identity> objects) {
-    return putAllByIndex(r'curve25519PkHex', objects);
+  Future<List<Id>> putAllBySecp256k1PKHex(List<Identity> objects) {
+    return putAllByIndex(r'secp256k1PKHex', objects);
   }
 
-  List<Id> putAllByCurve25519PkHexSync(List<Identity> objects,
+  List<Id> putAllBySecp256k1PKHexSync(List<Identity> objects,
       {bool saveLinks = true}) {
-    return putAllByIndexSync(r'curve25519PkHex', objects, saveLinks: saveLinks);
+    return putAllByIndexSync(r'secp256k1PKHex', objects, saveLinks: saveLinks);
   }
 }
 
@@ -373,45 +402,45 @@ extension IdentityQueryWhere on QueryBuilder<Identity, Identity, QWhereClause> {
     });
   }
 
-  QueryBuilder<Identity, Identity, QAfterWhereClause> curve25519PkHexEqualTo(
-      String curve25519PkHex) {
+  QueryBuilder<Identity, Identity, QAfterWhereClause> secp256k1PKHexEqualTo(
+      String secp256k1PKHex) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'curve25519PkHex',
-        value: [curve25519PkHex],
+        indexName: r'secp256k1PKHex',
+        value: [secp256k1PKHex],
       ));
     });
   }
 
-  QueryBuilder<Identity, Identity, QAfterWhereClause> curve25519PkHexNotEqualTo(
-      String curve25519PkHex) {
+  QueryBuilder<Identity, Identity, QAfterWhereClause> secp256k1PKHexNotEqualTo(
+      String secp256k1PKHex) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'curve25519PkHex',
+              indexName: r'secp256k1PKHex',
               lower: [],
-              upper: [curve25519PkHex],
+              upper: [secp256k1PKHex],
               includeUpper: false,
             ))
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'curve25519PkHex',
-              lower: [curve25519PkHex],
+              indexName: r'secp256k1PKHex',
+              lower: [secp256k1PKHex],
               includeLower: false,
               upper: [],
             ));
       } else {
         return query
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'curve25519PkHex',
-              lower: [curve25519PkHex],
+              indexName: r'secp256k1PKHex',
+              lower: [secp256k1PKHex],
               includeLower: false,
               upper: [],
             ))
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'curve25519PkHex',
+              indexName: r'secp256k1PKHex',
               lower: [],
-              upper: [curve25519PkHex],
+              upper: [secp256k1PKHex],
               includeUpper: false,
             ));
       }
@@ -621,8 +650,26 @@ extension IdentityQueryFilter
   }
 
   QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      curve25519PkHexIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'curve25519PkHex',
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      curve25519PkHexIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'curve25519PkHex',
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
       curve25519PkHexEqualTo(
-    String value, {
+    String? value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
@@ -636,7 +683,7 @@ extension IdentityQueryFilter
 
   QueryBuilder<Identity, Identity, QAfterFilterCondition>
       curve25519PkHexGreaterThan(
-    String value, {
+    String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -652,7 +699,7 @@ extension IdentityQueryFilter
 
   QueryBuilder<Identity, Identity, QAfterFilterCondition>
       curve25519PkHexLessThan(
-    String value, {
+    String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -668,8 +715,8 @@ extension IdentityQueryFilter
 
   QueryBuilder<Identity, Identity, QAfterFilterCondition>
       curve25519PkHexBetween(
-    String lower,
-    String upper, {
+    String? lower,
+    String? upper, {
     bool includeLower = true,
     bool includeUpper = true,
     bool caseSensitive = true,
@@ -757,8 +804,26 @@ extension IdentityQueryFilter
   }
 
   QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      curve25519SkHexIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'curve25519SkHex',
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      curve25519SkHexIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'curve25519SkHex',
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
       curve25519SkHexEqualTo(
-    String value, {
+    String? value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
@@ -772,7 +837,7 @@ extension IdentityQueryFilter
 
   QueryBuilder<Identity, Identity, QAfterFilterCondition>
       curve25519SkHexGreaterThan(
-    String value, {
+    String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -788,7 +853,7 @@ extension IdentityQueryFilter
 
   QueryBuilder<Identity, Identity, QAfterFilterCondition>
       curve25519SkHexLessThan(
-    String value, {
+    String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -804,8 +869,8 @@ extension IdentityQueryFilter
 
   QueryBuilder<Identity, Identity, QAfterFilterCondition>
       curve25519SkHexBetween(
-    String lower,
-    String upper, {
+    String? lower,
+    String? upper, {
     bool includeLower = true,
     bool includeUpper = true,
     bool caseSensitive = true,
@@ -997,6 +1062,59 @@ extension IdentityQueryFilter
     });
   }
 
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> indexEqualTo(
+      int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'index',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> indexGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'index',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> indexLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'index',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> indexBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'index',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
   QueryBuilder<Identity, Identity, QAfterFilterCondition> isDefaultEqualTo(
       bool value) {
     return QueryBuilder.apply(this, (query) {
@@ -1007,8 +1125,24 @@ extension IdentityQueryFilter
     });
   }
 
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> mnemonicIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'mnemonic',
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> mnemonicIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'mnemonic',
+      ));
+    });
+  }
+
   QueryBuilder<Identity, Identity, QAfterFilterCondition> mnemonicEqualTo(
-    String value, {
+    String? value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
@@ -1021,7 +1155,7 @@ extension IdentityQueryFilter
   }
 
   QueryBuilder<Identity, Identity, QAfterFilterCondition> mnemonicGreaterThan(
-    String value, {
+    String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -1036,7 +1170,7 @@ extension IdentityQueryFilter
   }
 
   QueryBuilder<Identity, Identity, QAfterFilterCondition> mnemonicLessThan(
-    String value, {
+    String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -1051,8 +1185,8 @@ extension IdentityQueryFilter
   }
 
   QueryBuilder<Identity, Identity, QAfterFilterCondition> mnemonicBetween(
-    String lower,
-    String upper, {
+    String? lower,
+    String? upper, {
     bool includeLower = true,
     bool includeUpper = true,
     bool caseSensitive = true,
@@ -1678,8 +1812,26 @@ extension IdentityQueryFilter
     });
   }
 
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      secp256k1SKHexIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'secp256k1SKHex',
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      secp256k1SKHexIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'secp256k1SKHex',
+      ));
+    });
+  }
+
   QueryBuilder<Identity, Identity, QAfterFilterCondition> secp256k1SKHexEqualTo(
-    String value, {
+    String? value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
@@ -1693,7 +1845,7 @@ extension IdentityQueryFilter
 
   QueryBuilder<Identity, Identity, QAfterFilterCondition>
       secp256k1SKHexGreaterThan(
-    String value, {
+    String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -1709,7 +1861,7 @@ extension IdentityQueryFilter
 
   QueryBuilder<Identity, Identity, QAfterFilterCondition>
       secp256k1SKHexLessThan(
-    String value, {
+    String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -1724,8 +1876,8 @@ extension IdentityQueryFilter
   }
 
   QueryBuilder<Identity, Identity, QAfterFilterCondition> secp256k1SKHexBetween(
-    String lower,
-    String upper, {
+    String? lower,
+    String? upper, {
     bool includeLower = true,
     bool includeUpper = true,
     bool caseSensitive = true,
@@ -1960,6 +2112,18 @@ extension IdentityQuerySortBy on QueryBuilder<Identity, Identity, QSortBy> {
     });
   }
 
+  QueryBuilder<Identity, Identity, QAfterSortBy> sortByIndex() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'index', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy> sortByIndexDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'index', Sort.desc);
+    });
+  }
+
   QueryBuilder<Identity, Identity, QAfterSortBy> sortByIsDefault() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isDefault', Sort.asc);
@@ -2143,6 +2307,18 @@ extension IdentityQuerySortThenBy
     });
   }
 
+  QueryBuilder<Identity, Identity, QAfterSortBy> thenByIndex() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'index', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy> thenByIndexDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'index', Sort.desc);
+    });
+  }
+
   QueryBuilder<Identity, Identity, QAfterSortBy> thenByIsDefault() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isDefault', Sort.asc);
@@ -2289,6 +2465,12 @@ extension IdentityQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Identity, Identity, QDistinct> distinctByIndex() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'index');
+    });
+  }
+
   QueryBuilder<Identity, Identity, QDistinct> distinctByIsDefault() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isDefault');
@@ -2372,13 +2554,13 @@ extension IdentityQueryProperty
     });
   }
 
-  QueryBuilder<Identity, String, QQueryOperations> curve25519PkHexProperty() {
+  QueryBuilder<Identity, String?, QQueryOperations> curve25519PkHexProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'curve25519PkHex');
     });
   }
 
-  QueryBuilder<Identity, String, QQueryOperations> curve25519SkHexProperty() {
+  QueryBuilder<Identity, String?, QQueryOperations> curve25519SkHexProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'curve25519SkHex');
     });
@@ -2390,13 +2572,19 @@ extension IdentityQueryProperty
     });
   }
 
+  QueryBuilder<Identity, int, QQueryOperations> indexProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'index');
+    });
+  }
+
   QueryBuilder<Identity, bool, QQueryOperations> isDefaultProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isDefault');
     });
   }
 
-  QueryBuilder<Identity, String, QQueryOperations> mnemonicProperty() {
+  QueryBuilder<Identity, String?, QQueryOperations> mnemonicProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'mnemonic');
     });
@@ -2426,7 +2614,7 @@ extension IdentityQueryProperty
     });
   }
 
-  QueryBuilder<Identity, String, QQueryOperations> secp256k1SKHexProperty() {
+  QueryBuilder<Identity, String?, QQueryOperations> secp256k1SKHexProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'secp256k1SKHex');
     });

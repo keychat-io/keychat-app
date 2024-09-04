@@ -134,16 +134,9 @@ class _ImportKey extends State<ImportKey> {
                       return;
                     }
                     try {
-                      bool exist =
-                          await IdentityService().checkMnemonicsExist(input);
-                      if (exist) {
-                        EasyLoading.showError(
-                            'This seed phrase already exists');
-                        return;
-                      }
                       var kc = await rust_nostr.importFromPhrase(phrase: input);
                       var newIdentity = await IdentityService()
-                          .createIdentity(name: name, account: kc);
+                          .createIdentity(name: name, account: kc, index: 0);
                       bool isFirstAccount =
                           Get.find<HomeController>().identities.length == 1;
                       if (isFirstAccount) {

@@ -1,4 +1,4 @@
-import 'package:app/models/models.dart';
+import 'package:app/models/nostr_event_status.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
@@ -11,18 +11,20 @@ class NostrEventsPage extends GetView<NostrEventsController> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: const Text('Receive Nostr Events'),
+          title: const Text('Error Received Events'),
         ),
         body: SafeArea(
             child: Obx(() => ListView.builder(
                 itemBuilder: (context, index) {
-                  EventLog el = controller.events[index];
+                  NostrEventStatus el = controller.events[index];
                   return ListTile(
                     title: Text(el.eventId, overflow: TextOverflow.ellipsis),
                     subtitle: Wrap(
                       direction: Axis.vertical,
                       children: [
-                        Text('Message: ${el.message?.content}'),
+                        Text('Status: ${el.sendStatus.name}'),
+                        Text('Relay: ${el.relay}'),
+                        if (el.error != null) Text('Error: ${el.error}'),
                         Text(el.createdAt.toString())
                       ],
                     ),

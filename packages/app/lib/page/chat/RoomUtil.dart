@@ -3,10 +3,10 @@ import 'package:app/constants.dart';
 import 'package:app/global.dart';
 import 'package:app/models/contact.dart';
 import 'package:app/models/embedded/msg_reply.dart';
-import 'package:app/models/event_log.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/models/keychat/group_message.dart';
 import 'package:app/models/keychat/qrcode_user_model.dart';
+import 'package:app/models/nostr_event_status.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/ChatMediaFilesPage.dart';
 import 'package:app/page/chat/contact_page.dart';
@@ -22,7 +22,6 @@ import 'package:app/models/db_provider.dart';
 import 'package:app/models/embedded/msg_file_info.dart';
 
 import 'package:app/models/message.dart';
-import 'package:app/models/message_bill.dart';
 import 'package:app/models/room.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/widgets/image_min_preview_widget.dart';
@@ -66,7 +65,7 @@ Let's start an encrypted chat.''';
   static Future executeAutoDelete() async {
     // delete nostr event log
     await DBProvider.database.writeTxn(() async {
-      await DBProvider.database.eventLogs
+      await DBProvider.database.nostrEventStatus
           .filter()
           .createdAtLessThan(DateTime.now().subtract(const Duration(days: 30)))
           .deleteAll();
@@ -113,11 +112,6 @@ Let's start an encrypted chat.''';
     Isar database = DBProvider.database;
     await database.writeTxn(() async {
       await database.messages
-          .filter()
-          .roomIdEqualTo(roomId)
-          .createdAtLessThan(fromAt)
-          .deleteAll();
-      await database.messageBills
           .filter()
           .roomIdEqualTo(roomId)
           .createdAtLessThan(fromAt)
@@ -527,5 +521,15 @@ Sending a message is essentially sending multiple one-on-one chats. More stamps 
     if (event.isSignal) return MessageEncryptType.nip4WrapSignal;
 
     return event.encryptType;
+  }
+
+  static Widget getStatusIcon(int max, int success) {
+    if (max == success && max > 0) {
+      return const Icon(Icons.check_circle, color: Colors.green);
+    }
+
+    if (success == 0) return const Icon(Icons.error_outline, color: Colors.red);
+
+    return const Icon(Icons.circle, color: Colors.lightGreen);
   }
 }

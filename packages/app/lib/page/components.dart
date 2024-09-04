@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:app/global.dart';
+import 'package:app/models/nostr_event_status.dart';
 import 'package:app/models/models.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/create_contact_page.dart';
@@ -17,7 +18,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
-import 'package:keychat_ecash/utils.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:search_page/search_page.dart';
@@ -325,46 +325,28 @@ Widget codeSnippet(String text) {
   );
 }
 
-Widget relayStatusList(BuildContext context, List<EventLog> eventLogs,
-    [List<MessageBill> bills = const []]) {
-  if (eventLogs.isEmpty) return const SizedBox();
-  Map<String, dynamic> data = eventLogs[0].getRelayStatusMap();
-  if (data.keys.isEmpty) return const SizedBox();
-  Map<String, MessageBill> pay = {};
-
-  for (var item in bills) {
-    pay[item.relay] = item;
-  }
+Widget relayStatusList(BuildContext context, List<NostrEventStatus> ess) {
+  if (ess.isEmpty) return const SizedBox();
 
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(
-        'Message Relay List',
-        style: Theme.of(context).textTheme.titleMedium,
-      ),
-      Column(
-          children: data.keys
-              .map((e) => Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          e,
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
-                        Wrap(children: [
-                          if (pay[e] != null)
-                            Text(
-                                '${pay[e]!.amount} ${EcashTokenSymbol.sat.name}'),
-                          Icon(
-                            data[e] == 1 ? Icons.done : Icons.close,
-                            color: data[e] == 1 ? Colors.green : Colors.red,
-                          ),
-                        ]),
-                      ]))
-              .toList()),
-      if (eventLogs[0].failedReasons.isNotEmpty)
-        NoticeTextWidget.error(eventLogs[0].failedReasons.join('\n'))
+      Text('Message Status', style: Theme.of(context).textTheme.titleMedium),
+      ...ess.map((NostrEventStatus es) => ListTile(
+          dense: true,
+          title: Text(es.relay, style: Theme.of(context).textTheme.titleSmall),
+          subtitle: es.error != null
+              ? Text(es.error!,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: Colors.red))
+              : null,
+          trailing: es.ecashAmount > 0
+              ? Text('-${es.ecashAmount} ${es.ecashName}')
+              : null,
+          leading: RoomUtil.getStatusIcon(
+              1, es.sendStatus == EventSendEnum.success ? 1 : 0))),
     ],
   );
 }

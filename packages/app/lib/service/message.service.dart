@@ -1,4 +1,4 @@
-import 'dart:convert' show jsonDecode;
+import 'dart:convert' show jsonDecode, jsonEncode;
 
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/rust_api.dart';
@@ -58,20 +58,20 @@ class MessageService {
   Future saveSystemMessage(Room room, String content) async {
     Identity identity = room.getIdentity();
     await saveMessageModel(Message(
-      msgid: Utils.randomString(16),
-      idPubkey: identity.secp256k1PKHex,
-      identityId: room.identityId,
-      roomId: room.id,
-      from: identity.secp256k1PKHex,
-      to: room.toMainPubkey,
-      content: '[SystemMessage] $content',
-      createdAt: DateTime.now(),
-      sent: SendStatusType.success,
-      isMeSend: true,
-      isSystem: true,
-      eventIds: const [],
-      encryptType: MessageEncryptType.signal,
-    ));
+        msgid: Utils.randomString(16),
+        idPubkey: identity.secp256k1PKHex,
+        identityId: room.identityId,
+        roomId: room.id,
+        from: identity.secp256k1PKHex,
+        to: room.toMainPubkey,
+        content: '[SystemMessage] $content',
+        createdAt: DateTime.now(),
+        sent: SendStatusType.success,
+        isMeSend: true,
+        isSystem: true,
+        eventIds: const [],
+        encryptType: MessageEncryptType.signal,
+        rawEvents: const []));
   }
 
   Future updateMessageAndRefresh(Message message) async {
@@ -130,7 +130,12 @@ class MessageService {
         encryptType: encryptType,
         msgKeyHash: msgKeyHash,
         createdAt: DateTime.fromMillisecondsSinceEpoch(
-            (createdAt ?? events[0].createdAt) * 1000))
+            (createdAt ?? events[0].createdAt) * 1000),
+        rawEvents: events.map((e) {
+          Map m = e.toJson();
+          m['toIdPubkey'] = e.toIdPubkey;
+          return jsonEncode(m);
+        }).toList())
       ..subEvent = subEvent
       ..requestConfrim = requestConfrim;
 
@@ -499,34 +504,6 @@ class MessageService {
         .filter()
         .cashuInfoIsNotNull()
         .cashuInfo((q) => q.statusEqualTo(TransactionStatus.pending))
-        .findAll();
-  }
-
-  Future insertMessageBill(MessageBill model) async {
-    Isar database = DBProvider.database;
-
-    await database.writeTxn(() async {
-      return await database.messageBills.put(model);
-    });
-  }
-
-  Future<List<MessageBill>> getMessageBills(String eventId) async {
-    Isar database = DBProvider.database;
-
-    return await database.messageBills
-        .filter()
-        .eventIdEndsWith(eventId)
-        .findAll();
-  }
-
-  Future<List<MessageBill>> getBillByRoomId(int roomId,
-      {int minId = 99999999, int limit = 20}) async {
-    return await DBProvider.database.messageBills
-        .filter()
-        .idLessThan(minId)
-        .roomIdEqualTo(roomId)
-        .sortByCreatedAtDesc()
-        .limit(limit)
         .findAll();
   }
 

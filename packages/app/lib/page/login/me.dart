@@ -60,15 +60,7 @@ class MinePage extends GetView<SettingController> {
                                 .values
                                 .toList()),
                         SettingsTile.navigation(
-                            title: const Text("Create ID"),
-                            trailing: Icon(
-                              CupertinoIcons.add,
-                              color: Theme.of(Get.context!)
-                                  .iconTheme
-                                  .color
-                                  ?.withOpacity(0.5),
-                              size: 22,
-                            ),
+                            title: const Text("Create / Import ID"),
                             onPressed: (context) async {
                               List<Identity> identities =
                                   Get.find<HomeController>()
@@ -85,20 +77,7 @@ class MinePage extends GetView<SettingController> {
                                       mnemonic: mnemonic,
                                       npubs: npubs),
                                   arguments: 'create');
-                            }),
-                        // SettingsTile.navigation(
-                        //     title: const Text("Import ID"),
-                        //     trailing: Icon(
-                        //       Icons.input,
-                        //       color: Theme.of(Get.context!)
-                        //           .iconTheme
-                        //           .color
-                        //           ?.withOpacity(0.5),
-                        //       size: 22,
-                        //     ),
-                        //     onPressed: (context) {
-                        //       Get.toNamed(Routes.importKey);
-                        //     })
+                            })
                       ]),
                   cashuSetting(context),
                   SettingsSection(

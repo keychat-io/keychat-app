@@ -21,7 +21,6 @@ class _ImportNsec extends State<ImportNsec> {
   late TextEditingController nameController;
   late TextEditingController _privateKeyController;
   late FocusNode focusNode2;
-  // final bool _isChecked = false;
 
   @override
   void initState() {
@@ -95,20 +94,6 @@ class _ImportNsec extends State<ImportNsec> {
                                           }
                                         }
                                       }))),
-                          // const SizedBox(
-                          //   height: 10,
-                          // ),
-                          // ListTile(
-                          //     leading: Checkbox(
-                          //         value: _isChecked,
-                          //         onChanged: (bool? value) {
-                          //           setState(() {
-                          //             _isChecked = value!;
-                          //           });
-                          //         }),
-                          //     title: const Text('Warning'),
-                          //     subtitle: const Text(
-                          //         'Nostr ID can only be used on one device'))
                         ]))),
                 FilledButton(
                   style: ButtonStyle(
@@ -127,11 +112,6 @@ class _ImportNsec extends State<ImportNsec> {
                           'Please enter a Nsec / Hex Private Key');
                       return;
                     }
-                    // if (_isChecked == false) {
-                    //   EasyLoading.showError(
-                    //       'Please confirm the warning message');
-                    //   return;
-                    // }
                     try {
                       if (input.startsWith('nsec')) {
                         input = rust_nostr.getHexPrikeyByBech32(bech32: input);

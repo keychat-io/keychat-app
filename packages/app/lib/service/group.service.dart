@@ -368,7 +368,7 @@ class GroupService extends BaseChatService {
             mediaType: MessageMediaType.groupInvite,
             requestConfrim: RequestConfrimEnum.request,
             content: roomProfile.toString(),
-            realMessage: realMessage);
+            realMessage: groupInviteMsg[0]);
         return;
       }
 
@@ -388,7 +388,7 @@ class GroupService extends BaseChatService {
                 encryptType: MessageEncryptType.nip4WrapNip4,
                 sent: SendStatusType.success,
                 content: roomProfile.toString(),
-                realMessage: realMessage,
+                realMessage: groupInviteMsg[0],
                 persist: false);
           } catch (e, s) {
             logger.e(e.toString(), error: e, stackTrace: s);
@@ -417,7 +417,7 @@ class GroupService extends BaseChatService {
           mediaType: MessageMediaType.groupInvite,
           requestConfrim: RequestConfrimEnum.request,
           content: roomProfile.toString(),
-          realMessage: realMessage);
+          realMessage: groupInviteMsg[0]);
       return;
     }
 
@@ -602,7 +602,7 @@ class GroupService extends BaseChatService {
 
     List<String> addUsersName = toMembers.map((e) => e.name).toList();
     String names = addUsersName.join(',');
-    String realMessage = '🤖 Invite $names to join group';
+    String realMessage = '🤖 Invite [$names] to join group';
 
     KeychatMessage km = KeychatMessage(
         c: MessageType.group,

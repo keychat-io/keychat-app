@@ -24,7 +24,7 @@ class MessageBillPageController extends GetxController {
     super.onClose();
   }
 
-  loadMore() async {
+  Future loadMore() async {
     int lastId = 999999999;
     if (bills.isNotEmpty) {
       lastId = bills.last.id;

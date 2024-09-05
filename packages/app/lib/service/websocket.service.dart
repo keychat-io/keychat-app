@@ -34,6 +34,7 @@ class WebsocketService extends GetxService {
   final RxMap<String, RelayMessageFee> relayMessageFeeModels =
       <String, RelayMessageFee>{}.obs;
   Map<String, RelayFileFee> relayFileFeeModels = {};
+  Map<String, Set<String>> failedEventsMap = {};
 
   DateTime initAt = DateTime.now();
 
@@ -52,7 +53,8 @@ class WebsocketService extends GetxService {
 
   // new a websocket channel for this relay
   Future addChannel(Relay relay, [List<String> pubkeys = const []]) async {
-    RelayWebsocket rw = RelayWebsocket(relay);
+    WebsocketService ws = this;
+    RelayWebsocket rw = RelayWebsocket(relay, ws);
     channels[relay.url] = rw;
     if (!relay.active) {
       return;
@@ -68,8 +70,7 @@ class WebsocketService extends GetxService {
   Future checkOnlineAndConnect() async {
     // fix ConcurrentModificationError
     for (RelayWebsocket rw in List.from(channels.values)) {
-      // logger.d(
-      //     '> checkOnlineAndConnect ${rw.relay.url}: ${rw.channelStatus.name} ${rw.channel?.closeCode} _ ${rw.channel?.closeReason}');
+      if (rw.relay.active == false) continue;
       rw.checkOnlineStatus().then((relayStatus) {
         if (!relayStatus) {
           rw.channel?.sink.close();
@@ -311,13 +312,14 @@ class WebsocketService extends GetxService {
           logger.i(
               'to:[${rw.relay.url}]: ${ess.rawEvent} }'); // ${eventRaw.length > 200 ? eventRaw.substring(0, 400) : eventRaw}');
           try {
-            rw.channel!.sink.add(ess.rawEvent);
+            rw.sendRawREQ(ess.rawEvent, retry: true);
             success++;
             ess.sendStatus = EventSendEnum.success;
-            results.add(ess);
           } catch (e) {
-            // TODO add to retry queue
+            ess.sendStatus = EventSendEnum.relayDisconnected;
+            ess.error = e.toString();
           }
+          results.add(ess);
           return;
         }
         ess.sendStatus = getSendStatusByRelayStatus(rw.channelStatus);
@@ -328,7 +330,7 @@ class WebsocketService extends GetxService {
     await tasks.onComplete;
     if (success == 0) {
       String messages = results
-          .map((item) => '${item.relay}: ${item.error}')
+          .map((item) => '${item.relay}: ${item.error ?? item.sendStatus.name}')
           .toList()
           .join('\n');
       Get.snackbar('Message Send Failed', messages,
@@ -374,8 +376,9 @@ class WebsocketService extends GetxService {
   }
 
   Future createChannels([List<Relay> list = const []]) async {
+    WebsocketService ws = this;
     await Future.wait(list.map((Relay relay) async {
-      RelayWebsocket rw = RelayWebsocket(relay);
+      RelayWebsocket rw = RelayWebsocket(relay, ws);
       channels[relay.url] = rw;
       await _startConnectRelay(rw);
     }));
@@ -391,6 +394,7 @@ class WebsocketService extends GetxService {
       if (rw.failedTimes > failedTimesLimit) {
         rw.channelStatus = RelayStatusEnum.failed;
         rw.channel?.sink.close();
+        clearFailedEvents(rw.relay.url);
         return rw;
       }
     }
@@ -484,5 +488,20 @@ class WebsocketService extends GetxService {
       default:
         return EventSendEnum.init;
     }
+  }
+
+  Set<String> getFailedEvents(String relay) {
+    return failedEventsMap[relay] ?? {};
+  }
+
+  addFaiedEvents(String relay, String raw) {
+    if (failedEventsMap[relay] == null) {
+      failedEventsMap[relay] = {};
+    }
+    failedEventsMap[relay]!.add(raw);
+  }
+
+  clearFailedEvents(String relay) {
+    failedEventsMap.remove(relay);
   }
 }

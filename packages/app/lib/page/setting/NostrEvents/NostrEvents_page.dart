@@ -11,7 +11,7 @@ class NostrEventsPage extends GetView<NostrEventsController> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: const Text('Error Received Events'),
+          title: const Text('Failed Events'),
         ),
         body: SafeArea(
             child: Obx(() => ListView.builder(

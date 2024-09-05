@@ -523,7 +523,7 @@ Sending a message is essentially sending multiple one-on-one chats. More stamps 
     return event.encryptType;
   }
 
-  static Widget getStatusIcon(int max, int success) {
+  static Widget getStatusCheckIcon(int max, int success) {
     if (max == success && max > 0) {
       return const Icon(Icons.check_circle, color: Colors.green);
     }
@@ -531,5 +531,16 @@ Sending a message is essentially sending multiple one-on-one chats. More stamps 
     if (success == 0) return const Icon(Icons.error_outline, color: Colors.red);
 
     return const Icon(Icons.circle, color: Colors.lightGreen);
+  }
+
+  static Widget getStatusArrowIcon(int max, int success, bool down) {
+    IconData icon = down ? Icons.arrow_downward : Icons.arrow_upward_outlined;
+    if (max == success && max > 0) {
+      return Icon(icon, color: Colors.green);
+    }
+
+    if (success == 0) return Icon(icon, color: Colors.red);
+
+    return Icon(icon, color: Colors.lightGreen);
   }
 }

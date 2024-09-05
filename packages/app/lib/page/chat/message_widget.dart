@@ -461,8 +461,10 @@ class MessageWidget extends StatelessWidget {
     List<List<NostrEventStatus>> result1 = [];
     List<NostrEventModel?> result2 = [];
     for (int i = 0; i < message.eventIds.length; i++) {
+      String? rawString =
+          message.rawEvents.length > i ? message.rawEvents[i] : null;
       var (ess, event) =
-          await _getRawMessageData(message.eventIds[i], message.rawEvents[i]);
+          await _getRawMessageData(message.eventIds[i], rawString);
       result1.add(ess);
       result2.add(event);
     }
@@ -906,7 +908,7 @@ class MessageWidget extends StatelessWidget {
                       return ExpansionTile(
                         title: Row(
                           children: <Widget>[
-                            RoomUtil.getStatusIcon(
+                            RoomUtil.getStatusCheckIcon(
                                 eventSendStatus.length, success.length),
                             const SizedBox(width: 10),
                             Text('To: ${rm?.name ?? idPubkey}'),

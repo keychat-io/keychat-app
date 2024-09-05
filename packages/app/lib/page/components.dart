@@ -334,6 +334,7 @@ Widget relayStatusList(BuildContext context, List<NostrEventStatus> ess) {
       Text('Message Status', style: Theme.of(context).textTheme.titleMedium),
       ...ess.map((NostrEventStatus es) => ListTile(
           dense: true,
+          visualDensity: VisualDensity.compact,
           title: Text(es.relay, style: Theme.of(context).textTheme.titleSmall),
           subtitle: es.error != null
               ? Text(es.error!,
@@ -341,12 +342,18 @@ Widget relayStatusList(BuildContext context, List<NostrEventStatus> ess) {
                       .textTheme
                       .bodyMedium
                       ?.copyWith(color: Colors.red))
-              : null,
+              : (es.sendStatus != EventSendEnum.success
+                  ? Text(es.sendStatus.name,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(color: Colors.red))
+                  : null),
           trailing: es.ecashAmount > 0
               ? Text('-${es.ecashAmount} ${es.ecashName}')
               : null,
-          leading: RoomUtil.getStatusIcon(
-              1, es.sendStatus == EventSendEnum.success ? 1 : 0))),
+          leading: RoomUtil.getStatusArrowIcon(1,
+              es.sendStatus == EventSendEnum.success ? 1 : 0, es.isReceive))),
     ],
   );
 }

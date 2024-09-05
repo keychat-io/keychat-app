@@ -890,12 +890,12 @@ class GroupService extends BaseChatService {
       try {
         Room memberRoom = await RoomService().getOrCreateRoomByIdentity(
             rm.idPubkey, identity, RoomStatus.groupUser);
-        var res = await Nip4ChatService().sendMessage(memberRoom, km.toString(),
+        var smr = await Nip4ChatService().sendMessage(memberRoom, km.toString(),
             realMessage: realMessage, save: false);
-
-        if (res.events.isNotEmpty) {
-          events.add(res.events[0]);
-        }
+        if (smr.events.isEmpty) return;
+        var toSaveEvent = smr.events[0];
+        toSaveEvent.toIdPubkey = rm.idPubkey;
+        events.add(toSaveEvent);
       } catch (e, s) {
         logger.e(e.toString(), error: e, stackTrace: s);
       }
@@ -919,7 +919,11 @@ class GroupService extends BaseChatService {
       isMeSend: true,
       content: realMessage,
       createdAt: timestampToDateTime(events[0].createdAt),
-      rawEvents: events.map((e) => e.toJsonString()).toList(),
+      rawEvents: events.map((e) {
+        Map m = e.toJson();
+        m['toIdPubkey'] = e.toIdPubkey;
+        return jsonEncode(m);
+      }).toList(),
     )..isRead = true;
     await MessageService().saveMessageModel(message);
   }
@@ -943,8 +947,9 @@ class GroupService extends BaseChatService {
         if (room != null) {
           smr = await RoomService().sendTextMessage(room, km.toString(),
               realMessage: realMessage, save: false);
-
-          await RoomService().receiveDM(groupRoom, smr.events[0],
+          var toSaveEvent = smr.events[0];
+          toSaveEvent.toIdPubkey = rm.idPubkey;
+          await RoomService().receiveDM(groupRoom, toSaveEvent,
               idPubkey: identity.secp256k1PKHex,
               decodedContent: km.toString(),
               msgKeyHash: smr.msgKeyHash,

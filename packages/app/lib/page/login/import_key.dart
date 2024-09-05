@@ -21,7 +21,6 @@ class _ImportKey extends State<ImportKey> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController _privateKeyController = TextEditingController();
   FocusNode focusNode2 = FocusNode();
-  bool _isChecked = false;
   @override
   void dispose() {
     focusNode2.dispose();
@@ -94,22 +93,6 @@ class _ImportKey extends State<ImportKey> {
                       textSmallGray(context,
                           'Deriving private and public keys based on bitcoin bip32 and bip39.',
                           overflow: TextOverflow.clip),
-                      const SizedBox(
-                        height: 10,
-                      ),
-                      ListTile(
-                        leading: Checkbox(
-                          value: _isChecked,
-                          onChanged: (bool? value) {
-                            setState(() {
-                              _isChecked = value!;
-                            });
-                          },
-                        ),
-                        title: const Text('Warning'),
-                        subtitle: const Text(
-                            'Nostr ID can only be used on one device'),
-                      )
                     ],
                   )),
                 ),
@@ -126,11 +109,6 @@ class _ImportKey extends State<ImportKey> {
                     List<String> mnemonics = input.split(' ');
                     if (mnemonics.length != 12) {
                       EasyLoading.showError('Error seed phrase format.');
-                      return;
-                    }
-                    if (_isChecked == false) {
-                      EasyLoading.showError(
-                          'Please confirm the warning message');
                       return;
                     }
                     try {

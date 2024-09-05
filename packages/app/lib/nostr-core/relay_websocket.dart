@@ -89,11 +89,17 @@ class RelayWebsocket {
 
   // send ping to relay. if relay not response, socket is closed.
   Future<bool> checkOnlineStatus() async {
-    if (channel == null || channelStatus != RelayStatusEnum.success) {
+    if (channel == null || channelStatus == RelayStatusEnum.failed) {
       return false;
     }
     notices.clear();
-    channel!.sink.add('ping');
+    // logger.d('${relay.url} :${channel!.closeCode} ${channel!.closeReason}');
+    try {
+      channel!.sink.add('ping');
+    } catch (e) {
+      logger.e(e.toString());
+      return false;
+    }
     final deadline = DateTime.now().add(const Duration(seconds: 1));
     while (DateTime.now().isBefore(deadline)) {
       await Future.delayed(const Duration(milliseconds: 50));

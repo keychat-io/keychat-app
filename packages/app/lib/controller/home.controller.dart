@@ -405,10 +405,21 @@ class HomeController extends GetxController
         if (room.id == model.roomId) {
           room.lastMessageModel = model;
           rooms[i] = room;
-          item.rooms = rooms;
+          List<Room> firendsRooms = [];
+          for (var e in rooms) {
+            if (e is Room) {
+              firendsRooms.add(e);
+            }
+          }
+
+          item.rooms = [
+            rooms[0],
+            rooms[1],
+            rooms[2],
+            ...RoomUtil.sortRoomList(firendsRooms)
+          ];
           tabBodyDatas[identityId] = item;
-          tabBodyDatas.refresh();
-          break;
+          return;
         }
       }
     }

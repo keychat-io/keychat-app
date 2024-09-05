@@ -362,36 +362,15 @@ class RoomService extends BaseChatService {
         requesting.add(room); // not friend
         continue;
       }
-
       if (room.status == RoomStatus.approving) {
         approving.add(room);
         continue;
       }
-
       friendsRoom.add(room);
     }
 
-    friendsRoom.sort((a, b) {
-      if (a.pin || b.pin) {
-        if (a.pin && b.pin) {
-          return b.pinAt!.compareTo(a.pinAt!);
-        }
-        return a.pin ? -1 : 1;
-      }
-      if (a.lastMessageModel == null) return 1;
-      if (b.lastMessageModel == null) return -1;
-      return b.lastMessageModel!.createdAt
-          .compareTo(a.lastMessageModel!.createdAt);
-    });
-
-    // anonymous.sort((a, b) {
-    //   if (a.lastMessageModel == null) return 1;
-    //   if (b.lastMessageModel == null) return -1;
-    //   return b.lastMessageModel!.createdAt
-    //       .compareTo(a.lastMessageModel!.createdAt);
-    // });
     return {
-      'friends': friendsRoom,
+      'friends': RoomUtil.sortRoomList(friendsRoom),
       'approving': approving,
       'requesting': requesting
     };

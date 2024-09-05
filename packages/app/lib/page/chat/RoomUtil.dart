@@ -543,4 +543,20 @@ Sending a message is essentially sending multiple one-on-one chats. More stamps 
 
     return Icon(icon, color: Colors.lightGreen);
   }
+
+  static List<Room> sortRoomList(List<Room> rooms) {
+    rooms.sort((a, b) {
+      if (a.pin || b.pin) {
+        if (a.pin && b.pin) {
+          return b.pinAt!.compareTo(a.pinAt!);
+        }
+        return a.pin ? -1 : 1;
+      }
+      if (a.lastMessageModel == null) return 1;
+      if (b.lastMessageModel == null) return -1;
+      return b.lastMessageModel!.createdAt
+          .compareTo(a.lastMessageModel!.createdAt);
+    });
+    return rooms;
+  }
 }

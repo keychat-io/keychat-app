@@ -86,11 +86,9 @@ class SignalChatService extends BaseChatService {
       toAddPubkeys = await ContactService()
           .addReceiveKey(room.identityId, room.toMainPubkey, myReceiverAddr);
 
-      if (save && toAddPubkeys.isNotEmpty) {
-        Get.find<WebsocketService>().listenPubkey(toAddPubkeys,
-            since: DateTime.now().subtract(const Duration(seconds: 5)));
-        if (!room.isMute) NotifyService.addPubkeys(toAddPubkeys);
-      }
+      Get.find<WebsocketService>().listenPubkey(toAddPubkeys,
+          since: DateTime.now().subtract(const Duration(seconds: 5)));
+      if (!room.isMute) NotifyService.addPubkeys(toAddPubkeys);
     }
 
     var senderKey = await rust_nostr.generateSimple();

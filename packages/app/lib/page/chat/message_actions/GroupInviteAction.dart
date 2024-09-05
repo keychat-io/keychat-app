@@ -110,7 +110,8 @@ class GroupInviteAction extends StatelessWidget {
                     await KdfGroupService.instance.sendHelloMessage(identity,
                         groupRoom!.getGroupSharedSignalId(), groupRoom!);
                   }
-                  MessageService().refreshMessageInPage(message);
+
+                  await MessageService().updateMessageAndRefresh(message);
                   EasyLoading.showSuccess('Join group success');
                 } catch (e, s) {
                   logger.e(e.toString(), error: e, stackTrace: s);

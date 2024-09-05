@@ -399,10 +399,6 @@ Let's create a new group.''';
     await KdfGroupService.instance.sendMessage(room, sm.toString());
   }
 
-  deleteExpiredGroupKeys() {
-    throw UnimplementedError();
-  }
-
   // 1. The group owner locally updates the group member list and creates a new group QR code
   // 2. 1-to-1 messages are sent to the active group members, and the recipients change the new group QR code.
   // 3. Send a message to the kicked users, and the recipient will change the local group status.

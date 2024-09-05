@@ -8,6 +8,7 @@ abstract class BaseChatService {
       required NostrEventModel event,
       NostrEventModel? sourceEvent,
       String? msgKeyHash,
+      Function(String error)? failedCallback,
       required KeychatMessage km,
       required Relay relay});
 

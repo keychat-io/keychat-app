@@ -1,6 +1,7 @@
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
+import 'package:app/models/nostr_event_status.dart';
 import 'package:app/service/secure_storage.dart';
 
 import 'package:app/service/chatx.service.dart';
@@ -129,7 +130,7 @@ class IdentityService {
             .filter()
             .roomIdEqualTo(element.id)
             .deleteAll();
-        await database.messageBills
+        await database.nostrEventStatus
             .filter()
             .roomIdEqualTo(element.id)
             .deleteAll();

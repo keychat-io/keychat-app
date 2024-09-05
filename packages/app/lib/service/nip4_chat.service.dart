@@ -35,6 +35,7 @@ class Nip4ChatService extends BaseChatService {
       required NostrEventModel event,
       required KeychatMessage km,
       NostrEventModel? sourceEvent,
+      Function(String error)? failedCallback,
       String? msgKeyHash,
       required Relay relay}) async {
     switch (km.type) {
@@ -92,7 +93,8 @@ class Nip4ChatService extends BaseChatService {
         sent: sent,
         isSystem: isSystem,
         content: message,
-        createdAt: timestampToDateTime(event.createdAt));
+        createdAt: timestampToDateTime(event.createdAt),
+        rawEvents: [event.toJsonString()]);
     await MessageService().saveMessageModel(toSaveMsg);
   }
 

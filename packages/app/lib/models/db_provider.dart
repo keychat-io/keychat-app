@@ -1,8 +1,6 @@
-import 'dart:convert' show jsonEncode;
-
 import 'package:app/app.dart';
+import 'package:app/models/nostr_event_status.dart';
 import 'package:app/models/signal_id.dart';
-import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:flutter/foundation.dart';
 
@@ -24,15 +22,14 @@ class DBProvider {
     database = await Isar.open([
       ContactSchema,
       ContactReceiveKeySchema,
-      EventLogSchema,
       MykeySchema,
       MessageSchema,
-      MessageBillSchema,
       RoomSchema,
       RelaySchema,
       IdentitySchema,
       RoomMemberSchema,
       SignalIdSchema,
+      NostrEventStatusSchema,
     ], directory: dbFolder, name: 'keychat', inspector: kDebugMode);
     await performMigrationIfNeeded(database);
     return database;
@@ -80,98 +77,6 @@ class DBProvider {
     database.writeTxnSync(() {
       database.clearSync();
     });
-  }
-
-  static Future mykeySetUpdate() async {}
-
-  Future<EventLog?> getEventLog(String eventId, String to) async {
-    return await database.eventLogs
-        .filter()
-        .eventIdEqualTo(eventId)
-        .toEqualTo(to)
-        .findFirst();
-  }
-
-  Future<List<EventLog>> getLatestEvents([int limit = 20]) async {
-    return await database.eventLogs
-        .where()
-        .sortByCreatedAtDesc()
-        .limit(limit)
-        .findAll();
-  }
-
-  Future<EventLog?> getEventLogByEventId(String eventId) async {
-    return await database.eventLogs
-        .filter()
-        .eventIdEqualTo(eventId)
-        .findFirst();
-  }
-
-  Future<List<EventLog>> getFaildEventLog() async {
-    return await database.eventLogs
-        .filter()
-        .resCodeEqualTo(0)
-        .createdAtGreaterThan(DateTime.now().subtract(const Duration(days: 1)))
-        .createdAtLessThan(DateTime.now().subtract(const Duration(seconds: 2)))
-        .kindEqualTo(EventKinds.encryptedDirectMessage)
-        .sortByCreatedAtDesc()
-        .limit(10)
-        .findAll();
-  }
-
-  Future<bool> checkEventExist(String eventId, String to) async {
-    var e2 = await database.eventLogs
-        .filter()
-        .toEqualTo(to)
-        .eventIdEqualTo(eventId)
-        .findFirst();
-    if (e2 != null) return true;
-    return false;
-  }
-
-  Future<EventLog> receiveNewEventLog(
-      {required NostrEventModel event,
-      required String relay,
-      int kind = EventKinds.encryptedDirectMessage}) async {
-    List tags = event.tags[0];
-    String to = event.pubkey;
-    if (tags.isNotEmpty) to = tags[1];
-    EventLog model = EventLog(
-        eventId: event.id, resCode: 200, to: to, createdAt: DateTime.now())
-      ..kind = kind
-      ..okRelays = [relay]
-      ..snapshot = jsonEncode(event.toJson());
-
-    await updateEventLog(model);
-    return model;
-  }
-
-  saveMyEventLog(
-      {required NostrEventModel event,
-      required List<String> relays,
-      String? toIdPubkey,
-      int kind = EventKinds.encryptedDirectMessage}) async {
-    List tags = event.tags[0];
-    String to = event.pubkey;
-    if (tags.isNotEmpty) to = tags[1];
-    EventLog model = EventLog(
-        eventId: event.id, resCode: 0, to: to, createdAt: DateTime.now())
-      ..toIdPubkey = toIdPubkey
-      ..kind = kind
-      ..sentRelays = relays
-      ..snapshot = jsonEncode(event.toJson());
-
-    await updateEventLog(model);
-  }
-
-  Future updateEventLog(EventLog model) async {
-    try {
-      await database.writeTxn(() async {
-        await database.eventLogs.put(model);
-      });
-    } catch (e) {
-      // logger.i('save event error ${s.toString()}');
-    }
   }
 
   static Future _migrateToVersion30() async {

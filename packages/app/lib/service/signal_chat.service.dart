@@ -138,14 +138,15 @@ class SignalChatService extends BaseChatService {
   }
 
   Future<String> decryptDMMessage(Room room, NostrEventModel event, Relay relay,
-      {NostrEventModel? sourceEvent, EventLog? eventLog}) async {
+      {NostrEventModel? sourceEvent,
+      required Function(String error) failedCallback}) async {
     String? decodeString;
     String? msgKeyHash;
     try {
       rust_signal.KeychatProtocolAddress? kpa =
           await Get.find<ChatxService>().getRoomKPA(room);
       if (kpa == null) {
-        eventLog?.setNote('signal_session_is_null');
+        failedCallback('signal_session_is_null');
         throw Exception("signal_session_is_null");
       }
       try {
@@ -184,7 +185,7 @@ class SignalChatService extends BaseChatService {
     } catch (e, s) {
       logger.e(e.toString(), error: e, stackTrace: s);
       await setRoomSignalDecodeStatus(room, true);
-      eventLog?.setNote('Signal Decryption failed');
+      failedCallback('Signal Decryption failed ${e.toString()}');
       decodeString = "Decryption failed: ${e.toString()}";
     }
 
@@ -227,6 +228,7 @@ class SignalChatService extends BaseChatService {
       required NostrEventModel event,
       required KeychatMessage km,
       NostrEventModel? sourceEvent,
+      Function(String error)? failedCallback,
       String? msgKeyHash,
       required Relay relay}) async {
     switch (km.type) {
@@ -443,7 +445,7 @@ Let's talk on this server.''';
   Future decryptPreKeyMessage(String to, Mykey mykey,
       {required NostrEventModel event,
       required Relay relay,
-      required EventLog eventLog}) async {
+      required Function(String error) failedCallback}) async {
     var ciphertext = Uint8List.fromList(base64Decode(event.content));
     var prekey = await rust_signal.parseIdentityFromPrekeySignalMessage(
         ciphertext: ciphertext);
@@ -505,7 +507,8 @@ Let's talk on this server.''';
           km: km,
           msgKeyHash: msgKeyHash,
           sourceEvent: null,
-          relay: relay);
+          relay: relay,
+          failedCallback: failedCallback);
       return;
     }
     await RoomService().receiveDM(room, event,

@@ -638,29 +638,6 @@ class ChatController extends GetxController {
     }
   }
 
-  // list message: sent == SendStatusType.sending. if time >5s then mark to failed
-  updateSendingMessageStatus() async {
-    List<Message> list =
-        await MessageService().listMySendingMessage(roomId: roomObs.value.id);
-    if (list.isEmpty) return;
-
-    for (var element in list) {
-      EventLog? log = await DBProvider().getEventLogByEventId(element.msgid);
-
-      if (log != null && log.resCode == 200) {
-        element.sent = SendStatusType.success;
-        await MessageService().updateMessage(element);
-      } else if (DateTime.now().millisecondsSinceEpoch -
-              element.createdAt.millisecondsSinceEpoch >
-          5000) {
-        element.sent = SendStatusType.failed;
-        await MessageService().updateMessage(element);
-      }
-    }
-    // if(failds)
-    updateMessageStatus(list);
-  }
-
   _handleFileUpload() async {
     const XTypeGroup typeGroup = XTypeGroup(
       label: 'files',

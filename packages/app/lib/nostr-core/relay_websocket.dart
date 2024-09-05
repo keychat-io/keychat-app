@@ -7,7 +7,8 @@ import 'package:app/service/message.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
-import 'package:get/get.dart';
+import 'package:easy_debounce/easy_throttle.dart';
+import 'package:queue/queue.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import '../utils.dart' as utils;
@@ -24,8 +25,8 @@ class RelayWebsocket {
   int sentReqCount = 0;
   int failedTimes = 0;
   Map<String, Set<String>> subscriptions = {};
-
-  RelayWebsocket(this.relay);
+  late WebsocketService ws;
+  RelayWebsocket(this.relay, this.ws);
 
   // listen identity key will take position.
   _startListen() async {
@@ -51,19 +52,16 @@ class RelayWebsocket {
       try {
         sendRawREQ(req.toString());
       } catch (e) {
-        logger.e('Listen error', error: e);
+        logger.e(e.toString());
+        EasyThrottle.throttle('checkOnlineStatus${relay.url}',
+            const Duration(seconds: 1), checkOnlineStatus);
       }
     }
   }
 
   sendREQ(NostrNip4Req nq) {
-    if (channel == null || channelStatus != RelayStatusEnum.success) {
-      throw Exception('Not connected with relay server, ${relay.url}');
-    }
-
-    // not reacth the limit
+    _statusCheck();
     if (subscriptions.keys.length < maxReqCount) {
-      // logger.d('create sub: ${nq.reqId}');
       subscriptions[nq.reqId] = Set.from(nq.pubkeys);
       return sendRawREQ(nq.toString());
     }
@@ -78,22 +76,51 @@ class RelayWebsocket {
     return sendRawREQ(nq.toString());
   }
 
-  sendRawREQ(String message) {
+  _statusCheck() {
     if (channel == null || channelStatus != RelayStatusEnum.success) {
-      throw Exception(
-          'Not connected with relay server ${relay.url}: ${channelStatus.name}');
+      throw Exception('disconnected_${relay.url}');
     }
-    channel!.sink.add(message);
-    logger.i('Send[${relay.url}] $message');
+  }
+
+  Future _proccessFailedEvents() async {
+    Set<String> failedEvents = ws.getFailedEvents(relay.url);
+    logger.i('proccessFailedEvents: ${failedEvents.length}');
+    if (failedEvents.isEmpty) return;
+    List<String> tasksString = failedEvents.toList();
+    failedEvents.clear();
+    Queue queue = Queue(delay: const Duration(milliseconds: 100));
+    for (String element in tasksString) {
+      queue.add(() => sendRawREQ(element, retry: true));
+    }
+    await queue.onComplete;
+  }
+
+  sendRawREQ(String message, {bool retry = false}) {
+    try {
+      _statusCheck();
+      channel!.sink.add(message);
+      logger.i('TO [${relay.url}]: $message');
+    } catch (e) {
+      logger.e('${e.toString()} TO [${relay.url}]: $message');
+      if (retry) {
+        ws.addFaiedEvents(relay.url, message);
+      }
+      rethrow;
+    }
   }
 
   // send ping to relay. if relay not response, socket is closed.
   Future<bool> checkOnlineStatus() async {
-    if (channel == null || channelStatus != RelayStatusEnum.success) {
+    if (channel == null || channelStatus == RelayStatusEnum.failed) {
       return false;
     }
     notices.clear();
-    channel!.sink.add('ping');
+    try {
+      channel!.sink.add('ping');
+    } catch (e) {
+      logger.e(e.toString());
+      return false;
+    }
     final deadline = DateTime.now().add(const Duration(seconds: 1));
     while (DateTime.now().isBefore(deadline)) {
       await Future.delayed(const Duration(milliseconds: 50));
@@ -113,19 +140,18 @@ class RelayWebsocket {
     channel = socket;
     channelStatus = RelayStatusEnum.success;
 
-    await Get.find<WebsocketService>()
-        .setChannelStatus(relay.url, RelayStatusEnum.success);
+    await ws.setChannelStatus(relay.url, RelayStatusEnum.success);
     _startListen();
+    await Future.delayed(const Duration(seconds: 1));
+    _proccessFailedEvents();
   }
 
   void connecting() {
-    Get.find<WebsocketService>()
-        .setChannelStatus(relay.url, RelayStatusEnum.connecting);
+    ws.setChannelStatus(relay.url, RelayStatusEnum.connecting);
   }
 
   void disconnected(String? errorMessage) {
     failedTimes++;
-    Get.find<WebsocketService>()
-        .setChannelStatus(relay.url, RelayStatusEnum.failed, errorMessage);
+    ws.setChannelStatus(relay.url, RelayStatusEnum.failed, errorMessage);
   }
 }

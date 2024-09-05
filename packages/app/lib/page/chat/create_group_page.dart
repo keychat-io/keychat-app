@@ -43,9 +43,7 @@ class _AddGroupPageState extends State<AddGroupPage>
     return Scaffold(
         appBar: AppBar(
           centerTitle: true,
-          title: const Text(
-            "New Group Chat",
-          ),
+          title: const Text("New Group Chat"),
         ),
         body: SafeArea(
           child: Container(
@@ -84,6 +82,7 @@ class _AddGroupPageState extends State<AddGroupPage>
                         value: GroupType.kdf,
                         groupValue: groupType,
                         onChanged: (value) {
+                          FocusScope.of(context).unfocus();
                           setState(() {
                             groupType = value as GroupType;
                             selectedGroupType = GroupType.kdf;
@@ -112,6 +111,7 @@ class _AddGroupPageState extends State<AddGroupPage>
                         value: GroupType.sendAll,
                         groupValue: groupType,
                         onChanged: (value) {
+                          FocusScope.of(context).unfocus();
                           setState(() {
                             groupType = value as GroupType;
                             selectedGroupType = GroupType.sendAll;

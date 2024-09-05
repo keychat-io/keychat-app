@@ -1,3 +1,5 @@
+import 'package:app/models/nostr_event_status.dart';
+
 import 'package:queue/queue.dart';
 import 'dart:convert' show jsonDecode, jsonEncode;
 
@@ -6,7 +8,7 @@ import 'package:app/controller/world.controller.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/filter.dart';
 import 'package:app/nostr-core/nostr_event.dart';
-import 'package:app/nostr-core/relay_event_status.dart';
+import 'package:app/nostr-core/subscribe_event_status.dart';
 
 import 'package:app/nostr-core/request.dart';
 import 'package:app/service/secure_storage.dart';
@@ -21,7 +23,6 @@ import 'package:easy_debounce/easy_debounce.dart';
 import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
-import 'package:keychat_rust_ffi_plugin/index.dart';
 
 import '../constants.dart';
 import '../controller/home.controller.dart';
@@ -46,49 +47,6 @@ class NostrAPI {
 
   String closeSerialize(String subscriptionId) {
     return jsonEncode(["CLOSE", subscriptionId]);
-  }
-
-  Future checkFaildEvent() async {
-    String reqId = utils.generate64RandomHexChars(16);
-    List<EventLog> list = await DBProvider().getFaildEventLog();
-    if (list.isEmpty) return;
-    logger.i('found ${list.length} failed event');
-    List<String> eventlogs = list.map((element) {
-      return element.eventId;
-    }).toList();
-
-    Request requestWithFilter = Request(reqId, [
-      Filter(
-        kinds: [EventKinds.encryptedDirectMessage],
-        e: eventlogs,
-        limit: 30,
-      )
-    ]);
-    var req = requestWithFilter.serialize();
-    Get.find<WebsocketService>().sendRawReq(req);
-
-    // after 3s. retry
-    await Future.delayed(const Duration(seconds: 3));
-    List<EventLog> list2 = await DBProvider().getFaildEventLog();
-    if (list2.isEmpty) return;
-    for (var item in list2) {
-      Get.find<WebsocketService>().sendRawReq('["EVENT",${item.snapshot}]');
-    }
-  }
-
-  logNostrEvent(Relay relay, List list) {
-    if (list[0] != 'EVENT') {
-      logger.i('${relay.url}: $list');
-      return;
-    }
-  }
-
-  logNostrEventK4(Relay relay, NostrEventModel event) {
-    logger.i(
-      '''Relay: ${relay.url}: subscribId ${event.id}:
-From: ${event.pubkey} 
-Tags: ${event.tags}''',
-    );
   }
 
   addNostrEventToQueue(Relay relay, dynamic message) {
@@ -157,7 +115,7 @@ Tags: ${event.tags}''',
     // sendMessageFunction(serializeStr);
   }
 
-  _proccessEvent(List eventList, Relay relay, String message) async {
+  _proccessEvent(List eventList, Relay relay, String raw) async {
     NostrEventModel event =
         NostrEventModel.deserialize(eventList, verify: false);
     // logger.i('${DateTime.now()} : ${event.createdAt}');
@@ -167,7 +125,7 @@ Tags: ${event.tags}''',
         break;
       case EventKinds.encryptedDirectMessage:
       case EventKinds.nip17:
-        await await _processNip4Message(eventList, event, relay);
+        await await _processNip4Message(eventList, event, relay, raw);
         break;
       case EventKinds.setMetadata:
         await _processNip5(event);
@@ -184,11 +142,8 @@ Tags: ${event.tags}''',
     String eventId = msg[1];
     bool status = msg[2];
     String? errorMessage = msg[3];
-    bool exist = WriteEventStatus.fillSubscripton(
+    SubscribeEventStatus.fillSubscripton(
         eventId, relay.url, status, errorMessage);
-    if (exist) return;
-
-    WriteEventStatus.updateEventStatus(relay.url, eventId, status, msg[3]);
   }
 
   _processNip2(NostrEventModel msg) async {
@@ -315,7 +270,7 @@ Tags: ${event.tags}''',
           await ContactService().getContact(room.identityId, room.toMainPubkey);
       hisRelay = room.contact?.hisRelay;
     }
-    List<String> relays = await Get.find<WebsocketService>().writeNostrEvent(
+    List relays = await Get.find<WebsocketService>().writeNostrEvent(
         event: event,
         eventString: encryptedEvent,
         roomId: room.parentRoom?.id ?? room.id,
@@ -324,8 +279,7 @@ Tags: ${event.tags}''',
       throw Exception(ErrorMessages.relayIsEmptyException);
     }
     if (!save) {
-      return SendMessageResponse(
-          events: [event], relays: relays, msgKeyHash: msgKeyHash);
+      return SendMessageResponse(events: [event], msgKeyHash: msgKeyHash);
     }
     var model = await MessageService().saveMessageToDB(
         events: [event],
@@ -342,9 +296,7 @@ Tags: ${event.tags}''',
         mediaType: mediaType,
         encryptType: encryptType,
         msgKeyHash: msgKeyHash);
-
-    await dbProvider.saveMyEventLog(event: event, relays: relays);
-    return SendMessageResponse(events: [event], relays: relays, message: model);
+    return SendMessageResponse(events: [event], message: model);
   }
 
   Future<SendMessageResponse> sendAndSaveGiftMessage(
@@ -361,7 +313,7 @@ Tags: ${event.tags}''',
   }) async {
     NostrEventModel event =
         NostrEventModel.fromJson(jsonDecode(encryptedEvent), verify: false);
-    List<String> relays = await Get.find<WebsocketService>().writeNostrEvent(
+    List relays = await Get.find<WebsocketService>().writeNostrEvent(
         event: event,
         eventString: encryptedEvent,
         roomId: room.parentRoom?.id ?? room.id);
@@ -369,7 +321,7 @@ Tags: ${event.tags}''',
       throw Exception(ErrorMessages.relayIsEmptyException);
     }
     if (!save) {
-      return SendMessageResponse(events: [event], relays: relays);
+      return SendMessageResponse(events: [event]);
     }
     var model = await MessageService().saveMessageToDB(
         events: [event],
@@ -387,9 +339,7 @@ Tags: ${event.tags}''',
         mediaType: mediaType,
         encryptType: MessageEncryptType.nip17);
 
-    await dbProvider.saveMyEventLog(
-        event: event, relays: relays, kind: EventKinds.nip17);
-    return SendMessageResponse(events: [event], relays: relays, message: model);
+    return SendMessageResponse(events: [event], message: model);
   }
 
   Future<String?> decryptNip4Content(NostrEventModel event) async {
@@ -429,7 +379,7 @@ Tags: ${event.tags}''',
   }
 
   Future _processNip4Message(
-      List eventList, NostrEventModel event, Relay relay) async {
+      List eventList, NostrEventModel event, Relay relay, String raw) async {
     if (processedEventIds.contains(event.id)) {
       logger.i('duplicate: ${event.id}');
       return;
@@ -437,36 +387,27 @@ Tags: ${event.tags}''',
       processedEventIds.add(event.id);
     }
 
+    NostrEventStatus? ess = await NostrEventStatus.getReceiveEvent(event.id);
+    if (ess != null) {
+      logger.d('event already received: ${event.id}');
+      return;
+    }
+
     _updateRelayLastMessageAt(relay.url, event.createdAt);
-    EventLog? exist = await dbProvider.getEventLog(event.id, event.tags[0][1]);
+    ess = await NostrEventStatus.createReceiveEvent(relay.url, event.id, raw);
 
     // verify
     try {
       await rust_nostr.verifyEvent(json: jsonEncode(eventList[2]));
     } catch (e, s) {
-      if (e is AnyhowException) {
-        if (e.message.contains('malformed public key')) {
-          exist?.setNote('malformed public key');
-          return;
-        }
-      }
-
-      exist?.setNote('verify error');
       logger.e('verify error', error: e, stackTrace: s);
-    }
-    // verify success
-    //
-    if (exist != null) {
-      if (exist.resCode == 0) {
-        exist.resCode = 200;
-        exist.updatedAt = DateTime.now();
-        exist.okRelays = [...exist.okRelays, relay.url];
-        await dbProvider.updateEventLog(exist);
-      }
+      ess.setError(e.toString());
       return;
     }
-    // logNostrEventK4(relay, event);
-    exist = await dbProvider.receiveNewEventLog(event: event, relay: relay.url);
+    failedCallback(String error) {
+      ess?.setError('Nip04 ecrypt error');
+    }
+
     switch (event.kind) {
       case EventKinds.encryptedDirectMessage:
         String to = event.tags[0][1];
@@ -474,26 +415,28 @@ Tags: ${event.tags}''',
           if (event.isNip4) {
             Room? kdfRoom = await RoomService().getGroupByReceivePubkey(to);
             if (kdfRoom != null) {
-              return await _proccessByKDFRoom(event, exist, kdfRoom, relay);
+              return await _proccessByKDFRoom(
+                  event, kdfRoom, relay, failedCallback);
             }
-            return await dmNip4Proccess(event, relay, exist);
+            return await dmNip4Proccess(event, relay, failedCallback);
           }
 
           // if signal message , to_address is myIDPubkey or one-time-key
           Room? room = await RoomService().getRoomByReceiveKey(to);
           if (room != null) {
-            return await SignalChatService()
-                .decryptDMMessage(room, event, relay, eventLog: exist);
+            return await SignalChatService().decryptDMMessage(
+                room, event, relay,
+                failedCallback: failedCallback);
           }
           Mykey? mykey = await IdentityService().getMykeyByPubkey(to);
           if (mykey != null) {
             return await SignalChatService().decryptPreKeyMessage(to, mykey,
-                event: event, relay: relay, eventLog: exist);
+                event: event, relay: relay, failedCallback: failedCallback);
           }
-          logger.e('signal message decrypt error');
+          throw Exception('room not found');
         } catch (e, s) {
-          exist.setNote('signal message decrypt error');
-          logger.e('signal message decrypt error', error: e, stackTrace: s);
+          ess.setError(e.toString());
+          logger.e('decrypt error', error: e, stackTrace: s);
         }
 
         break;
@@ -508,24 +451,24 @@ Tags: ${event.tags}''',
     }
   }
 
-  Future<dynamic> _proccessByKDFRoom(
-      NostrEventModel event, EventLog exist, Room kdfRoom, Relay relay) async {
+  Future _proccessByKDFRoom(NostrEventModel event, Room kdfRoom, Relay relay,
+      Function(String error) failedCallback) async {
     String? content = await decryptNip4Content(event);
     if (content == null) {
       logger.e('ecrypt error: ${event.toString()}');
-      exist.setNote('Nip04 ecrypt error');
+      failedCallback('Nip04 ecrypt error');
       return;
     }
     return await KdfGroupService.instance
         .decryptMessage(kdfRoom, event, relay, nip4DecodedContent: content);
   }
 
-  Future dmNip4Proccess(
-      NostrEventModel sourceEvent, Relay relay, EventLog? eventLog) async {
+  Future dmNip4Proccess(NostrEventModel sourceEvent, Relay relay,
+      Function(String error) failedCallback) async {
     String? content = await decryptNip4Content(sourceEvent);
     if (content == null) {
       logger.e('decryptNip4Content error: ${sourceEvent.id}');
-      eventLog?.setNote('Nip04 ecrypt error');
+      failedCallback('Nip04 ecrypt error');
       return;
     }
 
@@ -547,17 +490,15 @@ Tags: ${event.tags}''',
       subEvent = NostrEventModel.deserialize(decodedContent);
     } catch (e) {}
     if (subEvent != null) {
-      await _processSubEvent(sourceEvent, subEvent, relay);
+      await _processSubEvent(sourceEvent, subEvent, relay, failedCallback);
       return;
     }
 
     return await Nip4ChatService().receiveNip4Message(sourceEvent, content);
   }
 
-  _processSubEvent(
-      NostrEventModel event, NostrEventModel subEvent, Relay relay) async {
-    if (subEvent.kind != EventKinds.encryptedDirectMessage) return;
-
+  _processSubEvent(NostrEventModel event, NostrEventModel subEvent, Relay relay,
+      Function(String error) failedCallback) async {
     // nip4(nip4)
     if (subEvent.isNip4) {
       String? subContent = await decryptNip4Content(subEvent);
@@ -586,8 +527,8 @@ Tags: ${event.tags}''',
     // nip4(signal)
     Room room = await RoomService()
         .getOrCreateRoom(subEvent.pubkey, subEvent.tags[0][1], RoomStatus.init);
-    return await SignalChatService()
-        .decryptDMMessage(room, subEvent, relay, sourceEvent: event);
+    return await SignalChatService().decryptDMMessage(room, subEvent, relay,
+        sourceEvent: event, failedCallback: failedCallback);
   }
 
   KeychatMessage? getKeyChatMessageFromJson(dynamic str) {

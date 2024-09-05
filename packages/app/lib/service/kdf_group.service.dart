@@ -21,7 +21,6 @@ import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:app/constants.dart';
 import 'package:app/models/embedded/msg_reply.dart';
-import 'package:app/models/event_log.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/models/keychat/keychat_message.dart';
 import 'package:app/models/message.dart';
@@ -99,6 +98,7 @@ class KdfGroupService extends BaseChatService {
       {required Room room,
       required NostrEventModel event,
       NostrEventModel? sourceEvent,
+      Function(String error)? failedCallback,
       String? msgKeyHash,
       required KeychatMessage km,
       required Relay relay}) async {
@@ -149,8 +149,7 @@ class KdfGroupService extends BaseChatService {
       required Relay relay,
       required SignalId sharedSignalId,
       required KeychatIdentityKeyPair keyPair,
-      NostrEventModel? sourceEvent,
-      EventLog? eventLog}) async {
+      NostrEventModel? sourceEvent}) async {
     var ciphertext = Uint8List.fromList(base64Decode(event.content));
     var prekey = await rust_signal.parseIdentityFromPrekeySignalMessage(
         ciphertext: ciphertext);
@@ -199,7 +198,7 @@ class KdfGroupService extends BaseChatService {
   // shared key receive message then decrypt message
   // message struct: nip4 wrap signal
   Future decryptMessage(Room room, NostrEventModel nostrEvent, Relay relay,
-      {required String nip4DecodedContent, EventLog? eventLog}) async {
+      {required String nip4DecodedContent}) async {
     if (room.sharedSignalID == null) throw Exception('sharedSignalID is null');
 
     // sub event
@@ -227,8 +226,7 @@ class KdfGroupService extends BaseChatService {
             room: room,
             event: signalEvent,
             sourceEvent: nostrEvent,
-            relay: relay,
-            eventLog: eventLog);
+            relay: relay);
       } catch (e, s) {
         String msg = Utils.getErrorMessage(e);
         logger.e('decryptPreKeyMessage error: $msg', error: e, stackTrace: s);
@@ -264,8 +262,7 @@ class KdfGroupService extends BaseChatService {
             room: room,
             event: signalEvent,
             sourceEvent: nostrEvent,
-            relay: relay,
-            eventLog: eventLog);
+            relay: relay);
         return;
       } catch (e, s) {
         msg = Utils.getErrorMessage(e);

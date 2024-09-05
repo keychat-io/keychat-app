@@ -49,7 +49,7 @@ class MoreSetting extends StatelessWidget {
                 SettingsSection(title: const Text('Debug Zone'), tiles: [
                   SettingsTile.navigation(
                     leading: const Icon(Icons.event),
-                    title: const Text("Received Nostr Events"),
+                    title: const Text("Failed Events"),
                     onPressed: (context) async {
                       Get.to(() => const NostrEventsPage(),
                           binding: NostrEventsBindings());

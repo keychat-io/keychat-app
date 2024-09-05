@@ -50,7 +50,7 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
         await ContactService().getListExcludeSelf(identity.id);
 
     setState(() {
-      _contactList = contactList.reversed.toList();
+      _contactList = contactList.toList();
     });
   }
 
@@ -99,9 +99,7 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
     return Scaffold(
         appBar: AppBar(
           centerTitle: true,
-          title: const Text(
-            "Select Members",
-          ),
+          title: const Text("Select Members"),
           actions: [
             FilledButton(
                 onPressed: () => EasyThrottle.throttle('_completeToCreatGroup',

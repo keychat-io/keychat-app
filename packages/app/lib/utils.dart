@@ -286,9 +286,10 @@ class MyOutput extends LogOutput {
 }
 
 class ErrorMessages {
-  static String relayIsEmptyException =
-      '''Insufficient balance to pay for relay. 
+  static String relayIsEmptyException = '''Relay disconnected. Please retry.''';
+  static String noFundsInfo = '''Insufficient balance to pay relay. 
 Please check ecash balance and mint.''';
+  static String noFunds = 'No Funds';
 }
 
 class Utils {

@@ -124,9 +124,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
     }
     try {
       if (widget.room.isKDFGroup) {
-        String sender = meMember == null
-            ? myPubkey
-            : '${meMember.name}-${meMember.idPubkey}';
+        String sender = meMember == null ? myPubkey : meMember.name;
         await KdfGroupService.instance
             .inviteToJoinGroup(widget.room, selectAccounts, sender);
       } else {

@@ -59,8 +59,14 @@ class MinePage extends GetView<SettingController> {
                                 .identities
                                 .values
                                 .toList()),
-                        SettingsTile.navigation(
+                        SettingsTile(
                             title: const Text("Create / Import ID"),
+                            trailing: Icon(CupertinoIcons.add,
+                                color: Theme.of(Get.context!)
+                                    .iconTheme
+                                    .color
+                                    ?.withOpacity(0.5),
+                                size: 22),
                             onPressed: (context) async {
                               List<Identity> identities =
                                   Get.find<HomeController>()

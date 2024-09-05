@@ -269,9 +269,7 @@ class ChatxService extends GetxService {
   }
 
   Future deleteSignalSessionKPA(Room room) async {
-    if (room.curve25519PkHex == null) {
-      throw Exception("curve25519PkHex_is_null");
-    }
+    if (room.curve25519PkHex == null) return;
     Identity? identity = Get.find<HomeController>().identities[room.identityId];
     if (identity == null) return;
     KeychatIdentityKeyPair keyPair;

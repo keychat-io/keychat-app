@@ -31,7 +31,8 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
             decodedModel = res;
           });
         } catch (e) {
-          logger.d(e.toString());
+          String msg = Utils.getErrorMessage(e);
+          EasyLoading.showError(msg);
         }
       }
     });

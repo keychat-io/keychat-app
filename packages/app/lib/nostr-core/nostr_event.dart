@@ -49,6 +49,8 @@ class NostrEventModel {
   /// subscription_id is a random string that should be used to represent a subscription.
   String? subscriptionId;
 
+  String? toIdPubkey;
+
   /// Default constructor
   ///
   /// verify: ensure your event isValid() –> id, signature, timestamp…
@@ -158,7 +160,7 @@ class NostrEventModel {
       json['content'],
       json['sig'],
       verify: verify,
-    );
+    )..toIdPubkey = json['toIdPubkey'];
   }
 
   /// Serialize an event in JSON
@@ -171,6 +173,7 @@ class NostrEventModel {
         'content': content,
         'sig': sig
       };
+  String toJsonString() => jsonEncode(toJson());
 
   /// Serialize to nostr event message
   /// - ["EVENT", event JSON as defined above]

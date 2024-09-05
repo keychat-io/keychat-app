@@ -5,14 +5,17 @@ import 'package:app/app.dart';
 import 'package:app/controller/chat.controller.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/controller/setting.controller.dart';
+import 'package:app/models/nostr_event_status.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/ForwardSelectRoom.dart';
 import 'package:app/page/chat/LongTextPreviewPage.dart';
+import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/message_actions/GroupInviteAction.dart';
 import 'package:app/page/chat/message_actions/SetRoomRelayAction.dart';
 import 'package:app/page/theme.dart';
 import 'package:app/page/widgets/image_preview_widget.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 // import 'package:cached_network_image/cached_network_image.dart';
@@ -448,32 +451,40 @@ class MessageWidget extends StatelessWidget {
       EasyLoading.showInfo('Metadata Cleaned');
       return;
     }
-    List<NostrEventModel> list = [];
-    List<EventLog> eventLogs = [];
-    Map<String, List<MessageBill>> messageBills = {};
-    for (String id in message.eventIds) {
-      EventLog? eventLog = await DBProvider().getEventLogByEventId(id);
-      if (eventLog == null) continue;
-      try {
-        NostrEventModel event =
-            NostrEventModel.fromJson(jsonDecode(eventLog.snapshot));
-        list.add(event);
-        List<MessageBill> bills = await MessageService().getMessageBills(id);
-        messageBills[id] = bills;
-        eventLogs.add(eventLog);
-        // ignore: empty_catches
-      } catch (e) {}
-    }
-    if (list.isEmpty) {
-      EasyLoading.showInfo('Not found');
+
+    if (message.eventIds.length == 1 && message.rawEvents.length == 1) {
+      var (ess, event) =
+          await _getRawMessageData(message.eventIds[0], message.rawEvents[0]);
+      _showRawData(message, ess, event);
       return;
     }
-    if (list.length == 1) {
-      _showRawData(message, list[0], eventLogs, messageBills[list[0].id]!);
-      return;
+    List<List<NostrEventStatus>> result1 = [];
+    List<NostrEventModel?> result2 = [];
+    for (int i = 0; i < message.eventIds.length; i++) {
+      String? rawString =
+          message.rawEvents.length > i ? message.rawEvents[i] : null;
+      var (ess, event) =
+          await _getRawMessageData(message.eventIds[i], rawString);
+      result1.add(ess);
+      result2.add(event);
     }
+
     List<RoomMember> members = chatController.members;
-    _showRawDatas(message, eventLogs, members, messageBills);
+    _showRawDatas(message, result1, members, result2);
+  }
+
+  Future<(List<NostrEventStatus>, NostrEventModel?)> _getRawMessageData(
+      String eventId, String? rawEvent) async {
+    List<NostrEventStatus> ess = await DBProvider.database.nostrEventStatus
+        .filter()
+        .eventIdEqualTo(eventId)
+        .findAll();
+    NostrEventModel? event;
+    if (rawEvent == null) return (ess, event);
+    try {
+      event = NostrEventModel.fromJson(jsonDecode(rawEvent));
+    } catch (e) {}
+    return (ess, event);
   }
 
   void messageOnDoubleTap() {
@@ -788,8 +799,8 @@ class MessageWidget extends StatelessWidget {
     'nip4WrapNip4': 'NIP4(NIP4(raw message))',
     'nip4WrapSignal': 'NIP4(Signal Protocol(raw message))'
   };
-  _showRawData(Message message, NostrEventModel event, List<EventLog> eventLogs,
-      [List<MessageBill> bills = const []]) {
+  _showRawData(
+      Message message, List<NostrEventStatus> ess, NostrEventModel? event) {
     BuildContext buildContext = Get.context!;
     return showModalBottomSheetWidget(
         buildContext,
@@ -801,68 +812,71 @@ class MessageWidget extends StatelessWidget {
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      relayStatusList(buildContext, eventLogs, bills),
-                      const SizedBox(
-                        height: 20,
-                      ),
+                      relayStatusList(buildContext, ess),
+                      const SizedBox(height: 10),
                       if (message.mediaType == MessageMediaType.file ||
                           message.mediaType == MessageMediaType.image ||
                           message.mediaType == MessageMediaType.video)
                         getFileTable(buildContext, message),
+                      const SizedBox(height: 10),
                       NoticeTextWidget.success(
                           'Encrypted by ${encryptText[message.encryptType.name]}'),
-                      const SizedBox(
-                        height: 5,
-                      ),
-                      Card(
-                          child: Table(
-                              // defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                              // mainAxisAlignment: MainAxisAlignment.,
-                              columnWidths: const {
-                            0: FixedColumnWidth(100.0),
-                          },
-                              // border:
-                              //     TableBorder.all(width: 0.5, color: Colors.grey.shade400),
-                              children: [
-                            tableRow("ID", event.id),
-                            tableRow("From", event.pubkey),
-                            tableRow("To", event.tags[0][1]),
-                            tableRow(
-                                "Time",
-                                timestampToDateTime(event.createdAt)
-                                    .toString()),
-                            tableRow("Source Content", message.content),
-                            if (message.subEvent != null)
-                              tableRow("Sub Event", message.subEvent!),
-                            tableRow("Encrypted Content", event.content),
-                            if (message.msgKeyHash != null)
-                              tableRow("Encryption Keys Hash",
-                                  message.msgKeyHash ?? ''),
-                            tableRow("Sig", event.sig),
-                          ])),
+                      if (event != null)
+                        Card(
+                            child: Table(
+                                // defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                                // mainAxisAlignment: MainAxisAlignment.,
+                                columnWidths: const {
+                              0: FixedColumnWidth(100.0),
+                            },
+                                // border:
+                                //     TableBorder.all(width: 0.5, color: Colors.grey.shade400),
+                                children: [
+                              // tableRow('Encrypt',
+                              //     encryptText[message.encryptType.name]),
+                              tableRow("ID", event.id),
+                              tableRow("From", event.pubkey),
+                              tableRow("To", event.tags[0][1]),
+                              tableRow(
+                                  "Time",
+                                  timestampToDateTime(event.createdAt)
+                                      .toString()),
+                              tableRow("Source Content", message.content),
+                              if (message.subEvent != null)
+                                tableRow("Sub Event", message.subEvent!),
+                              tableRow("Encrypted Content", event.content),
+                              if (message.msgKeyHash != null)
+                                tableRow("Encryption Keys Hash",
+                                    message.msgKeyHash ?? ''),
+                              tableRow("Sig", event.sig),
+                            ])),
                     ]))));
   }
 
-  _showRawDatas(
-      Message message, List<EventLog> eventLogs, List<RoomMember> members,
-      [Map<String, List<MessageBill>> bills = const {}]) {
-    Map<String, dynamic> maps = {};
-    for (var eventLog in eventLogs) {
+  // for small group message, send to multi members
+  _showRawDatas(Message message, List<List<NostrEventStatus>> ess,
+      List<RoomMember> members, List<NostrEventModel?> eventLogs) {
+    List result = [];
+    for (var i = 0; i < ess.length; i++) {
       // NostrEvent event = NostrEvent.fromJson(jsonDecode(eventLog.snapshot));
-      List<RoomMember>? to = members
-          .where((element) => element.idPubkey == eventLog.toIdPubkey)
-          .toList();
-      if (to.isEmpty) continue;
+      NostrEventModel? eventModel;
+      if (eventLogs.length > i) {
+        eventModel = eventLogs[i];
+      }
+      List<NostrEventStatus>? es = ess[i];
+      if (eventModel == null) continue;
+      RoomMember? to = members
+          .where((element) => element.idPubkey == eventModel!.toIdPubkey)
+          .firstOrNull;
+      if (to == null) continue;
 
       var data = {
-        'status': eventLog.resCode == 200,
-        'eventId': eventLog.eventId,
-        'snapshot': eventLog.snapshot,
-        'eventLog': eventLog,
-        'to': to.first
+        'ess': es,
+        'to': to,
+        'eventModel': eventModel,
       };
 
-      maps[to.first.idPubkey] = data;
+      result.add(data);
     }
     BuildContext buildContext = Get.context!;
 
@@ -877,30 +891,34 @@ class MessageWidget extends StatelessWidget {
                 ListView.builder(
                     physics: const NeverScrollableScrollPhysics(),
                     shrinkWrap: true,
-                    itemCount: maps.keys.length,
+                    itemCount: result.length,
                     itemBuilder: (context, index) {
-                      String idPubkey = maps.keys.toList()[index];
-                      RoomMember? rm = maps[idPubkey]['to'];
-                      bool status = maps[idPubkey]['status'];
-                      String snapshot = maps[idPubkey]['snapshot'];
-                      EventLog eventLog = maps[idPubkey]['eventLog'];
+                      Map map = result[index];
+                      // String idPubkey = maps.keys.toList()[index];
+                      RoomMember? rm = map['to'];
+                      List<NostrEventStatus> eventSendStatus = map['ess'] ?? [];
+                      NostrEventModel? eventModel = map['eventModel'];
+                      List<NostrEventStatus> success = eventSendStatus
+                          .where((element) =>
+                              element.sendStatus == EventSendEnum.success)
+                          .toList();
+                      String idPubkey = eventModel?.toIdPubkey ??
+                          eventModel?.tags[0][1] ??
+                          '';
                       return ExpansionTile(
                         title: Row(
                           children: <Widget>[
-                            status
-                                ? const Icon(Icons.check_circle,
-                                    color: Colors.green)
-                                : const Icon(Icons.error_outline,
-                                    color: Colors.red),
+                            RoomUtil.getStatusCheckIcon(
+                                eventSendStatus.length, success.length),
                             const SizedBox(width: 10),
                             Text('To: ${rm?.name ?? idPubkey}'),
                           ],
                         ),
                         subtitle: Text(idPubkey),
                         children: <Widget>[
-                          relayStatusList(context, [eventLog],
-                              bills[eventLog.eventId] ?? []),
-                          ListTile(title: Text(snapshot)),
+                          relayStatusList(context, eventSendStatus),
+                          if (eventModel != null)
+                            ListTile(title: Text(eventModel.toJsonString())),
                         ],
                       );
                     })

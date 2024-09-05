@@ -1,19 +1,21 @@
 import 'package:app/constants.dart';
+import 'package:app/models/db_provider.dart';
 import 'package:app/models/embedded/cashu_info.dart';
 import 'package:app/models/embedded/relay_file_fee.dart';
 import 'package:app/models/embedded/relay_message_fee.dart';
-import 'package:app/models/message_bill.dart';
+import 'package:app/models/nostr_event_status.dart';
 import 'package:app/models/relay.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/nostr-core/nostr_nip4_req.dart';
-import 'package:app/nostr-core/relay_event_status.dart';
+import 'package:app/nostr-core/subscribe_event_status.dart';
 import 'package:app/nostr-core/relay_websocket.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_debounce.dart';
+import 'package:queue/queue.dart';
 import 'package:web_socket_channel/io.dart';
 
 import 'package:flutter/material.dart';
@@ -32,6 +34,7 @@ class WebsocketService extends GetxService {
   final RxMap<String, RelayMessageFee> relayMessageFeeModels =
       <String, RelayMessageFee>{}.obs;
   Map<String, RelayFileFee> relayFileFeeModels = {};
+  Map<String, Set<String>> failedEventsMap = {};
 
   DateTime initAt = DateTime.now();
 
@@ -50,7 +53,8 @@ class WebsocketService extends GetxService {
 
   // new a websocket channel for this relay
   Future addChannel(Relay relay, [List<String> pubkeys = const []]) async {
-    RelayWebsocket rw = RelayWebsocket(relay);
+    WebsocketService ws = this;
+    RelayWebsocket rw = RelayWebsocket(relay, ws);
     channels[relay.url] = rw;
     if (!relay.active) {
       return;
@@ -66,8 +70,7 @@ class WebsocketService extends GetxService {
   Future checkOnlineAndConnect() async {
     // fix ConcurrentModificationError
     for (RelayWebsocket rw in List.from(channels.values)) {
-      // logger.d(
-      //     '> checkOnlineAndConnect ${rw.relay.url}: ${rw.channelStatus.name} ${rw.channel?.closeCode} _ ${rw.channel?.closeReason}');
+      if (rw.relay.active == false) continue;
       rw.checkOnlineStatus().then((relayStatus) {
         if (!relayStatus) {
           rw.channel?.sink.close();
@@ -205,7 +208,7 @@ class WebsocketService extends GetxService {
       startLock = true;
       NostrAPI().processedEventIds.clear();
       initAt = DateTime.now();
-      WriteEventStatus.clear();
+      SubscribeEventStatus.clear();
       await stopListening();
       list ??= await RelayService().list();
       await createChannels(list);
@@ -254,92 +257,128 @@ class WebsocketService extends GetxService {
     }
   }
 
-  Future<List<String>> writeNostrEvent(
+  Future<List<NostrEventStatus>> writeNostrEvent(
       {required NostrEventModel event,
       required String eventString,
       required int roomId,
       String? hisRelay}) async {
-    List<String> relays = getOnlineRelayString();
-    // set his relay
-    if (hisRelay != null && hisRelay.isNotEmpty) {
-      if (channels[hisRelay] != null) {
-        if (channels[hisRelay]!.channelStatus == RelayStatusEnum.success) {
-          relays = [hisRelay];
-        }
-      }
-    }
-    if (relays.isEmpty) {
-      throw Exception('His relay not connected');
-    }
-
+    // // set his relay
+    // if (hisRelay != null && hisRelay.isNotEmpty) {
+    //   if (channels[hisRelay] != null) {
+    //     if (channels[hisRelay]!.channelStatus == RelayStatusEnum.success) {
+    //       relays = [hisRelay];
+    //     }
+    //   }
+    // }
+    // if (relays.isEmpty) {
+    //   throw Exception('His relay not connected');
+    // }
+    List<String> activeRelays = getActiveRelayString();
     // listen status
-    WriteEventStatus.addSubscripton(event.id, relays.length);
+    SubscribeEventStatus.addSubscripton(
+        event.id, getOnlineRelayString().length);
 
-    List<Future> tasks = [];
-    Map failedRelay = {};
-    String toSendMesage = "[\"EVENT\",$eventString]";
-    for (String relay in relays) {
+    String rawEvent = "[\"EVENT\",$eventString]";
+    int success = 0;
+    List<NostrEventStatus> results = [];
+    Queue tasks = Queue(parallel: channels.keys.length);
+    for (String relay in activeRelays) {
+      RelayWebsocket? rw = channels[relay];
+      if (rw == null) continue;
+
       tasks.add(() async {
-        try {
-          String eventRaw =
-              await addCashuToMessage(toSendMesage, relay, roomId, event.id);
-          if (channels[relay]?.channel == null) {
-            failedRelay[relay] = 'Relay not connected';
+        NostrEventStatus ess = NostrEventStatus(
+            relay: rw.relay.url,
+            eventId: event.id,
+            roomId: roomId,
+            sendStatus: EventSendEnum.init)
+          ..rawEvent = rawEvent;
+
+        if (rw.channel == null || rw.relay.active == false) {
+          ess.sendStatus = EventSendEnum.noAcitveRelay;
+          results.add(ess);
+          return;
+        }
+
+        if (rw.channelStatus == RelayStatusEnum.success) {
+          try {
+            ess = await addCashuToMessage(roomId, ess);
+          } catch (e) {
+            ess.sendStatus = EventSendEnum.cashuError;
+            ess.error = e.toString();
+            results.add(ess);
             return;
           }
           logger.i(
-              'to:[$relay]: $eventRaw }'); // ${eventRaw.length > 200 ? eventRaw.substring(0, 400) : eventRaw}');
-          channels[relay]!.channel!.sink.add(eventRaw);
-        } catch (e, s) {
-          String message = Utils.getErrorMessage(e);
-          logger.e(message, error: e, stackTrace: s);
-          failedRelay[relay] = message;
+              'to:[${rw.relay.url}]: ${ess.rawEvent} }'); // ${eventRaw.length > 200 ? eventRaw.substring(0, 400) : eventRaw}');
+          try {
+            rw.sendRawREQ(ess.rawEvent, retry: true);
+            success++;
+            ess.sendStatus = EventSendEnum.success;
+          } catch (e) {
+            ess.sendStatus = EventSendEnum.relayDisconnected;
+            ess.error = e.toString();
+          }
+          results.add(ess);
+          return;
         }
-      }());
+        ess.sendStatus = getSendStatusByRelayStatus(rw.channelStatus);
+        results.add(ess);
+      });
     }
-    Future.wait(tasks).whenComplete(() {
-      if (relays.length == failedRelay.entries.length) {
-        String messages = failedRelay.entries
-            .map((item) => '${item.key}: ${item.value}')
-            .toList()
-            .join('\n');
-        Get.snackbar('Message Send Failed', messages,
-            icon: const Icon(Icons.error));
+
+    await tasks.onComplete;
+    if (success == 0) {
+      String messages = results
+          .map((item) => '${item.relay}: ${item.error ?? item.sendStatus.name}')
+          .toList()
+          .join('\n');
+      Get.snackbar('Message Send Failed', messages,
+          icon: const Icon(Icons.error));
+    }
+    // save send status to db
+    await DBProvider.database.writeTxn(() async {
+      for (NostrEventStatus item in results) {
+        await DBProvider.database.nostrEventStatus.put(item);
       }
     });
-    return relays;
+    return results;
   }
 
-  Future<String> addCashuToMessage(
-      String message, String relay, int roomId, String eventId) async {
-    RelayMessageFee? payInfoModel = relayMessageFeeModels[relay];
-    if (payInfoModel == null) return message;
-    if (payInfoModel.amount == 0) return message;
+  Future<NostrEventStatus> addCashuToMessage(
+      int roomId, NostrEventStatus eventSendStatus) async {
+    RelayMessageFee? payInfoModel =
+        relayMessageFeeModels[eventSendStatus.relay];
+    if (payInfoModel == null) return eventSendStatus;
+    if (payInfoModel.amount == 0) return eventSendStatus;
     CashuInfoModel? cashuA;
-
-    cashuA = await CashuUtil.getStamp(
-        amount: payInfoModel.amount,
-        token: payInfoModel.unit.name,
-        mints: payInfoModel.mints);
-
+    try {
+      cashuA = await CashuUtil.getStamp(
+          amount: payInfoModel.amount,
+          token: payInfoModel.unit.name,
+          mints: payInfoModel.mints);
+      eventSendStatus.ecashName = payInfoModel.unit.name;
+      double amount = (payInfoModel.amount).toDouble();
+      eventSendStatus.ecashAmount = amount;
+      eventSendStatus.ecashToken = cashuA.token;
+      eventSendStatus.ecashMint = cashuA.mint;
+    } catch (e) {
+      String msg = Utils.getErrorMessage(e);
+      if (msg.startsWith('Insufficant')) throw Exception(ErrorMessages.noFunds);
+      loggerNoLine.e('${eventSendStatus.relay} getStamp failed: $msg');
+      throw Exception(msg);
+    }
+    String message = eventSendStatus.rawEvent;
     message = message.substring(0, message.length - 1);
     message += ',"${cashuA.token}"]';
-    double amount = (payInfoModel.amount).toDouble();
-
-    MessageBill mb = MessageBill(
-        eventId: eventId,
-        roomId: roomId,
-        amount: amount,
-        relay: relay,
-        createdAt: DateTime.now(),
-        cashuA: cashuA.token);
-    MessageService().insertMessageBill(mb);
-    return message;
+    eventSendStatus.rawEvent = message;
+    return eventSendStatus;
   }
 
   Future createChannels([List<Relay> list = const []]) async {
+    WebsocketService ws = this;
     await Future.wait(list.map((Relay relay) async {
-      RelayWebsocket rw = RelayWebsocket(relay);
+      RelayWebsocket rw = RelayWebsocket(relay, ws);
       channels[relay.url] = rw;
       await _startConnectRelay(rw);
     }));
@@ -355,6 +394,7 @@ class WebsocketService extends GetxService {
       if (rw.failedTimes > failedTimesLimit) {
         rw.channelStatus = RelayStatusEnum.failed;
         rw.channel?.sink.close();
+        clearFailedEvents(rw.relay.url);
         return rw;
       }
     }
@@ -433,5 +473,35 @@ class WebsocketService extends GetxService {
           '$relay onErrorProcess _reconnectTimes: ${channels[relay]?.failedTimes}');
       await _startConnectRelay(channels[relay]!);
     });
+  }
+
+  EventSendEnum getSendStatusByRelayStatus(RelayStatusEnum channelStatus) {
+    switch (channelStatus) {
+      case RelayStatusEnum.init:
+        return EventSendEnum.init;
+      case RelayStatusEnum.noAcitveRelay:
+        return EventSendEnum.noAcitveRelay;
+      case RelayStatusEnum.connecting:
+        return EventSendEnum.relayConnecting;
+      case RelayStatusEnum.failed:
+        return EventSendEnum.relayDisconnected;
+      default:
+        return EventSendEnum.init;
+    }
+  }
+
+  Set<String> getFailedEvents(String relay) {
+    return failedEventsMap[relay] ?? {};
+  }
+
+  addFaiedEvents(String relay, String raw) {
+    if (failedEventsMap[relay] == null) {
+      failedEventsMap[relay] = {};
+    }
+    failedEventsMap[relay]!.add(raw);
+  }
+
+  clearFailedEvents(String relay) {
+    failedEventsMap.remove(relay);
   }
 }

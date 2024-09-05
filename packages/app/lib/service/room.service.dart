@@ -2,6 +2,7 @@ import 'dart:convert' show jsonDecode;
 
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
+import 'package:app/models/nostr_event_status.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/routes.dart';
@@ -168,7 +169,10 @@ class RoomService extends BaseChatService {
           .pubkeyEqualTo(room.toMainPubkey)
           .deleteAll();
       await database.messages.filter().roomIdEqualTo(roomId).deleteAll();
-      await database.messageBills.filter().roomIdEqualTo(roomId).deleteAll();
+      await database.nostrEventStatus
+          .filter()
+          .roomIdEqualTo(roomId)
+          .deleteAll();
       await database.rooms.filter().idEqualTo(roomId).deleteFirst();
       await FileUtils.deleteFolderByRoomId(room.identityId, room.id);
     });
@@ -358,36 +362,15 @@ class RoomService extends BaseChatService {
         requesting.add(room); // not friend
         continue;
       }
-
       if (room.status == RoomStatus.approving) {
         approving.add(room);
         continue;
       }
-
       friendsRoom.add(room);
     }
 
-    friendsRoom.sort((a, b) {
-      if (a.pin || b.pin) {
-        if (a.pin && b.pin) {
-          return b.pinAt!.compareTo(a.pinAt!);
-        }
-        return a.pin ? -1 : 1;
-      }
-      if (a.lastMessageModel == null) return 1;
-      if (b.lastMessageModel == null) return -1;
-      return b.lastMessageModel!.createdAt
-          .compareTo(a.lastMessageModel!.createdAt);
-    });
-
-    // anonymous.sort((a, b) {
-    //   if (a.lastMessageModel == null) return 1;
-    //   if (b.lastMessageModel == null) return -1;
-    //   return b.lastMessageModel!.createdAt
-    //       .compareTo(a.lastMessageModel!.createdAt);
-    // });
     return {
-      'friends': friendsRoom,
+      'friends': RoomUtil.sortRoomList(friendsRoom),
       'approving': approving,
       'requesting': requesting
     };
@@ -449,6 +432,7 @@ class RoomService extends BaseChatService {
       required NostrEventModel event,
       NostrEventModel? sourceEvent,
       String? msgKeyHash,
+      Function(String error)? failedCallback,
       required KeychatMessage km,
       required Relay relay}) async {
     switch (km.type) {
@@ -805,14 +789,9 @@ class RoomService extends BaseChatService {
 }
 
 class SendMessageResponse {
-  List<String> relays = [];
   List<NostrEventModel> events = [];
   Message? message;
   List<String>? toAddPubkeys;
   String? msgKeyHash;
-  SendMessageResponse(
-      {required this.relays,
-      required this.events,
-      this.message,
-      this.msgKeyHash});
+  SendMessageResponse({required this.events, this.message, this.msgKeyHash});
 }

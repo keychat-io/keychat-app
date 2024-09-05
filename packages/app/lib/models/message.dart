@@ -66,7 +66,7 @@ class Message extends Equatable {
 
   String? subEvent;
   DateTime? receiveAt;
-
+  List<String> rawEvents = [];
   FromContact? fromContact; // show for message
 
   Message(
@@ -81,6 +81,7 @@ class Message extends Equatable {
       required this.sent,
       required this.eventIds,
       required this.encryptType,
+      required this.rawEvents,
       this.realMessage,
       this.reply,
       this.isSystem = false,

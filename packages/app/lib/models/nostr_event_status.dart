@@ -61,8 +61,8 @@ class NostrEventStatus extends Equatable {
         .findFirst();
   }
 
-  static NostrEventStatus createReceiveEvent(
-      String relay, String eventId, String receiveSnapshot) {
+  static Future<NostrEventStatus> createReceiveEvent(
+      String relay, String eventId, String receiveSnapshot) async {
     var ess = NostrEventStatus(
         eventId: eventId,
         relay: relay,
@@ -70,8 +70,8 @@ class NostrEventStatus extends Equatable {
         roomId: -1)
       ..receiveSnapshot = receiveSnapshot
       ..isReceive = true;
-    DBProvider.database.writeTxnSync(() {
-      var id = DBProvider.database.nostrEventStatus.putSync(ess);
+    await DBProvider.database.writeTxn(() async {
+      var id = await DBProvider.database.nostrEventStatus.put(ess);
       ess.id = id;
     });
 

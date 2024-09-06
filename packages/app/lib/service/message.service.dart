@@ -43,7 +43,8 @@ class MessageService {
         });
       } catch (e) {
         logger.e('saveMessageModel error: $e, ${model.content}');
-        rethrow;
+        throw Exception(
+            'duplicate_db: roomId[${model.roomId}] ${model.content}');
       }
     } else {
       await DBProvider.database.messages.put(model);

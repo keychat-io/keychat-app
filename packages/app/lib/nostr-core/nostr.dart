@@ -40,7 +40,7 @@ class NostrAPI {
   Set<String> processedEventIds = {};
   String nip05SubscriptionId = '';
   final nostrEventQueue =
-      Queue(delay: const Duration(milliseconds: 30), parallel: 1);
+      Queue(delay: const Duration(milliseconds: 50), parallel: 1);
   static final NostrAPI _instance = NostrAPI._internal();
   NostrAPI._internal();
 
@@ -395,7 +395,7 @@ class NostrAPI {
     }
 
     _updateRelayLastMessageAt(relay.url, event.createdAt);
-    ess = NostrEventStatus.createReceiveEvent(relay.url, event.id, raw);
+    ess = await NostrEventStatus.createReceiveEvent(relay.url, event.id, raw);
 
     // verify
     try {

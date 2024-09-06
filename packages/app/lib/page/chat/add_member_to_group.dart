@@ -2,7 +2,6 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/models/models.dart';
 import 'package:app/service/kdf_group.service.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
@@ -58,21 +57,8 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
         await ContactService().getListExcludeSelf(widget.room.identityId);
 
     setState(() {
-      _contactList = contactList;
+      _contactList = contactList.reversed.toList();
     });
-  }
-
-  void _completeFromInput() async {
-    String myPubkey =
-        Get.find<HomeController>().getSelectedIdentity().secp256k1PKHex;
-    EasyLoading.show(status: 'Proccessing');
-    Map<String, String> selectAccounts = {};
-    if (_userNameController.text.trim().length >= 63) {
-      String hexPubkey = rust_nostr.getHexPubkeyByBech32(
-          bech32: _userNameController.text.trim());
-      selectAccounts[hexPubkey] = '';
-    }
-    await _sendInvite(myPubkey, selectAccounts);
   }
 
   void _completeFromContacts() async {

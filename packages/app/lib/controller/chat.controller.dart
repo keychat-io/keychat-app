@@ -622,19 +622,13 @@ class ChatController extends GetxController {
     return list;
   }
 
-  updateMessageStatus(List<Message> messageList) {
-    bool refresh = false;
-    for (var message in messageList) {
-      for (var element in messages) {
-        if (element.isMeSend == true && element.id == message.id) {
-          element.sent = message.sent;
-          refresh = true;
-          break;
-        }
+  updateMessageStatus(Message message) {
+    for (var i = 0; i < messages.length; i++) {
+      Message element = messages[i];
+      if (element.isMeSend == true && element.id == message.id) {
+        messages[i] = message;
+        break;
       }
-    }
-    if (refresh) {
-      messages.refresh();
     }
   }
 

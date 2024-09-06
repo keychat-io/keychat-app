@@ -61,8 +61,8 @@ class NostrEventStatus extends Equatable {
         .findFirst();
   }
 
-  static Future<NostrEventStatus> createReceiveEvent(
-      String relay, String eventId, String receiveSnapshot) async {
+  static NostrEventStatus createReceiveEvent(
+      String relay, String eventId, String receiveSnapshot) {
     var ess = NostrEventStatus(
         eventId: eventId,
         relay: relay,
@@ -70,18 +70,18 @@ class NostrEventStatus extends Equatable {
         roomId: -1)
       ..receiveSnapshot = receiveSnapshot
       ..isReceive = true;
-    await DBProvider.database.writeTxn(() async {
-      var id = await DBProvider.database.nostrEventStatus.put(ess);
+    DBProvider.database.writeTxnSync(() {
+      var id = DBProvider.database.nostrEventStatus.putSync(ess);
       ess.id = id;
     });
 
     return ess;
   }
 
-  Future setError(String msg) {
+  Future setError(String msg) async {
     error = msg;
     sendStatus = EventSendEnum.proccessError;
-    return DBProvider.database.writeTxn(() async {
+    await DBProvider.database.writeTxn(() async {
       await DBProvider.database.nostrEventStatus.put(this);
     });
   }

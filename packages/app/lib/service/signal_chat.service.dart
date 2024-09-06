@@ -144,8 +144,9 @@ class SignalChatService extends BaseChatService {
       rust_signal.KeychatProtocolAddress? kpa =
           await Get.find<ChatxService>().getRoomKPA(room);
       if (kpa == null) {
-        failedCallback('signal_session_is_null');
-        throw Exception("signal_session_is_null");
+        String msg = room.getDebugInfo('signal_session_is_null');
+        failedCallback(msg);
+        throw Exception(msg);
       }
       try {
         var keypair = await room.getKeyPair();
@@ -450,7 +451,16 @@ Let's talk on this server.''';
     String signalIdPubkey = prekey.$1;
     SignalId? singalId =
         await SignalIdService.instance.getSignalIdByKeyId(prekey.$2);
-    if (singalId == null) throw Exception('SignalId not found');
+    if (singalId == null) {
+      String msg = 'SignalId not found, identityId: ${mykey.identityId}.';
+      if (mykey.roomId != null) {
+        Room? room = await RoomService().getRoomById(mykey.roomId!);
+        if (room != null) {
+          msg = room.getDebugInfo(msg);
+        }
+      }
+      throw Exception(msg);
+    }
     KeychatIdentityKeyPair keyPair =
         Get.find<ChatxService>().getKeyPairBySignalId(singalId);
     Identity identity =

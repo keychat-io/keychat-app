@@ -68,6 +68,8 @@ class Message extends Equatable {
   DateTime? receiveAt;
   List<String> rawEvents = [];
   FromContact? fromContact; // show for message
+  int maxRelay = 0;
+  int okRelay = 0;
 
   Message(
       {required this.msgid,

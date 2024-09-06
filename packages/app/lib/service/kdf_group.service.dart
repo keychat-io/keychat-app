@@ -177,13 +177,14 @@ class KdfGroupService extends BaseChatService {
       // ignore: empty_catches
     } catch (e) {}
     if (km != null) {
-      return await km.service.processMessage(
+      await km.service.processMessage(
           room: room,
           km: km,
           msgKeyHash: msgKeyHash,
           event: event,
           sourceEvent: sourceEvent,
           relay: relay);
+      return;
     }
 
     await RoomService().receiveDM(room, event,
@@ -192,13 +193,13 @@ class KdfGroupService extends BaseChatService {
         decodedContent: decryptedContent,
         msgKeyHash: msgKeyHash,
         realMessage: km?.msg);
-    return;
   }
 
   // shared key receive message then decrypt message
   // message struct: nip4 wrap signal
   Future decryptMessage(Room room, NostrEventModel nostrEvent, Relay relay,
-      {required String nip4DecodedContent}) async {
+      {required String nip4DecodedContent,
+      required Function(String) failedCallback}) async {
     if (room.sharedSignalID == null) throw Exception('sharedSignalID is null');
 
     // sub event
@@ -207,7 +208,11 @@ class KdfGroupService extends BaseChatService {
     String from = signalEvent.pubkey;
     RoomMember? roomMember = await room.getMemberByNostrPubkey(from);
 
-    if (roomMember == null) throw Exception('roomMember is null');
+    if (roomMember == null) {
+      String msg = 'roomMember is null';
+      failedCallback(room.getDebugInfo(msg));
+      throw Exception('roomMember is null');
+    }
 
     // setup shared signal id
     ChatxService chatxService = Get.find<ChatxService>();
@@ -384,7 +389,7 @@ class KdfGroupService extends BaseChatService {
       [String? sender]) async {
     SignalId signalId =
         await SignalIdService.instance.createSignalId(room.identityId, true);
-    Mykey mykey = await GroupTx().createMykey(room.identityId);
+    Mykey mykey = await GroupTx().createMykey(room.identityId, room.id);
     RoomProfile roomProfile = await GroupService()
         .inviteToJoinGroup(room, users, signalId: signalId, mykey: mykey);
 
@@ -425,7 +430,7 @@ Let's create a new group.''';
   Future sendNewKeysToActiveMembers(Room room) async {
     SignalId signalId =
         await SignalIdService.instance.createSignalId(room.identityId, true);
-    Mykey mykey = await GroupTx().createMykey(room.identityId);
+    Mykey mykey = await GroupTx().createMykey(room.identityId, room.id);
     RoomProfile roomProfile = await GroupService()
         .getRoomProfile(room, signalId: signalId, mykey: mykey);
 
@@ -433,13 +438,15 @@ Let's create a new group.''';
         c: MessageType.kdfGroup, type: KeyChatEventKinds.kdfUpdateKeys)
       ..name = roomProfile.toString()
       ..msg = 'Let\'s reset the status of group [${room.name}]';
-    // self update keys
-    await proccessUpdateKeys(room, roomProfile);
 
     List<RoomMember> members = await room.getActiveMembers();
     await GroupService().sendPrivateMessageToMembers(
         km.msg!, members, room.getIdentity(),
         groupRoom: room, km: km);
+
+    // self update keys
+    await Future.delayed(const Duration(seconds: 1));
+    await proccessUpdateKeys(room, roomProfile);
   }
 
   // If the deleted person includes himself, mark the room as kicked.
@@ -518,7 +525,8 @@ Let's create a new group.''';
       await groupRoom.updateAllMemberTx(roomProfile.users);
       // delete old mykey and import new one
 
-      Mykey mykey = await GroupTx().importMykeyTx(identity.id, keychain);
+      Mykey mykey =
+          await GroupTx().importMykeyTx(identity.id, keychain, groupRoom.id);
       groupRoom.sharedSignalID = sharedSignalId.pubkey;
       groupRoom.mykey.value = mykey;
       groupRoom.status = RoomStatus.enabled;

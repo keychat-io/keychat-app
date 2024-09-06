@@ -37,9 +37,14 @@ class MessageService {
     model = await _fillTypeForMessage(model);
 
     if (persist) {
-      await DBProvider.database.writeTxn(() async {
-        await DBProvider.database.messages.put(model);
-      });
+      try {
+        await DBProvider.database.writeTxn(() async {
+          await DBProvider.database.messages.put(model);
+        });
+      } catch (e) {
+        logger.e('saveMessageModel error: $e, ${model.content}');
+        rethrow;
+      }
     } else {
       await DBProvider.database.messages.put(model);
     }

@@ -39,7 +39,8 @@ class NostrAPI {
   static DBProvider dbProvider = DBProvider();
   Set<String> processedEventIds = {};
   String nip05SubscriptionId = '';
-  final nostrEventQueue = Queue(delay: const Duration(milliseconds: 20));
+  final nostrEventQueue =
+      Queue(delay: const Duration(milliseconds: 30), parallel: 1);
   static final NostrAPI _instance = NostrAPI._internal();
   NostrAPI._internal();
 
@@ -52,8 +53,8 @@ class NostrAPI {
   addNostrEventToQueue(Relay relay, dynamic message) {
     //logger.d('processWebsocketMessage, ${relay.url} $message');
     nostrEventQueue.add(() async {
-      var res = jsonDecode(message);
       try {
+        var res = jsonDecode(message);
         switch (res[0]) {
           case NostrResKinds.ok:
             loggerNoLine.i('OK: ${relay.url}, $res');
@@ -115,7 +116,7 @@ class NostrAPI {
     // sendMessageFunction(serializeStr);
   }
 
-  _proccessEvent(List eventList, Relay relay, String raw) async {
+  Future _proccessEvent(List eventList, Relay relay, String raw) async {
     NostrEventModel event =
         NostrEventModel.deserialize(eventList, verify: false);
     // logger.i('${DateTime.now()} : ${event.createdAt}');
@@ -352,7 +353,7 @@ class NostrAPI {
           receiverPubkey: event.pubkey,
           content: event.content);
     } catch (e) {
-      logger.e('decrypt error', error: e);
+      logger.e('decryptNip4Content error', error: e);
     }
     return null;
   }
@@ -381,7 +382,7 @@ class NostrAPI {
   Future _processNip4Message(
       List eventList, NostrEventModel event, Relay relay, String raw) async {
     if (processedEventIds.contains(event.id)) {
-      logger.i('duplicate: ${event.id}');
+      logger.i('duplicate_local: ${event.id}');
       return;
     } else {
       processedEventIds.add(event.id);
@@ -389,12 +390,12 @@ class NostrAPI {
 
     NostrEventStatus? ess = await NostrEventStatus.getReceiveEvent(event.id);
     if (ess != null) {
-      logger.d('event already received: ${event.id}');
+      logger.d('duplicate_db: ${event.id}');
       return;
     }
 
     _updateRelayLastMessageAt(relay.url, event.createdAt);
-    ess = await NostrEventStatus.createReceiveEvent(relay.url, event.id, raw);
+    ess = NostrEventStatus.createReceiveEvent(relay.url, event.id, raw);
 
     // verify
     try {
@@ -404,8 +405,8 @@ class NostrAPI {
       ess.setError(e.toString());
       return;
     }
-    failedCallback(String error) {
-      ess?.setError('Nip04 ecrypt error');
+    failedCallback(String error, [String? stackTrace]) {
+      ess?.setError('proccess error: $error $stackTrace');
     }
 
     switch (event.kind) {
@@ -435,15 +436,16 @@ class NostrAPI {
           }
           throw Exception('room not found');
         } catch (e, s) {
-          ess.setError(e.toString());
+          ess.setError('nip04 ${e.toString()} ${s.toString()}');
           logger.e('decrypt error', error: e, stackTrace: s);
         }
 
         break;
       case EventKinds.nip17:
         try {
-          await _processNip17Message(event, relay);
+          await _processNip17Message(event, relay, failedCallback);
         } catch (e, s) {
+          ess.setError('nip17 ${e.toString()} ${s.toString()}');
           logger.e('nip17 decrypt error', error: e, stackTrace: s);
         }
         break;
@@ -459,8 +461,8 @@ class NostrAPI {
       failedCallback('Nip04 ecrypt error');
       return;
     }
-    return await KdfGroupService.instance
-        .decryptMessage(kdfRoom, event, relay, nip4DecodedContent: content);
+    return await KdfGroupService.instance.decryptMessage(kdfRoom, event, relay,
+        nip4DecodedContent: content, failedCallback: failedCallback);
   }
 
   Future dmNip4Proccess(NostrEventModel sourceEvent, Relay relay,
@@ -573,11 +575,7 @@ class NostrAPI {
   Future<String> fetchMetadata(List<String> pubkeys) async {
     String id = utils.generate64RandomHexChars();
     Request requestWithFilter = Request(id, [
-      Filter(
-        kinds: [EventKinds.setMetadata],
-        authors: pubkeys,
-        limit: 100,
-      )
+      Filter(kinds: [EventKinds.setMetadata], authors: pubkeys, limit: 100)
     ]);
 
     var req = requestWithFilter.serialize();
@@ -592,7 +590,8 @@ class NostrAPI {
     ws.channels[relay.url]!.notices.add(msg1);
   }
 
-  Future _processNip17Message(NostrEventModel event, Relay relay) async {
+  Future _processNip17Message(NostrEventModel event, Relay relay,
+      Function(String) failedCallbackync) async {
     String to = event.tags[0][1];
     String? myPrivateKey;
     Identity? identity = await IdentityService().getIdentityByNostrPubkey(to);
@@ -607,6 +606,7 @@ class NostrAPI {
     }
     if (myPrivateKey == null) {
       logger.e('myPrivateKey is null');
+      failedCallbackync('myPrivateKey is null');
       return;
     }
 

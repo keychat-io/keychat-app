@@ -1,24 +1,19 @@
 // ignore_for_file: use_build_context_synchronously
 
-import 'dart:convert' show jsonEncode;
 import 'dart:io' show exit;
 
 import 'package:app/controller/home.controller.dart';
-import 'package:app/models/message.dart';
-
 import 'package:app/page/FileExplore.dart';
-import 'package:app/service/message.service.dart';
+import 'package:app/page/setting/UnreadMessages.dart';
 import 'package:app/service/secure_storage.dart';
-
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:isar/isar.dart';
+
 import 'package:settings_ui/settings_ui.dart';
 
 import '../../controller/setting.controller.dart';
@@ -57,35 +52,9 @@ class MoreSetting extends StatelessWidget {
                   ),
                   SettingsTile.navigation(
                     leading: const Icon(Icons.copy),
-                    title: const Text("Copy Unread Messages"),
+                    title: const Text("Unread Messages"),
                     onPressed: (context) async {
-                      List<Message> messages = await DBProvider
-                          .database.messages
-                          .filter()
-                          .isReadEqualTo(false)
-                          .findAll();
-                      List res = messages.map((e) => e.toString()).toList();
-
-                      Clipboard.setData(ClipboardData(text: jsonEncode(res)));
-                      EasyLoading.showSuccess('Copied');
-                    },
-                  ),
-                  SettingsTile.navigation(
-                    leading: const Icon(CupertinoIcons.bubble_left),
-                    title: const Text("Clear Unread Messages"),
-                    onPressed: (context) async {
-                      EasyLoading.show(status: 'Processing...');
-                      try {
-                        await MessageService().clearUnreadMessage();
-                        Get.find<HomeController>().loadRoomList();
-                        EasyLoading.showSuccess('Success');
-                      } catch (e, s) {
-                        logger.e('clear unread message',
-                            error: e, stackTrace: s);
-                        EasyLoading.showError('Failed');
-                      } finally {
-                        EasyLoading.dismiss();
-                      }
+                      Get.to(() => const UnreadMessages());
                     },
                   ),
                   if (home2controller.debugModel.value || kDebugMode)

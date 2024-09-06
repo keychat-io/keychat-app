@@ -544,4 +544,9 @@ class Room extends Equatable {
     MessageService()
         .saveSystemMessage(this, 'Clear shared signal-id-keys successfully');
   }
+
+  String getDebugInfo(String error) {
+    return '''$error
+Room: $id, ${getRoomName()} $toMainPubkey, $identityId, $type, $status, $encryptMode, $groupType''';
+  }
 }

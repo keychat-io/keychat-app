@@ -416,23 +416,25 @@ class NostrAPI {
           if (event.isNip4) {
             Room? kdfRoom = await RoomService().getGroupByReceivePubkey(to);
             if (kdfRoom != null) {
-              return await _proccessByKDFRoom(
-                  event, kdfRoom, relay, failedCallback);
+              await _proccessByKDFRoom(event, kdfRoom, relay, failedCallback);
+              return;
             }
-            return await dmNip4Proccess(event, relay, failedCallback);
+            await dmNip4Proccess(event, relay, failedCallback);
+            return;
           }
 
           // if signal message , to_address is myIDPubkey or one-time-key
           Room? room = await RoomService().getRoomByReceiveKey(to);
           if (room != null) {
-            return await SignalChatService().decryptDMMessage(
-                room, event, relay,
+            await SignalChatService().decryptDMMessage(room, event, relay,
                 failedCallback: failedCallback);
+            return;
           }
           Mykey? mykey = await IdentityService().getMykeyByPubkey(to);
           if (mykey != null) {
-            return await SignalChatService().decryptPreKeyMessage(to, mykey,
+            await SignalChatService().decryptPreKeyMessage(to, mykey,
                 event: event, relay: relay, failedCallback: failedCallback);
+            return;
           }
           throw Exception('room not found');
         } catch (e, s) {
@@ -461,7 +463,7 @@ class NostrAPI {
       failedCallback('Nip04 ecrypt error');
       return;
     }
-    return await KdfGroupService.instance.decryptMessage(kdfRoom, event, relay,
+    await KdfGroupService.instance.decryptMessage(kdfRoom, event, relay,
         nip4DecodedContent: content, failedCallback: failedCallback);
   }
 
@@ -478,12 +480,14 @@ class NostrAPI {
     try {
       decodedContent = jsonDecode(content);
     } catch (e) {
-      return await Nip4ChatService().receiveNip4Message(sourceEvent, content);
+      await Nip4ChatService().receiveNip4Message(sourceEvent, content);
+      return;
     }
 
     KeychatMessage? km = getKeyChatMessageFromJson(decodedContent);
     if (km != null) {
-      return await RoomService().processKeychatMessage(km, sourceEvent, relay);
+      await RoomService().processKeychatMessage(km, sourceEvent, relay);
+      return;
     }
 
     // nip4(nip4/signal) message for old version
@@ -496,7 +500,7 @@ class NostrAPI {
       return;
     }
 
-    return await Nip4ChatService().receiveNip4Message(sourceEvent, content);
+    await Nip4ChatService().receiveNip4Message(sourceEvent, content);
   }
 
   _processSubEvent(NostrEventModel event, NostrEventModel subEvent, Relay relay,
@@ -634,8 +638,8 @@ class NostrAPI {
     KeychatMessage? km = getKeyChatMessageFromJson(decodedContent);
 
     if (km != null) {
-      return await RoomService()
-          .processKeychatMessage(km, subEvent, relay, event);
+      await RoomService().processKeychatMessage(km, subEvent, relay, event);
+      return;
     }
 
     await Nip4ChatService()

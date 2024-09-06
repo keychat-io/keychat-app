@@ -1,4 +1,5 @@
 import 'package:app/models/nostr_event_status.dart';
+import 'package:flutter/foundation.dart' show kReleaseMode;
 
 import 'package:queue/queue.dart';
 import 'dart:convert' show jsonDecode, jsonEncode;
@@ -39,8 +40,10 @@ class NostrAPI {
   static DBProvider dbProvider = DBProvider();
   Set<String> processedEventIds = {};
   String nip05SubscriptionId = '';
-  final nostrEventQueue =
-      Queue(delay: const Duration(milliseconds: 50), parallel: 1);
+  final nostrEventQueue = Queue(
+      delay: const Duration(milliseconds: kReleaseMode ? 50 : 200),
+      timeout: const Duration(seconds: 5),
+      parallel: 1);
   static final NostrAPI _instance = NostrAPI._internal();
   NostrAPI._internal();
 
@@ -58,7 +61,7 @@ class NostrAPI {
         switch (res[0]) {
           case NostrResKinds.ok:
             loggerNoLine.i('OK: ${relay.url}, $res');
-            await _processWriteEventResponse(res, relay);
+            await _proccessWriteEventResponse(res, relay);
             break;
           case NostrResKinds.event:
             loggerNoLine.i('receive event: ${relay.url} $message');
@@ -122,11 +125,11 @@ class NostrAPI {
     // logger.i('${DateTime.now()} : ${event.createdAt}');
     switch (event.kind) {
       case EventKinds.contactList:
-        await await _processNip2(event);
+        await _processNip2(event);
         break;
       case EventKinds.encryptedDirectMessage:
       case EventKinds.nip17:
-        await await _processNip4Message(eventList, event, relay, raw);
+        await _processNip4Message(eventList, event, relay, raw);
         break;
       case EventKinds.setMetadata:
         await _processNip5(event);
@@ -139,7 +142,7 @@ class NostrAPI {
     }
   }
 
-  _processWriteEventResponse(List msg, Relay relay) async {
+  _proccessWriteEventResponse(List msg, Relay relay) async {
     String eventId = msg[1];
     bool status = msg[2];
     String? errorMessage = msg[3];
@@ -393,6 +396,7 @@ class NostrAPI {
       logger.d('duplicate_db: ${event.id}');
       return;
     }
+    logger.d('start proccess: ${event.id}');
 
     _updateRelayLastMessageAt(relay.url, event.createdAt);
     ess = await NostrEventStatus.createReceiveEvent(relay.url, event.id, raw);

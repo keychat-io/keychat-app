@@ -547,6 +547,6 @@ class Room extends Equatable {
 
   String getDebugInfo(String error) {
     return '''$error
-Room: $id, ${getRoomName()} $toMainPubkey, $identityId, $type, $status, $encryptMode, $groupType''';
+Room: $id, ${getRoomName()} $toMainPubkey, $identityId, $groupType''';
   }
 }

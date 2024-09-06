@@ -956,7 +956,7 @@ class GroupService extends BaseChatService {
               realMessage:
                   'Send private message to [${rm.name}]: $realMessage');
         } else {
-          smr = await RoomService().sendNip17Message(groupRoom, identity,
+          await RoomService().sendNip17Message(groupRoom, identity,
               toPubkey: rm.idPubkey,
               sourceContent: km.toString(),
               realMessage: realMessage,

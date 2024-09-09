@@ -1,6 +1,7 @@
 import 'package:app/controller/home.controller.dart';
 import 'package:app/models/models.dart';
 import 'package:app/service/kdf_group.service.dart';
+import 'package:app/service/room.service.dart';
 import 'package:flutter/cupertino.dart';
 
 import 'package:app/utils.dart';
@@ -108,13 +109,15 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
         return;
       }
     }
+
     try {
+      Room groupRoom = await RoomService().getRoomByIdOrFail(widget.room.id);
       if (widget.room.isKDFGroup) {
         String sender = meMember == null ? myPubkey : meMember.name;
         await KdfGroupService.instance
-            .inviteToJoinGroup(widget.room, selectAccounts, sender);
+            .inviteToJoinGroup(groupRoom, selectAccounts, sender);
       } else {
-        await GroupService().inviteToJoinGroup(widget.room, selectAccounts);
+        await GroupService().inviteToJoinGroup(groupRoom, selectAccounts);
       }
       EasyLoading.showSuccess('Success');
       Get.back();

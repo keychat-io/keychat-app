@@ -78,10 +78,10 @@ class NostrEventStatus extends Equatable {
     return ess;
   }
 
-  Future setError(String msg) {
+  Future setError(String msg) async {
     error = msg;
     sendStatus = EventSendEnum.proccessError;
-    return DBProvider.database.writeTxn(() async {
+    await DBProvider.database.writeTxn(() async {
       await DBProvider.database.nostrEventStatus.put(this);
     });
   }

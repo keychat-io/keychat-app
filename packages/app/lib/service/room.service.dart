@@ -751,7 +751,7 @@ class RoomService extends BaseChatService {
   //   return;
   // }
 
-  Future sendNip17Message(
+  Future<SendMessageResponse> sendNip17Message(
     Room room,
     Identity identity, {
     required String sourceContent,
@@ -766,7 +766,7 @@ class RoomService extends BaseChatService {
         receiverPubkey: toPubkey ?? room.toMainPubkey,
         timestampTweaked: timestampTweaked,
         content: sourceContent);
-    await NostrAPI().sendAndSaveGiftMessage(
+    return await NostrAPI().sendAndSaveGiftMessage(
         toPubkey ?? room.toMainPubkey, sourceContent,
         room: room,
         encryptedEvent: result,

@@ -1,4 +1,5 @@
 import 'package:app/models/nostr_event_status.dart';
+import 'package:flutter/foundation.dart' show kReleaseMode;
 
 import 'package:queue/queue.dart';
 import 'dart:convert' show jsonDecode, jsonEncode;
@@ -39,7 +40,10 @@ class NostrAPI {
   static DBProvider dbProvider = DBProvider();
   Set<String> processedEventIds = {};
   String nip05SubscriptionId = '';
-  final nostrEventQueue = Queue(delay: const Duration(milliseconds: 20));
+  final nostrEventQueue = Queue(
+      delay: const Duration(milliseconds: kReleaseMode ? 50 : 200),
+      timeout: const Duration(seconds: 5),
+      parallel: 1);
   static final NostrAPI _instance = NostrAPI._internal();
   NostrAPI._internal();
 
@@ -52,12 +56,12 @@ class NostrAPI {
   addNostrEventToQueue(Relay relay, dynamic message) {
     //logger.d('processWebsocketMessage, ${relay.url} $message');
     nostrEventQueue.add(() async {
-      var res = jsonDecode(message);
       try {
+        var res = jsonDecode(message);
         switch (res[0]) {
           case NostrResKinds.ok:
             loggerNoLine.i('OK: ${relay.url}, $res');
-            await _processWriteEventResponse(res, relay);
+            await _proccessWriteEventResponse(res, relay);
             break;
           case NostrResKinds.event:
             loggerNoLine.i('receive event: ${relay.url} $message');
@@ -115,17 +119,17 @@ class NostrAPI {
     // sendMessageFunction(serializeStr);
   }
 
-  _proccessEvent(List eventList, Relay relay, String raw) async {
+  Future _proccessEvent(List eventList, Relay relay, String raw) async {
     NostrEventModel event =
         NostrEventModel.deserialize(eventList, verify: false);
     // logger.i('${DateTime.now()} : ${event.createdAt}');
     switch (event.kind) {
       case EventKinds.contactList:
-        await await _processNip2(event);
+        await _processNip2(event);
         break;
       case EventKinds.encryptedDirectMessage:
       case EventKinds.nip17:
-        await await _processNip4Message(eventList, event, relay, raw);
+        await _processNip4Message(eventList, event, relay, raw);
         break;
       case EventKinds.setMetadata:
         await _processNip5(event);
@@ -138,7 +142,7 @@ class NostrAPI {
     }
   }
 
-  _processWriteEventResponse(List msg, Relay relay) async {
+  _proccessWriteEventResponse(List msg, Relay relay) async {
     String eventId = msg[1];
     bool status = msg[2];
     String? errorMessage = msg[3];
@@ -352,7 +356,7 @@ class NostrAPI {
           receiverPubkey: event.pubkey,
           content: event.content);
     } catch (e) {
-      logger.e('decrypt error', error: e);
+      logger.e('decryptNip4Content error', error: e);
     }
     return null;
   }
@@ -381,7 +385,7 @@ class NostrAPI {
   Future _processNip4Message(
       List eventList, NostrEventModel event, Relay relay, String raw) async {
     if (processedEventIds.contains(event.id)) {
-      logger.i('duplicate: ${event.id}');
+      logger.i('duplicate_local: ${event.id}');
       return;
     } else {
       processedEventIds.add(event.id);
@@ -389,9 +393,10 @@ class NostrAPI {
 
     NostrEventStatus? ess = await NostrEventStatus.getReceiveEvent(event.id);
     if (ess != null) {
-      logger.d('event already received: ${event.id}');
+      logger.d('duplicate_db: ${event.id}');
       return;
     }
+    logger.d('start proccess: ${event.id}');
 
     _updateRelayLastMessageAt(relay.url, event.createdAt);
     ess = await NostrEventStatus.createReceiveEvent(relay.url, event.id, raw);
@@ -404,8 +409,8 @@ class NostrAPI {
       ess.setError(e.toString());
       return;
     }
-    failedCallback(String error) {
-      ess?.setError('Nip04 ecrypt error');
+    failedCallback(String error, [String? stackTrace]) {
+      ess?.setError('proccess error: $error $stackTrace');
     }
 
     switch (event.kind) {
@@ -415,35 +420,38 @@ class NostrAPI {
           if (event.isNip4) {
             Room? kdfRoom = await RoomService().getGroupByReceivePubkey(to);
             if (kdfRoom != null) {
-              return await _proccessByKDFRoom(
-                  event, kdfRoom, relay, failedCallback);
+              await _proccessByKDFRoom(event, kdfRoom, relay, failedCallback);
+              return;
             }
-            return await dmNip4Proccess(event, relay, failedCallback);
+            await dmNip4Proccess(event, relay, failedCallback);
+            return;
           }
 
           // if signal message , to_address is myIDPubkey or one-time-key
           Room? room = await RoomService().getRoomByReceiveKey(to);
           if (room != null) {
-            return await SignalChatService().decryptDMMessage(
-                room, event, relay,
+            await SignalChatService().decryptDMMessage(room, event, relay,
                 failedCallback: failedCallback);
+            return;
           }
           Mykey? mykey = await IdentityService().getMykeyByPubkey(to);
           if (mykey != null) {
-            return await SignalChatService().decryptPreKeyMessage(to, mykey,
+            await SignalChatService().decryptPreKeyMessage(to, mykey,
                 event: event, relay: relay, failedCallback: failedCallback);
+            return;
           }
           throw Exception('room not found');
         } catch (e, s) {
-          ess.setError(e.toString());
+          ess.setError('nip04 ${e.toString()} ${s.toString()}');
           logger.e('decrypt error', error: e, stackTrace: s);
         }
 
         break;
       case EventKinds.nip17:
         try {
-          await _processNip17Message(event, relay);
+          await _processNip17Message(event, relay, failedCallback);
         } catch (e, s) {
+          ess.setError('nip17 ${e.toString()} ${s.toString()}');
           logger.e('nip17 decrypt error', error: e, stackTrace: s);
         }
         break;
@@ -459,8 +467,8 @@ class NostrAPI {
       failedCallback('Nip04 ecrypt error');
       return;
     }
-    return await KdfGroupService.instance
-        .decryptMessage(kdfRoom, event, relay, nip4DecodedContent: content);
+    await KdfGroupService.instance.decryptMessage(kdfRoom, event, relay,
+        nip4DecodedContent: content, failedCallback: failedCallback);
   }
 
   Future dmNip4Proccess(NostrEventModel sourceEvent, Relay relay,
@@ -476,12 +484,14 @@ class NostrAPI {
     try {
       decodedContent = jsonDecode(content);
     } catch (e) {
-      return await Nip4ChatService().receiveNip4Message(sourceEvent, content);
+      await Nip4ChatService().receiveNip4Message(sourceEvent, content);
+      return;
     }
 
     KeychatMessage? km = getKeyChatMessageFromJson(decodedContent);
     if (km != null) {
-      return await RoomService().processKeychatMessage(km, sourceEvent, relay);
+      await RoomService().processKeychatMessage(km, sourceEvent, relay);
+      return;
     }
 
     // nip4(nip4/signal) message for old version
@@ -494,7 +504,7 @@ class NostrAPI {
       return;
     }
 
-    return await Nip4ChatService().receiveNip4Message(sourceEvent, content);
+    await Nip4ChatService().receiveNip4Message(sourceEvent, content);
   }
 
   _processSubEvent(NostrEventModel event, NostrEventModel subEvent, Relay relay,
@@ -573,11 +583,7 @@ class NostrAPI {
   Future<String> fetchMetadata(List<String> pubkeys) async {
     String id = utils.generate64RandomHexChars();
     Request requestWithFilter = Request(id, [
-      Filter(
-        kinds: [EventKinds.setMetadata],
-        authors: pubkeys,
-        limit: 100,
-      )
+      Filter(kinds: [EventKinds.setMetadata], authors: pubkeys, limit: 100)
     ]);
 
     var req = requestWithFilter.serialize();
@@ -592,7 +598,8 @@ class NostrAPI {
     ws.channels[relay.url]!.notices.add(msg1);
   }
 
-  Future _processNip17Message(NostrEventModel event, Relay relay) async {
+  Future _processNip17Message(NostrEventModel event, Relay relay,
+      Function(String) failedCallbackync) async {
     String to = event.tags[0][1];
     String? myPrivateKey;
     Identity? identity = await IdentityService().getIdentityByNostrPubkey(to);
@@ -607,6 +614,7 @@ class NostrAPI {
     }
     if (myPrivateKey == null) {
       logger.e('myPrivateKey is null');
+      failedCallbackync('myPrivateKey is null');
       return;
     }
 
@@ -634,8 +642,8 @@ class NostrAPI {
     KeychatMessage? km = getKeyChatMessageFromJson(decodedContent);
 
     if (km != null) {
-      return await RoomService()
-          .processKeychatMessage(km, subEvent, relay, event);
+      await RoomService().processKeychatMessage(km, subEvent, relay, event);
+      return;
     }
 
     await Nip4ChatService()

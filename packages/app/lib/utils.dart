@@ -286,6 +286,7 @@ class MyOutput extends LogOutput {
 }
 
 class ErrorMessages {
+  static String signalDecryptError = 'protobuf encoding was invalid';
   static String relayIsEmptyException = '''Relay disconnected. Please retry.''';
   static String noFundsInfo = '''Insufficient balance to pay relay. 
 Please check ecash balance and mint.''';

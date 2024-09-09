@@ -230,7 +230,6 @@ class WebsocketService extends GetxService {
       for (var entry in rw.subscriptions.entries) {
         if (entry.value.contains(pubkey)) {
           rw.subscriptions[entry.key]?.remove(pubkey);
-          break;
         }
       }
     }
@@ -257,7 +256,7 @@ class WebsocketService extends GetxService {
     }
   }
 
-  Future<List<NostrEventStatus>> writeNostrEvent(
+  Future<List<String>> writeNostrEvent(
       {required NostrEventModel event,
       required String eventString,
       required int roomId,
@@ -327,22 +326,24 @@ class WebsocketService extends GetxService {
       });
     }
 
-    await tasks.onComplete;
-    if (success == 0) {
-      String messages = results
-          .map((item) => '${item.relay}: ${item.error ?? item.sendStatus.name}')
-          .toList()
-          .join('\n');
-      Get.snackbar('Message Send Failed', messages,
-          icon: const Icon(Icons.error));
-    }
-    // save send status to db
-    await DBProvider.database.writeTxn(() async {
-      for (NostrEventStatus item in results) {
-        await DBProvider.database.nostrEventStatus.put(item);
+    tasks.onComplete.then((c) async {
+      if (success == 0) {
+        String messages = results
+            .map((item) =>
+                '${item.relay}: ${item.error ?? item.sendStatus.name}')
+            .toList()
+            .join('\n');
+        Get.snackbar('Message Send Failed', messages,
+            icon: const Icon(Icons.error));
       }
+      // save send status to db
+      await DBProvider.database.writeTxn(() async {
+        for (NostrEventStatus item in results) {
+          await DBProvider.database.nostrEventStatus.put(item);
+        }
+      });
     });
-    return results;
+    return activeRelays;
   }
 
   Future<NostrEventStatus> addCashuToMessage(

@@ -1,5 +1,6 @@
 import 'package:app/models/nostr_event_status.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import './NostrEvents_controller.dart';
@@ -12,6 +13,14 @@ class NostrEventsPage extends GetView<NostrEventsController> {
     return Scaffold(
         appBar: AppBar(
           title: const Text('Failed Events'),
+          actions: [
+            TextButton(
+                onPressed: () async {
+                  await controller.deleteAll();
+                  EasyLoading.showSuccess('Cleared');
+                },
+                child: const Text('Clear'))
+          ],
         ),
         body: SafeArea(
             child: Obx(() => ListView.builder(

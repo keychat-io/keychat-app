@@ -118,7 +118,7 @@ class RelayWebsocket {
     try {
       channel!.sink.add('ping');
     } catch (e) {
-      logger.e(e.toString());
+      // logger.e(e.toString());
       return false;
     }
     final deadline = DateTime.now().add(const Duration(seconds: 1));

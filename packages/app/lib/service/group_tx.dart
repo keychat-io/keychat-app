@@ -116,8 +116,7 @@ class GroupTx {
       [Message? message]) async {
     String toMainPubkey = roomProfile.oldToRoomPubKey ?? roomProfile.pubkey;
     String? toRoomPriKey = roomProfile.prikey;
-    int version =
-        roomProfile.updatedAt ?? DateTime.now().millisecondsSinceEpoch;
+    int version = roomProfile.updatedAt;
     List<dynamic> users = roomProfile.users;
     Mykey? roomKey;
     if ((roomProfile.groupType == GroupType.shareKey ||

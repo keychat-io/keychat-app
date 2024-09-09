@@ -131,6 +131,9 @@ class KdfGroupService extends BaseChatService {
       case KeyChatEventKinds.kdfUpdateKeys:
         RoomProfile roomProfile = RoomProfile.fromJson(jsonDecode(km.name!));
         Room groupRoom = await getGroupRoomByIdRoom(room, roomProfile);
+        if (roomProfile.updatedAt < groupRoom.version) {
+          throw Exception('The invitation has expired');
+        }
         // check sender is admin
         await groupRoom.checkAdminByIdPubkey(event.pubkey);
         await RoomService().receiveDM(groupRoom, event,
@@ -236,12 +239,8 @@ class KdfGroupService extends BaseChatService {
       } catch (e, s) {
         String msg = Utils.getErrorMessage(e);
         logger.e('decryptPreKeyMessage error: $msg', error: e, stackTrace: s);
-        await _appendMessageOrCreate(
-            msg,
-            room,
-            'decryptPreKeyMessage error: 1.kap==null 2.$msg',
-            signalEvent,
-            nostrEvent);
+        await appendMessageOrCreate(msg, room, 'decryptPreKeyMessage kpa==null',
+            signalEvent, nostrEvent);
       }
       return;
     }
@@ -261,7 +260,11 @@ class KdfGroupService extends BaseChatService {
       room.incrMessageCountForMember(roomMember);
     } catch (e, s) {
       String msg = Utils.getErrorMessage(e);
-      logger.e(msg, error: e, stackTrace: s);
+      if (msg != ErrorMessages.signalDecryptError) {
+        logger.e(msg, error: e, stackTrace: s);
+      } else {
+        loggerNoLine.e(msg);
+      }
 
       try {
         await decryptPreKeyMessage(
@@ -277,12 +280,8 @@ class KdfGroupService extends BaseChatService {
         msg = Utils.getErrorMessage(e);
         logger.e('decryptPreKeyMessage error: $msg', error: e, stackTrace: s);
       }
-      await _appendMessageOrCreate(
-          msg,
-          room,
-          'decryptPreKeyMessage error: 1.decryptSignal 2.$msg',
-          signalEvent,
-          nostrEvent);
+      await appendMessageOrCreate(
+          msg, room, 'decryptPreKeyMessage', signalEvent, nostrEvent);
       return;
     }
 
@@ -302,13 +301,20 @@ class KdfGroupService extends BaseChatService {
           msgKeyHash: msgKeyHash);
       return;
     }
-    await km.service.processMessage(
-        room: room,
-        km: km,
-        msgKeyHash: msgKeyHash,
-        event: signalEvent,
-        sourceEvent: nostrEvent,
-        relay: relay);
+    try {
+      await km.service.processMessage(
+          room: room,
+          km: km,
+          msgKeyHash: msgKeyHash,
+          event: signalEvent,
+          sourceEvent: nostrEvent,
+          relay: relay);
+    } catch (e, s) {
+      String msg = Utils.getErrorMessage(e);
+      logger.e('decryptPreKeyMessage error: $msg', error: e, stackTrace: s);
+      await appendMessageOrCreate(
+          msg, room, 'kdf km processMessage', signalEvent, nostrEvent);
+    }
   }
 
   Future<KeychatProtocolAddress?> _checkIsPrekeyByRoom(String? memberPubkey,
@@ -396,7 +402,7 @@ class KdfGroupService extends BaseChatService {
     return await _messageReceiveCheck(room, event, delay, maxRetry);
   }
 
-  Future _appendMessageOrCreate(String error, Room room, String content,
+  Future appendMessageOrCreate(String error, Room room, String content,
       NostrEventModel signalEvent, NostrEventModel nostrEvent) async {
     Message? message = await DBProvider.database.messages
         .filter()
@@ -404,7 +410,11 @@ class KdfGroupService extends BaseChatService {
         .findFirst();
     if (message == null) {
       await RoomService().receiveDM(room, signalEvent,
-          decodedContent: '$error}', sourceEvent: nostrEvent);
+          decodedContent: '''
+$error
+
+track: $content''',
+          sourceEvent: nostrEvent);
       return;
     }
     message.content = '''${message.content}
@@ -522,10 +532,6 @@ Let's create a new group.''';
 
   Future<Room> proccessUpdateKeys(
       Room groupRoom, RoomProfile roomProfile) async {
-    if (roomProfile.updatedAt! < groupRoom.version) {
-      throw Exception('The invitation has expired');
-    }
-
     var keychain = rust_nostr.Secp256k1Account(
         prikey: roomProfile.prikey!,
         pubkey: roomProfile.pubkey,
@@ -578,8 +584,7 @@ Let's create a new group.''';
       groupRoom.sharedSignalID = sharedSignalId.pubkey;
       groupRoom.mykey.value = mykey;
       groupRoom.status = RoomStatus.enabled;
-      groupRoom.version =
-          roomProfile.updatedAt ?? DateTime.now().millisecondsSinceEpoch;
+      groupRoom.version = roomProfile.updatedAt;
       await GroupTx().updateRoom(groupRoom, updateMykey: true);
 
       // proccess shared nostr pubkey
@@ -602,7 +607,7 @@ Let's create a new group.''';
     // start listen
     await Get.find<WebsocketService>().listenPubkey([keychain.pubkey],
         since: DateTime.fromMillisecondsSinceEpoch(
-            roomProfile.updatedAt! - 10 * 1000));
+            roomProfile.updatedAt - 10 * 1000));
     NotifyService.addPubkeys([keychain.pubkey]);
 
     // String toSaveSystemMessage =

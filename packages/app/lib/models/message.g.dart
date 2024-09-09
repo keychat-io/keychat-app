@@ -79,72 +79,82 @@ const MessageSchema = CollectionSchema(
       name: r'isSystem',
       type: IsarType.bool,
     ),
-    r'mediaType': PropertySchema(
+    r'maxRelay': PropertySchema(
       id: 12,
+      name: r'maxRelay',
+      type: IsarType.long,
+    ),
+    r'mediaType': PropertySchema(
+      id: 13,
       name: r'mediaType',
       type: IsarType.int,
       enumMap: _MessagemediaTypeEnumValueMap,
     ),
     r'msgKeyHash': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'msgKeyHash',
       type: IsarType.string,
     ),
     r'msgid': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'msgid',
       type: IsarType.string,
     ),
+    r'okRelay': PropertySchema(
+      id: 16,
+      name: r'okRelay',
+      type: IsarType.long,
+    ),
     r'rawEvents': PropertySchema(
-      id: 15,
+      id: 17,
       name: r'rawEvents',
       type: IsarType.stringList,
     ),
     r'realMessage': PropertySchema(
-      id: 16,
+      id: 18,
       name: r'realMessage',
       type: IsarType.string,
     ),
     r'receiveAt': PropertySchema(
-      id: 17,
+      id: 19,
       name: r'receiveAt',
       type: IsarType.dateTime,
     ),
     r'reply': PropertySchema(
-      id: 18,
+      id: 20,
       name: r'reply',
       type: IsarType.object,
       target: r'MsgReply',
     ),
     r'requestConfrim': PropertySchema(
-      id: 19,
+      id: 21,
       name: r'requestConfrim',
       type: IsarType.int,
       enumMap: _MessagerequestConfrimEnumValueMap,
     ),
     r'roomId': PropertySchema(
-      id: 20,
+      id: 22,
       name: r'roomId',
       type: IsarType.long,
     ),
     r'sent': PropertySchema(
-      id: 21,
+      id: 23,
       name: r'sent',
       type: IsarType.int,
       enumMap: _MessagesentEnumValueMap,
     ),
     r'stringify': PropertySchema(
-      id: 22,
+      id: 24,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'subEvent': PropertySchema(
-      id: 23,
+      id: 25,
       name: r'subEvent',
       type: IsarType.string,
     ),
     r'to': PropertySchema(
-      id: 24,
+      id: 26,
       name: r'to',
       type: IsarType.string,
     )
@@ -269,24 +279,26 @@ void _messageSerialize(
   writer.writeBool(offsets[9], object.isMeSend);
   writer.writeBool(offsets[10], object.isRead);
   writer.writeBool(offsets[11], object.isSystem);
-  writer.writeInt(offsets[12], object.mediaType.index);
-  writer.writeString(offsets[13], object.msgKeyHash);
-  writer.writeString(offsets[14], object.msgid);
-  writer.writeStringList(offsets[15], object.rawEvents);
-  writer.writeString(offsets[16], object.realMessage);
-  writer.writeDateTime(offsets[17], object.receiveAt);
+  writer.writeLong(offsets[12], object.maxRelay);
+  writer.writeInt(offsets[13], object.mediaType.index);
+  writer.writeString(offsets[14], object.msgKeyHash);
+  writer.writeString(offsets[15], object.msgid);
+  writer.writeLong(offsets[16], object.okRelay);
+  writer.writeStringList(offsets[17], object.rawEvents);
+  writer.writeString(offsets[18], object.realMessage);
+  writer.writeDateTime(offsets[19], object.receiveAt);
   writer.writeObject<MsgReply>(
-    offsets[18],
+    offsets[20],
     allOffsets,
     MsgReplySchema.serialize,
     object.reply,
   );
-  writer.writeInt(offsets[19], object.requestConfrim?.index);
-  writer.writeLong(offsets[20], object.roomId);
-  writer.writeInt(offsets[21], object.sent.index);
-  writer.writeBool(offsets[22], object.stringify);
-  writer.writeString(offsets[23], object.subEvent);
-  writer.writeString(offsets[24], object.to);
+  writer.writeInt(offsets[21], object.requestConfrim?.index);
+  writer.writeLong(offsets[22], object.roomId);
+  writer.writeInt(offsets[23], object.sent.index);
+  writer.writeBool(offsets[24], object.stringify);
+  writer.writeString(offsets[25], object.subEvent);
+  writer.writeString(offsets[26], object.to);
 }
 
 Message _messageDeserialize(
@@ -307,19 +319,19 @@ Message _messageDeserialize(
     identityId: reader.readLong(offsets[8]),
     isMeSend: reader.readBoolOrNull(offsets[9]) ?? false,
     isSystem: reader.readBoolOrNull(offsets[11]) ?? false,
-    msgKeyHash: reader.readStringOrNull(offsets[13]),
-    msgid: reader.readString(offsets[14]),
-    rawEvents: reader.readStringList(offsets[15]) ?? [],
-    realMessage: reader.readStringOrNull(offsets[16]),
+    msgKeyHash: reader.readStringOrNull(offsets[14]),
+    msgid: reader.readString(offsets[15]),
+    rawEvents: reader.readStringList(offsets[17]) ?? [],
+    realMessage: reader.readStringOrNull(offsets[18]),
     reply: reader.readObjectOrNull<MsgReply>(
-      offsets[18],
+      offsets[20],
       MsgReplySchema.deserialize,
       allOffsets,
     ),
-    roomId: reader.readLong(offsets[20]),
-    sent: _MessagesentValueEnumMap[reader.readIntOrNull(offsets[21])] ??
+    roomId: reader.readLong(offsets[22]),
+    sent: _MessagesentValueEnumMap[reader.readIntOrNull(offsets[23])] ??
         SendStatusType.sending,
-    to: reader.readString(offsets[24]),
+    to: reader.readString(offsets[26]),
   );
   object.cashuInfo = reader.readObjectOrNull<CashuInfoModel>(
     offsets[0],
@@ -328,13 +340,15 @@ Message _messageDeserialize(
   );
   object.id = id;
   object.isRead = reader.readBool(offsets[10]);
+  object.maxRelay = reader.readLong(offsets[12]);
   object.mediaType =
-      _MessagemediaTypeValueEnumMap[reader.readIntOrNull(offsets[12])] ??
+      _MessagemediaTypeValueEnumMap[reader.readIntOrNull(offsets[13])] ??
           MessageMediaType.text;
-  object.receiveAt = reader.readDateTimeOrNull(offsets[17]);
+  object.okRelay = reader.readLong(offsets[16]);
+  object.receiveAt = reader.readDateTimeOrNull(offsets[19]);
   object.requestConfrim =
-      _MessagerequestConfrimValueEnumMap[reader.readIntOrNull(offsets[19])];
-  object.subEvent = reader.readStringOrNull(offsets[23]);
+      _MessagerequestConfrimValueEnumMap[reader.readIntOrNull(offsets[21])];
+  object.subEvent = reader.readStringOrNull(offsets[25]);
   return object;
 }
 
@@ -375,37 +389,41 @@ P _messageDeserializeProp<P>(
     case 11:
       return (reader.readBoolOrNull(offset) ?? false) as P;
     case 12:
+      return (reader.readLong(offset)) as P;
+    case 13:
       return (_MessagemediaTypeValueEnumMap[reader.readIntOrNull(offset)] ??
           MessageMediaType.text) as P;
-    case 13:
-      return (reader.readStringOrNull(offset)) as P;
     case 14:
-      return (reader.readString(offset)) as P;
-    case 15:
-      return (reader.readStringList(offset) ?? []) as P;
-    case 16:
       return (reader.readStringOrNull(offset)) as P;
+    case 15:
+      return (reader.readString(offset)) as P;
+    case 16:
+      return (reader.readLong(offset)) as P;
     case 17:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 18:
+      return (reader.readStringOrNull(offset)) as P;
+    case 19:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 20:
       return (reader.readObjectOrNull<MsgReply>(
         offset,
         MsgReplySchema.deserialize,
         allOffsets,
       )) as P;
-    case 19:
+    case 21:
       return (_MessagerequestConfrimValueEnumMap[reader.readIntOrNull(offset)])
           as P;
-    case 20:
+    case 22:
       return (reader.readLong(offset)) as P;
-    case 21:
+    case 23:
       return (_MessagesentValueEnumMap[reader.readIntOrNull(offset)] ??
           SendStatusType.sending) as P;
-    case 22:
-      return (reader.readBoolOrNull(offset)) as P;
-    case 23:
-      return (reader.readStringOrNull(offset)) as P;
     case 24:
+      return (reader.readBoolOrNull(offset)) as P;
+    case 25:
+      return (reader.readStringOrNull(offset)) as P;
+    case 26:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1714,6 +1732,59 @@ extension MessageQueryFilter
     });
   }
 
+  QueryBuilder<Message, Message, QAfterFilterCondition> maxRelayEqualTo(
+      int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'maxRelay',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> maxRelayGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'maxRelay',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> maxRelayLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'maxRelay',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> maxRelayBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'maxRelay',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
   QueryBuilder<Message, Message, QAfterFilterCondition> mediaTypeEqualTo(
       MessageMediaType value) {
     return QueryBuilder.apply(this, (query) {
@@ -2039,6 +2110,59 @@ extension MessageQueryFilter
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'msgid',
         value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> okRelayEqualTo(
+      int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'okRelay',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> okRelayGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'okRelay',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> okRelayLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'okRelay',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> okRelayBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'okRelay',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
       ));
     });
   }
@@ -3115,6 +3239,18 @@ extension MessageQuerySortBy on QueryBuilder<Message, Message, QSortBy> {
     });
   }
 
+  QueryBuilder<Message, Message, QAfterSortBy> sortByMaxRelay() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'maxRelay', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterSortBy> sortByMaxRelayDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'maxRelay', Sort.desc);
+    });
+  }
+
   QueryBuilder<Message, Message, QAfterSortBy> sortByMediaType() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'mediaType', Sort.asc);
@@ -3148,6 +3284,18 @@ extension MessageQuerySortBy on QueryBuilder<Message, Message, QSortBy> {
   QueryBuilder<Message, Message, QAfterSortBy> sortByMsgidDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'msgid', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterSortBy> sortByOkRelay() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'okRelay', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterSortBy> sortByOkRelayDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'okRelay', Sort.desc);
     });
   }
 
@@ -3382,6 +3530,18 @@ extension MessageQuerySortThenBy
     });
   }
 
+  QueryBuilder<Message, Message, QAfterSortBy> thenByMaxRelay() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'maxRelay', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterSortBy> thenByMaxRelayDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'maxRelay', Sort.desc);
+    });
+  }
+
   QueryBuilder<Message, Message, QAfterSortBy> thenByMediaType() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'mediaType', Sort.asc);
@@ -3415,6 +3575,18 @@ extension MessageQuerySortThenBy
   QueryBuilder<Message, Message, QAfterSortBy> thenByMsgidDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'msgid', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterSortBy> thenByOkRelay() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'okRelay', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterSortBy> thenByOkRelayDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'okRelay', Sort.desc);
     });
   }
 
@@ -3586,6 +3758,12 @@ extension MessageQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Message, Message, QDistinct> distinctByMaxRelay() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'maxRelay');
+    });
+  }
+
   QueryBuilder<Message, Message, QDistinct> distinctByMediaType() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'mediaType');
@@ -3603,6 +3781,12 @@ extension MessageQueryWhereDistinct
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'msgid', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<Message, Message, QDistinct> distinctByOkRelay() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'okRelay');
     });
   }
 
@@ -3745,6 +3929,12 @@ extension MessageQueryProperty
     });
   }
 
+  QueryBuilder<Message, int, QQueryOperations> maxRelayProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'maxRelay');
+    });
+  }
+
   QueryBuilder<Message, MessageMediaType, QQueryOperations>
       mediaTypeProperty() {
     return QueryBuilder.apply(this, (query) {
@@ -3761,6 +3951,12 @@ extension MessageQueryProperty
   QueryBuilder<Message, String, QQueryOperations> msgidProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'msgid');
+    });
+  }
+
+  QueryBuilder<Message, int, QQueryOperations> okRelayProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'okRelay');
     });
   }
 

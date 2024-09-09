@@ -11,13 +11,13 @@ RoomProfile _$RoomProfileFromJson(Map<String, dynamic> json) => RoomProfile(
       json['name'] as String,
       json['users'] as List<dynamic>,
       $enumDecode(_$GroupTypeEnumMap, json['groupType']),
+      (json['updatedAt'] as num).toInt(),
     )
       ..prikey = json['prikey'] as String?
       ..avatar = json['avatar'] as String?
       ..oldToRoomPubKey = json['oldToRoomPubKey'] as String?
       ..ext = json['ext'] as String?
       ..groupRelay = json['groupRelay'] as String?
-      ..updatedAt = (json['updatedAt'] as num?)?.toInt()
       ..signalKeys = json['signalKeys'] as String?
       ..signalPubkey = json['signalPubkey'] as String?
       ..signaliPrikey = json['signaliPrikey'] as String?
@@ -40,7 +40,7 @@ Map<String, dynamic> _$RoomProfileToJson(RoomProfile instance) {
   val['groupType'] = _$GroupTypeEnumMap[instance.groupType]!;
   writeNotNull('ext', instance.ext);
   writeNotNull('groupRelay', instance.groupRelay);
-  writeNotNull('updatedAt', instance.updatedAt);
+  val['updatedAt'] = instance.updatedAt;
   val['name'] = instance.name;
   val['users'] = instance.users;
   writeNotNull('signalKeys', instance.signalKeys);

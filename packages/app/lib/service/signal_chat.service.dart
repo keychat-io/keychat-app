@@ -162,7 +162,11 @@ class SignalChatService extends BaseChatService {
         await setRoomSignalDecodeStatus(room, false);
       } catch (e, s) {
         String msg = Utils.getErrorMessage(e);
-        logger.i(msg, error: e, stackTrace: s);
+        if (msg != ErrorMessages.signalDecryptError) {
+          logger.e(msg, error: e, stackTrace: s);
+        } else {
+          loggerNoLine.e(msg);
+        }
         decodeString = "Decryption failed: $msg, \nSource: ${event.content}";
       }
 

@@ -423,11 +423,10 @@ class GroupService extends BaseChatService {
 
     // start to update room
     // check room version
-    if ((roomProfile.updatedAt ?? 0) > groupRoom.version) {
-      groupRoom.version = roomProfile.updatedAt!;
-    } else {
-      return;
+    if (roomProfile.updatedAt < groupRoom.version) {
+      throw Exception('The invitation has expired');
     }
+    groupRoom.version = roomProfile.updatedAt;
     // When the room has been created, verify whether the sender is in the group.
     RoomMember? member = await groupRoom.getEnableMember(senderIdPubkey);
     if (member == null) {
@@ -602,7 +601,7 @@ class GroupService extends BaseChatService {
 
     List<String> addUsersName = toMembers.map((e) => e.name).toList();
     String names = addUsersName.join(',');
-    String realMessage = '🤖 Invite [$names] to join group';
+    String realMessage = '🤖 Invite [$names] to join group ${groupRoom.name}';
 
     KeychatMessage km = KeychatMessage(
         c: MessageType.group,
@@ -1045,11 +1044,11 @@ ${rm.idPubkey}
 
     List<RoomMember> newToUsers = await room.getMembers();
     String realMessage = 'Remove member: ${rm.name}';
-    RoomProfile roomProfile =
-        RoomProfile(myID.pubkey, room.name!, newToUsers, room.groupType)
-          ..prikey = myID.prikey
-          ..ext = realMessage
-          ..oldToRoomPubKey = oldToRoomPubKey;
+    RoomProfile roomProfile = RoomProfile(myID.pubkey, room.name!, newToUsers,
+        room.groupType, DateTime.now().millisecondsSinceEpoch)
+      ..prikey = myID.prikey
+      ..ext = realMessage
+      ..oldToRoomPubKey = oldToRoomPubKey;
 
     // send msg to user_should_be_remove
     KeychatMessage kmToRemove = KeychatMessage(
@@ -1149,12 +1148,11 @@ ${rm.idPubkey}
     Mykey? roomMykey = groupRoom.mykey.value;
     String roomPubkey =
         mykey?.pubkey ?? roomMykey?.pubkey ?? groupRoom.toMainPubkey;
-    RoomProfile roomProfile = RoomProfile(
-        roomPubkey, groupRoom.name!, allMembers, groupRoom.groupType)
+    RoomProfile roomProfile = RoomProfile(roomPubkey, groupRoom.name!,
+        allMembers, groupRoom.groupType, DateTime.now().millisecondsSinceEpoch)
       ..oldToRoomPubKey = groupRoom.toMainPubkey
       ..prikey = mykey?.prikey ?? roomMykey?.prikey
-      ..groupRelay = groupRoom.groupRelay
-      ..updatedAt = DateTime.now().millisecondsSinceEpoch;
+      ..groupRelay = groupRoom.groupRelay;
 
     // shared signalId's QRCode
     if (groupRoom.isKDFGroup && signalId != null) {

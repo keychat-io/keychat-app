@@ -571,8 +571,7 @@ class _ChatPage2State extends State<ChatPage> {
       return const ListTile(
         leading: Icon(Icons.error, color: Colors.yellow),
         title: Text(
-          'SendTo PostOffice [relay] had been deleted, message will send to ${KeychatGlobal.defaultRelay}',
-        ),
+            'SendTo PostOffice [relay] had been deleted, message will send to ${KeychatGlobal.defaultRelay}'),
       );
     }
 
@@ -808,9 +807,7 @@ class _ChatPage2State extends State<ChatPage> {
                     children: [
                       NoticeTextWidget.warning(
                           'You are not friends, cannot send and receive messages'),
-                      const SizedBox(
-                        height: 16,
-                      ),
+                      const SizedBox(height: 16),
                       Expanded(
                           child: Obx(() => ListView.separated(
                               physics: const NeverScrollableScrollPhysics(),

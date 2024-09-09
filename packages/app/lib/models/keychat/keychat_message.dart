@@ -60,8 +60,7 @@ class KeychatMessage {
       onetimekey = oneTimeKeys.first.pubkey;
     }
 
-    signalId ??=
-        await await SignalIdService.instance.createSignalId(identity.id);
+    signalId ??= await SignalIdService.instance.createSignalId(identity.id);
     if (signalId == null) throw Exception('signalId is null');
 
     Map userInfo = await SignalIdService.instance.getQRCodeData(signalId);

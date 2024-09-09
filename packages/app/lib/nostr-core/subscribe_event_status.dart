@@ -77,9 +77,11 @@ class SubscribeEventStatus {
   static Future updateEventAndMessageStatus(
       String eventId, MesssageToRelayEOSE me) async {
     Isar database = DBProvider.database;
+
     List<NostrEventStatus> ess = await database.nostrEventStatus
         .filter()
         .eventIdEqualTo(eventId)
+        .isReceiveEqualTo(false)
         .findAll();
 
     if (ess.isEmpty) return;
@@ -106,13 +108,16 @@ class SubscribeEventStatus {
         .eventIdsElementContains(eventId)
         .findFirst();
     if (message == null) return;
-    if (message.sent == SendStatusType.success) return;
+    if (message.sent == SendStatusType.success &&
+        message.okRelay == sentSuccessRelay) return;
 
     await database.writeTxn(() async {
+      message.okRelay = sentSuccessRelay;
+      message.maxRelay = ess.length;
       message.sent =
           sentSuccessRelay > 0 ? SendStatusType.success : SendStatusType.failed;
       return await database.messages.put(message);
     });
-    RoomService.getController(message.roomId)?.updateMessageStatus([message]);
+    RoomService.getController(message.roomId)?.updateMessageStatus(message);
   }
 }

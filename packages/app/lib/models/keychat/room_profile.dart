@@ -14,14 +14,15 @@ class RoomProfile {
   GroupType groupType;
   String? ext;
   String? groupRelay;
-  int? updatedAt;
+  int updatedAt;
   final String name;
   final List users;
   String? signalKeys;
   String? signalPubkey;
   String? signaliPrikey;
   int? signalKeyId;
-  RoomProfile(this.pubkey, this.name, this.users, this.groupType);
+  RoomProfile(
+      this.pubkey, this.name, this.users, this.groupType, this.updatedAt);
 
   factory RoomProfile.fromJson(Map<String, dynamic> json) =>
       _$RoomProfileFromJson(json);

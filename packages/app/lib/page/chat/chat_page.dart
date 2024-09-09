@@ -571,8 +571,7 @@ class _ChatPage2State extends State<ChatPage> {
       return const ListTile(
         leading: Icon(Icons.error, color: Colors.yellow),
         title: Text(
-          'SendTo PostOffice [relay] had been deleted, message will send to ${KeychatGlobal.defaultRelay}',
-        ),
+            'SendTo PostOffice [relay] had been deleted, message will send to ${KeychatGlobal.defaultRelay}'),
       );
     }
 
@@ -644,17 +643,15 @@ class _ChatPage2State extends State<ChatPage> {
             FilledButton(
               onPressed: () async {
                 try {
-                  Room room = await RoomService()
-                      .getRoomByIdOrFail(controller.roomObs.value.id);
+                  Room room = controller.roomObs.value;
                   if (room.status == RoomStatus.approving) {
                     String displayName = room.getIdentity().displayName;
                     await SignalChatService().sendMessage(
                         room, RoomUtil.getHelloMessage(displayName));
                     room.status = RoomStatus.enabled;
                     await RoomService().updateRoom(room);
+                    controller.setRoom(room);
                   }
-
-                  controller.roomObs.value = room;
                 } catch (e, s) {
                   EasyLoading.showError(e.toString());
                   logger.e(e.toString(), error: e, stackTrace: s);
@@ -797,6 +794,8 @@ class _ChatPage2State extends State<ChatPage> {
     return ListTile(
       leading: const Icon(Icons.warning, color: Colors.yellow),
       title: Text('NotFriends: ${controller.kpaIsNullRooms.length}'),
+      subtitle:
+          const Text('You are not friends, cannot send and receive messages'),
       trailing: FilledButton(
           onPressed: () {
             showModalBottomSheetWidget(
@@ -808,9 +807,7 @@ class _ChatPage2State extends State<ChatPage> {
                     children: [
                       NoticeTextWidget.warning(
                           'You are not friends, cannot send and receive messages'),
-                      const SizedBox(
-                        height: 16,
-                      ),
+                      const SizedBox(height: 16),
                       Expanded(
                           child: Obx(() => ListView.separated(
                               physics: const NeverScrollableScrollPhysics(),

@@ -66,8 +66,10 @@ class Message extends Equatable {
 
   String? subEvent;
   DateTime? receiveAt;
-
+  List<String> rawEvents = [];
   FromContact? fromContact; // show for message
+  int maxRelay = 0;
+  int okRelay = 0;
 
   Message(
       {required this.msgid,
@@ -81,6 +83,7 @@ class Message extends Equatable {
       required this.sent,
       required this.eventIds,
       required this.encryptType,
+      required this.rawEvents,
       this.realMessage,
       this.reply,
       this.isSystem = false,

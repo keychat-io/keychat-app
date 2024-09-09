@@ -1,8 +1,8 @@
 import 'package:app/controller/home.controller.dart';
 import 'package:app/models/models.dart';
 import 'package:app/service/kdf_group.service.dart';
+import 'package:app/service/room.service.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
@@ -16,8 +16,12 @@ import '../../service/group.service.dart';
 class AddMemberToGroup extends StatefulWidget {
   final Room room;
   final Set<String> members;
+  final String adminPubkey;
   const AddMemberToGroup(
-      {super.key, required this.room, required this.members});
+      {super.key,
+      required this.room,
+      required this.members,
+      required this.adminPubkey});
 
   @override
   State<StatefulWidget> createState() => _AddMemberToGroupState();
@@ -27,9 +31,6 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
     with TickerProviderStateMixin {
   List<Contact> _contactList = [];
   bool isLoading = false;
-
-  final List<String> _tabs = ["Select Members", "Input"];
-  late TabController _tabController;
 
   _AddMemberToGroupState();
 
@@ -41,8 +42,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
     super.initState();
     _userNameController = TextEditingController(text: "");
     _scrollController = ScrollController();
-    _tabController = TabController(length: _tabs.length, vsync: this);
-    _tabController.addListener(() {});
+
     _getData();
   }
 
@@ -50,7 +50,6 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
   void dispose() {
     _userNameController.dispose();
     _scrollController.dispose();
-    _tabController.dispose();
     super.dispose();
   }
 
@@ -59,21 +58,8 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
         await ContactService().getListExcludeSelf(widget.room.identityId);
 
     setState(() {
-      _contactList = contactList;
+      _contactList = contactList.reversed.toList();
     });
-  }
-
-  void _completeFromInput() async {
-    String myPubkey =
-        Get.find<HomeController>().getSelectedIdentity().secp256k1PKHex;
-    EasyLoading.show(status: 'Proccessing');
-    Map<String, String> selectAccounts = {};
-    if (_userNameController.text.trim().length >= 63) {
-      String hexPubkey = rust_nostr.getHexPubkeyByBech32(
-          bech32: _userNameController.text.trim());
-      selectAccounts[hexPubkey] = '';
-    }
-    await _sendInvite(myPubkey, selectAccounts);
   }
 
   void _completeFromContacts() async {
@@ -99,7 +85,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
   Future _sendInvite(
       String myPubkey, Map<String, String> selectAccounts) async {
     if (selectAccounts.isEmpty) {
-      EasyLoading.showError('user not found or input error ');
+      EasyLoading.showError("Please select at least one user");
       return;
     }
     RoomMember? meMember = await widget.room.getMember(myPubkey);
@@ -123,12 +109,15 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
         return;
       }
     }
+
     try {
+      Room groupRoom = await RoomService().getRoomByIdOrFail(widget.room.id);
       if (widget.room.isKDFGroup) {
+        String sender = meMember == null ? myPubkey : meMember.name;
         await KdfGroupService.instance
-            .inviteToJoinGroup(widget.room, selectAccounts);
+            .inviteToJoinGroup(groupRoom, selectAccounts, sender);
       } else {
-        await GroupService().inviteToJoinGroup(widget.room, selectAccounts);
+        await GroupService().inviteToJoinGroup(groupRoom, selectAccounts);
       }
       EasyLoading.showSuccess('Success');
       Get.back();
@@ -145,77 +134,40 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
         centerTitle: true,
         title: const Text("Add Member"),
         actions: [
-          TextButton(
+          FilledButton(
             onPressed: () {
-              var func = _tabController.index == 0
-                  ? _completeFromContacts
-                  : _completeFromInput;
-              EasyThrottle.throttle(
-                  '_completeFromContacts', const Duration(seconds: 2), func);
+              EasyThrottle.throttle('_completeFromContacts',
+                  const Duration(seconds: 2), _completeFromContacts);
             },
-            child: const Text(
-              "Done",
-            ),
+            child: const Text("Done"),
           ),
         ],
-        bottom: TabBar(controller: _tabController, tabs: const <Widget>[
-          Tab(
-            child: Text("Select"),
-          ),
-          Tab(
-            child: Text("Input"),
-          ),
-        ]),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: <Widget>[
-          _fromContacts(),
-          _fromInput(),
-        ],
-      ),
+      body: SafeArea(
+          child: ListView.builder(
+              itemCount: _contactList.length,
+              controller: _scrollController,
+              itemBuilder: (context, index) {
+                return ListTile(
+                    leading: getRandomAvatar(_contactList[index].pubkey,
+                        height: 40, width: 40),
+                    title: Text(
+                      _contactList[index].displayName,
+                    ),
+                    subtitle: Text(
+                      _contactList[index].npubkey,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: widget.adminPubkey == _contactList[index].pubkey
+                        ? const Icon(Icons.check_box,
+                            color: Colors.grey, size: 30)
+                        : Checkbox(
+                            value: _contactList[index].isCheck,
+                            onChanged: (isCheck) {
+                              _contactList[index].isCheck = isCheck!;
+                              setState(() {});
+                            }));
+              })),
     );
-  }
-
-  Widget _fromInput() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
-      child: TextField(
-        controller: _userNameController,
-        maxLines: null,
-        decoration: const InputDecoration(
-          labelText: 'Hex or npub...',
-          hintStyle: TextStyle(fontSize: 18),
-          border: OutlineInputBorder(),
-        ),
-      ),
-    );
-  }
-
-  Widget _fromContacts() {
-    return ListView.builder(
-        itemCount: _contactList.length,
-        controller: _scrollController,
-        itemBuilder: (context, index) {
-          return ListTile(
-              leading: getRandomAvatar(_contactList[index].pubkey,
-                  height: 40, width: 40),
-              title: Text(
-                _contactList[index].displayName,
-              ),
-              subtitle: Text(
-                _contactList[index].npubkey,
-                overflow: TextOverflow.ellipsis,
-              ),
-
-              // widget.members.contains(_contactList[index].pubkey)
-              // ? const Icon(Icons.check_box, color: Colors.grey, size: 30)
-              trailing: Checkbox(
-                  value: _contactList[index].isCheck,
-                  onChanged: (isCheck) {
-                    _contactList[index].isCheck = isCheck!;
-                    setState(() {});
-                  }));
-        });
   }
 }

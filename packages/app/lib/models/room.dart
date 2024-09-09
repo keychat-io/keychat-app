@@ -4,6 +4,7 @@ import 'package:app/models/models.dart';
 
 import 'package:app/models/signal_id.dart';
 import 'package:app/service/chatx.service.dart';
+import 'package:app/service/message.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/signalId.service.dart';
 import 'package:app/utils.dart';
@@ -366,26 +367,32 @@ class Room extends Equatable {
           .roomIdEqualTo(id)
           .idPubkeyEqualTo(rm.idPubkey)
           .findFirst();
-      if (exist != null) {
-        if (exist.updatedAt != null && rm.updatedAt != null) {
-          if (exist.updatedAt!.isAfter(rm.updatedAt!)) {
-            logger.d('Ingore by updatedAt: ${exist.idPubkey}');
-            continue;
-          }
-        }
-        exist.name = rm.name;
-        exist.isAdmin = rm.isAdmin;
-        exist.status = rm.status;
-        if (rm.createdAt != null) {
-          exist.createdAt = rm.createdAt;
-        }
-        if (rm.updatedAt != null) {
-          exist.updatedAt = rm.updatedAt;
-        }
-        await database.roomMembers.put(exist);
-      } else {
+      if (exist == null) {
+        rm.messageCount = 0;
         await database.roomMembers.put(rm);
+        continue;
       }
+
+      exist.name = rm.name;
+      exist.messageCount = 0;
+      exist.isAdmin = rm.isAdmin;
+      exist.status = rm.status;
+      if (rm.createdAt != null) {
+        exist.createdAt = rm.createdAt;
+      }
+      if (rm.updatedAt != null) {
+        exist.updatedAt = rm.updatedAt;
+      }
+      await database.roomMembers.put(exist);
+    }
+  }
+
+  Future<void> setMemberInvited(RoomMember rm, String? name) async {
+    if (rm.status != UserStatusType.invited) {
+      rm.status = UserStatusType.invited;
+      if (name != null) rm.name = name;
+      await updateMember(rm);
+      RoomService.getController(id)?.resetMembers();
     }
   }
 
@@ -494,11 +501,19 @@ class Room extends Equatable {
     return getMemberByNostrPubkey(pubkey);
   }
 
-  Future incrMessageCountForMemeber(RoomMember meMember) async {
+  Future incrMessageCountForMember(RoomMember member) async {
+    bool changeMember = false;
+    if (member.status != UserStatusType.invited) {
+      member.status = UserStatusType.invited;
+      changeMember = true;
+    }
     await DBProvider.database.writeTxn(() async {
-      meMember.messageCount++;
-      await DBProvider.database.roomMembers.put(meMember);
+      member.messageCount++;
+      await DBProvider.database.roomMembers.put(member);
     });
+    if (changeMember) {
+      RoomService.getController(id)?.resetMembers();
+    }
   }
 
   // clear keys. if receive all member's prekey message
@@ -509,6 +524,10 @@ class Room extends Equatable {
         .filter()
         .roomIdEqualTo(id)
         .messageCountLessThan(KeychatGlobal.kdfGroupPrekeyMessageCount + 1)
+        .group((q) => q
+            .statusEqualTo(UserStatusType.invited)
+            .or()
+            .statusEqualTo(UserStatusType.inviting))
         .count();
     SignalId? signalId =
         await SignalIdService.instance.getSignalIdByPubkey(sharedSignalID);
@@ -522,5 +541,12 @@ class Room extends Equatable {
     logger.i('clean signal keys: $toMainPubkey');
     signalId.keys = "";
     await SignalIdService.instance.updateSignalId(signalId);
+    MessageService()
+        .saveSystemMessage(this, 'Clear shared signal-id-keys successfully');
+  }
+
+  String getDebugInfo(String error) {
+    return '''$error
+Room: $id, ${getRoomName()} $toMainPubkey, $identityId, $groupType''';
   }
 }

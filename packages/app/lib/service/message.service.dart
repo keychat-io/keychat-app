@@ -1,4 +1,4 @@
-import 'dart:convert' show jsonDecode;
+import 'dart:convert' show jsonDecode, jsonEncode;
 
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/rust_api.dart';
@@ -37,19 +37,47 @@ class MessageService {
     model = await _fillTypeForMessage(model);
 
     if (persist) {
-      await DBProvider.database.writeTxn(() async {
-        await DBProvider.database.messages.put(model);
-      });
+      try {
+        await DBProvider.database.writeTxn(() async {
+          await DBProvider.database.messages.put(model);
+        });
+      } catch (e) {
+        logger.e('saveMessageModel error: $e, ${model.content}');
+        throw Exception(
+            'duplicate_db: msgId:${model.msgid} roomId[${model.roomId}] ${model.content}');
+      }
     } else {
       await DBProvider.database.messages.put(model);
     }
 
     logger.i(
         'message_room:${model.roomId} ${model.isMeSend ? 'Send' : 'Receive'}: ${model.content} ');
-
-    await Get.find<HomeController>().loadIdentityRoomList(model.identityId);
+    if (!model.isRead) {
+      await Get.find<HomeController>().loadIdentityRoomList(model.identityId);
+    } else {
+      await Get.find<HomeController>().updateLatestMessage(model);
+    }
 
     await RoomService.getController(model.roomId)?.addMessage(model);
+  }
+
+  Future saveSystemMessage(Room room, String content) async {
+    Identity identity = room.getIdentity();
+    await saveMessageModel(Message(
+        msgid: Utils.randomString(16),
+        idPubkey: identity.secp256k1PKHex,
+        identityId: room.identityId,
+        roomId: room.id,
+        from: identity.secp256k1PKHex,
+        to: room.toMainPubkey,
+        content: '[SystemMessage] $content',
+        createdAt: DateTime.now(),
+        sent: SendStatusType.success,
+        isMeSend: true,
+        isSystem: true,
+        eventIds: const [],
+        encryptType: MessageEncryptType.signal,
+        rawEvents: const []));
   }
 
   Future updateMessageAndRefresh(Message message) async {
@@ -108,7 +136,12 @@ class MessageService {
         encryptType: encryptType,
         msgKeyHash: msgKeyHash,
         createdAt: DateTime.fromMillisecondsSinceEpoch(
-            (createdAt ?? events[0].createdAt) * 1000))
+            (createdAt ?? events[0].createdAt) * 1000),
+        rawEvents: events.map((e) {
+          Map m = e.toJson();
+          m['toIdPubkey'] = e.toIdPubkey;
+          return jsonEncode(m);
+        }).toList())
       ..subEvent = subEvent
       ..requestConfrim = requestConfrim;
 
@@ -427,7 +460,7 @@ class MessageService {
     });
   }
 
-  Future setViewedMessage(int roomId) async {
+  Future<bool> setViewedMessage(int roomId) async {
     List messages = await listMessageUnread(roomId);
     Isar database = DBProvider.database;
 
@@ -437,6 +470,7 @@ class MessageService {
         await database.messages.put(item);
       }
     });
+    return messages.isNotEmpty;
   }
 
   Future clearUnreadMessage() async {
@@ -476,34 +510,6 @@ class MessageService {
         .filter()
         .cashuInfoIsNotNull()
         .cashuInfo((q) => q.statusEqualTo(TransactionStatus.pending))
-        .findAll();
-  }
-
-  Future insertMessageBill(MessageBill model) async {
-    Isar database = DBProvider.database;
-
-    await database.writeTxn(() async {
-      return await database.messageBills.put(model);
-    });
-  }
-
-  Future<List<MessageBill>> getMessageBills(String eventId) async {
-    Isar database = DBProvider.database;
-
-    return await database.messageBills
-        .filter()
-        .eventIdEndsWith(eventId)
-        .findAll();
-  }
-
-  Future<List<MessageBill>> getBillByRoomId(int roomId,
-      {int minId = 99999999, int limit = 20}) async {
-    return await DBProvider.database.messageBills
-        .filter()
-        .idLessThan(minId)
-        .roomIdEqualTo(roomId)
-        .sortByCreatedAtDesc()
-        .limit(limit)
         .findAll();
   }
 

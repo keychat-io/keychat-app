@@ -622,43 +622,14 @@ class ChatController extends GetxController {
     return list;
   }
 
-  updateMessageStatus(List<Message> messageList) {
-    bool refresh = false;
-    for (var message in messageList) {
-      for (var element in messages) {
-        if (element.isMeSend == true && element.id == message.id) {
-          element.sent = message.sent;
-          refresh = true;
-          break;
-        }
+  updateMessageStatus(Message message) {
+    for (var i = 0; i < messages.length; i++) {
+      Message element = messages[i];
+      if (element.isMeSend == true && element.id == message.id) {
+        messages[i] = message;
+        break;
       }
     }
-    if (refresh) {
-      messages.refresh();
-    }
-  }
-
-  // list message: sent == SendStatusType.sending. if time >5s then mark to failed
-  updateSendingMessageStatus() async {
-    List<Message> list =
-        await MessageService().listMySendingMessage(roomId: roomObs.value.id);
-    if (list.isEmpty) return;
-
-    for (var element in list) {
-      EventLog? log = await DBProvider().getEventLogByEventId(element.msgid);
-
-      if (log != null && log.resCode == 200) {
-        element.sent = SendStatusType.success;
-        await MessageService().updateMessage(element);
-      } else if (DateTime.now().millisecondsSinceEpoch -
-              element.createdAt.millisecondsSinceEpoch >
-          5000) {
-        element.sent = SendStatusType.failed;
-        await MessageService().updateMessage(element);
-      }
-    }
-    // if(failds)
-    updateMessageStatus(list);
   }
 
   _handleFileUpload() async {

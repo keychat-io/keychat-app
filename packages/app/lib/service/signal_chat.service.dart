@@ -48,7 +48,6 @@ class SignalChatService extends BaseChatService {
     MsgReply? reply,
     String? realMessage,
     MessageMediaType? mediaType,
-    Function? sentCallback,
   }) async {
     ChatxService cs = Get.find<ChatxService>();
     rust_signal.KeychatProtocolAddress? kpa = await cs.getRoomKPA(room);
@@ -63,7 +62,6 @@ class SignalChatService extends BaseChatService {
       if (to == room.onetimekey) {
         pmm = await SignalChatUtil.getSignalPrekeyMessageContent(
             room, room.getIdentity(), message);
-        // realMessage = pmm.toString();
       }
     }
 
@@ -88,11 +86,9 @@ class SignalChatService extends BaseChatService {
       toAddPubkeys = await ContactService()
           .addReceiveKey(room.identityId, room.toMainPubkey, myReceiverAddr);
 
-      if (save && toAddPubkeys.isNotEmpty) {
-        Get.find<WebsocketService>().listenPubkey(toAddPubkeys,
-            since: DateTime.now().subtract(const Duration(seconds: 5)));
-        if (!room.isMute) NotifyService.addPubkeys(toAddPubkeys);
-      }
+      Get.find<WebsocketService>().listenPubkey(toAddPubkeys,
+          since: DateTime.now().subtract(const Duration(seconds: 5)));
+      if (!room.isMute) NotifyService.addPubkeys(toAddPubkeys);
     }
 
     var senderKey = await rust_nostr.generateSimple();
@@ -140,31 +136,40 @@ class SignalChatService extends BaseChatService {
   }
 
   Future<String> decryptDMMessage(Room room, NostrEventModel event, Relay relay,
-      {NostrEventModel? sourceEvent, EventLog? eventLog}) async {
-    Uint8List message = Uint8List.fromList(base64Decode(event.content));
-
-    late Uint8List plaintext;
+      {NostrEventModel? sourceEvent,
+      required Function(String error) failedCallback}) async {
+    String? decodeString;
     String? msgKeyHash;
     try {
       rust_signal.KeychatProtocolAddress? kpa =
           await Get.find<ChatxService>().getRoomKPA(room);
       if (kpa == null) {
-        eventLog?.setNote('signal_session_is_null');
-        throw Exception("signal_session_is_null");
+        String msg = room.getDebugInfo('signal_session_is_null');
+        failedCallback(msg);
+        throw Exception(msg);
       }
       try {
         var keypair = await room.getKeyPair();
+        Uint8List? plaintext;
+
         (plaintext, msgKeyHash, _) = await rust_signal.decryptSignal(
             keyPair: keypair,
-            ciphertext: message,
+            ciphertext: Uint8List.fromList(base64Decode(event.content)),
             remoteAddress: kpa,
             roomId: room.id,
             isPrekey: false);
+        decodeString = utf8.decode(plaintext);
+        await setRoomSignalDecodeStatus(room, false);
       } catch (e, s) {
         String msg = Utils.getErrorMessage(e);
-        logger.i(msg, error: e, stackTrace: s);
+        if (msg != ErrorMessages.signalDecryptError) {
+          logger.e(msg, error: e, stackTrace: s);
+        } else {
+          loggerNoLine.e(msg);
+        }
+        decodeString = "Decryption failed: $msg, \nSource: ${event.content}";
       }
-      await setRoomSignalDecodeStatus(room, false);
+
       // get encrypt msg key's hash
       if (msgKeyHash != null) {
         msgKeyHash =
@@ -183,22 +188,16 @@ class SignalChatService extends BaseChatService {
     } catch (e, s) {
       logger.e(e.toString(), error: e, stackTrace: s);
       await setRoomSignalDecodeStatus(room, true);
-      eventLog?.setNote('Signal Decryption failed');
-
-      plaintext =
-          Uint8List.fromList(utf8.encode("Decryption failed: ${e.toString()}"));
+      failedCallback('Signal Decryption failed ${e.toString()}');
+      decodeString = "Decryption failed: ${e.toString()}";
     }
-
-    String decodeString = utf8.decode(plaintext);
 
     Map<String, dynamic> decodedContent;
     KeychatMessage? km;
     try {
       decodedContent = jsonDecode(decodeString);
       km = KeychatMessage.fromJson(decodedContent);
-    } catch (e) {
-      // logger.e('decodeString error,', error: e);
-    }
+    } catch (e) {}
 
     if (km != null) {
       await km.service.processMessage(
@@ -232,6 +231,7 @@ class SignalChatService extends BaseChatService {
       required NostrEventModel event,
       required KeychatMessage km,
       NostrEventModel? sourceEvent,
+      Function(String error)? failedCallback,
       String? msgKeyHash,
       required Relay relay}) async {
     switch (km.type) {
@@ -319,7 +319,9 @@ class SignalChatService extends BaseChatService {
       room.onetimekey = model.onetimekey;
     }
     // delete old session
-    await Get.find<ChatxService>().deleteSignalSessionKPA(room);
+    if (room.curve25519PkHex != null) {
+      await Get.find<ChatxService>().deleteSignalSessionKPA(room);
+    }
     // must be delete session then give a new data
     room.curve25519PkHex = model.curve25519PkHex;
 
@@ -442,41 +444,32 @@ Let's talk on this server.''';
     await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
   }
 
-  Future<PrekeyMessageModel> getSignalPrekeyMessageContent(
-      Room room, Identity identity, String message) async {
-    String sourceContent =
-        _getPrekeySigContent([room.myIdPubkey, room.toMainPubkey, message]);
-    String sig = await rust_nostr.signSchnorr(
-        senderKeys: await identity.getSecp256k1SKHex(), content: sourceContent);
-    return PrekeyMessageModel(
-        nostrId: identity.secp256k1PKHex,
-        name: identity.displayName,
-        sig: sig,
-        message: message);
-  }
-
-  String _getPrekeySigContent(List ids) {
-    ids.sort((a, b) => a.compareTo(b));
-    String sourceContent = ids.join(',');
-    return sourceContent;
-  }
-
   // decrypt the first signal message
   Future decryptPreKeyMessage(String to, Mykey mykey,
       {required NostrEventModel event,
       required Relay relay,
-      required EventLog eventLog}) async {
+      required Function(String error) failedCallback}) async {
     var ciphertext = Uint8List.fromList(base64Decode(event.content));
     var prekey = await rust_signal.parseIdentityFromPrekeySignalMessage(
         ciphertext: ciphertext);
     String signalIdPubkey = prekey.$1;
     SignalId? singalId =
         await SignalIdService.instance.getSignalIdByKeyId(prekey.$2);
-    if (singalId == null) throw Exception('SignalId not found');
-    Identity identity =
-        Get.find<HomeController>().identities[mykey.identityId]!;
+    if (singalId == null) {
+      String msg = 'SignalId not found, identityId: ${mykey.identityId}.';
+      if (mykey.roomId != null) {
+        Room? room = await RoomService().getRoomById(mykey.roomId!);
+        if (room != null) {
+          msg = room.getDebugInfo(msg);
+        }
+      }
+      throw Exception(msg);
+    }
     KeychatIdentityKeyPair keyPair =
         Get.find<ChatxService>().getKeyPairBySignalId(singalId);
+    Identity identity =
+        Get.find<HomeController>().identities[singalId.identityId]!;
+
     var (plaintext, msgKeyHash, _) = await rust_signal.decryptSignal(
         keyPair: keyPair,
         ciphertext: ciphertext,
@@ -515,9 +508,22 @@ Let's talk on this server.''';
       await RoomService().updateChatRoomPage(room);
       await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
     }
+    KeychatMessage? km;
+    try {
+      km = KeychatMessage.fromJson(jsonDecode(prekeyMessageModel.message));
+    } catch (e) {}
+    if (km != null) {
+      await km.service.processMessage(
+          room: room,
+          event: event,
+          km: km,
+          msgKeyHash: msgKeyHash,
+          sourceEvent: null,
+          relay: relay,
+          failedCallback: failedCallback);
+      return;
+    }
     await RoomService().receiveDM(room, event,
         sourceEvent: null, decodedContent: prekeyMessageModel.message);
-    // todo add pre decode content
-    return;
   }
 }

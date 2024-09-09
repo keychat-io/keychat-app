@@ -8,6 +8,7 @@ abstract class BaseChatService {
       required NostrEventModel event,
       NostrEventModel? sourceEvent,
       String? msgKeyHash,
+      Function(String error)? failedCallback,
       required KeychatMessage km,
       required Relay relay});
 
@@ -15,6 +16,5 @@ abstract class BaseChatService {
       {MessageMediaType? mediaType,
       bool save = true,
       MsgReply? reply,
-      String? realMessage,
-      Function(bool)? sentCallback});
+      String? realMessage});
 }

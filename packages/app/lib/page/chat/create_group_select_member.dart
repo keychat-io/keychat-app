@@ -1,5 +1,4 @@
 import 'package:app/service/kdf_group.service.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
@@ -8,7 +7,6 @@ import 'package:get/get.dart';
 
 import '../../controller/home.controller.dart';
 import 'package:app/models/models.dart';
-import '../common.dart';
 import '../../service/contact.service.dart';
 import '../../service/group.service.dart';
 
@@ -25,8 +23,6 @@ class CreateGroupSelectMember extends StatefulWidget {
 
 class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
     with TickerProviderStateMixin {
-  GroupService groupService = GroupService();
-  ContactService contactService = ContactService();
   HomeController hc = Get.find<HomeController>();
 
   final ScrollController _scrollController = ScrollController();
@@ -35,13 +31,8 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
 
   List<Contact> _contactList = [];
 
-  final List<String> _tabs = ["Contacts", "Input"];
-  late TabController _tabController;
-
   @override
   void initState() {
-    _tabController = TabController(length: _tabs.length, vsync: this);
-    _tabController.addListener(() {});
     super.initState();
     _getData();
   }
@@ -50,17 +41,16 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
   void dispose() {
     _userNameController.dispose();
     _scrollController.dispose();
-    _tabController.dispose();
     super.dispose();
   }
 
   _getData() async {
     Identity identity = hc.getSelectedIdentity();
     List<Contact> contactList =
-        await contactService.getListExcludeSelf(identity.id);
+        await ContactService().getListExcludeSelf(identity.id);
 
     setState(() {
-      _contactList = contactList.reversed.toList();
+      _contactList = contactList.toList();
     });
   }
 
@@ -78,15 +68,6 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
         selectAccounts[selectAccount] = contact.displayName;
       }
     }
-    // from input, check public key
-    if (_tabController.index == 1) {
-      String input = _userNameController.text.trim();
-      bool isCheck = nostrKeyInputCheck(input);
-      if (!isCheck) return;
-      String pubkey = rust_nostr.getHexPubkeyByBech32(bech32: input);
-      selectAccounts[pubkey] = '';
-    }
-
     if (selectAccounts.isEmpty) {
       EasyLoading.showError("Please select at least one user");
       return;
@@ -118,74 +99,42 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
     return Scaffold(
         appBar: AppBar(
           centerTitle: true,
-          title: const Text(
-            "Select Members",
-          ),
+          title: const Text("Select Members"),
           actions: [
-            TextButton(
+            FilledButton(
                 onPressed: () => EasyThrottle.throttle('_completeToCreatGroup',
                     const Duration(seconds: 4), _completeToCreatGroup),
                 child: const Text("Create Group"))
           ],
         ),
         body: SafeArea(
-            child: Column(children: [
-          TabBar(controller: _tabController, tabs: const <Widget>[
-            Tab(
-              child: Text("Contacts"),
-            ),
-            Tab(
-              child: Text("Input"),
-            ),
-          ]),
-          Expanded(
-              child: TabBarView(
-            controller: _tabController,
-            children: <Widget>[
-              _fromContacts(),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0, vertical: 16.0),
-                child: TextFormField(
-                  controller: _userNameController,
-                  maxLines: null,
-                  decoration: const InputDecoration(
-                    labelText: 'Hex or npub...',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ),
-            ],
-          )),
-        ])));
-  }
-
-  Widget _fromContacts() {
-    return ListView.separated(
-        itemCount: _contactList.length,
-        controller: _scrollController,
-        itemBuilder: (context, index) {
-          return ListTile(
-              dense: true,
-              leading: getRandomAvatar(_contactList[index].pubkey,
-                  height: 30, width: 30),
-              title: Text(
-                _contactList[index].displayName,
-                maxLines: 1,
-                style: const TextStyle(
-                  fontSize: 16,
-                ),
-              ),
-              trailing: Checkbox(
-                  value: _contactList[index].isCheck,
-                  onChanged: (isCheck) {
-                    _contactList[index].isCheck = isCheck!;
-                    setState(() {});
-                  }));
-        },
-        separatorBuilder: (BuildContext context, int index) {
-          return Divider(
-              color: Theme.of(context).dividerTheme.color?.withOpacity(0.03));
-        });
+            child: ListView.separated(
+                itemCount: _contactList.length,
+                controller: _scrollController,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                      dense: true,
+                      leading: getRandomAvatar(_contactList[index].pubkey,
+                          height: 30, width: 30),
+                      title: Text(
+                        _contactList[index].displayName,
+                        maxLines: 1,
+                      ),
+                      subtitle: Text(_contactList[index].npubkey,
+                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                      trailing: Checkbox(
+                          value: _contactList[index].isCheck,
+                          onChanged: (isCheck) {
+                            _contactList[index].isCheck = isCheck!;
+                            setState(() {});
+                          }));
+                },
+                separatorBuilder: (BuildContext context, int index) {
+                  return Divider(
+                      color: Theme.of(context)
+                          .dividerTheme
+                          .color
+                          ?.withOpacity(0.03));
+                })));
   }
 }

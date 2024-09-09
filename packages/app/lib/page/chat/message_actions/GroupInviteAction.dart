@@ -37,17 +37,15 @@ class GroupInviteAction extends StatelessWidget {
                     RoomProfile.fromJson(jsonDecode(message.content));
 
                 if (roomProfile.groupType == GroupType.kdf) {
-                  if (roomProfile.updatedAt != null) {
-                    DateTime expiredAt = DateTime.fromMillisecondsSinceEpoch(
-                            roomProfile.updatedAt!)
-                        .add(Duration(days: KeychatGlobal.kdfGroupKeysExpired));
-                    if (expiredAt.isBefore(DateTime.now())) {
-                      message.requestConfrim = RequestConfrimEnum.expired;
-                      message.isRead = true;
-                      await MessageService().updateMessageAndRefresh(message);
-                      EasyLoading.showError('The invitation has expired');
-                      return;
-                    }
+                  DateTime expiredAt = DateTime.fromMillisecondsSinceEpoch(
+                          roomProfile.updatedAt)
+                      .add(Duration(days: KeychatGlobal.kdfGroupKeysExpired));
+                  if (expiredAt.isBefore(DateTime.now())) {
+                    message.requestConfrim = RequestConfrimEnum.expired;
+                    message.isRead = true;
+                    await MessageService().updateMessageAndRefresh(message);
+                    EasyLoading.showError('The invitation has expired');
+                    return;
                   }
                 }
                 bool? accept = await Get.bottomSheet(
@@ -75,6 +73,21 @@ class GroupInviteAction extends StatelessWidget {
                       .identityIdEqualTo(identity.id)
                       .findFirst();
                   if (exist != null) {
+                    if (exist.version == roomProfile.updatedAt) {
+                      message.requestConfrim = RequestConfrimEnum.approved;
+                      await MessageService().updateMessageAndRefresh(message);
+                      EasyLoading.showSuccess(
+                          'The invitation has been auto proccessed',
+                          duration: const Duration(seconds: 3));
+                      return;
+                    }
+                    if (roomProfile.updatedAt < exist.version) {
+                      message.requestConfrim = RequestConfrimEnum.expired;
+                      await MessageService().updateMessageAndRefresh(message);
+                      EasyLoading.showError('The invitation has expired',
+                          duration: const Duration(seconds: 3));
+                      return;
+                    }
                     await RoomService().deleteRoom(exist);
                   }
 
@@ -90,13 +103,13 @@ class GroupInviteAction extends StatelessWidget {
                   if (groupRoom!.isShareKeyGroup) {
                     await GroupService().sendMessageToGroup(
                         groupRoom!, '${identity.displayName} joined group.',
-                        subtype: KeyChatEventKinds.groupHi,
-                        sentCallback: (res) {});
+                        subtype: KeyChatEventKinds.groupHi);
                   } else if (groupRoom!.isKDFGroup) {
                     await KdfGroupService.instance.sendHelloMessage(identity,
                         groupRoom!.getGroupSharedSignalId(), groupRoom!);
                   }
-                  MessageService().refreshMessageInPage(message);
+
+                  await MessageService().updateMessageAndRefresh(message);
                   EasyLoading.showSuccess('Join group success');
                 } catch (e, s) {
                   logger.e(e.toString(), error: e, stackTrace: s);

@@ -286,9 +286,11 @@ class MyOutput extends LogOutput {
 }
 
 class ErrorMessages {
-  static String relayIsEmptyException =
-      '''Insufficient balance to pay for relay. 
+  static String signalDecryptError = 'protobuf encoding was invalid';
+  static String relayIsEmptyException = '''Relay disconnected. Please retry.''';
+  static String noFundsInfo = '''Insufficient balance to pay relay. 
 Please check ecash balance and mint.''';
+  static String noFunds = 'No Funds';
 }
 
 class Utils {
@@ -422,5 +424,12 @@ class Utils {
     int index = e.message.indexOf('Stack backtrace:');
     if (index == -1) return e.message;
     return e.message.substring(0, index).trim();
+  }
+
+  static String randomString(int i) {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    final random = Random.secure();
+    return List.generate(i, (index) => chars[random.nextInt(chars.length)])
+        .join();
   }
 }

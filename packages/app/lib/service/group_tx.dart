@@ -22,18 +22,18 @@ class GroupTx {
   GroupTx._internal();
 
   Future<Mykey> importMykeyTx(
-      Identity identity, rust_nostr.Secp256k1Account keychain,
+      int identityId, rust_nostr.Secp256k1Account keychain,
       [int? roomId]) async {
     Isar database = DBProvider.database;
     Mykey? mykey = await database.mykeys
         .filter()
-        .identityIdEqualTo(identity.id)
+        .identityIdEqualTo(identityId)
         .pubkeyEqualTo(keychain.pubkey)
         .findFirst();
     if (mykey != null) return mykey;
     final newUser = Mykey(
         prikey: keychain.prikey,
-        identityId: identity.id,
+        identityId: identityId,
         pubkey: keychain.pubkey)
       ..roomId = roomId;
     var savedId = await database.mykeys.put(newUser);
@@ -93,12 +93,12 @@ class GroupTx {
       await DBProvider.database.roomMembers.put(me);
     }
     if (room.isShareKeyGroup || room.isKDFGroup) {
-      DateTime? since = roomUpdateAt != null
+      DateTime since = roomUpdateAt != null
           ? DateTime.fromMillisecondsSinceEpoch(roomUpdateAt)
-          : null;
+          : DateTime.now().subtract(const Duration(days: 30));
       String listenKey = sharedKey?.pubkey ?? toMainPubkey;
       await Get.find<WebsocketService>()
-          .listenPubkey([listenKey], since: since, limit: 300);
+          .listenPubkey([listenKey], since: since);
       NotifyService.addPubkeys([listenKey]);
     }
     return room;
@@ -116,8 +116,7 @@ class GroupTx {
       [Message? message]) async {
     String toMainPubkey = roomProfile.oldToRoomPubKey ?? roomProfile.pubkey;
     String? toRoomPriKey = roomProfile.prikey;
-    int version =
-        roomProfile.updatedAt ?? DateTime.now().millisecondsSinceEpoch;
+    int version = roomProfile.updatedAt;
     List<dynamic> users = roomProfile.users;
     Mykey? roomKey;
     if ((roomProfile.groupType == GroupType.shareKey ||
@@ -126,7 +125,7 @@ class GroupTx {
       throw Exception('Prikey is null, failed to join group.');
     } else if (toRoomPriKey != null) {
       roomKey = await importMykeyTx(
-          identity, await rust_nostr.importKey(senderKeys: toRoomPriKey));
+          identity.id, await rust_nostr.importKey(senderKeys: toRoomPriKey));
     }
 
     Room groupRoom = await _createGroupToDB(toMainPubkey, roomProfile.name,

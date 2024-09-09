@@ -49,6 +49,8 @@ class NostrEventModel {
   /// subscription_id is a random string that should be used to represent a subscription.
   String? subscriptionId;
 
+  String? toIdPubkey;
+
   /// Default constructor
   ///
   /// verify: ensure your event isValid() –> id, signature, timestamp…
@@ -158,7 +160,7 @@ class NostrEventModel {
       json['content'],
       json['sig'],
       verify: verify,
-    );
+    )..toIdPubkey = json['toIdPubkey'];
   }
 
   /// Serialize an event in JSON
@@ -171,6 +173,7 @@ class NostrEventModel {
         'content': content,
         'sig': sig
       };
+  String toJsonString() => jsonEncode(toJson());
 
   /// Serialize to nostr event message
   /// - ["EVENT", event JSON as defined above]
@@ -184,6 +187,7 @@ class NostrEventModel {
   }
 
   /// Deserialize a nostr event message
+  /// - A Map: event JSON as defined above
   /// - ["EVENT", event JSON as defined above]
   /// - ["EVENT", subscription_id, event JSON as defined above]
   /// ```dart
@@ -206,7 +210,9 @@ class NostrEventModel {
   factory NostrEventModel.deserialize(input, {bool verify = true}) {
     Map<String, dynamic> json = {};
     String? subscriptionId;
-    if (input.length == 2) {
+    if (input.length == 1) {
+      json = input as Map<String, dynamic>;
+    } else if (input.length == 2) {
       json = input[1] as Map<String, dynamic>;
     } else if (input.length == 3) {
       json = input[2] as Map<String, dynamic>;

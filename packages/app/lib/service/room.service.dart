@@ -161,8 +161,12 @@ class RoomService extends BaseChatService {
               .identityIdEqualTo(room.identityId)
               .deleteAll();
         }
-        // del session with old/new verison of signal id
-        await Get.find<ChatxService>().deleteSignalSessionKPA(room);
+        // delete session with  verison of signal id
+        try {
+          await Get.find<ChatxService>().deleteSignalSessionKPA(room);
+        } catch (e) {
+          logger.e('delete signal session error', error: e);
+        }
       }
       await database.contactReceiveKeys
           .filter()

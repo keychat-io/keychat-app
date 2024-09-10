@@ -2,7 +2,7 @@ import 'package:app/global.dart';
 import 'package:app/models/db_provider.dart';
 import 'package:app/models/nostr_event_status.dart';
 import 'package:app/models/models.dart';
-import 'package:app/service/room.service.dart';
+import 'package:app/service/message.service.dart';
 import 'package:isar/isar.dart';
 
 class MesssageToRelayEOSE {
@@ -108,16 +108,15 @@ class SubscribeEventStatus {
         .eventIdsElementContains(eventId)
         .findFirst();
     if (message == null) return;
-    if (message.sent == SendStatusType.success &&
-        message.okRelay == sentSuccessRelay) return;
+    if (message.sent == SendStatusType.success ||
+        message.okRelay > sentSuccessRelay) return;
 
-    await database.writeTxn(() async {
-      message.okRelay = sentSuccessRelay;
-      message.maxRelay = ess.length;
+    message.okRelay = sentSuccessRelay;
+    message.maxRelay = ess.length;
+    if (message.sent != SendStatusType.success) {
       message.sent =
           sentSuccessRelay > 0 ? SendStatusType.success : SendStatusType.failed;
-      return await database.messages.put(message);
-    });
-    RoomService.getController(message.roomId)?.updateMessageStatus(message);
+    }
+    MessageService().updateMessageAndRefresh(message);
   }
 }

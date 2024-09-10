@@ -31,68 +31,64 @@ class ChatSettingsMoreDart extends StatelessWidget {
           title: const Text('Security Settings'),
         ),
         body: Obx(() => SettingsList(platform: DevicePlatform.iOS, sections: [
-              SettingsSection(title: const Text('Encrypt Protocl'), tiles: [
-                SettingsTile.navigation(
-                  title: const Text('Encrypt mode'),
-                  leading: const Icon(CupertinoIcons.lock),
-                  value: chatController.roomObs.value.encryptMode ==
-                          EncryptMode.signal
-                      ? textP('Signal procotol', Colors.green)
-                      : textP('Nostr nip04', Colors.red),
-                  onPressed: (context) async {
-                    // it is my self
-                    if (chatController.roomObs.value.toMainPubkey ==
-                        chatController.roomObs.value
-                            .getIdentity()
-                            .curve25519PkHex) {
-                      EasyLoading.showError(
-                          'You can only use nip04 mode to talk to yourself');
-                      return;
-                    }
-                    showFitSheetWidget(
-                      context,
-                      'Encrypt Mode',
-                      [
-                        EncryptModeWidget(
-                          chatController: chatController,
-                        )
-                      ],
-                    );
-                  },
-                ),
-                if (chatController.roomObs.value.encryptMode ==
-                    EncryptMode.signal)
-                  SettingsTile.navigation(
-                    title: const Text('Reset session status'),
-                    leading: const Icon(CupertinoIcons.refresh),
-                    description: const Text(
-                        'Execute this action when you can\'t receive new messages from your friend. This will reset the session status of the chat room.'),
-                    onPressed: (value) async {
-                      Get.dialog(CupertinoAlertDialog(
-                        title: const Text('Request sent successfully'),
-                        content:
-                            const Text('Waiting for your friend comes online'),
-                        actions: [
-                          CupertinoDialogAction(
-                            child: const Text('OK'),
-                            onPressed: () async {
-                              await Get.find<ChatxService>()
-                                  .deleteSignalSessionKPA(chatController
-                                      .room); // delete old session
-                              await SignalChatService().sendHelloMessage(
-                                  chatController.room,
-                                  chatController.room.getIdentity(),
-                                  greeting: 'Reset signal session status');
-                              EasyLoading.showInfo(
-                                  'Request sent successfully.');
-                              Get.back();
-                            },
-                          )
-                        ],
-                      ));
-                    },
-                  )
-              ]),
+              SettingsSection(
+                  title: const Text('Message Encrypt Protocol'),
+                  tiles: [
+                    SettingsTile.navigation(
+                      title: const Text('Encrypt mode'),
+                      leading: const Icon(CupertinoIcons.lock),
+                      value: chatController.roomObs.value.encryptMode ==
+                              EncryptMode.signal
+                          ? textP('Signal procotol', Colors.green)
+                          : textP('Nostr nip04', Colors.red),
+                      onPressed: (context) async {
+                        // it is my self
+                        if (chatController.roomObs.value.toMainPubkey ==
+                            chatController.roomObs.value
+                                .getIdentity()
+                                .curve25519PkHex) {
+                          EasyLoading.showError(
+                              'You can only use nip04 mode to talk to yourself');
+                          return;
+                        }
+                        showFitSheetWidget(context, 'Encrypt Mode', [
+                          EncryptModeWidget(chatController: chatController)
+                        ]);
+                      },
+                    ),
+                    if (chatController.roomObs.value.encryptMode ==
+                        EncryptMode.signal)
+                      SettingsTile.navigation(
+                        title: const Text('Reset session status'),
+                        leading: const Icon(CupertinoIcons.refresh),
+                        description: const Text(
+                            'Execute this action when you can\'t receive new messages from your friend. This will reset the session status of the chat room.'),
+                        onPressed: (value) async {
+                          Get.dialog(CupertinoAlertDialog(
+                            title: const Text('Request sent successfully'),
+                            content: const Text(
+                                'Waiting for your friend comes online'),
+                            actions: [
+                              CupertinoDialogAction(
+                                child: const Text('OK'),
+                                onPressed: () async {
+                                  await Get.find<ChatxService>()
+                                      .deleteSignalSessionKPA(chatController
+                                          .room); // delete old session
+                                  await SignalChatService().sendHelloMessage(
+                                      chatController.room,
+                                      chatController.room.getIdentity(),
+                                      greeting: 'Reset signal session status');
+                                  EasyLoading.showInfo(
+                                      'Request sent successfully.');
+                                  Get.back();
+                                },
+                              )
+                            ],
+                          ));
+                        },
+                      )
+                  ]),
 //               SettingsSection(title: const Text('Message Relay'), tiles: [
 //                 SettingsTile.navigation(
 //                   title: const Text('SendTo'),
@@ -196,11 +192,7 @@ class ChatSettingsMoreDart extends StatelessWidget {
                 SettingsSection(
                     title: const Text('My Receive Addresses'),
                     tiles: receiveKeys
-                        .map(
-                          (e) => SettingsTile(
-                            title: Text(e),
-                          ),
-                        )
+                        .map((e) => SettingsTile(title: Text(e)))
                         .toList())
             ])));
   }

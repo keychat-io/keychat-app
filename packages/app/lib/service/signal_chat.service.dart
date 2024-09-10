@@ -310,7 +310,7 @@ class SignalChatService extends BaseChatService {
 
     if (room.status == RoomStatus.requesting) {
       room.status = RoomStatus.enabled;
-    } else if (room.status != RoomStatus.enabled) {
+    } else {
       room.status = oneTimeKey != null
           ? RoomStatus.approvingNoResponse
           : RoomStatus.approving;
@@ -497,7 +497,8 @@ Let's talk on this server.''';
         encryptMode: EncryptMode.signal,
         curve25519PkHex: signalIdPubkey,
         signalId: singalId);
-    if (room.status == RoomStatus.requesting) {
+    if (room.status == RoomStatus.requesting ||
+        room.encryptMode != EncryptMode.signal) {
       room.status = RoomStatus.enabled;
       room.encryptMode = EncryptMode.signal;
       room.curve25519PkHex = signalIdPubkey;

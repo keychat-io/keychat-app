@@ -72,9 +72,9 @@ class GroupInviteConfirmAction extends StatelessWidget {
                                 RequestConfrimEnum.approved;
                             MessageService().updateMessageAndRefresh(message);
                             Get.back();
-                          } catch (e) {
+                          } catch (e, s) {
                             EasyLoading.showError(e.toString());
-                            logger.e(e.toString(), error: e);
+                            logger.e(e.toString(), error: e, stackTrace: s);
                           }
                         })
                   ]));

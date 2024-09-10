@@ -432,7 +432,7 @@ class _ChatPage2State extends State<ChatPage> {
                             }
 
                             final random = Random();
-                            final seconds = random.nextInt(5) + 1;
+                            final seconds = random.nextInt(10) + 1;
 
                             Timer(Duration(seconds: seconds), () {
                               count++;

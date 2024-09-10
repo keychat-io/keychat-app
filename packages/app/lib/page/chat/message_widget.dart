@@ -627,7 +627,7 @@ class MessageWidget extends StatelessWidget {
     Widget? subTitleChild;
     if (message.reply!.id == null) {
       subTitleChild = GestureDetector(
-          onTap: () {
+          onDoubleTap: () {
             Get.to(() => LongTextPreviewPage(message.reply!.content),
                 fullscreenDialog: true, transition: Transition.fadeIn);
           },

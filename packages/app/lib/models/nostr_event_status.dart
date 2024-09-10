@@ -37,9 +37,8 @@ class NostrEventStatus extends Equatable {
   String? ecashMint;
   int roomId;
   bool isReceive = false;
-  String? receiveSnapshot;
-
-  late String rawEvent;
+  String? receiveSnapshot; // json string
+  String? rawEvent; // ['event',id, json string]
 
   NostrEventStatus(
       {required this.eventId,

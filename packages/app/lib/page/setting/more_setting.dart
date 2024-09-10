@@ -4,6 +4,7 @@ import 'dart:io' show exit;
 
 import 'package:app/controller/home.controller.dart';
 import 'package:app/page/FileExplore.dart';
+import 'package:app/page/setting/QueryReceivedEvent.dart';
 import 'package:app/page/setting/UnreadMessages.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app/service/websocket.service.dart';
@@ -48,6 +49,13 @@ class MoreSetting extends StatelessWidget {
                     onPressed: (context) async {
                       Get.to(() => const NostrEventsPage(),
                           binding: NostrEventsBindings());
+                    },
+                  ),
+                  SettingsTile.navigation(
+                    leading: const Icon(Icons.event),
+                    title: const Text("Query Received Event"),
+                    onPressed: (context) async {
+                      Get.to(() => const QueryReceivedEvent());
                     },
                   ),
                   SettingsTile.navigation(

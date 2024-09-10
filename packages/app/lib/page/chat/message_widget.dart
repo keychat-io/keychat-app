@@ -338,12 +338,22 @@ class MessageWidget extends StatelessWidget {
 
     if (message.sent == SendStatusType.success ||
         message.sent == SendStatusType.partialSuccess) return null;
-    if (message.sent == SendStatusType.sending &&
-        message.createdAt.isAfter(DateTime.now().subtract(const Duration(
-            seconds: KeychatGlobal.messageFailedAfterSeconds)))) {
-      return null;
+    if (message.sent == SendStatusType.sending) {
+      if (message.createdAt.isAfter(DateTime.now().subtract(const Duration(
+          seconds: KeychatGlobal.messageFailedAfterSeconds + 1)))) {
+        return null;
+      } else {
+        NostrEventStatus? exist = DBProvider.database.nostrEventStatus
+            .filter()
+            .eventIdEqualTo(message.msgid)
+            .isReceiveEqualTo(false)
+            .sendStatusEqualTo(EventSendEnum.success)
+            .findFirstSync();
+        if (exist != null) return null;
+      }
     }
 
+    // message send failed
     return IconButton(
         splashColor: Colors.transparent,
         onPressed: () {
@@ -455,6 +465,17 @@ class MessageWidget extends StatelessWidget {
     if (message.eventIds.length == 1 && message.rawEvents.length == 1) {
       var (ess, event) =
           await _getRawMessageData(message.eventIds[0], message.rawEvents[0]);
+
+      // fix message sent status
+      if (message.sent != SendStatusType.success) {
+        List success = ess
+            .where((element) => element.sendStatus == EventSendEnum.success)
+            .toList();
+        if (success.isNotEmpty) {
+          message.sent = SendStatusType.success;
+          await MessageService().updateMessageAndRefresh(message);
+        }
+      }
       _showRawData(message, ess, event);
       return;
     }
@@ -619,6 +640,7 @@ class MessageWidget extends StatelessWidget {
         placeholderWidget: _getTextContainer(getLinkify(content, fontColor),
             isMeSend: message.isMeSend),
         showMultimedia: false,
+        errorBody: '',
         errorWidget: _getTextContainer(getLinkify(content, fontColor),
             isMeSend: message.isMeSend));
   }

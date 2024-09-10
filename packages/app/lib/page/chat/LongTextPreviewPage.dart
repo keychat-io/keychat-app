@@ -31,6 +31,7 @@ class LongTextPreviewPage extends StatelessWidget {
                   child: SelectionArea(
                       child: MarkdownBody(
                           data: text,
+                          softLineBreak: true,
                           styleSheet: MarkdownStyleSheet(
                               p: Theme.of(Get.context!)
                                   .textTheme

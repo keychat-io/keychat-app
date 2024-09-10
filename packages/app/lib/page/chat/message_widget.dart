@@ -317,8 +317,7 @@ class MessageWidget extends StatelessWidget {
   }
 
   Widget getLinkify(String text, Color fontColor) {
-    return SelectionArea(
-        child: Linkify(
+    return Linkify(
       onOpen: (link) {
         final Uri uri = Uri.parse(link.url);
         Utils.hideKeyboard(Get.context!);
@@ -331,7 +330,7 @@ class MessageWidget extends StatelessWidget {
           ?.copyWith(color: fontColor, fontSize: 16),
       text: text,
       linkStyle: const TextStyle(decoration: TextDecoration.none, fontSize: 15),
-    ));
+    );
   }
 
   Widget? getMessageStatus() {

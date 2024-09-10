@@ -1,6 +1,7 @@
 import 'package:app/controller/chat.controller.dart';
 import 'package:app/models/room.dart';
 import 'package:app/page/components.dart';
+import 'package:app/service/signal_chat.service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
@@ -82,17 +83,26 @@ class EncryptModeWidget extends StatelessWidget {
   }
 
   handleClick(EncryptMode? mode) async {
-    Room room = chatController.roomObs.value;
     if (mode == null) return;
+    Room room = chatController.roomObs.value;
     if (mode == EncryptMode.signal &&
         room.type == RoomType.common &&
         room.toMainPubkey == chatController.room.myIdPubkey) {
       EasyLoading.showError('Can\'t switch to signal mode with yourself');
       return;
     }
+    if (mode == EncryptMode.signal && room.curve25519PkHex == null) {
+      await SignalChatService().sendHelloMessage(
+          chatController.room, chatController.room.getIdentity());
+      Get.back();
+      Get.back();
+      Get.back(); // back to room page
+      EasyLoading.showSuccess('Send Request Successfully');
+      return;
+    }
     chatController.roomObs.value.encryptMode = mode;
     await RoomService().updateRoom(chatController.roomObs.value);
     chatController.roomObs.refresh();
-    EasyLoading.showInfo('Switch successfully');
+    EasyLoading.showSuccess('Switch successfully');
   }
 }

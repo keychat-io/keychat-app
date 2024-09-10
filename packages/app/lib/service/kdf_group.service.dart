@@ -403,9 +403,17 @@ class KdfGroupService extends BaseChatService {
     SendMessageResponse smr = await KdfGroupService.instance
         .sendMessage(room, notPrekey: false, sm.toString());
     _messageReceiveCheck(room, smr.events[0], const Duration(seconds: 1), 5)
-        .then((res) {
+        .then((res) async {
       if (!res) {
         MessageService().saveSystemMessage(room, 'Send hello message failed.');
+      } else {
+        var exist =
+            await MessageService().getMessageByEventId(smr.events[0].id);
+        if (exist == null) return;
+        if (exist.sent != SendStatusType.success) {
+          exist.sent = SendStatusType.success;
+          await MessageService().updateMessageAndRefresh(exist);
+        }
       }
     });
   }

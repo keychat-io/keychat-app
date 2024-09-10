@@ -1,12 +1,12 @@
-import 'package:app/nostr-core/relay_websocket.dart';
-import 'package:app/page/chat/SelectRoomRelay.dart';
-import 'package:app/service/chatx.service.dart';
+// import 'package:app/nostr-core/relay_websocket.dart';
+// import 'package:app/page/chat/SelectRoomRelay.dart';
+// import 'package:app/service/relay.service.dart';
+// import 'package:app/service/websocket.service.dart';
+// import 'package:flutter/services.dart';
 import 'package:app/service/contact.service.dart';
-import 'package:app/service/relay.service.dart';
-import 'package:app/service/websocket.service.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:app/service/chatx.service.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:settings_ui/settings_ui.dart';
@@ -93,105 +93,105 @@ class ChatSettingsMoreDart extends StatelessWidget {
                     },
                   )
               ]),
-              SettingsSection(title: const Text('Message Relay'), tiles: [
-                SettingsTile.navigation(
-                  title: const Text('SendTo'),
-                  leading: const Icon(CupertinoIcons.up_arrow),
-                  value: Obx(() => textSmallGray(Get.context!,
-                      chatController.roomContact.value.hisRelay ?? 'Not set')),
-                  onPressed: (context) {
-                    if (chatController.roomContact.value.hisRelay == null) {
-                      Get.dialog(CupertinoAlertDialog(
-                        title: const Text("Not set"),
-                        content: Text(
-                            '''${chatController.roomContact.value.displayName} does not set his ReceiveFrom, the message will be sent to all relays'''),
-                        actions: <Widget>[
-                          CupertinoDialogAction(
-                              child: const Text(
-                                'OK',
-                              ),
-                              onPressed: () async {
-                                Get.back();
-                              }),
-                        ],
-                      ));
-                      return;
-                    }
-                    WebsocketService ws = Get.find<WebsocketService>();
+//               SettingsSection(title: const Text('Message Relay'), tiles: [
+//                 SettingsTile.navigation(
+//                   title: const Text('SendTo'),
+//                   leading: const Icon(CupertinoIcons.up_arrow),
+//                   value: Obx(() => textSmallGray(Get.context!,
+//                       chatController.roomContact.value.hisRelay ?? 'Not set')),
+//                   onPressed: (context) {
+//                     if (chatController.roomContact.value.hisRelay == null) {
+//                       Get.dialog(CupertinoAlertDialog(
+//                         title: const Text("Not set"),
+//                         content: Text(
+//                             '''${chatController.roomContact.value.displayName} does not set his ReceiveFrom, the message will be sent to all relays'''),
+//                         actions: <Widget>[
+//                           CupertinoDialogAction(
+//                               child: const Text(
+//                                 'OK',
+//                               ),
+//                               onPressed: () async {
+//                                 Get.back();
+//                               }),
+//                         ],
+//                       ));
+//                       return;
+//                     }
+//                     WebsocketService ws = Get.find<WebsocketService>();
 
-                    RelayWebsocket? channel =
-                        ws.channels[chatController.roomContact.value.hisRelay];
+//                     RelayWebsocket? channel =
+//                         ws.channels[chatController.roomContact.value.hisRelay];
 
-                    Get.dialog(CupertinoAlertDialog(
-                      title: const Text("SendTo PostOffice"),
-                      content:
-                          Text('''${chatController.roomContact.value.hisRelay!}
-Your messages will send to this server.'''),
-                      actions: <Widget>[
-                        CupertinoDialogAction(
-                            child: const Text(
-                              'Copy',
-                            ),
-                            onPressed: () async {
-                              await Clipboard.setData(ClipboardData(
-                                  text: chatController
-                                          .roomContact.value.hisRelay ??
-                                      ''));
-                              EasyLoading.showToast('Copied');
-                              Get.back();
-                            }),
-                        channel == null
-                            ? CupertinoDialogAction(
-                                child: const Text(
-                                  'Add',
-                                ),
-                                onPressed: () async {
-                                  await RelayService().addAndConnect(
-                                      chatController
-                                          .roomContact.value.hisRelay!);
-                                  EasyLoading.showToast('Success');
-                                  Get.back();
-                                })
-                            : CupertinoDialogAction(
-                                isDestructiveAction: true,
-                                child: const Text(
-                                  'Delete',
-                                ),
-                                onPressed: () async {
-                                  await ContactService().updateHisRelay(
-                                      chatController.roomContact.value.id,
-                                      null);
-                                  chatController.roomContact.value.hisRelay =
-                                      null;
-                                  chatController.roomContact.refresh();
-                                  EasyLoading.showToast('Success');
-                                  Get.back();
-                                })
-                      ],
-                    ));
-                  },
-                ),
-                SettingsTile.navigation(
-                  title: const Text('ReceiveFrom'),
-                  description: const Text(
-                      'Using different PostOffice(relay server) for receiving and sending messages, tracking metadata will be more difficultly.'),
-                  leading: const Icon(CupertinoIcons.down_arrow),
-                  value: Obx(() => textSmallGray(Get.context!,
-                      chatController.roomContact.value.myRelay ?? 'Not set')),
-                  onPressed: (context) async {
-                    String? relay = await Get.bottomSheet(SelectRoomRelay(
-                        chatController.roomContact.value.myRelay));
-                    if (relay == null) return;
-                    chatController.roomContact.value.myRelay = relay;
-                    chatController.roomContact.refresh();
-                    await ContactService().updateMyRelay(
-                        chatController.roomContact.value.id, relay);
-                    EasyLoading.showToast('Success');
-                    SignalChatService().sendRelaySyncMessage(
-                        chatController.roomObs.value, relay);
-                  },
-                ),
-              ]),
+//                     Get.dialog(CupertinoAlertDialog(
+//                       title: const Text("SendTo PostOffice"),
+//                       content:
+//                           Text('''${chatController.roomContact.value.hisRelay!}
+// Your messages will send to this server.'''),
+//                       actions: <Widget>[
+//                         CupertinoDialogAction(
+//                             child: const Text(
+//                               'Copy',
+//                             ),
+//                             onPressed: () async {
+//                               await Clipboard.setData(ClipboardData(
+//                                   text: chatController
+//                                           .roomContact.value.hisRelay ??
+//                                       ''));
+//                               EasyLoading.showToast('Copied');
+//                               Get.back();
+//                             }),
+//                         channel == null
+//                             ? CupertinoDialogAction(
+//                                 child: const Text(
+//                                   'Add',
+//                                 ),
+//                                 onPressed: () async {
+//                                   await RelayService().addAndConnect(
+//                                       chatController
+//                                           .roomContact.value.hisRelay!);
+//                                   EasyLoading.showToast('Success');
+//                                   Get.back();
+//                                 })
+//                             : CupertinoDialogAction(
+//                                 isDestructiveAction: true,
+//                                 child: const Text(
+//                                   'Delete',
+//                                 ),
+//                                 onPressed: () async {
+//                                   await ContactService().updateHisRelay(
+//                                       chatController.roomContact.value.id,
+//                                       null);
+//                                   chatController.roomContact.value.hisRelay =
+//                                       null;
+//                                   chatController.roomContact.refresh();
+//                                   EasyLoading.showToast('Success');
+//                                   Get.back();
+//                                 })
+//                       ],
+//                     ));
+//                   },
+//                 ),
+//                 SettingsTile.navigation(
+//                   title: const Text('ReceiveFrom'),
+//                   description: const Text(
+//                       'Using different PostOffice(relay server) for receiving and sending messages, tracking metadata will be more difficultly.'),
+//                   leading: const Icon(CupertinoIcons.down_arrow),
+//                   value: Obx(() => textSmallGray(Get.context!,
+//                       chatController.roomContact.value.myRelay ?? 'Not set')),
+//                   onPressed: (context) async {
+//                     String? relay = await Get.bottomSheet(SelectRoomRelay(
+//                         chatController.roomContact.value.myRelay));
+//                     if (relay == null) return;
+//                     chatController.roomContact.value.myRelay = relay;
+//                     chatController.roomContact.refresh();
+//                     await ContactService().updateMyRelay(
+//                         chatController.roomContact.value.id, relay);
+//                     EasyLoading.showToast('Success');
+//                     SignalChatService().sendRelaySyncMessage(
+//                         chatController.roomObs.value, relay);
+//                   },
+//                 ),
+//               ]),
               if (receiveKeys.isNotEmpty)
                 SettingsSection(
                     title: const Text('My Receive Addresses'),

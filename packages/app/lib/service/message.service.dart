@@ -249,7 +249,8 @@ class MessageService {
     int lastMessageAt = await Storage.getIntOrZero(key);
 
     if (lastMessageAt > 0) {
-      return DateTime.fromMillisecondsSinceEpoch(lastMessageAt * 1000);
+      return DateTime.fromMillisecondsSinceEpoch(lastMessageAt * 1000)
+          .subtract(const Duration(minutes: 3));
     }
     DateTime? time = await MessageService().getLastMessageTime();
     if (time != null) return time.subtract(const Duration(minutes: 30));

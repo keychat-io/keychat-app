@@ -416,7 +416,7 @@ class RoomService extends BaseChatService {
           event.pubkey, identity, RoomStatus.init);
     }
 
-    await km.service.processMessage(
+    await km.service.proccessMessage(
         room: room,
         event: event,
         km: km,
@@ -427,11 +427,12 @@ class RoomService extends BaseChatService {
   }
 
   @override
-  Future processMessage(
+  Future proccessMessage(
       {required Room room,
       required NostrEventModel event,
       NostrEventModel? sourceEvent,
       String? msgKeyHash,
+      String? fromIdPubkey,
       Function(String error)? failedCallback,
       required KeychatMessage km,
       required Relay relay}) async {
@@ -463,7 +464,7 @@ class RoomService extends BaseChatService {
       String? realMessage,
       String? decodedContent,
       bool? isRead,
-      String? idPubkey,
+      String? fromIdPubkey,
       RequestConfrimEnum? requestConfrim,
       MessageMediaType? mediaType,
       String? msgKeyHash}) async {
@@ -477,14 +478,14 @@ class RoomService extends BaseChatService {
         } catch (e) {}
       }
     }
-    idPubkey ??=
+    fromIdPubkey ??=
         room.type == RoomType.common ? room.toMainPubkey : event.pubkey;
     await MessageService().saveMessageToDB(
         events: [sourceEvent ?? event],
         room: room,
         from: sourceEvent?.pubkey ?? event.pubkey,
         to: sourceEvent?.tags[0][1] ?? event.tags[0][1],
-        idPubkey: idPubkey,
+        idPubkey: fromIdPubkey,
         isSystem: isSystem,
         realMessage: realMessage,
         subEvent: sourceEvent != null ? event.toJson().toString() : null,
@@ -492,7 +493,7 @@ class RoomService extends BaseChatService {
         encryptType: RoomUtil.getEncryptMode(event, sourceEvent),
         reply: reply,
         sent: SendStatusType.success,
-        isMeSend: idPubkey == room.getIdentity().secp256k1PKHex,
+        isMeSend: fromIdPubkey == room.getIdentity().secp256k1PKHex,
         isRead: isRead,
         mediaType: mediaType,
         requestConfrim: requestConfrim,

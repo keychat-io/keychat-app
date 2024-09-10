@@ -317,7 +317,8 @@ class MessageWidget extends StatelessWidget {
   }
 
   Widget getLinkify(String text, Color fontColor) {
-    return Linkify(
+    return SelectionArea(
+        child: Linkify(
       onOpen: (link) {
         final Uri uri = Uri.parse(link.url);
         Utils.hideKeyboard(Get.context!);
@@ -330,7 +331,7 @@ class MessageWidget extends StatelessWidget {
           ?.copyWith(color: fontColor, fontSize: 16),
       text: text,
       linkStyle: const TextStyle(decoration: TextDecoration.none, fontSize: 15),
-    );
+    ));
   }
 
   Widget? getMessageStatus() {
@@ -511,9 +512,7 @@ class MessageWidget extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(
-              width: 4,
-            ),
+            const SizedBox(width: 4),
             myAavtar
           ]),
     );
@@ -628,12 +627,17 @@ class MessageWidget extends StatelessWidget {
   Widget _getReplyWidget() {
     Widget? subTitleChild;
     if (message.reply!.id == null) {
-      subTitleChild = Text(message.reply!.content,
-          style: Theme.of(Get.context!)
-              .textTheme
-              .bodyMedium
-              ?.copyWith(color: fontColor.withOpacity(0.7), height: 1),
-          maxLines: 5);
+      subTitleChild = GestureDetector(
+          onTap: () {
+            Get.to(() => LongTextPreviewPage(message.reply!.content),
+                fullscreenDialog: true, transition: Transition.fadeIn);
+          },
+          child: Text(message.reply!.content,
+              style: Theme.of(Get.context!)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: fontColor.withOpacity(0.7), height: 1),
+              maxLines: 5));
     } else {
       Message? msg = MessageService().getMessageByMsgIdSync(message.reply!.id!);
       if (msg != null) {
@@ -929,13 +933,7 @@ class MessageWidget extends StatelessWidget {
   Widget _getActionWidget(Widget statusWidget) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _getTextItemView(),
-        const SizedBox(
-          height: 10,
-        ),
-        statusWidget
-      ],
+      children: [_getTextItemView(), const SizedBox(height: 10), statusWidget],
     );
   }
 

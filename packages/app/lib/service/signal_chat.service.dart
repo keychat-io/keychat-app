@@ -200,7 +200,7 @@ class SignalChatService extends BaseChatService {
     } catch (e) {}
 
     if (km != null) {
-      await km.service.processMessage(
+      await km.service.proccessMessage(
           room: room,
           event: event,
           km: km,
@@ -226,12 +226,13 @@ class SignalChatService extends BaseChatService {
   }
 
   @override
-  processMessage(
+  proccessMessage(
       {required Room room,
       required NostrEventModel event,
       required KeychatMessage km,
       NostrEventModel? sourceEvent,
       Function(String error)? failedCallback,
+      String? fromIdPubkey,
       String? msgKeyHash,
       required Relay relay}) async {
     switch (km.type) {
@@ -513,7 +514,7 @@ Let's talk on this server.''';
       km = KeychatMessage.fromJson(jsonDecode(prekeyMessageModel.message));
     } catch (e) {}
     if (km != null) {
-      await km.service.processMessage(
+      await km.service.proccessMessage(
           room: room,
           event: event,
           km: km,

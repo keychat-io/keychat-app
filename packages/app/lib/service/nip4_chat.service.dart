@@ -30,13 +30,14 @@ class Nip4ChatService extends BaseChatService {
   Nip4ChatService._internal();
 
   @override
-  processMessage(
+  proccessMessage(
       {required Room room,
       required NostrEventModel event,
       required KeychatMessage km,
       NostrEventModel? sourceEvent,
       Function(String error)? failedCallback,
       String? msgKeyHash,
+      String? fromIdPubkey,
       required Relay relay}) async {
     switch (km.type) {
       case KeyChatEventKinds.dm:

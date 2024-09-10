@@ -28,27 +28,22 @@ class LongTextPreviewPage extends StatelessWidget {
               child: SingleChildScrollView(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 50),
-                  child: MarkdownBody(
-                      data: text,
-                      selectable: true,
-                      styleSheet: MarkdownStyleSheet(
-                        p: Theme.of(Get.context!)
-                            .textTheme
-                            .bodyLarge
-                            ?.copyWith(fontSize: 18),
-                      ),
-                      onTapLink: (
-                        url,
-                        url2,
-                        url3,
-                      ) {
-                        if (!url.startsWith('http') && url2 != null) {
-                          url = url2;
-                        }
-                        final Uri uri = Uri.parse(url);
-                        Utils.hideKeyboard(Get.context!);
-                        launchUrl(uri);
-                      })))
+                  child: SelectionArea(
+                      child: MarkdownBody(
+                          data: text,
+                          styleSheet: MarkdownStyleSheet(
+                              p: Theme.of(Get.context!)
+                                  .textTheme
+                                  .bodyLarge
+                                  ?.copyWith(fontSize: 18)),
+                          onTapLink: (url, url2, url3) {
+                            if (!url.startsWith('http') && url2 != null) {
+                              url = url2;
+                            }
+                            final Uri uri = Uri.parse(url);
+                            Utils.hideKeyboard(Get.context!);
+                            launchUrl(uri);
+                          }))))
         ]));
   }
 }

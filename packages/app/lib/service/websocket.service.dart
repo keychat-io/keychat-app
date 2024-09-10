@@ -311,7 +311,7 @@ class WebsocketService extends GetxService {
           logger.i(
               'to:[${rw.relay.url}]: ${ess.rawEvent} }'); // ${eventRaw.length > 200 ? eventRaw.substring(0, 400) : eventRaw}');
           try {
-            rw.sendRawREQ(ess.rawEvent, retry: true);
+            rw.sendRawREQ(ess.rawEvent!, retry: true);
             success++;
             ess.sendStatus = EventSendEnum.success;
           } catch (e) {
@@ -369,7 +369,7 @@ class WebsocketService extends GetxService {
       loggerNoLine.e('${eventSendStatus.relay} getStamp failed: $msg');
       throw Exception(msg);
     }
-    String message = eventSendStatus.rawEvent;
+    String message = eventSendStatus.rawEvent!;
     message = message.substring(0, message.length - 1);
     message += ',"${cashuA.token}"]';
     eventSendStatus.rawEvent = message;

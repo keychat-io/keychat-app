@@ -496,7 +496,7 @@ Let's start an encrypted chat.''';
 3. Forward Secrecy ✅
 4. Backward Secrecy 🟢60% 
 5. Metadata Privacy 🟢80%
-6. Recommend Members: < 60
+6. Recommended Capacity: <60 Members
 ''';
       case GroupType.shareKey:
         return '''1. Members < 30
@@ -507,7 +507,7 @@ Let's start an encrypted chat.''';
 3. Forward Secrecy ✅ 
 4. Backward Secrecy ✅ 
 5. Metadata Privacy ✅
-6. Recommend Members: < 6
+6. Recommended Capacity: <6 Members
 7. Sending a message is essentially sending multiple one-on-one chats. More stamps are required.
 ''';
       default:

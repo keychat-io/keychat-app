@@ -11,6 +11,7 @@ import 'package:app/utils.dart';
 import 'package:crypto/crypto.dart' show sha256;
 import 'package:dio/dio.dart' show Dio, DioException;
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class NotifyService {
@@ -177,6 +178,15 @@ class NotifyService {
       provisional: false,
       sound: true,
     );
+
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      debugPrint('Message data: ${message.data}');
+
+      if (message.notification != null) {
+        debugPrint(
+            'Message also contained a notification: ${message.notification}');
+      }
+    });
 
     logger.i('id: ${settings.authorizationStatus.name}');
     HomeController hc = Get.find<HomeController>();

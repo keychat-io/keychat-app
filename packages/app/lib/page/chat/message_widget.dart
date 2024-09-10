@@ -511,9 +511,7 @@ class MessageWidget extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(
-              width: 4,
-            ),
+            const SizedBox(width: 4),
             myAavtar
           ]),
     );
@@ -628,12 +626,17 @@ class MessageWidget extends StatelessWidget {
   Widget _getReplyWidget() {
     Widget? subTitleChild;
     if (message.reply!.id == null) {
-      subTitleChild = Text(message.reply!.content,
-          style: Theme.of(Get.context!)
-              .textTheme
-              .bodyMedium
-              ?.copyWith(color: fontColor.withOpacity(0.7), height: 1),
-          maxLines: 5);
+      subTitleChild = GestureDetector(
+          onDoubleTap: () {
+            Get.to(() => LongTextPreviewPage(message.reply!.content),
+                fullscreenDialog: true, transition: Transition.fadeIn);
+          },
+          child: Text(message.reply!.content,
+              style: Theme.of(Get.context!)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: fontColor.withOpacity(0.7), height: 1),
+              maxLines: 5));
     } else {
       Message? msg = MessageService().getMessageByMsgIdSync(message.reply!.id!);
       if (msg != null) {
@@ -929,13 +932,7 @@ class MessageWidget extends StatelessWidget {
   Widget _getActionWidget(Widget statusWidget) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _getTextItemView(),
-        const SizedBox(
-          height: 10,
-        ),
-        statusWidget
-      ],
+      children: [_getTextItemView(), const SizedBox(height: 10), statusWidget],
     );
   }
 

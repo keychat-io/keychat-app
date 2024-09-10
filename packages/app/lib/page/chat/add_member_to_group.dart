@@ -94,18 +94,16 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
         await GroupService().sendInviteToAdmin(widget.room, selectAccounts);
         EasyLoading.dismiss();
         Get.dialog(CupertinoAlertDialog(
-          title: const Text('Success'),
-          content: const Text('The invitation has been sent to the admin'),
-          actions: <Widget>[
-            CupertinoDialogAction(
-              child: const Text('OK'),
-              onPressed: () {
-                Get.back();
-                Get.back();
-              },
-            ),
-          ],
-        ));
+            title: const Text('Success'),
+            content: const Text('The invitation has been sent to the admin'),
+            actions: <Widget>[
+              CupertinoDialogAction(
+                  child: const Text('OK'),
+                  onPressed: () {
+                    Get.back();
+                    Get.back();
+                  })
+            ]));
         return;
       }
     }
@@ -121,28 +119,24 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
       }
       EasyLoading.showSuccess('Success');
       Get.back();
-    } catch (e) {
+    } catch (e, s) {
       EasyLoading.showError(e.toString());
-      logger.e(e.toString(), error: e);
+      logger.e(e.toString(), error: e, stackTrace: s);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        title: const Text("Add Member"),
-        actions: [
-          FilledButton(
+      appBar:
+          AppBar(centerTitle: true, title: const Text("Add Member"), actions: [
+        FilledButton(
             onPressed: () {
               EasyThrottle.throttle('_completeFromContacts',
                   const Duration(seconds: 2), _completeFromContacts);
             },
-            child: const Text("Done"),
-          ),
-        ],
-      ),
+            child: const Text("Done"))
+      ]),
       body: SafeArea(
           child: ListView.builder(
               itemCount: _contactList.length,
@@ -151,13 +145,9 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
                 return ListTile(
                     leading: getRandomAvatar(_contactList[index].pubkey,
                         height: 40, width: 40),
-                    title: Text(
-                      _contactList[index].displayName,
-                    ),
-                    subtitle: Text(
-                      _contactList[index].npubkey,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    title: Text(_contactList[index].displayName),
+                    subtitle: Text(_contactList[index].npubkey,
+                        overflow: TextOverflow.ellipsis),
                     trailing: widget.adminPubkey == _contactList[index].pubkey
                         ? const Icon(Icons.check_box,
                             color: Colors.grey, size: 30)

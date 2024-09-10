@@ -64,37 +64,32 @@ class _AddGroupPageState extends State<AddGroupPage>
                     Container(
                       padding: const EdgeInsets.symmetric(
                           vertical: 8, horizontal: 16),
-                      child: Text(
-                        "Select Group Mode",
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
+                      child: Text("Select Group Mode",
+                          style: Theme.of(context).textTheme.titleMedium),
                     ),
                     ListTile(
-                      title: Text(
-                        "Medium Group",
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                      subtitle: Text(
-                        RoomUtil.getGroupModeDescription(GroupType.kdf),
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      leading: Radio<GroupType>(
-                        value: GroupType.kdf,
-                        groupValue: groupType,
-                        onChanged: (value) {
-                          FocusScope.of(context).unfocus();
-                          setState(() {
-                            groupType = value as GroupType;
-                            selectedGroupType = GroupType.kdf;
-                          });
-                        },
-                      ),
-                      selected: selectedGroupType == GroupType.kdf,
-                      selectedTileColor: Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withOpacity(0.1),
-                    ),
+                        title: Text("Medium Group",
+                            style: Theme.of(context).textTheme.titleSmall),
+                        subtitle: Text(
+                          RoomUtil.getGroupModeDescription(GroupType.kdf),
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        leading: Radio<GroupType>(
+                          value: GroupType.kdf,
+                          groupValue: groupType,
+                          onChanged: (value) {
+                            FocusScope.of(context).unfocus();
+                            setState(() {
+                              groupType = value as GroupType;
+                              selectedGroupType = GroupType.kdf;
+                            });
+                          },
+                        ),
+                        selected: selectedGroupType == GroupType.kdf,
+                        selectedTileColor: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withOpacity(0.1)),
                     ListTile(
                       selectedTileColor: Theme.of(context)
                           .colorScheme
@@ -103,9 +98,8 @@ class _AddGroupPageState extends State<AddGroupPage>
                       title: Text('Small Group',
                           style: Theme.of(context).textTheme.titleSmall),
                       subtitle: Text(
-                        RoomUtil.getGroupModeDescription(GroupType.sendAll),
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
+                          RoomUtil.getGroupModeDescription(GroupType.sendAll),
+                          style: Theme.of(context).textTheme.bodySmall),
                       selected: selectedGroupType == GroupType.sendAll,
                       leading: Radio<GroupType>(
                         value: GroupType.sendAll,

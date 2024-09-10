@@ -31,17 +31,13 @@ class LongTextPreviewPage extends StatelessWidget {
                   child: MarkdownBody(
                       data: text,
                       selectable: true,
+                      softLineBreak: true,
                       styleSheet: MarkdownStyleSheet(
-                        p: Theme.of(Get.context!)
-                            .textTheme
-                            .bodyLarge
-                            ?.copyWith(fontSize: 18),
-                      ),
-                      onTapLink: (
-                        url,
-                        url2,
-                        url3,
-                      ) {
+                          p: Theme.of(Get.context!)
+                              .textTheme
+                              .bodyLarge
+                              ?.copyWith(fontSize: 18)),
+                      onTapLink: (url, url2, url3) {
                         if (!url.startsWith('http') && url2 != null) {
                           url = url2;
                         }

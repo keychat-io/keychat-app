@@ -92,7 +92,7 @@ class MessageService {
       for (var i = 0; i < cc.messages.length; i++) {
         if (cc.messages[i].id == message.id) {
           cc.messages[i] = message;
-          cc.messages.refresh();
+          // cc.messages.refresh();
           break;
         }
       }
@@ -249,7 +249,8 @@ class MessageService {
     int lastMessageAt = await Storage.getIntOrZero(key);
 
     if (lastMessageAt > 0) {
-      return DateTime.fromMillisecondsSinceEpoch(lastMessageAt * 1000);
+      return DateTime.fromMillisecondsSinceEpoch(lastMessageAt * 1000)
+          .subtract(const Duration(minutes: 3));
     }
     DateTime? time = await MessageService().getLastMessageTime();
     if (time != null) return time.subtract(const Duration(minutes: 30));
@@ -449,14 +450,14 @@ class MessageService {
   Future deleteMessageById(int id) async {
     Isar database = DBProvider.database;
     await database.writeTxn(() async {
-      return database.messages.filter().idEqualTo(id).deleteAll();
+      await database.messages.filter().idEqualTo(id).deleteAll();
     });
   }
 
   Future deleteMessageByRoomId(int roomId) async {
     Isar database = DBProvider.database;
     await database.writeTxn(() async {
-      return database.messages.filter().roomIdEqualTo(roomId).deleteAll();
+      await database.messages.filter().roomIdEqualTo(roomId).deleteAll();
     });
   }
 
@@ -488,7 +489,7 @@ class MessageService {
 
   Future updateMessage(Message message) async {
     await DBProvider.database.writeTxn(() async {
-      return await DBProvider.database.messages.put(message);
+      await DBProvider.database.messages.put(message);
     });
   }
 

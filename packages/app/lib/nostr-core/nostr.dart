@@ -463,8 +463,8 @@ class NostrAPI {
       Function(String error) failedCallback) async {
     String? content = await decryptNip4Content(event);
     if (content == null) {
-      logger.e('ecrypt error: ${event.toString()}');
-      failedCallback('Nip04 ecrypt error');
+      logger.e('decrypt error: ${event.toString()}');
+      failedCallback('Nip04 decrypt error');
       return;
     }
     await KdfGroupService.instance.decryptMessage(kdfRoom, event, relay,

@@ -23,6 +23,7 @@ import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:keychat_rust_ffi_plugin/api_signal.dart';
+import 'package:keychat_rust_ffi_plugin/index.dart';
 
 import '../constants.dart';
 import '../nostr-core/nostr.dart';
@@ -167,7 +168,7 @@ class SignalChatService extends BaseChatService {
         } else {
           loggerNoLine.e(msg);
         }
-        decodeString = "Decryption failed: $msg, \nSource: ${event.content}";
+        decodeString = "Decrypt failed: $msg, \nSource: ${event.content}";
       }
 
       // get encrypt msg key's hash
@@ -187,9 +188,11 @@ class SignalChatService extends BaseChatService {
           room.identityId, room.toMainPubkey, event.tags[0][1]);
     } catch (e, s) {
       logger.e(e.toString(), error: e, stackTrace: s);
-      await setRoomSignalDecodeStatus(room, true);
-      failedCallback('Signal Decryption failed ${e.toString()}');
-      decodeString = "Decryption failed: ${e.toString()}";
+      if (e is AnyhowException) {
+        await setRoomSignalDecodeStatus(room, true);
+      }
+      failedCallback('Signal decrypt failed ${e.toString()}');
+      decodeString = "decrypt failed: ${e.toString()}";
     }
 
     Map<String, dynamic> decodedContent;
@@ -200,7 +203,7 @@ class SignalChatService extends BaseChatService {
     } catch (e) {}
 
     if (km != null) {
-      await km.service.processMessage(
+      await km.service.proccessMessage(
           room: room,
           event: event,
           km: km,
@@ -226,12 +229,13 @@ class SignalChatService extends BaseChatService {
   }
 
   @override
-  processMessage(
+  proccessMessage(
       {required Room room,
       required NostrEventModel event,
       required KeychatMessage km,
       NostrEventModel? sourceEvent,
       Function(String error)? failedCallback,
+      String? fromIdPubkey,
       String? msgKeyHash,
       required Relay relay}) async {
     switch (km.type) {
@@ -309,7 +313,7 @@ class SignalChatService extends BaseChatService {
 
     if (room.status == RoomStatus.requesting) {
       room.status = RoomStatus.enabled;
-    } else if (room.status != RoomStatus.enabled) {
+    } else {
       room.status = oneTimeKey != null
           ? RoomStatus.approvingNoResponse
           : RoomStatus.approving;
@@ -453,9 +457,9 @@ Let's talk on this server.''';
     var prekey = await rust_signal.parseIdentityFromPrekeySignalMessage(
         ciphertext: ciphertext);
     String signalIdPubkey = prekey.$1;
-    SignalId? singalId =
+    SignalId? signalId =
         await SignalIdService.instance.getSignalIdByKeyId(prekey.$2);
-    if (singalId == null) {
+    if (signalId == null) {
       String msg = 'SignalId not found, identityId: ${mykey.identityId}.';
       if (mykey.roomId != null) {
         Room? room = await RoomService().getRoomById(mykey.roomId!);
@@ -465,11 +469,12 @@ Let's talk on this server.''';
       }
       throw Exception(msg);
     }
-    KeychatIdentityKeyPair keyPair =
-        Get.find<ChatxService>().getKeyPairBySignalId(singalId);
+    KeychatIdentityKeyPair keyPair = await Get.find<ChatxService>()
+        .setupSignalStoreBySignalId(signalId.pubkey, signalId);
     Identity identity =
-        Get.find<HomeController>().identities[singalId.identityId]!;
+        Get.find<HomeController>().identities[signalId.identityId]!;
 
+    await rust_signal.initKeypair(keyPair: keyPair, regId: 0);
     var (plaintext, msgKeyHash, _) = await rust_signal.decryptSignal(
         keyPair: keyPair,
         ciphertext: ciphertext,
@@ -495,8 +500,9 @@ Let's talk on this server.''';
         status: RoomStatus.enabled,
         encryptMode: EncryptMode.signal,
         curve25519PkHex: signalIdPubkey,
-        signalId: singalId);
-    if (room.status == RoomStatus.requesting) {
+        signalId: signalId);
+    if (room.status == RoomStatus.requesting ||
+        room.encryptMode != EncryptMode.signal) {
       room.status = RoomStatus.enabled;
       room.encryptMode = EncryptMode.signal;
       room.curve25519PkHex = signalIdPubkey;
@@ -513,7 +519,7 @@ Let's talk on this server.''';
       km = KeychatMessage.fromJson(jsonDecode(prekeyMessageModel.message));
     } catch (e) {}
     if (km != null) {
-      await km.service.processMessage(
+      await km.service.proccessMessage(
           room: room,
           event: event,
           km: km,

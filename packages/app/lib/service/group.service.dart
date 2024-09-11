@@ -497,12 +497,13 @@ class GroupService extends BaseChatService {
   }
 
   @override
-  processMessage(
+  proccessMessage(
       {required Room room,
       required KeychatMessage km,
       required NostrEventModel event,
       NostrEventModel? sourceEvent,
       Function(String error)? failedCallback,
+      String? fromIdPubkey,
       String? msgKeyHash,
       required Relay relay}) async {
     switch (km.type) {
@@ -949,7 +950,7 @@ class GroupService extends BaseChatService {
           var toSaveEvent = smr.events[0];
           toSaveEvent.toIdPubkey = rm.idPubkey;
           await RoomService().receiveDM(groupRoom, toSaveEvent,
-              idPubkey: identity.secp256k1PKHex,
+              fromIdPubkey: identity.secp256k1PKHex,
               decodedContent: km.toString(),
               msgKeyHash: smr.msgKeyHash,
               realMessage:

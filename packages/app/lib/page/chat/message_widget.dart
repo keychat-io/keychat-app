@@ -338,12 +338,22 @@ class MessageWidget extends StatelessWidget {
 
     if (message.sent == SendStatusType.success ||
         message.sent == SendStatusType.partialSuccess) return null;
-    if (message.sent == SendStatusType.sending &&
-        message.createdAt.isAfter(DateTime.now().subtract(const Duration(
-            seconds: KeychatGlobal.messageFailedAfterSeconds)))) {
-      return null;
+    if (message.sent == SendStatusType.sending) {
+      if (message.createdAt.isAfter(DateTime.now().subtract(const Duration(
+          seconds: KeychatGlobal.messageFailedAfterSeconds + 1)))) {
+        return null;
+      } else {
+        NostrEventStatus? exist = DBProvider.database.nostrEventStatus
+            .filter()
+            .eventIdEqualTo(message.msgid)
+            .isReceiveEqualTo(false)
+            .sendStatusEqualTo(EventSendEnum.success)
+            .findFirstSync();
+        if (exist != null) return null;
+      }
     }
 
+    // message send failed
     return IconButton(
         splashColor: Colors.transparent,
         onPressed: () {
@@ -455,6 +465,17 @@ class MessageWidget extends StatelessWidget {
     if (message.eventIds.length == 1 && message.rawEvents.length == 1) {
       var (ess, event) =
           await _getRawMessageData(message.eventIds[0], message.rawEvents[0]);
+
+      // fix message sent status
+      if (message.sent != SendStatusType.success) {
+        List success = ess
+            .where((element) => element.sendStatus == EventSendEnum.success)
+            .toList();
+        if (success.isNotEmpty) {
+          message.sent = SendStatusType.success;
+          await MessageService().updateMessageAndRefresh(message);
+        }
+      }
       _showRawData(message, ess, event);
       return;
     }
@@ -511,9 +532,7 @@ class MessageWidget extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(
-              width: 4,
-            ),
+            const SizedBox(width: 4),
             myAavtar
           ]),
     );
@@ -621,6 +640,7 @@ class MessageWidget extends StatelessWidget {
         placeholderWidget: _getTextContainer(getLinkify(content, fontColor),
             isMeSend: message.isMeSend),
         showMultimedia: false,
+        errorBody: '',
         errorWidget: _getTextContainer(getLinkify(content, fontColor),
             isMeSend: message.isMeSend));
   }
@@ -628,12 +648,17 @@ class MessageWidget extends StatelessWidget {
   Widget _getReplyWidget() {
     Widget? subTitleChild;
     if (message.reply!.id == null) {
-      subTitleChild = Text(message.reply!.content,
-          style: Theme.of(Get.context!)
-              .textTheme
-              .bodyMedium
-              ?.copyWith(color: fontColor.withOpacity(0.7), height: 1),
-          maxLines: 5);
+      subTitleChild = GestureDetector(
+          onDoubleTap: () {
+            Get.to(() => LongTextPreviewPage(message.reply!.content),
+                fullscreenDialog: true, transition: Transition.fadeIn);
+          },
+          child: Text(message.reply!.content,
+              style: Theme.of(Get.context!)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: fontColor.withOpacity(0.7), height: 1),
+              maxLines: 5));
     } else {
       Message? msg = MessageService().getMessageByMsgIdSync(message.reply!.id!);
       if (msg != null) {
@@ -929,13 +954,7 @@ class MessageWidget extends StatelessWidget {
   Widget _getActionWidget(Widget statusWidget) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _getTextItemView(),
-        const SizedBox(
-          height: 10,
-        ),
-        statusWidget
-      ],
+      children: [_getTextItemView(), const SizedBox(height: 10), statusWidget],
     );
   }
 

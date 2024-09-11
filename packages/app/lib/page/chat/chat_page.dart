@@ -73,8 +73,15 @@ class _ChatPage2State extends State<ChatPage> {
         backgroundColor:
             Get.isDarkMode ? const Color(0xFF000000) : const Color(0xffededed),
         centerTitle: true,
-        title: Obx(
-          () => _getRoomTite(),
+        title: Obx(() => _getRoomTite()),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(0),
+          child: Obx(() =>
+              controller.roomObs.value.status == RoomStatus.enabled &&
+                      controller.roomObs.value.type == RoomType.common &&
+                      controller.roomObs.value.encryptMode == EncryptMode.nip04
+                  ? const Text('Weak Encrypt Mode')
+                  : const SizedBox()),
         ),
         actions: [
           Obx(() => controller.roomObs.value.status != RoomStatus.approving
@@ -126,10 +133,8 @@ class _ChatPage2State extends State<ChatPage> {
                 ? MyErrorText(
                     errorText: 'Messages decrypted failed',
                     action: TextButton(
-                        child: const Text(
-                          'Fix it',
-                          style: TextStyle(color: Colors.white),
-                        ),
+                        child: const Text('Fix it',
+                            style: TextStyle(color: Colors.white)),
                         onPressed: () async {
                           await SignalChatService().sendHelloMessage(
                               controller.room, controller.room.getIdentity());
@@ -432,7 +437,7 @@ class _ChatPage2State extends State<ChatPage> {
                             }
 
                             final random = Random();
-                            final seconds = random.nextInt(5) + 1;
+                            final seconds = random.nextInt(10) + 1;
 
                             Timer(Duration(seconds: seconds), () {
                               count++;

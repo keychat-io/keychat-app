@@ -245,8 +245,8 @@ class KdfGroupService extends BaseChatService {
     // setup shared signal id
     ChatxService chatxService = Get.find<ChatxService>();
     SignalId signalId = room.getGroupSharedSignalId();
-    var keyPair = (await room.getSharedKeyPair())!;
-    await chatxService.setupSignalStoreBySignalId(signalId.pubkey, signalId);
+    KeychatIdentityKeyPair keyPair = await chatxService
+        .setupSignalStoreBySignalId(signalId.pubkey, signalId);
     KeychatProtocolAddress? kpa =
         await _checkIsPrekeyByRoom(fromMember.curve25519PkHex, room, keyPair);
 

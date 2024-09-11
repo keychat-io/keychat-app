@@ -457,9 +457,9 @@ Let's talk on this server.''';
     var prekey = await rust_signal.parseIdentityFromPrekeySignalMessage(
         ciphertext: ciphertext);
     String signalIdPubkey = prekey.$1;
-    SignalId? singalId =
+    SignalId? signalId =
         await SignalIdService.instance.getSignalIdByKeyId(prekey.$2);
-    if (singalId == null) {
+    if (signalId == null) {
       String msg = 'SignalId not found, identityId: ${mykey.identityId}.';
       if (mykey.roomId != null) {
         Room? room = await RoomService().getRoomById(mykey.roomId!);
@@ -469,10 +469,10 @@ Let's talk on this server.''';
       }
       throw Exception(msg);
     }
-    KeychatIdentityKeyPair keyPair =
-        Get.find<ChatxService>().getKeyPairBySignalId(singalId);
+    KeychatIdentityKeyPair keyPair = await Get.find<ChatxService>()
+        .setupSignalStoreBySignalId(signalId.pubkey, signalId);
     Identity identity =
-        Get.find<HomeController>().identities[singalId.identityId]!;
+        Get.find<HomeController>().identities[signalId.identityId]!;
 
     var (plaintext, msgKeyHash, _) = await rust_signal.decryptSignal(
         keyPair: keyPair,
@@ -499,7 +499,7 @@ Let's talk on this server.''';
         status: RoomStatus.enabled,
         encryptMode: EncryptMode.signal,
         curve25519PkHex: signalIdPubkey,
-        signalId: singalId);
+        signalId: signalId);
     if (room.status == RoomStatus.requesting ||
         room.encryptMode != EncryptMode.signal) {
       room.status = RoomStatus.enabled;

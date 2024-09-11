@@ -23,6 +23,7 @@ import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:keychat_rust_ffi_plugin/api_signal.dart';
+import 'package:keychat_rust_ffi_plugin/index.dart';
 
 import '../constants.dart';
 import '../nostr-core/nostr.dart';
@@ -167,7 +168,7 @@ class SignalChatService extends BaseChatService {
         } else {
           loggerNoLine.e(msg);
         }
-        decodeString = "Decryption failed: $msg, \nSource: ${event.content}";
+        decodeString = "Decrypt failed: $msg, \nSource: ${event.content}";
       }
 
       // get encrypt msg key's hash
@@ -187,9 +188,11 @@ class SignalChatService extends BaseChatService {
           room.identityId, room.toMainPubkey, event.tags[0][1]);
     } catch (e, s) {
       logger.e(e.toString(), error: e, stackTrace: s);
-      await setRoomSignalDecodeStatus(room, true);
-      failedCallback('Signal Decryption failed ${e.toString()}');
-      decodeString = "Decryption failed: ${e.toString()}";
+      if (e is AnyhowException) {
+        await setRoomSignalDecodeStatus(room, true);
+      }
+      failedCallback('Signal decrypt failed ${e.toString()}');
+      decodeString = "decrypt failed: ${e.toString()}";
     }
 
     Map<String, dynamic> decodedContent;

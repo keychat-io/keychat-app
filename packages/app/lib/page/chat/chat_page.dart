@@ -133,10 +133,8 @@ class _ChatPage2State extends State<ChatPage> {
                 ? MyErrorText(
                     errorText: 'Messages decrypted failed',
                     action: TextButton(
-                        child: const Text(
-                          'Fix it',
-                          style: TextStyle(color: Colors.white),
-                        ),
+                        child: const Text('Fix it',
+                            style: TextStyle(color: Colors.white)),
                         onPressed: () async {
                           await SignalChatService().sendHelloMessage(
                               controller.room, controller.room.getIdentity());

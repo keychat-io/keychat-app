@@ -255,7 +255,10 @@ class ChatxService extends GetxService {
       [SignalId? signalId]) async {
     if (initedSignalStorePubkeySet.contains(pubkey)) return keypairs[pubkey]!;
     var keyPair = await getKeyPairBySignalIdPubkey(pubkey, signalId);
-    await rust_signal.initKeypair(keyPair: keyPair, regId: 0);
+    await Utils.asyncWithTimeout(
+        () => rust_signal.initKeypair(keyPair: keyPair, regId: 0),
+        const Duration(seconds: 2),
+        'keypair init timeout');
     initedSignalStorePubkeySet.add(pubkey);
     return keyPair;
   }
@@ -263,7 +266,10 @@ class ChatxService extends GetxService {
   Future<KeychatIdentityKeyPair> setupSignalStoreByIdentity(
       Identity identity) async {
     var keyPair = await getKeyPairByIdentity(identity);
-    await rust_signal.initKeypair(keyPair: keyPair, regId: 0);
+    await Utils.asyncWithTimeout(
+        () => rust_signal.initKeypair(keyPair: keyPair, regId: 0),
+        const Duration(seconds: 2),
+        'keypair init timeout');
     initedSignalStorePubkeySet.add(identity.curve25519PkHex);
     return keyPair;
   }

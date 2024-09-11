@@ -3,9 +3,16 @@ import 'dart:io' show File;
 
 import 'package:flutter/material.dart';
 
-class LogViewer extends StatelessWidget {
+class LogViewer extends StatefulWidget {
   final String path;
   const LogViewer({required this.path, super.key});
+
+  @override
+  _LogViewerState createState() => _LogViewerState();
+}
+
+class _LogViewerState extends State<LogViewer> {
+  final ScrollController _scrollController = ScrollController();
 
   @override
   Widget build(BuildContext context) {
@@ -13,15 +20,32 @@ class LogViewer extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Log Viewer'),
       ),
-      body: FutureBuilder(
-        future: readLogFile(path),
+      body: FutureBuilder<String>(
+        future: readLogFile(widget.path),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done) {
-            return Text(snapshot.data!.replaceAll('\\n', '\n'));
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
+            return SingleChildScrollView(
+              controller: _scrollController,
+              padding: const EdgeInsets.all(16.0),
+              child: Text(snapshot.data!.replaceAll('\\n', '\n')),
+            );
           } else {
-            return const CircularProgressIndicator();
+            return const Center(child: CircularProgressIndicator());
           }
         },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(seconds: 1),
+            curve: Curves.easeOut,
+          );
+        },
+        child: const Icon(Icons.arrow_downward),
       ),
     );
   }

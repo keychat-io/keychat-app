@@ -49,6 +49,7 @@ class _QueryReceivedEventState extends State<QueryReceivedEvent> {
                         final pastedText = clipboardData.text;
                         if (pastedText != null && pastedText != '') {
                           _controller.text = pastedText;
+                          _onSearchChanged();
                         }
                       }
                     },

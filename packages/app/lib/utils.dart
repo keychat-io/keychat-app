@@ -1,3 +1,4 @@
+import 'dart:async' show TimeoutException;
 import 'dart:convert' show JsonEncoder, jsonEncode, jsonDecode;
 import 'dart:io' show Directory, File, FileMode, Platform;
 import 'dart:math' show Random;
@@ -294,6 +295,20 @@ Please check ecash balance and mint.''';
 }
 
 class Utils {
+  static Future<void> asyncWithTimeout(Function excute, Duration timeout,
+      [String? errorMessage]) async {
+    try {
+      await excute().timeout(
+        timeout,
+        onTimeout: () {
+          throw TimeoutException(errorMessage ?? 'Execute_timeout');
+        },
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   static initLoggger(Directory directory) async {
     setLogger(Logger(
         filter: kReleaseMode ? MyLogFilter() : null,
@@ -308,9 +323,7 @@ class Utils {
             : null));
   }
 
-  static Future<File> createLogFile(
-    String dbFolder,
-  ) async {
+  static Future<File> createLogFile(String dbFolder) async {
     Directory logDir = Directory('$dbFolder/logs');
     logDir.createSync(recursive: true);
     String time = getYearMonthDay();
@@ -322,7 +335,6 @@ class Utils {
  kDebugMode: $kDebugMode \n
  path: ${file.path} \n''';
     file.writeAsStringSync(initString, mode: FileMode.writeOnlyAppend);
-
     return file;
   }
 
@@ -354,9 +366,7 @@ class Utils {
       content: Text(content),
       actions: <Widget>[
         CupertinoDialogAction(
-          child: const Text(
-            'OK',
-          ),
+          child: const Text('OK'),
           onPressed: () {
             Get.back();
           },
@@ -375,18 +385,14 @@ class Utils {
       content: Text(content),
       actions: <Widget>[
         CupertinoDialogAction(
-          child: const Text(
-            'Cancel',
-          ),
+          child: const Text('Cancel'),
           onPressed: () {
             Get.back();
           },
         ),
         CupertinoDialogAction(
           isDefaultAction: true,
-          child: Text(
-            btnText,
-          ),
+          child: Text(btnText),
           onPressed: () {
             onPressed();
           },

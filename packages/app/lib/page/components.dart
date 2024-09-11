@@ -566,8 +566,14 @@ Future showMyQrCode(
   List<Mykey> oneTimeKeys =
       await Get.find<ChatxService>().getOneTimePubkey(identity.id);
   // every time create one, due to need update signalKeyId
-  SignalId signalId =
-      await SignalIdService.instance.createSignalId(identity.id);
+  late SignalId signalId;
+  try {
+    signalId = await SignalIdService.instance.createSignalId(identity.id);
+  } catch (e, s) {
+    logger.e(e.toString(), error: e, stackTrace: s);
+    EasyLoading.showError(e.toString());
+    return;
+  }
 
   int expiredTime = DateTime.now().millisecondsSinceEpoch +
       KeychatGlobal.oneTimePubkeysLifetime * 3600 * 1000;

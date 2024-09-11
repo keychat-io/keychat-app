@@ -379,11 +379,11 @@ class RelayService {
       if (response.statusCode == 200 && response.data is Map) {
         return response.data;
       } else {
-        logger.e(
+        loggerNoLine.e(
             'Failed to fetch file server info. Error: ${response.statusCode}');
       }
     } catch (e) {
-      logger.e('Failed to fetch file server info', error: e);
+      loggerNoLine.e('Failed to fetch file server info', error: e);
     }
 
     return null;

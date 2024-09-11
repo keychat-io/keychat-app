@@ -474,6 +474,7 @@ Let's talk on this server.''';
     Identity identity =
         Get.find<HomeController>().identities[singalId.identityId]!;
 
+    await rust_signal.initKeypair(keyPair: keyPair, regId: 0);
     var (plaintext, msgKeyHash, _) = await rust_signal.decryptSignal(
         keyPair: keyPair,
         ciphertext: ciphertext,

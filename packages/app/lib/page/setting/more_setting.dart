@@ -6,6 +6,7 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/page/FileExplore.dart';
 import 'package:app/page/setting/QueryReceivedEvent.dart';
 import 'package:app/page/setting/UnreadMessages.dart';
+import 'package:app/service/notify.service.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
@@ -205,6 +206,7 @@ class MoreSetting extends StatelessWidget {
                 Storage.setInt(StorageKeyString.onboarding, 0);
                 EasyLoading.dismiss();
                 FirebaseMessaging.instance.deleteToken();
+                NotifyService.fcmToken == null;
                 Get.offAllNamed(Routes.login);
               } catch (e, s) {
                 logger.e('reset all', error: e, stackTrace: s);

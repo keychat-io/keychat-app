@@ -102,9 +102,9 @@ Future initServices() async {
       [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   await dotenv.load(fileName: ".env");
   if (dotenv.get('FCMapiKey', fallback: '') != '') {
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform);
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     logger.i('Firebase initialized');
   }
 

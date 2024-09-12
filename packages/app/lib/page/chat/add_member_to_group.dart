@@ -146,6 +146,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
                     leading: getRandomAvatar(_contactList[index].pubkey,
                         height: 40, width: 40),
                     title: Text(_contactList[index].displayName),
+                    dense: true,
                     subtitle: Text(_contactList[index].npubkey,
                         overflow: TextOverflow.ellipsis),
                     trailing: widget.adminPubkey == _contactList[index].pubkey

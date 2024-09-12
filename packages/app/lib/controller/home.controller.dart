@@ -52,7 +52,6 @@ class HomeController extends GetxController
   late TabController tabController;
   late StreamSubscription<List<ConnectivityResult>> subscription;
   RxBool notificationStatus = false.obs;
-  RxString notificationFailMessage = ''.obs;
   bool resumed = true; // is app in front
   RxBool isConnectedNetwork = true.obs;
 

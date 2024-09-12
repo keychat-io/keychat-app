@@ -78,6 +78,10 @@ class QrScanService {
       return _proccessCashuA(str);
     }
     // lighting invoice
+    if (str.startsWith('lightning:')) {
+      str = str.replaceFirst('lightning:', '');
+      return _proccessPayLightingBill(str);
+    }
     if (str.startsWith('lnbc')) {
       return _proccessPayLightingBill(str);
     }

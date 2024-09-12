@@ -1,3 +1,4 @@
+import 'dart:async' show TimeoutException;
 import 'dart:convert' show utf8;
 
 import 'package:app/controller/home.controller.dart';
@@ -19,10 +20,10 @@ class NotifyService {
   static Future<bool> addPubkeys(List<String> toAddPubkeys,
       [List<String> toRemovePubkeys = const []]) async {
     if (fcmToken == null) return false;
+    bool res = await hasNotifyPermission();
+    if (!res) return false;
     List<String> relays = Get.find<WebsocketService>().getActiveRelayString();
     if (relays.isEmpty) return false;
-    bool res = await checkAllNotifyPermission();
-    if (!res) return false;
     try {
       var res =
           await Dio().post('${KeychatGlobal.notifycationServer}/add', data: {
@@ -33,9 +34,8 @@ class NotifyService {
       });
       logger.i('addPubkeys ${res.data}');
       return res.data['data'] ?? true;
-    } on DioException catch (e, s) {
-      logger.e('addPubkeys error: ${e.response?.data}',
-          error: e, stackTrace: s);
+    } on DioException catch (e) {
+      logger.e('addPubkeys error: ${e.response?.data}', error: e);
     }
     return false;
   }
@@ -81,33 +81,13 @@ class NotifyService {
 
   static Future<bool> hasNotifyPermission() async {
     var s = await FirebaseMessaging.instance.getNotificationSettings();
-
-    if (s.authorizationStatus == AuthorizationStatus.denied) return false;
     if (s.authorizationStatus == AuthorizationStatus.authorized) return true;
     return false;
   }
 
-  static initNofityConfig([bool checkUpload = false]) async {
-    HomeController hc = Get.find<HomeController>();
-    bool isGrant = await NotifyService.hasNotifyPermission();
-    bool enableStatus = hc.notificationStatus.value && isGrant;
-    if (!enableStatus) return;
-
-    // logger.i('id: ${fcmToken}, enable: $isGrant');
-
-    // OneSignal.Notifications.addForegroundWillDisplayListener((event) {
-    //   /// preventDefault to not display the notification
-    //   event.preventDefault();
-
-    //   if (hc.resumed) return;
-
-    //   // Shared key group, if you switch out soon, you will receive the messages you send yourself.
-    //   DateTime now = DateTime.now().subtract(const Duration(seconds: 3));
-    //   if (hc.pausedTime != null && hc.pausedTime!.isBefore(now)) {
-    //     /// notification.display() to display after preventing default
-    //     event.notification.display();
-    //   }
-    // });
+  static syncPubkeysToServer([bool checkUpload = false]) async {
+    bool isGrant = await NotifyService.checkAllNotifyPermission();
+    if (!isGrant) return;
     List<String> toRemovePubkeys = await ContactService().getAllToRemoveKeys();
     if (toRemovePubkeys.isNotEmpty) {
       await ContactService().removeAllToRemoveKeys();
@@ -145,9 +125,7 @@ class NotifyService {
       var res = await Dio()
           .post('${KeychatGlobal.notifycationServer}/init', data: map);
 
-      logger.i(
-        'initNofityConfig ${res.data}',
-      );
+      logger.i('initNofityConfig ${res.data}');
     } on DioException catch (e, s) {
       logger.e('initNofityConfig ${e.response?.toString()}',
           error: e, stackTrace: s);
@@ -156,70 +134,79 @@ class NotifyService {
     }
   }
 
-  // static Future startup() async {
-  //   int settingNotifyStatus =
-  //       await Storage.getIntOrZero(StorageKeyString.settingNotifyStatus);
-  //   if (settingNotifyStatus == 0)
-  // }
+  static Future init(bool showDialog) async {
+    var settings = await FirebaseMessaging.instance.getNotificationSettings();
+    logger.i('Notification Status: ${settings.authorizationStatus.name}');
+    // app setting
+    if (settings.authorizationStatus == AuthorizationStatus.denied) return;
+    bool notDetermined =
+        settings.authorizationStatus == AuthorizationStatus.notDetermined;
+    int settingNotifyStatus =
+        await Storage.getIntOrZero(StorageKeyString.settingNotifyStatus);
+    var homeController = Get.find<HomeController>();
 
-  static Future init() async {
-    // int settingNotifyStatus =
-    //     await Storage.getIntOrZero(StorageKeyString.settingNotifyStatus);
-    // user click disable and config is denied
-    var s = await FirebaseMessaging.instance.getNotificationSettings();
-    if (s.authorizationStatus == AuthorizationStatus.denied) return;
-    NotificationSettings settings =
-        await FirebaseMessaging.instance.requestPermission(
-      alert: true,
-      announcement: false,
-      badge: true,
-      carPlay: false,
-      criticalAlert: false,
-      provisional: false,
-      sound: true,
-    );
-
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      debugPrint('Message data: ${message.data}');
-
-      if (message.notification != null) {
-        debugPrint(
-            'Message also contained a notification: ${message.notification}');
-      }
-    });
-
-    logger.i('id: ${settings.authorizationStatus.name}');
-    HomeController hc = Get.find<HomeController>();
-
-    // user denied
-    if (settings.authorizationStatus == AuthorizationStatus.denied) {
-      hc.notificationStatus.value = false;
-      Storage.setInt(
-          StorageKeyString.settingNotifyStatus, NotifyStatus.disable);
+    if (settingNotifyStatus == NotifySettingStatus.disable && !notDetermined) {
+      homeController.notificationStatus.value = false;
       return;
     }
-    hc.notificationStatus.value = true;
 
-    // user's token
-    fcmToken = await FirebaseMessaging.instance.getToken();
-    logger.i('fcmToken: $fcmToken');
+    // user setting
+    if (settings.authorizationStatus == AuthorizationStatus.notDetermined &&
+        showDialog) {
+      settings = await FirebaseMessaging.instance.requestPermission(
+        alert: true,
+        announcement: false,
+        badge: true,
+        carPlay: false,
+        criticalAlert: false,
+        provisional: false,
+        sound: true,
+      );
+    }
 
-    Storage.setInt(StorageKeyString.settingNotifyStatus, NotifyStatus.enable);
+    if (settings.authorizationStatus == AuthorizationStatus.denied) {
+      homeController.notificationStatus.value = false;
+      Storage.setInt(
+          StorageKeyString.settingNotifyStatus, NotifySettingStatus.disable);
+      return;
+    }
+    if (settings.authorizationStatus == AuthorizationStatus.authorized ||
+        settings.authorizationStatus == AuthorizationStatus.provisional) {
+      // onMessage listen
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        debugPrint('Message data: ${message.data}');
 
-    // OneSignal.Notifications.addPermissionObserver((state) async {
-    //   logger.d("Has permission $state");
-    //   hc.notificationStatus.value = state;
+        if (message.notification != null) {
+          debugPrint('notification: ${message.notification}');
+        }
+      });
 
-    //   Storage.setInt(StorageKeyString.settingNotifyStatus,
-    //       state ? NotifyStatus.enable : NotifyStatus.disable);
-    //   if (state) {
-    //     Future.delayed(
-    //         const Duration(seconds: 10), () => initNofityConfig(true));
-    //   }
-    // });
-    // for init
-
-    await initNofityConfig(true);
+      homeController.notificationStatus.value = true;
+      Storage.setInt(
+          StorageKeyString.settingNotifyStatus, NotifySettingStatus.enable);
+      fcmToken = await FirebaseMessaging.instance
+          .getToken()
+          .timeout(const Duration(seconds: 8), onTimeout: () {
+        Get.showSnackbar(
+          GetSnackBar(
+              snackPosition: SnackPosition.TOP,
+              icon: const Icon(Icons.error, color: Colors.amber, size: 24),
+              duration: const Duration(seconds: 8),
+              onTap: (snack) {
+                Get.back();
+              },
+              title: 'Notification Init Error',
+              message: '''Timeout to call device-provisioning.googleapis.com.
+Fix:
+1. Check your network connection.
+2. Restart the app.
+'''),
+        );
+        throw TimeoutException('FCMTokenTimeout');
+      });
+      logger.i('fcmToken: $fcmToken');
+      await syncPubkeysToServer(true);
+    }
   }
 
   static Future<bool> removePubkeys(List<String> pubkeys) async {
@@ -257,7 +244,7 @@ class NotifyService {
     int intStatus = status ? 1 : -1;
     await Storage.setInt(StorageKeyString.settingNotifyStatus, intStatus);
     if (status) {
-      await NotifyService.initNofityConfig();
+      await NotifyService.syncPubkeysToServer();
     } else {
       await NotifyService.deleteNofityConfig();
     }
@@ -265,7 +252,7 @@ class NotifyService {
   }
 }
 
-class NotifyStatus {
+class NotifySettingStatus {
   static const int enable = 1;
   static const int disable = -1;
 }

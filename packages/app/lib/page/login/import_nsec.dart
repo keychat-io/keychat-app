@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:keychat_ecash/ecash_controller.dart';
 import '../../service/identity.service.dart';
 
 class ImportNsec extends StatefulWidget {
@@ -127,11 +126,8 @@ class _ImportNsec extends State<ImportNsec> {
                       var newIdentity = await IdentityService()
                           .createIdentityByPrikey(
                               name: name, prikey: input, hexPubkey: hexPubkey);
-                      bool isFirstAccount =
-                          Get.find<HomeController>().identities.length == 1;
-                      if (isFirstAccount) {
-                        Get.find<EcashController>().initIdentity(newIdentity);
-                      }
+                      Get.find<HomeController>().identities.length == 1;
+
                       EasyLoading.showSuccess('Import successfully');
                       Get.back(result: newIdentity);
                     } catch (e, s) {

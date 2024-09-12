@@ -52,6 +52,7 @@ class HomeController extends GetxController
   late TabController tabController;
   late StreamSubscription<List<ConnectivityResult>> subscription;
   RxBool notificationStatus = false.obs;
+  RxString notificationFailMessage = ''.obs;
   bool resumed = true; // is app in front
   RxBool isConnectedNetwork = true.obs;
 
@@ -69,7 +70,9 @@ class HomeController extends GetxController
     List<Identity> mys = await loadRoomList(init: true);
 
     // Ecash Init
+    bool showNotificationDialog = false;
     if (mys.isNotEmpty) {
+      showNotificationDialog = true;
       Get.find<EcashController>().initIdentity(mys[0]);
     } else {
       Get.find<EcashController>().initWithoutIdentity();
@@ -77,36 +80,37 @@ class HomeController extends GetxController
     FlutterNativeSplash.remove(); // close splash page
     WidgetsBinding.instance.addObserver(this);
 
-    // listen network status https://pub.dev/packages/connectivity_plus
-    subscription = Connectivity()
-        .onConnectivityChanged
-        .listen((List<ConnectivityResult> result) {
-      if (result.contains(ConnectivityResult.none)) {
-        isConnectedNetwork.value = false;
-      } else {
-        // network from disconnected to connected
-        if (!isConnectedNetwork.value) {
-          EasyDebounce.debounce(
-              'isConnectedNetwork', const Duration(seconds: 1), () {
-            WebsocketService ws = Get.find<WebsocketService>();
-            ws.start();
-            if (ws.relayFileFeeModels.entries.isEmpty) {
-              RelayService().initRelayFeeInfo();
-            }
-          });
-        }
-        isConnectedNetwork.value = true;
-      }
-    });
-    NotifyService.init().catchError((e, s) {
+    NotifyService.init(showNotificationDialog).catchError((e, s) {
       logger.e('initNotifycation error', error: e, stackTrace: s);
     });
+    // listen network status https://pub.dev/packages/connectivity_plus
+    subscription =
+        Connectivity().onConnectivityChanged.listen(networkListenHandle);
 
     try {
       _startConnectHeartbeat();
       await RoomUtil.executeAutoDelete();
     } catch (e, s) {
       logger.e(e.toString(), stackTrace: s);
+    }
+  }
+
+  void networkListenHandle(List<ConnectivityResult> result) {
+    if (result.contains(ConnectivityResult.none)) {
+      isConnectedNetwork.value = false;
+    } else {
+      // network from disconnected to connected
+      if (!isConnectedNetwork.value) {
+        EasyDebounce.debounce('isConnectedNetwork', const Duration(seconds: 1),
+            () {
+          WebsocketService ws = Get.find<WebsocketService>();
+          ws.start();
+          if (ws.relayFileFeeModels.entries.isEmpty) {
+            RelayService().initRelayFeeInfo();
+          }
+        });
+      }
+      isConnectedNetwork.value = true;
     }
   }
 
@@ -348,7 +352,7 @@ class HomeController extends GetxController
               _startConnectHeartbeat();
             });
             Utils.initLoggger(Get.find<SettingController>().appFolder);
-            NotifyService.initNofityConfig(true);
+            NotifyService.syncPubkeysToServer(true);
             return;
           }
           Get.find<WebsocketService>().checkOnlineAndConnect();

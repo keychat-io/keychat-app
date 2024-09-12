@@ -9,6 +9,7 @@ import 'package:app/page/setting/UnreadMessages.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -171,10 +172,7 @@ class MoreSetting extends StatelessWidget {
           ),
           title: const Text("Reset APP", style: TextStyle(color: Colors.red)),
           onPressed: (context) {
-            showDialog<String>(
-                context: context,
-                builder: (BuildContext context) =>
-                    deleteAccount(context, true));
+            Get.dialog(deleteAccount(context, true));
           })
     ]);
   }
@@ -186,9 +184,7 @@ class MoreSetting extends StatelessWidget {
           "Please make sure you have backed up your seed phrase and contacts. This cannot be undone."),
       actions: <Widget>[
         CupertinoDialogAction(
-          child: const Text(
-            'Cancel',
-          ),
+          child: const Text('Cancel'),
           onPressed: () {
             Get.back();
           },
@@ -208,6 +204,7 @@ class MoreSetting extends StatelessWidget {
                 await SecureStorage.instance.clearAll();
                 Storage.setInt(StorageKeyString.onboarding, 0);
                 EasyLoading.dismiss();
+                FirebaseMessaging.instance.deleteToken();
                 Get.offAllNamed(Routes.login);
               } catch (e, s) {
                 logger.e('reset all', error: e, stackTrace: s);

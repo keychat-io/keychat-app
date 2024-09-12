@@ -1,4 +1,3 @@
-import 'package:app/controller/home.controller.dart';
 import 'package:app/page/components.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
@@ -7,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:keychat_ecash/ecash_controller.dart';
 import '../../service/identity.service.dart';
 
 class ImportKey extends StatefulWidget {
@@ -113,14 +111,14 @@ class _ImportKey extends State<ImportKey> {
                     }
                     try {
                       var kc = await rust_nostr.importFromPhrase(phrase: input);
-                      var newIdentity = await IdentityService()
-                          .createIdentity(name: name, account: kc, index: 0);
                       bool isFirstAccount =
-                          Get.find<HomeController>().identities.length == 1;
-                      if (isFirstAccount) {
-                        // init ecash from server
-                        Get.find<EcashController>().initIdentity(newIdentity);
-                      }
+                          await IdentityService().count() == 0;
+                      await IdentityService().createIdentity(
+                          name: name,
+                          account: kc,
+                          index: 0,
+                          isFirstAccount: isFirstAccount);
+
                       EasyLoading.showSuccess('Import successfully');
                       Get.back();
                     } catch (e, s) {

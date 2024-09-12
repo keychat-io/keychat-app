@@ -92,7 +92,7 @@ class MessageService {
       for (var i = 0; i < cc.messages.length; i++) {
         if (cc.messages[i].id == message.id) {
           cc.messages[i] = message;
-          // cc.messages.refresh();
+          cc.messages.refresh();
           break;
         }
       }

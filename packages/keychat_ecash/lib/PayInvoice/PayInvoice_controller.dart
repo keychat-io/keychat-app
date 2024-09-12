@@ -55,9 +55,7 @@ Hash: ${ii.hash}
           ),
           CupertinoDialogAction(
             isDefaultAction: true,
-            child: cc.getBalanceByMint(mint) > ii.amount.toInt()
-                ? const Text('Confirm')
-                : const Text('Not Enough Funds'),
+            child: const Text('Confirm'),
             onPressed: () async {
               if (cc.getBalanceByMint(mint) < ii.amount.toInt()) {
                 EasyLoading.showToast('Not Enough Funds');
@@ -73,10 +71,10 @@ Hash: ${ii.hash}
                 cc.requestPageRefresh();
                 Get.off(() => LightningTransactionPage(
                     transaction: tx.field0 as LNTransaction));
-              } catch (e) {
-                EasyLoading.dismiss();
+              } catch (e, s) {
                 String msg = Utils.getErrorMessage(e);
                 EasyLoading.showError('Error: $msg');
+                logger.e('error: $msg', error: e, stackTrace: s);
               }
             },
           ),

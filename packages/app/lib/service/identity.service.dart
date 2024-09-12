@@ -2,14 +2,17 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/models/nostr_event_status.dart';
+import 'package:app/service/relay.service.dart';
 import 'package:app/service/secure_storage.dart';
 
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/websocket.service.dart';
+import 'package:app/utils.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
+import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_signal.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
@@ -82,7 +85,21 @@ class IdentityService {
     await Get.find<HomeController>().loadRoomList(init: true);
     Get.find<WebsocketService>().listenPubkey([account.pubkey]);
     Get.find<WebsocketService>().listenPubkeyNip17([account.pubkey]);
-    NotifyService.addPubkeys([account.pubkey]);
+    if (isFirstAccount) {
+      try {
+        Get.find<EcashController>().initIdentity(iden);
+        NotifyService.init(true).then((c) {
+          NotifyService.addPubkeys([account.pubkey]);
+        }).catchError((e, s) {
+          logger.e('initNotifycation error', error: e, stackTrace: s);
+        });
+        RelayService().initRelay();
+      } catch (e, s) {
+        logger.e(e.toString(), error: e, stackTrace: s);
+      }
+    } else {
+      NotifyService.addPubkeys([account.pubkey]);
+    }
     return iden;
   }
 
@@ -157,7 +174,7 @@ class IdentityService {
       }
     });
     Get.find<HomeController>().loadRoomList(init: true);
-    NotifyService.initNofityConfig();
+    NotifyService.syncPubkeysToServer();
   }
 
   Future deleteMykey(List<int> ids) async {

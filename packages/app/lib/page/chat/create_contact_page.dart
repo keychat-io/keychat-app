@@ -2,6 +2,7 @@
 
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/components.dart';
+import 'package:app/service/qrscan.ervice.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
@@ -139,11 +140,17 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                     },
                     trailing: const Icon(CupertinoIcons.right_chevron),
                   ),
-                  const ListTile(
-                    leading: Icon(CupertinoIcons.qrcode_viewfinder),
-                    title: Text('Scan QR Code'),
-                    onTap: handleQRScan,
-                    trailing: Icon(CupertinoIcons.right_chevron),
+                  ListTile(
+                    leading: const Icon(CupertinoIcons.qrcode_viewfinder),
+                    title: const Text('Scan QR Code'),
+                    onTap: () async {
+                      String? result =
+                          await QrScanService.instance.handleQRScan();
+                      if (result != null) {
+                        QrScanService.instance.processQRResult(result);
+                      }
+                    },
+                    trailing: const Icon(CupertinoIcons.right_chevron),
                   )
                 ]),
               )

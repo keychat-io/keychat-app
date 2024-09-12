@@ -33,7 +33,7 @@ class RelayService {
 
     Relay relay = await RelayService().getOrPutRelay(url);
     ws.addChannel(relay);
-    NotifyService.initNofityConfig(); // sub new relay
+    NotifyService.syncPubkeysToServer(); // sub new relay
     RelayService().initRelayFeeInfo([relay]);
   }
 
@@ -367,9 +367,7 @@ class RelayService {
     }
     final dio = Dio();
     dio.options = BaseOptions(
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
         connectTimeout: const Duration(seconds: 6),
         receiveTimeout: const Duration(seconds: 6),
         sendTimeout: const Duration(seconds: 6));
@@ -402,8 +400,8 @@ class RelayService {
         rufc.expired = map['expired'] ?? '-';
         return rufc;
       }
-    } catch (e, s) {
-      logger.d(e.toString(), error: e, stackTrace: s);
+    } catch (e) {
+      loggerNoLine.e(e.toString());
     }
     return null;
   }

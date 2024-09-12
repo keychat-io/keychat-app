@@ -7,7 +7,6 @@ import 'package:app/page/login/AccountSetting/AccountSetting_bindings.dart';
 import 'package:app/page/login/AccountSetting/AccountSetting_page.dart';
 import 'package:app/page/login/import_key.dart';
 import 'package:app/page/root_page_cupertino.dart';
-import 'package:app/page/setting/qrcode_scan.dart';
 import 'package:get/get.dart';
 import 'package:app/page/setting/more_setting.dart';
 
@@ -32,7 +31,6 @@ class Pages {
         name: Routes.login,
         page: () => const Login(),
         transition: Transition.fadeIn),
-    GetPage(name: Routes.scanQR, page: () => const QRCodeView()),
     GetPage(name: Routes.importKey, page: () => const ImportKey()),
     GetPage(name: Routes.settingMore, page: () => const MoreSetting()),
     GetPage(

@@ -1,7 +1,6 @@
 import 'package:app/page/components.dart';
 import 'package:app/page/login/import_nsec.dart';
 import 'package:flutter/material.dart';
-import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/utils.dart';
@@ -91,15 +90,13 @@ class _CreateAccountState extends State<CreateAccount> {
                         bool isFirstAccount =
                             await IdentityService().count() == 0;
 
-                        var identity = await IdentityService().createIdentity(
+                        await IdentityService().createIdentity(
                             name: name,
                             account: accounts[selected],
                             index: selected,
                             isFirstAccount: isFirstAccount);
                         textEditingController.clear();
-                        if (isFirstAccount) {
-                          Get.find<EcashController>().initIdentity(identity);
-                        }
+
                         EasyLoading.dismiss();
                         if (Get.arguments == 'create') {
                           await Get.find<HomeController>().loadIdentity();

@@ -10,8 +10,7 @@ abstract class BaseChatService {
       String? msgKeyHash,
       String? fromIdPubkey,
       Function(String error)? failedCallback,
-      required KeychatMessage km,
-      required Relay relay});
+      required KeychatMessage km});
 
   Future<SendMessageResponse> sendMessage(Room room, String message,
       {MessageMediaType? mediaType,

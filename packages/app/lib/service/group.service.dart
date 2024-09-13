@@ -238,7 +238,6 @@ class GroupService extends BaseChatService {
       {RoomMember? member,
       Room? idRoom,
       String? msgKeyHash,
-      required Relay relay,
       NostrEventModel? sourceEvent}) async {
     String signPubkey =
         room.isSendAllGroup ? idRoom!.toMainPubkey : event.pubkey;
@@ -504,8 +503,7 @@ class GroupService extends BaseChatService {
       NostrEventModel? sourceEvent,
       Function(String error)? failedCallback,
       String? fromIdPubkey,
-      String? msgKeyHash,
-      required Relay relay}) async {
+      String? msgKeyHash}) async {
     switch (km.type) {
       case KeyChatEventKinds.groupInvite:
         RoomService().checkMessageValid(room, sourceEvent ?? event);
@@ -520,7 +518,7 @@ class GroupService extends BaseChatService {
         content ??= '[GroupMessage decoded failed]';
         GroupMessage gm = GroupMessage.fromJson(jsonDecode(content));
         return await processGroupMessage(room, subEvent, gm,
-            relay: relay, sourceEvent: event, msgKeyHash: msgKeyHash);
+            sourceEvent: event, msgKeyHash: msgKeyHash);
       case KeyChatEventKinds.groupChangeSignKey:
         RoomProfile roomProfile = RoomProfile.fromJson(jsonDecode(km.msg!));
         return await processChangeSignKey(room, event, roomProfile);
@@ -542,7 +540,7 @@ class GroupService extends BaseChatService {
           }
         }
         return await processGroupMessage(groupRoom, event, gm,
-            member: member, idRoom: room, relay: relay, msgKeyHash: msgKeyHash);
+            member: member, idRoom: room, msgKeyHash: msgKeyHash);
       case KeyChatEventKinds.inviteToGroupRequest:
         return await _processinviteToGroupRequest(room, event, km);
       default:

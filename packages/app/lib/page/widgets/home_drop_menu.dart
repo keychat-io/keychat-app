@@ -1,5 +1,5 @@
 import 'package:app/page/routes.dart';
-import 'package:app/service/qrscan.ervice.dart';
+import 'package:app/service/qrscan.service.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';

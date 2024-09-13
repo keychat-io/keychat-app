@@ -4,6 +4,7 @@ import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
+import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 import 'package:app/service/notify.service.dart';
@@ -85,12 +86,19 @@ class HomeController extends GetxController
     // listen network status https://pub.dev/packages/connectivity_plus
     subscription =
         Connectivity().onConnectivityChanged.listen(networkListenHandle);
-
+    await removeBadge();
     try {
       _startConnectHeartbeat();
       await RoomUtil.executeAutoDelete();
     } catch (e, s) {
       logger.e(e.toString(), stackTrace: s);
+    }
+  }
+
+  Future<void> removeBadge() async {
+    bool supportBadge = await FlutterAppBadger.isAppBadgeSupported();
+    if (supportBadge) {
+      FlutterAppBadger.removeBadge();
     }
   }
 
@@ -343,7 +351,7 @@ class HomeController extends GetxController
           }
         }
         appstates.clear();
-
+        await removeBadge();
         EasyThrottle.throttle(
             'AppLifecycleState.resumed', const Duration(seconds: 2), () {
           if (isPaused) {

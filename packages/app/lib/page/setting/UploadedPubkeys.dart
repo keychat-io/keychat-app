@@ -72,7 +72,7 @@ class _UploadedPubkeysState extends State<UploadedPubkeys> {
     }
     setState(() {
       titles['Identity Keys'] = idkeys;
-      titles['ShareKey Room Keys'] = shareKeyRooms;
+      titles['Shared Group Keys'] = shareKeyRooms;
       titles['SignalChat Room Keys'] = signalChatRoom;
       titles['OneTime Keys'] = oneTimeKeys;
     });

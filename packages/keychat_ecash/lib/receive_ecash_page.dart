@@ -1,4 +1,4 @@
-import 'package:app/service/qrscan.ervice.dart';
+import 'package:app/service/qrscan.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

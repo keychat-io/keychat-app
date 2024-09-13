@@ -92,7 +92,8 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // make sure you call `initializeApp` before using other Firebase services.
   if (Firebase.apps.isEmpty) {
     await Firebase.initializeApp(
-        name: 'kechat-bg', options: DefaultFirebaseOptions.currentPlatform);
+        name: GetPlatform.isAndroid ? 'keychat-bg' : null,
+        options: DefaultFirebaseOptions.currentPlatform);
   }
 
   debugPrint("Handling a background message: ${message.messageId}");
@@ -106,7 +107,7 @@ Future initServices() async {
   await dotenv.load(fileName: ".env");
   if (dotenv.get('FCMapiKey', fallback: '') != '') {
     await Firebase.initializeApp(
-        name: 'kechat', options: DefaultFirebaseOptions.currentPlatform);
+        options: DefaultFirebaseOptions.currentPlatform);
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     logger.i('Firebase initialized');
   }

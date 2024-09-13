@@ -9,7 +9,7 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 analyzer:
-  exclude: [build/**, android/]
+  exclude: [build/**, android/, packages/keychat_rust_ffi_plugin/lib/lib.dart]
 
 linter:
   # The lint rules applied to this project can be customized in the

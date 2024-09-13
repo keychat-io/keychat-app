@@ -37,8 +37,7 @@ class Nip4ChatService extends BaseChatService {
       NostrEventModel? sourceEvent,
       Function(String error)? failedCallback,
       String? msgKeyHash,
-      String? fromIdPubkey,
-      required Relay relay}) async {
+      String? fromIdPubkey}) async {
     switch (km.type) {
       case KeyChatEventKinds.dm:
         await RoomService().receiveDM(

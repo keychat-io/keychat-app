@@ -1,6 +1,6 @@
 // ignore_for_file: depend_on_referenced_packages
 import 'package:app/page/theme.dart';
-import 'package:app/service/qrscan.ervice.dart';
+import 'package:app/service/qrscan.service.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';

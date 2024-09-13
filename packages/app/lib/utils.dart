@@ -284,8 +284,6 @@ Please check ecash balance and mint.''';
 }
 
 class Utils {
-  static scanQRCode() async {}
-
   static Future<void> asyncWithTimeout(Function excute, Duration timeout,
       [String? errorMessage]) async {
     try {

@@ -39,4 +39,12 @@
   <!-- Read storage permission for Android 12 and lower -->
   <!-- <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/> -->
   <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+  
+  <!-- https://firebase.google.com/docs/cloud-messaging/flutter/client -->
+  <meta-data
+    android:name="firebase_messaging_auto_init_enabled"
+    android:value="false" />
+<meta-data
+    android:name="firebase_analytics_collection_enabled"
+    android:value="false" />
 </manifest>

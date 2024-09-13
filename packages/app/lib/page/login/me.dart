@@ -7,6 +7,8 @@ import 'package:app/service/secure_storage.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/page/components.dart';
@@ -156,11 +158,10 @@ class MinePage extends GetView<SettingController> {
                       //     },
                       //     title: const Text('login')),
 
-                      if (GetPlatform.isIOS || GetPlatform.isAndroid)
-                        SettingsTile.navigation(
-                            leading: const Icon(Icons.notifications_outlined),
-                            onPressed: handleNotificationSettting,
-                            title: const Text('Notifications')),
+                      SettingsTile.navigation(
+                          leading: const Icon(Icons.notifications_outlined),
+                          onPressed: handleNotificationSettting,
+                          title: const Text('Notifications')),
                       SettingsTile.navigation(
                         leading: const Icon(Icons.folder_open_outlined),
                         title: const Text("File Storage Server"),
@@ -237,9 +238,7 @@ class MinePage extends GetView<SettingController> {
     ));
   }
 
-  SettingsSection cashuSetting(
-    BuildContext buildContext,
-  ) {
+  SettingsSection cashuSetting(BuildContext buildContext) {
     EcashController? ec = getGetxController<EcashController>();
 
     return SettingsSection(
@@ -274,91 +273,23 @@ class MinePage extends GetView<SettingController> {
                   initialValue: hc.notificationStatus.value && permission,
                   description: NoticeTextWidget.warning(
                       'When the notification function is turned on, receiving addresses will be uploaded to the notification server.'),
-                  onToggle: (map) async {
-                    if (!map) {
-                      Get.dialog(CupertinoAlertDialog(
-                        title: const Text("Alert"),
-                        content: Container(
-                            color: Colors.transparent,
-                            padding: const EdgeInsets.only(top: 15),
-                            child: const Text(
-                                'Once deactivated, your receiving addresses will be automatically deleted from the notification server.')),
-                        actions: <Widget>[
-                          CupertinoDialogAction(
-                            child: const Text("Cancel"),
-                            onPressed: () {
-                              Get.back();
-                            },
-                          ),
-                          CupertinoDialogAction(
-                            child: const Text("Confirm"),
-                            onPressed: () async {
-                              EasyLoading.show(status: 'Processing');
-                              try {
-                                await NotifyService
-                                    .updateNotificationUserSetting(false);
-                                EasyLoading.showSuccess('Disabled');
-                                Get.back();
-                              } catch (e, s) {
-                                logger.e(e.toString(), error: e, stackTrace: s);
-                                EasyLoading.showError(e.toString());
-                              }
-                            },
-                          ),
-                        ],
-                      ));
-                      return;
-                    }
-                    Get.dialog(CupertinoAlertDialog(
-                      title: const Text("Alert"),
-                      content: Container(
-                          color: Colors.transparent,
-                          padding: const EdgeInsets.only(top: 15),
-                          child: const Text(
-                              'Once activated, your receiving addresses will be automatically uploaded to the notification server.')),
-                      actions: <Widget>[
-                        CupertinoDialogAction(
-                          child: const Text("Cancel"),
-                          onPressed: () {
-                            Get.back();
-                          },
-                        ),
-                        CupertinoDialogAction(
-                          child: const Text("Confirm"),
-                          onPressed: () async {
-                            EasyLoading.show(status: 'Processing');
-                            var setting = await FirebaseMessaging.instance
-                                .getNotificationSettings();
-
-                            if (setting.authorizationStatus ==
-                                AuthorizationStatus.denied) {
-                              EasyLoading.showSuccess(
-                                  "Please enable this config in system setting");
-
-                              await AppSettings.openAppSettings();
-                              return;
-                            }
-                            try {
-                              if (setting.authorizationStatus ==
-                                      AuthorizationStatus.notDetermined ||
-                                  NotifyService.fcmToken == null) {
-                                await NotifyService.init(true);
-                              }
-
-                              await NotifyService.updateNotificationUserSetting(
-                                  true);
-                              EasyLoading.showSuccess('Enabled');
-                              Get.back();
-                            } catch (e, s) {
-                              logger.e(e.toString(), error: e, stackTrace: s);
-                              EasyLoading.showError(e.toString());
-                            }
-                          },
-                        ),
-                      ],
-                    ));
+                  onToggle: (res) async {
+                    res ? enableNotification() : disableNotification();
                   },
                   title: const Text('Notification status')),
+              if (hc.debugModel.value || kDebugMode)
+                SettingsTile.navigation(
+                  title: const Text("FCMToken"),
+                  onPressed: (context) {
+                    Clipboard.setData(
+                        ClipboardData(text: NotifyService.fcmToken ?? ''));
+                    EasyLoading.showSuccess('Copied');
+                  },
+                  value: Text(
+                      '${(NotifyService.fcmToken ?? '').substring(0, NotifyService.fcmToken != null ? 5 : 0)}...',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1),
+                ),
               SettingsTile.navigation(
                   title: const Text('Open System Settings'),
                   onPressed: (context) async {
@@ -399,17 +330,99 @@ class MinePage extends GetView<SettingController> {
     }
     return res;
   }
-}
 
-getColorByStatus(RelayStatusEnum status) {
-  switch (status) {
-    case RelayStatusEnum.connecting:
-      return Colors.yellow;
-    case RelayStatusEnum.success:
-      return Colors.green;
-    case RelayStatusEnum.failed:
-      return Colors.red;
-    default:
-      return Colors.grey;
+  disableNotification() {
+    Get.dialog(CupertinoAlertDialog(
+      title: const Text("Alert"),
+      content: Container(
+          color: Colors.transparent,
+          padding: const EdgeInsets.only(top: 15),
+          child: const Text(
+              'Once deactivated, your receiving addresses will be automatically deleted from the notification server.')),
+      actions: <Widget>[
+        CupertinoDialogAction(
+          child: const Text("Cancel"),
+          onPressed: () {
+            Get.back();
+          },
+        ),
+        CupertinoDialogAction(
+          child: const Text("Confirm"),
+          onPressed: () async {
+            EasyLoading.show(status: 'Processing');
+            try {
+              await NotifyService.updateUserSetting(false);
+              EasyLoading.showSuccess('Disabled');
+              Get.back();
+            } catch (e, s) {
+              logger.e(e.toString(), error: e, stackTrace: s);
+              EasyLoading.showError(e.toString());
+            }
+          },
+        ),
+      ],
+    ));
+  }
+
+  enableNotification() {
+    Get.dialog(CupertinoAlertDialog(
+      title: const Text("Alert"),
+      content: Container(
+          color: Colors.transparent,
+          padding: const EdgeInsets.only(top: 15),
+          child: const Text(
+              'Once activated, your receiving addresses will be automatically uploaded to the notification server.')),
+      actions: <Widget>[
+        CupertinoDialogAction(
+          child: const Text("Cancel"),
+          onPressed: () {
+            Get.back();
+          },
+        ),
+        CupertinoDialogAction(
+          child: const Text("Confirm"),
+          onPressed: () async {
+            EasyLoading.show(status: 'Processing');
+            var setting =
+                await FirebaseMessaging.instance.getNotificationSettings();
+
+            if (setting.authorizationStatus == AuthorizationStatus.denied) {
+              EasyLoading.showSuccess(
+                  "Please enable this config in system setting");
+
+              await AppSettings.openAppSettings();
+              return;
+            }
+            try {
+              if (setting.authorizationStatus ==
+                      AuthorizationStatus.notDetermined ||
+                  NotifyService.fcmToken == null) {
+                await NotifyService.init(true);
+              }
+
+              await NotifyService.updateUserSetting(true);
+              EasyLoading.showSuccess('Enabled');
+              Get.back();
+            } catch (e, s) {
+              logger.e(e.toString(), error: e, stackTrace: s);
+              EasyLoading.showError(e.toString());
+            }
+          },
+        ),
+      ],
+    ));
+  }
+
+  getColorByStatus(RelayStatusEnum status) {
+    switch (status) {
+      case RelayStatusEnum.connecting:
+        return Colors.yellow;
+      case RelayStatusEnum.success:
+        return Colors.green;
+      case RelayStatusEnum.failed:
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
 }

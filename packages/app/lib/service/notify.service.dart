@@ -177,7 +177,7 @@ class NotifyService {
         debugPrint('Message data: ${message.data}');
 
         if (message.notification != null) {
-          debugPrint('notification: ${message.notification}');
+          debugPrint('notification: ${message.notification?.body}');
         }
       });
 
@@ -186,7 +186,10 @@ class NotifyService {
           StorageKeyString.settingNotifyStatus, NotifySettingStatus.enable);
       fcmToken = await FirebaseMessaging.instance
           .getToken()
-          .timeout(const Duration(seconds: 8), onTimeout: () {
+          .timeout(const Duration(seconds: 8), onTimeout: () async {
+        fcmToken =
+            await Storage.getString(StorageKeyString.notificationFCMToken);
+        if (fcmToken != null) return fcmToken;
         Get.showSnackbar(
           GetSnackBar(
               snackPosition: SnackPosition.TOP,
@@ -204,6 +207,9 @@ Fix:
         );
         throw TimeoutException('FCMTokenTimeout');
       });
+      if (fcmToken != null) {
+        Storage.setString(StorageKeyString.notificationFCMToken, fcmToken);
+      }
       logger.i('fcmToken: $fcmToken');
       await syncPubkeysToServer(true);
     }
@@ -239,7 +245,7 @@ Fix:
     }
   }
 
-  static Future updateNotificationUserSetting(bool status) async {
+  static Future updateUserSetting(bool status) async {
     Get.find<HomeController>().notificationStatus.value = status;
     int intStatus = status ? 1 : -1;
     await Storage.setInt(StorageKeyString.settingNotifyStatus, intStatus);
@@ -248,7 +254,6 @@ Fix:
     } else {
       await NotifyService.deleteNofityConfig();
     }
-    return;
   }
 }
 

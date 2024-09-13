@@ -421,11 +421,7 @@ class RoomService extends BaseChatService {
     }
 
     await km.service.proccessMessage(
-        room: room,
-        event: event,
-        km: km,
-        relay: relay,
-        sourceEvent: sourceEvent);
+        room: room, event: event, km: km, sourceEvent: sourceEvent);
 
     return;
   }
@@ -438,8 +434,7 @@ class RoomService extends BaseChatService {
       String? msgKeyHash,
       String? fromIdPubkey,
       Function(String error)? failedCallback,
-      required KeychatMessage km,
-      required Relay relay}) async {
+      required KeychatMessage km}) async {
     switch (km.type) {
       // case KeyChatEventKinds.webrtcAudioCall:
       // case KeyChatEventKinds.webrtcVideoCall:

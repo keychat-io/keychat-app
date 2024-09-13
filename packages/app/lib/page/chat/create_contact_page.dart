@@ -2,7 +2,7 @@
 
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/components.dart';
-import 'package:app/service/qrscan.ervice.dart';
+import 'package:app/service/qrscan.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';

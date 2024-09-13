@@ -207,6 +207,7 @@ class MoreSetting extends StatelessWidget {
                 EasyLoading.dismiss();
                 FirebaseMessaging.instance.deleteToken();
                 NotifyService.fcmToken == null;
+                SecureStorage.keys.clear();
                 Get.offAllNamed(Routes.login);
               } catch (e, s) {
                 logger.e('reset all', error: e, stackTrace: s);

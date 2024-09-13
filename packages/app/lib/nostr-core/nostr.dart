@@ -467,7 +467,7 @@ class NostrAPI {
       failedCallback('Nip04 decrypt error');
       return;
     }
-    await KdfGroupService.instance.decryptMessage(kdfRoom, event, relay,
+    await KdfGroupService.instance.decryptMessage(kdfRoom, event,
         nip4DecodedContent: content, failedCallback: failedCallback);
   }
 

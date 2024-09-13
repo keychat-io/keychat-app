@@ -468,7 +468,7 @@ Let's start an encrypted chat.''';
           ..curve25519PkHex = model.curve25519PkHex
           ..name = model.name;
 
-    await Get.off(() => ContactPage(
+    await Get.to(() => ContactPage(
           identityId: identity.id,
           contact: contact,
           title: 'Add Contact',

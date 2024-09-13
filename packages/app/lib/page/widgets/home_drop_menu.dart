@@ -1,8 +1,9 @@
 import 'package:app/page/routes.dart';
-import 'package:app/utils.dart';
+import 'package:app/service/qrscan.service.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
 class HomeDropMenuWidget extends StatefulWidget {
@@ -99,7 +100,14 @@ abstract class MenuItems {
         await Get.toNamed(Routes.addFriend);
         break;
       case MenuItems.scan:
-        handleQRScan();
+        if (!GetPlatform.isMobile) {
+          EasyLoading.showToast('Not available on this devices');
+          return;
+        }
+        String? result = await QrScanService.instance.handleQRScan();
+        if (result != null) {
+          QrScanService.instance.processQRResult(result);
+        }
         break;
       case MenuItems.addGroup:
         await Get.toNamed(Routes.addGroup);

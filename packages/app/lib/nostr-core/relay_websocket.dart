@@ -84,8 +84,8 @@ class RelayWebsocket {
 
   Future _proccessFailedEvents() async {
     Set<String> failedEvents = ws.getFailedEvents(relay.url);
-    logger.i('proccessFailedEvents: ${failedEvents.length}');
     if (failedEvents.isEmpty) return;
+    logger.i('proccessFailedEvents: ${failedEvents.length}');
     List<String> tasksString = failedEvents.toList();
     failedEvents.clear();
     Queue queue = Queue(delay: const Duration(milliseconds: 100));

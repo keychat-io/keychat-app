@@ -570,8 +570,9 @@ Future showMyQrCode(
   try {
     signalId = await SignalIdService.instance.createSignalId(identity.id);
   } catch (e, s) {
+    String msg = Utils.getErrorMessage(e);
     logger.e(e.toString(), error: e, stackTrace: s);
-    EasyLoading.showError(e.toString());
+    EasyLoading.showError(msg);
     return;
   }
 

@@ -22,7 +22,7 @@ abstract class Routes {
   static const contact = '/contact/:id';
 
   static const scanQR = '/scanQR';
-  static const scanQRText = '/scanQRText';
+
   // ecash
   static const ecash = '/ecash';
   static const ecashBillCashu = '/ecash/bills/cashu';

@@ -5,7 +5,7 @@ import 'dart:math' show Random;
 
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
-import 'package:app/page/routes.dart';
+
 import 'package:app/service/storage.dart';
 import 'package:app/utils/config.dart';
 import 'package:app/utils/log_file.dart';
@@ -14,7 +14,6 @@ import 'package:convert/convert.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart' show DateFormat;
@@ -187,16 +186,6 @@ String getYearMonthDay() {
   int month = now.month;
   int day = now.day;
   return "$year-$month-$day";
-}
-
-Future handleQRScan() async {
-  if (await Permission.camera.request().isGranted) {
-    Get.toNamed(Routes.scanQR);
-  } else {
-    EasyLoading.showToast('Camera permission not grant');
-    await Future.delayed(const Duration(milliseconds: 1000), () => {});
-    openAppSettings();
-  }
 }
 
 bool isEmail(String input) {

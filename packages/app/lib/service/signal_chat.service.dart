@@ -208,8 +208,7 @@ class SignalChatService extends BaseChatService {
           event: event,
           km: km,
           msgKeyHash: msgKeyHash,
-          sourceEvent: sourceEvent,
-          relay: relay);
+          sourceEvent: sourceEvent);
       return decodeString;
     }
     await RoomService().receiveDM(room, event,
@@ -236,8 +235,7 @@ class SignalChatService extends BaseChatService {
       NostrEventModel? sourceEvent,
       Function(String error)? failedCallback,
       String? fromIdPubkey,
-      String? msgKeyHash,
-      required Relay relay}) async {
+      String? msgKeyHash}) async {
     switch (km.type) {
       case KeyChatEventKinds.dm: // commom chat, may be contain: reply
         await RoomService().receiveDM(room, event,
@@ -525,7 +523,6 @@ Let's talk on this server.''';
           km: km,
           msgKeyHash: msgKeyHash,
           sourceEvent: null,
-          relay: relay,
           failedCallback: failedCallback);
       return;
     }

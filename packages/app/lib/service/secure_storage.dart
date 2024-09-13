@@ -7,8 +7,12 @@ class SecureStorage {
   // Avoid self instance
   SecureStorage._();
   static SecureStorage get instance => _instance ??= SecureStorage._();
-  static FlutterSecureStorage storage = const FlutterSecureStorage(
-      iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock));
+  static AndroidOptions _getAndroidOptions() =>
+      const AndroidOptions(encryptedSharedPreferences: true);
+  static final FlutterSecureStorage storage = FlutterSecureStorage(
+      aOptions: _getAndroidOptions(),
+      iOptions:
+          const IOSOptions(accessibility: KeychainAccessibility.first_unlock));
 
   String mnemonicKey = kReleaseMode ? 'mnemonic' : '${Config.env}:mnemonic';
   static Map<String, String> keys = {};

@@ -25,7 +25,6 @@ import 'package:app/models/embedded/msg_reply.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/models/keychat/keychat_message.dart';
 import 'package:app/models/message.dart';
-import 'package:app/models/relay.dart';
 import 'package:app/models/room.dart';
 import 'package:app/models/signal_id.dart';
 import 'package:app/nostr-core/nostr_event.dart';
@@ -116,8 +115,7 @@ class KdfGroupService extends BaseChatService {
       Function(String error)? failedCallback,
       String? msgKeyHash,
       String? fromIdPubkey,
-      required KeychatMessage km,
-      required Relay relay}) async {
+      required KeychatMessage km}) async {
     switch (km.type) {
       case KeyChatEventKinds.kdfHelloMessage:
         await _proccessHelloMessage(room, event, km,
@@ -172,7 +170,6 @@ class KdfGroupService extends BaseChatService {
       {required RoomMember fromMember,
       required Room room,
       required NostrEventModel event,
-      required Relay relay,
       required SignalId sharedSignalId,
       required KeychatIdentityKeyPair keyPair,
       NostrEventModel? sourceEvent}) async {
@@ -219,13 +216,12 @@ class KdfGroupService extends BaseChatService {
         msgKeyHash: msgKeyHash,
         event: event,
         sourceEvent: sourceEvent,
-        fromIdPubkey: fromMember.idPubkey,
-        relay: relay);
+        fromIdPubkey: fromMember.idPubkey);
   }
 
   // shared key receive message then decrypt message
   // message struct: nip4 wrap signal
-  Future decryptMessage(Room room, NostrEventModel nostrEvent, Relay relay,
+  Future decryptMessage(Room room, NostrEventModel nostrEvent,
       {required String nip4DecodedContent,
       required Function(String) failedCallback}) async {
     if (room.sharedSignalID == null) throw Exception('sharedSignalID is null');
@@ -258,8 +254,7 @@ class KdfGroupService extends BaseChatService {
             keyPair: keyPair,
             room: room,
             event: signalEvent,
-            sourceEvent: nostrEvent,
-            relay: relay);
+            sourceEvent: nostrEvent);
       } catch (e, s) {
         String msg = Utils.getErrorMessage(e);
         logger.e('decryptPreKeyMessage error: $msg', error: e, stackTrace: s);
@@ -297,8 +292,7 @@ class KdfGroupService extends BaseChatService {
             keyPair: keyPair,
             room: room,
             event: signalEvent,
-            sourceEvent: nostrEvent,
-            relay: relay);
+            sourceEvent: nostrEvent);
         return;
       } catch (e, s) {
         msg = Utils.getErrorMessage(e);
@@ -333,8 +327,7 @@ class KdfGroupService extends BaseChatService {
           msgKeyHash: msgKeyHash,
           event: signalEvent,
           sourceEvent: nostrEvent,
-          fromIdPubkey: fromMember.idPubkey,
-          relay: relay);
+          fromIdPubkey: fromMember.idPubkey);
     } catch (e, s) {
       String msg = Utils.getErrorMessage(e);
       logger.e('decryptPreKeyMessage error: $msg', error: e, stackTrace: s);
@@ -462,7 +455,6 @@ $error ''';
     if (km.name == null) {
       throw Exception('_proccessHelloMessage: km.name is null');
     }
-
     // update room member
     RoomMember? rm = await room.getMemberByIdPubkey(event.pubkey);
     rm ??=

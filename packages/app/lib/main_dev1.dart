@@ -3,6 +3,9 @@ import 'dart:io' show Directory;
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -12,6 +15,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/index.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'controller/home.controller.dart';
 import 'controller/setting.controller.dart';
 import 'models/db_provider.dart';
@@ -19,6 +23,7 @@ import 'page/app_theme.dart';
 import 'page/pages.dart';
 import 'service/identity.service.dart';
 import 'utils/config.dart' as env_config;
+import 'firebase_options.dart';
 
 bool isProdEnv = true;
 
@@ -37,7 +42,7 @@ void main() async {
       defaultPopGesture: true,
       defaultTransition: Transition.cupertino);
   String initialRoute = await getInitRoute(isLogin);
-  runApp(GetMaterialApp(
+  var getMaterialApp = GetMaterialApp(
     initialRoute: initialRoute,
     getPages: Pages.routes,
     builder: EasyLoading.init(),
@@ -46,7 +51,18 @@ void main() async {
     themeMode: themeMode,
     theme: AppThemeCustom.light(),
     darkTheme: AppThemeCustom.dark(),
-  ));
+  );
+  if (kDebugMode) return runApp(getMaterialApp);
+
+  try {
+    // start with sentry
+    String sentryDNS = dotenv.get('SENTRY_DNS');
+    await SentryFlutter.init((options) {
+      options.dsn = sentryDNS;
+    }, appRunner: () => runApp(getMaterialApp));
+  } catch (e) {
+    runApp(getMaterialApp);
+  }
 }
 
 Future<String> getInitRoute(bool isLogin) async {
@@ -70,20 +86,36 @@ void initEasyLoading() {
     ..fontSize = 16;
 }
 
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // If you're going to use other Firebase services in the background, such as Firestore,
+  // make sure you call `initializeApp` before using other Firebase services.
+  if (Firebase.apps.isEmpty) {
+    await Firebase.initializeApp(
+        name: GetPlatform.isAndroid ? 'keychat-bg' : null,
+        options: DefaultFirebaseOptions.currentPlatform);
+  }
+
+  debugPrint("Handling a background message: ${message.messageId}");
+}
+
 Future initServices() async {
   FlutterNativeSplash.preserve(
       widgetsBinding: WidgetsFlutterBinding.ensureInitialized());
   await SystemChrome.setPreferredOrientations(
-    [
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ],
-  );
-  await RustLib.init();
+      [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   await dotenv.load(fileName: ".env");
+  if (dotenv.get('FCMapiKey', fallback: '') != '') {
+    await Firebase.initializeApp(
+        name: GetPlatform.isAndroid ? 'keychat' : null,
+        options: DefaultFirebaseOptions.currentPlatform);
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    logger.i('Firebase initialized');
+  }
+
+  await RustLib.init();
   String env =
-      'dev1'; //const String.fromEnvironment("MYENV", defaultValue: "prod");
-  env_config.Config().init(env);
+      'dev1'; //const String.fromEnvironment("MYENV", defaultValue: "prod");  env_config.Config().init(env);
   isProdEnv = env_config.Config.isProd();
 
   var appFolder = await getApplicationDocumentsDirectory();
@@ -96,7 +128,6 @@ Future initServices() async {
 
   await DBProvider.initDB(dbPath);
   SettingController sc = Get.put(SettingController(), permanent: true);
-  // RustAPI.initEcashDB(dbPath);
   Get.put(EcashController(dbPath), permanent: true);
   Get.putAsync(() => ChatxService().init(dbPath));
   Get.putAsync(() => WebsocketService().init());
@@ -105,5 +136,5 @@ Future initServices() async {
 }
 
 void _logWriterCallback(String text, {bool isError = false}) {
-  isError ? logger.e(text) : loggerNoLine.i(text);
+  isError ? debugPrint(text) : loggerNoLine.i(text);
 }

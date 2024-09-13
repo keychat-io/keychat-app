@@ -107,6 +107,7 @@ Future initServices() async {
   await dotenv.load(fileName: ".env");
   if (dotenv.get('FCMapiKey', fallback: '') != '') {
     await Firebase.initializeApp(
+        name: GetPlatform.isAndroid ? 'keychat' : null,
         options: DefaultFirebaseOptions.currentPlatform);
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     logger.i('Firebase initialized');

@@ -367,18 +367,18 @@ class RoomList extends StatelessWidget {
                       minimumSize: WidgetStateProperty.all(
                           const Size(double.infinity, 40))),
                   child: const Text('Show My QR Code')),
-              const SizedBox(
-                height: 20,
-              ),
-              OutlinedButton(
-                onPressed: () {
-                  Get.toNamed(Routes.ecash);
-                },
-                style: ButtonStyle(
-                    minimumSize: WidgetStateProperty.all(
-                        const Size(double.infinity, 40))),
-                child: const Text('Deposit Ecash Sat to start a chat'),
-              )
+              const SizedBox(height: 20),
+              Obx(() => Get.find<EcashController>().totalSats.value == 0
+                  ? OutlinedButton(
+                      onPressed: () {
+                        Get.toNamed(Routes.ecash);
+                      },
+                      style: ButtonStyle(
+                          minimumSize: WidgetStateProperty.all(
+                              const Size(double.infinity, 40))),
+                      child: const Text('Deposit Ecash Sat to start a chat'),
+                    )
+                  : const SizedBox.shrink()),
             ],
           ),
         ));

@@ -9,12 +9,12 @@ cargo build
 cd ../../
 echo "Update keychat_rust_ffi_plugin success"
 
-echo "Update ios starting..."
-git log -n 2 --pretty=format:"%h - %s (%ci)"
-cd packages/app/ios
-rm -rf Podfile.lock
-pod repo update && pod install
-cd ../../../
+# echo "Update ios starting..."
+# git log -n 2 --pretty=format:"%h - %s (%ci)"
+# cd packages/app/ios
+# rm -rf Podfile.lock
+# pod repo update && pod install
+# cd ../../../
 
 
 echo "Update app starting..."

@@ -1,22 +1,16 @@
 // ignore_for_file: depend_on_referenced_packages
-
-import 'package:app/page/routes.dart';
 import 'package:app/page/theme.dart';
+import 'package:app/service/qrscan.service.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:haptic_feedback/haptic_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:keychat_ecash/components/SelectMint.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
-import 'package:permission_handler/permission_handler.dart';
 import './PayInvoice_controller.dart';
 
 class PayInvoicePage extends StatefulWidget {
   final String? invoce;
-  const PayInvoicePage([
-    this.invoce,
-  ]);
+  const PayInvoicePage({super.key, this.invoce});
 
   @override
   _PayInvoicePageState createState() => _PayInvoicePageState();
@@ -92,29 +86,10 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                         ),
                         OutlinedButton.icon(
                             onPressed: () async {
-                              PermissionStatus permissionStatus =
-                                  await Permission.camera.status;
-                              if (!permissionStatus.isGranted) {
-                                permissionStatus =
-                                    await Permission.camera.request();
-                              }
-                              if (permissionStatus.isGranted) {
-                                var result =
-                                    await Get.toNamed(Routes.scanQRText);
-                                if (result != null) {
-                                  if (GetPlatform.isMobile) {
-                                    await Haptics.vibrate(
-                                        HapticsType.selection);
-                                  }
-                                  controller.textController.text = result;
-                                }
-                              } else {
-                                EasyLoading.showToast(
-                                    'Camera permission not grant');
-                                await Future.delayed(
-                                    const Duration(milliseconds: 1000),
-                                    () => {});
-                                openAppSettings();
+                              String? result =
+                                  await QrScanService.instance.handleQRScan();
+                              if (result != null) {
+                                controller.textController.text = result;
                               }
                             },
                             icon: const Icon(Icons.qr_code_scanner),
@@ -131,9 +106,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                           onPressed: () {
                             controller.confirm(controller.selectedMint.value);
                           },
-                          child: const Text(
-                            'Pay Invoice',
-                          ),
+                          child: const Text('Pay Invoice'),
                         )
                       : FilledButton(
                           onPressed: null,

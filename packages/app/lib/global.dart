@@ -18,7 +18,7 @@ class KeychatGlobal {
   static const int oneTimePubkeysPoolLength = 1;
   static const int signalIdsPoolLength = 1;
   static const int oneTimePubkeysLifetime = 24; // hours
-  static const int signalIdLifetime = 24; // hours
+  static const int signalIdLifetime = 168; // hours
   static const List webrtcIceServers = [
     {'url': 'stun:stun.l.google.com:19302'},
     {'url': 'stun:stun1.l.google.com:19302'},
@@ -63,5 +63,5 @@ The addresses of both parties on the envelope can be tracked. In theory, this pr
 Like the postal system, Keychat requires no registration. Users just generate Nostr keys as ID.''';
 
   static int kdfGroupPrekeyMessageCount = 3;
-  static int kdfGroupKeysExpired = 30;
+  static int kdfGroupKeysExpired = 7;
 }

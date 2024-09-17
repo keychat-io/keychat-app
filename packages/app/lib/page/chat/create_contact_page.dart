@@ -105,7 +105,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                           EasyLoading.showToast('Invalid Input');
                           return;
                         }
-                        await RoomUtil.processUserQRCode(model);
+                        await RoomUtil.processUserQRCode(model, true);
                       }
                       return;
                     }

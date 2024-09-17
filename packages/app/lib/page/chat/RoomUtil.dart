@@ -438,7 +438,8 @@ Let's start an encrypted chat.''';
     );
   }
 
-  static Future processUserQRCode(QRUserModel model) async {
+  static Future processUserQRCode(QRUserModel model,
+      [bool fromAddPage = false]) async {
     if (model.time <
         DateTime.now().millisecondsSinceEpoch -
             1000 * 3600 * KeychatGlobal.oneTimePubkeysLifetime) {
@@ -468,11 +469,16 @@ Let's start an encrypted chat.''';
           ..curve25519PkHex = model.curve25519PkHex
           ..name = model.name;
 
-    await Get.to(() => ContactPage(
-          identityId: identity.id,
-          contact: contact,
-          title: 'Add Contact',
-        )..model = model);
+    var page = ContactPage(
+      identityId: identity.id,
+      contact: contact,
+      title: 'Add Contact',
+    )..model = model;
+    if (fromAddPage) {
+      await Get.off(() => page);
+      return;
+    }
+    await Get.to(() => page);
   }
 
   static String getGroupModeName(GroupType type) {

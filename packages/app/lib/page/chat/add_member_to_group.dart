@@ -91,19 +91,25 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
     RoomMember? meMember = await widget.room.getMember(myPubkey);
     if (meMember != null) {
       if (!meMember.isAdmin) {
-        await GroupService().sendInviteToAdmin(widget.room, selectAccounts);
-        EasyLoading.dismiss();
-        Get.dialog(CupertinoAlertDialog(
-            title: const Text('Success'),
-            content: const Text('The invitation has been sent to the admin'),
-            actions: <Widget>[
-              CupertinoDialogAction(
-                  child: const Text('OK'),
-                  onPressed: () {
-                    Get.back();
-                    Get.back();
-                  })
-            ]));
+        try {
+          await GroupService().sendInviteToAdmin(widget.room, selectAccounts);
+
+          EasyLoading.dismiss();
+          Get.dialog(CupertinoAlertDialog(
+              title: const Text('Success'),
+              content: const Text('The invitation has been sent to the admin'),
+              actions: <Widget>[
+                CupertinoDialogAction(
+                    child: const Text('OK'),
+                    onPressed: () {
+                      Get.back();
+                      Get.back();
+                    })
+              ]));
+        } catch (e, s) {
+          logger.e(e.toString(), error: e, stackTrace: s);
+          EasyLoading.showError(e.toString());
+        }
         return;
       }
     }

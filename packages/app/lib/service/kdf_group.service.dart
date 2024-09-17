@@ -8,6 +8,7 @@ import 'package:app/global.dart';
 import 'package:app/models/db_provider.dart';
 import 'package:app/models/keychat/room_profile.dart';
 import 'package:app/models/mykey.dart';
+import 'package:app/models/nostr_event_status.dart';
 import 'package:app/models/room_member.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/service/chatx.service.dart';
@@ -376,6 +377,7 @@ class KdfGroupService extends BaseChatService {
   // create my signal session with sharedSignalId
   Future sendHelloMessage(
       Identity identity, SignalId sharedSignalId, Room room) async {
+    logger.d('sendHelloMessage, version: ${room.version}');
     // update my signalId
     SignalId userSignalId =
         await SignalIdService.instance.createSignalId(room.identityId);
@@ -392,14 +394,22 @@ class KdfGroupService extends BaseChatService {
     KeychatMessage sm = KeychatMessage(
         c: MessageType.kdfGroup, type: KeyChatEventKinds.kdfHelloMessage)
       ..name = identity.displayName
-      ..msg = '${identity.displayName} joined group';
+      ..msg = '${identity.displayName} joined group, version: ${room.version}';
     SendMessageResponse smr = await KdfGroupService.instance
         .sendMessage(room, notPrekey: false, sm.toString());
-    _messageReceiveCheck(room, smr.events[0], const Duration(seconds: 1), 5)
+    var toSendEvent = smr.events[0];
+    DateTime createdAt =
+        DateTime.fromMillisecondsSinceEpoch(toSendEvent.createdAt * 1000);
+    await _messageReceiveCheck(
+            room, toSendEvent, const Duration(milliseconds: 200), 3)
         .then((res) async {
-      if (!res) {
-        MessageService().saveSystemMessage(room, 'Send hello message failed.');
-      } else {
+      String id = toSendEvent.id;
+      NostrEventStatus? nes = await DBProvider.database.nostrEventStatus
+          .filter()
+          .eventIdEqualTo(id)
+          .sendStatusEqualTo(EventSendEnum.success)
+          .findFirst();
+      if (res || nes != null) {
         var exist =
             await MessageService().getMessageByEventId(smr.events[0].id);
         if (exist == null) return;
@@ -407,7 +417,13 @@ class KdfGroupService extends BaseChatService {
           exist.sent = SendStatusType.success;
           await MessageService().updateMessageAndRefresh(exist);
         }
+        return;
       }
+      Room exist = await RoomService().getRoomByIdOrFail(room.id);
+      String msg = exist.version == room.version
+          ? 'Send hello_message ${nes == null ? 'failed' : 'success'}, but the receive key changed, ignore my hello message, version: ${room.version}'
+          : 'The receive key changed, ignore my hello message';
+      MessageService().saveSystemMessage(room, msg, createdAt: createdAt);
     });
   }
 
@@ -611,7 +627,7 @@ Let's create a new group.''';
       groupRoom.mykey.value = mykey;
       groupRoom.status = RoomStatus.enabled;
       groupRoom.version = roomProfile.updatedAt;
-      await GroupTx().updateRoom(groupRoom, updateMykey: true);
+      groupRoom = await GroupTx().updateRoom(groupRoom, updateMykey: true);
 
       // proccess shared nostr pubkey
       Get.find<WebsocketService>()
@@ -630,18 +646,18 @@ Let's create a new group.''';
     });
     RoomService.getController(groupRoom.id)?.setRoom(groupRoom).resetMembers();
 
+    // String toSaveSystemMessage =
+    //     '''Reset room's session success. ${groupRoom.sharedSignalID}''';
+    // await MessageService().saveSystemMessage(groupRoom, toSaveSystemMessage);
     // start listen
     await Get.find<WebsocketService>().listenPubkey([keychain.pubkey],
         since: DateTime.fromMillisecondsSinceEpoch(
             roomProfile.updatedAt - 10 * 1000));
     NotifyService.addPubkeys([keychain.pubkey]);
 
-    // String toSaveSystemMessage =
-    //     '''Reset room's session success. ${groupRoom.sharedSignalID}''';
-    // await MessageService().saveSystemMessage(groupRoom, toSaveSystemMessage);
-
     await sendHelloMessage(
         identity, groupRoom.getGroupSharedSignalId(), groupRoom);
+    await Future.delayed(const Duration(milliseconds: 100));
     return groupRoom;
   }
 

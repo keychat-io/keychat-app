@@ -499,19 +499,18 @@ Let's talk on this server.''';
         encryptMode: EncryptMode.signal,
         curve25519PkHex: signalIdPubkey,
         signalId: signalId);
-    if (room.status == RoomStatus.requesting ||
-        room.encryptMode != EncryptMode.signal) {
-      room.status = RoomStatus.enabled;
-      room.encryptMode = EncryptMode.signal;
-      room.curve25519PkHex = signalIdPubkey;
-      await ContactService().updateContact(
-          identityId: room.identityId,
-          pubkey: room.toMainPubkey,
-          name: prekeyMessageModel.name);
-      await RoomService().updateRoom(room);
-      await RoomService().updateChatRoomPage(room);
-      await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
-    }
+
+    room.status = RoomStatus.enabled;
+    room.encryptMode = EncryptMode.signal;
+    room.curve25519PkHex = signalIdPubkey;
+    await ContactService().updateContact(
+        identityId: room.identityId,
+        pubkey: room.toMainPubkey,
+        name: prekeyMessageModel.name);
+    await RoomService().updateRoom(room);
+    await RoomService().updateChatRoomPage(room);
+    await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
+
     KeychatMessage? km;
     try {
       km = KeychatMessage.fromJson(jsonDecode(prekeyMessageModel.message));

@@ -61,7 +61,6 @@ class SubscribeEventStatus {
     MesssageToRelayEOSE me = MesssageToRelayEOSE(1);
     me.receiveRelayEOSE(url, isSuccess, errorMessage);
     updateEventAndMessageStatus(eventId, me);
-    return;
   }
 
   static isFilled(String eventId) {

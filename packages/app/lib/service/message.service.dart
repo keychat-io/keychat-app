@@ -61,7 +61,8 @@ class MessageService {
     await RoomService.getController(model.roomId)?.addMessage(model);
   }
 
-  Future saveSystemMessage(Room room, String content) async {
+  Future saveSystemMessage(Room room, String content,
+      {DateTime? createdAt}) async {
     Identity identity = room.getIdentity();
     await saveMessageModel(Message(
         msgid: Utils.randomString(16),
@@ -71,7 +72,7 @@ class MessageService {
         from: identity.secp256k1PKHex,
         to: room.toMainPubkey,
         content: '[SystemMessage] $content',
-        createdAt: DateTime.now(),
+        createdAt: createdAt ?? DateTime.now(),
         sent: SendStatusType.success,
         isMeSend: true,
         isSystem: true,

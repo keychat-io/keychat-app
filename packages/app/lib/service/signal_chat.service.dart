@@ -207,6 +207,7 @@ class SignalChatService extends BaseChatService {
           room: room,
           event: event,
           km: km,
+          fromIdPubkey: room.toMainPubkey,
           msgKeyHash: msgKeyHash,
           sourceEvent: sourceEvent);
       return decodeString;
@@ -521,6 +522,7 @@ Let's talk on this server.''';
           event: event,
           km: km,
           msgKeyHash: msgKeyHash,
+          fromIdPubkey: room.toMainPubkey,
           sourceEvent: null,
           failedCallback: failedCallback);
       return;

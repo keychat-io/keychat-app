@@ -798,14 +798,14 @@ class _ChatPage2State extends State<ChatPage> {
     }
     return ListTile(
       leading: const Icon(Icons.warning, color: Colors.yellow),
-      title: Text('NotFriends: ${controller.kpaIsNullRooms.length}'),
+      title: Text('NotContacts: ${controller.kpaIsNullRooms.length}'),
       subtitle:
           const Text('You are not friends, cannot send and receive messages'),
       trailing: FilledButton(
           onPressed: () {
             showModalBottomSheetWidget(
                 Get.context!,
-                'Send Friend Request',
+                'Add Contacts',
                 Column(
                     // padding: const EdgeInsets.symmetric(horizontal: 10),
                     // color: Theme.of(Get.context!).colorScheme.background,

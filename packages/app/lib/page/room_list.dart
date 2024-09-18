@@ -336,7 +336,10 @@ class RoomList extends StatelessWidget {
             ));
       default:
     }
-    return const HomeDropMenuWidget();
+    return badges.Badge(
+        showBadge: homeController.addFriendTips.value,
+        position: badges.BadgePosition.topEnd(top: 5, end: 5),
+        child: HomeDropMenuWidget(homeController.addFriendTips.value));
   }
 
   Widget _noRoomsView(
@@ -350,15 +353,19 @@ class RoomList extends StatelessWidget {
               const SizedBox(
                 height: 200,
               ),
-              SvgPicture.asset(
-                'assets/images/no-message.svg',
-                height: 80,
-                width: 80,
-              ),
+              SvgPicture.asset('assets/images/no-message.svg',
+                  height: 80, width: 80),
               textSmallGray(context, 'No friends'),
-              const SizedBox(
-                height: 20,
-              ),
+              // const SizedBox(height: 20),
+              // OutlinedButton(
+              //     onPressed: () {
+              //       Get.toNamed(Routes.addFriend);
+              //     },
+              //     style: ButtonStyle(
+              //         minimumSize: WidgetStateProperty.all(
+              //             const Size(double.infinity, 40))),
+              //     child: const Text('Add Contacts')),
+              const SizedBox(height: 20),
               OutlinedButton(
                   onPressed: () {
                     showMyQrCode(context, identity, false);
@@ -366,10 +373,10 @@ class RoomList extends StatelessWidget {
                   style: ButtonStyle(
                       minimumSize: WidgetStateProperty.all(
                           const Size(double.infinity, 40))),
-                  child: const Text('Show My QR Code')),
+                  child: const Text('Show My QRCode')),
               const SizedBox(height: 20),
               Obx(() => Get.find<EcashController>().totalSats.value == 0
-                  ? OutlinedButton(
+                  ? TextButton(
                       onPressed: () {
                         Get.toNamed(Routes.ecash);
                       },

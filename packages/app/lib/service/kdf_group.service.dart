@@ -166,14 +166,14 @@ class KdfGroupService extends BaseChatService {
   }
 
   // decrypt the first signal message
-  Future decryptPreKeyMessage(
+  Future _decryptPreKeyMessage(
       {required RoomMember fromMember,
       required Room room,
       required NostrEventModel event,
       required SignalId sharedSignalId,
       required KeychatIdentityKeyPair keyPair,
+      required Uint8List ciphertext,
       NostrEventModel? sourceEvent}) async {
-    var ciphertext = Uint8List.fromList(base64Decode(event.content));
     var prekey = await rust_signal.parseIdentityFromPrekeySignalMessage(
         ciphertext: ciphertext);
     String signalIdPubkey = prekey.$1;
@@ -239,39 +239,45 @@ class KdfGroupService extends BaseChatService {
     }
 
     // setup shared signal id
-    ChatxService chatxService = Get.find<ChatxService>();
     SignalId signalId = room.getGroupSharedSignalId();
-    KeychatIdentityKeyPair keyPair = await chatxService
+    KeychatIdentityKeyPair keyPair = await Get.find<ChatxService>()
         .setupSignalStoreBySignalId(signalId.pubkey, signalId);
-    KeychatProtocolAddress? kpa =
-        await _checkIsPrekeyByRoom(fromMember.curve25519PkHex, room, keyPair);
 
-    if (kpa == null) {
+    Uint8List ciphertext =
+        Uint8List.fromList(base64Decode(signalEvent.content));
+    bool isPrekey =
+        await rust_signal.parseIsPrekeySignalMessage(ciphertext: ciphertext);
+    if (isPrekey) {
       try {
-        await decryptPreKeyMessage(
+        await _decryptPreKeyMessage(
             fromMember: fromMember,
             sharedSignalId: signalId,
             keyPair: keyPair,
             room: room,
             event: signalEvent,
+            ciphertext: ciphertext,
             sourceEvent: nostrEvent);
       } catch (e, s) {
         String msg = Utils.getErrorMessage(e);
         logger.e('decryptPreKeyMessage error: $msg', error: e, stackTrace: s);
-        await appendMessageOrCreate(msg, room, 'decryptPreKeyMessage kpa==null',
-            signalEvent, nostrEvent);
+        await appendMessageOrCreate(
+            msg, room, 'decryptPreKeyMessage', signalEvent, nostrEvent);
       }
       return;
     }
-
-    Uint8List message = Uint8List.fromList(base64Decode(signalEvent.content));
-
+    KeychatProtocolAddress? kpa =
+        await _checkIsPrekeyByRoom(fromMember.curve25519PkHex, room, keyPair);
+    if (kpa == null) {
+      await appendMessageOrCreate('session is null', room,
+          'decryptMessageError', signalEvent, nostrEvent);
+      return;
+    }
     late Uint8List plaintext;
     String? msgKeyHash;
     try {
       (plaintext, msgKeyHash, _) = await rust_signal.decryptSignal(
           keyPair: keyPair,
-          ciphertext: message,
+          ciphertext: ciphertext,
           remoteAddress: kpa,
           roomId: room.id,
           isPrekey: false);
@@ -284,22 +290,6 @@ class KdfGroupService extends BaseChatService {
       } else {
         loggerNoLine.e(msg);
       }
-
-      try {
-        await decryptPreKeyMessage(
-            fromMember: fromMember,
-            sharedSignalId: signalId,
-            keyPair: keyPair,
-            room: room,
-            event: signalEvent,
-            sourceEvent: nostrEvent);
-        return;
-      } catch (e, s) {
-        msg = Utils.getErrorMessage(e);
-        logger.e('decryptPreKeyMessage error: $msg', error: e, stackTrace: s);
-      }
-      await appendMessageOrCreate(
-          msg, room, 'decryptPreKeyMessage', signalEvent, nostrEvent);
       return;
     }
 

@@ -8,7 +8,6 @@ import 'package:app/global.dart';
 import 'package:app/models/db_provider.dart';
 import 'package:app/models/keychat/room_profile.dart';
 import 'package:app/models/mykey.dart';
-import 'package:app/models/nostr_event_status.dart';
 import 'package:app/models/room_member.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/service/chatx.service.dart';

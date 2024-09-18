@@ -112,9 +112,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                     await RoomService().createRoomAndsendInvite(input,
                         greeting: _helloController.text.trim());
                   },
-                  child: const Text(
-                    'Send',
-                  ),
+                  child: const Text('Send'),
                 ),
               ),
               Card(

@@ -8,7 +8,6 @@ import 'package:app/global.dart';
 import 'package:app/models/db_provider.dart';
 import 'package:app/models/keychat/room_profile.dart';
 import 'package:app/models/mykey.dart';
-import 'package:app/models/nostr_event_status.dart';
 import 'package:app/models/room_member.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/service/chatx.service.dart';
@@ -190,7 +189,7 @@ class KdfGroupService extends BaseChatService {
 
     // update room member
     fromMember.curve25519PkHex = signalIdPubkey;
-    room.incrMessageCountForMember(fromMember);
+    await room.incrMessageCountForMember(fromMember);
 
     // proccess message
     String decryptedContent = utf8.decode(plaintext);
@@ -277,7 +276,7 @@ class KdfGroupService extends BaseChatService {
           roomId: room.id,
           isPrekey: false);
 
-      room.incrMessageCountForMember(fromMember);
+      await room.incrMessageCountForMember(fromMember);
     } catch (e, s) {
       String msg = Utils.getErrorMessage(e);
       if (msg != ErrorMessages.signalDecryptError) {
@@ -339,7 +338,10 @@ class KdfGroupService extends BaseChatService {
 
   Future<KeychatProtocolAddress?> _checkIsPrekeyByRoom(String? memberPubkey,
       Room room, rust_signal.KeychatIdentityKeyPair keyPair) async {
-    if (memberPubkey == null) return null;
+    if (memberPubkey == null) {
+      logger.d('memberPubkey is null');
+      return null;
+    }
 
     rust_signal.KeychatProtocolAddress? kpa = await Get.find<ChatxService>()
         .getSignalSession(
@@ -394,37 +396,9 @@ class KdfGroupService extends BaseChatService {
     KeychatMessage sm = KeychatMessage(
         c: MessageType.kdfGroup, type: KeyChatEventKinds.kdfHelloMessage)
       ..name = identity.displayName
-      ..msg = '${identity.displayName} joined group, version: ${room.version}';
-    SendMessageResponse smr = await KdfGroupService.instance
+      ..msg = '${identity.displayName} joined group';
+    await KdfGroupService.instance
         .sendMessage(room, notPrekey: false, sm.toString());
-    var toSendEvent = smr.events[0];
-    DateTime createdAt =
-        DateTime.fromMillisecondsSinceEpoch(toSendEvent.createdAt * 1000);
-    await _messageReceiveCheck(
-            room, toSendEvent, const Duration(milliseconds: 200), 3)
-        .then((res) async {
-      String id = toSendEvent.id;
-      NostrEventStatus? nes = await DBProvider.database.nostrEventStatus
-          .filter()
-          .eventIdEqualTo(id)
-          .sendStatusEqualTo(EventSendEnum.success)
-          .findFirst();
-      if (res || nes != null) {
-        var exist =
-            await MessageService().getMessageByEventId(smr.events[0].id);
-        if (exist == null) return;
-        if (exist.sent != SendStatusType.success) {
-          exist.sent = SendStatusType.success;
-          await MessageService().updateMessageAndRefresh(exist);
-        }
-        return;
-      }
-      Room exist = await RoomService().getRoomByIdOrFail(room.id);
-      String msg = exist.version == room.version
-          ? 'Send hello_message ${nes == null ? 'failed' : 'success'}, but the receive key changed, ignore my hello message, version: ${room.version}'
-          : 'The receive key changed, ignore my hello message';
-      MessageService().saveSystemMessage(room, msg, createdAt: createdAt);
-    });
   }
 
   Future<bool> _messageReceiveCheck(

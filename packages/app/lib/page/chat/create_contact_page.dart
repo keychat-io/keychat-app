@@ -56,7 +56,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                 maxLines: 8,
                 minLines: 1,
                 controller: _controller,
-                autofocus: true,
+                // autofocus: true,
                 decoration: InputDecoration(
                     labelText: 'QRCode Or IDKey',
                     border: const OutlineInputBorder(),

@@ -136,7 +136,7 @@ class SignalChatService extends BaseChatService {
     return to;
   }
 
-  Future<String> decryptDMMessage(Room room, NostrEventModel event, Relay relay,
+  Future<String> decryptMessage(Room room, NostrEventModel event, Relay relay,
       {NostrEventModel? sourceEvent,
       required Function(String error) failedCallback}) async {
     String? decodeString;
@@ -175,6 +175,8 @@ class SignalChatService extends BaseChatService {
       if (msgKeyHash != null) {
         msgKeyHash =
             await rust_nostr.generateMessageKeyHash(seedKey: msgKeyHash);
+        ContactService().deleteReceiveKey(
+            room.identityId, room.toMainPubkey, event.tags[0][1]);
       }
       // if receive address is signalAddress, then remove room.onetimekey
       if (room.onetimekey != null) {
@@ -184,8 +186,6 @@ class SignalChatService extends BaseChatService {
           await RoomService().updateRoom(room);
         }
       }
-      ContactService().deleteReceiveKey(
-          room.identityId, room.toMainPubkey, event.tags[0][1]);
     } catch (e, s) {
       logger.e(e.toString(), error: e, stackTrace: s);
       if (e is AnyhowException) {

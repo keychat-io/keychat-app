@@ -430,7 +430,7 @@ class NostrAPI {
           // if signal message , to_address is myIDPubkey or one-time-key
           Room? room = await RoomService().getRoomByReceiveKey(to);
           if (room != null) {
-            await SignalChatService().decryptDMMessage(room, event, relay,
+            await SignalChatService().decryptMessage(room, event, relay,
                 failedCallback: failedCallback);
             return;
           }
@@ -537,7 +537,7 @@ class NostrAPI {
     // nip4(signal)
     Room room = await RoomService()
         .getOrCreateRoom(subEvent.pubkey, subEvent.tags[0][1], RoomStatus.init);
-    return await SignalChatService().decryptDMMessage(room, subEvent, relay,
+    return await SignalChatService().decryptMessage(room, subEvent, relay,
         sourceEvent: event, failedCallback: failedCallback);
   }
 

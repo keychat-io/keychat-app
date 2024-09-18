@@ -108,33 +108,24 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
           ],
         ),
         body: SafeArea(
-            child: ListView.separated(
-                itemCount: _contactList.length,
-                controller: _scrollController,
-                itemBuilder: (context, index) {
-                  return ListTile(
-                      dense: true,
-                      leading: getRandomAvatar(_contactList[index].pubkey,
-                          height: 30, width: 30),
-                      title: Text(
-                        _contactList[index].displayName,
-                        maxLines: 1,
-                      ),
-                      subtitle: Text(_contactList[index].npubkey,
-                          maxLines: 1, overflow: TextOverflow.ellipsis),
-                      trailing: Checkbox(
-                          value: _contactList[index].isCheck,
-                          onChanged: (isCheck) {
-                            _contactList[index].isCheck = isCheck!;
-                            setState(() {});
-                          }));
-                },
-                separatorBuilder: (BuildContext context, int index) {
-                  return Divider(
-                      color: Theme.of(context)
-                          .dividerTheme
-                          .color
-                          ?.withOpacity(0.03));
-                })));
+            child: ListView.builder(
+          itemCount: _contactList.length,
+          controller: _scrollController,
+          itemBuilder: (context, index) {
+            return ListTile(
+                dense: true,
+                leading: getRandomAvatar(_contactList[index].pubkey,
+                    height: 30, width: 30),
+                title: Text(_contactList[index].displayName, maxLines: 1),
+                subtitle: Text(_contactList[index].npubkey,
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                trailing: Checkbox(
+                    value: _contactList[index].isCheck,
+                    onChanged: (isCheck) {
+                      _contactList[index].isCheck = isCheck!;
+                      setState(() {});
+                    }));
+          },
+        )));
   }
 }

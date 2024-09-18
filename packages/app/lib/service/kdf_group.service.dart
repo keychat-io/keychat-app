@@ -8,6 +8,7 @@ import 'package:app/global.dart';
 import 'package:app/models/db_provider.dart';
 import 'package:app/models/keychat/room_profile.dart';
 import 'package:app/models/mykey.dart';
+import 'package:app/models/nostr_event_status.dart';
 import 'package:app/models/room_member.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/service/chatx.service.dart';
@@ -387,8 +388,22 @@ class KdfGroupService extends BaseChatService {
         c: MessageType.kdfGroup, type: KeyChatEventKinds.kdfHelloMessage)
       ..name = identity.displayName
       ..msg = '${identity.displayName} joined group';
-    await KdfGroupService.instance
+    SendMessageResponse smr = await KdfGroupService.instance
         .sendMessage(room, notPrekey: false, sm.toString());
+
+    var toSendEvent = smr.events[0];
+    DateTime createdAt =
+        DateTime.fromMillisecondsSinceEpoch(toSendEvent.createdAt * 1000);
+    _messageReceiveCheck(
+            room, toSendEvent, const Duration(milliseconds: 500), 3)
+        .then((success) async {
+      if (success) return;
+      Room exist = await RoomService().getRoomByIdOrFail(room.id);
+      String msg = exist.version == room.version
+          ? 'Send hello_message failed, but the receive key changed, ignore this message, version: ${room.version}'
+          : 'The receive key changed, ignore this message';
+      MessageService().saveSystemMessage(room, msg, createdAt: createdAt);
+    });
   }
 
   Future<bool> _messageReceiveCheck(
@@ -396,11 +411,13 @@ class KdfGroupService extends BaseChatService {
     if (maxRetry == 0) return false;
     maxRetry--;
     await Future.delayed(delay);
-    Message? message = await DBProvider.database.messages
+    String id = event.id;
+    NostrEventStatus? nes = await DBProvider.database.nostrEventStatus
         .filter()
-        .msgidEqualTo(event.id)
+        .eventIdEqualTo(id)
+        .sendStatusEqualTo(EventSendEnum.success)
         .findFirst();
-    if (message != null) {
+    if (nes != null) {
       return true;
     }
     Get.find<WebsocketService>().writeNostrEvent(

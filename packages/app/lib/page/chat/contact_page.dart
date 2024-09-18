@@ -147,6 +147,9 @@ class ContactPage extends StatelessWidget {
                     EasyLoading.showError(Utils.getErrorMessage(e),
                         duration: const Duration(seconds: 3));
                     logger.e(e.toString(), error: e, stackTrace: s);
+                  } finally {
+                    Future.delayed(const Duration(seconds: 2))
+                        .then((c) => EasyLoading.dismiss());
                   }
                   await Get.find<HomeController>()
                       .loadIdentityRoomList(room0.identityId);

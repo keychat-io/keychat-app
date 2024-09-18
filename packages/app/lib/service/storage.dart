@@ -21,6 +21,8 @@ class StorageKeyString {
   static String relayMessageFeeConfig = "relayMessageFeeConfig";
   static String relayFileFeeConfig = "relayFileFeeConfig";
 
+  static String tipsAddFriends = "tipsAddFriends";
+
   static String getSignalAliceKey(String myPubkey, String bobPubkey) {
     return "aliceKey:$myPubkey-$bobPubkey";
   }

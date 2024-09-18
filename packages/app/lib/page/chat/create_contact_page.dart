@@ -45,7 +45,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
     return Scaffold(
         appBar: AppBar(
           centerTitle: true,
-          title: const Text("Send Friend Request"),
+          title: const Text("Add Contacts"),
         ),
         body: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 20),
@@ -56,8 +56,9 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                 maxLines: 8,
                 minLines: 1,
                 controller: _controller,
+                autofocus: true,
                 decoration: InputDecoration(
-                    labelText: 'Npub or QR Code String ...',
+                    labelText: 'QRCode Or IDKey',
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
                       icon: const Icon(Icons.paste),
@@ -118,8 +119,18 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
               Card(
                 child: Column(children: [
                   ListTile(
+                    leading: const Icon(CupertinoIcons.qrcode),
+                    title: const Text('My QRCode'),
+                    onTap: () async {
+                      Identity identity =
+                          Get.find<HomeController>().getSelectedIdentity();
+                      await showMyQrCode(context, identity, false);
+                    },
+                    trailing: const Icon(CupertinoIcons.right_chevron),
+                  ),
+                  ListTile(
                     leading: const Icon(CupertinoIcons.person),
-                    title: const Text('ID Pubkey'),
+                    title: const Text('My IDKey'),
                     onTap: () async {
                       Identity identity =
                           Get.find<HomeController>().getSelectedIdentity();
@@ -129,18 +140,8 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                     trailing: const Icon(Icons.copy),
                   ),
                   ListTile(
-                    leading: const Icon(CupertinoIcons.qrcode),
-                    title: const Text('Show My QR Code'),
-                    onTap: () async {
-                      Identity identity =
-                          Get.find<HomeController>().getSelectedIdentity();
-                      await showMyQrCode(context, identity, false);
-                    },
-                    trailing: const Icon(CupertinoIcons.right_chevron),
-                  ),
-                  ListTile(
                     leading: const Icon(CupertinoIcons.qrcode_viewfinder),
-                    title: const Text('Scan QR Code'),
+                    title: const Text('Scan QRCode'),
                     onTap: () async {
                       String? result =
                           await QrScanService.instance.handleQRScan();

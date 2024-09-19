@@ -1,0 +1,8 @@
+flutter.sdk=/Users/xx/fvm/versions/3.24.0
+sdk.dir=/Users/xx/Library/Android/sdk
+flutter.buildMode=release
+flutter.versionName=1.19.10
+flutter.versionCode=4255
+flutter.compileSdkVersion=34
+flutter.minSdkVersion=27
+app=Keychat

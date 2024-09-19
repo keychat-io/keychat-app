@@ -108,7 +108,7 @@ class RoomList extends StatelessWidget {
             return rooms.length == 3 &&
                     rooms[1].length == 0 &&
                     rooms[2].length == 0
-                ? _noRoomsView(context, homeController, data.identity)
+                ? const SizedBox()
                 : ListView.separated(
                     key: ObjectKey('roomlist_tab_$identityId'),
                     padding: const EdgeInsets.only(
@@ -336,52 +336,10 @@ class RoomList extends StatelessWidget {
             ));
       default:
     }
-    return const HomeDropMenuWidget();
-  }
-
-  Widget _noRoomsView(
-      BuildContext context, HomeController home2controller, Identity identity) {
-    return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 50),
-        child: Center(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(
-                height: 200,
-              ),
-              SvgPicture.asset(
-                'assets/images/no-message.svg',
-                height: 80,
-                width: 80,
-              ),
-              textSmallGray(context, 'No friends'),
-              const SizedBox(
-                height: 20,
-              ),
-              OutlinedButton(
-                  onPressed: () {
-                    showMyQrCode(context, identity, false);
-                  },
-                  style: ButtonStyle(
-                      minimumSize: WidgetStateProperty.all(
-                          const Size(double.infinity, 40))),
-                  child: const Text('Show My QR Code')),
-              const SizedBox(height: 20),
-              Obx(() => Get.find<EcashController>().totalSats.value == 0
-                  ? OutlinedButton(
-                      onPressed: () {
-                        Get.toNamed(Routes.ecash);
-                      },
-                      style: ButtonStyle(
-                          minimumSize: WidgetStateProperty.all(
-                              const Size(double.infinity, 40))),
-                      child: const Text('Deposit Ecash Sat to start a chat'),
-                    )
-                  : const SizedBox.shrink()),
-            ],
-          ),
-        ));
+    return badges.Badge(
+        showBadge: homeController.addFriendTips.value,
+        position: badges.BadgePosition.topEnd(top: 5, end: 5),
+        child: HomeDropMenuWidget(homeController.addFriendTips.value));
   }
 
   _showDialogForReconnect(bool status, String message) {

@@ -54,6 +54,7 @@ class HomeController extends GetxController
   RxBool notificationStatus = false.obs;
   bool resumed = true; // is app in front
   RxBool isConnectedNetwork = true.obs;
+  RxBool addFriendTips = false.obs;
 
   //debug mode
   RxBool debugModel = false.obs;
@@ -78,6 +79,9 @@ class HomeController extends GetxController
     }
     FlutterNativeSplash.remove(); // close splash page
     WidgetsBinding.instance.addObserver(this);
+
+    // show dot on add friends menu
+    initTips(StorageKeyString.tipsAddFriends, addFriendTips);
 
     NotifyService.init(showNotificationDialog).catchError((e, s) {
       logger.e('initNotifycation error', error: e, stackTrace: s);
@@ -433,5 +437,15 @@ class HomeController extends GetxController
         }
       }
     }
+  }
+
+  Future initTips(String name, RxBool toSetValue) async {
+    var res = await Storage.getIntOrZero(name);
+    toSetValue.value = res == 0 ? true : false;
+  }
+
+  Future setTipsViewed(String name, RxBool toSetValue) async {
+    toSetValue.value = false;
+    await Storage.setInt(name, 1);
   }
 }

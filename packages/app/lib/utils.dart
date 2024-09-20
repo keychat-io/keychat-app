@@ -281,6 +281,7 @@ class ErrorMessages {
   static String noFundsInfo = '''Insufficient balance to pay relay. 
 Please check ecash balance and mint.''';
   static String noFunds = 'No Funds';
+  static String signedPrekeyNotfound = 'signed_pre_key not found';
 }
 
 class Utils {

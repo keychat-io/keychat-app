@@ -204,14 +204,16 @@ class MoreSetting extends StatelessWidget {
                 await Storage.clearAll();
                 await SecureStorage.instance.clearAll();
                 Storage.setInt(StorageKeyString.onboarding, 0);
-                EasyLoading.dismiss();
                 FirebaseMessaging.instance.deleteToken();
-                NotifyService.fcmToken == null;
-                SecureStorage.keys.clear();
+                NotifyService.clearAll();
                 Get.offAllNamed(Routes.login);
               } catch (e, s) {
+                EasyLoading.showError(e.toString(),
+                    duration: const Duration(seconds: 2));
                 logger.e('reset all', error: e, stackTrace: s);
               } finally {
+                await Future.delayed(const Duration(seconds: 2));
+                EasyLoading.dismiss();
                 kReleaseMode && exit(0);
               }
             }),

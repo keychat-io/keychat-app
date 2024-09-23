@@ -1,0 +1,7 @@
+org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=2G -XX:+HeapDumpOnOutOfMemoryError
+android.useAndroidX=true
+android.enableJetifier=true
+# need to set ANDROID_NDK
+ANDROID_NDK=/Users/xxxxx/Library/Android/sdk/ndk
+systemProp.gradle.wrapperUser=myuser
+systemProp.gradle.wrapperPassword=mypassword

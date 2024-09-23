@@ -68,14 +68,15 @@ class NotifyService {
     return false;
   }
 
-  static deleteNofityConfig() async {
+  static clearAll() async {
     if (fcmToken == null) return;
+    fcmToken == null;
     try {
       var res = await Dio().post('${KeychatGlobal.notifycationServer}/delete',
           data: {'deviceId': fcmToken});
-      logger.i('deleteNofityConfig ${res.data}');
+      logger.i('clearAll success: ${res.data}');
     } catch (e, s) {
-      logger.e('deleteNofityConfig', error: e, stackTrace: s);
+      logger.e('clearAll', error: e, stackTrace: s);
     }
   }
 
@@ -252,7 +253,7 @@ Fix:
     if (status) {
       await NotifyService.syncPubkeysToServer();
     } else {
-      await NotifyService.deleteNofityConfig();
+      await NotifyService.clearAll();
     }
   }
 }

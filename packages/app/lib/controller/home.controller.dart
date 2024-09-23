@@ -99,9 +99,14 @@ class HomeController extends GetxController
   }
 
   Future<void> removeBadge() async {
-    bool supportBadge = await AppBadgePlus.isSupported();
-    if (supportBadge) {
-      AppBadgePlus.updateBadge(0);
+    if (!GetPlatform.isMobile) return;
+    try {
+      bool supportBadge = await AppBadgePlus.isSupported();
+      if (supportBadge) {
+        AppBadgePlus.updateBadge(0);
+      }
+    } catch (e) {
+      loggerNoLine.e('removeBadge: ${e.toString()}', error: e);
     }
   }
 

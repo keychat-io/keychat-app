@@ -127,17 +127,6 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                     trailing: const Icon(CupertinoIcons.right_chevron),
                   ),
                   ListTile(
-                    leading: const Icon(CupertinoIcons.person),
-                    title: const Text('My ID Key'),
-                    onTap: () async {
-                      Identity identity =
-                          Get.find<HomeController>().getSelectedIdentity();
-                      Clipboard.setData(ClipboardData(text: identity.npub));
-                      EasyLoading.showToast('Copied');
-                    },
-                    trailing: const Icon(Icons.copy),
-                  ),
-                  ListTile(
                     leading: const Icon(CupertinoIcons.qrcode_viewfinder),
                     title: const Text('Scan QR Code'),
                     onTap: () async {

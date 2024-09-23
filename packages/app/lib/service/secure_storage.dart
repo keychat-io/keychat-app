@@ -21,6 +21,13 @@ class SecureStorage {
     await storage.write(key: mnemonicKey, value: words);
   }
 
+  Future writePhraseWordsWhenNotExist(String words) async {
+    String? exist = await getPhraseWords();
+    if (exist == null) {
+      await storage.write(key: mnemonicKey, value: words);
+    }
+  }
+
   Future<String?> getPhraseWords() async {
     return await storage.read(key: mnemonicKey);
   }
@@ -73,6 +80,7 @@ class SecureStorage {
   Future clearAll([bool force = false]) async {
     if (force || kReleaseMode) {
       await storage.deleteAll(
+          aOptions: _getAndroidOptions(),
           iOptions: const IOSOptions(
               accessibility: KeychainAccessibility.first_unlock));
     }

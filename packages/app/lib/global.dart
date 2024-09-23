@@ -13,6 +13,10 @@ class KeychatGlobal {
   static const String defaultCashuMintURL = 'https://8333.space:3338/';
   // token: /api/v1/object, fee: /api/v1/info
   static const String defaultFileServer = 'wss://relay.keychat.io';
+  static const Set<String> skipFileServers = {
+    'wss://relay.damus.io',
+    'wss://nos.lol'
+  };
 
   static const String defaultRelay = 'wss://relay.keychat.io';
   static const int oneTimePubkeysPoolLength = 1;

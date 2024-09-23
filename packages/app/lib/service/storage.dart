@@ -16,7 +16,6 @@ class StorageKeyString {
   static String autoDeleteMessageDays = "autoDeleteMessageDays";
   static String lastMessageAt = "lastMessageAt";
   static String defaultWebRTCServers = "defaultWebRTCServers";
-  static String oneTimeListenPubkeys = "oneTimeListenPubkeys";
   static String defaultFileServer = "defaultFileServer";
   static String relayMessageFeeConfig = "relayMessageFeeConfig";
   static String relayFileFeeConfig = "relayFileFeeConfig";

@@ -96,12 +96,11 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                     if (controller.identity.value.index == -1) _getNsec(true),
                     if (controller.identity.value.index > -1)
                       SettingsTile.navigation(
-                        leading: const Icon(CupertinoIcons.person),
-                        title: const Text("ID Key"),
+                        leading: const Icon(Icons.key),
+                        title: const Text("Seed Phrase"),
                         onPressed: (context) {
                           Get.bottomSheet(_idKeysWidget());
                         },
-                        value: const Text('seed phrase'),
                       ),
                     SettingsTile.navigation(
                       leading: const Icon(CupertinoIcons.pen),

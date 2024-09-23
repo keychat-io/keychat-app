@@ -72,9 +72,11 @@ class IdentityService {
       ..index = index;
     await database.writeTxn(() async {
       await database.identitys.put(iden);
+
       // store the prikey in secure storage
-      if (isFirstAccount) {
-        await SecureStorage.instance.writePhraseWords(account.mnemonic!);
+      if (account.mnemonic != null) {
+        await SecureStorage.instance
+            .writePhraseWordsWhenNotExist(account.mnemonic!);
       }
       await SecureStorage.instance
           .writePrikey(iden.secp256k1PKHex, account.prikey);

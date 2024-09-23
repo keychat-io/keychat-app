@@ -4,7 +4,6 @@ import 'package:app/models/models.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/common.dart';
 import 'package:app/page/new_friends_rooms.dart';
-import 'package:app/page/routes.dart';
 import 'package:app/page/search_page.dart';
 import 'package:app/page/widgets/home_drop_menu.dart';
 import 'package:app/service/room.service.dart';
@@ -14,7 +13,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 
@@ -51,48 +49,37 @@ class RoomList extends StatelessWidget {
                           ? Alignment.center
                           : Alignment.bottomCenter,
                       children: <Widget>[
-                        homeController.tabBodyDatas.length == 1
-                            ? const Row(
-                                children: [
-                                  Text(
-                                    '  Keychat',
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : TabBar(
-                                indicatorColor:
-                                    Theme.of(context).colorScheme.primary,
-                                indicatorWeight: 1,
-                                isScrollable: true,
-                                controller: homeController.tabController,
-                                tabAlignment: TabAlignment.start,
-                                labelStyle: const TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.w600),
-                                dividerColor: Colors.transparent,
-                                tabs: homeController.tabBodyDatas.values
-                                    .map((TabData e) {
-                                  Identity identity = e.identity;
-                                  var title = identity.displayName.length > 15
-                                      ? "${identity.displayName.substring(0, 15)}..."
-                                      : identity.displayName;
-                                  return Tab(
-                                      child: badges.Badge(
-                                    showBadge: (e.unReadCount +
-                                            e.anonymousUnReadCount) >
+                        TabBar(
+                            indicatorColor:
+                                Theme.of(context).colorScheme.primary,
+                            indicatorWeight: 1,
+                            isScrollable: true,
+                            controller: homeController.tabController,
+                            tabAlignment: TabAlignment.start,
+                            labelStyle: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w600),
+                            dividerColor: Colors.transparent,
+                            tabs: homeController.tabBodyDatas.values
+                                .map((TabData e) {
+                              Identity identity = e.identity;
+                              var title = identity.displayName.length > 15
+                                  ? "${identity.displayName.substring(0, 15)}..."
+                                  : identity.displayName;
+                              return Tab(
+                                  child: badges.Badge(
+                                showBadge:
+                                    (e.unReadCount + e.anonymousUnReadCount) >
                                         0,
-                                    position: badges.BadgePosition.topEnd(
-                                        top: -10, end: -15),
-                                    child: Text(
-                                      title,
-                                      style: const TextStyle(
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ));
-                                }).toList()),
+                                position: badges.BadgePosition.topEnd(
+                                    top: -10, end: -15),
+                                child: Text(
+                                  title,
+                                  style: const TextStyle(
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ));
+                            }).toList()),
                       ],
                     ),
                   )))),

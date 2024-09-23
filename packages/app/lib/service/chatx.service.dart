@@ -22,9 +22,8 @@ import '../utils.dart';
 
 class ChatxService extends GetxService {
   Map<String, KeychatProtocolAddress> roomKPA = {};
-  Set<String> oneTimeListenPubkeys = {};
   Map<String, KeychatIdentityKeyPair> keypairs = {};
-  Set initedSignalStorePubkeySet = {};
+  Map<String, KeychatIdentityKeyPair> initedKeypairs = {};
 
   Future<List<Mykey>> getOneTimePubkey(int identityId) async {
     // delete expired one time keys
@@ -175,6 +174,31 @@ class ChatxService extends GetxService {
     return null;
   }
 
+  Future<KeychatProtocolAddress> getRoomKPAOrFailed(Room room) async {
+    if (room.curve25519PkHex == null) {
+      throw Exception('curve25519PkHex_is_null');
+    }
+    String key = '${room.identityId}:${room.curve25519PkHex}';
+    if (roomKPA[key] != null) {
+      return roomKPA[key]!;
+    }
+
+    final remoteAddress = KeychatProtocolAddress(
+        name: room.curve25519PkHex!, deviceId: room.identityId);
+    KeychatIdentityKeyPair? keyPair = await _initRoomSignalStore(room);
+    if (keyPair == null) {
+      throw Exception('keyPair_is_null');
+    }
+    final contains = await rust_signal.containsSession(
+        keyPair: keyPair, address: remoteAddress);
+
+    if (contains) {
+      roomKPA[key] = remoteAddress;
+      return remoteAddress;
+    }
+    throw Exception('signal_session_not_found');
+  }
+
   Future<KeychatProtocolAddress?> getSignalSession(
       {required int sharedSignalRoomId,
       required String toCurve25519PkHex,
@@ -253,24 +277,20 @@ class ChatxService extends GetxService {
 
   Future<KeychatIdentityKeyPair> setupSignalStoreBySignalId(String pubkey,
       [SignalId? signalId]) async {
-    if (initedSignalStorePubkeySet.contains(pubkey)) return keypairs[pubkey]!;
+    if (initedKeypairs[pubkey] != null) return initedKeypairs[pubkey]!;
     var keyPair = await getKeyPairBySignalIdPubkey(pubkey, signalId);
-    await Utils.asyncWithTimeout(
-        () => rust_signal.initKeypair(keyPair: keyPair, regId: 0),
-        const Duration(seconds: 2),
-        'keypair init timeout');
-    initedSignalStorePubkeySet.add(pubkey);
+    await rust_signal.initKeypair(keyPair: keyPair, regId: 0);
+    initedKeypairs[pubkey] = keyPair;
     return keyPair;
   }
 
   Future<KeychatIdentityKeyPair> setupSignalStoreByIdentity(
       Identity identity) async {
-    var keyPair = await getKeyPairByIdentity(identity);
-    await Utils.asyncWithTimeout(
-        () => rust_signal.initKeypair(keyPair: keyPair, regId: 0),
-        const Duration(seconds: 2),
-        'keypair init timeout');
-    initedSignalStorePubkeySet.add(identity.curve25519PkHex);
+    String pubkey = identity.curve25519PkHex!;
+    if (initedKeypairs[pubkey] != null) return initedKeypairs[pubkey]!;
+    KeychatIdentityKeyPair keyPair = await getKeyPairByIdentity(identity);
+    await rust_signal.initKeypair(keyPair: keyPair, regId: 0);
+    initedKeypairs[pubkey] = keyPair;
     return keyPair;
   }
 

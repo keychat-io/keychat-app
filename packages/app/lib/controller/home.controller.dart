@@ -4,7 +4,6 @@ import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
-import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 import 'package:app/service/notify.service.dart';
@@ -100,9 +99,14 @@ class HomeController extends GetxController
   }
 
   Future<void> removeBadge() async {
-    bool supportBadge = await FlutterAppBadger.isAppBadgeSupported();
-    if (supportBadge) {
-      FlutterAppBadger.removeBadge();
+    if (!GetPlatform.isMobile) return;
+    try {
+      bool supportBadge = await AppBadgePlus.isSupported();
+      if (supportBadge) {
+        AppBadgePlus.updateBadge(0);
+      }
+    } catch (e) {
+      loggerNoLine.e('removeBadge: ${e.toString()}', error: e);
     }
   }
 

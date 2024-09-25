@@ -73,7 +73,22 @@ class _ChatPage2State extends State<ChatPage> {
         backgroundColor:
             Get.isDarkMode ? const Color(0xFF000000) : const Color(0xffededed),
         centerTitle: true,
-        title: Obx(() => _getRoomTite()),
+        title: Obx(() => Wrap(
+              direction: Axis.horizontal,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                _getRoomTite(),
+                if (controller.roomObs.value.type == RoomType.bot)
+                  const Chip(
+                    label: Text('Bot'),
+                    shape: RoundedRectangleBorder(
+                      side: BorderSide(color: Colors.transparent),
+                      borderRadius: BorderRadius.all(Radius.circular(4.0)),
+                    ),
+                    padding: EdgeInsets.all(1),
+                  )
+              ],
+            )),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(0),
           child: Obx(() =>
@@ -596,7 +611,8 @@ class _ChatPage2State extends State<ChatPage> {
       direction: Axis.horizontal,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        controller.roomObs.value.type == RoomType.common
+        (controller.roomObs.value.type == RoomType.common ||
+                controller.roomObs.value.type == RoomType.bot)
             ? Text(controller.roomContact.value.displayName)
             : Text(
                 '${controller.roomObs.value.name} (${controller.enableMembers.length})'),

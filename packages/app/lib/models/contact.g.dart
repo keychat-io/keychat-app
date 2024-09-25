@@ -52,43 +52,48 @@ const ContactSchema = CollectionSchema(
       name: r'isBot',
       type: IsarType.bool,
     ),
-    r'myRelay': PropertySchema(
+    r'metadata': PropertySchema(
       id: 7,
+      name: r'metadata',
+      type: IsarType.string,
+    ),
+    r'myRelay': PropertySchema(
+      id: 8,
       name: r'myRelay',
       type: IsarType.string,
     ),
     r'name': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'name',
       type: IsarType.string,
     ),
     r'npubkey': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'npubkey',
       type: IsarType.string,
     ),
     r'petname': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'petname',
       type: IsarType.string,
     ),
     r'picture': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'picture',
       type: IsarType.string,
     ),
     r'pubkey': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'pubkey',
       type: IsarType.string,
     ),
     r'stringify': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'updatedAt': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -151,6 +156,12 @@ int _contactEstimateSize(
     }
   }
   {
+    final value = object.metadata;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.myRelay;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -192,14 +203,15 @@ void _contactSerialize(
   writer.writeString(offsets[4], object.hisRelay);
   writer.writeLong(offsets[5], object.identityId);
   writer.writeBool(offsets[6], object.isBot);
-  writer.writeString(offsets[7], object.myRelay);
-  writer.writeString(offsets[8], object.name);
-  writer.writeString(offsets[9], object.npubkey);
-  writer.writeString(offsets[10], object.petname);
-  writer.writeString(offsets[11], object.picture);
-  writer.writeString(offsets[12], object.pubkey);
-  writer.writeBool(offsets[13], object.stringify);
-  writer.writeDateTime(offsets[14], object.updatedAt);
+  writer.writeString(offsets[7], object.metadata);
+  writer.writeString(offsets[8], object.myRelay);
+  writer.writeString(offsets[9], object.name);
+  writer.writeString(offsets[10], object.npubkey);
+  writer.writeString(offsets[11], object.petname);
+  writer.writeString(offsets[12], object.picture);
+  writer.writeString(offsets[13], object.pubkey);
+  writer.writeBool(offsets[14], object.stringify);
+  writer.writeDateTime(offsets[15], object.updatedAt);
 }
 
 Contact _contactDeserialize(
@@ -210,8 +222,8 @@ Contact _contactDeserialize(
 ) {
   final object = Contact(
     identityId: reader.readLong(offsets[5]),
-    npubkey: reader.readString(offsets[9]),
-    pubkey: reader.readString(offsets[12]),
+    npubkey: reader.readString(offsets[10]),
+    pubkey: reader.readString(offsets[13]),
   );
   object.about = reader.readStringOrNull(offsets[0]);
   object.createdAt = reader.readDateTimeOrNull(offsets[1]);
@@ -219,11 +231,12 @@ Contact _contactDeserialize(
   object.hisRelay = reader.readStringOrNull(offsets[4]);
   object.id = id;
   object.isBot = reader.readBool(offsets[6]);
-  object.myRelay = reader.readStringOrNull(offsets[7]);
-  object.name = reader.readStringOrNull(offsets[8]);
-  object.petname = reader.readStringOrNull(offsets[10]);
-  object.picture = reader.readStringOrNull(offsets[11]);
-  object.updatedAt = reader.readDateTimeOrNull(offsets[14]);
+  object.metadata = reader.readStringOrNull(offsets[7]);
+  object.myRelay = reader.readStringOrNull(offsets[8]);
+  object.name = reader.readStringOrNull(offsets[9]);
+  object.petname = reader.readStringOrNull(offsets[11]);
+  object.picture = reader.readStringOrNull(offsets[12]);
+  object.updatedAt = reader.readDateTimeOrNull(offsets[15]);
   return object;
 }
 
@@ -253,16 +266,18 @@ P _contactDeserializeProp<P>(
     case 8:
       return (reader.readStringOrNull(offset)) as P;
     case 9:
-      return (reader.readString(offset)) as P;
-    case 10:
       return (reader.readStringOrNull(offset)) as P;
+    case 10:
+      return (reader.readString(offset)) as P;
     case 11:
       return (reader.readStringOrNull(offset)) as P;
     case 12:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 13:
-      return (reader.readBoolOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 14:
+      return (reader.readBoolOrNull(offset)) as P;
+    case 15:
       return (reader.readDateTimeOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1264,6 +1279,152 @@ extension ContactQueryFilter
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'isBot',
         value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'metadata',
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'metadata',
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'metadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'metadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'metadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'metadata',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'metadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'metadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'metadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'metadata',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'metadata',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'metadata',
+        value: '',
       ));
     });
   }
@@ -2299,6 +2460,18 @@ extension ContactQuerySortBy on QueryBuilder<Contact, Contact, QSortBy> {
     });
   }
 
+  QueryBuilder<Contact, Contact, QAfterSortBy> sortByMetadata() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'metadata', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> sortByMetadataDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'metadata', Sort.desc);
+    });
+  }
+
   QueryBuilder<Contact, Contact, QAfterSortBy> sortByMyRelay() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'myRelay', Sort.asc);
@@ -2494,6 +2667,18 @@ extension ContactQuerySortThenBy
     });
   }
 
+  QueryBuilder<Contact, Contact, QAfterSortBy> thenByMetadata() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'metadata', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> thenByMetadataDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'metadata', Sort.desc);
+    });
+  }
+
   QueryBuilder<Contact, Contact, QAfterSortBy> thenByMyRelay() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'myRelay', Sort.asc);
@@ -2639,6 +2824,13 @@ extension ContactQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Contact, Contact, QDistinct> distinctByMetadata(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'metadata', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<Contact, Contact, QDistinct> distinctByMyRelay(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -2741,6 +2933,12 @@ extension ContactQueryProperty
   QueryBuilder<Contact, bool, QQueryOperations> isBotProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isBot');
+    });
+  }
+
+  QueryBuilder<Contact, String?, QQueryOperations> metadataProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'metadata');
     });
   }
 

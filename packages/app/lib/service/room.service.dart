@@ -64,7 +64,8 @@ class RoomService extends BaseChatService {
       Contact? contact,
       String? curve25519PkHex,
       String? onetimekey,
-      SignalId? signalId}) async {
+      SignalId? signalId,
+      RoomType? type}) async {
     int identityId = identity.id;
     Room? exist = await getRoomByIdentity(toMainPubkey, identityId);
     if (exist != null) return exist;
@@ -78,6 +79,7 @@ class RoomService extends BaseChatService {
     )
       ..onetimekey = onetimekey
       ..status = status
+      ..type = type ?? RoomType.common
       ..encryptMode = encryptMode
       ..curve25519PkHex = curve25519PkHex
       ..signalIdPubkey = signalId!.pubkey;
@@ -209,14 +211,14 @@ class RoomService extends BaseChatService {
 
   // get room by send_pubkey and bob_pubkey
   Future<Room> getOrCreateRoom(String from, String to, RoomStatus status,
-      {String? contactName}) async {
+      {String? contactName, Identity? identity, RoomType? type}) async {
     Room? room = await getRoom(from, to);
-    if (room != null) {
+    if (room != null && contactName != null) {
       await ContactService().updateOrCreateByRoom(room, contactName);
       return room;
     }
 
-    Identity? identity = await IdentityService().getIdentityByNostrPubkey(to);
+    identity ??= await IdentityService().getIdentityByNostrPubkey(to);
     if (identity == null) {
       throw Exception('no this identity');
     }
@@ -225,6 +227,7 @@ class RoomService extends BaseChatService {
         identity: identity,
         status: status,
         encryptMode: EncryptMode.nip04,
+        type: type,
         name: contactName);
   }
 

@@ -1,8 +1,10 @@
 import 'dart:async' show Future, Timer;
+import 'dart:convert';
 import 'dart:io' show Directory, File, FileSystemEntity;
 
 import 'package:app/models/embedded/relay_message_fee.dart';
 import 'package:app/models/models.dart';
+import 'package:app/nostr-core/nostr.dart';
 import 'package:app/page/chat/RoomDraft.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/file_util.dart' as file_util;
@@ -112,18 +114,6 @@ class ChatController extends GetxController {
 
   ChatController(this.room) {
     roomObs.value = room;
-  }
-
-  @override
-  void onClose() {
-    messages.clear();
-    _timer?.cancel();
-    chatContentFocus.dispose();
-    keyboardFocus.dispose();
-    textEditingController.dispose();
-    textFieldScrollController.dispose();
-    autoScrollController.dispose();
-    super.onClose();
   }
 
   addMessage(Message message) {
@@ -377,6 +367,30 @@ class ChatController extends GetxController {
     messages.value = list2;
   }
 
+  Future<int> loadMessageLimit() async {
+    if (room.isSendAllGroup) return -1;
+    String? hisRelay;
+    if (room.type == RoomType.common) {
+      hisRelay = roomObs.value.contact?.hisRelay;
+    } else if (room.isShareKeyGroup) {
+      hisRelay = roomObs.value.groupRelay;
+    }
+    if (hisRelay == null) {
+      bool existFreeRelay = ws.existFreeRelay();
+      if (existFreeRelay) return -1;
+
+      // cal min
+      // Map mintsBalance =
+      //     ecashController.getBalanceByMints(ws.getOnlineRelayString());
+    }
+
+    // exist hisRelay
+    RelayMessageFee? rpim = ws.relayMessageFeeModels[hisRelay];
+    if (rpim == null) return -1;
+    int totalBalance = Get.find<EcashController>().getTotalByMints(rpim.mints);
+    return (totalBalance / rpim.amount).floor();
+  }
+
   List<Message> loadMoreChatFromSearchSroll() {
     if (messages.isEmpty) return [];
 
@@ -403,28 +417,16 @@ class ChatController extends GetxController {
     messages.refresh();
   }
 
-  Future<int> loadMessageLimit() async {
-    if (room.isSendAllGroup) return -1;
-    String? hisRelay;
-    if (room.type == RoomType.common) {
-      hisRelay = roomObs.value.contact?.hisRelay;
-    } else if (room.isShareKeyGroup) {
-      hisRelay = roomObs.value.groupRelay;
-    }
-    if (hisRelay == null) {
-      bool existFreeRelay = ws.existFreeRelay();
-      if (existFreeRelay) return -1;
-
-      // cal min
-      // Map mintsBalance =
-      //     ecashController.getBalanceByMints(ws.getOnlineRelayString());
-    }
-
-    // exist hisRelay
-    RelayMessageFee? rpim = ws.relayMessageFeeModels[hisRelay];
-    if (rpim == null) return -1;
-    int totalBalance = Get.find<EcashController>().getTotalByMints(rpim.mints);
-    return (totalBalance / rpim.amount).floor();
+  @override
+  void onClose() {
+    messages.clear();
+    _timer?.cancel();
+    chatContentFocus.dispose();
+    keyboardFocus.dispose();
+    textEditingController.dispose();
+    textFieldScrollController.dispose();
+    autoScrollController.dispose();
+    super.onClose();
   }
 
   @override
@@ -709,20 +711,9 @@ class ChatController extends GetxController {
 
   _initRoom(Room room) async {
     if (room.type == RoomType.group) {
-      await resetMembers();
-      Identity identity = room.getIdentity();
-      RoomMember? rm = await room.getMemberByIdPubkey(identity.secp256k1PKHex);
-      meMember.value = rm ??
-          RoomMember(
-              idPubkey: identity.secp256k1PKHex,
-              name: identity.displayName,
-              roomId: room.id)
-        ..curve25519PkHex = identity.curve25519PkHex;
-
-      // for kdf group
-      room.checkAndCleanSignalKeys();
-      return;
+      return await _initGroupInfo();
     }
+    // private chat
     if (room.contact == null) {
       Contact contact = await ContactService().getOrCreateContact(
           roomObs.value.identityId, roomObs.value.toMainPubkey);
@@ -731,5 +722,39 @@ class ChatController extends GetxController {
     } else {
       roomContact.value = room.contact!;
     }
+
+    // bot info
+    _initBotInfo();
+  }
+
+  _initBotInfo() async {
+    if (roomObs.value.type != RoomType.bot) return;
+    var res = await NostrAPI().fetchMetadata([room.toMainPubkey]);
+    if (res == null) return;
+    Map metadata = res as Map;
+    if (room.botUpdatedAt == metadata['created_at']) return;
+    room.botUpdatedAt = metadata['created_at'];
+    var metadataString = jsonEncode(metadata);
+    await ContactService().updateContact(
+        identityId: room.id,
+        pubkey: room.toMainPubkey,
+        metadata: metadataString);
+    roomContact.value.name = metadata['name'];
+    roomContact.value.metadata = metadataString;
+  }
+
+  Future<void> _initGroupInfo() async {
+    await resetMembers();
+    Identity identity = room.getIdentity();
+    RoomMember? rm = await room.getMemberByIdPubkey(identity.secp256k1PKHex);
+    meMember.value = rm ??
+        RoomMember(
+            idPubkey: identity.secp256k1PKHex,
+            name: identity.displayName,
+            roomId: room.id)
+      ..curve25519PkHex = identity.curve25519PkHex;
+
+    // for kdf group
+    room.checkAndCleanSignalKeys();
   }
 }

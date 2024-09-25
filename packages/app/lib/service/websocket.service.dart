@@ -10,6 +10,7 @@ import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/nostr-core/nostr_nip4_req.dart';
 import 'package:app/nostr-core/subscribe_event_status.dart';
 import 'package:app/nostr-core/relay_websocket.dart';
+import 'package:app/nostr-core/subscribe_result.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/storage.dart';
@@ -87,6 +88,14 @@ class WebsocketService extends GetxService {
     channels.remove(value.url);
   }
 
+  List<RelayWebsocket> getConnectedRelay() {
+    return channels.values
+        .where((element) =>
+            element.channelStatus == RelayStatusEnum.success &&
+            element.channel != null)
+        .toList();
+  }
+
   List<String> getActiveRelayString() {
     List<String> res = [];
     for (RelayWebsocket rw in channels.values) {
@@ -144,13 +153,23 @@ class WebsocketService extends GetxService {
     Get.find<WebsocketService>().sendReq(req, relay);
   }
 
-  sendRawReq(String msg, [String? relay]) {
-    if (relay != null && channels[relay] != null) {
-      return channels[relay]!.sendRawREQ(msg);
-    }
-    for (RelayWebsocket rw in channels.values) {
+  sendRawReq(String msg) {
+    List<RelayWebsocket> list = getConnectedRelay();
+
+    for (RelayWebsocket rw in list) {
       rw.sendRawREQ(msg);
     }
+  }
+
+  // fetch info and wait for response data
+  Future fetchInfoFromRelay(String subId, String eventString) async {
+    List<RelayWebsocket> list = getConnectedRelay();
+    if (list.isEmpty) throw Exception('Not connected with relay server');
+    for (RelayWebsocket rw in list) {
+      rw.sendRawREQ(eventString);
+    }
+    return await SubscribeResult.instance
+        .registerSubscripton(subId, list.length, const Duration(seconds: 2));
   }
 
   sendReq(NostrNip4Req nostrReq, [String? relay]) {

@@ -27,117 +27,127 @@ const RoomSchema = CollectionSchema(
       name: r'avatar',
       type: IsarType.string,
     ),
-    r'createdAt': PropertySchema(
+    r'botUpdatedAt': PropertySchema(
       id: 2,
+      name: r'botUpdatedAt',
+      type: IsarType.long,
+    ),
+    r'createdAt': PropertySchema(
+      id: 3,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'curve25519PkHex': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'curve25519PkHex',
       type: IsarType.string,
     ),
     r'encryptMode': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'encryptMode',
       type: IsarType.int,
       enumMap: _RoomencryptModeEnumValueMap,
     ),
     r'groupRelay': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'groupRelay',
       type: IsarType.string,
     ),
     r'groupType': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'groupType',
       type: IsarType.int,
       enumMap: _RoomgroupTypeEnumValueMap,
     ),
     r'hashCode': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'hashCode',
       type: IsarType.long,
     ),
     r'identityId': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'identityId',
       type: IsarType.long,
     ),
     r'isMute': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'isMute',
       type: IsarType.bool,
     ),
+    r'metadata': PropertySchema(
+      id: 11,
+      name: r'metadata',
+      type: IsarType.string,
+    ),
     r'myIdPubkey': PropertySchema(
-      id: 10,
+      id: 12,
       name: r'myIdPubkey',
       type: IsarType.string,
     ),
     r'name': PropertySchema(
-      id: 11,
+      id: 13,
       name: r'name',
       type: IsarType.string,
     ),
     r'npub': PropertySchema(
-      id: 12,
+      id: 14,
       name: r'npub',
       type: IsarType.string,
     ),
     r'onetimekey': PropertySchema(
-      id: 13,
+      id: 15,
       name: r'onetimekey',
       type: IsarType.string,
     ),
     r'pin': PropertySchema(
-      id: 14,
+      id: 16,
       name: r'pin',
       type: IsarType.bool,
     ),
     r'pinAt': PropertySchema(
-      id: 15,
+      id: 17,
       name: r'pinAt',
       type: IsarType.dateTime,
     ),
     r'sharedSignalID': PropertySchema(
-      id: 16,
+      id: 18,
       name: r'sharedSignalID',
       type: IsarType.string,
     ),
     r'signalDecodeError': PropertySchema(
-      id: 17,
+      id: 19,
       name: r'signalDecodeError',
       type: IsarType.bool,
     ),
     r'signalIdPubkey': PropertySchema(
-      id: 18,
+      id: 20,
       name: r'signalIdPubkey',
       type: IsarType.string,
     ),
     r'status': PropertySchema(
-      id: 19,
+      id: 21,
       name: r'status',
       type: IsarType.int,
       enumMap: _RoomstatusEnumValueMap,
     ),
     r'stringify': PropertySchema(
-      id: 20,
+      id: 22,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'toMainPubkey': PropertySchema(
-      id: 21,
+      id: 23,
       name: r'toMainPubkey',
       type: IsarType.string,
     ),
     r'type': PropertySchema(
-      id: 22,
+      id: 24,
       name: r'type',
       type: IsarType.int,
       enumMap: _RoomtypeEnumValueMap,
     ),
     r'version': PropertySchema(
-      id: 23,
+      id: 25,
       name: r'version',
       type: IsarType.long,
     )
@@ -206,6 +216,12 @@ int _roomEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  {
+    final value = object.metadata;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.myIdPubkey.length * 3;
   {
     final value = object.name;
@@ -244,28 +260,30 @@ void _roomSerialize(
 ) {
   writer.writeLong(offsets[0], object.autoDeleteDays);
   writer.writeString(offsets[1], object.avatar);
-  writer.writeDateTime(offsets[2], object.createdAt);
-  writer.writeString(offsets[3], object.curve25519PkHex);
-  writer.writeInt(offsets[4], object.encryptMode.index);
-  writer.writeString(offsets[5], object.groupRelay);
-  writer.writeInt(offsets[6], object.groupType.index);
-  writer.writeLong(offsets[7], object.hashCode);
-  writer.writeLong(offsets[8], object.identityId);
-  writer.writeBool(offsets[9], object.isMute);
-  writer.writeString(offsets[10], object.myIdPubkey);
-  writer.writeString(offsets[11], object.name);
-  writer.writeString(offsets[12], object.npub);
-  writer.writeString(offsets[13], object.onetimekey);
-  writer.writeBool(offsets[14], object.pin);
-  writer.writeDateTime(offsets[15], object.pinAt);
-  writer.writeString(offsets[16], object.sharedSignalID);
-  writer.writeBool(offsets[17], object.signalDecodeError);
-  writer.writeString(offsets[18], object.signalIdPubkey);
-  writer.writeInt(offsets[19], object.status.index);
-  writer.writeBool(offsets[20], object.stringify);
-  writer.writeString(offsets[21], object.toMainPubkey);
-  writer.writeInt(offsets[22], object.type.index);
-  writer.writeLong(offsets[23], object.version);
+  writer.writeLong(offsets[2], object.botUpdatedAt);
+  writer.writeDateTime(offsets[3], object.createdAt);
+  writer.writeString(offsets[4], object.curve25519PkHex);
+  writer.writeInt(offsets[5], object.encryptMode.index);
+  writer.writeString(offsets[6], object.groupRelay);
+  writer.writeInt(offsets[7], object.groupType.index);
+  writer.writeLong(offsets[8], object.hashCode);
+  writer.writeLong(offsets[9], object.identityId);
+  writer.writeBool(offsets[10], object.isMute);
+  writer.writeString(offsets[11], object.metadata);
+  writer.writeString(offsets[12], object.myIdPubkey);
+  writer.writeString(offsets[13], object.name);
+  writer.writeString(offsets[14], object.npub);
+  writer.writeString(offsets[15], object.onetimekey);
+  writer.writeBool(offsets[16], object.pin);
+  writer.writeDateTime(offsets[17], object.pinAt);
+  writer.writeString(offsets[18], object.sharedSignalID);
+  writer.writeBool(offsets[19], object.signalDecodeError);
+  writer.writeString(offsets[20], object.signalIdPubkey);
+  writer.writeInt(offsets[21], object.status.index);
+  writer.writeBool(offsets[22], object.stringify);
+  writer.writeString(offsets[23], object.toMainPubkey);
+  writer.writeInt(offsets[24], object.type.index);
+  writer.writeLong(offsets[25], object.version);
 }
 
 Room _roomDeserialize(
@@ -275,35 +293,37 @@ Room _roomDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Room(
-    identityId: reader.readLong(offsets[8]),
-    npub: reader.readString(offsets[12]),
-    status: _RoomstatusValueEnumMap[reader.readIntOrNull(offsets[19])] ??
+    identityId: reader.readLong(offsets[9]),
+    npub: reader.readString(offsets[14]),
+    status: _RoomstatusValueEnumMap[reader.readIntOrNull(offsets[21])] ??
         RoomStatus.init,
-    toMainPubkey: reader.readString(offsets[21]),
-    type: _RoomtypeValueEnumMap[reader.readIntOrNull(offsets[22])] ??
+    toMainPubkey: reader.readString(offsets[23]),
+    type: _RoomtypeValueEnumMap[reader.readIntOrNull(offsets[24])] ??
         RoomType.common,
   );
   object.autoDeleteDays = reader.readLong(offsets[0]);
   object.avatar = reader.readStringOrNull(offsets[1]);
-  object.createdAt = reader.readDateTime(offsets[2]);
-  object.curve25519PkHex = reader.readStringOrNull(offsets[3]);
+  object.botUpdatedAt = reader.readLong(offsets[2]);
+  object.createdAt = reader.readDateTime(offsets[3]);
+  object.curve25519PkHex = reader.readStringOrNull(offsets[4]);
   object.encryptMode =
-      _RoomencryptModeValueEnumMap[reader.readIntOrNull(offsets[4])] ??
+      _RoomencryptModeValueEnumMap[reader.readIntOrNull(offsets[5])] ??
           EncryptMode.nip04;
-  object.groupRelay = reader.readStringOrNull(offsets[5]);
+  object.groupRelay = reader.readStringOrNull(offsets[6]);
   object.groupType =
-      _RoomgroupTypeValueEnumMap[reader.readIntOrNull(offsets[6])] ??
+      _RoomgroupTypeValueEnumMap[reader.readIntOrNull(offsets[7])] ??
           GroupType.shareKey;
   object.id = id;
-  object.isMute = reader.readBool(offsets[9]);
-  object.name = reader.readStringOrNull(offsets[11]);
-  object.onetimekey = reader.readStringOrNull(offsets[13]);
-  object.pin = reader.readBool(offsets[14]);
-  object.pinAt = reader.readDateTimeOrNull(offsets[15]);
-  object.sharedSignalID = reader.readStringOrNull(offsets[16]);
-  object.signalDecodeError = reader.readBool(offsets[17]);
-  object.signalIdPubkey = reader.readStringOrNull(offsets[18]);
-  object.version = reader.readLong(offsets[23]);
+  object.isMute = reader.readBool(offsets[10]);
+  object.metadata = reader.readStringOrNull(offsets[11]);
+  object.name = reader.readStringOrNull(offsets[13]);
+  object.onetimekey = reader.readStringOrNull(offsets[15]);
+  object.pin = reader.readBool(offsets[16]);
+  object.pinAt = reader.readDateTimeOrNull(offsets[17]);
+  object.sharedSignalID = reader.readStringOrNull(offsets[18]);
+  object.signalDecodeError = reader.readBool(offsets[19]);
+  object.signalIdPubkey = reader.readStringOrNull(offsets[20]);
+  object.version = reader.readLong(offsets[25]);
   return object;
 }
 
@@ -319,25 +339,25 @@ P _roomDeserializeProp<P>(
     case 1:
       return (reader.readStringOrNull(offset)) as P;
     case 2:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 3:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 4:
+      return (reader.readStringOrNull(offset)) as P;
+    case 5:
       return (_RoomencryptModeValueEnumMap[reader.readIntOrNull(offset)] ??
           EncryptMode.nip04) as P;
-    case 5:
-      return (reader.readStringOrNull(offset)) as P;
     case 6:
+      return (reader.readStringOrNull(offset)) as P;
+    case 7:
       return (_RoomgroupTypeValueEnumMap[reader.readIntOrNull(offset)] ??
           GroupType.shareKey) as P;
-    case 7:
-      return (reader.readLong(offset)) as P;
     case 8:
       return (reader.readLong(offset)) as P;
     case 9:
-      return (reader.readBool(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 10:
-      return (reader.readString(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 11:
       return (reader.readStringOrNull(offset)) as P;
     case 12:
@@ -345,26 +365,30 @@ P _roomDeserializeProp<P>(
     case 13:
       return (reader.readStringOrNull(offset)) as P;
     case 14:
-      return (reader.readBool(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 15:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 16:
       return (reader.readStringOrNull(offset)) as P;
-    case 17:
+    case 16:
       return (reader.readBool(offset)) as P;
+    case 17:
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 18:
       return (reader.readStringOrNull(offset)) as P;
     case 19:
+      return (reader.readBool(offset)) as P;
+    case 20:
+      return (reader.readStringOrNull(offset)) as P;
+    case 21:
       return (_RoomstatusValueEnumMap[reader.readIntOrNull(offset)] ??
           RoomStatus.init) as P;
-    case 20:
-      return (reader.readBoolOrNull(offset)) as P;
-    case 21:
-      return (reader.readString(offset)) as P;
     case 22:
+      return (reader.readBoolOrNull(offset)) as P;
+    case 23:
+      return (reader.readString(offset)) as P;
+    case 24:
       return (_RoomtypeValueEnumMap[reader.readIntOrNull(offset)] ??
           RoomType.common) as P;
-    case 23:
+    case 25:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -417,11 +441,13 @@ const _RoomtypeEnumValueMap = {
   'common': 0,
   'private': 1,
   'group': 2,
+  'bot': 3,
 };
 const _RoomtypeValueEnumMap = {
   0: RoomType.common,
   1: RoomType.private,
   2: RoomType.group,
+  3: RoomType.bot,
 };
 
 Id _roomGetId(Room object) {
@@ -942,6 +968,59 @@ extension RoomQueryFilter on QueryBuilder<Room, Room, QFilterCondition> {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'avatar',
         value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botUpdatedAtEqualTo(
+      int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'botUpdatedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botUpdatedAtGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'botUpdatedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botUpdatedAtLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'botUpdatedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botUpdatedAtBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'botUpdatedAt',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
       ));
     });
   }
@@ -1558,6 +1637,151 @@ extension RoomQueryFilter on QueryBuilder<Room, Room, QFilterCondition> {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'isMute',
         value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> metadataIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'metadata',
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> metadataIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'metadata',
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> metadataEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'metadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> metadataGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'metadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> metadataLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'metadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> metadataBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'metadata',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> metadataStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'metadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> metadataEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'metadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> metadataContains(String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'metadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> metadataMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'metadata',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> metadataIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'metadata',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> metadataIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'metadata',
+        value: '',
       ));
     });
   }
@@ -2845,6 +3069,18 @@ extension RoomQuerySortBy on QueryBuilder<Room, Room, QSortBy> {
     });
   }
 
+  QueryBuilder<Room, Room, QAfterSortBy> sortByBotUpdatedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'botUpdatedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> sortByBotUpdatedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'botUpdatedAt', Sort.desc);
+    });
+  }
+
   QueryBuilder<Room, Room, QAfterSortBy> sortByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -2938,6 +3174,18 @@ extension RoomQuerySortBy on QueryBuilder<Room, Room, QSortBy> {
   QueryBuilder<Room, Room, QAfterSortBy> sortByIsMuteDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isMute', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> sortByMetadata() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'metadata', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> sortByMetadataDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'metadata', Sort.desc);
     });
   }
 
@@ -3135,6 +3383,18 @@ extension RoomQuerySortThenBy on QueryBuilder<Room, Room, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Room, Room, QAfterSortBy> thenByBotUpdatedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'botUpdatedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> thenByBotUpdatedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'botUpdatedAt', Sort.desc);
+    });
+  }
+
   QueryBuilder<Room, Room, QAfterSortBy> thenByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -3240,6 +3500,18 @@ extension RoomQuerySortThenBy on QueryBuilder<Room, Room, QSortThenBy> {
   QueryBuilder<Room, Room, QAfterSortBy> thenByIsMuteDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isMute', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> thenByMetadata() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'metadata', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> thenByMetadataDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'metadata', Sort.desc);
     });
   }
 
@@ -3426,6 +3698,12 @@ extension RoomQueryWhereDistinct on QueryBuilder<Room, Room, QDistinct> {
     });
   }
 
+  QueryBuilder<Room, Room, QDistinct> distinctByBotUpdatedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'botUpdatedAt');
+    });
+  }
+
   QueryBuilder<Room, Room, QDistinct> distinctByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'createdAt');
@@ -3474,6 +3752,13 @@ extension RoomQueryWhereDistinct on QueryBuilder<Room, Room, QDistinct> {
   QueryBuilder<Room, Room, QDistinct> distinctByIsMute() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isMute');
+    });
+  }
+
+  QueryBuilder<Room, Room, QDistinct> distinctByMetadata(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'metadata', caseSensitive: caseSensitive);
     });
   }
 
@@ -3590,6 +3875,12 @@ extension RoomQueryProperty on QueryBuilder<Room, Room, QQueryProperty> {
     });
   }
 
+  QueryBuilder<Room, int, QQueryOperations> botUpdatedAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'botUpdatedAt');
+    });
+  }
+
   QueryBuilder<Room, DateTime, QQueryOperations> createdAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'createdAt');
@@ -3635,6 +3926,12 @@ extension RoomQueryProperty on QueryBuilder<Room, Room, QQueryProperty> {
   QueryBuilder<Room, bool, QQueryOperations> isMuteProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isMute');
+    });
+  }
+
+  QueryBuilder<Room, String?, QQueryOperations> metadataProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'metadata');
     });
   }
 

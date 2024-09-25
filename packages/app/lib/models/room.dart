@@ -17,11 +17,7 @@ import 'db_provider.dart';
 
 part 'room.g.dart';
 
-enum RoomType {
-  common,
-  private,
-  group,
-}
+enum RoomType { common, private, group, bot }
 
 enum GroupType { shareKey, sendAll, kdf }
 
@@ -49,7 +45,6 @@ enum RoomStatus {
   'isShareKeyGroup',
   'isKDFGroup',
   'parentRoom',
-  'messageType',
   'keyPair'
 })
 // ignore: must_be_immutable
@@ -107,6 +102,11 @@ class Room extends Equatable {
 
   String? onetimekey;
   String? sharedSignalID; // a shared virtual signal id for group
+
+  // bot
+  String? metadata; // bot metadata , fetch from relay or hello message
+  int botUpdatedAt = 0; // bot metadata update time
+
   Room(
       {required this.toMainPubkey,
       required this.npub,
@@ -121,11 +121,6 @@ class Room extends Equatable {
   bool get isShareKeyGroup =>
       groupType == GroupType.shareKey && type == RoomType.group;
   bool get isKDFGroup => groupType == GroupType.kdf && type == RoomType.group;
-
-  MessageType get messageType =>
-      type == RoomType.common && encryptMode == EncryptMode.nip04
-          ? MessageType.nip04
-          : MessageType.signal;
 
   @override
   List<Object?> get props => [

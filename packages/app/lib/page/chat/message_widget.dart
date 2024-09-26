@@ -14,6 +14,7 @@ import 'package:app/page/chat/message_actions/GroupInviteAction.dart';
 import 'package:app/page/chat/message_actions/SetRoomRelayAction.dart';
 import 'package:app/page/theme.dart';
 import 'package:app/page/widgets/image_preview_widget.dart';
+import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
@@ -39,6 +40,7 @@ import '../components.dart';
 import 'chat_bubble.dart';
 import 'chat_bubble_clipper_4.dart';
 
+import 'message_actions/BotPricePerMessageRequestWidget.dart';
 import 'message_actions/FileMessageWidget.dart';
 import 'message_actions/GroupInviteConfirmAction.dart';
 import 'message_actions/VideoMessageWidget.dart';
@@ -56,6 +58,7 @@ class MessageWidget extends StatelessWidget {
   late Contact contact;
   late double screenWidth;
   late bool isGroup;
+  late Color toDisplayNameColor;
 
   MessageWidget(
       {super.key,
@@ -67,6 +70,7 @@ class MessageWidget extends StatelessWidget {
       required this.fontColor,
       required this.backgroundColor,
       required this.screenWidth,
+      required this.toDisplayNameColor,
       this.roomMember}) {
     message = chatController.messages[index];
   }
@@ -91,7 +95,7 @@ class MessageWidget extends StatelessWidget {
             ),
           ),
         ),
-        getMessageWidget(message),
+        message.isMeSend ? _getMessageContainer() : toTextContainer(),
         // encryptInfo(),
         Obx(() => getFromAndToWidget(context, message))
       ],
@@ -412,11 +416,7 @@ class MessageWidget extends StatelessWidget {
         ));
   }
 
-  Widget getMessageWidget(Message message) {
-    return message.isMeSend ? myTextContainer() : toTextContainer();
-  }
-
-  Widget getSubContent() {
+  Widget getTextViewWidget() {
     try {
       switch (message.mediaType) {
         case MessageMediaType.text:
@@ -440,6 +440,10 @@ class MessageWidget extends StatelessWidget {
         case MessageMediaType.groupInviteConfirm:
           return _getActionWidget(GroupInviteConfirmAction(
               chatController.room.getRoomName(), message));
+        // bot
+        case MessageMediaType.botPricePerMessageRequest:
+          return _getActionWidget(
+              BotPricePerMessageRequestWidget(chatController.room, message));
         default:
       }
     } catch (e, s) {
@@ -449,10 +453,48 @@ class MessageWidget extends StatelessWidget {
     return _getTextItemView();
   }
 
-  Widget _getTextView(Message message) {
-    return GestureDetector(
+  Widget _getMessageContainer() {
+    var child = GestureDetector(
         onLongPress: _handleTextLongPress,
-        child: message.reply == null ? getSubContent() : _getReplyWidget());
+        child: message.reply == null ? getTextViewWidget() : _getReplyWidget());
+
+    if (message.isMeSend) {
+      Widget? messageStatus = getMessageStatus();
+      return Container(
+        margin: EdgeInsets.only(
+            top: 10, bottom: 10, left: messageStatus == null ? 48.0 : 0),
+        child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Flex(
+                  direction: Axis.horizontal,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: <Widget>[
+                    if (messageStatus != null) messageStatus,
+                    Flexible(fit: FlexFit.loose, child: child),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 4),
+              myAavtar
+            ]),
+      );
+    }
+    if (isGroup) {
+      return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Padding(
+                padding: const EdgeInsets.only(left: 5),
+                child: Text(contact.displayName,
+                    maxLines: 1,
+                    style: TextStyle(fontSize: 14, color: toDisplayNameColor))),
+            child
+          ]);
+    }
+    return child;
   }
 
   Future _handleShowRawdata(BuildContext context) async {
@@ -511,31 +553,6 @@ class MessageWidget extends StatelessWidget {
   void messageOnDoubleTap() {
     Get.to(() => LongTextPreviewPage(message.realMessage ?? message.content),
         fullscreenDialog: true, transition: Transition.fadeIn);
-  }
-
-  Widget myTextContainer() {
-    Widget? messageStatus = getMessageStatus();
-    return Container(
-      margin: EdgeInsets.only(
-          top: 10, bottom: 10, left: messageStatus == null ? 48.0 : 0),
-      child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Flex(
-                direction: Axis.horizontal,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: <Widget>[
-                  if (messageStatus != null) messageStatus,
-                  Flexible(fit: FlexFit.loose, child: _getTextView(message)),
-                ],
-              ),
-            ),
-            const SizedBox(width: 4),
-            myAavtar
-          ]),
-    );
   }
 
   TableRow tableRow(String title, String text) {
@@ -602,26 +619,9 @@ class MessageWidget extends StatelessWidget {
             ),
           ),
           Expanded(
-              child: Stack(alignment: AlignmentDirectional.topStart, children: [
-            isGroup
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                        Padding(
-                            padding: const EdgeInsets.only(left: 5),
-                            child: Text(
-                              contact.displayName,
-                              maxLines: 1,
-                              style: TextStyle(
-                                  fontSize: 14,
-                                  color: Get.isDarkMode
-                                      ? Colors.white54
-                                      : Colors.black54),
-                            )),
-                        _getTextView(message)
-                      ])
-                : _getTextView(message)
-          ]))
+              child: Stack(
+                  alignment: AlignmentDirectional.topStart,
+                  children: [_getMessageContainer()]))
         ],
       ),
     );
@@ -951,10 +951,10 @@ class MessageWidget extends StatelessWidget {
             )));
   }
 
-  Widget _getActionWidget(Widget statusWidget) {
+  Widget _getActionWidget(Widget child) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [_getTextItemView(), const SizedBox(height: 10), statusWidget],
+      children: [_getTextItemView(), const SizedBox(height: 10), child],
     );
   }
 

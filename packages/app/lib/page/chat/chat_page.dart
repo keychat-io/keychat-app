@@ -8,6 +8,7 @@ import 'package:app/page/chat/message_widget.dart';
 import 'package:app/page/common.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/theme.dart';
+import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/websocket.service.dart';
@@ -211,6 +212,9 @@ class _ChatPage2State extends State<ChatPage> {
                                     roomMember: rm,
                                     chatController: controller,
                                     screenWidth: screenWidth,
+                                    toDisplayNameColor: Get.isDarkMode
+                                        ? Colors.white54
+                                        : Colors.black54,
                                     backgroundColor: message.isMeSend
                                         ? meBackgroundColor
                                         : toBackgroundColor,

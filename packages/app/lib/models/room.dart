@@ -104,8 +104,9 @@ class Room extends Equatable {
   String? sharedSignalID; // a shared virtual signal id for group
 
   // bot
-  String? metadata; // bot metadata , fetch from relay or hello message
-  int botUpdatedAt = 0; // bot metadata update time
+  String? botInfo; // json map string, fetch from relay or hello message
+  String? botLocalConfig; // json map string, user config in local
+  int botInfoUpdatedAt = 0; // bot metadata update time
 
   Room(
       {required this.toMainPubkey,
@@ -440,7 +441,7 @@ class Room extends Equatable {
     }
 
     if (contact == null) {
-      return getPublicKeyDisplay(npub);
+      return name ?? getPublicKeyDisplay(npub);
     }
     return contact!.displayName;
   }

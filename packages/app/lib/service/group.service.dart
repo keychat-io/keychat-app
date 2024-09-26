@@ -323,7 +323,7 @@ class GroupService extends BaseChatService {
       default:
     }
 
-    await MessageService().saveMessageModel(toSaveMsg);
+    await MessageService().saveMessageModel(toSaveMsg, room: room);
   }
 
   processInvite(Room idRoom, NostrEventModel event, RoomProfile roomProfile,

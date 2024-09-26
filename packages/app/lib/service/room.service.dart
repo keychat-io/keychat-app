@@ -617,6 +617,13 @@ class RoomService extends BaseChatService {
     return room;
   }
 
+  Future updateRoomAndRefresh(Room room) async {
+    await DBProvider.database.writeTxn(() async {
+      await DBProvider.database.rooms.put(room);
+    });
+    updateChatRoomPage(room);
+  }
+
   Future _checkWebsocketConnect() async {
     bool netStatus = homeController.isConnectedNetwork.value;
     if (!netStatus) {

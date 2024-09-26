@@ -732,15 +732,13 @@ class ChatController extends GetxController {
     var res = await NostrAPI().fetchMetadata([room.toMainPubkey]);
     if (res == null) return;
     Map metadata = res as Map;
-    if (room.botUpdatedAt == metadata['created_at']) return;
-    room.botUpdatedAt = metadata['created_at'];
+    if (room.botInfoUpdatedAt <= (metadata['created_at'] ?? -1)) return;
+    room.botInfoUpdatedAt = metadata['created_at'];
     var metadataString = jsonEncode(metadata);
-    await ContactService().updateContact(
-        identityId: room.id,
-        pubkey: room.toMainPubkey,
-        metadata: metadataString);
-    roomContact.value.name = metadata['name'];
-    roomContact.value.metadata = metadataString;
+    room.botInfo = metadataString;
+    room.name = metadata['name'] ?? room.name;
+    await RoomService().updateRoom(room);
+    roomObs.value = room;
   }
 
   Future<void> _initGroupInfo() async {

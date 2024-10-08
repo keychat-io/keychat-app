@@ -9,6 +9,7 @@ class ClientMessageModel with _$ClientMessageModel {
     required ClientMessageType type,
     required String message,
     @JsonKey(includeIfNull: false) String? id,
+    @JsonKey(includeIfNull: false) String? priceModel,
     @JsonKey(includeIfNull: false) String? payToken,
   }) = _ClientMessageModel;
 

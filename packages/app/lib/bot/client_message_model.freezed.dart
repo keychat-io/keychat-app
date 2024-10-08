@@ -25,6 +25,8 @@ mixin _$ClientMessageModel {
   @JsonKey(includeIfNull: false)
   String? get id => throw _privateConstructorUsedError;
   @JsonKey(includeIfNull: false)
+  String? get priceModel => throw _privateConstructorUsedError;
+  @JsonKey(includeIfNull: false)
   String? get payToken => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -43,6 +45,7 @@ abstract class $ClientMessageModelCopyWith<$Res> {
       {ClientMessageType type,
       String message,
       @JsonKey(includeIfNull: false) String? id,
+      @JsonKey(includeIfNull: false) String? priceModel,
       @JsonKey(includeIfNull: false) String? payToken});
 }
 
@@ -62,6 +65,7 @@ class _$ClientMessageModelCopyWithImpl<$Res, $Val extends ClientMessageModel>
     Object? type = null,
     Object? message = null,
     Object? id = freezed,
+    Object? priceModel = freezed,
     Object? payToken = freezed,
   }) {
     return _then(_value.copyWith(
@@ -76,6 +80,10 @@ class _$ClientMessageModelCopyWithImpl<$Res, $Val extends ClientMessageModel>
       id: freezed == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
+              as String?,
+      priceModel: freezed == priceModel
+          ? _value.priceModel
+          : priceModel // ignore: cast_nullable_to_non_nullable
               as String?,
       payToken: freezed == payToken
           ? _value.payToken
@@ -97,6 +105,7 @@ abstract class _$$ClientMessageModelImplCopyWith<$Res>
       {ClientMessageType type,
       String message,
       @JsonKey(includeIfNull: false) String? id,
+      @JsonKey(includeIfNull: false) String? priceModel,
       @JsonKey(includeIfNull: false) String? payToken});
 }
 
@@ -114,6 +123,7 @@ class __$$ClientMessageModelImplCopyWithImpl<$Res>
     Object? type = null,
     Object? message = null,
     Object? id = freezed,
+    Object? priceModel = freezed,
     Object? payToken = freezed,
   }) {
     return _then(_$ClientMessageModelImpl(
@@ -128,6 +138,10 @@ class __$$ClientMessageModelImplCopyWithImpl<$Res>
       id: freezed == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
+              as String?,
+      priceModel: freezed == priceModel
+          ? _value.priceModel
+          : priceModel // ignore: cast_nullable_to_non_nullable
               as String?,
       payToken: freezed == payToken
           ? _value.payToken
@@ -144,6 +158,7 @@ class _$ClientMessageModelImpl implements _ClientMessageModel {
       {required this.type,
       required this.message,
       @JsonKey(includeIfNull: false) this.id,
+      @JsonKey(includeIfNull: false) this.priceModel,
       @JsonKey(includeIfNull: false) this.payToken});
 
   factory _$ClientMessageModelImpl.fromJson(Map<String, dynamic> json) =>
@@ -158,11 +173,14 @@ class _$ClientMessageModelImpl implements _ClientMessageModel {
   final String? id;
   @override
   @JsonKey(includeIfNull: false)
+  final String? priceModel;
+  @override
+  @JsonKey(includeIfNull: false)
   final String? payToken;
 
   @override
   String toString() {
-    return 'ClientMessageModel(type: $type, message: $message, id: $id, payToken: $payToken)';
+    return 'ClientMessageModel(type: $type, message: $message, id: $id, priceModel: $priceModel, payToken: $payToken)';
   }
 
   @override
@@ -173,13 +191,16 @@ class _$ClientMessageModelImpl implements _ClientMessageModel {
             (identical(other.type, type) || other.type == type) &&
             (identical(other.message, message) || other.message == message) &&
             (identical(other.id, id) || other.id == id) &&
+            (identical(other.priceModel, priceModel) ||
+                other.priceModel == priceModel) &&
             (identical(other.payToken, payToken) ||
                 other.payToken == payToken));
   }
 
   @JsonKey(ignore: true)
   @override
-  int get hashCode => Object.hash(runtimeType, type, message, id, payToken);
+  int get hashCode =>
+      Object.hash(runtimeType, type, message, id, priceModel, payToken);
 
   @JsonKey(ignore: true)
   @override
@@ -201,6 +222,7 @@ abstract class _ClientMessageModel implements ClientMessageModel {
           {required final ClientMessageType type,
           required final String message,
           @JsonKey(includeIfNull: false) final String? id,
+          @JsonKey(includeIfNull: false) final String? priceModel,
           @JsonKey(includeIfNull: false) final String? payToken}) =
       _$ClientMessageModelImpl;
 
@@ -214,6 +236,9 @@ abstract class _ClientMessageModel implements ClientMessageModel {
   @override
   @JsonKey(includeIfNull: false)
   String? get id;
+  @override
+  @JsonKey(includeIfNull: false)
+  String? get priceModel;
   @override
   @JsonKey(includeIfNull: false)
   String? get payToken;

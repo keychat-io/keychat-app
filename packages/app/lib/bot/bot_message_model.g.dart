@@ -11,12 +11,10 @@ _$BotMessageModelImpl _$$BotMessageModelImplFromJson(
     _$BotMessageModelImpl(
       type: $enumDecode(_$ServerMessageTypeEnumMap, json['type']),
       message: json['message'] as String,
-      id: json['id'] as String?,
-      unit: json['unit'] as String?,
-      method: json['method'] as String?,
-      data: (json['data'] as List<dynamic>)
+      priceModels: (json['priceModels'] as List<dynamic>)
           .map((e) => BotMessageData.fromJson(e as Map<String, dynamic>))
           .toList(),
+      id: json['id'] as String?,
     );
 
 Map<String, dynamic> _$$BotMessageModelImplToJson(
@@ -24,10 +22,8 @@ Map<String, dynamic> _$$BotMessageModelImplToJson(
     <String, dynamic>{
       'type': _$ServerMessageTypeEnumMap[instance.type]!,
       'message': instance.message,
+      'priceModels': instance.priceModels,
       'id': instance.id,
-      'unit': instance.unit,
-      'method': instance.method,
-      'data': instance.data,
     };
 
 const _$ServerMessageTypeEnumMap = {
@@ -42,6 +38,8 @@ _$BotMessageDataImpl _$$BotMessageDataImplFromJson(Map<String, dynamic> json) =>
       name: json['name'] as String,
       description: json['description'] as String,
       price: (json['price'] as num).toInt(),
+      unit: json['unit'] as String,
+      mints: (json['mints'] as List<dynamic>).map((e) => e as String).toList(),
     );
 
 Map<String, dynamic> _$$BotMessageDataImplToJson(
@@ -50,4 +48,6 @@ Map<String, dynamic> _$$BotMessageDataImplToJson(
       'name': instance.name,
       'description': instance.description,
       'price': instance.price,
+      'unit': instance.unit,
+      'mints': instance.mints,
     };

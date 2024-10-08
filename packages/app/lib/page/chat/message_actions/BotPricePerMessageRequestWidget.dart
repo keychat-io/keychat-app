@@ -1,7 +1,6 @@
 import 'dart:convert' show jsonDecode, jsonEncode;
 
 import 'package:app/bot/bot_message_model.dart';
-import 'package:app/bot/client_message_model.dart';
 import 'package:app/models/message.dart';
 import 'package:app/models/room.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
@@ -9,6 +8,7 @@ import 'package:app/service/message.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
 class BotPricePerMessageRequestWidget extends StatefulWidget {
@@ -45,11 +45,10 @@ class _BotPricePerMessageRequestWidgetState
         : Wrap(
             spacing: 8.0,
             direction: Axis.vertical,
-            children: bmm!.data.map((data) {
+            children: bmm!.priceModels.map((data) {
               return ElevatedButton(
                 onPressed: () {
-                  String priceString =
-                      '${data.price} ${bmm!.unit ?? 'sat'} via ${bmm!.method ?? 'ecash'}';
+                  String priceString = '${data.price} ${data.unit} ecash}';
                   Get.dialog(
                     CupertinoAlertDialog(
                       title: Text(data.name),
@@ -57,7 +56,7 @@ class _BotPricePerMessageRequestWidgetState
                         children: [
                           Text(data.description),
                           Text(
-                              'For each message sent to the bot, you need to pay: $priceString'),
+                              'For each message sent to the bot, you need to pay: $priceString')
                         ],
                       ),
                       actions: [
@@ -82,13 +81,14 @@ class _BotPricePerMessageRequestWidgetState
 
                             await MessageService()
                                 .updateMessageAndRefresh(widget.message);
-                            var cmm = ClientMessageModel(
-                                type: ClientMessageType.selectionResponse,
-                                message: data.name,
-                                id: bmm!.id);
-                            await RoomService().sendTextMessage(
-                                widget.room, jsonEncode(cmm.toJson()),
-                                realMessage: 'Selected: $priceString');
+                            EasyLoading.showSuccess('Selected: $priceString');
+                            // var cmm = ClientMessageModel(
+                            //     type: ClientMessageType.selectionResponse,
+                            //     message: data.name,
+                            //     id: bmm!.id);
+                            // await RoomService().sendTextMessage(
+                            //     widget.room, jsonEncode(cmm.toJson()),
+                            //     realMessage: 'Selected: $priceString');
                             Get.back();
                           },
                           isDefaultAction: true,

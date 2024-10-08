@@ -1,5 +1,7 @@
-import 'dart:convert' show jsonDecode;
+import 'dart:convert' show jsonDecode, jsonEncode;
 
+import 'package:app/bot/bot_message_model.dart';
+import 'package:app/bot/client_message_model.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/models/nostr_event_status.dart';
@@ -8,6 +10,7 @@ import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/signalId.service.dart';
+import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:app/service/chat.service.dart';
 import 'package:app/service/chatx.service.dart';
@@ -563,6 +566,9 @@ class RoomService extends BaseChatService {
       return await _sendTextMessageToGroup(room, content,
           reply: reply, realMessage: realMessageContent, mediaType: mediaType);
     }
+    if (room.type == RoomType.bot) {
+      return await sendMessageToBot(room, room.getIdentity(), content);
+    }
 
     SendMessageResponse map;
     encryptMode ??= room.encryptMode;
@@ -593,6 +599,31 @@ class RoomService extends BaseChatService {
           save: save);
     }
     return map;
+  }
+
+  Future<SendMessageResponse> sendMessageToBot(
+      Room room, Identity identity, String message) async {
+    ClientMessageModel? cmm;
+    try {
+      cmm = ClientMessageModel.fromJson(jsonDecode(message));
+    } catch (e) {}
+    cmm ??= ClientMessageModel(type: ClientMessageType.plain, message: message);
+    BotMessageData? bmd = room.getBotMessagePriceModel();
+    late String toSendMessage;
+    if (bmd == null) {
+      toSendMessage = jsonEncode(cmm.toJson());
+    } else {
+      CashuInfoModel? cashuToken = await CashuUtil.getStamp(
+          amount: bmd.price, token: bmd.unit, mints: bmd.mints);
+      cmm = cmm.copyWith(priceModel: bmd.name, payToken: cashuToken.toString());
+      toSendMessage = jsonEncode(cmm.toJson());
+    }
+
+    return await NostrAPI().sendNip4Message(room.toMainPubkey, toSendMessage,
+        prikey: await identity.getSecp256k1SKHex(),
+        from: identity.secp256k1PKHex,
+        room: room,
+        encryptType: MessageEncryptType.nip4);
   }
 
   Future<ChatController?> updateChatRoomPage(Room room) async {

@@ -12,6 +12,7 @@ _$ClientMessageModelImpl _$$ClientMessageModelImplFromJson(
       type: $enumDecode(_$ClientMessageTypeEnumMap, json['type']),
       message: json['message'] as String,
       id: json['id'] as String?,
+      priceModel: json['priceModel'] as String?,
       payToken: json['payToken'] as String?,
     );
 
@@ -29,6 +30,7 @@ Map<String, dynamic> _$$ClientMessageModelImplToJson(
   }
 
   writeNotNull('id', instance.id);
+  writeNotNull('priceModel', instance.priceModel);
   writeNotNull('payToken', instance.payToken);
   return val;
 }

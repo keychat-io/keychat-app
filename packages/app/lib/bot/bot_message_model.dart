@@ -13,14 +13,11 @@ enum ServerMessageType {
 
 @freezed
 class BotMessageModel with _$BotMessageModel {
-  const factory BotMessageModel({
-    required ServerMessageType type,
-    required String message,
-    String? id,
-    String? unit,
-    String? method,
-    required List<BotMessageData> data,
-  }) = _BotMessageModel;
+  const factory BotMessageModel(
+      {required ServerMessageType type,
+      required String message,
+      required List<BotMessageData> priceModels,
+      String? id}) = _BotMessageModel;
 
   const BotMessageModel._();
 
@@ -43,11 +40,12 @@ class BotMessageModel with _$BotMessageModel {
 
 @freezed
 class BotMessageData with _$BotMessageData {
-  const factory BotMessageData({
-    required String name,
-    required String description,
-    required int price,
-  }) = _BotMessageData;
+  const factory BotMessageData(
+      {required String name,
+      required String description,
+      required int price,
+      required String unit,
+      required List<String> mints}) = _BotMessageData;
 
   factory BotMessageData.fromJson(Map<String, dynamic> json) =>
       _$BotMessageDataFromJson(json);

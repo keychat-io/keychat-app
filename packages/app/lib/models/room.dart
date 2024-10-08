@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:app/bot/bot_message_model.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
@@ -142,7 +145,7 @@ class Room extends Equatable {
     if (signalIdPubkey == null) {
       return await chatxService.getKeyPairByIdentity(getIdentity());
     }
-    var exist = chatxService.keypairs[signalIdPubkey];
+    var exist = chatxService.initedKeypairs[signalIdPubkey];
     if (exist != null) return exist;
     SignalId? si = getMySignalId();
     if (si != null) {
@@ -544,5 +547,16 @@ class Room extends Equatable {
   String getDebugInfo(String error) {
     return '''$error
 Room: $id, ${getRoomName()} $toMainPubkey, $identityId, $groupType''';
+  }
+
+  BotMessageData? getBotMessagePriceModel() {
+    if (botLocalConfig == null) return null;
+    BotMessageData? bmd;
+    try {
+      bmd = BotMessageData.fromJson(jsonDecode(botLocalConfig!));
+    } catch (e) {
+      return null;
+    }
+    return bmd;
   }
 }

@@ -47,16 +47,23 @@ class _BotPricePerMessageRequestWidgetState
             direction: Axis.vertical,
             children: bmm!.priceModels.map((data) {
               return ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
                 onPressed: () {
-                  String priceString = '${data.price} ${data.unit} ecash}';
+                  String priceString = '${data.price} ${data.unit}';
                   Get.dialog(
                     CupertinoAlertDialog(
                       title: Text(data.name),
                       content: Column(
                         children: [
                           Text(data.description),
-                          Text(
-                              'For each message sent to the bot, you need to pay: $priceString')
+                          const Text(
+                              'For each message sent to the bot, you need to pay:'),
+                          Text(priceString,
+                              style: Theme.of(context).textTheme.titleMedium),
                         ],
                       ),
                       actions: [

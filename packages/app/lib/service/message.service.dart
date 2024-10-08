@@ -541,8 +541,8 @@ class MessageService {
       return m;
     }
 
-    if (isBot) {
-      // bot message
+    // bot message
+    if (isBot && !m.isMeSend) {
       BotMessageModel? bmm;
       try {
         Map<String, dynamic> map = jsonDecode(m.content);

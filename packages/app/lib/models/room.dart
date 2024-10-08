@@ -553,7 +553,9 @@ Room: $id, ${getRoomName()} $toMainPubkey, $identityId, $groupType''';
     if (botLocalConfig == null) return null;
     BotMessageData? bmd;
     try {
-      bmd = BotMessageData.fromJson(jsonDecode(botLocalConfig!));
+      Map config = jsonDecode(botLocalConfig!);
+      bmd = BotMessageData.fromJson(
+          config[MessageMediaType.botPricePerMessageRequest.name]);
     } catch (e) {
       return null;
     }

@@ -613,16 +613,21 @@ class RoomService extends BaseChatService {
     if (bmd == null) {
       toSendMessage = jsonEncode(cmm.toJson());
     } else {
-      CashuInfoModel? cashuToken = await CashuUtil.getStamp(
-          amount: bmd.price, token: bmd.unit, mints: bmd.mints);
-      cmm = cmm.copyWith(priceModel: bmd.name, payToken: cashuToken.toString());
+      String? cashuTokenString;
+      if (bmd.price > 0) {
+        CashuInfoModel cashuToken = await CashuUtil.getStamp(
+            amount: bmd.price, token: bmd.unit, mints: bmd.mints);
+        cashuTokenString = cashuToken.toString();
+      }
+      cmm = cmm.copyWith(priceModel: bmd.name, payToken: cashuTokenString);
       toSendMessage = jsonEncode(cmm.toJson());
     }
-
+    logger.d('toSendMessage: $toSendMessage');
     return await NostrAPI().sendNip4Message(room.toMainPubkey, toSendMessage,
         prikey: await identity.getSecp256k1SKHex(),
         from: identity.secp256k1PKHex,
         room: room,
+        realMessage: message,
         encryptType: MessageEncryptType.nip4);
   }
 

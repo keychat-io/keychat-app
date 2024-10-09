@@ -20,6 +20,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:app/models/models.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
+import 'package:settings_ui/settings_ui.dart';
 
 import '../../controller/chat.controller.dart';
 import '../../service/signal_chat.service.dart';
@@ -255,6 +256,8 @@ class _ChatPage2State extends State<ChatPage> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: <Widget>[
+                        if (controller.botCommands.isNotEmpty)
+                          botMenuWidget(controller, context),
                         Expanded(
                           child: KeyboardListener(
                             focusNode: controller.keyboardFocus,
@@ -358,6 +361,40 @@ class _ChatPage2State extends State<ChatPage> {
               ],
             ));
     }
+  }
+
+  Padding botMenuWidget(ChatController controller, BuildContext context) {
+    return Padding(
+        padding: const EdgeInsets.only(left: 0, right: 5, bottom: 5),
+        child: GestureDetector(
+            onTap: () {
+              Get.bottomSheet(
+                  SettingsList(platform: DevicePlatform.iOS, sections: [
+                SettingsSection(
+                    title: const Text('Commands'),
+                    tiles: controller.botCommands
+                        .map(
+                          (element) => SettingsTile(
+                              title: Row(children: [
+                                Text(element['name']),
+                                const SizedBox(width: 20),
+                                textSmallGray(context, element['description'])
+                              ]),
+                              onPressed: (context) async {
+                                RoomService().sendTextMessage(
+                                    controller.roomObs.value, element['name']);
+                                Get.back();
+                              }),
+                        )
+                        .toList())
+              ]));
+            },
+            child: Icon(
+              size: 30,
+              Icons.menu,
+              weight: 300,
+              color: Theme.of(context).iconTheme.color?.withAlpha(155),
+            )));
   }
 
   Widget getFeaturesWidget(BuildContext context) {

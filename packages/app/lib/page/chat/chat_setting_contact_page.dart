@@ -90,14 +90,15 @@ class _ShowContactDetailState extends State<ShowContactDetail> {
               child: Obx(
             () => SettingsList(platform: DevicePlatform.iOS, sections: [
               SettingsSection(tiles: [
-                SettingsTile.navigation(
-                  title: const Text('Security Settings'),
-                  leading: const Icon(CupertinoIcons.lock_shield),
-                  onPressed: (context) {
-                    Get.to(() =>
-                        ChatSettingsMoreDart(chatController: chatController));
-                  },
-                ),
+                if (chatController.roomObs.value.type != RoomType.bot)
+                  SettingsTile.navigation(
+                    title: const Text('Security Settings'),
+                    leading: const Icon(CupertinoIcons.lock_shield),
+                    onPressed: (context) {
+                      Get.to(() =>
+                          ChatSettingsMoreDart(chatController: chatController));
+                    },
+                  ),
                 SettingsTile.switchTile(
                   title: const Text('Show Addresses'),
                   initialValue: chatController.showFromAndTo.value,

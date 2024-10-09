@@ -81,7 +81,8 @@ class ChatController extends GetxController {
   RxList<RoomMember> enableMembers = <RoomMember>[].obs;
   Map<String, Room> memberRooms = {}; // sendToAllGroup: rooms for each member
 
-  Timer? _timer;
+  // bot commands
+  RxList<Map<String, dynamic>> botCommands = <Map<String, dynamic>>[].obs;
 
   late TextEditingController textEditingController;
 
@@ -420,7 +421,6 @@ class ChatController extends GetxController {
   @override
   void onClose() {
     messages.clear();
-    _timer?.cancel();
     chatContentFocus.dispose();
     keyboardFocus.dispose();
     textEditingController.dispose();
@@ -731,12 +731,65 @@ class ChatController extends GetxController {
     if (roomObs.value.type != RoomType.bot) return;
     var res = await NostrAPI().fetchMetadata([room.toMainPubkey]);
     if (res == null) return;
-    Map metadata = res as Map;
-    if (room.botInfoUpdatedAt <= (metadata['created_at'] ?? -1)) return;
+    Map<String, dynamic> metadata = res as Map<String, dynamic>;
+    metadata['commands'] = [
+      {'name': '/h', 'description': 'Show help message'},
+      {'name': '/m', 'description': 'Select Model'},
+    ];
+    metadata['botPricePerMessageRequest'] = {
+      "type": "botPricePerMessageRequest",
+      "id": "SelectModel",
+      "message": "Please select a model to chat",
+      "priceModels": [
+        {
+          'name': 'GPT-4o',
+          'description': '',
+          'price': 0,
+          'unit': 'sat',
+          'mints': []
+        },
+        {
+          'name': 'GPT-4o-mini',
+          'description': '',
+          'price': 2,
+          'unit': 'sat',
+          'mints': []
+        },
+        {
+          'name': 'GPT-4-Turbo',
+          'description': '',
+          'price': 3,
+          'unit': 'sat',
+          'mints': []
+        },
+      ]
+    };
+    if (room.botInfoUpdatedAt > (metadata['created_at'] ?? 9999999999)) {
+      botCommands.value = metadata['commands'];
+      return;
+    }
     room.botInfoUpdatedAt = metadata['created_at'];
+
+    botCommands.value = metadata['commands'];
     var metadataString = jsonEncode(metadata);
     room.botInfo = metadataString;
     room.name = metadata['name'] ?? room.name;
+    const ignoreKeys = {
+      'pubkey',
+      'npub',
+      'commands',
+      'botPricePerMessageRequest'
+    };
+    String description = metadata.keys
+        .where((key) => !ignoreKeys.contains(key))
+        .map((info) => '$info: ${metadata[info]}')
+        .join('\n');
+    await MessageService().saveSystemMessage(room, description,
+        suffix: 'Bot Info', isMeSend: false);
+
+    await MessageService().saveSystemMessage(
+        room, jsonEncode(metadata['botPricePerMessageRequest']),
+        suffix: '', isMeSend: false);
     await RoomService().updateRoom(room);
     roomObs.value = room;
   }

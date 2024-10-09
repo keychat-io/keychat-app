@@ -63,23 +63,30 @@ class MessageService {
   }
 
   Future saveSystemMessage(Room room, String content,
-      {DateTime? createdAt}) async {
+      {DateTime? createdAt,
+      String suffix = 'SystemMessage',
+      bool isMeSend = true}) async {
     Identity identity = room.getIdentity();
-    await saveMessageModel(Message(
-        msgid: Utils.randomString(16),
-        idPubkey: identity.secp256k1PKHex,
-        identityId: room.identityId,
-        roomId: room.id,
-        from: identity.secp256k1PKHex,
-        to: room.toMainPubkey,
-        content: '[SystemMessage] $content',
-        createdAt: createdAt ?? DateTime.now(),
-        sent: SendStatusType.success,
-        isMeSend: true,
-        isSystem: true,
-        eventIds: const [],
-        encryptType: MessageEncryptType.signal,
-        rawEvents: const []));
+    await saveMessageModel(
+        Message(
+            msgid: Utils.randomString(16),
+            idPubkey: identity.secp256k1PKHex,
+            identityId: room.identityId,
+            roomId: room.id,
+            from: identity.secp256k1PKHex,
+            to: room.toMainPubkey,
+            content: suffix.isNotEmpty
+                ? '''[$suffix]
+$content'''
+                : content,
+            createdAt: createdAt ?? DateTime.now(),
+            sent: SendStatusType.success,
+            isMeSend: isMeSend,
+            isSystem: true,
+            eventIds: const [],
+            encryptType: MessageEncryptType.signal,
+            rawEvents: const []),
+        room: room);
   }
 
   Future updateMessageAndRefresh(Message message) async {

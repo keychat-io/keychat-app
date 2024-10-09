@@ -566,7 +566,9 @@ class RoomService extends BaseChatService {
       return await _sendTextMessageToGroup(room, content,
           reply: reply, realMessage: realMessageContent, mediaType: mediaType);
     }
-    if (room.type == RoomType.bot) {
+    if (room.type == RoomType.bot &&
+        !content.startsWith('/') &&
+        !content.startsWith('cashu')) {
       return await sendMessageToBot(room, room.getIdentity(), content);
     }
 
@@ -617,7 +619,7 @@ class RoomService extends BaseChatService {
       if (bmd.price > 0) {
         CashuInfoModel cashuToken = await CashuUtil.getStamp(
             amount: bmd.price, token: bmd.unit, mints: bmd.mints);
-        cashuTokenString = cashuToken.toString();
+        cashuTokenString = cashuToken.token;
       }
       cmm = cmm.copyWith(priceModel: bmd.name, payToken: cashuTokenString);
       toSendMessage = jsonEncode(cmm.toJson());

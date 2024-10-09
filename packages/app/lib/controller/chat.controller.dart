@@ -272,7 +272,7 @@ class ChatController extends GetxController {
       textEditingController.text = text;
       String msg = Utils.getErrorMessage(e);
       logger.e('Failed: $msg', error: e, stackTrace: s);
-      EasyLoading.showError(msg, duration: const Duration(seconds: 2));
+      EasyLoading.showError(msg, duration: const Duration(seconds: 3));
     }
   }
 

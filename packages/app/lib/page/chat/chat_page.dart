@@ -80,14 +80,12 @@ class _ChatPage2State extends State<ChatPage> {
               children: [
                 _getRoomTite(),
                 if (controller.roomObs.value.type == RoomType.bot)
-                  const Chip(
-                    label: Text('Bot'),
-                    shape: RoundedRectangleBorder(
-                      side: BorderSide(color: Colors.transparent),
-                      borderRadius: BorderRadius.all(Radius.circular(4.0)),
-                    ),
-                    padding: EdgeInsets.all(1),
-                  )
+                  const Padding(
+                      padding: EdgeInsets.only(left: 5),
+                      child: Icon(
+                        Icons.android_outlined,
+                        color: Colors.purple,
+                      ))
               ],
             )),
         bottom: PreferredSize(
@@ -686,9 +684,7 @@ class _ChatPage2State extends State<ChatPage> {
               },
               style: ButtonStyle(
                   backgroundColor: WidgetStateProperty.all(Colors.green)),
-              child: const Text(
-                'Approve',
-              ),
+              child: const Text('Approve'),
             ),
             FilledButton(
               onPressed: () async {

@@ -566,9 +566,7 @@ class RoomService extends BaseChatService {
       return await _sendTextMessageToGroup(room, content,
           reply: reply, realMessage: realMessageContent, mediaType: mediaType);
     }
-    if (room.type == RoomType.bot &&
-        !content.startsWith('/') &&
-        !content.startsWith('cashu')) {
+    if (room.type == RoomType.bot && !content.startsWith('cashu')) {
       return await sendMessageToBot(room, room.getIdentity(), content,
           realMessage: realMessage);
     }
@@ -615,8 +613,7 @@ class RoomService extends BaseChatService {
       cmm ??= BotClientMessageModel(
           type: MessageMediaType.botText, message: message);
       BotMessageData? bmd = room.getBotMessagePriceModel();
-      if (bmd == null) {
-      } else {
+      if (bmd != null && !message.startsWith('/')) {
         String? cashuTokenString;
         if (bmd.price > 0) {
           CashuInfoModel cashuToken = await CashuUtil.getStamp(
@@ -626,13 +623,17 @@ class RoomService extends BaseChatService {
         cmm = cmm.copyWith(priceModel: bmd.name, payToken: cashuTokenString);
       }
     }
+    if (realMessage == null && message.startsWith('/')) {
+      realMessage = message;
+    }
+
     String toSendMessage = jsonEncode(cmm.toJson());
     logger.d('toSendMessage: $toSendMessage');
     return await NostrAPI().sendNip4Message(room.toMainPubkey, toSendMessage,
         prikey: await identity.getSecp256k1SKHex(),
         from: identity.secp256k1PKHex,
         room: room,
-        realMessage: realMessage,
+        realMessage: realMessage ?? message,
         encryptType: MessageEncryptType.nip4);
   }
 

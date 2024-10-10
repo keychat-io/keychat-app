@@ -1,7 +1,7 @@
 import 'dart:convert' show jsonDecode, jsonEncode;
 
-import 'package:app/bot/bot_message_model.dart';
-import 'package:app/bot/client_message_model.dart';
+import 'package:app/bot/bot_server_message_model.dart';
+import 'package:app/bot/bot_client_message_model.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/models/nostr_event_status.dart';
@@ -569,7 +569,8 @@ class RoomService extends BaseChatService {
     if (room.type == RoomType.bot &&
         !content.startsWith('/') &&
         !content.startsWith('cashu')) {
-      return await sendMessageToBot(room, room.getIdentity(), content);
+      return await sendMessageToBot(room, room.getIdentity(), content,
+          realMessage: realMessage);
     }
 
     SendMessageResponse map;
@@ -604,32 +605,34 @@ class RoomService extends BaseChatService {
   }
 
   Future<SendMessageResponse> sendMessageToBot(
-      Room room, Identity identity, String message) async {
-    ClientMessageModel? cmm;
+      Room room, Identity identity, String message,
+      {String? realMessage}) async {
+    BotClientMessageModel? cmm;
     try {
-      cmm = ClientMessageModel.fromJson(jsonDecode(message));
+      cmm = BotClientMessageModel.fromJson(jsonDecode(message));
     } catch (e) {}
-    cmm ??= ClientMessageModel(type: ClientMessageType.plain, message: message);
-    BotMessageData? bmd = room.getBotMessagePriceModel();
-    late String toSendMessage;
-    if (bmd == null) {
-      toSendMessage = jsonEncode(cmm.toJson());
-    } else {
-      String? cashuTokenString;
-      if (bmd.price > 0) {
-        CashuInfoModel cashuToken = await CashuUtil.getStamp(
-            amount: bmd.price, token: bmd.unit, mints: bmd.mints);
-        cashuTokenString = cashuToken.token;
+    if (cmm == null) {
+      cmm ??= BotClientMessageModel(
+          type: MessageMediaType.botText, message: message);
+      BotMessageData? bmd = room.getBotMessagePriceModel();
+      if (bmd == null) {
+      } else {
+        String? cashuTokenString;
+        if (bmd.price > 0) {
+          CashuInfoModel cashuToken = await CashuUtil.getStamp(
+              amount: bmd.price, token: bmd.unit, mints: bmd.mints);
+          cashuTokenString = cashuToken.token;
+        }
+        cmm = cmm.copyWith(priceModel: bmd.name, payToken: cashuTokenString);
       }
-      cmm = cmm.copyWith(priceModel: bmd.name, payToken: cashuTokenString);
-      toSendMessage = jsonEncode(cmm.toJson());
     }
+    String toSendMessage = jsonEncode(cmm.toJson());
     logger.d('toSendMessage: $toSendMessage');
     return await NostrAPI().sendNip4Message(room.toMainPubkey, toSendMessage,
         prikey: await identity.getSecp256k1SKHex(),
         from: identity.secp256k1PKHex,
         room: room,
-        realMessage: message,
+        realMessage: realMessage,
         encryptType: MessageEncryptType.nip4);
   }
 

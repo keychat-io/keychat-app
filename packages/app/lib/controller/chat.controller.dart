@@ -734,7 +734,8 @@ class ChatController extends GetxController {
     Map<String, dynamic> metadata = res as Map<String, dynamic>;
     metadata['commands'] = [
       {'name': '/h', 'description': 'Show help message'},
-      {'name': '/m', 'description': 'Select Model'},
+      {'name': '/m1', 'description': 'Pay per message plan'},
+      // {'name': '/m2', 'description': 'Monthly payment plan'},
     ];
     metadata['botPricePerMessageRequest'] = {
       "type": "botPricePerMessageRequest",
@@ -764,7 +765,7 @@ class ChatController extends GetxController {
         },
       ]
     };
-    if (room.botInfoUpdatedAt > (metadata['created_at'] ?? 9999999999)) {
+    if (room.botInfoUpdatedAt >= (metadata['created_at'] ?? 9999999999)) {
       botCommands.value = metadata['commands'];
       return;
     }

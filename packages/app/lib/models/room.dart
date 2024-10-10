@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:app/bot/bot_message_model.dart';
+import 'package:app/bot/bot_server_message_model.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';

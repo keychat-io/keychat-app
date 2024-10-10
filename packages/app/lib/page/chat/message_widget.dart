@@ -10,6 +10,7 @@ import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/ForwardSelectRoom.dart';
 import 'package:app/page/chat/LongTextPreviewPage.dart';
 import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app/page/chat/message_actions/BotOneTimePaymentRequestWidget.dart';
 import 'package:app/page/chat/message_actions/GroupInviteAction.dart';
 import 'package:app/page/chat/message_actions/SetRoomRelayAction.dart';
 import 'package:app/page/theme.dart';
@@ -444,6 +445,9 @@ class MessageWidget extends StatelessWidget {
         case MessageMediaType.botPricePerMessageRequest:
           return _getActionWidget(
               BotPricePerMessageRequestWidget(chatController.room, message));
+        case MessageMediaType.botOneTimePaymentRequest:
+          return _getActionWidget(
+              BotOneTimePaymentRequestWidget(chatController.room, message));
         default:
       }
     } catch (e, s) {

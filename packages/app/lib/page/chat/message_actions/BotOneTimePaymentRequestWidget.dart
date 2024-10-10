@@ -1,28 +1,33 @@
 import 'dart:convert' show jsonDecode, jsonEncode;
 
+import 'package:app/bot/bot_client_message_model.dart';
 import 'package:app/bot/bot_server_message_model.dart';
+import 'package:app/models/embedded/cashu_info.dart';
 import 'package:app/models/message.dart';
 import 'package:app/models/room.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/room.service.dart';
+import 'package:app/utils.dart';
+import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:keychat_ecash/utils.dart';
 
-class BotPricePerMessageRequestWidget extends StatefulWidget {
+class BotOneTimePaymentRequestWidget extends StatefulWidget {
   final Room room;
   final Message message;
 
-  const BotPricePerMessageRequestWidget(this.room, this.message, {super.key});
+  const BotOneTimePaymentRequestWidget(this.room, this.message, {super.key});
 
   @override
-  _BotPricePerMessageRequestWidgetState createState() =>
-      _BotPricePerMessageRequestWidgetState();
+  _BotOneTimePaymentRequestWidgetState createState() =>
+      _BotOneTimePaymentRequestWidgetState();
 }
 
-class _BotPricePerMessageRequestWidgetState
-    extends State<BotPricePerMessageRequestWidget> {
+class _BotOneTimePaymentRequestWidgetState
+    extends State<BotOneTimePaymentRequestWidget> {
   BotServerMessageModel? bmm;
   @override
   void initState() {
@@ -68,18 +73,12 @@ class _BotPricePerMessageRequestWidgetState
         minVerticalPadding: 4,
         title: Text(data.name, style: Theme.of(context).textTheme.titleSmall),
         onTap: () {
-          String priceString = '${data.price} ${data.unit}';
+          if (selected) return;
           Get.dialog(
             CupertinoAlertDialog(
               title: Text(data.name),
               content: Column(
-                children: [
-                  Text(data.description),
-                  const Text(
-                      'For each message sent to the bot, you need to pay:'),
-                  Text(priceString,
-                      style: Theme.of(context).textTheme.titleMedium),
-                ],
+                children: [Text(data.description)],
               ),
               actions: [
                 CupertinoDialogAction(
@@ -90,24 +89,44 @@ class _BotPricePerMessageRequestWidgetState
                 ),
                 CupertinoDialogAction(
                   onPressed: () async {
-                    if (selected) return;
+                    EasyThrottle.throttle(
+                        'click_perMessagePriceOptionWidget_${widget.message.id}',
+                        const Duration(seconds: 3), () async {
+                      String? cashuTokenString;
+                      if (data.unit == 'sat' && data.price > 0) {
+                        try {
+                          CashuInfoModel cashuToken = await CashuUtil.getStamp(
+                              amount: data.price,
+                              token: data.unit,
+                              mints: data.mints);
+                          cashuTokenString = cashuToken.token;
+                        } catch (e, s) {
+                          String msg = Utils.getErrorMessage(e);
+                          logger.e(msg, error: e, stackTrace: s);
+                          EasyLoading.showError(msg);
+                          return;
+                        }
+                      }
+                      String confirmResult = jsonEncode(data.toJson());
+                      BotClientMessageModel bcm = BotClientMessageModel(
+                          type: MessageMediaType.botOneTimePaymentRequest,
+                          message: confirmResult,
+                          payToken: cashuTokenString);
 
-                    widget.message.confirmResult = jsonEncode(data);
+                      await RoomService().sendTextMessage(
+                          widget.room, jsonEncode(bcm.toJson()),
+                          realMessage:
+                              'Selected ${data.name}, and send ecash: ${data.price} ${data.unit}');
 
-                    // save config to local db
-                    Map localConfig =
-                        jsonDecode(widget.room.botLocalConfig ?? '{}');
-                    localConfig[bmm!.type.name] = data;
-                    widget.room.botLocalConfig = jsonEncode(localConfig);
-                    await RoomService().updateRoomAndRefresh(widget.room);
-
-                    await MessageService()
-                        .updateMessageAndRefresh(widget.message);
-                    EasyLoading.showSuccess('Success');
-                    Get.back();
+                      widget.message.confirmResult = confirmResult;
+                      await MessageService()
+                          .updateMessageAndRefresh(widget.message);
+                      EasyLoading.showSuccess('Success');
+                      Get.back();
+                    });
                   },
                   isDefaultAction: true,
-                  child: const Text('Confirm'),
+                  child: Text('Pay ${data.price} ${data.unit}'),
                 ),
               ],
             ),
@@ -116,7 +135,7 @@ class _BotPricePerMessageRequestWidgetState
         subtitle: Wrap(
           direction: Axis.vertical,
           children: [
-            Text('${data.price} ${data.unit} /message',
+            Text('${data.price} ${data.unit}',
                 style: Theme.of(context)
                     .textTheme
                     .titleMedium

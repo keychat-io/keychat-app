@@ -3,7 +3,7 @@
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
-part of 'client_message_model.dart';
+part of 'bot_client_message_model.dart';
 
 // **************************************************************************
 // FreezedGenerator
@@ -14,13 +14,14 @@ T _$identity<T>(T value) => value;
 final _privateConstructorUsedError = UnsupportedError(
     'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
-ClientMessageModel _$ClientMessageModelFromJson(Map<String, dynamic> json) {
-  return _ClientMessageModel.fromJson(json);
+BotClientMessageModel _$BotClientMessageModelFromJson(
+    Map<String, dynamic> json) {
+  return _BotClientMessageModel.fromJson(json);
 }
 
 /// @nodoc
-mixin _$ClientMessageModel {
-  ClientMessageType get type => throw _privateConstructorUsedError;
+mixin _$BotClientMessageModel {
+  MessageMediaType get type => throw _privateConstructorUsedError;
   String get message => throw _privateConstructorUsedError;
   @JsonKey(includeIfNull: false)
   String? get id => throw _privateConstructorUsedError;
@@ -31,18 +32,18 @@ mixin _$ClientMessageModel {
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
-  $ClientMessageModelCopyWith<ClientMessageModel> get copyWith =>
+  $BotClientMessageModelCopyWith<BotClientMessageModel> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class $ClientMessageModelCopyWith<$Res> {
-  factory $ClientMessageModelCopyWith(
-          ClientMessageModel value, $Res Function(ClientMessageModel) then) =
-      _$ClientMessageModelCopyWithImpl<$Res, ClientMessageModel>;
+abstract class $BotClientMessageModelCopyWith<$Res> {
+  factory $BotClientMessageModelCopyWith(BotClientMessageModel value,
+          $Res Function(BotClientMessageModel) then) =
+      _$BotClientMessageModelCopyWithImpl<$Res, BotClientMessageModel>;
   @useResult
   $Res call(
-      {ClientMessageType type,
+      {MessageMediaType type,
       String message,
       @JsonKey(includeIfNull: false) String? id,
       @JsonKey(includeIfNull: false) String? priceModel,
@@ -50,9 +51,10 @@ abstract class $ClientMessageModelCopyWith<$Res> {
 }
 
 /// @nodoc
-class _$ClientMessageModelCopyWithImpl<$Res, $Val extends ClientMessageModel>
-    implements $ClientMessageModelCopyWith<$Res> {
-  _$ClientMessageModelCopyWithImpl(this._value, this._then);
+class _$BotClientMessageModelCopyWithImpl<$Res,
+        $Val extends BotClientMessageModel>
+    implements $BotClientMessageModelCopyWith<$Res> {
+  _$BotClientMessageModelCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
   final $Val _value;
@@ -72,7 +74,7 @@ class _$ClientMessageModelCopyWithImpl<$Res, $Val extends ClientMessageModel>
       type: null == type
           ? _value.type
           : type // ignore: cast_nullable_to_non_nullable
-              as ClientMessageType,
+              as MessageMediaType,
       message: null == message
           ? _value.message
           : message // ignore: cast_nullable_to_non_nullable
@@ -94,15 +96,16 @@ class _$ClientMessageModelCopyWithImpl<$Res, $Val extends ClientMessageModel>
 }
 
 /// @nodoc
-abstract class _$$ClientMessageModelImplCopyWith<$Res>
-    implements $ClientMessageModelCopyWith<$Res> {
-  factory _$$ClientMessageModelImplCopyWith(_$ClientMessageModelImpl value,
-          $Res Function(_$ClientMessageModelImpl) then) =
-      __$$ClientMessageModelImplCopyWithImpl<$Res>;
+abstract class _$$BotClientMessageModelImplCopyWith<$Res>
+    implements $BotClientMessageModelCopyWith<$Res> {
+  factory _$$BotClientMessageModelImplCopyWith(
+          _$BotClientMessageModelImpl value,
+          $Res Function(_$BotClientMessageModelImpl) then) =
+      __$$BotClientMessageModelImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call(
-      {ClientMessageType type,
+      {MessageMediaType type,
       String message,
       @JsonKey(includeIfNull: false) String? id,
       @JsonKey(includeIfNull: false) String? priceModel,
@@ -110,11 +113,12 @@ abstract class _$$ClientMessageModelImplCopyWith<$Res>
 }
 
 /// @nodoc
-class __$$ClientMessageModelImplCopyWithImpl<$Res>
-    extends _$ClientMessageModelCopyWithImpl<$Res, _$ClientMessageModelImpl>
-    implements _$$ClientMessageModelImplCopyWith<$Res> {
-  __$$ClientMessageModelImplCopyWithImpl(_$ClientMessageModelImpl _value,
-      $Res Function(_$ClientMessageModelImpl) _then)
+class __$$BotClientMessageModelImplCopyWithImpl<$Res>
+    extends _$BotClientMessageModelCopyWithImpl<$Res,
+        _$BotClientMessageModelImpl>
+    implements _$$BotClientMessageModelImplCopyWith<$Res> {
+  __$$BotClientMessageModelImplCopyWithImpl(_$BotClientMessageModelImpl _value,
+      $Res Function(_$BotClientMessageModelImpl) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
@@ -126,11 +130,11 @@ class __$$ClientMessageModelImplCopyWithImpl<$Res>
     Object? priceModel = freezed,
     Object? payToken = freezed,
   }) {
-    return _then(_$ClientMessageModelImpl(
+    return _then(_$BotClientMessageModelImpl(
       type: null == type
           ? _value.type
           : type // ignore: cast_nullable_to_non_nullable
-              as ClientMessageType,
+              as MessageMediaType,
       message: null == message
           ? _value.message
           : message // ignore: cast_nullable_to_non_nullable
@@ -153,19 +157,19 @@ class __$$ClientMessageModelImplCopyWithImpl<$Res>
 
 /// @nodoc
 @JsonSerializable()
-class _$ClientMessageModelImpl implements _ClientMessageModel {
-  const _$ClientMessageModelImpl(
+class _$BotClientMessageModelImpl implements _BotClientMessageModel {
+  const _$BotClientMessageModelImpl(
       {required this.type,
       required this.message,
       @JsonKey(includeIfNull: false) this.id,
       @JsonKey(includeIfNull: false) this.priceModel,
       @JsonKey(includeIfNull: false) this.payToken});
 
-  factory _$ClientMessageModelImpl.fromJson(Map<String, dynamic> json) =>
-      _$$ClientMessageModelImplFromJson(json);
+  factory _$BotClientMessageModelImpl.fromJson(Map<String, dynamic> json) =>
+      _$$BotClientMessageModelImplFromJson(json);
 
   @override
-  final ClientMessageType type;
+  final MessageMediaType type;
   @override
   final String message;
   @override
@@ -180,14 +184,14 @@ class _$ClientMessageModelImpl implements _ClientMessageModel {
 
   @override
   String toString() {
-    return 'ClientMessageModel(type: $type, message: $message, id: $id, priceModel: $priceModel, payToken: $payToken)';
+    return 'BotClientMessageModel(type: $type, message: $message, id: $id, priceModel: $priceModel, payToken: $payToken)';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$ClientMessageModelImpl &&
+            other is _$BotClientMessageModelImpl &&
             (identical(other.type, type) || other.type == type) &&
             (identical(other.message, message) || other.message == message) &&
             (identical(other.id, id) || other.id == id) &&
@@ -205,32 +209,32 @@ class _$ClientMessageModelImpl implements _ClientMessageModel {
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
-  _$$ClientMessageModelImplCopyWith<_$ClientMessageModelImpl> get copyWith =>
-      __$$ClientMessageModelImplCopyWithImpl<_$ClientMessageModelImpl>(
-          this, _$identity);
+  _$$BotClientMessageModelImplCopyWith<_$BotClientMessageModelImpl>
+      get copyWith => __$$BotClientMessageModelImplCopyWithImpl<
+          _$BotClientMessageModelImpl>(this, _$identity);
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$ClientMessageModelImplToJson(
+    return _$$BotClientMessageModelImplToJson(
       this,
     );
   }
 }
 
-abstract class _ClientMessageModel implements ClientMessageModel {
-  const factory _ClientMessageModel(
-          {required final ClientMessageType type,
+abstract class _BotClientMessageModel implements BotClientMessageModel {
+  const factory _BotClientMessageModel(
+          {required final MessageMediaType type,
           required final String message,
           @JsonKey(includeIfNull: false) final String? id,
           @JsonKey(includeIfNull: false) final String? priceModel,
           @JsonKey(includeIfNull: false) final String? payToken}) =
-      _$ClientMessageModelImpl;
+      _$BotClientMessageModelImpl;
 
-  factory _ClientMessageModel.fromJson(Map<String, dynamic> json) =
-      _$ClientMessageModelImpl.fromJson;
+  factory _BotClientMessageModel.fromJson(Map<String, dynamic> json) =
+      _$BotClientMessageModelImpl.fromJson;
 
   @override
-  ClientMessageType get type;
+  MessageMediaType get type;
   @override
   String get message;
   @override
@@ -244,6 +248,6 @@ abstract class _ClientMessageModel implements ClientMessageModel {
   String? get payToken;
   @override
   @JsonKey(ignore: true)
-  _$$ClientMessageModelImplCopyWith<_$ClientMessageModelImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+  _$$BotClientMessageModelImplCopyWith<_$BotClientMessageModelImpl>
+      get copyWith => throw _privateConstructorUsedError;
 }

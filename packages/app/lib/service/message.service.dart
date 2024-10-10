@@ -1,6 +1,6 @@
 import 'dart:convert' show jsonDecode, jsonEncode;
 
-import 'package:app/bot/bot_message_model.dart';
+import 'package:app/bot/bot_server_message_model.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/rust_api.dart';
 import 'package:app/service/file_util.dart';
@@ -550,11 +550,11 @@ $content'''
 
     // bot message
     if (isBot && !m.isMeSend) {
-      BotMessageModel? bmm;
+      BotServerMessageModel? bmm;
       try {
         Map<String, dynamic> map = jsonDecode(m.content);
-        bmm = BotMessageModel.fromJson(map);
-        m.mediaType = bmm.getMessageType();
+        bmm = BotServerMessageModel.fromJson(map);
+        m.mediaType = bmm.type;
         m.realMessage = bmm.message;
       } catch (e, s) {
         logger.d(e, stackTrace: s);

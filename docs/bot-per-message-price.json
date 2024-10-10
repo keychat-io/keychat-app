@@ -1,6 +1,6 @@
 {
   "type": "botPricePerMessageRequest",
-  "id": "SelectModel",
+  "id": "SelectPriceModel",
   "message": "Please select a model to chat",
   "priceModels": [
     {

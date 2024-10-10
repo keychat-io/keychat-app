@@ -3,7 +3,7 @@
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
-part of 'bot_message_model.dart';
+part of 'bot_server_message_model.dart';
 
 // **************************************************************************
 // FreezedGenerator
@@ -14,40 +14,43 @@ T _$identity<T>(T value) => value;
 final _privateConstructorUsedError = UnsupportedError(
     'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
-BotMessageModel _$BotMessageModelFromJson(Map<String, dynamic> json) {
-  return _BotMessageModel.fromJson(json);
+BotServerMessageModel _$BotServerMessageModelFromJson(
+    Map<String, dynamic> json) {
+  return _BotServerMessageModel.fromJson(json);
 }
 
 /// @nodoc
-mixin _$BotMessageModel {
-  ServerMessageType get type => throw _privateConstructorUsedError;
+mixin _$BotServerMessageModel {
+// botText,botSelectionRequest,botPricePerMessageRequest,botOneTimePaymentRequest,
+  MessageMediaType get type => throw _privateConstructorUsedError;
   String get message => throw _privateConstructorUsedError;
   List<BotMessageData> get priceModels => throw _privateConstructorUsedError;
   String? get id => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
-  $BotMessageModelCopyWith<BotMessageModel> get copyWith =>
+  $BotServerMessageModelCopyWith<BotServerMessageModel> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class $BotMessageModelCopyWith<$Res> {
-  factory $BotMessageModelCopyWith(
-          BotMessageModel value, $Res Function(BotMessageModel) then) =
-      _$BotMessageModelCopyWithImpl<$Res, BotMessageModel>;
+abstract class $BotServerMessageModelCopyWith<$Res> {
+  factory $BotServerMessageModelCopyWith(BotServerMessageModel value,
+          $Res Function(BotServerMessageModel) then) =
+      _$BotServerMessageModelCopyWithImpl<$Res, BotServerMessageModel>;
   @useResult
   $Res call(
-      {ServerMessageType type,
+      {MessageMediaType type,
       String message,
       List<BotMessageData> priceModels,
       String? id});
 }
 
 /// @nodoc
-class _$BotMessageModelCopyWithImpl<$Res, $Val extends BotMessageModel>
-    implements $BotMessageModelCopyWith<$Res> {
-  _$BotMessageModelCopyWithImpl(this._value, this._then);
+class _$BotServerMessageModelCopyWithImpl<$Res,
+        $Val extends BotServerMessageModel>
+    implements $BotServerMessageModelCopyWith<$Res> {
+  _$BotServerMessageModelCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
   final $Val _value;
@@ -66,7 +69,7 @@ class _$BotMessageModelCopyWithImpl<$Res, $Val extends BotMessageModel>
       type: null == type
           ? _value.type
           : type // ignore: cast_nullable_to_non_nullable
-              as ServerMessageType,
+              as MessageMediaType,
       message: null == message
           ? _value.message
           : message // ignore: cast_nullable_to_non_nullable
@@ -84,26 +87,28 @@ class _$BotMessageModelCopyWithImpl<$Res, $Val extends BotMessageModel>
 }
 
 /// @nodoc
-abstract class _$$BotMessageModelImplCopyWith<$Res>
-    implements $BotMessageModelCopyWith<$Res> {
-  factory _$$BotMessageModelImplCopyWith(_$BotMessageModelImpl value,
-          $Res Function(_$BotMessageModelImpl) then) =
-      __$$BotMessageModelImplCopyWithImpl<$Res>;
+abstract class _$$BotServerMessageModelImplCopyWith<$Res>
+    implements $BotServerMessageModelCopyWith<$Res> {
+  factory _$$BotServerMessageModelImplCopyWith(
+          _$BotServerMessageModelImpl value,
+          $Res Function(_$BotServerMessageModelImpl) then) =
+      __$$BotServerMessageModelImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call(
-      {ServerMessageType type,
+      {MessageMediaType type,
       String message,
       List<BotMessageData> priceModels,
       String? id});
 }
 
 /// @nodoc
-class __$$BotMessageModelImplCopyWithImpl<$Res>
-    extends _$BotMessageModelCopyWithImpl<$Res, _$BotMessageModelImpl>
-    implements _$$BotMessageModelImplCopyWith<$Res> {
-  __$$BotMessageModelImplCopyWithImpl(
-      _$BotMessageModelImpl _value, $Res Function(_$BotMessageModelImpl) _then)
+class __$$BotServerMessageModelImplCopyWithImpl<$Res>
+    extends _$BotServerMessageModelCopyWithImpl<$Res,
+        _$BotServerMessageModelImpl>
+    implements _$$BotServerMessageModelImplCopyWith<$Res> {
+  __$$BotServerMessageModelImplCopyWithImpl(_$BotServerMessageModelImpl _value,
+      $Res Function(_$BotServerMessageModelImpl) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
@@ -114,11 +119,11 @@ class __$$BotMessageModelImplCopyWithImpl<$Res>
     Object? priceModels = null,
     Object? id = freezed,
   }) {
-    return _then(_$BotMessageModelImpl(
+    return _then(_$BotServerMessageModelImpl(
       type: null == type
           ? _value.type
           : type // ignore: cast_nullable_to_non_nullable
-              as ServerMessageType,
+              as MessageMediaType,
       message: null == message
           ? _value.message
           : message // ignore: cast_nullable_to_non_nullable
@@ -137,8 +142,8 @@ class __$$BotMessageModelImplCopyWithImpl<$Res>
 
 /// @nodoc
 @JsonSerializable()
-class _$BotMessageModelImpl extends _BotMessageModel {
-  const _$BotMessageModelImpl(
+class _$BotServerMessageModelImpl extends _BotServerMessageModel {
+  const _$BotServerMessageModelImpl(
       {required this.type,
       required this.message,
       required final List<BotMessageData> priceModels,
@@ -146,11 +151,12 @@ class _$BotMessageModelImpl extends _BotMessageModel {
       : _priceModels = priceModels,
         super._();
 
-  factory _$BotMessageModelImpl.fromJson(Map<String, dynamic> json) =>
-      _$$BotMessageModelImplFromJson(json);
+  factory _$BotServerMessageModelImpl.fromJson(Map<String, dynamic> json) =>
+      _$$BotServerMessageModelImplFromJson(json);
 
+// botText,botSelectionRequest,botPricePerMessageRequest,botOneTimePaymentRequest,
   @override
-  final ServerMessageType type;
+  final MessageMediaType type;
   @override
   final String message;
   final List<BotMessageData> _priceModels;
@@ -166,14 +172,14 @@ class _$BotMessageModelImpl extends _BotMessageModel {
 
   @override
   String toString() {
-    return 'BotMessageModel(type: $type, message: $message, priceModels: $priceModels, id: $id)';
+    return 'BotServerMessageModel(type: $type, message: $message, priceModels: $priceModels, id: $id)';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$BotMessageModelImpl &&
+            other is _$BotServerMessageModelImpl &&
             (identical(other.type, type) || other.type == type) &&
             (identical(other.message, message) || other.message == message) &&
             const DeepCollectionEquality()
@@ -189,31 +195,31 @@ class _$BotMessageModelImpl extends _BotMessageModel {
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
-  _$$BotMessageModelImplCopyWith<_$BotMessageModelImpl> get copyWith =>
-      __$$BotMessageModelImplCopyWithImpl<_$BotMessageModelImpl>(
-          this, _$identity);
+  _$$BotServerMessageModelImplCopyWith<_$BotServerMessageModelImpl>
+      get copyWith => __$$BotServerMessageModelImplCopyWithImpl<
+          _$BotServerMessageModelImpl>(this, _$identity);
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$BotMessageModelImplToJson(
+    return _$$BotServerMessageModelImplToJson(
       this,
     );
   }
 }
 
-abstract class _BotMessageModel extends BotMessageModel {
-  const factory _BotMessageModel(
-      {required final ServerMessageType type,
+abstract class _BotServerMessageModel extends BotServerMessageModel {
+  const factory _BotServerMessageModel(
+      {required final MessageMediaType type,
       required final String message,
       required final List<BotMessageData> priceModels,
-      final String? id}) = _$BotMessageModelImpl;
-  const _BotMessageModel._() : super._();
+      final String? id}) = _$BotServerMessageModelImpl;
+  const _BotServerMessageModel._() : super._();
 
-  factory _BotMessageModel.fromJson(Map<String, dynamic> json) =
-      _$BotMessageModelImpl.fromJson;
+  factory _BotServerMessageModel.fromJson(Map<String, dynamic> json) =
+      _$BotServerMessageModelImpl.fromJson;
 
-  @override
-  ServerMessageType get type;
+  @override // botText,botSelectionRequest,botPricePerMessageRequest,botOneTimePaymentRequest,
+  MessageMediaType get type;
   @override
   String get message;
   @override
@@ -222,8 +228,8 @@ abstract class _BotMessageModel extends BotMessageModel {
   String? get id;
   @override
   @JsonKey(ignore: true)
-  _$$BotMessageModelImplCopyWith<_$BotMessageModelImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+  _$$BotServerMessageModelImplCopyWith<_$BotServerMessageModelImpl>
+      get copyWith => throw _privateConstructorUsedError;
 }
 
 BotMessageData _$BotMessageDataFromJson(Map<String, dynamic> json) {
@@ -368,7 +374,7 @@ class _$BotMessageDataImpl implements _BotMessageData {
       required this.description,
       required this.price,
       required this.unit,
-      required final List<String> mints})
+      final List<String> mints = const []})
       : _mints = mints;
 
   factory _$BotMessageDataImpl.fromJson(Map<String, dynamic> json) =>
@@ -384,6 +390,7 @@ class _$BotMessageDataImpl implements _BotMessageData {
   final String unit;
   final List<String> _mints;
   @override
+  @JsonKey()
   List<String> get mints {
     if (_mints is EqualUnmodifiableListView) return _mints;
     // ignore: implicit_dynamic_type
@@ -434,7 +441,7 @@ abstract class _BotMessageData implements BotMessageData {
       required final String description,
       required final int price,
       required final String unit,
-      required final List<String> mints}) = _$BotMessageDataImpl;
+      final List<String> mints}) = _$BotMessageDataImpl;
 
   factory _BotMessageData.fromJson(Map<String, dynamic> json) =
       _$BotMessageDataImpl.fromJson;

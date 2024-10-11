@@ -3,6 +3,7 @@ import 'dart:math' show Random;
 
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
+import 'package:app/page/app_theme.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/message_widget.dart';
 import 'package:app/page/common.dart';
@@ -17,6 +18,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:get/get.dart';
 import 'package:app/models/models.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
@@ -67,6 +69,21 @@ class _ChatPage2State extends State<ChatPage> {
 
     //const Color(0xFFF5E2FF).withOpacity(0.8); // for light mode
     Color meBackgroundColor = const Color(0xff7748FF);
+
+    // style for text
+    MarkdownStyleSheet myMarkdownStyleSheet =
+        MarkdownStyleSheet.fromTheme(AppThemeCustom.dark()).copyWith(
+            p: Theme.of(Get.context!)
+                .textTheme
+                .bodyLarge
+                ?.copyWith(color: Colors.white, fontSize: 16));
+
+    MarkdownStyleSheet hisMarkdownStyleSheet =
+        MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+            p: Theme.of(Get.context!)
+                .textTheme
+                .bodyLarge
+                ?.copyWith(color: fontColor, fontSize: 16));
 
     return Scaffold(
       appBar: AppBar(
@@ -218,6 +235,9 @@ class _ChatPage2State extends State<ChatPage> {
                                         ? meBackgroundColor
                                         : toBackgroundColor,
                                     fontColor: fontColor,
+                                    markdownStyleSheet: message.isMeSend
+                                        ? myMarkdownStyleSheet
+                                        : hisMarkdownStyleSheet,
                                   ));
                             },
                           ))),

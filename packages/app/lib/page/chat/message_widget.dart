@@ -17,6 +17,7 @@ import 'package:app/page/theme.dart';
 import 'package:app/page/widgets/image_preview_widget.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
@@ -25,7 +26,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 import 'package:haptic_feedback/haptic_feedback.dart';
@@ -60,6 +60,7 @@ class MessageWidget extends StatelessWidget {
   late double screenWidth;
   late bool isGroup;
   late Color toDisplayNameColor;
+  late MarkdownStyleSheet markdownStyleSheet;
 
   MessageWidget(
       {super.key,
@@ -72,6 +73,7 @@ class MessageWidget extends StatelessWidget {
       required this.backgroundColor,
       required this.screenWidth,
       required this.toDisplayNameColor,
+      required this.markdownStyleSheet,
       this.roomMember}) {
     message = chatController.messages[index];
   }
@@ -321,21 +323,33 @@ class MessageWidget extends StatelessWidget {
     }
   }
 
-  Widget getLinkify(String text, Color fontColor) {
-    return Linkify(
-      onOpen: (link) {
-        final Uri uri = Uri.parse(link.url);
-        Utils.hideKeyboard(Get.context!);
-        launchUrl(uri);
-        return;
-      },
-      style: Theme.of(Get.context!)
-          .textTheme
-          .bodyLarge
-          ?.copyWith(color: fontColor, fontSize: 16),
-      text: text,
-      linkStyle: const TextStyle(decoration: TextDecoration.none, fontSize: 15),
-    );
+  Widget getMarkdownView(String text) {
+    return MarkdownBody(
+        data: text,
+        selectable: true,
+        softLineBreak: true,
+        onTapLink: (text, href, title) {
+          if (href != null) {
+            Utils.hideKeyboard(Get.context!);
+            launchUrl(Uri.parse(href));
+          }
+        },
+        styleSheetTheme: MarkdownStyleSheetBaseTheme.cupertino,
+        styleSheet: markdownStyleSheet);
+    // return Linkify(
+    //   onOpen: (link) {
+    //     final Uri uri = Uri.parse(link.url);
+    //     Utils.hideKeyboard(Get.context!);
+    //     launchUrl(uri);
+    //     return;
+    //   },
+    //   style: Theme.of(Get.context!)
+    //       .textTheme
+    //       .bodyLarge
+    //       ?.copyWith(color: fontColor, fontSize: 16),
+    //   text: text,
+    //   linkStyle: const TextStyle(decoration: TextDecoration.none, fontSize: 15),
+    // );
   }
 
   Widget? getMessageStatus() {
@@ -636,17 +650,15 @@ class MessageWidget extends StatelessWidget {
     return AnyLinkPreview(
         key: Key(content),
         link: content,
-        bodyMaxLines: 3,
+        bodyMaxLines: 2,
         onTap: () {
           Utils.hideKeyboard(Get.context!);
           launchUrl(Uri.parse(content));
         },
-        placeholderWidget: _getTextContainer(getLinkify(content, fontColor),
-            isMeSend: message.isMeSend),
+        placeholderWidget: _getTextContainer(getMarkdownView(content)),
         showMultimedia: false,
         errorBody: '',
-        errorWidget: _getTextContainer(getLinkify(content, fontColor),
-            isMeSend: message.isMeSend));
+        errorWidget: _getTextContainer(getMarkdownView(content)));
   }
 
   Widget _getReplyWidget() {
@@ -683,50 +695,47 @@ class MessageWidget extends StatelessWidget {
       }
     }
 
-    return _getTextContainer(
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: (message.isMeSend
-                        ? MaterialTheme.lightScheme().surface
-                        : Theme.of(Get.context!).colorScheme.surface)
-                    .withOpacity(0.5),
-                border: Border(
-                  left: BorderSide(
-                    color: Colors.purple.shade200,
-                    width: 2.0,
-                  ),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(message.reply!.user,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(Get.context!)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(color: Colors.purple, height: 1)),
-                  subTitleChild ??
-                      Text(message.reply!.content,
-                          style: Theme.of(Get.context!)
-                              .textTheme
-                              .bodyLarge
-                              ?.copyWith(color: fontColor, height: 1))
-                ],
+    return _getTextContainer(Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: (message.isMeSend
+                    ? MaterialTheme.lightScheme().surface
+                    : Theme.of(Get.context!).colorScheme.surface)
+                .withOpacity(0.5),
+            border: Border(
+              left: BorderSide(
+                color: Colors.purple.shade200,
+                width: 2.0,
               ),
             ),
-            getLinkify(message.realMessage ?? message.content,
-                message.isMeSend ? Colors.white : fontColor)
-          ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(message.reply!.user,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(Get.context!)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: Colors.purple, height: 1)),
+              subTitleChild ??
+                  Text(message.reply!.content,
+                      style: Theme.of(Get.context!)
+                          .textTheme
+                          .bodyLarge
+                          ?.copyWith(color: fontColor, height: 1))
+            ],
+          ),
         ),
-        isMeSend: message.isMeSend);
+        getMarkdownView(message.realMessage ?? message.content)
+      ],
+    ));
   }
 
-  _getTextContainer(Widget child, {required bool isMeSend}) {
+  _getTextContainer(Widget child) {
     return GestureDetector(
       onDoubleTap: messageOnDoubleTap,
       child: ConstrainedBox(
@@ -735,10 +744,11 @@ class MessageWidget extends StatelessWidget {
           ),
           child: ChatBubble(
             clipper: ChatBubbleClipper4(
-                type: isMeSend
+                type: message.isMeSend
                     ? BubbleType.sendBubble
                     : BubbleType.receiverBubble),
-            alignment: isMeSend ? Alignment.centerRight : Alignment.centerLeft,
+            alignment:
+                message.isMeSend ? Alignment.centerRight : Alignment.centerLeft,
             backGroundColor: backgroundColor,
             child: child,
           )),
@@ -751,14 +761,11 @@ class MessageWidget extends StatelessWidget {
       return _getLinkPreviewWidget(message);
     }
     return _getTextContainer(
-        getLinkify(message.realMessage ?? message.content,
-            message.isMeSend ? Colors.white : fontColor),
-        isMeSend: message.isMeSend);
+        getMarkdownView(message.realMessage ?? message.content));
   }
 
   _textCallback(String text) {
-    return _getTextContainer(Text(text, style: TextStyle(color: fontColor)),
-        isMeSend: message.isMeSend);
+    return _getTextContainer(Text(text, style: TextStyle(color: fontColor)));
   }
 
   Widget _imageTextView() {

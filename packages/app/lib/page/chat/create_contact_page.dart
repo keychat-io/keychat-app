@@ -31,6 +31,14 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
   @override
   void initState() {
     _controller = TextEditingController(text: widget.defaultInput.toString());
+    _controller.addListener(() {
+      if (_controller.text.startsWith('bot:')) {
+        setState(() {
+          isBot = true;
+        });
+      }
+    });
+
     _helloController = TextEditingController();
     super.initState();
   }
@@ -45,10 +53,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          centerTitle: true,
-          title: const Text("Add Contacts"),
-        ),
+        appBar: AppBar(centerTitle: true, title: const Text("Add Contacts")),
         body: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 20),
           child: Column(
@@ -105,7 +110,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                 child: FilledButton(
                   onPressed: () async {
                     String input = _controller.text.trim();
-                    if (input.length > 64) {
+                    if (input.length > 70) {
                       bool isBase = isBase64(input);
                       if (isBase) {
                         QRUserModel model;
@@ -120,6 +125,9 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                         await RoomUtil.processUserQRCode(model, true);
                       }
                       return;
+                    }
+                    if (input.startsWith('bot:')) {
+                      input = input.substring(4);
                     }
                     if (isBot) {
                       Identity identity =

@@ -1,4 +1,5 @@
 import 'dart:async' show Timer;
+import 'dart:convert' show jsonDecode;
 import 'dart:math' show Random;
 
 import 'package:app/controller/home.controller.dart';
@@ -347,11 +348,11 @@ class _ChatPage2State extends State<ChatPage> {
                               child: controller.inputText.value.isNotEmpty
                                   ? const Icon(
                                       weight: 300,
-                                      size: 30,
+                                      size: 28,
                                       CupertinoIcons.arrow_up_circle_fill,
                                       color: Color.fromARGB(255, 100, 80, 243))
                                   : Icon(
-                                      size: 30,
+                                      size: 28,
                                       CupertinoIcons.add_circled,
                                       weight: 300,
                                       color: Theme.of(context)
@@ -388,6 +389,10 @@ class _ChatPage2State extends State<ChatPage> {
         padding: const EdgeInsets.only(left: 0, right: 5, bottom: 5),
         child: GestureDetector(
             onTap: () {
+              Map localConfig =
+                  jsonDecode(controller.roomObs.value.botLocalConfig ?? '{}');
+              Map? botPricePerMessageRequest =
+                  localConfig['botPricePerMessageRequest'];
               Get.bottomSheet(
                   SettingsList(platform: DevicePlatform.iOS, sections: [
                 SettingsSection(
@@ -406,11 +411,24 @@ class _ChatPage2State extends State<ChatPage> {
                                 Get.back();
                               }),
                         )
-                        .toList())
+                        .toList()),
+                if (botPricePerMessageRequest != null)
+                  SettingsSection(
+                    title: const Text('Selected Local Config'),
+                    tiles: [
+                      SettingsTile(
+                          title: Text(botPricePerMessageRequest['name']),
+                          trailing: Text(
+                              '${botPricePerMessageRequest['price']} ${botPricePerMessageRequest['unit']} /message'),
+                          onPressed: (context) async {
+                            Get.back();
+                          })
+                    ],
+                  )
               ]));
             },
             child: Icon(
-              size: 30,
+              size: 26,
               Icons.menu,
               weight: 300,
               color: Theme.of(context).iconTheme.color?.withAlpha(155),

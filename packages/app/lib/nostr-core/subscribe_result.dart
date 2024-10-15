@@ -46,7 +46,7 @@ class SubscribeResult {
 
     list = list.map((e) => jsonDecode(e)).toList();
     list = list.where((e) => e['created_at'] != null).toList();
-    if (list.isEmpty) return jsonDecode(list.last);
+    if (list.isEmpty) return {};
     list.sort((a, b) => a['created_at'].compareTo(b['created_at']));
     return list.last;
   }

@@ -42,7 +42,6 @@ Widget centerLoadingComponent([String title = 'loading']) {
   ));
 }
 
-
 textP(String title, [Color? color]) {
   return Text(
     title,
@@ -125,7 +124,7 @@ Future<void> showDeleteMsgDialog(BuildContext context, Room room) async {
               onPressed: () async {
                 Get.back();
                 await RoomService().deleteRoomMessage(room);
-                await Get.find<HomeController>()
+                Get.find<HomeController>()
                     .loadIdentityRoomList(room.identityId);
               },
             )

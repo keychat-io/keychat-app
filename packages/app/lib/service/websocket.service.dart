@@ -124,7 +124,7 @@ class WebsocketService extends GetxService {
   }
 
   listenPubkey(List<String> pubkeys,
-      {DateTime? since, String? relay, int? limit}) async {
+      {DateTime? since, String? relay, int? limit}) {
     if (pubkeys.isEmpty) return;
 
     since ??= DateTime.now().subtract(const Duration(days: 7));

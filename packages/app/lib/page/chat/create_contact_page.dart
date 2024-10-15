@@ -10,7 +10,6 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:app/models/models.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import '../../controller/home.controller.dart';
 import '../../service/room.service.dart';
@@ -26,19 +25,11 @@ class AddtoContactsPage extends StatefulWidget {
 class _SearchFriendsState extends State<AddtoContactsPage> {
   late TextEditingController _controller;
   late TextEditingController _helloController;
-  bool isBot = false;
+  // bool isBot = false;
 
   @override
   void initState() {
     _controller = TextEditingController(text: widget.defaultInput.toString());
-    _controller.addListener(() {
-      if (_controller.text.startsWith('bot:')) {
-        setState(() {
-          isBot = true;
-        });
-      }
-    });
-
     _helloController = TextEditingController();
     super.initState();
   }
@@ -84,27 +75,15 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                     )),
               ),
               const SizedBox(height: 10),
-              if (!isBot)
-                TextField(
-                  textInputAction: TextInputAction.done,
-                  maxLines: null,
-                  controller: _helloController,
-                  decoration: const InputDecoration(
-                    labelText: 'Say Hi',
-                    border: OutlineInputBorder(),
-                  ),
+              TextField(
+                textInputAction: TextInputAction.done,
+                maxLines: null,
+                controller: _helloController,
+                decoration: const InputDecoration(
+                  labelText: 'Say Hi',
+                  border: OutlineInputBorder(),
                 ),
-              if (!isBot) const SizedBox(height: 10),
-              Row(children: [
-                Checkbox(
-                    value: isBot,
-                    onChanged: (reslult) {
-                      setState(() {
-                        isBot = reslult ?? false;
-                      });
-                    }),
-                const Text('Is a Bot?')
-              ]),
+              ),
               Padding(
                 padding: const EdgeInsets.only(top: 20.0, bottom: 40),
                 child: FilledButton(
@@ -129,21 +108,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                     if (input.startsWith('bot:')) {
                       input = input.substring(4);
                     }
-                    if (isBot) {
-                      Identity identity =
-                          Get.find<HomeController>().getSelectedIdentity();
-                      String hexPubkey =
-                          rust_nostr.getHexPubkeyByBech32(bech32: input);
 
-                      Room room = await RoomService().getOrCreateRoom(hexPubkey,
-                          identity.secp256k1PKHex, RoomStatus.enabled,
-                          type: RoomType.bot, identity: identity);
-                      await Get.offAndToNamed('/room/${room.id}',
-                          arguments: room);
-                      await Get.find<HomeController>()
-                          .loadIdentityRoomList(identity.id);
-                      return;
-                    }
                     // common private chat
                     await RoomService().createRoomAndsendInvite(input,
                         greeting: _helloController.text.trim());
@@ -151,37 +116,36 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                   style: ButtonStyle(
                       minimumSize: WidgetStateProperty.all(
                           const Size(double.infinity, 44))),
-                  child: Text(isBot ? 'Confirm' : 'Send'),
+                  child: const Text('Confirm'),
                 ),
               ),
               const SizedBox(height: 50),
-              if (!isBot)
-                Card(
-                  child: Column(children: [
-                    ListTile(
-                      leading: const Icon(CupertinoIcons.qrcode),
-                      title: const Text('My QR Code'),
-                      onTap: () async {
-                        Identity identity =
-                            Get.find<HomeController>().getSelectedIdentity();
-                        await showMyQrCode(context, identity, false);
-                      },
-                      trailing: const Icon(CupertinoIcons.right_chevron),
-                    ),
-                    ListTile(
-                      leading: const Icon(CupertinoIcons.qrcode_viewfinder),
-                      title: const Text('Scan QR Code'),
-                      onTap: () async {
-                        String? result =
-                            await QrScanService.instance.handleQRScan();
-                        if (result != null) {
-                          QrScanService.instance.processQRResult(result);
-                        }
-                      },
-                      trailing: const Icon(CupertinoIcons.right_chevron),
-                    )
-                  ]),
-                )
+              Card(
+                child: Column(children: [
+                  ListTile(
+                    leading: const Icon(CupertinoIcons.qrcode),
+                    title: const Text('My QR Code'),
+                    onTap: () async {
+                      Identity identity =
+                          Get.find<HomeController>().getSelectedIdentity();
+                      await showMyQrCode(context, identity, false);
+                    },
+                    trailing: const Icon(CupertinoIcons.right_chevron),
+                  ),
+                  ListTile(
+                    leading: const Icon(CupertinoIcons.qrcode_viewfinder),
+                    title: const Text('Scan QR Code'),
+                    onTap: () async {
+                      String? result =
+                          await QrScanService.instance.handleQRScan();
+                      if (result != null) {
+                        QrScanService.instance.processQRResult(result);
+                      }
+                    },
+                    trailing: const Icon(CupertinoIcons.right_chevron),
+                  )
+                ]),
+              )
             ],
           ),
         ));

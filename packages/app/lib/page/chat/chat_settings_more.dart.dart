@@ -26,10 +26,8 @@ class ChatSettingsMoreDart extends StatelessWidget {
     List<String> receiveKeys =
         ContactService().getMyReceiveKeys(chatController.roomObs.value) ?? [];
     return Scaffold(
-        appBar: AppBar(
-          centerTitle: true,
-          title: const Text('Security Settings'),
-        ),
+        appBar:
+            AppBar(centerTitle: true, title: const Text('Security Settings')),
         body: Obx(() => SettingsList(platform: DevicePlatform.iOS, sections: [
               SettingsSection(
                   title: const Text('Message Encrypt Protocol'),
@@ -62,7 +60,7 @@ class ChatSettingsMoreDart extends StatelessWidget {
                         title: const Text('Reset session status'),
                         leading: const Icon(CupertinoIcons.refresh),
                         description: const Text(
-                            'Execute this action when you can\'t receive new messages from your friend. This will reset the session status of the chat room.'),
+                            'Execute this action when you can\'t receive new messages from your friend'),
                         onPressed: (value) async {
                           Get.dialog(CupertinoAlertDialog(
                             title: const Text('Request sent successfully'),
@@ -169,8 +167,6 @@ Your messages will send to this server.'''),
                 ),
                 SettingsTile.navigation(
                   title: const Text('ReceiveFrom'),
-                  description: const Text(
-                      'Using different PostOffice(relay server) for receiving and sending messages, tracking metadata will be more difficultly.'),
                   leading: const Icon(CupertinoIcons.down_arrow),
                   value: Obx(() => textSmallGray(Get.context!,
                       chatController.roomContact.value.myRelay ?? 'Not set')),
@@ -190,7 +186,7 @@ Your messages will send to this server.'''),
               ]),
               if (receiveKeys.isNotEmpty)
                 SettingsSection(
-                    title: const Text('My Receive Addresses'),
+                    title: const Text('My Receiving Addresses'),
                     tiles: receiveKeys
                         .map((e) => SettingsTile(title: Text(e)))
                         .toList())

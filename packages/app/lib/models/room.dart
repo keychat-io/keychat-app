@@ -93,6 +93,7 @@ class Room extends Equatable {
 
   // group info
   String? name;
+  String? description;
   String? groupRelay;
   bool isMute = false; // mute notification
 

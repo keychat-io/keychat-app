@@ -3,10 +3,10 @@ import 'package:app/models/nostr_event_status.dart';
 import 'package:app/models/signal_id.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:flutter/foundation.dart';
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class DBProvider {
   static bool _isInitializing = false;

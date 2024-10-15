@@ -25,7 +25,6 @@ class Contact extends Equatable {
   late int identityId;
   String? metadata;
 
-  bool isBot = false;
   String? petname; // My note
   String? name; // fetch from friend
 

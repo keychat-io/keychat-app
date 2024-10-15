@@ -714,13 +714,15 @@ class ChatController extends GetxController {
       return await _initGroupInfo();
     }
     // private chat
-    if (room.contact == null) {
-      Contact contact = await ContactService().getOrCreateContact(
-          roomObs.value.identityId, roomObs.value.toMainPubkey);
-      roomObs.value.contact = contact;
-      roomContact.value = contact;
-    } else {
-      roomContact.value = room.contact!;
+    if (room.type == RoomType.common) {
+      if (room.contact == null) {
+        Contact contact = await ContactService().getOrCreateContact(
+            roomObs.value.identityId, roomObs.value.toMainPubkey);
+        roomObs.value.contact = contact;
+        roomContact.value = contact;
+      } else {
+        roomContact.value = room.contact!;
+      }
     }
 
     // bot info
@@ -728,50 +730,19 @@ class ChatController extends GetxController {
   }
 
   _initBotInfo() async {
-    if (roomObs.value.type != RoomType.bot) return;
+    if (roomObs.value.type == RoomType.group) return;
+    if (roomObs.value.encryptMode == EncryptMode.signal) return;
     var res = await NostrAPI().fetchMetadata([room.toMainPubkey]);
     if (res == null) return;
-    Map<String, dynamic> metadata = res as Map<String, dynamic>;
-    metadata['commands'] = [
-      {'name': '/h', 'description': 'Show help message'},
-      {'name': '/m1', 'description': 'Pay per message plan'},
-      // {'name': '/m2', 'description': 'Monthly payment plan'},
-    ];
-    metadata['botPricePerMessageRequest'] = {
-      "type": "botPricePerMessageRequest",
-      "id": "SelectModel",
-      "message": "Please select a model to chat",
-      "priceModels": [
-        {
-          'name': 'GPT-4o',
-          'description': '',
-          'price': 0,
-          'unit': 'sat',
-          'mints': []
-        },
-        {
-          'name': 'GPT-4o-mini',
-          'description': '',
-          'price': 2,
-          'unit': 'sat',
-          'mints': []
-        },
-        {
-          'name': 'GPT-4-Turbo',
-          'description': '',
-          'price': 3,
-          'unit': 'sat',
-          'mints': []
-        },
-      ]
-    };
+    Map<String, dynamic> metadata = Map<String, dynamic>.from(res);
+
     if (room.botInfoUpdatedAt >= (metadata['created_at'] ?? 9999999999)) {
-      botCommands.value = metadata['commands'];
+      botCommands.value = metadata['commands'] ?? [];
       return;
     }
-    room.botInfoUpdatedAt = metadata['created_at'];
+    room.botInfoUpdatedAt = metadata['created_at'] ?? 0;
+    botCommands.value = metadata['commands'] ?? [];
 
-    botCommands.value = metadata['commands'];
     var metadataString = jsonEncode(metadata);
     room.botInfo = metadataString;
     room.name = metadata['name'] ?? room.name;
@@ -779,18 +750,33 @@ class ChatController extends GetxController {
       'pubkey',
       'npub',
       'commands',
-      'botPricePerMessageRequest'
+      'botPricePerMessageRequest',
+      'about'
     };
     String description = metadata.keys
         .where((key) => !ignoreKeys.contains(key))
         .map((info) => '$info: ${metadata[info]}')
         .join('\n');
-    await MessageService().saveSystemMessage(room, description,
-        suffix: 'Bot Info', isMeSend: false);
+    if (description.isNotEmpty) {
+      await MessageService().saveSystemMessage(room, description,
+          suffix: 'Bot Info', isMeSend: false);
+    }
 
-    await MessageService().saveSystemMessage(
-        room, jsonEncode(metadata['botPricePerMessageRequest']),
-        suffix: '', isMeSend: false);
+    // save config for botPricePerMessageRequest
+    try {
+      Map<String, dynamic> about = jsonDecode(metadata['about'] ?? {});
+      room.description = about['description'];
+
+      if (about['botPricePerMessageRequest'] != null) {
+        try {
+          var config = jsonEncode(about['botPricePerMessageRequest']);
+          await MessageService()
+              .saveSystemMessage(room, config, suffix: '', isMeSend: false);
+        } catch (e) {
+          logger.e(e.toString(), error: e, stackTrace: StackTrace.current);
+        }
+      }
+    } catch (e) {}
     await RoomService().updateRoom(room);
     roomObs.value = room;
   }

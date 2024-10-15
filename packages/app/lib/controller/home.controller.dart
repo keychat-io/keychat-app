@@ -3,8 +3,10 @@ import 'dart:async' show StreamSubscription, Timer;
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app/service/secure_storage.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/relay.service.dart';
@@ -19,6 +21,7 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:get/get.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 
 import '../constants.dart';
 import 'package:app/models/models.dart';
@@ -96,6 +99,58 @@ class HomeController extends GetxController
     } catch (e, s) {
       logger.e(e.toString(), stackTrace: s);
     }
+
+    // start to create ai identity
+    Future.delayed(const Duration(seconds: 1), () async {
+      await createAIIdentity(mys);
+    });
+  }
+
+  // add identity AI and add AI contacts
+  createAIIdentity(List<Identity> list) async {
+    String idName = 'Bots';
+    if (list.isEmpty) return;
+    for (var identity in list) {
+      if (identity.name == idName) return;
+    }
+    String? mnemonic = await SecureStorage.instance.getPhraseWords();
+    if (mnemonic == null) return;
+    List<int> phraseIndexes = list.map((element) => element.index).toList();
+    int unusedIndex = List.generate(10, (index) => index).firstWhere(
+      (index) => !phraseIndexes.contains(index),
+      orElse: () => -1,
+    );
+    if (unusedIndex == -1) return;
+    List<Secp256k1Account> secp256k1Accounts = await rust_nostr
+        .importFromPhraseWith(phrase: mnemonic, offset: unusedIndex, count: 1);
+
+    Identity newIdentity = await IdentityService().createIdentity(
+        name: idName,
+        account: secp256k1Accounts[0],
+        index: unusedIndex,
+        isFirstAccount: false);
+
+    List bots = [
+      {
+        'name': 'ChatGPT',
+        'pubkey':
+            'npub1p4sae59men07dv3zlp786ujd5vzs26003hr0ymhh6axjf6hajl9s652cfl'
+      },
+      {
+        'name': 'BTC Bot',
+        'pubkey':
+            'npub1dj4ag5seajapx7qm8a0c80ryjycmmv56ctx4w4azmn2eac49k3yqe69tq5'
+      }
+    ];
+    await Future.forEach(bots, (bot) async {
+      String hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: bot['pubkey']);
+      Room room = await RoomService().getOrCreateRoom(
+          hexPubkey, newIdentity.secp256k1PKHex, RoomStatus.enabled,
+          contactName: bot['name'], type: RoomType.bot, identity: newIdentity);
+      logger.d('room: ${room.toMainPubkey}');
+    });
+
+    logger.i('CreateAIIdentity Success');
   }
 
   Future<void> removeBadge() async {
@@ -271,10 +326,11 @@ class HomeController extends GetxController
     // update();
   }
 
-  Future loadIdentityRoomList(int identityId) async {
+  loadIdentityRoomList(int identityId) {
     EasyDebounce.debounce(
         'loadIdentityRoomList:$identityId', const Duration(milliseconds: 200),
         () async {
+      logger.d('Loading rooms: $identityId');
       Map<String, List<Room>> res =
           await RoomService().getRoomList(indetityId: identityId);
       List<dynamic> rooms = res['friends'] ?? [];

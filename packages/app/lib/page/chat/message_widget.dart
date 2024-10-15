@@ -109,9 +109,7 @@ class MessageWidget extends StatelessWidget {
     if (chatController.room.type != RoomType.common) {
       return Container();
     }
-    if (contact.isBot) {
-      return Container();
-    }
+
     if (chatController.roomContact.value.name == 'Note to Self') {
       return Container();
     }

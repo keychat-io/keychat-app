@@ -185,25 +185,9 @@ class NostrAPI {
         if (decodedContent['hisRelay'] != null) {
           contact.hisRelay = decodedContent['hisRelay'];
         }
-        Room? room;
-        if (decodedContent['bot'] != null) {
-          if (decodedContent['bot'] == 1) {
-            // if contact is bot, then encrypt with nip04
-            contact.isBot = true;
-            Identity identity =
-                Get.find<HomeController>().identities[contact.identityId]!;
-            room = await RoomService().getOrCreateRoom(
-                contact.pubkey, identity.secp256k1PKHex, RoomStatus.enabled);
-            room.encryptMode = EncryptMode.nip04;
-            RoomService().updateRoom(room);
-          }
-        }
 
         contact.updatedAt = DateTime.now();
         await ContactService().saveContact(contact, sync: false);
-        if (room != null) {
-          RoomService().updateChatRoomPage(room);
-        }
       }
       Get.find<HomeController>().loadRoomList();
     } catch (e, s) {

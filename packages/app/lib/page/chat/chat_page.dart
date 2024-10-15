@@ -684,15 +684,20 @@ class _ChatPage2State extends State<ChatPage> {
   }
 
   Widget _getRoomTite() {
+    String? title = controller.roomObs.value.name;
+    if (controller.roomObs.value.type == RoomType.common) {
+      title = controller.roomContact.value.displayName;
+    }
+    if (controller.roomObs.value.type == RoomType.group) {
+      title =
+          '${controller.roomObs.value.name} (${controller.enableMembers.length})';
+    }
+
     return Wrap(
       direction: Axis.horizontal,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        (controller.roomObs.value.type == RoomType.common ||
-                controller.roomObs.value.type == RoomType.bot)
-            ? Text(controller.roomContact.value.displayName)
-            : Text(
-                '${controller.roomObs.value.name} (${controller.enableMembers.length})'),
+        Text(title ?? controller.roomObs.value.getRoomName()),
         if (controller.roomObs.value.isMute)
           Icon(
             Icons.notifications_off_outlined,
@@ -754,7 +759,7 @@ class _ChatPage2State extends State<ChatPage> {
                   EasyLoading.showError(e.toString());
                   logger.e(e.toString(), error: e, stackTrace: s);
                 }
-                await Get.find<HomeController>()
+                Get.find<HomeController>()
                     .loadIdentityRoomList(controller.room.identityId);
               },
               style: ButtonStyle(
@@ -767,8 +772,7 @@ class _ChatPage2State extends State<ChatPage> {
                 await SignalChatService()
                     .sendRejectMessage(controller.roomObs.value);
                 await RoomService().deleteRoom(controller.roomObs.value);
-                await Get.find<HomeController>()
-                    .loadIdentityRoomList(identityId);
+                Get.find<HomeController>().loadIdentityRoomList(identityId);
                 Get.back();
               },
               style: ButtonStyle(

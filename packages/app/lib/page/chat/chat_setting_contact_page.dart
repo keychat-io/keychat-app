@@ -1,7 +1,7 @@
 import 'package:app/controller/chat.controller.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/chat_settings_more.dart.dart';
-import 'package:app/page/chat/message_bill/message_bill_page.dart';
+import 'package:app/page/chat/message_bill/pay_to_relay_page.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/service/relay.service.dart';
@@ -146,9 +146,9 @@ class _ShowContactDetailState extends State<ShowContactDetail> {
                   leading: const Icon(
                     CupertinoIcons.bitcoin,
                   ),
-                  title: const Text('Ecash Bills'),
+                  title: const Text('Pay to Relay'),
                   onPressed: (context) async {
-                    Get.to(() => MessageBillPage(roomId: widget.room.id));
+                    Get.to(() => PayToRelayPage(roomId: widget.room.id));
                   },
                 ),
               ]),

@@ -3,6 +3,7 @@ import 'dart:convert' show jsonDecode, jsonEncode;
 import 'package:app/bot/bot_server_message_model.dart';
 import 'package:app/bot/bot_client_message_model.dart';
 import 'package:app/global.dart';
+import 'package:app/models/ecash_bill.dart';
 import 'package:app/models/models.dart';
 import 'package:app/models/nostr_event_status.dart';
 import 'package:app/nostr-core/nostr_event.dart';
@@ -630,6 +631,15 @@ class RoomService extends BaseChatService {
           CashuInfoModel cashuToken = await CashuUtil.getStamp(
               amount: bmd.price, token: bmd.unit, mints: bmd.mints);
           cashuTokenString = cashuToken.token;
+          var ecashBill = EcashBill(
+              amount: cashuToken.amount,
+              unit: cashuToken.unit ?? 'sat',
+              token: cashuTokenString,
+              roomId: room.id,
+              createdAt: DateTime.now());
+          await DBProvider.database.writeTxn(() async {
+            await DBProvider.database.ecashBills.put(ecashBill);
+          });
         }
         cmm = cmm.copyWith(priceModel: bmd.name, payToken: cashuTokenString);
       }

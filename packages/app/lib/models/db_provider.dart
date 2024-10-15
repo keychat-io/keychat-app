@@ -1,4 +1,5 @@
 import 'package:app/app.dart';
+import 'package:app/models/ecash_bill.dart';
 import 'package:app/models/nostr_event_status.dart';
 import 'package:app/models/signal_id.dart';
 import 'package:app/service/secure_storage.dart';
@@ -30,6 +31,7 @@ class DBProvider {
       RoomMemberSchema,
       SignalIdSchema,
       NostrEventStatusSchema,
+      EcashBillSchema,
     ], directory: dbFolder, name: 'keychat', inspector: kDebugMode);
     await performMigrationIfNeeded(database);
     return database;

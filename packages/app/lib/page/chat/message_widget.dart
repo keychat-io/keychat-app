@@ -2,6 +2,7 @@ import 'dart:convert' show jsonDecode;
 import 'dart:io' show File;
 import 'package:any_link_preview/any_link_preview.dart';
 import 'package:app/app.dart';
+import 'package:app/bot/bot_client_message_model.dart';
 import 'package:app/controller/chat.controller.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/controller/setting.controller.dart';
@@ -30,6 +31,7 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 import 'package:haptic_feedback/haptic_feedback.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -534,7 +536,20 @@ class MessageWidget extends StatelessWidget {
           await MessageService().updateMessageAndRefresh(message);
         }
       }
-      _showRawData(message, ess, event);
+
+      BotClientMessageModel? bcmm;
+      TokenInfo? token;
+      if (message.isMeSend &&
+          chatController.roomObs.value.type == RoomType.bot) {
+        try {
+          bcmm = BotClientMessageModel.fromJson(jsonDecode(message.content));
+          if (bcmm.payToken != null) {
+            token = await rust_cashu.decodeToken(encodedToken: bcmm.payToken!);
+          }
+        } catch (e) {}
+      }
+      _showRawData(message, ess, event,
+          botClientMessageModel: bcmm, payToken: token);
       return;
     }
     List<List<NostrEventStatus>> result1 = [];
@@ -834,7 +849,9 @@ class MessageWidget extends StatelessWidget {
     'nip4WrapSignal': 'NIP4(Signal Protocol(raw message))'
   };
   _showRawData(
-      Message message, List<NostrEventStatus> ess, NostrEventModel? event) {
+      Message message, List<NostrEventStatus> ess, NostrEventModel? event,
+      {BotClientMessageModel? botClientMessageModel,
+      rust_cashu.TokenInfo? payToken}) {
     BuildContext buildContext = Get.context!;
     return showModalBottomSheetWidget(
         buildContext,
@@ -852,6 +869,34 @@ class MessageWidget extends StatelessWidget {
                           message.mediaType == MessageMediaType.image ||
                           message.mediaType == MessageMediaType.video)
                         getFileTable(buildContext, message),
+                      if (botClientMessageModel != null &&
+                          botClientMessageModel.priceModel != null)
+                        Container(
+                            padding: const EdgeInsets.all(8),
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Pay To Chat',
+                                      style: Theme.of(buildContext)
+                                          .textTheme
+                                          .titleMedium),
+                                  Card(
+                                    child: Table(
+                                      columnWidths: const {
+                                        0: FixedColumnWidth(100.0)
+                                      },
+                                      children: [
+                                        tableRow(
+                                            "Model",
+                                            botClientMessageModel.priceModel ??
+                                                ''),
+                                        tableRow("Amount",
+                                            '${payToken?.amount.toString() ?? 0} ${payToken?.unit ?? 'sat'}'),
+                                        tableRow("Mint", payToken?.mint ?? ''),
+                                      ],
+                                    ),
+                                  )
+                                ])),
                       const SizedBox(height: 10),
                       NoticeTextWidget.success(
                           'Encrypted by ${encryptText[message.encryptType.name]}'),

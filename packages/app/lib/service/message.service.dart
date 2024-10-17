@@ -29,13 +29,13 @@ class MessageService {
   Future saveMessageModel(Message model,
       {bool persist = true, Room? room}) async {
     model.receiveAt ??= DateTime.now();
+    // none text type: media, file, cashu...
+    model = await _fillTypeForMessage(model, room?.type == RoomType.bot);
 
     if (!model.isRead) {
       bool isCurrentPage = dbProvider.isCurrentPage(model.roomId);
       if (isCurrentPage) model.isRead = true;
     }
-    // none text type: media, file, cashu...
-    model = await _fillTypeForMessage(model, room?.type == RoomType.bot);
 
     if (persist) {
       try {
@@ -556,8 +556,8 @@ $content'''
         bmm = BotServerMessageModel.fromJson(map);
         m.mediaType = bmm.type;
         m.realMessage = bmm.message;
-      } catch (e, s) {
-        logger.d(e, stackTrace: s);
+      } catch (e) {
+        // logger.d(e, stackTrace: s);
       }
     }
     return m;

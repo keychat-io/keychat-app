@@ -103,7 +103,8 @@ class _ShowContactDetailState extends State<ShowContactDetail> {
                         child: Container(
                           padding: const EdgeInsets.all(8.0),
                           decoration: BoxDecoration(
-                            color: Colors.grey[200],
+                            color:
+                                Theme.of(context).colorScheme.surfaceContainer,
                             borderRadius: BorderRadius.circular(8.0),
                           ),
                           child: textSmallGray(context,

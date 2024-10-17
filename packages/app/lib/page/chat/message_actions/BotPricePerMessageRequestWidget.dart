@@ -57,7 +57,7 @@ class _BotPricePerMessageRequestWidgetState
       margin: const EdgeInsets.symmetric(vertical: 4.0),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8.0),
-        border: Border.all(color: Colors.purple.shade600),
+        border: Border.all(color: Colors.purple.shade200),
       ),
       child: ListTile(
         leading: CircleAvatar(

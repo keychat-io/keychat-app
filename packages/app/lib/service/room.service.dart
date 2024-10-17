@@ -361,8 +361,6 @@ class RoomService extends BaseChatService {
       room.unReadCount = await MessageService().unreadCountByRoom(room.id);
       var lastMessageModel =
           await MessageService().getLastMessageByRoom(room.id);
-
-      // sub contend
       if (lastMessageModel != null) {
         if (lastMessageModel.content.length > 50) {
           lastMessageModel.content = lastMessageModel.content.substring(0, 50);

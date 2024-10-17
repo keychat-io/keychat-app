@@ -162,7 +162,8 @@ class WebsocketService extends GetxService {
   }
 
   // fetch info and wait for response data
-  Future fetchInfoFromRelay(String subId, String eventString) async {
+  Future<NostrEventModel?> fetchInfoFromRelay(
+      String subId, String eventString) async {
     List<RelayWebsocket> list = getConnectedRelay();
     if (list.isEmpty) throw Exception('Not connected with relay server');
     for (RelayWebsocket rw in list) {

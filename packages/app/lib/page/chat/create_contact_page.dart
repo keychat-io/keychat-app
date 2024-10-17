@@ -105,9 +105,6 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                       }
                       return;
                     }
-                    if (input.startsWith('bot:')) {
-                      input = input.substring(4);
-                    }
 
                     // common private chat
                     await RoomService().createRoomAndsendInvite(input,

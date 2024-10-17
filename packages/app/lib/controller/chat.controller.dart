@@ -5,6 +5,7 @@ import 'dart:io' show Directory, File, FileSystemEntity;
 import 'package:app/models/embedded/relay_message_fee.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr.dart';
+import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/RoomDraft.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/file_util.dart' as file_util;
@@ -732,53 +733,43 @@ class ChatController extends GetxController {
   _initBotInfo() async {
     if (roomObs.value.type == RoomType.group) return;
     if (roomObs.value.encryptMode == EncryptMode.signal) return;
-    var res = await NostrAPI().fetchMetadata([room.toMainPubkey]);
+    NostrEventModel? res = await NostrAPI().fetchMetadata([room.toMainPubkey]);
     if (res == null) return;
-    Map<String, dynamic> metadata = Map<String, dynamic>.from(res);
-
-    if (room.botInfoUpdatedAt >= (metadata['created_at'] ?? 9999999999)) {
-      botCommands.value = metadata['commands'] ?? [];
+    Map<String, dynamic> metadata =
+        Map<String, dynamic>.from(jsonDecode(res.content));
+    if (room.botInfoUpdatedAt >= res.createdAt) {
+      botCommands.value =
+          List<Map<String, dynamic>>.from(metadata['commands'] ?? []);
       return;
     }
-    room.botInfoUpdatedAt = metadata['created_at'] ?? 0;
-    botCommands.value = metadata['commands'] ?? [];
+    // not a bot account
+    if (metadata['type'] == null) return;
+    if (!metadata['type'].toString().toLowerCase().endsWith('bot')) {
+      return;
+    }
+    room.type = RoomType.bot;
+    room.status = RoomStatus.enabled;
+
+    room.botInfoUpdatedAt = res.createdAt;
+    botCommands.value =
+        List<Map<String, dynamic>>.from(metadata['commands'] ?? []);
 
     var metadataString = jsonEncode(metadata);
     room.botInfo = metadataString;
     room.name = metadata['name'] ?? room.name;
-    const ignoreKeys = {
-      'pubkey',
-      'npub',
-      'commands',
-      'botPricePerMessageRequest',
-      'about'
-    };
-    String description = metadata.keys
-        .where((key) => !ignoreKeys.contains(key))
-        .map((info) => '$info: ${metadata[info]}')
-        .join('\n');
-    if (description.isNotEmpty) {
-      await MessageService().saveSystemMessage(room, description,
-          suffix: 'Bot Info', isMeSend: false);
-    }
+    room.description = metadata['description'];
 
     // save config for botPricePerMessageRequest
-    try {
-      Map<String, dynamic> about = jsonDecode(metadata['about'] ?? {});
-      room.description = about['description'];
-
-      if (about['botPricePerMessageRequest'] != null) {
-        try {
-          var config = jsonEncode(about['botPricePerMessageRequest']);
-          await MessageService()
-              .saveSystemMessage(room, config, suffix: '', isMeSend: false);
-        } catch (e) {
-          logger.e(e.toString(), error: e, stackTrace: StackTrace.current);
-        }
+    if (metadata['botPricePerMessageRequest'] != null) {
+      try {
+        var config = jsonEncode(metadata['botPricePerMessageRequest']);
+        await MessageService()
+            .saveSystemMessage(room, config, suffix: '', isMeSend: false);
+      } catch (e) {
+        logger.e(e.toString(), error: e, stackTrace: StackTrace.current);
       }
-    } catch (e) {}
-    await RoomService().updateRoom(room);
-    roomObs.value = room;
+    }
+    await RoomService().updateRoomAndRefresh(room);
   }
 
   Future<void> _initGroupInfo() async {

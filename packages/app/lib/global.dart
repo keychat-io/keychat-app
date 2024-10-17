@@ -15,7 +15,8 @@ class KeychatGlobal {
   static const String defaultFileServer = 'wss://relay.keychat.io';
   static const Set<String> skipFileServers = {
     'wss://relay.damus.io',
-    'wss://nos.lol'
+    'wss://nos.lol',
+    'wss://relay.primal.net'
   };
 
   static const String defaultRelay = 'wss://relay.keychat.io';

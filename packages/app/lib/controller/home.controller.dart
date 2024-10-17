@@ -102,20 +102,23 @@ class HomeController extends GetxController
 
     // start to create ai identity
     Future.delayed(const Duration(seconds: 1), () async {
-      await createAIIdentity(mys);
+      await createAIIdentity(mys, 'Bot');
     });
   }
 
   // add identity AI and add AI contacts
-  createAIIdentity(List<Identity> list) async {
-    String idName = 'Bots';
-    if (list.isEmpty) return;
-    for (var identity in list) {
+  createAIIdentity(List<Identity> existsIdentity, String idName) async {
+    String key = '${StorageKeyString.taskCreateIdentity}:$idName';
+    if (existsIdentity.isEmpty) return;
+    int res = await Storage.getIntOrZero(key);
+    if (res == 1) return;
+    for (var identity in existsIdentity) {
       if (identity.name == idName) return;
     }
     String? mnemonic = await SecureStorage.instance.getPhraseWords();
     if (mnemonic == null) return;
-    List<int> phraseIndexes = list.map((element) => element.index).toList();
+    List<int> phraseIndexes =
+        existsIdentity.map((element) => element.index).toList();
     int unusedIndex = List.generate(10, (index) => index).firstWhere(
       (index) => !phraseIndexes.contains(index),
       orElse: () => -1,
@@ -129,28 +132,32 @@ class HomeController extends GetxController
         account: secp256k1Accounts[0],
         index: unusedIndex,
         isFirstAccount: false);
+    await Storage.setInt(key, 1);
+    logger.i('CreateAIIdentity Success');
 
     List bots = [
       {
         'name': 'ChatGPT',
         'pubkey':
-            'npub1p4sae59men07dv3zlp786ujd5vzs26003hr0ymhh6axjf6hajl9s652cfl'
-      },
-      {
-        'name': 'BTC Bot',
-        'pubkey':
-            'npub1dj4ag5seajapx7qm8a0c80ryjycmmv56ctx4w4azmn2eac49k3yqe69tq5'
+            'npub1yu2w7ed579x9ca93mqt7alxp4x2gxh0rqd9l6t2795lg4wa6mueqfsxw0t'
       }
     ];
-    await Future.forEach(bots, (bot) async {
-      String hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: bot['pubkey']);
-      Room room = await RoomService().getOrCreateRoom(
-          hexPubkey, newIdentity.secp256k1PKHex, RoomStatus.enabled,
-          contactName: bot['name'], type: RoomType.bot, identity: newIdentity);
-      logger.d('room: ${room.toMainPubkey}');
-    });
+    await _createRoom(newIdentity, bots);
+    logger.i('Create Room Success');
+  }
 
-    logger.i('CreateAIIdentity Success');
+  Future _createRoom(Identity identity, List bots) async {
+    await Future.forEach(bots, (bot) async {
+      String key =
+          '${StorageKeyString.taskCreateRoom}:${identity.id}:${bot['pubkey']}';
+      int res = await Storage.getIntOrZero(key);
+      if (res == 1) return;
+      String hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: bot['pubkey']);
+      await RoomService().getOrCreateRoom(
+          hexPubkey, identity.secp256k1PKHex, RoomStatus.enabled,
+          contactName: bot['name'], type: RoomType.bot, identity: identity);
+      await Storage.setInt(key, 1);
+    });
   }
 
   Future<void> removeBadge() async {

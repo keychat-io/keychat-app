@@ -134,7 +134,7 @@ class NostrAPI {
         await _processNip4Message(eventList, event, relay, raw);
         break;
       case EventKinds.setMetadata:
-        SubscribeResult.instance.fill(subscribeId, event.content);
+        SubscribeResult.instance.fill(subscribeId, event);
         break;
       case EventKinds.textNote:
         await Get.find<WorldController>().processEvent(event);

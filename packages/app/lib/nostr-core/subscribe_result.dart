@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'package:app/nostr-core/nostr_event.dart';
 
 class SubscribeResult {
   static SubscribeResult? _instance;
@@ -9,7 +9,7 @@ class SubscribeResult {
   final Map<String, List> _map = {};
   final Map<String, int> _eventMaxRelay = {};
 
-  Future<dynamic> registerSubscripton(
+  Future<NostrEventModel?> registerSubscripton(
       String eventId, int maxRelay, Duration wait) async {
     if (maxRelay <= 0) {
       throw Exception('Relay maybe disconnected');
@@ -25,29 +25,25 @@ class SubscribeResult {
     return removeSubscripton(eventId);
   }
 
-  fill(String eventId, String data) {
-    List list = _map[eventId] ?? [];
-    list.add(data);
+  fill(String eventId, NostrEventModel nem) {
+    List list = _map[eventId] ?? <NostrEventModel>[];
+    list.add(nem);
     _map[eventId] = list;
   }
 
   bool isFilled(String eventId) {
-    List list = _map[eventId] ?? [];
-    return list.length >= (_eventMaxRelay[eventId] ?? 0);
+    return (_map[eventId] ?? <NostrEventModel>[]).length >=
+        (_eventMaxRelay[eventId] ?? 0);
   }
 
-  dynamic removeSubscripton(String eventId) {
-    List list = _map[eventId] ?? [];
+  NostrEventModel? removeSubscripton(String eventId) {
+    List list = _map[eventId] ?? <NostrEventModel>[];
     _map.remove(eventId);
 
     if (list.isEmpty) {
       return null;
     }
-
-    list = list.map((e) => jsonDecode(e)).toList();
-    list = list.where((e) => e['created_at'] != null).toList();
-    if (list.isEmpty) return {};
-    list.sort((a, b) => a['created_at'].compareTo(b['created_at']));
+    list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
     return list.last;
   }
 }

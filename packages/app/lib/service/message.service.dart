@@ -70,7 +70,7 @@ class MessageService {
     await saveMessageModel(
         Message(
             msgid: Utils.randomString(16),
-            idPubkey: identity.secp256k1PKHex,
+            idPubkey: isMeSend ? identity.secp256k1PKHex : room.toMainPubkey,
             identityId: room.identityId,
             roomId: room.id,
             from: identity.secp256k1PKHex,

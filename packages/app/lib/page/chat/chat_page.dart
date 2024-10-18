@@ -400,11 +400,11 @@ class _ChatPage2State extends State<ChatPage> {
                     tiles: controller.botCommands
                         .map(
                           (element) => SettingsTile(
-                              title: Row(children: [
-                                Text(element['name']),
-                                const SizedBox(width: 20),
-                                textSmallGray(context, element['description'])
-                              ]),
+                              title: Text(element['name']),
+                              value: Flexible(
+                                  child: textSmallGray(
+                                      context, element['description'],
+                                      overflow: TextOverflow.clip)),
                               onPressed: (context) async {
                                 RoomService().sendTextMessage(
                                     controller.roomObs.value, element['name']);
@@ -475,6 +475,10 @@ class _ChatPage2State extends State<ChatPage> {
 
   handleMessageSend() async {
     if (controller.textEditingController.text.isEmpty) {
+      if (controller.roomObs.value.type == RoomType.bot) {
+        EasyLoading.showToast('Not supported int bot chat now');
+        return;
+      }
       controller.hideAdd.trigger(false);
       controller.chatContentFocus.unfocus();
       return;

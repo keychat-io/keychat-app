@@ -326,7 +326,7 @@ class MessageWidget extends StatelessWidget {
   Widget getMarkdownView(String text) {
     return MarkdownBody(
         data: text,
-        selectable: true,
+        selectable: false,
         softLineBreak: true,
         onTapLink: (text, href, title) {
           if (href != null) {
@@ -480,7 +480,7 @@ class MessageWidget extends StatelessWidget {
       Widget? messageStatus = getMessageStatus();
       return Container(
         margin: EdgeInsets.only(
-            top: 10, bottom: 10, left: messageStatus == null ? 48.0 : 0),
+            top: 10, bottom: 10, left: messageStatus == null ? 30.0 : 0),
         child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -613,7 +613,7 @@ class MessageWidget extends StatelessWidget {
 
   Widget toTextContainer() {
     return Container(
-      padding: const EdgeInsets.only(top: 10.0, bottom: 10, right: 48.0),
+      padding: const EdgeInsets.only(top: 10.0, bottom: 10, right: 30.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -1099,7 +1099,12 @@ class MessageWidget extends StatelessWidget {
                       title: const Text('Copy'),
                       leading: const Icon(Icons.copy),
                       onPressed: (context) async {
-                        Clipboard.setData(ClipboardData(text: message.content));
+                        String conent = message.content;
+                        if (message.realMessage != null &&
+                            chatController.roomObs.value.type == RoomType.bot) {
+                          conent = message.realMessage!;
+                        }
+                        Clipboard.setData(ClipboardData(text: conent));
                         EasyLoading.showToast('Copied');
                         Get.back();
                       }),

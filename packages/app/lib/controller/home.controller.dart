@@ -107,7 +107,7 @@ class HomeController extends GetxController
   }
 
   // add identity AI and add AI contacts
-  createAIIdentity(List<Identity> existsIdentity, String idName) async {
+  Future createAIIdentity(List<Identity> existsIdentity, String idName) async {
     String key = '${StorageKeyString.taskCreateIdentity}:$idName';
     if (existsIdentity.isEmpty) return;
     int res = await Storage.getIntOrZero(key);
@@ -147,7 +147,7 @@ class HomeController extends GetxController
   }
 
   Future _createRoom(Identity identity, List bots) async {
-    await Future.forEach(bots, (bot) async {
+    await Future.wait(bots.map((bot) async {
       String key =
           '${StorageKeyString.taskCreateRoom}:${identity.id}:${bot['pubkey']}';
       int res = await Storage.getIntOrZero(key);
@@ -157,7 +157,7 @@ class HomeController extends GetxController
           hexPubkey, identity.secp256k1PKHex, RoomStatus.enabled,
           contactName: bot['name'], type: RoomType.bot, identity: identity);
       await Storage.setInt(key, 1);
-    });
+    }));
   }
 
   Future<void> removeBadge() async {

@@ -322,12 +322,12 @@ class ContactService {
     saveContact(contact, sync: false);
   }
 
-  Future updateContact({
-    required int identityId,
-    required String pubkey,
-    String? petname,
-    String? name,
-  }) async {
+  Future updateContact(
+      {required int identityId,
+      required String pubkey,
+      String? petname,
+      String? name,
+      String? metadata}) async {
     String pubKeyHex = rust_nostr.getHexPubkeyByBech32(bech32: pubkey);
 
     var contact = await getContact(identityId, pubKeyHex);
@@ -341,6 +341,10 @@ class ContactService {
     }
     if (petname != null) {
       contact.petname = petname;
+    }
+
+    if (metadata != null) {
+      contact.metadata = metadata;
     }
     await saveContact(contact, sync: false);
   }

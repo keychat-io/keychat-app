@@ -22,6 +22,11 @@ enum MessageMediaType {
   groupInvite,
   file,
   groupInviteConfirm, // For administrators to use to accept or deny new users from joining the group
+  // bot message from the bot service
+  botText,
+  botPricePerMessageRequest,
+  botSelectionRequest,
+  botOneTimePaymentRequest
 }
 
 enum RequestConfrimEnum { none, request, approved, rejected, expired }
@@ -64,12 +69,13 @@ class Message extends Equatable {
   @Enumerated(EnumType.ordinal32)
   RequestConfrimEnum? requestConfrim;
 
+  // which option is selected
+  String? confirmResult;
+
   String? subEvent;
   DateTime? receiveAt;
   List<String> rawEvents = [];
   FromContact? fromContact; // show for message
-  int maxRelay = 0;
-  int okRelay = 0;
 
   Message(
       {required this.msgid,

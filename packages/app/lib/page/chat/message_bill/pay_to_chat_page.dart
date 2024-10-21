@@ -6,15 +6,15 @@ import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
-import 'message_bill_controller.dart';
+import 'pay_to_relay_controller.dart';
 
-class MessageBillPage extends GetView<MessageBillPageController> {
+class PayToChatBillPage extends StatelessWidget {
   final int roomId;
-  const MessageBillPage({super.key, required this.roomId});
+  const PayToChatBillPage({super.key, required this.roomId});
 
   @override
   Widget build(BuildContext context) {
-    Get.put(MessageBillPageController(roomId));
+    PayToRelayController controller = Get.put(PayToRelayController(roomId));
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,

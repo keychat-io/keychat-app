@@ -97,6 +97,8 @@ class NotifyService {
 
     bool enable = Get.find<HomeController>().notificationStatus.value;
     if (!enable) return;
+    if (fcmToken == null) return;
+
     List<String> pubkeys =
         await IdentityService().getListenPubkeys(skipMute: true);
     List<String> pubkeys2 = await ContactService().getAllReceiveKeysSkipMute();
@@ -115,7 +117,6 @@ class NotifyService {
 
       if (hasUploaded) return;
     }
-
     var map = {
       "kind": 4,
       "deviceId": fcmToken,

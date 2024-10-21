@@ -1,6 +1,6 @@
 import 'package:app/app.dart';
 import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/page/chat/message_bill/message_bill_page.dart';
+import 'package:app/page/chat/message_bill/pay_to_relay_page.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:app/service/contact.service.dart';
@@ -150,11 +150,19 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
           leading: const Icon(
             CupertinoIcons.bitcoin,
           ),
-          title: const Text('Ecash Bills'),
+          title: const Text('Pay to Relay'),
           onPressed: (context) async {
-            Get.to(() => MessageBillPage(roomId: room.id));
+            Get.to(() => PayToRelayPage(roomId: room.id));
           },
         ),
+        // if (chatController.roomObs.value.type == RoomType.bot)
+        //   SettingsTile.navigation(
+        //     leading: const Icon(CupertinoIcons.bitcoin),
+        //     title: const Text('Pay to Chat'),
+        //     onPressed: (context) async {
+        //       Get.to(() => PayToRelayPage(roomId: room.id));
+        //     },
+        //   ),
       ],
     );
   }

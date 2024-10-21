@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 
-class MessageBillPageController extends GetxController {
+class PayToRelayController extends GetxController {
   final int roomId;
-  MessageBillPageController(this.roomId);
+  PayToRelayController(this.roomId);
   RxList<NostrEventStatus> bills = <NostrEventStatus>[].obs;
   late RefreshController refreshController;
   late ScrollController scrollController;

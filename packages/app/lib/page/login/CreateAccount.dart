@@ -127,9 +127,7 @@ class _CreateAccountState extends State<CreateAccount> {
                       border: OutlineInputBorder(),
                     ),
                   ),
-                  const SizedBox(
-                    height: 16,
-                  ),
+                  const SizedBox(height: 16),
                   const Text('Select Your Avatar'),
                   accounts.isEmpty
                       ? pageLoadingSpinKit()
@@ -166,9 +164,7 @@ class _CreateAccountState extends State<CreateAccount> {
                                       : null,
                             );
                           }),
-                  const SizedBox(
-                    height: 100,
-                  )
+                  const SizedBox(height: 100)
                 ]))));
   }
 

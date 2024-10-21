@@ -27,117 +27,137 @@ const RoomSchema = CollectionSchema(
       name: r'avatar',
       type: IsarType.string,
     ),
-    r'createdAt': PropertySchema(
+    r'botInfo': PropertySchema(
       id: 2,
+      name: r'botInfo',
+      type: IsarType.string,
+    ),
+    r'botInfoUpdatedAt': PropertySchema(
+      id: 3,
+      name: r'botInfoUpdatedAt',
+      type: IsarType.long,
+    ),
+    r'botLocalConfig': PropertySchema(
+      id: 4,
+      name: r'botLocalConfig',
+      type: IsarType.string,
+    ),
+    r'createdAt': PropertySchema(
+      id: 5,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'curve25519PkHex': PropertySchema(
-      id: 3,
+      id: 6,
       name: r'curve25519PkHex',
       type: IsarType.string,
     ),
+    r'description': PropertySchema(
+      id: 7,
+      name: r'description',
+      type: IsarType.string,
+    ),
     r'encryptMode': PropertySchema(
-      id: 4,
+      id: 8,
       name: r'encryptMode',
       type: IsarType.int,
       enumMap: _RoomencryptModeEnumValueMap,
     ),
     r'groupRelay': PropertySchema(
-      id: 5,
+      id: 9,
       name: r'groupRelay',
       type: IsarType.string,
     ),
     r'groupType': PropertySchema(
-      id: 6,
+      id: 10,
       name: r'groupType',
       type: IsarType.int,
       enumMap: _RoomgroupTypeEnumValueMap,
     ),
     r'hashCode': PropertySchema(
-      id: 7,
+      id: 11,
       name: r'hashCode',
       type: IsarType.long,
     ),
     r'identityId': PropertySchema(
-      id: 8,
+      id: 12,
       name: r'identityId',
       type: IsarType.long,
     ),
     r'isMute': PropertySchema(
-      id: 9,
+      id: 13,
       name: r'isMute',
       type: IsarType.bool,
     ),
     r'myIdPubkey': PropertySchema(
-      id: 10,
+      id: 14,
       name: r'myIdPubkey',
       type: IsarType.string,
     ),
     r'name': PropertySchema(
-      id: 11,
+      id: 15,
       name: r'name',
       type: IsarType.string,
     ),
     r'npub': PropertySchema(
-      id: 12,
+      id: 16,
       name: r'npub',
       type: IsarType.string,
     ),
     r'onetimekey': PropertySchema(
-      id: 13,
+      id: 17,
       name: r'onetimekey',
       type: IsarType.string,
     ),
     r'pin': PropertySchema(
-      id: 14,
+      id: 18,
       name: r'pin',
       type: IsarType.bool,
     ),
     r'pinAt': PropertySchema(
-      id: 15,
+      id: 19,
       name: r'pinAt',
       type: IsarType.dateTime,
     ),
     r'sharedSignalID': PropertySchema(
-      id: 16,
+      id: 20,
       name: r'sharedSignalID',
       type: IsarType.string,
     ),
     r'signalDecodeError': PropertySchema(
-      id: 17,
+      id: 21,
       name: r'signalDecodeError',
       type: IsarType.bool,
     ),
     r'signalIdPubkey': PropertySchema(
-      id: 18,
+      id: 22,
       name: r'signalIdPubkey',
       type: IsarType.string,
     ),
     r'status': PropertySchema(
-      id: 19,
+      id: 23,
       name: r'status',
       type: IsarType.int,
       enumMap: _RoomstatusEnumValueMap,
     ),
     r'stringify': PropertySchema(
-      id: 20,
+      id: 24,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'toMainPubkey': PropertySchema(
-      id: 21,
+      id: 25,
       name: r'toMainPubkey',
       type: IsarType.string,
     ),
     r'type': PropertySchema(
-      id: 22,
+      id: 26,
       name: r'type',
       type: IsarType.int,
       enumMap: _RoomtypeEnumValueMap,
     ),
     r'version': PropertySchema(
-      id: 23,
+      id: 27,
       name: r'version',
       type: IsarType.long,
     )
@@ -195,7 +215,25 @@ int _roomEstimateSize(
     }
   }
   {
+    final value = object.botInfo;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.botLocalConfig;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.curve25519PkHex;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.description;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -244,28 +282,32 @@ void _roomSerialize(
 ) {
   writer.writeLong(offsets[0], object.autoDeleteDays);
   writer.writeString(offsets[1], object.avatar);
-  writer.writeDateTime(offsets[2], object.createdAt);
-  writer.writeString(offsets[3], object.curve25519PkHex);
-  writer.writeInt(offsets[4], object.encryptMode.index);
-  writer.writeString(offsets[5], object.groupRelay);
-  writer.writeInt(offsets[6], object.groupType.index);
-  writer.writeLong(offsets[7], object.hashCode);
-  writer.writeLong(offsets[8], object.identityId);
-  writer.writeBool(offsets[9], object.isMute);
-  writer.writeString(offsets[10], object.myIdPubkey);
-  writer.writeString(offsets[11], object.name);
-  writer.writeString(offsets[12], object.npub);
-  writer.writeString(offsets[13], object.onetimekey);
-  writer.writeBool(offsets[14], object.pin);
-  writer.writeDateTime(offsets[15], object.pinAt);
-  writer.writeString(offsets[16], object.sharedSignalID);
-  writer.writeBool(offsets[17], object.signalDecodeError);
-  writer.writeString(offsets[18], object.signalIdPubkey);
-  writer.writeInt(offsets[19], object.status.index);
-  writer.writeBool(offsets[20], object.stringify);
-  writer.writeString(offsets[21], object.toMainPubkey);
-  writer.writeInt(offsets[22], object.type.index);
-  writer.writeLong(offsets[23], object.version);
+  writer.writeString(offsets[2], object.botInfo);
+  writer.writeLong(offsets[3], object.botInfoUpdatedAt);
+  writer.writeString(offsets[4], object.botLocalConfig);
+  writer.writeDateTime(offsets[5], object.createdAt);
+  writer.writeString(offsets[6], object.curve25519PkHex);
+  writer.writeString(offsets[7], object.description);
+  writer.writeInt(offsets[8], object.encryptMode.index);
+  writer.writeString(offsets[9], object.groupRelay);
+  writer.writeInt(offsets[10], object.groupType.index);
+  writer.writeLong(offsets[11], object.hashCode);
+  writer.writeLong(offsets[12], object.identityId);
+  writer.writeBool(offsets[13], object.isMute);
+  writer.writeString(offsets[14], object.myIdPubkey);
+  writer.writeString(offsets[15], object.name);
+  writer.writeString(offsets[16], object.npub);
+  writer.writeString(offsets[17], object.onetimekey);
+  writer.writeBool(offsets[18], object.pin);
+  writer.writeDateTime(offsets[19], object.pinAt);
+  writer.writeString(offsets[20], object.sharedSignalID);
+  writer.writeBool(offsets[21], object.signalDecodeError);
+  writer.writeString(offsets[22], object.signalIdPubkey);
+  writer.writeInt(offsets[23], object.status.index);
+  writer.writeBool(offsets[24], object.stringify);
+  writer.writeString(offsets[25], object.toMainPubkey);
+  writer.writeInt(offsets[26], object.type.index);
+  writer.writeLong(offsets[27], object.version);
 }
 
 Room _roomDeserialize(
@@ -275,35 +317,39 @@ Room _roomDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Room(
-    identityId: reader.readLong(offsets[8]),
-    npub: reader.readString(offsets[12]),
-    status: _RoomstatusValueEnumMap[reader.readIntOrNull(offsets[19])] ??
+    identityId: reader.readLong(offsets[12]),
+    npub: reader.readString(offsets[16]),
+    status: _RoomstatusValueEnumMap[reader.readIntOrNull(offsets[23])] ??
         RoomStatus.init,
-    toMainPubkey: reader.readString(offsets[21]),
-    type: _RoomtypeValueEnumMap[reader.readIntOrNull(offsets[22])] ??
+    toMainPubkey: reader.readString(offsets[25]),
+    type: _RoomtypeValueEnumMap[reader.readIntOrNull(offsets[26])] ??
         RoomType.common,
   );
   object.autoDeleteDays = reader.readLong(offsets[0]);
   object.avatar = reader.readStringOrNull(offsets[1]);
-  object.createdAt = reader.readDateTime(offsets[2]);
-  object.curve25519PkHex = reader.readStringOrNull(offsets[3]);
+  object.botInfo = reader.readStringOrNull(offsets[2]);
+  object.botInfoUpdatedAt = reader.readLong(offsets[3]);
+  object.botLocalConfig = reader.readStringOrNull(offsets[4]);
+  object.createdAt = reader.readDateTime(offsets[5]);
+  object.curve25519PkHex = reader.readStringOrNull(offsets[6]);
+  object.description = reader.readStringOrNull(offsets[7]);
   object.encryptMode =
-      _RoomencryptModeValueEnumMap[reader.readIntOrNull(offsets[4])] ??
+      _RoomencryptModeValueEnumMap[reader.readIntOrNull(offsets[8])] ??
           EncryptMode.nip04;
-  object.groupRelay = reader.readStringOrNull(offsets[5]);
+  object.groupRelay = reader.readStringOrNull(offsets[9]);
   object.groupType =
-      _RoomgroupTypeValueEnumMap[reader.readIntOrNull(offsets[6])] ??
+      _RoomgroupTypeValueEnumMap[reader.readIntOrNull(offsets[10])] ??
           GroupType.shareKey;
   object.id = id;
-  object.isMute = reader.readBool(offsets[9]);
-  object.name = reader.readStringOrNull(offsets[11]);
-  object.onetimekey = reader.readStringOrNull(offsets[13]);
-  object.pin = reader.readBool(offsets[14]);
-  object.pinAt = reader.readDateTimeOrNull(offsets[15]);
-  object.sharedSignalID = reader.readStringOrNull(offsets[16]);
-  object.signalDecodeError = reader.readBool(offsets[17]);
-  object.signalIdPubkey = reader.readStringOrNull(offsets[18]);
-  object.version = reader.readLong(offsets[23]);
+  object.isMute = reader.readBool(offsets[13]);
+  object.name = reader.readStringOrNull(offsets[15]);
+  object.onetimekey = reader.readStringOrNull(offsets[17]);
+  object.pin = reader.readBool(offsets[18]);
+  object.pinAt = reader.readDateTimeOrNull(offsets[19]);
+  object.sharedSignalID = reader.readStringOrNull(offsets[20]);
+  object.signalDecodeError = reader.readBool(offsets[21]);
+  object.signalIdPubkey = reader.readStringOrNull(offsets[22]);
+  object.version = reader.readLong(offsets[27]);
   return object;
 }
 
@@ -319,52 +365,60 @@ P _roomDeserializeProp<P>(
     case 1:
       return (reader.readStringOrNull(offset)) as P;
     case 2:
-      return (reader.readDateTime(offset)) as P;
-    case 3:
       return (reader.readStringOrNull(offset)) as P;
+    case 3:
+      return (reader.readLong(offset)) as P;
     case 4:
+      return (reader.readStringOrNull(offset)) as P;
+    case 5:
+      return (reader.readDateTime(offset)) as P;
+    case 6:
+      return (reader.readStringOrNull(offset)) as P;
+    case 7:
+      return (reader.readStringOrNull(offset)) as P;
+    case 8:
       return (_RoomencryptModeValueEnumMap[reader.readIntOrNull(offset)] ??
           EncryptMode.nip04) as P;
-    case 5:
+    case 9:
       return (reader.readStringOrNull(offset)) as P;
-    case 6:
+    case 10:
       return (_RoomgroupTypeValueEnumMap[reader.readIntOrNull(offset)] ??
           GroupType.shareKey) as P;
-    case 7:
-      return (reader.readLong(offset)) as P;
-    case 8:
-      return (reader.readLong(offset)) as P;
-    case 9:
-      return (reader.readBool(offset)) as P;
-    case 10:
-      return (reader.readString(offset)) as P;
     case 11:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 12:
-      return (reader.readString(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 13:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 14:
-      return (reader.readBool(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 15:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 16:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 17:
-      return (reader.readBool(offset)) as P;
-    case 18:
       return (reader.readStringOrNull(offset)) as P;
+    case 18:
+      return (reader.readBool(offset)) as P;
     case 19:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 20:
+      return (reader.readStringOrNull(offset)) as P;
+    case 21:
+      return (reader.readBool(offset)) as P;
+    case 22:
+      return (reader.readStringOrNull(offset)) as P;
+    case 23:
       return (_RoomstatusValueEnumMap[reader.readIntOrNull(offset)] ??
           RoomStatus.init) as P;
-    case 20:
+    case 24:
       return (reader.readBoolOrNull(offset)) as P;
-    case 21:
+    case 25:
       return (reader.readString(offset)) as P;
-    case 22:
+    case 26:
       return (_RoomtypeValueEnumMap[reader.readIntOrNull(offset)] ??
           RoomType.common) as P;
-    case 23:
+    case 27:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -417,11 +471,13 @@ const _RoomtypeEnumValueMap = {
   'common': 0,
   'private': 1,
   'group': 2,
+  'bot': 3,
 };
 const _RoomtypeValueEnumMap = {
   0: RoomType.common,
   1: RoomType.private,
   2: RoomType.group,
+  3: RoomType.bot,
 };
 
 Id _roomGetId(Room object) {
@@ -946,6 +1002,349 @@ extension RoomQueryFilter on QueryBuilder<Room, Room, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Room, Room, QAfterFilterCondition> botInfoIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'botInfo',
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botInfoIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'botInfo',
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botInfoEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'botInfo',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botInfoGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'botInfo',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botInfoLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'botInfo',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botInfoBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'botInfo',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botInfoStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'botInfo',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botInfoEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'botInfo',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botInfoContains(String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'botInfo',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botInfoMatches(String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'botInfo',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botInfoIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'botInfo',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botInfoIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'botInfo',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botInfoUpdatedAtEqualTo(
+      int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'botInfoUpdatedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botInfoUpdatedAtGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'botInfoUpdatedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botInfoUpdatedAtLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'botInfoUpdatedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botInfoUpdatedAtBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'botInfoUpdatedAt',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botLocalConfigIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'botLocalConfig',
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botLocalConfigIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'botLocalConfig',
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botLocalConfigEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'botLocalConfig',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botLocalConfigGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'botLocalConfig',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botLocalConfigLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'botLocalConfig',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botLocalConfigBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'botLocalConfig',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botLocalConfigStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'botLocalConfig',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botLocalConfigEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'botLocalConfig',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botLocalConfigContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'botLocalConfig',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botLocalConfigMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'botLocalConfig',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botLocalConfigIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'botLocalConfig',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> botLocalConfigIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'botLocalConfig',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<Room, Room, QAfterFilterCondition> createdAtEqualTo(
       DateTime value) {
     return QueryBuilder.apply(this, (query) {
@@ -1140,6 +1539,152 @@ extension RoomQueryFilter on QueryBuilder<Room, Room, QFilterCondition> {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'curve25519PkHex',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> descriptionIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'description',
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> descriptionIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'description',
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> descriptionEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'description',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> descriptionGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'description',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> descriptionLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'description',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> descriptionBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'description',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> descriptionStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'description',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> descriptionEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'description',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> descriptionContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'description',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> descriptionMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'description',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> descriptionIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'description',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> descriptionIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'description',
         value: '',
       ));
     });
@@ -2845,6 +3390,42 @@ extension RoomQuerySortBy on QueryBuilder<Room, Room, QSortBy> {
     });
   }
 
+  QueryBuilder<Room, Room, QAfterSortBy> sortByBotInfo() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'botInfo', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> sortByBotInfoDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'botInfo', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> sortByBotInfoUpdatedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'botInfoUpdatedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> sortByBotInfoUpdatedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'botInfoUpdatedAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> sortByBotLocalConfig() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'botLocalConfig', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> sortByBotLocalConfigDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'botLocalConfig', Sort.desc);
+    });
+  }
+
   QueryBuilder<Room, Room, QAfterSortBy> sortByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -2866,6 +3447,18 @@ extension RoomQuerySortBy on QueryBuilder<Room, Room, QSortBy> {
   QueryBuilder<Room, Room, QAfterSortBy> sortByCurve25519PkHexDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'curve25519PkHex', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> sortByDescription() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'description', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> sortByDescriptionDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'description', Sort.desc);
     });
   }
 
@@ -3135,6 +3728,42 @@ extension RoomQuerySortThenBy on QueryBuilder<Room, Room, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Room, Room, QAfterSortBy> thenByBotInfo() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'botInfo', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> thenByBotInfoDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'botInfo', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> thenByBotInfoUpdatedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'botInfoUpdatedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> thenByBotInfoUpdatedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'botInfoUpdatedAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> thenByBotLocalConfig() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'botLocalConfig', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> thenByBotLocalConfigDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'botLocalConfig', Sort.desc);
+    });
+  }
+
   QueryBuilder<Room, Room, QAfterSortBy> thenByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -3156,6 +3785,18 @@ extension RoomQuerySortThenBy on QueryBuilder<Room, Room, QSortThenBy> {
   QueryBuilder<Room, Room, QAfterSortBy> thenByCurve25519PkHexDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'curve25519PkHex', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> thenByDescription() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'description', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> thenByDescriptionDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'description', Sort.desc);
     });
   }
 
@@ -3426,6 +4067,27 @@ extension RoomQueryWhereDistinct on QueryBuilder<Room, Room, QDistinct> {
     });
   }
 
+  QueryBuilder<Room, Room, QDistinct> distinctByBotInfo(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'botInfo', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<Room, Room, QDistinct> distinctByBotInfoUpdatedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'botInfoUpdatedAt');
+    });
+  }
+
+  QueryBuilder<Room, Room, QDistinct> distinctByBotLocalConfig(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'botLocalConfig',
+          caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<Room, Room, QDistinct> distinctByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'createdAt');
@@ -3437,6 +4099,13 @@ extension RoomQueryWhereDistinct on QueryBuilder<Room, Room, QDistinct> {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'curve25519PkHex',
           caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<Room, Room, QDistinct> distinctByDescription(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'description', caseSensitive: caseSensitive);
     });
   }
 
@@ -3590,6 +4259,24 @@ extension RoomQueryProperty on QueryBuilder<Room, Room, QQueryProperty> {
     });
   }
 
+  QueryBuilder<Room, String?, QQueryOperations> botInfoProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'botInfo');
+    });
+  }
+
+  QueryBuilder<Room, int, QQueryOperations> botInfoUpdatedAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'botInfoUpdatedAt');
+    });
+  }
+
+  QueryBuilder<Room, String?, QQueryOperations> botLocalConfigProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'botLocalConfig');
+    });
+  }
+
   QueryBuilder<Room, DateTime, QQueryOperations> createdAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'createdAt');
@@ -3599,6 +4286,12 @@ extension RoomQueryProperty on QueryBuilder<Room, Room, QQueryProperty> {
   QueryBuilder<Room, String?, QQueryOperations> curve25519PkHexProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'curve25519PkHex');
+    });
+  }
+
+  QueryBuilder<Room, String?, QQueryOperations> descriptionProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'description');
     });
   }
 

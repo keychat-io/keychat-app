@@ -95,7 +95,7 @@ class Nip4ChatService extends BaseChatService {
         content: message,
         createdAt: timestampToDateTime(event.createdAt),
         rawEvents: [event.toJsonString()]);
-    await MessageService().saveMessageModel(toSaveMsg);
+    await MessageService().saveMessageModel(toSaveMsg, room: room);
   }
 
   // Send pseudonymous messages. The messages are nested in two layers, the first layer is pseudonymous messages, and the second layer is real messages.

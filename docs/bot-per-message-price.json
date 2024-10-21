@@ -1,0 +1,28 @@
+{
+  "type": "botPricePerMessageRequest",
+  "id": "SelectPriceModel",
+  "message": "Please select a model to chat",
+  "priceModels": [
+    {
+      "name": "gpt-3.5-turbo",
+      "description": "",
+      "price": 0,
+      "unit": "sat",
+      "mints": []
+    },
+    {
+      "name": "gpt-4o-mini",
+      "description": "",
+      "price": 2,
+      "unit": "sat",
+      "mints": []
+    },
+    {
+      "name": "gpt-4o",
+      "description": "",
+      "price": 100,
+      "unit": "sat",
+      "mints": []
+    }
+  ]
+}

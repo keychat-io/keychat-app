@@ -417,7 +417,6 @@ Let's talk on this server.''';
       realMessage: sm.msg,
       isSystem: true,
     );
-    return;
   }
 
   Future sendRejectMessage(Room room) async {

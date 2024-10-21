@@ -114,7 +114,7 @@ class _HomeDropMenuWidgetState extends State<HomeDropMenuWidget> {
           }
         },
         dropdownStyleData: DropdownStyleData(
-          width: 170,
+          width: 180,
           padding: const EdgeInsets.symmetric(vertical: 6),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(4),

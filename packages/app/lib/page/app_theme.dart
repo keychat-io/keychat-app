@@ -12,7 +12,8 @@ class AppThemeCustom {
         useMaterial3: true,
         appBarTheme: const AppBarTheme(
             titleTextStyle: TextStyle(fontSize: 18, color: Colors.black87)),
-        colorScheme: MaterialTheme.lightScheme());
+        colorScheme: MaterialTheme.lightScheme(),
+        textTheme: const TextTheme(bodyMedium: TextStyle(fontSize: 16)));
   }
 
   static dark() {
@@ -25,6 +26,7 @@ class AppThemeCustom {
         useMaterial3: true,
         appBarTheme: const AppBarTheme(
             titleTextStyle: TextStyle(fontSize: 18, color: Colors.white70)),
-        colorScheme: MaterialTheme.darkScheme());
+        colorScheme: MaterialTheme.darkScheme(),
+        textTheme: const TextTheme(bodyMedium: TextStyle(fontSize: 16)));
   }
 }

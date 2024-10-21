@@ -302,7 +302,7 @@ Let's start an encrypted chat.''';
               /// default behavior, turns the action's text to bold text.
               onPressed: () async {
                 await RoomService().deleteRoomMessage(room);
-                await Get.find<HomeController>()
+                Get.find<HomeController>()
                     .loadIdentityRoomList(room.identityId);
                 if (onDeleteHistory != null) {
                   onDeleteHistory();
@@ -429,7 +429,7 @@ Let's start an encrypted chat.''';
             return FilledButton(
               onPressed: () async {
                 await Get.offAndToNamed('/room/${room.id}', arguments: room);
-                await Get.find<HomeController>()
+                Get.find<HomeController>()
                     .loadIdentityRoomList(room.identityId);
               },
               child: const Text('Send Message'),

@@ -1,4 +1,5 @@
 import 'package:app/models/nostr_event_status.dart';
+import 'package:app/nostr-core/subscribe_result.dart';
 import 'package:flutter/foundation.dart' show kReleaseMode;
 
 import 'package:queue/queue.dart';
@@ -122,17 +123,18 @@ class NostrAPI {
   Future _proccessEvent(List eventList, Relay relay, String raw) async {
     NostrEventModel event =
         NostrEventModel.deserialize(eventList, verify: false);
+    String subscribeId = eventList[1];
     // logger.i('${DateTime.now()} : ${event.createdAt}');
     switch (event.kind) {
       case EventKinds.contactList:
-        await _processNip2(event);
+        await _proccessNip2(event);
         break;
       case EventKinds.encryptedDirectMessage:
       case EventKinds.nip17:
         await _processNip4Message(eventList, event, relay, raw);
         break;
       case EventKinds.setMetadata:
-        await _processNip5(event);
+        SubscribeResult.instance.fill(subscribeId, event);
         break;
       case EventKinds.textNote:
         await Get.find<WorldController>().processEvent(event);
@@ -150,7 +152,7 @@ class NostrAPI {
         eventId, relay.url, status, errorMessage);
   }
 
-  _processNip2(NostrEventModel msg) async {
+  _proccessNip2(NostrEventModel msg) async {
     // List profiles = Nip2.decode(msg);
     // Mykey mykey = await IdentityService().getDefaultMykey();
     // for (var profile in profiles) {
@@ -161,7 +163,7 @@ class NostrAPI {
     // }
   }
 
-  _processNip5(NostrEventModel event) async {
+  _proccessNip5(NostrEventModel event) async {
     try {
       Map decodedContent = jsonDecode(event.content);
       if (decodedContent.keys.isEmpty) return;
@@ -183,25 +185,9 @@ class NostrAPI {
         if (decodedContent['hisRelay'] != null) {
           contact.hisRelay = decodedContent['hisRelay'];
         }
-        Room? room;
-        if (decodedContent['bot'] != null) {
-          if (decodedContent['bot'] == 1) {
-            // if contact is bot, then encrypt with nip04
-            contact.isBot = true;
-            Identity identity =
-                Get.find<HomeController>().identities[contact.identityId]!;
-            room = await RoomService().getOrCreateRoom(
-                contact.pubkey, identity.secp256k1PKHex, RoomStatus.enabled);
-            room.encryptMode = EncryptMode.nip04;
-            RoomService().updateRoom(room);
-          }
-        }
 
         contact.updatedAt = DateTime.now();
         await ContactService().saveContact(contact, sync: false);
-        if (room != null) {
-          RoomService().updateChatRoomPage(room);
-        }
       }
       Get.find<HomeController>().loadRoomList();
     } catch (e, s) {
@@ -580,16 +566,14 @@ class NostrAPI {
     nip05SubscriptionId = await fetchMetadata(pubkeys);
   }
 
-  Future<String> fetchMetadata(List<String> pubkeys) async {
-    String id = utils.generate64RandomHexChars();
+  Future<dynamic> fetchMetadata(List<String> pubkeys) async {
+    String id = utils.generate64RandomHexChars(16);
     Request requestWithFilter = Request(id, [
-      Filter(kinds: [EventKinds.setMetadata], authors: pubkeys, limit: 100)
+      Filter(kinds: [EventKinds.setMetadata], authors: pubkeys, limit: 2)
     ]);
 
     var req = requestWithFilter.serialize();
-
-    Get.find<WebsocketService>().sendRawReq(req);
-    return id;
+    return await Get.find<WebsocketService>().fetchInfoFromRelay(id, req);
   }
 
   void _proccessNotice(Relay relay, String msg1) {

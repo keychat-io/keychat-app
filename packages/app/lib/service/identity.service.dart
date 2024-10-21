@@ -93,7 +93,7 @@ class IdentityService {
       try {
         Get.find<EcashController>().initIdentity(iden);
         Get.find<HomeController>()
-            .createAIIdentity([iden], 'Bot'); // create ai identity
+            .createAIIdentity([iden], KeychatGlobal.bot); // create ai identity
         NotifyService.init(true).then((c) {
           NotifyService.addPubkeys([account.pubkey]);
         }).catchError((e, s) {

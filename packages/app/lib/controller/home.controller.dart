@@ -1,10 +1,12 @@
 import 'dart:async' show StreamSubscription, Timer;
+import 'dart:convert' show jsonDecode;
 
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
+import 'package:dio/dio.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
@@ -65,6 +67,9 @@ class HomeController extends GetxController
   int debugModelClickCount = 0;
   // final Map<int, ScrollController> scrollControllers = {};
   Timer? _checkWebsocketTimer;
+
+  RxList recommendBots = [].obs;
+
   @override
   void onInit() async {
     super.onInit();
@@ -102,7 +107,8 @@ class HomeController extends GetxController
 
     // start to create ai identity
     Future.delayed(const Duration(seconds: 1), () async {
-      await createAIIdentity(mys, 'Bot');
+      await createAIIdentity(mys, KeychatGlobal.bot);
+      fetchBots();
     });
   }
 
@@ -127,37 +133,13 @@ class HomeController extends GetxController
     List<Secp256k1Account> secp256k1Accounts = await rust_nostr
         .importFromPhraseWith(phrase: mnemonic, offset: unusedIndex, count: 1);
 
-    Identity newIdentity = await IdentityService().createIdentity(
+    await IdentityService().createIdentity(
         name: idName,
         account: secp256k1Accounts[0],
         index: unusedIndex,
         isFirstAccount: false);
     await Storage.setInt(key, 1);
     logger.i('CreateAIIdentity Success');
-
-    List bots = [
-      {
-        'name': 'ChatGPT',
-        'pubkey':
-            'npub1yu2w7ed579x9ca93mqt7alxp4x2gxh0rqd9l6t2795lg4wa6mueqfsxw0t'
-      }
-    ];
-    await _createRoom(newIdentity, bots);
-    logger.i('Create Room Success');
-  }
-
-  Future _createRoom(Identity identity, List bots) async {
-    await Future.wait(bots.map((bot) async {
-      String key =
-          '${StorageKeyString.taskCreateRoom}:${identity.id}:${bot['pubkey']}';
-      int res = await Storage.getIntOrZero(key);
-      if (res == 1) return;
-      String hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: bot['pubkey']);
-      await RoomService().getOrCreateRoom(
-          hexPubkey, identity.secp256k1PKHex, RoomStatus.enabled,
-          contactName: bot['name'], type: RoomType.bot, identity: identity);
-      await Storage.setInt(key, 1);
-    }));
   }
 
   Future<void> removeBadge() async {
@@ -292,6 +274,7 @@ class HomeController extends GetxController
 
       rooms = [
         KeychatGlobal.search,
+        KeychatGlobal.recommendRooms,
         approving,
         requesting,
         ...rooms,
@@ -363,6 +346,7 @@ class HomeController extends GetxController
 
       rooms = [
         KeychatGlobal.search,
+        KeychatGlobal.recommendRooms,
         approving,
         requesting,
         ...rooms,
@@ -498,6 +482,7 @@ class HomeController extends GetxController
             rooms[0],
             rooms[1],
             rooms[2],
+            rooms[3],
             ...RoomUtil.sortRoomList(firendsRooms)
           ];
           tabBodyDatas[identityId] = item;
@@ -515,5 +500,31 @@ class HomeController extends GetxController
   Future setTipsViewed(String name, RxBool toSetValue) async {
     toSetValue.value = false;
     await Storage.setInt(name, 1);
+  }
+
+  Future fetchBots() async {
+    const list = [
+      'https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/bots.json',
+      'https://mirror.ghproxy.com/https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/bots.json'
+    ];
+
+    for (var url in list) {
+      try {
+        var response = await Dio().get(
+          url,
+          options: Options(
+            sendTimeout: const Duration(seconds: 5),
+            receiveTimeout: const Duration(seconds: 5),
+          ),
+        );
+        if (response.statusCode == 200) {
+          recommendBots.value = jsonDecode(response.data);
+          logger.d(recommendBots);
+          return;
+        }
+      } catch (e) {
+        logger.e('Failed to fetch bots from $url: $e');
+      }
+    }
   }
 }

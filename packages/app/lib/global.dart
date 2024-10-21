@@ -1,8 +1,10 @@
 library keychat.global;
 
 class KeychatGlobal {
+  static const String bot = 'Bot';
   static const String selfName = 'Note to Self';
   static const String search = 'SEARCH';
+  static const String recommendRooms = 'recommendRooms';
   static const int remainReceiveKeyPerRoom = 2;
   static const String baseFilePath = 'file';
   static const String signalProcotolDBFile = 'signal_procotol.db';

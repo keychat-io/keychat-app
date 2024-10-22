@@ -23,66 +23,66 @@ const MessageSchema = CollectionSchema(
       type: IsarType.object,
       target: r'CashuInfoModel',
     ),
-    r'content': PropertySchema(
+    r'confirmResult': PropertySchema(
       id: 1,
+      name: r'confirmResult',
+      type: IsarType.string,
+    ),
+    r'content': PropertySchema(
+      id: 2,
       name: r'content',
       type: IsarType.string,
     ),
     r'createdAt': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'encryptType': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'encryptType',
       type: IsarType.int,
       enumMap: _MessageencryptTypeEnumValueMap,
     ),
     r'eventIds': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'eventIds',
       type: IsarType.stringList,
     ),
     r'from': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'from',
       type: IsarType.string,
     ),
     r'hashCode': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'hashCode',
       type: IsarType.long,
     ),
     r'idPubkey': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'idPubkey',
       type: IsarType.string,
     ),
     r'identityId': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'identityId',
       type: IsarType.long,
     ),
     r'isMeSend': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'isMeSend',
       type: IsarType.bool,
     ),
     r'isRead': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'isRead',
       type: IsarType.bool,
     ),
     r'isSystem': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'isSystem',
       type: IsarType.bool,
-    ),
-    r'maxRelay': PropertySchema(
-      id: 12,
-      name: r'maxRelay',
-      type: IsarType.long,
     ),
     r'mediaType': PropertySchema(
       id: 13,
@@ -100,61 +100,56 @@ const MessageSchema = CollectionSchema(
       name: r'msgid',
       type: IsarType.string,
     ),
-    r'okRelay': PropertySchema(
-      id: 16,
-      name: r'okRelay',
-      type: IsarType.long,
-    ),
     r'rawEvents': PropertySchema(
-      id: 17,
+      id: 16,
       name: r'rawEvents',
       type: IsarType.stringList,
     ),
     r'realMessage': PropertySchema(
-      id: 18,
+      id: 17,
       name: r'realMessage',
       type: IsarType.string,
     ),
     r'receiveAt': PropertySchema(
-      id: 19,
+      id: 18,
       name: r'receiveAt',
       type: IsarType.dateTime,
     ),
     r'reply': PropertySchema(
-      id: 20,
+      id: 19,
       name: r'reply',
       type: IsarType.object,
       target: r'MsgReply',
     ),
     r'requestConfrim': PropertySchema(
-      id: 21,
+      id: 20,
       name: r'requestConfrim',
       type: IsarType.int,
       enumMap: _MessagerequestConfrimEnumValueMap,
     ),
     r'roomId': PropertySchema(
-      id: 22,
+      id: 21,
       name: r'roomId',
       type: IsarType.long,
     ),
     r'sent': PropertySchema(
-      id: 23,
+      id: 22,
       name: r'sent',
       type: IsarType.int,
       enumMap: _MessagesentEnumValueMap,
     ),
     r'stringify': PropertySchema(
-      id: 24,
+      id: 23,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'subEvent': PropertySchema(
-      id: 25,
+      id: 24,
       name: r'subEvent',
       type: IsarType.string,
     ),
     r'to': PropertySchema(
-      id: 26,
+      id: 25,
       name: r'to',
       type: IsarType.string,
     )
@@ -207,6 +202,12 @@ int _messageEstimateSize(
       bytesCount += 3 +
           CashuInfoModelSchema.estimateSize(
               value, allOffsets[CashuInfoModel]!, allOffsets);
+    }
+  }
+  {
+    final value = object.confirmResult;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
     }
   }
   bytesCount += 3 + object.content.length * 3;
@@ -268,37 +269,36 @@ void _messageSerialize(
     CashuInfoModelSchema.serialize,
     object.cashuInfo,
   );
-  writer.writeString(offsets[1], object.content);
-  writer.writeDateTime(offsets[2], object.createdAt);
-  writer.writeInt(offsets[3], object.encryptType.index);
-  writer.writeStringList(offsets[4], object.eventIds);
-  writer.writeString(offsets[5], object.from);
-  writer.writeLong(offsets[6], object.hashCode);
-  writer.writeString(offsets[7], object.idPubkey);
-  writer.writeLong(offsets[8], object.identityId);
-  writer.writeBool(offsets[9], object.isMeSend);
-  writer.writeBool(offsets[10], object.isRead);
-  writer.writeBool(offsets[11], object.isSystem);
-  writer.writeLong(offsets[12], object.maxRelay);
+  writer.writeString(offsets[1], object.confirmResult);
+  writer.writeString(offsets[2], object.content);
+  writer.writeDateTime(offsets[3], object.createdAt);
+  writer.writeInt(offsets[4], object.encryptType.index);
+  writer.writeStringList(offsets[5], object.eventIds);
+  writer.writeString(offsets[6], object.from);
+  writer.writeLong(offsets[7], object.hashCode);
+  writer.writeString(offsets[8], object.idPubkey);
+  writer.writeLong(offsets[9], object.identityId);
+  writer.writeBool(offsets[10], object.isMeSend);
+  writer.writeBool(offsets[11], object.isRead);
+  writer.writeBool(offsets[12], object.isSystem);
   writer.writeInt(offsets[13], object.mediaType.index);
   writer.writeString(offsets[14], object.msgKeyHash);
   writer.writeString(offsets[15], object.msgid);
-  writer.writeLong(offsets[16], object.okRelay);
-  writer.writeStringList(offsets[17], object.rawEvents);
-  writer.writeString(offsets[18], object.realMessage);
-  writer.writeDateTime(offsets[19], object.receiveAt);
+  writer.writeStringList(offsets[16], object.rawEvents);
+  writer.writeString(offsets[17], object.realMessage);
+  writer.writeDateTime(offsets[18], object.receiveAt);
   writer.writeObject<MsgReply>(
-    offsets[20],
+    offsets[19],
     allOffsets,
     MsgReplySchema.serialize,
     object.reply,
   );
-  writer.writeInt(offsets[21], object.requestConfrim?.index);
-  writer.writeLong(offsets[22], object.roomId);
-  writer.writeInt(offsets[23], object.sent.index);
-  writer.writeBool(offsets[24], object.stringify);
-  writer.writeString(offsets[25], object.subEvent);
-  writer.writeString(offsets[26], object.to);
+  writer.writeInt(offsets[20], object.requestConfrim?.index);
+  writer.writeLong(offsets[21], object.roomId);
+  writer.writeInt(offsets[22], object.sent.index);
+  writer.writeBool(offsets[23], object.stringify);
+  writer.writeString(offsets[24], object.subEvent);
+  writer.writeString(offsets[25], object.to);
 }
 
 Message _messageDeserialize(
@@ -308,47 +308,46 @@ Message _messageDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Message(
-    content: reader.readString(offsets[1]),
-    createdAt: reader.readDateTime(offsets[2]),
+    content: reader.readString(offsets[2]),
+    createdAt: reader.readDateTime(offsets[3]),
     encryptType:
-        _MessageencryptTypeValueEnumMap[reader.readIntOrNull(offsets[3])] ??
+        _MessageencryptTypeValueEnumMap[reader.readIntOrNull(offsets[4])] ??
             MessageEncryptType.signal,
-    eventIds: reader.readStringList(offsets[4]) ?? [],
-    from: reader.readString(offsets[5]),
-    idPubkey: reader.readString(offsets[7]),
-    identityId: reader.readLong(offsets[8]),
-    isMeSend: reader.readBoolOrNull(offsets[9]) ?? false,
-    isSystem: reader.readBoolOrNull(offsets[11]) ?? false,
+    eventIds: reader.readStringList(offsets[5]) ?? [],
+    from: reader.readString(offsets[6]),
+    idPubkey: reader.readString(offsets[8]),
+    identityId: reader.readLong(offsets[9]),
+    isMeSend: reader.readBoolOrNull(offsets[10]) ?? false,
+    isSystem: reader.readBoolOrNull(offsets[12]) ?? false,
     msgKeyHash: reader.readStringOrNull(offsets[14]),
     msgid: reader.readString(offsets[15]),
-    rawEvents: reader.readStringList(offsets[17]) ?? [],
-    realMessage: reader.readStringOrNull(offsets[18]),
+    rawEvents: reader.readStringList(offsets[16]) ?? [],
+    realMessage: reader.readStringOrNull(offsets[17]),
     reply: reader.readObjectOrNull<MsgReply>(
-      offsets[20],
+      offsets[19],
       MsgReplySchema.deserialize,
       allOffsets,
     ),
-    roomId: reader.readLong(offsets[22]),
-    sent: _MessagesentValueEnumMap[reader.readIntOrNull(offsets[23])] ??
+    roomId: reader.readLong(offsets[21]),
+    sent: _MessagesentValueEnumMap[reader.readIntOrNull(offsets[22])] ??
         SendStatusType.sending,
-    to: reader.readString(offsets[26]),
+    to: reader.readString(offsets[25]),
   );
   object.cashuInfo = reader.readObjectOrNull<CashuInfoModel>(
     offsets[0],
     CashuInfoModelSchema.deserialize,
     allOffsets,
   );
+  object.confirmResult = reader.readStringOrNull(offsets[1]);
   object.id = id;
-  object.isRead = reader.readBool(offsets[10]);
-  object.maxRelay = reader.readLong(offsets[12]);
+  object.isRead = reader.readBool(offsets[11]);
   object.mediaType =
       _MessagemediaTypeValueEnumMap[reader.readIntOrNull(offsets[13])] ??
           MessageMediaType.text;
-  object.okRelay = reader.readLong(offsets[16]);
-  object.receiveAt = reader.readDateTimeOrNull(offsets[19]);
+  object.receiveAt = reader.readDateTimeOrNull(offsets[18]);
   object.requestConfrim =
-      _MessagerequestConfrimValueEnumMap[reader.readIntOrNull(offsets[21])];
-  object.subEvent = reader.readStringOrNull(offsets[25]);
+      _MessagerequestConfrimValueEnumMap[reader.readIntOrNull(offsets[20])];
+  object.subEvent = reader.readStringOrNull(offsets[24]);
   return object;
 }
 
@@ -366,30 +365,30 @@ P _messageDeserializeProp<P>(
         allOffsets,
       )) as P;
     case 1:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 2:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 3:
+      return (reader.readDateTime(offset)) as P;
+    case 4:
       return (_MessageencryptTypeValueEnumMap[reader.readIntOrNull(offset)] ??
           MessageEncryptType.signal) as P;
-    case 4:
-      return (reader.readStringList(offset) ?? []) as P;
     case 5:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 6:
-      return (reader.readLong(offset)) as P;
-    case 7:
       return (reader.readString(offset)) as P;
+    case 7:
+      return (reader.readLong(offset)) as P;
     case 8:
-      return (reader.readLong(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 9:
-      return (reader.readBoolOrNull(offset) ?? false) as P;
-    case 10:
-      return (reader.readBool(offset)) as P;
-    case 11:
-      return (reader.readBoolOrNull(offset) ?? false) as P;
-    case 12:
       return (reader.readLong(offset)) as P;
+    case 10:
+      return (reader.readBoolOrNull(offset) ?? false) as P;
+    case 11:
+      return (reader.readBool(offset)) as P;
+    case 12:
+      return (reader.readBoolOrNull(offset) ?? false) as P;
     case 13:
       return (_MessagemediaTypeValueEnumMap[reader.readIntOrNull(offset)] ??
           MessageMediaType.text) as P;
@@ -398,32 +397,30 @@ P _messageDeserializeProp<P>(
     case 15:
       return (reader.readString(offset)) as P;
     case 16:
-      return (reader.readLong(offset)) as P;
-    case 17:
       return (reader.readStringList(offset) ?? []) as P;
-    case 18:
+    case 17:
       return (reader.readStringOrNull(offset)) as P;
-    case 19:
+    case 18:
       return (reader.readDateTimeOrNull(offset)) as P;
-    case 20:
+    case 19:
       return (reader.readObjectOrNull<MsgReply>(
         offset,
         MsgReplySchema.deserialize,
         allOffsets,
       )) as P;
-    case 21:
+    case 20:
       return (_MessagerequestConfrimValueEnumMap[reader.readIntOrNull(offset)])
           as P;
-    case 22:
+    case 21:
       return (reader.readLong(offset)) as P;
-    case 23:
+    case 22:
       return (_MessagesentValueEnumMap[reader.readIntOrNull(offset)] ??
           SendStatusType.sending) as P;
-    case 24:
+    case 23:
       return (reader.readBoolOrNull(offset)) as P;
-    case 25:
+    case 24:
       return (reader.readStringOrNull(offset)) as P;
-    case 26:
+    case 25:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -455,6 +452,10 @@ const _MessagemediaTypeEnumValueMap = {
   'groupInvite': 7,
   'file': 8,
   'groupInviteConfirm': 9,
+  'botText': 10,
+  'botPricePerMessageRequest': 11,
+  'botSelectionRequest': 12,
+  'botOneTimePaymentRequest': 13,
 };
 const _MessagemediaTypeValueEnumMap = {
   0: MessageMediaType.text,
@@ -467,6 +468,10 @@ const _MessagemediaTypeValueEnumMap = {
   7: MessageMediaType.groupInvite,
   8: MessageMediaType.file,
   9: MessageMediaType.groupInviteConfirm,
+  10: MessageMediaType.botText,
+  11: MessageMediaType.botPricePerMessageRequest,
+  12: MessageMediaType.botSelectionRequest,
+  13: MessageMediaType.botOneTimePaymentRequest,
 };
 const _MessagerequestConfrimEnumValueMap = {
   'none': 0,
@@ -825,6 +830,155 @@ extension MessageQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNotNull(
         property: r'cashuInfo',
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> confirmResultIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'confirmResult',
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+      confirmResultIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'confirmResult',
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> confirmResultEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'confirmResult',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+      confirmResultGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'confirmResult',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> confirmResultLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'confirmResult',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> confirmResultBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'confirmResult',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> confirmResultStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'confirmResult',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> confirmResultEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'confirmResult',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> confirmResultContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'confirmResult',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> confirmResultMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'confirmResult',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> confirmResultIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'confirmResult',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+      confirmResultIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'confirmResult',
+        value: '',
       ));
     });
   }
@@ -1732,59 +1886,6 @@ extension MessageQueryFilter
     });
   }
 
-  QueryBuilder<Message, Message, QAfterFilterCondition> maxRelayEqualTo(
-      int value) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'maxRelay',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> maxRelayGreaterThan(
-    int value, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'maxRelay',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> maxRelayLessThan(
-    int value, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'maxRelay',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> maxRelayBetween(
-    int lower,
-    int upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'maxRelay',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
-    });
-  }
-
   QueryBuilder<Message, Message, QAfterFilterCondition> mediaTypeEqualTo(
       MessageMediaType value) {
     return QueryBuilder.apply(this, (query) {
@@ -2110,59 +2211,6 @@ extension MessageQueryFilter
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'msgid',
         value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> okRelayEqualTo(
-      int value) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'okRelay',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> okRelayGreaterThan(
-    int value, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'okRelay',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> okRelayLessThan(
-    int value, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'okRelay',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterFilterCondition> okRelayBetween(
-    int lower,
-    int upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'okRelay',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
       ));
     });
   }
@@ -3119,6 +3167,18 @@ extension MessageQueryLinks
     on QueryBuilder<Message, Message, QFilterCondition> {}
 
 extension MessageQuerySortBy on QueryBuilder<Message, Message, QSortBy> {
+  QueryBuilder<Message, Message, QAfterSortBy> sortByConfirmResult() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'confirmResult', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterSortBy> sortByConfirmResultDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'confirmResult', Sort.desc);
+    });
+  }
+
   QueryBuilder<Message, Message, QAfterSortBy> sortByContent() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'content', Sort.asc);
@@ -3239,18 +3299,6 @@ extension MessageQuerySortBy on QueryBuilder<Message, Message, QSortBy> {
     });
   }
 
-  QueryBuilder<Message, Message, QAfterSortBy> sortByMaxRelay() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'maxRelay', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterSortBy> sortByMaxRelayDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'maxRelay', Sort.desc);
-    });
-  }
-
   QueryBuilder<Message, Message, QAfterSortBy> sortByMediaType() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'mediaType', Sort.asc);
@@ -3284,18 +3332,6 @@ extension MessageQuerySortBy on QueryBuilder<Message, Message, QSortBy> {
   QueryBuilder<Message, Message, QAfterSortBy> sortByMsgidDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'msgid', Sort.desc);
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterSortBy> sortByOkRelay() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'okRelay', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterSortBy> sortByOkRelayDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'okRelay', Sort.desc);
     });
   }
 
@@ -3398,6 +3434,18 @@ extension MessageQuerySortBy on QueryBuilder<Message, Message, QSortBy> {
 
 extension MessageQuerySortThenBy
     on QueryBuilder<Message, Message, QSortThenBy> {
+  QueryBuilder<Message, Message, QAfterSortBy> thenByConfirmResult() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'confirmResult', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterSortBy> thenByConfirmResultDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'confirmResult', Sort.desc);
+    });
+  }
+
   QueryBuilder<Message, Message, QAfterSortBy> thenByContent() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'content', Sort.asc);
@@ -3530,18 +3578,6 @@ extension MessageQuerySortThenBy
     });
   }
 
-  QueryBuilder<Message, Message, QAfterSortBy> thenByMaxRelay() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'maxRelay', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterSortBy> thenByMaxRelayDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'maxRelay', Sort.desc);
-    });
-  }
-
   QueryBuilder<Message, Message, QAfterSortBy> thenByMediaType() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'mediaType', Sort.asc);
@@ -3575,18 +3611,6 @@ extension MessageQuerySortThenBy
   QueryBuilder<Message, Message, QAfterSortBy> thenByMsgidDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'msgid', Sort.desc);
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterSortBy> thenByOkRelay() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'okRelay', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Message, Message, QAfterSortBy> thenByOkRelayDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'okRelay', Sort.desc);
     });
   }
 
@@ -3689,6 +3713,14 @@ extension MessageQuerySortThenBy
 
 extension MessageQueryWhereDistinct
     on QueryBuilder<Message, Message, QDistinct> {
+  QueryBuilder<Message, Message, QDistinct> distinctByConfirmResult(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'confirmResult',
+          caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<Message, Message, QDistinct> distinctByContent(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -3758,12 +3790,6 @@ extension MessageQueryWhereDistinct
     });
   }
 
-  QueryBuilder<Message, Message, QDistinct> distinctByMaxRelay() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'maxRelay');
-    });
-  }
-
   QueryBuilder<Message, Message, QDistinct> distinctByMediaType() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'mediaType');
@@ -3781,12 +3807,6 @@ extension MessageQueryWhereDistinct
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'msgid', caseSensitive: caseSensitive);
-    });
-  }
-
-  QueryBuilder<Message, Message, QDistinct> distinctByOkRelay() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'okRelay');
     });
   }
 
@@ -3862,6 +3882,12 @@ extension MessageQueryProperty
     });
   }
 
+  QueryBuilder<Message, String?, QQueryOperations> confirmResultProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'confirmResult');
+    });
+  }
+
   QueryBuilder<Message, String, QQueryOperations> contentProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'content');
@@ -3929,12 +3955,6 @@ extension MessageQueryProperty
     });
   }
 
-  QueryBuilder<Message, int, QQueryOperations> maxRelayProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'maxRelay');
-    });
-  }
-
   QueryBuilder<Message, MessageMediaType, QQueryOperations>
       mediaTypeProperty() {
     return QueryBuilder.apply(this, (query) {
@@ -3951,12 +3971,6 @@ extension MessageQueryProperty
   QueryBuilder<Message, String, QQueryOperations> msgidProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'msgid');
-    });
-  }
-
-  QueryBuilder<Message, int, QQueryOperations> okRelayProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'okRelay');
     });
   }
 

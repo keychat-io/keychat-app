@@ -16,11 +16,14 @@ class LongTextPreviewPage extends StatelessWidget {
           onPressed: () {
             Get.back();
           },
-          icon: const Icon(Icons.close),
+          icon: const Icon(
+            Icons.close,
+            color: Colors.purple,
+          ),
         ),
         body: Stack(children: <Widget>[
           GestureDetector(
-            onTap: () {
+            onDoubleTap: () {
               Navigator.pop(context);
             },
           ),

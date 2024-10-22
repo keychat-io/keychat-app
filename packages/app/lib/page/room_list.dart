@@ -17,6 +17,7 @@ import 'package:get/get.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 
 import '../controller/home.controller.dart';
+import 'RecommendBots/RecommendBots.dart';
 import 'components.dart';
 
 class RoomList extends StatelessWidget {
@@ -92,67 +93,67 @@ class RoomList extends StatelessWidget {
             List rooms = data.rooms;
             DateTime messageExpired =
                 DateTime.now().subtract(const Duration(seconds: 5));
-            return rooms.length == 3 &&
-                    rooms[1].length == 0 &&
-                    rooms[2].length == 0
-                ? const SizedBox()
-                : ListView.separated(
-                    key: ObjectKey('roomlist_tab_$identityId'),
-                    padding: const EdgeInsets.only(
-                        bottom: kMinInteractiveDimension * 2),
-                    separatorBuilder: (context, index) {
-                      if (rooms[index] is Room) {
-                        if (rooms[index].pin) {
-                          return Container();
-                        }
-                        return divider;
-                      }
+            return ListView.separated(
+                key: ObjectKey('roomlist_tab_$identityId'),
+                padding:
+                    const EdgeInsets.only(bottom: kMinInteractiveDimension * 2),
+                separatorBuilder: (context, index) {
+                  if (rooms[index] is Room) {
+                    if (rooms[index].pin) {
                       return Container();
-                    },
-                    itemCount: friendsCount,
-                    itemBuilder: (context, index) {
-                      if (index == 0) {
-                        return getSearchWidget(context, pinTileBackground);
-                      }
-                      if (index == 1) {
-                        return getNewFriendsWidget(data, rooms[1] as List<Room>,
-                            pinTileBackground, context);
-                      }
-                      if (index == 2) {
-                        return getRequestingWidget(data, rooms[2] as List<Room>,
-                            pinTileBackground, context);
-                      }
-                      Room room = rooms[index];
-                      return GestureDetector(
-                          key: ObjectKey('${index}_room${room.id}'),
-                          onTap: () async {
-                            await Get.toNamed('/room/${room.id}',
-                                arguments: room);
+                    }
+                    return divider;
+                  }
+                  return Container();
+                },
+                itemCount: friendsCount,
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    if (data.rooms.length > 4) {
+                      return getSearchWidget(context, pinTileBackground);
+                    }
+                    return const SizedBox();
+                  }
+                  if (index == 1) {
+                    return RecommendBots(
+                        data.identity, List<Room>.from(rooms.sublist(4)));
+                  }
+                  if (index == 2) {
+                    return getNewFriendsWidget(data, rooms[3] as List<Room>,
+                        pinTileBackground, context);
+                  }
+                  if (index == 3) {
+                    return getRequestingWidget(data, rooms[3] as List<Room>,
+                        pinTileBackground, context);
+                  }
+                  Room room = rooms[index];
+                  return GestureDetector(
+                      key: ObjectKey('${index}_room${room.id}'),
+                      onTap: () async {
+                        await Get.toNamed('/room/${room.id}', arguments: room);
 
-                            RoomService().markAllRead(
-                                identityId: room.identityId, roomId: room.id);
-                          },
-                          onLongPress: () =>
-                              RoomUtil.showRoomActionSheet(context, room),
-                          child: Container(
-                              color: room.pin
-                                  ? pinTileBackground
-                                  : Colors.transparent,
-                              child: ListTile(
-                                leading: getAvatarDot(room),
-                                key: Key('room:${room.id}'),
-                                title: Text(
-                                  room.getRoomName(),
-                                  maxLines: 1,
-                                  style:
-                                      Theme.of(context).textTheme.titleMedium,
-                                ),
-                                subtitle: RoomUtil.getSubtitleDisplay(
-                                        room, messageExpired) ??
-                                    const Text(''),
-                                trailing: _getRoomTrailing(context, room),
-                              )));
-                    });
+                        RoomService().markAllRead(
+                            identityId: room.identityId, roomId: room.id);
+                      },
+                      onLongPress: () =>
+                          RoomUtil.showRoomActionSheet(context, room),
+                      child: Container(
+                          color:
+                              room.pin ? pinTileBackground : Colors.transparent,
+                          child: ListTile(
+                            leading: getAvatarDot(room),
+                            key: Key('room:${room.id}'),
+                            title: Text(
+                              room.getRoomName(),
+                              maxLines: 1,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            subtitle: RoomUtil.getSubtitleDisplay(
+                                    room, messageExpired) ??
+                                const Text(''),
+                            trailing: _getRoomTrailing(context, room),
+                          )));
+                });
           }).toList())),
     );
   }

@@ -3,6 +3,7 @@ import 'package:app/page/login/CreateAccount.dart';
 import 'package:app/page/login/OnboardingPage2.dart';
 import 'package:app/page/setting/file_storage_server.dart';
 import 'package:app/page/setting/UploadedPubkeys.dart';
+import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/websocket.service.dart';

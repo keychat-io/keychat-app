@@ -1,6 +1,9 @@
-import 'dart:convert' show jsonDecode;
+import 'dart:convert' show jsonDecode, jsonEncode;
 
+import 'package:app/bot/bot_server_message_model.dart';
+import 'package:app/bot/bot_client_message_model.dart';
 import 'package:app/global.dart';
+import 'package:app/models/ecash_bill.dart';
 import 'package:app/models/models.dart';
 import 'package:app/models/nostr_event_status.dart';
 import 'package:app/nostr-core/nostr_event.dart';
@@ -8,6 +11,7 @@ import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/signalId.service.dart';
+import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:app/service/chat.service.dart';
 import 'package:app/service/chatx.service.dart';
@@ -37,7 +41,6 @@ class RoomService extends BaseChatService {
   static final DBProvider dbProvider = DBProvider();
   static final GroupService groupService = GroupService();
   static final ContactService contactService = ContactService();
-  HomeController homeController = Get.find<HomeController>();
 
   factory RoomService() {
     return _singleton;
@@ -64,7 +67,8 @@ class RoomService extends BaseChatService {
       Contact? contact,
       String? curve25519PkHex,
       String? onetimekey,
-      SignalId? signalId}) async {
+      SignalId? signalId,
+      RoomType? type}) async {
     int identityId = identity.id;
     Room? exist = await getRoomByIdentity(toMainPubkey, identityId);
     if (exist != null) return exist;
@@ -78,27 +82,36 @@ class RoomService extends BaseChatService {
     )
       ..onetimekey = onetimekey
       ..status = status
+      ..type = type ?? RoomType.common
       ..encryptMode = encryptMode
       ..curve25519PkHex = curve25519PkHex
       ..signalIdPubkey = signalId!.pubkey;
-
+    // set bot room's name
+    if (room.type == RoomType.bot) {
+      room.name = name;
+    }
     if (toMainPubkey == identity.secp256k1PKHex) {
       room.encryptMode = EncryptMode.nip04;
       name = KeychatGlobal.selfName;
     }
 
     room = await updateRoom(room);
-    contact ??=
-        await ContactService().getContact(identityId, room.toMainPubkey);
-    contact ??= Contact(
-        identityId: room.identityId,
-        pubkey: room.toMainPubkey,
-        npubkey: rust_nostr.getBech32PubkeyByHex(hex: room.toMainPubkey))
-      ..name = name;
-    await ContactService().saveContact(contact);
-    contact = await ContactService().getContact(identityId, room.toMainPubkey);
-    room.contact = contact;
-    await homeController.loadIdentityRoomList(room.identityId);
+
+    // 1v1 room's contact's name
+    if (room.type == RoomType.common) {
+      contact ??=
+          await ContactService().getContact(identityId, room.toMainPubkey);
+      contact ??= Contact(
+          identityId: room.identityId,
+          pubkey: room.toMainPubkey,
+          npubkey: rust_nostr.getBech32PubkeyByHex(hex: room.toMainPubkey))
+        ..name = name;
+      await ContactService().saveContact(contact);
+      contact =
+          await ContactService().getContact(identityId, room.toMainPubkey);
+      room.contact = contact;
+    }
+    Get.find<HomeController>().loadIdentityRoomList(room.identityId);
 
     return room;
   }
@@ -119,7 +132,7 @@ class RoomService extends BaseChatService {
     //   return;
     // }
     if (room != null) {
-      await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
+      Get.find<HomeController>().loadIdentityRoomList(room.identityId);
       await Get.offAllNamed(Routes.root);
     }
   }
@@ -209,14 +222,14 @@ class RoomService extends BaseChatService {
 
   // get room by send_pubkey and bob_pubkey
   Future<Room> getOrCreateRoom(String from, String to, RoomStatus status,
-      {String? contactName}) async {
-    Room? room = await getRoom(from, to);
-    if (room != null) {
+      {String? contactName, Identity? identity, RoomType? type}) async {
+    Room? room = await getRoom(from, to, identity);
+    if (room != null && room.type == RoomType.common && contactName != null) {
       await ContactService().updateOrCreateByRoom(room, contactName);
       return room;
     }
 
-    Identity? identity = await IdentityService().getIdentityByNostrPubkey(to);
+    identity ??= await IdentityService().getIdentityByNostrPubkey(to);
     if (identity == null) {
       throw Exception('no this identity');
     }
@@ -225,6 +238,7 @@ class RoomService extends BaseChatService {
         identity: identity,
         status: status,
         encryptMode: EncryptMode.nip04,
+        type: type,
         name: contactName);
   }
 
@@ -240,7 +254,7 @@ class RoomService extends BaseChatService {
         status: status);
   }
 
-  Future<Room?> getRoom(String from, String to) async {
+  Future<Room?> getRoom(String from, String to, [Identity? identity]) async {
     Isar database = DBProvider.database;
 
     Room? signalRatchetRoom = await getRoomByReceiveKey(to);
@@ -251,7 +265,7 @@ class RoomService extends BaseChatService {
         await database.rooms.filter().toMainPubkeyEqualTo(from).findAll();
 
     for (var room in nip4Rooms) {
-      Identity identity = homeController.identities[room.identityId]!;
+      identity ??= Get.find<HomeController>().identities[room.identityId]!;
       if (identity.secp256k1PKHex == to) {
         return room;
       }
@@ -347,8 +361,6 @@ class RoomService extends BaseChatService {
       room.unReadCount = await MessageService().unreadCountByRoom(room.id);
       var lastMessageModel =
           await MessageService().getLastMessageByRoom(room.id);
-
-      // sub contend
       if (lastMessageModel != null) {
         if (lastMessageModel.content.length > 50) {
           lastMessageModel.content = lastMessageModel.content.substring(0, 50);
@@ -359,9 +371,11 @@ class RoomService extends BaseChatService {
         friendsRoom.add(room);
         continue;
       }
-      room.contact = await contactService.getOrCreateContact(
-          room.identityId, room.toMainPubkey,
-          curve25519PkHex: room.curve25519PkHex);
+      if (room.type == RoomType.common) {
+        room.contact = await contactService.getOrCreateContact(
+            room.identityId, room.toMainPubkey,
+            curve25519PkHex: room.curve25519PkHex);
+      }
       if (room.status == RoomStatus.requesting) {
         requesting.add(room); // not friend
         continue;
@@ -402,7 +416,9 @@ class RoomService extends BaseChatService {
     if (room == null) {
       Identity? identity;
       Mykey? mykey;
-      List<Identity> identities = homeController.identities.values
+      List<Identity> identities = Get.find<HomeController>()
+          .identities
+          .values
           .where((element) => element.secp256k1PKHex == toAddress)
           .toList();
       if (identities.isNotEmpty) {
@@ -411,7 +427,7 @@ class RoomService extends BaseChatService {
         // onetime-key is receive address
         mykey = await IdentityService().getMykeyByPubkey(toAddress);
         if (mykey != null) {
-          identity = homeController.identities[mykey.identityId];
+          identity = Get.find<HomeController>().identities[mykey.identityId];
         }
       }
       if (identity == null) throw Exception('My receive address is null');
@@ -560,6 +576,10 @@ class RoomService extends BaseChatService {
       return await _sendTextMessageToGroup(room, content,
           reply: reply, realMessage: realMessageContent, mediaType: mediaType);
     }
+    if (room.type == RoomType.bot && !content.startsWith('cashu')) {
+      return await sendMessageToBot(room, room.getIdentity(), content,
+          realMessage: realMessage);
+    }
 
     SendMessageResponse map;
     encryptMode ??= room.encryptMode;
@@ -592,6 +612,50 @@ class RoomService extends BaseChatService {
     return map;
   }
 
+  Future<SendMessageResponse> sendMessageToBot(
+      Room room, Identity identity, String message,
+      {String? realMessage}) async {
+    BotClientMessageModel? cmm;
+    try {
+      cmm = BotClientMessageModel.fromJson(jsonDecode(message));
+    } catch (e) {}
+    if (cmm == null) {
+      cmm ??= BotClientMessageModel(
+          type: MessageMediaType.botText, message: message);
+      BotMessageData? bmd = room.getBotMessagePriceModel();
+      if (bmd != null && !message.startsWith('/')) {
+        String? cashuTokenString;
+        if (bmd.price > 0) {
+          CashuInfoModel cashuToken = await CashuUtil.getStamp(
+              amount: bmd.price, token: bmd.unit, mints: bmd.mints);
+          cashuTokenString = cashuToken.token;
+          var ecashBill = EcashBill(
+              amount: cashuToken.amount,
+              unit: cashuToken.unit ?? 'sat',
+              token: cashuTokenString,
+              roomId: room.id,
+              createdAt: DateTime.now());
+          await DBProvider.database.writeTxn(() async {
+            await DBProvider.database.ecashBills.put(ecashBill);
+          });
+        }
+        cmm = cmm.copyWith(priceModel: bmd.name, payToken: cashuTokenString);
+      }
+    }
+    if (realMessage == null && message.startsWith('/')) {
+      realMessage = message;
+    }
+
+    String toSendMessage = jsonEncode(cmm.toJson());
+    logger.d('toSendMessage: $toSendMessage');
+    return await NostrAPI().sendNip4Message(room.toMainPubkey, toSendMessage,
+        prikey: await identity.getSecp256k1SKHex(),
+        from: identity.secp256k1PKHex,
+        room: room,
+        realMessage: realMessage ?? message,
+        encryptType: MessageEncryptType.nip4);
+  }
+
   Future<ChatController?> updateChatRoomPage(Room room) async {
     ChatController? cc = RoomService.getController(room.id);
     if (cc == null) return null;
@@ -614,8 +678,15 @@ class RoomService extends BaseChatService {
     return room;
   }
 
+  Future updateRoomAndRefresh(Room room) async {
+    await DBProvider.database.writeTxn(() async {
+      await DBProvider.database.rooms.put(room);
+    });
+    updateChatRoomPage(room);
+  }
+
   Future _checkWebsocketConnect() async {
-    bool netStatus = homeController.isConnectedNetwork.value;
+    bool netStatus = Get.find<HomeController>().isConnectedNetwork.value;
     if (!netStatus) {
       throw Exception('Lost Network');
     }
@@ -686,7 +757,7 @@ class RoomService extends BaseChatService {
 
   Future<Room?> createRoomAndsendInvite(String input,
       {bool autoJump = true, Identity? identity, String? greeting}) async {
-    identity ??= homeController.getSelectedIdentity();
+    identity ??= Get.find<HomeController>().getSelectedIdentity();
     // input is a hex string, decode in json
     if (!(input.length == 64 || input.length == 63)) return null;
     String hexPubkey = input;
@@ -701,7 +772,7 @@ class RoomService extends BaseChatService {
         room = await RoomService()
             .getOrCreateRoomByIdentity(hexPubkey, identity, RoomStatus.enabled);
       } else {
-        for (var iden in homeController.identities.values) {
+        for (var iden in Get.find<HomeController>().identities.values) {
           if (iden.secp256k1PKHex == hexPubkey) {
             throw Exception('Can not add other identity\' pubkey');
           }
@@ -719,7 +790,7 @@ class RoomService extends BaseChatService {
 
       if (autoJump) {
         await Get.offAndToNamed('/room/${room.id}', arguments: room);
-        await homeController.loadIdentityRoomList(identity.id);
+        await Get.find<HomeController>().loadIdentityRoomList(identity.id);
       }
       return room;
     } catch (e, s) {
@@ -738,7 +809,7 @@ class RoomService extends BaseChatService {
 
   Future markAllRead({required int identityId, required int roomId}) async {
     var refresh = await MessageService().setViewedMessage(roomId);
-    if (refresh) homeController.loadIdentityRoomList(identityId);
+    if (refresh) Get.find<HomeController>().loadIdentityRoomList(identityId);
   }
 
   // Future sendHelloMessage(Room room, Identity identity,

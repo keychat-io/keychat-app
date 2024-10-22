@@ -47,10 +47,10 @@ const ContactSchema = CollectionSchema(
       name: r'identityId',
       type: IsarType.long,
     ),
-    r'isBot': PropertySchema(
+    r'metadata': PropertySchema(
       id: 6,
-      name: r'isBot',
-      type: IsarType.bool,
+      name: r'metadata',
+      type: IsarType.string,
     ),
     r'myRelay': PropertySchema(
       id: 7,
@@ -151,6 +151,12 @@ int _contactEstimateSize(
     }
   }
   {
+    final value = object.metadata;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.myRelay;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -191,7 +197,7 @@ void _contactSerialize(
   writer.writeLong(offsets[3], object.hashCode);
   writer.writeString(offsets[4], object.hisRelay);
   writer.writeLong(offsets[5], object.identityId);
-  writer.writeBool(offsets[6], object.isBot);
+  writer.writeString(offsets[6], object.metadata);
   writer.writeString(offsets[7], object.myRelay);
   writer.writeString(offsets[8], object.name);
   writer.writeString(offsets[9], object.npubkey);
@@ -218,7 +224,7 @@ Contact _contactDeserialize(
   object.curve25519PkHex = reader.readStringOrNull(offsets[2]);
   object.hisRelay = reader.readStringOrNull(offsets[4]);
   object.id = id;
-  object.isBot = reader.readBool(offsets[6]);
+  object.metadata = reader.readStringOrNull(offsets[6]);
   object.myRelay = reader.readStringOrNull(offsets[7]);
   object.name = reader.readStringOrNull(offsets[8]);
   object.petname = reader.readStringOrNull(offsets[10]);
@@ -247,7 +253,7 @@ P _contactDeserializeProp<P>(
     case 5:
       return (reader.readLong(offset)) as P;
     case 6:
-      return (reader.readBool(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 7:
       return (reader.readStringOrNull(offset)) as P;
     case 8:
@@ -1258,12 +1264,148 @@ extension ContactQueryFilter
     });
   }
 
-  QueryBuilder<Contact, Contact, QAfterFilterCondition> isBotEqualTo(
-      bool value) {
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'metadata',
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'metadata',
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'isBot',
+        property: r'metadata',
         value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'metadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'metadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'metadata',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'metadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'metadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'metadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'metadata',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'metadata',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'metadata',
+        value: '',
       ));
     });
   }
@@ -2287,15 +2429,15 @@ extension ContactQuerySortBy on QueryBuilder<Contact, Contact, QSortBy> {
     });
   }
 
-  QueryBuilder<Contact, Contact, QAfterSortBy> sortByIsBot() {
+  QueryBuilder<Contact, Contact, QAfterSortBy> sortByMetadata() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isBot', Sort.asc);
+      return query.addSortBy(r'metadata', Sort.asc);
     });
   }
 
-  QueryBuilder<Contact, Contact, QAfterSortBy> sortByIsBotDesc() {
+  QueryBuilder<Contact, Contact, QAfterSortBy> sortByMetadataDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isBot', Sort.desc);
+      return query.addSortBy(r'metadata', Sort.desc);
     });
   }
 
@@ -2482,15 +2624,15 @@ extension ContactQuerySortThenBy
     });
   }
 
-  QueryBuilder<Contact, Contact, QAfterSortBy> thenByIsBot() {
+  QueryBuilder<Contact, Contact, QAfterSortBy> thenByMetadata() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isBot', Sort.asc);
+      return query.addSortBy(r'metadata', Sort.asc);
     });
   }
 
-  QueryBuilder<Contact, Contact, QAfterSortBy> thenByIsBotDesc() {
+  QueryBuilder<Contact, Contact, QAfterSortBy> thenByMetadataDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isBot', Sort.desc);
+      return query.addSortBy(r'metadata', Sort.desc);
     });
   }
 
@@ -2633,9 +2775,10 @@ extension ContactQueryWhereDistinct
     });
   }
 
-  QueryBuilder<Contact, Contact, QDistinct> distinctByIsBot() {
+  QueryBuilder<Contact, Contact, QDistinct> distinctByMetadata(
+      {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'isBot');
+      return query.addDistinctBy(r'metadata', caseSensitive: caseSensitive);
     });
   }
 
@@ -2738,9 +2881,9 @@ extension ContactQueryProperty
     });
   }
 
-  QueryBuilder<Contact, bool, QQueryOperations> isBotProperty() {
+  QueryBuilder<Contact, String?, QQueryOperations> metadataProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'isBot');
+      return query.addPropertyName(r'metadata');
     });
   }
 

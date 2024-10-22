@@ -66,6 +66,7 @@ class IdentityService {
       bool isFirstAccount = false}) async {
     if (account.mnemonic == null) throw Exception('mnemonic is null');
     Isar database = DBProvider.database;
+    HomeController homeController = Get.find<HomeController>();
     Identity iden = Identity(
         name: name, secp256k1PKHex: account.pubkey, npub: account.pubkeyBech32)
       ..curve25519PkHex = account.curve25519PkHex!
@@ -83,13 +84,18 @@ class IdentityService {
       await SecureStorage.instance
           .writePrikey(iden.curve25519PkHex!, account.curve25519SkHex!);
     });
+    await homeController.loadRoomList(init: true);
+    try {
+      Get.find<WebsocketService>().listenPubkey([account.pubkey]);
+      Get.find<WebsocketService>().listenPubkeyNip17([account.pubkey]);
+    } catch (e) {}
 
-    await Get.find<HomeController>().loadRoomList(init: true);
-    Get.find<WebsocketService>().listenPubkey([account.pubkey]);
-    Get.find<WebsocketService>().listenPubkeyNip17([account.pubkey]);
     if (isFirstAccount) {
       try {
         Get.find<EcashController>().initIdentity(iden);
+        homeController.fetchBots();
+        homeController
+            .createAIIdentity([iden], KeychatGlobal.bot); // create ai identity
         NotifyService.init(true).then((c) {
           NotifyService.addPubkeys([account.pubkey]);
         }).catchError((e, s) {
@@ -102,6 +108,7 @@ class IdentityService {
     } else {
       NotifyService.addPubkeys([account.pubkey]);
     }
+
     return iden;
   }
 
@@ -155,15 +162,16 @@ class IdentityService {
             .deleteAll();
         String? signalIdPubkey = element.signalIdPubkey;
         KeychatIdentityKeyPair keyPair;
+        var chatxService = Get.find<ChatxService>();
+
         if (signalIdPubkey != null) {
-          keyPair = await Get.find<ChatxService>()
-              .getKeyPairBySignalIdPubkey(signalIdPubkey);
-        } else {
           keyPair =
-              await Get.find<ChatxService>().getKeyPairByIdentity(identity);
+              await chatxService.setupSignalStoreBySignalId(signalIdPubkey);
+        } else {
+          keyPair = await chatxService.getKeyPairByIdentity(identity);
         }
         // delete signal session by remote address
-        await Get.find<ChatxService>().deleteSignalSessionKPA(element);
+        await chatxService.deleteSignalSessionKPA(element);
         // delete signal session by identity id
         await rust_signal.deleteSessionByDeviceId(
             keyPair: keyPair, deviceId: id);

@@ -107,11 +107,8 @@ class SubscribeEventStatus {
         .eventIdsElementContains(eventId)
         .findFirst();
     if (message == null) return;
-    if (message.sent == SendStatusType.success ||
-        message.okRelay > sentSuccessRelay) return;
+    if (message.sent == SendStatusType.success) return;
 
-    message.okRelay = sentSuccessRelay;
-    message.maxRelay = ess.length;
     if (message.sent != SendStatusType.success) {
       message.sent =
           sentSuccessRelay > 0 ? SendStatusType.success : SendStatusType.failed;

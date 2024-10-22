@@ -1,13 +1,16 @@
 import 'dart:async' show Timer;
+import 'dart:convert' show jsonDecode;
 import 'dart:math' show Random;
 
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
+import 'package:app/page/app_theme.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/message_widget.dart';
 import 'package:app/page/common.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/theme.dart';
+import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/websocket.service.dart';
@@ -16,9 +19,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:get/get.dart';
 import 'package:app/models/models.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
+import 'package:settings_ui/settings_ui.dart';
 
 import '../../controller/chat.controller.dart';
 import '../../service/signal_chat.service.dart';
@@ -66,6 +71,27 @@ class _ChatPage2State extends State<ChatPage> {
     //const Color(0xFFF5E2FF).withOpacity(0.8); // for light mode
     Color meBackgroundColor = const Color(0xff7748FF);
 
+    // style for text
+    MarkdownStyleSheet myMarkdownStyleSheet =
+        MarkdownStyleSheet.fromTheme(AppThemeCustom.dark()).copyWith(
+            strong: Theme.of(Get.context!).textTheme.titleSmall?.copyWith(
+                fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+            p: Theme.of(Get.context!)
+                .textTheme
+                .bodyLarge
+                ?.copyWith(color: Colors.white, fontSize: 16));
+
+    MarkdownStyleSheet hisMarkdownStyleSheet =
+        MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+            strong: Theme.of(Get.context!)
+                .textTheme
+                .titleSmall
+                ?.copyWith(fontSize: 16, fontWeight: FontWeight.bold),
+            p: Theme.of(Get.context!)
+                .textTheme
+                .bodyLarge
+                ?.copyWith(fontSize: 16));
+
     return Scaffold(
       appBar: AppBar(
         scrolledUnderElevation: 0.0,
@@ -73,7 +99,20 @@ class _ChatPage2State extends State<ChatPage> {
         backgroundColor:
             Get.isDarkMode ? const Color(0xFF000000) : const Color(0xffededed),
         centerTitle: true,
-        title: Obx(() => _getRoomTite()),
+        title: Obx(() => Wrap(
+              direction: Axis.horizontal,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                _getRoomTite(),
+                if (controller.roomObs.value.type == RoomType.bot)
+                  const Padding(
+                      padding: EdgeInsets.only(left: 5),
+                      child: Icon(
+                        Icons.android_outlined,
+                        color: Colors.purple,
+                      ))
+              ],
+            )),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(0),
           child: Obx(() =>
@@ -196,10 +235,16 @@ class _ChatPage2State extends State<ChatPage> {
                                     roomMember: rm,
                                     chatController: controller,
                                     screenWidth: screenWidth,
+                                    toDisplayNameColor: Get.isDarkMode
+                                        ? Colors.white54
+                                        : Colors.black54,
                                     backgroundColor: message.isMeSend
                                         ? meBackgroundColor
                                         : toBackgroundColor,
                                     fontColor: fontColor,
+                                    markdownStyleSheet: message.isMeSend
+                                        ? myMarkdownStyleSheet
+                                        : hisMarkdownStyleSheet,
                                   ));
                             },
                           ))),
@@ -238,6 +283,8 @@ class _ChatPage2State extends State<ChatPage> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: <Widget>[
+                        if (controller.botCommands.isNotEmpty)
+                          botMenuWidget(controller, context),
                         Expanded(
                           child: KeyboardListener(
                             focusNode: controller.keyboardFocus,
@@ -307,11 +354,11 @@ class _ChatPage2State extends State<ChatPage> {
                               child: controller.inputText.value.isNotEmpty
                                   ? const Icon(
                                       weight: 300,
-                                      size: 30,
+                                      size: 28,
                                       CupertinoIcons.arrow_up_circle_fill,
                                       color: Color.fromARGB(255, 100, 80, 243))
                                   : Icon(
-                                      size: 30,
+                                      size: 28,
                                       CupertinoIcons.add_circled,
                                       weight: 300,
                                       color: Theme.of(context)
@@ -341,6 +388,57 @@ class _ChatPage2State extends State<ChatPage> {
               ],
             ));
     }
+  }
+
+  Padding botMenuWidget(ChatController controller, BuildContext context) {
+    return Padding(
+        padding: const EdgeInsets.only(left: 0, right: 5, bottom: 5),
+        child: GestureDetector(
+            onTap: () {
+              Map localConfig =
+                  jsonDecode(controller.roomObs.value.botLocalConfig ?? '{}');
+              Map? botPricePerMessageRequest =
+                  localConfig['botPricePerMessageRequest'];
+              Get.bottomSheet(
+                  SettingsList(platform: DevicePlatform.iOS, sections: [
+                SettingsSection(
+                    title: const Text('Commands'),
+                    tiles: controller.botCommands
+                        .map(
+                          (element) => SettingsTile(
+                              title: Text(element['name']),
+                              value: Flexible(
+                                  child: textSmallGray(
+                                      context, element['description'],
+                                      overflow: TextOverflow.clip)),
+                              onPressed: (context) async {
+                                RoomService().sendTextMessage(
+                                    controller.roomObs.value, element['name']);
+                                Get.back();
+                              }),
+                        )
+                        .toList()),
+                if (botPricePerMessageRequest != null)
+                  SettingsSection(
+                    title: const Text('Selected Local Config'),
+                    tiles: [
+                      SettingsTile(
+                          title: Text(botPricePerMessageRequest['name']),
+                          trailing: Text(
+                              '${botPricePerMessageRequest['price']} ${botPricePerMessageRequest['unit']} /message'),
+                          onPressed: (context) async {
+                            Get.back();
+                          })
+                    ],
+                  )
+              ]));
+            },
+            child: Icon(
+              size: 26,
+              Icons.menu,
+              weight: 300,
+              color: Theme.of(context).iconTheme.color?.withAlpha(155),
+            )));
   }
 
   Widget getFeaturesWidget(BuildContext context) {
@@ -383,6 +481,10 @@ class _ChatPage2State extends State<ChatPage> {
 
   handleMessageSend() async {
     if (controller.textEditingController.text.isEmpty) {
+      if (controller.roomObs.value.type == RoomType.bot) {
+        EasyLoading.showToast('Not supported int bot chat now');
+        return;
+      }
       controller.hideAdd.trigger(false);
       controller.chatContentFocus.unfocus();
       return;
@@ -592,14 +694,20 @@ class _ChatPage2State extends State<ChatPage> {
   }
 
   Widget _getRoomTite() {
+    String? title = controller.roomObs.value.name;
+    if (controller.roomObs.value.type == RoomType.common) {
+      title = controller.roomContact.value.displayName;
+    }
+    if (controller.roomObs.value.type == RoomType.group) {
+      title =
+          '${controller.roomObs.value.name} (${controller.enableMembers.length})';
+    }
+
     return Wrap(
       direction: Axis.horizontal,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        controller.roomObs.value.type == RoomType.common
-            ? Text(controller.roomContact.value.displayName)
-            : Text(
-                '${controller.roomObs.value.name} (${controller.enableMembers.length})'),
+        Text(title ?? controller.roomObs.value.getRoomName()),
         if (controller.roomObs.value.isMute)
           Icon(
             Icons.notifications_off_outlined,
@@ -661,14 +769,12 @@ class _ChatPage2State extends State<ChatPage> {
                   EasyLoading.showError(e.toString());
                   logger.e(e.toString(), error: e, stackTrace: s);
                 }
-                await Get.find<HomeController>()
+                Get.find<HomeController>()
                     .loadIdentityRoomList(controller.room.identityId);
               },
               style: ButtonStyle(
                   backgroundColor: WidgetStateProperty.all(Colors.green)),
-              child: const Text(
-                'Approve',
-              ),
+              child: const Text('Approve'),
             ),
             FilledButton(
               onPressed: () async {
@@ -676,8 +782,7 @@ class _ChatPage2State extends State<ChatPage> {
                 await SignalChatService()
                     .sendRejectMessage(controller.roomObs.value);
                 await RoomService().deleteRoom(controller.roomObs.value);
-                await Get.find<HomeController>()
-                    .loadIdentityRoomList(identityId);
+                Get.find<HomeController>().loadIdentityRoomList(identityId);
                 Get.back();
               },
               style: ButtonStyle(

@@ -2,6 +2,7 @@ import 'dart:convert' show jsonDecode;
 import 'dart:io' show File;
 import 'package:any_link_preview/any_link_preview.dart';
 import 'package:app/app.dart';
+import 'package:app/bot/bot_client_message_model.dart';
 import 'package:app/controller/chat.controller.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/controller/setting.controller.dart';
@@ -10,11 +11,14 @@ import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/ForwardSelectRoom.dart';
 import 'package:app/page/chat/LongTextPreviewPage.dart';
 import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app/page/chat/message_actions/BotOneTimePaymentRequestWidget.dart';
 import 'package:app/page/chat/message_actions/GroupInviteAction.dart';
 import 'package:app/page/chat/message_actions/SetRoomRelayAction.dart';
 import 'package:app/page/theme.dart';
 import 'package:app/page/widgets/image_preview_widget.dart';
+import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
@@ -23,11 +27,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 import 'package:haptic_feedback/haptic_feedback.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -39,6 +43,7 @@ import '../components.dart';
 import 'chat_bubble.dart';
 import 'chat_bubble_clipper_4.dart';
 
+import 'message_actions/BotPricePerMessageRequestWidget.dart';
 import 'message_actions/FileMessageWidget.dart';
 import 'message_actions/GroupInviteConfirmAction.dart';
 import 'message_actions/VideoMessageWidget.dart';
@@ -56,6 +61,8 @@ class MessageWidget extends StatelessWidget {
   late Contact contact;
   late double screenWidth;
   late bool isGroup;
+  late Color toDisplayNameColor;
+  late MarkdownStyleSheet markdownStyleSheet;
 
   MessageWidget(
       {super.key,
@@ -67,6 +74,8 @@ class MessageWidget extends StatelessWidget {
       required this.fontColor,
       required this.backgroundColor,
       required this.screenWidth,
+      required this.toDisplayNameColor,
+      required this.markdownStyleSheet,
       this.roomMember}) {
     message = chatController.messages[index];
   }
@@ -91,7 +100,7 @@ class MessageWidget extends StatelessWidget {
             ),
           ),
         ),
-        getMessageWidget(message),
+        message.isMeSend ? _getMessageContainer() : toTextContainer(),
         // encryptInfo(),
         Obx(() => getFromAndToWidget(context, message))
       ],
@@ -102,9 +111,7 @@ class MessageWidget extends StatelessWidget {
     if (chatController.room.type != RoomType.common) {
       return Container();
     }
-    if (contact.isBot) {
-      return Container();
-    }
+
     if (chatController.roomContact.value.name == 'Note to Self') {
       return Container();
     }
@@ -316,21 +323,33 @@ class MessageWidget extends StatelessWidget {
     }
   }
 
-  Widget getLinkify(String text, Color fontColor) {
-    return Linkify(
-      onOpen: (link) {
-        final Uri uri = Uri.parse(link.url);
-        Utils.hideKeyboard(Get.context!);
-        launchUrl(uri);
-        return;
-      },
-      style: Theme.of(Get.context!)
-          .textTheme
-          .bodyLarge
-          ?.copyWith(color: fontColor, fontSize: 16),
-      text: text,
-      linkStyle: const TextStyle(decoration: TextDecoration.none, fontSize: 15),
-    );
+  Widget getMarkdownView(String text) {
+    return MarkdownBody(
+        data: text,
+        selectable: false,
+        softLineBreak: true,
+        onTapLink: (text, href, title) {
+          if (href != null) {
+            Utils.hideKeyboard(Get.context!);
+            launchUrl(Uri.parse(href));
+          }
+        },
+        styleSheetTheme: MarkdownStyleSheetBaseTheme.cupertino,
+        styleSheet: markdownStyleSheet);
+    // return Linkify(
+    //   onOpen: (link) {
+    //     final Uri uri = Uri.parse(link.url);
+    //     Utils.hideKeyboard(Get.context!);
+    //     launchUrl(uri);
+    //     return;
+    //   },
+    //   style: Theme.of(Get.context!)
+    //       .textTheme
+    //       .bodyLarge
+    //       ?.copyWith(color: fontColor, fontSize: 16),
+    //   text: text,
+    //   linkStyle: const TextStyle(decoration: TextDecoration.none, fontSize: 15),
+    // );
   }
 
   Widget? getMessageStatus() {
@@ -412,11 +431,7 @@ class MessageWidget extends StatelessWidget {
         ));
   }
 
-  Widget getMessageWidget(Message message) {
-    return message.isMeSend ? myTextContainer() : toTextContainer();
-  }
-
-  Widget getSubContent() {
+  Widget getTextViewWidget() {
     try {
       switch (message.mediaType) {
         case MessageMediaType.text:
@@ -440,6 +455,13 @@ class MessageWidget extends StatelessWidget {
         case MessageMediaType.groupInviteConfirm:
           return _getActionWidget(GroupInviteConfirmAction(
               chatController.room.getRoomName(), message));
+        // bot
+        case MessageMediaType.botPricePerMessageRequest:
+          return _getActionWidget(
+              BotPricePerMessageRequestWidget(chatController.room, message));
+        case MessageMediaType.botOneTimePaymentRequest:
+          return _getActionWidget(
+              BotOneTimePaymentRequestWidget(chatController.room, message));
         default:
       }
     } catch (e, s) {
@@ -449,10 +471,48 @@ class MessageWidget extends StatelessWidget {
     return _getTextItemView();
   }
 
-  Widget _getTextView(Message message) {
-    return GestureDetector(
+  Widget _getMessageContainer() {
+    var child = GestureDetector(
         onLongPress: _handleTextLongPress,
-        child: message.reply == null ? getSubContent() : _getReplyWidget());
+        child: message.reply == null ? getTextViewWidget() : _getReplyWidget());
+
+    if (message.isMeSend) {
+      Widget? messageStatus = getMessageStatus();
+      return Container(
+        margin: EdgeInsets.only(
+            top: 10, bottom: 10, left: messageStatus == null ? 40.0 : 0),
+        child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Flex(
+                  direction: Axis.horizontal,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: <Widget>[
+                    if (messageStatus != null) messageStatus,
+                    Flexible(fit: FlexFit.loose, child: child),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 4),
+              myAavtar
+            ]),
+      );
+    }
+    if (isGroup) {
+      return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Padding(
+                padding: const EdgeInsets.only(left: 5),
+                child: Text(contact.displayName,
+                    maxLines: 1,
+                    style: TextStyle(fontSize: 14, color: toDisplayNameColor))),
+            child
+          ]);
+    }
+    return child;
   }
 
   Future _handleShowRawdata(BuildContext context) async {
@@ -476,7 +536,20 @@ class MessageWidget extends StatelessWidget {
           await MessageService().updateMessageAndRefresh(message);
         }
       }
-      _showRawData(message, ess, event);
+
+      BotClientMessageModel? bcmm;
+      TokenInfo? token;
+      if (message.isMeSend &&
+          chatController.roomObs.value.type == RoomType.bot) {
+        try {
+          bcmm = BotClientMessageModel.fromJson(jsonDecode(message.content));
+          if (bcmm.payToken != null) {
+            token = await rust_cashu.decodeToken(encodedToken: bcmm.payToken!);
+          }
+        } catch (e) {}
+      }
+      _showRawData(message, ess, event,
+          botClientMessageModel: bcmm, payToken: token);
       return;
     }
     List<List<NostrEventStatus>> result1 = [];
@@ -511,31 +584,6 @@ class MessageWidget extends StatelessWidget {
   void messageOnDoubleTap() {
     Get.to(() => LongTextPreviewPage(message.realMessage ?? message.content),
         fullscreenDialog: true, transition: Transition.fadeIn);
-  }
-
-  Widget myTextContainer() {
-    Widget? messageStatus = getMessageStatus();
-    return Container(
-      margin: EdgeInsets.only(
-          top: 10, bottom: 10, left: messageStatus == null ? 48.0 : 0),
-      child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Flex(
-                direction: Axis.horizontal,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: <Widget>[
-                  if (messageStatus != null) messageStatus,
-                  Flexible(fit: FlexFit.loose, child: _getTextView(message)),
-                ],
-              ),
-            ),
-            const SizedBox(width: 4),
-            myAavtar
-          ]),
-    );
   }
 
   TableRow tableRow(String title, String text) {
@@ -602,26 +650,9 @@ class MessageWidget extends StatelessWidget {
             ),
           ),
           Expanded(
-              child: Stack(alignment: AlignmentDirectional.topStart, children: [
-            isGroup
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                        Padding(
-                            padding: const EdgeInsets.only(left: 5),
-                            child: Text(
-                              contact.displayName,
-                              maxLines: 1,
-                              style: TextStyle(
-                                  fontSize: 14,
-                                  color: Get.isDarkMode
-                                      ? Colors.white54
-                                      : Colors.black54),
-                            )),
-                        _getTextView(message)
-                      ])
-                : _getTextView(message)
-          ]))
+              child: Stack(
+                  alignment: AlignmentDirectional.topStart,
+                  children: [_getMessageContainer()]))
         ],
       ),
     );
@@ -632,17 +663,15 @@ class MessageWidget extends StatelessWidget {
     return AnyLinkPreview(
         key: Key(content),
         link: content,
-        bodyMaxLines: 3,
+        bodyMaxLines: 2,
         onTap: () {
           Utils.hideKeyboard(Get.context!);
           launchUrl(Uri.parse(content));
         },
-        placeholderWidget: _getTextContainer(getLinkify(content, fontColor),
-            isMeSend: message.isMeSend),
+        placeholderWidget: _getTextContainer(getMarkdownView(content)),
         showMultimedia: false,
         errorBody: '',
-        errorWidget: _getTextContainer(getLinkify(content, fontColor),
-            isMeSend: message.isMeSend));
+        errorWidget: _getTextContainer(getMarkdownView(content)));
   }
 
   Widget _getReplyWidget() {
@@ -679,50 +708,47 @@ class MessageWidget extends StatelessWidget {
       }
     }
 
-    return _getTextContainer(
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: (message.isMeSend
-                        ? MaterialTheme.lightScheme().surface
-                        : Theme.of(Get.context!).colorScheme.surface)
-                    .withOpacity(0.5),
-                border: Border(
-                  left: BorderSide(
-                    color: Colors.purple.shade200,
-                    width: 2.0,
-                  ),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(message.reply!.user,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(Get.context!)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(color: Colors.purple, height: 1)),
-                  subTitleChild ??
-                      Text(message.reply!.content,
-                          style: Theme.of(Get.context!)
-                              .textTheme
-                              .bodyLarge
-                              ?.copyWith(color: fontColor, height: 1))
-                ],
+    return _getTextContainer(Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: (message.isMeSend
+                    ? MaterialTheme.lightScheme().surface
+                    : Theme.of(Get.context!).colorScheme.surface)
+                .withOpacity(0.5),
+            border: Border(
+              left: BorderSide(
+                color: Colors.purple.shade200,
+                width: 2.0,
               ),
             ),
-            getLinkify(message.realMessage ?? message.content,
-                message.isMeSend ? Colors.white : fontColor)
-          ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(message.reply!.user,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(Get.context!)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: Colors.purple, height: 1)),
+              subTitleChild ??
+                  Text(message.reply!.content,
+                      style: Theme.of(Get.context!)
+                          .textTheme
+                          .bodyLarge
+                          ?.copyWith(color: fontColor, height: 1))
+            ],
+          ),
         ),
-        isMeSend: message.isMeSend);
+        getMarkdownView(message.realMessage ?? message.content)
+      ],
+    ));
   }
 
-  _getTextContainer(Widget child, {required bool isMeSend}) {
+  _getTextContainer(Widget child) {
     return GestureDetector(
       onDoubleTap: messageOnDoubleTap,
       child: ConstrainedBox(
@@ -731,10 +757,11 @@ class MessageWidget extends StatelessWidget {
           ),
           child: ChatBubble(
             clipper: ChatBubbleClipper4(
-                type: isMeSend
+                type: message.isMeSend
                     ? BubbleType.sendBubble
                     : BubbleType.receiverBubble),
-            alignment: isMeSend ? Alignment.centerRight : Alignment.centerLeft,
+            alignment:
+                message.isMeSend ? Alignment.centerRight : Alignment.centerLeft,
             backGroundColor: backgroundColor,
             child: child,
           )),
@@ -747,14 +774,11 @@ class MessageWidget extends StatelessWidget {
       return _getLinkPreviewWidget(message);
     }
     return _getTextContainer(
-        getLinkify(message.realMessage ?? message.content,
-            message.isMeSend ? Colors.white : fontColor),
-        isMeSend: message.isMeSend);
+        getMarkdownView(message.realMessage ?? message.content));
   }
 
   _textCallback(String text) {
-    return _getTextContainer(Text(text, style: TextStyle(color: fontColor)),
-        isMeSend: message.isMeSend);
+    return _getTextContainer(Text(text, style: TextStyle(color: fontColor)));
   }
 
   Widget _imageTextView() {
@@ -825,7 +849,9 @@ class MessageWidget extends StatelessWidget {
     'nip4WrapSignal': 'NIP4(Signal Protocol(raw message))'
   };
   _showRawData(
-      Message message, List<NostrEventStatus> ess, NostrEventModel? event) {
+      Message message, List<NostrEventStatus> ess, NostrEventModel? event,
+      {BotClientMessageModel? botClientMessageModel,
+      rust_cashu.TokenInfo? payToken}) {
     BuildContext buildContext = Get.context!;
     return showModalBottomSheetWidget(
         buildContext,
@@ -843,6 +869,34 @@ class MessageWidget extends StatelessWidget {
                           message.mediaType == MessageMediaType.image ||
                           message.mediaType == MessageMediaType.video)
                         getFileTable(buildContext, message),
+                      if (botClientMessageModel != null &&
+                          botClientMessageModel.priceModel != null)
+                        Container(
+                            padding: const EdgeInsets.all(8),
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Pay To Chat',
+                                      style: Theme.of(buildContext)
+                                          .textTheme
+                                          .titleMedium),
+                                  Card(
+                                    child: Table(
+                                      columnWidths: const {
+                                        0: FixedColumnWidth(100.0)
+                                      },
+                                      children: [
+                                        tableRow(
+                                            "Model",
+                                            botClientMessageModel.priceModel ??
+                                                ''),
+                                        tableRow("Amount",
+                                            '${payToken?.amount.toString() ?? 0} ${payToken?.unit ?? 'sat'}'),
+                                        tableRow("Mint", payToken?.mint ?? ''),
+                                      ],
+                                    ),
+                                  )
+                                ])),
                       const SizedBox(height: 10),
                       NoticeTextWidget.success(
                           'Encrypted by ${encryptText[message.encryptType.name]}'),
@@ -951,10 +1005,10 @@ class MessageWidget extends StatelessWidget {
             )));
   }
 
-  Widget _getActionWidget(Widget statusWidget) {
+  Widget _getActionWidget(Widget child) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [_getTextItemView(), const SizedBox(height: 10), statusWidget],
+      children: [_getTextItemView(), const SizedBox(height: 10), child],
     );
   }
 
@@ -1045,7 +1099,12 @@ class MessageWidget extends StatelessWidget {
                       title: const Text('Copy'),
                       leading: const Icon(Icons.copy),
                       onPressed: (context) async {
-                        Clipboard.setData(ClipboardData(text: message.content));
+                        String conent = message.content;
+                        if (message.realMessage != null &&
+                            chatController.roomObs.value.type == RoomType.bot) {
+                          conent = message.realMessage!;
+                        }
+                        Clipboard.setData(ClipboardData(text: conent));
                         EasyLoading.showToast('Copied');
                         Get.back();
                       }),

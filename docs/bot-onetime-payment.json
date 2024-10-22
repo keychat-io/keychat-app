@@ -1,0 +1,35 @@
+{
+  "type": "botOneTimePaymentRequest",
+  "id": "order_id",
+  "message": "Please select a model to chat",
+  "priceModels": [
+    {
+      "name": "gpt-4o-mini",
+      "description": "Period: 1 day",
+      "price": 2,
+      "unit": "sat",
+      "mints": []
+    },
+    {
+      "name": "gpt-4o-mini",
+      "description": "Period: 7 day",
+      "price": 14,
+      "unit": "sat",
+      "mints": []
+    },
+    {
+      "name": "gpt-4o",
+      "description": "Period: 1 day",
+      "price": 10,
+      "unit": "sat",
+      "mints": []
+    },
+    {
+      "name": "gpt-4o",
+      "description": "Period: 7 day",
+      "price": 70,
+      "unit": "sat",
+      "mints": []
+    }
+  ]
+}

@@ -22,7 +22,7 @@ import '../utils.dart';
 
 class ChatxService extends GetxService {
   Map<String, KeychatProtocolAddress> roomKPA = {};
-  Map<String, KeychatIdentityKeyPair> keypairs = {};
+  final Map<String, KeychatIdentityKeyPair> _keypairs = {};
   Map<String, KeychatIdentityKeyPair> initedKeypairs = {};
 
   Future<List<Mykey>> getOneTimePubkey(int identityId) async {
@@ -245,7 +245,7 @@ class ChatxService extends GetxService {
     if (room.signalIdPubkey == null) {
       String? identityPubkey = room.getIdentity().curve25519PkHex;
       if (identityPubkey == null) return null;
-      return keypairs[identityPubkey];
+      return _keypairs[identityPubkey];
     }
     return await setupSignalStoreBySignalId(room.signalIdPubkey!);
   }
@@ -265,13 +265,13 @@ class ChatxService extends GetxService {
   }
 
   KeychatIdentityKeyPair _getKeyPair(String pubkey, String prikey) {
-    if (keypairs[pubkey] != null) {
-      return keypairs[pubkey]!;
+    if (_keypairs[pubkey] != null) {
+      return _keypairs[pubkey]!;
     }
     KeychatIdentityKeyPair identityKeyPair = KeychatIdentityKeyPair(
         identityKey: U8Array33(Uint8List.fromList(hex.decode(pubkey))),
         privateKey: U8Array32(Uint8List.fromList(hex.decode(prikey))));
-    keypairs[pubkey] = identityKeyPair;
+    _keypairs[pubkey] = identityKeyPair;
     return identityKeyPair;
   }
 
@@ -349,8 +349,8 @@ class ChatxService extends GetxService {
 
   Future<KeychatIdentityKeyPair> getKeyPairBySignalIdPubkey(String pubkey,
       [SignalId? signalId]) async {
-    if (keypairs[pubkey] != null) {
-      return keypairs[pubkey]!;
+    if (_keypairs[pubkey] != null) {
+      return _keypairs[pubkey]!;
     }
     signalId ??= await SignalIdService.instance.getSignalIdByPubkey(pubkey);
     if (signalId == null) throw Exception('signalId is null');

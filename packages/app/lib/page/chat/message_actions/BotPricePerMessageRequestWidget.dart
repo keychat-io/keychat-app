@@ -60,74 +60,73 @@ class _BotPricePerMessageRequestWidgetState
         border: Border.all(color: Colors.purple.shade200),
       ),
       child: ListTile(
-        leading: CircleAvatar(
-          radius: 16,
-          child: Text(index.toString()),
-        ),
-        dense: true,
-        minVerticalPadding: 4,
-        title: Text(data.name, style: Theme.of(context).textTheme.titleSmall),
-        onTap: () {
-          String priceString = '${data.price} ${data.unit}';
-          Get.dialog(
-            CupertinoAlertDialog(
-              title: Text(data.name),
-              content: Column(
-                children: [
-                  Text(data.description),
-                  const Text(
-                      'For each message sent to the bot, you need to pay:'),
-                  Text(priceString,
-                      style: Theme.of(context).textTheme.titleMedium),
+          leading: CircleAvatar(
+            radius: 16,
+            child: Text(index.toString()),
+          ),
+          dense: true,
+          minVerticalPadding: 4,
+          title: Text(data.name, style: Theme.of(context).textTheme.titleSmall),
+          onTap: () {
+            String priceString = '${data.price} ${data.unit}';
+            Get.dialog(
+              CupertinoAlertDialog(
+                title: Text(data.name),
+                content: Column(
+                  children: [
+                    Text(data.description),
+                    const Text(
+                        'For each message sent to the bot, you need to pay:'),
+                    Text(priceString,
+                        style: Theme.of(context).textTheme.titleMedium),
+                  ],
+                ),
+                actions: [
+                  CupertinoDialogAction(
+                    onPressed: () {
+                      Get.back();
+                    },
+                    child: const Text('Cancel'),
+                  ),
+                  CupertinoDialogAction(
+                    onPressed: () async {
+                      if (selected) return;
+
+                      widget.message.confirmResult = jsonEncode(data);
+
+                      // save config to local db
+                      Map localConfig =
+                          jsonDecode(widget.room.botLocalConfig ?? '{}');
+                      localConfig[bmm!.type.name] = data;
+                      widget.room.botLocalConfig = jsonEncode(localConfig);
+                      await RoomService().updateRoomAndRefresh(widget.room);
+
+                      await MessageService()
+                          .updateMessageAndRefresh(widget.message);
+                      EasyLoading.showSuccess('Success');
+                      Get.back();
+                    },
+                    isDefaultAction: true,
+                    child: const Text('Confirm'),
+                  ),
                 ],
               ),
-              actions: [
-                CupertinoDialogAction(
-                  onPressed: () {
-                    Get.back();
-                  },
-                  child: const Text('Cancel'),
-                ),
-                CupertinoDialogAction(
-                  onPressed: () async {
-                    if (selected) return;
-
-                    widget.message.confirmResult = jsonEncode(data);
-
-                    // save config to local db
-                    Map localConfig =
-                        jsonDecode(widget.room.botLocalConfig ?? '{}');
-                    localConfig[bmm!.type.name] = data;
-                    widget.room.botLocalConfig = jsonEncode(localConfig);
-                    await RoomService().updateRoomAndRefresh(widget.room);
-
-                    await MessageService()
-                        .updateMessageAndRefresh(widget.message);
-                    EasyLoading.showSuccess('Success');
-                    Get.back();
-                  },
-                  isDefaultAction: true,
-                  child: const Text('Confirm'),
-                ),
-              ],
-            ),
-          );
-        },
-        subtitle: Wrap(
-          direction: Axis.vertical,
-          children: [
-            Text('${data.price} ${data.unit} /message',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(color: const Color(0xFFFE4F00))),
-            if (data.description.isNotEmpty) Text(data.description)
-          ],
-        ),
-        trailing: selected
-            ? const Icon(Icons.check_circle, color: Colors.green)
-            : null,
-      ),
+            );
+          },
+          subtitle: Wrap(
+            direction: Axis.vertical,
+            children: [
+              Text('${data.price} ${data.unit} /message',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(color: const Color(0xFFFE4F00))),
+              if (data.description.isNotEmpty) Text(data.description)
+            ],
+          ),
+          trailing: selected
+              ? const Icon(Icons.check_circle, color: Colors.green)
+              : const Icon(Icons.check_circle, color: Colors.grey)),
     );
   }
 }

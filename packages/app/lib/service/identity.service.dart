@@ -66,6 +66,7 @@ class IdentityService {
       bool isFirstAccount = false}) async {
     if (account.mnemonic == null) throw Exception('mnemonic is null');
     Isar database = DBProvider.database;
+    HomeController homeController = Get.find<HomeController>();
     Identity iden = Identity(
         name: name, secp256k1PKHex: account.pubkey, npub: account.pubkeyBech32)
       ..curve25519PkHex = account.curve25519PkHex!
@@ -83,7 +84,7 @@ class IdentityService {
       await SecureStorage.instance
           .writePrikey(iden.curve25519PkHex!, account.curve25519SkHex!);
     });
-    await Get.find<HomeController>().loadRoomList(init: true);
+    await homeController.loadRoomList(init: true);
     try {
       Get.find<WebsocketService>().listenPubkey([account.pubkey]);
       Get.find<WebsocketService>().listenPubkeyNip17([account.pubkey]);
@@ -92,7 +93,8 @@ class IdentityService {
     if (isFirstAccount) {
       try {
         Get.find<EcashController>().initIdentity(iden);
-        Get.find<HomeController>()
+        homeController.fetchBots();
+        homeController
             .createAIIdentity([iden], KeychatGlobal.bot); // create ai identity
         NotifyService.init(true).then((c) {
           NotifyService.addPubkeys([account.pubkey]);

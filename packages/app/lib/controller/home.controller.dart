@@ -7,6 +7,7 @@ import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
@@ -503,9 +504,11 @@ class HomeController extends GetxController
   }
 
   Future fetchBots() async {
-    const list = [
-      'https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/bots.json',
-      'https://mirror.ghproxy.com/https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/bots.json'
+    String fileName =
+        kReleaseMode ? 'bots-release.json' : 'bots-development.json';
+    var list = [
+      'https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/$fileName',
+      'https://mirror.ghproxy.com/https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/$fileName'
     ];
 
     for (var url in list) {

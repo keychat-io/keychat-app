@@ -74,6 +74,8 @@ class _ChatPage2State extends State<ChatPage> {
     // style for text
     MarkdownStyleSheet myMarkdownStyleSheet =
         MarkdownStyleSheet.fromTheme(AppThemeCustom.dark()).copyWith(
+            strong: Theme.of(Get.context!).textTheme.titleSmall?.copyWith(
+                fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
             p: Theme.of(Get.context!)
                 .textTheme
                 .bodyLarge
@@ -81,10 +83,14 @@ class _ChatPage2State extends State<ChatPage> {
 
     MarkdownStyleSheet hisMarkdownStyleSheet =
         MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+            strong: Theme.of(Get.context!)
+                .textTheme
+                .titleSmall
+                ?.copyWith(fontSize: 16, fontWeight: FontWeight.bold),
             p: Theme.of(Get.context!)
                 .textTheme
                 .bodyLarge
-                ?.copyWith(color: fontColor, fontSize: 16));
+                ?.copyWith(fontSize: 16));
 
     return Scaffold(
       appBar: AppBar(

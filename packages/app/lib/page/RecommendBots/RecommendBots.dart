@@ -1,4 +1,5 @@
 import 'package:app/controller/home.controller.dart';
+import 'package:app/global.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/models/room.dart';
 import 'package:app/page/common.dart';
@@ -9,28 +10,17 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
-class RecommendBots extends StatefulWidget {
+class RecommendBots extends StatelessWidget {
   final Identity identity;
   final List<Room> rooms;
   const RecommendBots(this.identity, this.rooms, {super.key});
 
   @override
-  _RecommendBotsState createState() => _RecommendBotsState();
-}
-
-class _RecommendBotsState extends State<RecommendBots> {
-  List npubs = [];
-  HomeController homeController = Get.find<HomeController>();
-  @override
-  void initState() {
-    super.initState();
-    setState(() {
-      npubs = widget.rooms.map((e) => e.npub).toList();
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
+    if (identity.name != KeychatGlobal.bot) return Container();
+    HomeController homeController = Get.find<HomeController>();
+    List npubs = rooms.map((e) => e.npub).toList();
+
     return Obx(() => homeController.recommendBots.isEmpty
         ? Container()
         : ListView.separated(
@@ -63,10 +53,10 @@ class _RecommendBotsState extends State<RecommendBots> {
                           rust_nostr.getHexPubkeyByBech32(bech32: bot['npub']);
 
                       await RoomService().getOrCreateRoom(hexPubkey,
-                          widget.identity.secp256k1PKHex, RoomStatus.enabled,
+                          identity.secp256k1PKHex, RoomStatus.enabled,
                           contactName: bot['name'],
                           type: RoomType.bot,
-                          identity: widget.identity);
+                          identity: identity);
                     },
                     child: const Text('Add')),
               );

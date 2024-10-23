@@ -94,7 +94,6 @@ class Room extends Equatable {
   // group info
   String? name;
   String? description;
-  String? groupRelay;
   bool isMute = false; // mute notification
 
   bool signalDecodeError = false; // if decode error set: true
@@ -111,6 +110,10 @@ class Room extends Equatable {
   String? botInfo; // json map string, fetch from relay or hello message
   String? botLocalConfig; // json map string, user config in local
   int botInfoUpdatedAt = 0; // bot metadata update time
+
+  // relays
+  List<String> receivingRelays = [];
+  List<String> sendingRelays = [];
 
   Room(
       {required this.toMainPubkey,

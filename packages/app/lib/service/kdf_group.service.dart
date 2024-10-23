@@ -611,7 +611,10 @@ Let's create a new group.''';
       return true;
     }
     Get.find<WebsocketService>().writeNostrEvent(
-        event: event, eventString: event.toJsonString(), roomId: room.id);
+        event: event,
+        eventString: event.toJsonString(),
+        roomId: room.id,
+        toRelays: room.sendingRelays);
     logger.i('_messageReceiveCheck: ${event.id}, maxRetry: $maxRetry');
     return await _messageReceiveCheck(room, event, delay, maxRetry);
   }

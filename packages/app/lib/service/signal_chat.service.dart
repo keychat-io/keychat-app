@@ -1,4 +1,4 @@
-import 'dart:convert' show jsonDecode, utf8, base64, base64Decode;
+import 'dart:convert' show base64, base64Decode, jsonDecode, jsonEncode, utf8;
 import 'dart:typed_data' show Uint8List;
 
 import 'package:app/controller/home.controller.dart';
@@ -28,7 +28,6 @@ import 'package:keychat_rust_ffi_plugin/index.dart';
 import '../constants.dart';
 import '../nostr-core/nostr.dart';
 import '../utils.dart';
-import 'message.service.dart';
 import 'contact.service.dart';
 import 'room.service.dart';
 
@@ -362,41 +361,26 @@ class SignalChatService extends BaseChatService {
 
   Future _processRelaySyncMessage(Room room, NostrEventModel event,
       KeychatMessage keychatMessage, NostrEventModel? sourceEvent) async {
-    String realMessage = '''My receiveInPostOffice is:
-**${keychatMessage.msg}** 
-Let's talk on this server.''';
-
-    await MessageService().saveMessageToDB(
-        from: sourceEvent?.pubkey ?? event.pubkey,
-        to: sourceEvent?.tags[0][1] ?? event.tags[0][1],
-        idPubkey: room.toMainPubkey,
-        events: [sourceEvent ?? event],
-        room: room,
-        isMeSend: false,
-        isSystem: true,
-        encryptType: MessageEncryptType.signal,
-        sent: SendStatusType.success,
+    await RoomService().receiveDM(room, event,
+        realMessage: keychatMessage.msg,
+        decodedContent: keychatMessage.name,
         mediaType: MessageMediaType.setPostOffice,
-        requestConfrim: RequestConfrimEnum.request,
-        content: keychatMessage.msg ?? '',
-        realMessage: realMessage);
+        requestConfrim: RequestConfrimEnum.request);
   }
 
-  void sendRelaySyncMessage(Room room, String relay) async {
+  Future sendRelaySyncMessage(Room room, List<String> relays) async {
     KeychatMessage sm = KeychatMessage(
         c: MessageType.signal,
         type: KeyChatEventKinds.signalRelaySyncInvite,
-        msg: relay);
-    String realMessage = '''My receiveInPostOffice is:
-**$relay**
-Let's talk on this server.''';
+        name: jsonEncode(relays),
+        msg: relays.length == 1
+            ? 'My receiving relay is:${relays[0]}'
+            : '''My receiving relays are:
+${relays.join('\n')}
+''');
 
-    await RoomService().sendTextMessage(
-      room,
-      sm.toString(),
-      realMessage: realMessage,
-      isSystem: true,
-    );
+    await RoomService()
+        .sendTextMessage(room, sm.toString(), realMessage: sm.msg);
   }
 
   Future sendHelloMessage(Room room, Identity identity,

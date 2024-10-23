@@ -316,7 +316,6 @@ class ContactService {
     contact.name = content['name'];
     contact.about = content['about'];
     contact.picture = content['picture'];
-    contact.hisRelay = content['hisRelay'];
     // contact.isFriend = true;
     contact.updatedAt = DateTime.now();
     saveContact(contact, sync: false);
@@ -347,23 +346,6 @@ class ContactService {
       contact.metadata = metadata;
     }
     await saveContact(contact, sync: false);
-  }
-
-  Future updateHisRelay(int id, String? relay) async {
-    Contact? contact =
-        await DBProvider.database.contacts.filter().idEqualTo(id).findFirst();
-    if (contact == null) return false;
-    contact.hisRelay = relay;
-
-    await ContactService().saveContact(contact);
-  }
-
-  Future updateMyRelay(int id, String? relay) async {
-    Contact? contact =
-        await DBProvider.database.contacts.filter().idEqualTo(id).findFirst();
-    if (contact == null) return false;
-    contact.myRelay = relay;
-    await ContactService().saveContact(contact);
   }
 
   Future updateOrCreateByRoom(Room room, String? contactName) async {

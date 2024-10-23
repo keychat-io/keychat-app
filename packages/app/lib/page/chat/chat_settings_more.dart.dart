@@ -1,8 +1,5 @@
-import 'package:app/nostr-core/relay_websocket.dart';
 import 'package:app/page/chat/SelectRoomRelay.dart';
-import 'package:app/service/relay.service.dart';
-import 'package:app/service/websocket.service.dart';
-import 'package:flutter/services.dart';
+import 'package:app/service/room.service.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:app/service/chatx.service.dart';
@@ -87,80 +84,41 @@ class ChatSettingsMoreDart extends StatelessWidget {
                         },
                       )
                   ]),
-              SettingsSection(title: const Text('Message Relay'), tiles: [
-                SettingsTile.navigation(
+              SettingsSection(title: const Text('Message Relays'), tiles: [
+                SettingsTile(
                   title: const Text('SendTo'),
                   leading: const Icon(CupertinoIcons.up_arrow),
-                  value: Obx(() => textSmallGray(Get.context!,
-                      chatController.roomContact.value.hisRelay ?? 'Not set')),
-                  onPressed: (context) {
-                    if (chatController.roomContact.value.hisRelay == null) {
-                      Get.dialog(CupertinoAlertDialog(
-                        title: const Text("Not set"),
-                        content: Text(
-                            '''${chatController.roomContact.value.displayName} does not set his ReceiveFrom, the message will be sent to all relays'''),
-                        actions: <Widget>[
-                          CupertinoDialogAction(
-                              child: const Text(
-                                'OK',
-                              ),
-                              onPressed: () async {
-                                Get.back();
-                              }),
-                        ],
-                      ));
+                  value: Obx(() => Flexible(
+                      child: Text(chatController
+                              .roomObs.value.sendingRelays.isNotEmpty
+                          ? chatController.roomObs.value.sendingRelays.join(',')
+                          : ''))),
+                  onPressed: (c) {
+                    if (chatController.roomObs.value.sendingRelays.isEmpty) {
                       return;
                     }
-                    WebsocketService ws = Get.find<WebsocketService>();
-
-                    RelayWebsocket? channel =
-                        ws.channels[chatController.roomContact.value.hisRelay];
-
                     Get.dialog(CupertinoAlertDialog(
-                      title: const Text("SendTo PostOffice"),
+                      title: const Text('Delete Config'),
                       content:
-                          Text('''${chatController.roomContact.value.hisRelay!}
-Your messages will send to this server.'''),
-                      actions: <Widget>[
+                          const Text('Are you sure to delete receving config?'),
+                      actions: [
                         CupertinoDialogAction(
-                            child: const Text(
-                              'Copy',
-                            ),
-                            onPressed: () async {
-                              await Clipboard.setData(ClipboardData(
-                                  text: chatController
-                                          .roomContact.value.hisRelay ??
-                                      ''));
-                              EasyLoading.showToast('Copied');
-                              Get.back();
-                            }),
-                        channel == null
-                            ? CupertinoDialogAction(
-                                child: const Text(
-                                  'Add',
-                                ),
-                                onPressed: () async {
-                                  await RelayService().addAndConnect(
-                                      chatController
-                                          .roomContact.value.hisRelay!);
-                                  EasyLoading.showToast('Success');
-                                  Get.back();
-                                })
-                            : CupertinoDialogAction(
-                                isDestructiveAction: true,
-                                child: const Text(
-                                  'Delete',
-                                ),
-                                onPressed: () async {
-                                  await ContactService().updateHisRelay(
-                                      chatController.roomContact.value.id,
-                                      null);
-                                  chatController.roomContact.value.hisRelay =
-                                      null;
-                                  chatController.roomContact.refresh();
-                                  EasyLoading.showToast('Success');
-                                  Get.back();
-                                })
+                          child: const Text('Cancel'),
+                          onPressed: () {
+                            Get.back();
+                          },
+                        ),
+                        CupertinoDialogAction(
+                          isDestructiveAction: true,
+                          onPressed: () async {
+                            chatController.roomObs.value.receivingRelays = [];
+                            await RoomService().updateRoomAndRefresh(
+                                chatController.roomObs.value);
+                            EasyLoading.showToast('Save Success');
+                            Get.back();
+                          },
+                          child: const Text('Delete'),
+                        )
                       ],
                     ));
                   },
@@ -168,19 +126,21 @@ Your messages will send to this server.'''),
                 SettingsTile.navigation(
                   title: const Text('ReceiveFrom'),
                   leading: const Icon(CupertinoIcons.down_arrow),
-                  value: Obx(() => textSmallGray(Get.context!,
-                      chatController.roomContact.value.myRelay ?? 'Not set')),
+                  description: Obx(() => Text(chatController
+                          .roomObs.value.receivingRelays.isNotEmpty
+                      ? chatController.roomObs.value.receivingRelays.join(',')
+                      : '')),
                   onPressed: (context) async {
-                    String? relay = await Get.bottomSheet(SelectRoomRelay(
-                        chatController.roomContact.value.myRelay));
-                    if (relay == null) return;
-                    chatController.roomContact.value.myRelay = relay;
-                    chatController.roomContact.refresh();
-                    await ContactService().updateMyRelay(
-                        chatController.roomContact.value.id, relay);
-                    EasyLoading.showToast('Success');
-                    SignalChatService().sendRelaySyncMessage(
-                        chatController.roomObs.value, relay);
+                    List<String>? relays = await Get.bottomSheet(
+                        SelectRoomRelay(
+                            chatController.roomObs.value.receivingRelays));
+                    if (relays == null) return;
+                    chatController.roomObs.value.receivingRelays = relays;
+                    await RoomService()
+                        .updateRoomAndRefresh(chatController.roomObs.value);
+                    await SignalChatService().sendRelaySyncMessage(
+                        chatController.roomObs.value, relays);
+                    EasyLoading.showToast('Save Success');
                   },
                 ),
               ]),

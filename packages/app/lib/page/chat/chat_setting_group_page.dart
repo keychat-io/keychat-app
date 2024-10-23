@@ -122,22 +122,24 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
 
   receiveInPostOffice() {
     return SettingsSection(
-      title: const Text('Message Relay'),
+      title: const Text('Message Relays'),
       tiles: [
         SettingsTile(
-            leading: const Icon(
-              CupertinoIcons.up_arrow,
-            ),
+            leading: const Icon(CupertinoIcons.up_arrow),
             title: const Text('SendTo'),
-            value: Text(chatController.roomObs.value.groupRelay ??
-                KeychatGlobal.defaultRelay)),
+            value: Flexible(
+                child: Text(
+                    chatController.roomObs.value.sendingRelays.isNotEmpty
+                        ? chatController.roomObs.value.sendingRelays.join(',')
+                        : 'All'))),
         SettingsTile(
-            leading: const Icon(
-              CupertinoIcons.down_arrow,
-            ),
+            leading: const Icon(CupertinoIcons.down_arrow),
             title: const Text('ReceiveFrom'),
-            value: Text(chatController.roomObs.value.groupRelay ??
-                KeychatGlobal.defaultRelay)),
+            value: Flexible(
+                child: Text(
+                    chatController.roomObs.value.receivingRelays.isNotEmpty
+                        ? chatController.roomObs.value.receivingRelays.join(',')
+                        : 'All'))),
       ],
     );
   }

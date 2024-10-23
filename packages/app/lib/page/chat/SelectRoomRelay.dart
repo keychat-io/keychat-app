@@ -1,11 +1,10 @@
-import 'package:app/global.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class SelectRoomRelay extends StatefulWidget {
-  final String? current;
-  const SelectRoomRelay(this.current, {super.key});
+  final List<String> currents;
+  const SelectRoomRelay(this.currents, {super.key});
 
   @override
   _SelectRoomRelayState createState() => _SelectRoomRelayState();
@@ -13,16 +12,15 @@ class SelectRoomRelay extends StatefulWidget {
 
 class _SelectRoomRelayState extends State<SelectRoomRelay> {
   List<String> relays = [];
-  int _selectedRelay = 0;
+  Set<String> selectedRelays = {};
   @override
   void initState() {
     WebsocketService ws = Get.find<WebsocketService>();
     setState(() {
-      relays = ws.getOnlineRelayString();
-      int index = relays.indexOf(widget.current ?? KeychatGlobal.defaultRelay);
-      if (index > -1) {
-        _selectedRelay = index;
-      }
+      relays = ws.getActiveRelayString();
+      selectedRelays = Set<String>.from(widget.currents)
+          .where((relay) => relays.contains(relay))
+          .toSet();
     });
     super.initState();
   }
@@ -38,12 +36,12 @@ class _SelectRoomRelayState extends State<SelectRoomRelay> {
             },
           ),
           centerTitle: true,
-          title: const Text('Select Relay'),
+          title: const Text('Select Receving Relays'),
           actions: [
             FilledButton(
               child: const Text('Done'),
               onPressed: () {
-                Get.back(result: relays[_selectedRelay]);
+                Get.back(result: selectedRelays.toList());
               },
             ),
           ],
@@ -56,15 +54,18 @@ class _SelectRoomRelayState extends State<SelectRoomRelay> {
                 : ListView.builder(
                     itemCount: relays.length,
                     itemBuilder: (context, index) {
-                      return RadioListTile<int>(
+                      return CheckboxListTile(
                         title: Text(relays[index]),
-                        value: index,
-                        groupValue: _selectedRelay,
-                        onChanged: (int? value) {
+                        value: selectedRelays.contains(relays[index]),
+                        onChanged: (bool? value) {
                           if (value == null) return;
 
                           setState(() {
-                            _selectedRelay = value;
+                            if (value) {
+                              selectedRelays.add(relays[index]);
+                            } else {
+                              selectedRelays.remove(relays[index]);
+                            }
                           });
                         },
                       );

@@ -1,9 +1,10 @@
+import 'dart:convert';
+
 import 'package:app/controller/chat.controller.dart';
 import 'package:app/models/message.dart';
-import 'package:app/models/relay.dart';
-import 'package:app/service/contact.service.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/relay.service.dart';
+import 'package:app/service/room.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -19,7 +20,7 @@ class SetRoomRelayAction extends StatelessWidget {
     switch (message.requestConfrim) {
       case RequestConfrimEnum.request:
         return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
             OutlinedButton(
                 onPressed: () {
@@ -27,41 +28,36 @@ class SetRoomRelayAction extends StatelessWidget {
                   MessageService().updateMessageAndRefresh(message);
                 },
                 child: const Text('Reject')),
-            const SizedBox(
-              width: 30,
-            ),
+            const SizedBox(width: 30),
             FilledButton(
                 onPressed: () async {
-                  if (!(message.content.startsWith('ws://') ||
-                      message.content.startsWith('wss://'))) {
+                  List<String> relays =
+                      List<String>.from(jsonDecode(message.content));
+                  if (relays.isEmpty) {
                     EasyLoading.showToast('Invalid relay url');
                     return;
                   }
-                  WebsocketService ws = Get.find<WebsocketService>();
-                  if (ws.channels[message.content] == null) {
-                    EasyLoading.showToast('Start connecting a new relay');
-                    await RelayService().addAndConnect(message.content);
-                  } else {
-                    if (ws.channels[message.content]!.relay.active == false) {
-                      EasyLoading.showToast('Please enable this relay first');
-                      return;
-                    }
-                    if (ws.channels[message.content]!.channelStatus !=
-                        RelayStatusEnum.success) {
-                      EasyLoading.showToast(
-                          'Your sendTo PostOffice is not connected, please try again later');
+                  for (var relay in relays) {
+                    if (!(relay.startsWith('ws://') ||
+                        relay.startsWith('wss://'))) {
+                      EasyLoading.showToast('Invalid relay url');
                       return;
                     }
                   }
-                  await ContactService().updateHisRelay(
-                      chatController.roomContact.value.id, message.content);
 
-                  chatController.roomContact.value.hisRelay =
-                      message.content.isEmpty ? null : message.content;
-                  chatController.roomContact.refresh();
+                  WebsocketService ws = Get.find<WebsocketService>();
+                  for (var relay in relays) {
+                    if (ws.channels[relay] == null) {
+                      RelayService().addAndConnect(relay);
+                    }
+                  }
+
+                  chatController.roomObs.value.sendingRelays = relays;
+                  await RoomService()
+                      .updateChatRoomPage(chatController.roomObs.value);
 
                   message.requestConfrim = RequestConfrimEnum.approved;
-                  MessageService().updateMessageAndRefresh(message);
+                  await MessageService().updateMessageAndRefresh(message);
                 },
                 child: const Text('Approve'))
           ],

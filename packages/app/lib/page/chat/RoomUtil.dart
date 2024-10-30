@@ -465,7 +465,6 @@ Let's start an encrypted chat.''';
 
     Contact contact =
         Contact(pubkey: pubkey, npubkey: npub, identityId: identity.id)
-          ..hisRelay = model.relay.isEmpty ? null : model.relay
           ..curve25519PkHex = model.curve25519PkHex
           ..name = model.name;
 

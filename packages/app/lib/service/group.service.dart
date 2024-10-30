@@ -330,7 +330,6 @@ class GroupService extends BaseChatService {
       String realMessage) async {
     String? toRoomPriKey = roomProfile.prikey; // shared private key
     String groupName = roomProfile.name;
-    String? groupRelay = roomProfile.groupRelay;
     List<dynamic> users = roomProfile.users;
     List groupInviteMsg = jsonDecode(realMessage);
     String senderIdPubkey = groupInviteMsg[1];
@@ -435,7 +434,6 @@ class GroupService extends BaseChatService {
 
     groupRoom.status = RoomStatus.enabled;
     groupRoom.name = groupName;
-    groupRoom.groupRelay = groupRelay;
 
     // Whether the shared secret key key changes
     // kdf group will not change nostr key
@@ -681,7 +679,10 @@ class GroupService extends BaseChatService {
         NostrEventModel.fromJson(jsonDecode(encryptedEvent), verify: false);
 
     await Get.find<WebsocketService>().writeNostrEvent(
-        event: event, eventString: encryptedEvent, roomId: room.id);
+        event: event,
+        eventString: encryptedEvent,
+        roomId: room.id,
+        toRelays: room.sendingRelays);
 
     Message? model;
     if (subtype == null && ext == null) {
@@ -1150,8 +1151,7 @@ ${rm.idPubkey}
     RoomProfile roomProfile = RoomProfile(roomPubkey, groupRoom.name!,
         allMembers, groupRoom.groupType, DateTime.now().millisecondsSinceEpoch)
       ..oldToRoomPubKey = groupRoom.toMainPubkey
-      ..prikey = mykey?.prikey ?? roomMykey?.prikey
-      ..groupRelay = groupRoom.groupRelay;
+      ..prikey = mykey?.prikey ?? roomMykey?.prikey;
 
     // shared signalId's QRCode
     if (groupRoom.isKDFGroup && signalId != null) {

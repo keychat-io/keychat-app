@@ -33,9 +33,6 @@ class Contact extends Equatable {
   DateTime? createdAt;
   DateTime? updatedAt;
 
-  String? hisRelay; // his receive relay
-  String? myRelay; // my receive relay
-
   String get displayName {
     String? nickname = petname ?? name;
     if (nickname == null || nickname.trim().isEmpty) {

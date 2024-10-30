@@ -3,7 +3,6 @@ import 'dart:convert' show jsonDecode;
 import 'dart:math' show Random;
 
 import 'package:app/controller/home.controller.dart';
-import 'package:app/global.dart';
 import 'package:app/page/app_theme.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/message_widget.dart';
@@ -13,7 +12,6 @@ import 'package:app/page/theme.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/message.service.dart';
-import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -166,8 +164,6 @@ class _ChatPage2State extends State<ChatPage> {
             Obx(() => debugWidget(hc)),
             if (controller.room.isSendAllGroup)
               Obx(() => _kpaIsNull(controller)),
-            // if (!controller.room.isSendAllGroup)
-            //   Obx(() => _receiveInPostOfficeStatus(controller)),
             Obx(() => controller.roomObs.value.signalDecodeError
                 ? MyErrorText(
                     errorText: 'Messages decrypted failed',
@@ -659,38 +655,6 @@ class _ChatPage2State extends State<ChatPage> {
         }
       }
     }
-  }
-
-  Widget _receiveInPostOfficeStatus(ChatController chatController) {
-    WebsocketService ws = Get.find<WebsocketService>();
-    String? hisPostOffice;
-
-    if (chatController.room.type == RoomType.common) {
-      hisPostOffice = chatController.roomContact.value.hisRelay;
-    } else if (chatController.room.isShareKeyGroup) {
-      hisPostOffice = chatController.roomObs.value.groupRelay;
-    }
-    if (hisPostOffice == null || hisPostOffice.isEmpty) {
-      return const SizedBox();
-    }
-
-    if (ws.channels[hisPostOffice] == null) {
-      return const ListTile(
-        leading: Icon(Icons.error, color: Colors.yellow),
-        title: Text(
-            'SendTo PostOffice [relay] had been deleted, message will send to ${KeychatGlobal.defaultRelay}'),
-      );
-    }
-
-    if (ws.channels[hisPostOffice]!.channelStatus != RelayStatusEnum.success) {
-      return ListTile(
-        leading: const Icon(Icons.warning_amber_rounded, color: Colors.yellow),
-        title: Text(
-          'Connecting $hisPostOffice...',
-        ),
-      );
-    }
-    return const SizedBox();
   }
 
   Widget _getRoomTite() {

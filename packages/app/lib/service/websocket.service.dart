@@ -280,22 +280,10 @@ class WebsocketService extends GetxService {
       {required NostrEventModel event,
       required String eventString,
       required int roomId,
-      String? hisRelay}) async {
-    // // set his relay
-    // if (hisRelay != null && hisRelay.isNotEmpty) {
-    //   if (channels[hisRelay] != null) {
-    //     if (channels[hisRelay]!.channelStatus == RelayStatusEnum.success) {
-    //       relays = [hisRelay];
-    //     }
-    //   }
-    // }
-    // if (relays.isEmpty) {
-    //   throw Exception('His relay not connected');
-    // }
-    List<String> activeRelays = getActiveRelayString();
-    // listen status
-    SubscribeEventStatus.addSubscripton(
-        event.id, getOnlineRelayString().length);
+      List<String> toRelays = const []}) async {
+    List<String> activeRelays = _getTargetRelays(toRelays);
+
+    SubscribeEventStatus.addSubscripton(event.id, activeRelays.length);
 
     String rawEvent = "[\"EVENT\",$eventString]";
     int success = 0;
@@ -363,6 +351,21 @@ class WebsocketService extends GetxService {
         }
       });
     });
+    return activeRelays;
+  }
+
+  List<String> _getTargetRelays(List<String> toRelays) {
+    List<String> activeRelays = getActiveRelayString();
+    if (activeRelays.isEmpty) {
+      throw Exception('No active relay');
+    }
+    if (toRelays.isNotEmpty) {
+      List<String> activeTargetRelays =
+          activeRelays.where((element) => toRelays.contains(element)).toList();
+      if (activeTargetRelays.isNotEmpty) {
+        activeRelays = activeTargetRelays;
+      }
+    }
     return activeRelays;
   }
 

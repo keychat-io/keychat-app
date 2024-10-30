@@ -1,5 +1,5 @@
 // ignore_for_file: must_be_immutable
-import 'dart:convert' show jsonDecode, jsonEncode;
+import 'dart:convert' show jsonDecode;
 
 import 'package:app/models/models.dart';
 import 'package:app/models/signal_id.dart';
@@ -7,7 +7,6 @@ import 'package:app/page/components.dart';
 import 'package:app/service/signalId.service.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
-import 'package:app/service/relay.service.dart';
 import 'package:app/utils.dart';
 
 import 'package:flutter/material.dart';
@@ -189,20 +188,6 @@ class _MyQRCodeState extends State<MyQRCode> {
       qrString = res;
     });
   }
-}
-
-json2String2Hex(Identity identity, Mykey oneTimeKey) async {
-  String? hisRelay = await RelayService().getDefaultOnlineRelay();
-  Map<String, dynamic> jsonData = {
-    'pubkey': identity.secp256k1PKHex,
-    'hisRelay': hisRelay,
-    'name': identity.displayName,
-    "time": oneTimeKey.createdAt.millisecondsSinceEpoch,
-    "onetimekey": oneTimeKey.pubkey,
-  };
-  String jsonString = jsonEncode(jsonData);
-  String hexString = stringToHex(jsonString);
-  return hexString;
 }
 
 String stringToHex(String input) {

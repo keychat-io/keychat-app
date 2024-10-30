@@ -2,7 +2,6 @@ import 'dart:async' show Future, Timer;
 import 'dart:convert';
 import 'dart:io' show Directory, File, FileSystemEntity;
 
-import 'package:app/models/embedded/relay_message_fee.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/nostr-core/nostr_event.dart';
@@ -367,30 +366,6 @@ class ChatController extends GetxController {
     list2.addAll(list);
     list2.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
     messages.value = list2;
-  }
-
-  Future<int> loadMessageLimit() async {
-    if (room.isSendAllGroup) return -1;
-    String? hisRelay;
-    if (room.type == RoomType.common) {
-      hisRelay = roomObs.value.contact?.hisRelay;
-    } else if (room.isShareKeyGroup) {
-      hisRelay = roomObs.value.groupRelay;
-    }
-    if (hisRelay == null) {
-      bool existFreeRelay = ws.existFreeRelay();
-      if (existFreeRelay) return -1;
-
-      // cal min
-      // Map mintsBalance =
-      //     ecashController.getBalanceByMints(ws.getOnlineRelayString());
-    }
-
-    // exist hisRelay
-    RelayMessageFee? rpim = ws.relayMessageFeeModels[hisRelay];
-    if (rpim == null) return -1;
-    int totalBalance = Get.find<EcashController>().getTotalByMints(rpim.mints);
-    return (totalBalance / rpim.amount).floor();
   }
 
   List<Message> loadMoreChatFromSearchSroll() {

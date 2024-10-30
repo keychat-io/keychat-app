@@ -44,3 +44,4 @@ packages/app/ios/Runner/GoogleService-Info.plist
 packages/app/android/app/google-services.json
 packages/app/macos/Runner/GoogleService-Info.plist
 packages/app/firebase.json
+packages/app/firepit-log.txt

@@ -63,101 +63,106 @@ const RoomSchema = CollectionSchema(
       type: IsarType.int,
       enumMap: _RoomencryptModeEnumValueMap,
     ),
-    r'groupRelay': PropertySchema(
-      id: 9,
-      name: r'groupRelay',
-      type: IsarType.string,
-    ),
     r'groupType': PropertySchema(
-      id: 10,
+      id: 9,
       name: r'groupType',
       type: IsarType.int,
       enumMap: _RoomgroupTypeEnumValueMap,
     ),
     r'hashCode': PropertySchema(
-      id: 11,
+      id: 10,
       name: r'hashCode',
       type: IsarType.long,
     ),
     r'identityId': PropertySchema(
-      id: 12,
+      id: 11,
       name: r'identityId',
       type: IsarType.long,
     ),
     r'isMute': PropertySchema(
-      id: 13,
+      id: 12,
       name: r'isMute',
       type: IsarType.bool,
     ),
     r'myIdPubkey': PropertySchema(
-      id: 14,
+      id: 13,
       name: r'myIdPubkey',
       type: IsarType.string,
     ),
     r'name': PropertySchema(
-      id: 15,
+      id: 14,
       name: r'name',
       type: IsarType.string,
     ),
     r'npub': PropertySchema(
-      id: 16,
+      id: 15,
       name: r'npub',
       type: IsarType.string,
     ),
     r'onetimekey': PropertySchema(
-      id: 17,
+      id: 16,
       name: r'onetimekey',
       type: IsarType.string,
     ),
     r'pin': PropertySchema(
-      id: 18,
+      id: 17,
       name: r'pin',
       type: IsarType.bool,
     ),
     r'pinAt': PropertySchema(
-      id: 19,
+      id: 18,
       name: r'pinAt',
       type: IsarType.dateTime,
     ),
-    r'sharedSignalID': PropertySchema(
+    r'receivingRelays': PropertySchema(
+      id: 19,
+      name: r'receivingRelays',
+      type: IsarType.stringList,
+    ),
+    r'sendingRelays': PropertySchema(
       id: 20,
+      name: r'sendingRelays',
+      type: IsarType.stringList,
+    ),
+    r'sharedSignalID': PropertySchema(
+      id: 21,
       name: r'sharedSignalID',
       type: IsarType.string,
     ),
     r'signalDecodeError': PropertySchema(
-      id: 21,
+      id: 22,
       name: r'signalDecodeError',
       type: IsarType.bool,
     ),
     r'signalIdPubkey': PropertySchema(
-      id: 22,
+      id: 23,
       name: r'signalIdPubkey',
       type: IsarType.string,
     ),
     r'status': PropertySchema(
-      id: 23,
+      id: 24,
       name: r'status',
       type: IsarType.int,
       enumMap: _RoomstatusEnumValueMap,
     ),
     r'stringify': PropertySchema(
-      id: 24,
+      id: 25,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'toMainPubkey': PropertySchema(
-      id: 25,
+      id: 26,
       name: r'toMainPubkey',
       type: IsarType.string,
     ),
     r'type': PropertySchema(
-      id: 26,
+      id: 27,
       name: r'type',
       type: IsarType.int,
       enumMap: _RoomtypeEnumValueMap,
     ),
     r'version': PropertySchema(
-      id: 27,
+      id: 28,
       name: r'version',
       type: IsarType.long,
     )
@@ -238,12 +243,6 @@ int _roomEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
-  {
-    final value = object.groupRelay;
-    if (value != null) {
-      bytesCount += 3 + value.length * 3;
-    }
-  }
   bytesCount += 3 + object.myIdPubkey.length * 3;
   {
     final value = object.name;
@@ -256,6 +255,20 @@ int _roomEstimateSize(
     final value = object.onetimekey;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
+    }
+  }
+  bytesCount += 3 + object.receivingRelays.length * 3;
+  {
+    for (var i = 0; i < object.receivingRelays.length; i++) {
+      final value = object.receivingRelays[i];
+      bytesCount += value.length * 3;
+    }
+  }
+  bytesCount += 3 + object.sendingRelays.length * 3;
+  {
+    for (var i = 0; i < object.sendingRelays.length; i++) {
+      final value = object.sendingRelays[i];
+      bytesCount += value.length * 3;
     }
   }
   {
@@ -289,25 +302,26 @@ void _roomSerialize(
   writer.writeString(offsets[6], object.curve25519PkHex);
   writer.writeString(offsets[7], object.description);
   writer.writeInt(offsets[8], object.encryptMode.index);
-  writer.writeString(offsets[9], object.groupRelay);
-  writer.writeInt(offsets[10], object.groupType.index);
-  writer.writeLong(offsets[11], object.hashCode);
-  writer.writeLong(offsets[12], object.identityId);
-  writer.writeBool(offsets[13], object.isMute);
-  writer.writeString(offsets[14], object.myIdPubkey);
-  writer.writeString(offsets[15], object.name);
-  writer.writeString(offsets[16], object.npub);
-  writer.writeString(offsets[17], object.onetimekey);
-  writer.writeBool(offsets[18], object.pin);
-  writer.writeDateTime(offsets[19], object.pinAt);
-  writer.writeString(offsets[20], object.sharedSignalID);
-  writer.writeBool(offsets[21], object.signalDecodeError);
-  writer.writeString(offsets[22], object.signalIdPubkey);
-  writer.writeInt(offsets[23], object.status.index);
-  writer.writeBool(offsets[24], object.stringify);
-  writer.writeString(offsets[25], object.toMainPubkey);
-  writer.writeInt(offsets[26], object.type.index);
-  writer.writeLong(offsets[27], object.version);
+  writer.writeInt(offsets[9], object.groupType.index);
+  writer.writeLong(offsets[10], object.hashCode);
+  writer.writeLong(offsets[11], object.identityId);
+  writer.writeBool(offsets[12], object.isMute);
+  writer.writeString(offsets[13], object.myIdPubkey);
+  writer.writeString(offsets[14], object.name);
+  writer.writeString(offsets[15], object.npub);
+  writer.writeString(offsets[16], object.onetimekey);
+  writer.writeBool(offsets[17], object.pin);
+  writer.writeDateTime(offsets[18], object.pinAt);
+  writer.writeStringList(offsets[19], object.receivingRelays);
+  writer.writeStringList(offsets[20], object.sendingRelays);
+  writer.writeString(offsets[21], object.sharedSignalID);
+  writer.writeBool(offsets[22], object.signalDecodeError);
+  writer.writeString(offsets[23], object.signalIdPubkey);
+  writer.writeInt(offsets[24], object.status.index);
+  writer.writeBool(offsets[25], object.stringify);
+  writer.writeString(offsets[26], object.toMainPubkey);
+  writer.writeInt(offsets[27], object.type.index);
+  writer.writeLong(offsets[28], object.version);
 }
 
 Room _roomDeserialize(
@@ -317,12 +331,12 @@ Room _roomDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Room(
-    identityId: reader.readLong(offsets[12]),
-    npub: reader.readString(offsets[16]),
-    status: _RoomstatusValueEnumMap[reader.readIntOrNull(offsets[23])] ??
+    identityId: reader.readLong(offsets[11]),
+    npub: reader.readString(offsets[15]),
+    status: _RoomstatusValueEnumMap[reader.readIntOrNull(offsets[24])] ??
         RoomStatus.init,
-    toMainPubkey: reader.readString(offsets[25]),
-    type: _RoomtypeValueEnumMap[reader.readIntOrNull(offsets[26])] ??
+    toMainPubkey: reader.readString(offsets[26]),
+    type: _RoomtypeValueEnumMap[reader.readIntOrNull(offsets[27])] ??
         RoomType.common,
   );
   object.autoDeleteDays = reader.readLong(offsets[0]);
@@ -336,20 +350,21 @@ Room _roomDeserialize(
   object.encryptMode =
       _RoomencryptModeValueEnumMap[reader.readIntOrNull(offsets[8])] ??
           EncryptMode.nip04;
-  object.groupRelay = reader.readStringOrNull(offsets[9]);
   object.groupType =
-      _RoomgroupTypeValueEnumMap[reader.readIntOrNull(offsets[10])] ??
+      _RoomgroupTypeValueEnumMap[reader.readIntOrNull(offsets[9])] ??
           GroupType.shareKey;
   object.id = id;
-  object.isMute = reader.readBool(offsets[13]);
-  object.name = reader.readStringOrNull(offsets[15]);
-  object.onetimekey = reader.readStringOrNull(offsets[17]);
-  object.pin = reader.readBool(offsets[18]);
-  object.pinAt = reader.readDateTimeOrNull(offsets[19]);
-  object.sharedSignalID = reader.readStringOrNull(offsets[20]);
-  object.signalDecodeError = reader.readBool(offsets[21]);
-  object.signalIdPubkey = reader.readStringOrNull(offsets[22]);
-  object.version = reader.readLong(offsets[27]);
+  object.isMute = reader.readBool(offsets[12]);
+  object.name = reader.readStringOrNull(offsets[14]);
+  object.onetimekey = reader.readStringOrNull(offsets[16]);
+  object.pin = reader.readBool(offsets[17]);
+  object.pinAt = reader.readDateTimeOrNull(offsets[18]);
+  object.receivingRelays = reader.readStringList(offsets[19]) ?? [];
+  object.sendingRelays = reader.readStringList(offsets[20]) ?? [];
+  object.sharedSignalID = reader.readStringOrNull(offsets[21]);
+  object.signalDecodeError = reader.readBool(offsets[22]);
+  object.signalIdPubkey = reader.readStringOrNull(offsets[23]);
+  object.version = reader.readLong(offsets[28]);
   return object;
 }
 
@@ -380,45 +395,47 @@ P _roomDeserializeProp<P>(
       return (_RoomencryptModeValueEnumMap[reader.readIntOrNull(offset)] ??
           EncryptMode.nip04) as P;
     case 9:
-      return (reader.readStringOrNull(offset)) as P;
-    case 10:
       return (_RoomgroupTypeValueEnumMap[reader.readIntOrNull(offset)] ??
           GroupType.shareKey) as P;
+    case 10:
+      return (reader.readLong(offset)) as P;
     case 11:
       return (reader.readLong(offset)) as P;
     case 12:
-      return (reader.readLong(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 13:
-      return (reader.readBool(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 14:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 15:
-      return (reader.readStringOrNull(offset)) as P;
-    case 16:
       return (reader.readString(offset)) as P;
+    case 16:
+      return (reader.readStringOrNull(offset)) as P;
     case 17:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 18:
-      return (reader.readBool(offset)) as P;
-    case 19:
       return (reader.readDateTimeOrNull(offset)) as P;
+    case 19:
+      return (reader.readStringList(offset) ?? []) as P;
     case 20:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 21:
-      return (reader.readBool(offset)) as P;
-    case 22:
       return (reader.readStringOrNull(offset)) as P;
+    case 22:
+      return (reader.readBool(offset)) as P;
     case 23:
+      return (reader.readStringOrNull(offset)) as P;
+    case 24:
       return (_RoomstatusValueEnumMap[reader.readIntOrNull(offset)] ??
           RoomStatus.init) as P;
-    case 24:
-      return (reader.readBoolOrNull(offset)) as P;
     case 25:
-      return (reader.readString(offset)) as P;
+      return (reader.readBoolOrNull(offset)) as P;
     case 26:
+      return (reader.readString(offset)) as P;
+    case 27:
       return (_RoomtypeValueEnumMap[reader.readIntOrNull(offset)] ??
           RoomType.common) as P;
-    case 27:
+    case 28:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1743,152 +1760,6 @@ extension RoomQueryFilter on QueryBuilder<Room, Room, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Room, Room, QAfterFilterCondition> groupRelayIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'groupRelay',
-      ));
-    });
-  }
-
-  QueryBuilder<Room, Room, QAfterFilterCondition> groupRelayIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'groupRelay',
-      ));
-    });
-  }
-
-  QueryBuilder<Room, Room, QAfterFilterCondition> groupRelayEqualTo(
-    String? value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'groupRelay',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Room, Room, QAfterFilterCondition> groupRelayGreaterThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'groupRelay',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Room, Room, QAfterFilterCondition> groupRelayLessThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'groupRelay',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Room, Room, QAfterFilterCondition> groupRelayBetween(
-    String? lower,
-    String? upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'groupRelay',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Room, Room, QAfterFilterCondition> groupRelayStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'groupRelay',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Room, Room, QAfterFilterCondition> groupRelayEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'groupRelay',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Room, Room, QAfterFilterCondition> groupRelayContains(
-      String value,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'groupRelay',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Room, Room, QAfterFilterCondition> groupRelayMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'groupRelay',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Room, Room, QAfterFilterCondition> groupRelayIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'groupRelay',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Room, Room, QAfterFilterCondition> groupRelayIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'groupRelay',
-        value: '',
-      ));
-    });
-  }
-
   QueryBuilder<Room, Room, QAfterFilterCondition> groupTypeEqualTo(
       GroupType value) {
     return QueryBuilder.apply(this, (query) {
@@ -2733,6 +2604,446 @@ extension RoomQueryFilter on QueryBuilder<Room, Room, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Room, Room, QAfterFilterCondition> receivingRelaysElementEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'receivingRelays',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition>
+      receivingRelaysElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'receivingRelays',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition>
+      receivingRelaysElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'receivingRelays',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> receivingRelaysElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'receivingRelays',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition>
+      receivingRelaysElementStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'receivingRelays',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition>
+      receivingRelaysElementEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'receivingRelays',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition>
+      receivingRelaysElementContains(String value,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'receivingRelays',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> receivingRelaysElementMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'receivingRelays',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition>
+      receivingRelaysElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'receivingRelays',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition>
+      receivingRelaysElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'receivingRelays',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> receivingRelaysLengthEqualTo(
+      int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'receivingRelays',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> receivingRelaysIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'receivingRelays',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> receivingRelaysIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'receivingRelays',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> receivingRelaysLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'receivingRelays',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition>
+      receivingRelaysLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'receivingRelays',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> receivingRelaysLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'receivingRelays',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> sendingRelaysElementEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'sendingRelays',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition>
+      sendingRelaysElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'sendingRelays',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> sendingRelaysElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'sendingRelays',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> sendingRelaysElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'sendingRelays',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition>
+      sendingRelaysElementStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'sendingRelays',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> sendingRelaysElementEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'sendingRelays',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> sendingRelaysElementContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'sendingRelays',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> sendingRelaysElementMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'sendingRelays',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition>
+      sendingRelaysElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'sendingRelays',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition>
+      sendingRelaysElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'sendingRelays',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> sendingRelaysLengthEqualTo(
+      int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'sendingRelays',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> sendingRelaysIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'sendingRelays',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> sendingRelaysIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'sendingRelays',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> sendingRelaysLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'sendingRelays',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition>
+      sendingRelaysLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'sendingRelays',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterFilterCondition> sendingRelaysLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'sendingRelays',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
   QueryBuilder<Room, Room, QAfterFilterCondition> sharedSignalIDIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -3474,18 +3785,6 @@ extension RoomQuerySortBy on QueryBuilder<Room, Room, QSortBy> {
     });
   }
 
-  QueryBuilder<Room, Room, QAfterSortBy> sortByGroupRelay() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'groupRelay', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Room, Room, QAfterSortBy> sortByGroupRelayDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'groupRelay', Sort.desc);
-    });
-  }
-
   QueryBuilder<Room, Room, QAfterSortBy> sortByGroupType() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'groupType', Sort.asc);
@@ -3812,18 +4111,6 @@ extension RoomQuerySortThenBy on QueryBuilder<Room, Room, QSortThenBy> {
     });
   }
 
-  QueryBuilder<Room, Room, QAfterSortBy> thenByGroupRelay() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'groupRelay', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Room, Room, QAfterSortBy> thenByGroupRelayDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'groupRelay', Sort.desc);
-    });
-  }
-
   QueryBuilder<Room, Room, QAfterSortBy> thenByGroupType() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'groupType', Sort.asc);
@@ -4115,13 +4402,6 @@ extension RoomQueryWhereDistinct on QueryBuilder<Room, Room, QDistinct> {
     });
   }
 
-  QueryBuilder<Room, Room, QDistinct> distinctByGroupRelay(
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'groupRelay', caseSensitive: caseSensitive);
-    });
-  }
-
   QueryBuilder<Room, Room, QDistinct> distinctByGroupType() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'groupType');
@@ -4183,6 +4463,18 @@ extension RoomQueryWhereDistinct on QueryBuilder<Room, Room, QDistinct> {
   QueryBuilder<Room, Room, QDistinct> distinctByPinAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'pinAt');
+    });
+  }
+
+  QueryBuilder<Room, Room, QDistinct> distinctByReceivingRelays() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'receivingRelays');
+    });
+  }
+
+  QueryBuilder<Room, Room, QDistinct> distinctBySendingRelays() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'sendingRelays');
     });
   }
 
@@ -4301,12 +4593,6 @@ extension RoomQueryProperty on QueryBuilder<Room, Room, QQueryProperty> {
     });
   }
 
-  QueryBuilder<Room, String?, QQueryOperations> groupRelayProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'groupRelay');
-    });
-  }
-
   QueryBuilder<Room, GroupType, QQueryOperations> groupTypeProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'groupType');
@@ -4364,6 +4650,18 @@ extension RoomQueryProperty on QueryBuilder<Room, Room, QQueryProperty> {
   QueryBuilder<Room, DateTime?, QQueryOperations> pinAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'pinAt');
+    });
+  }
+
+  QueryBuilder<Room, List<String>, QQueryOperations> receivingRelaysProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'receivingRelays');
+    });
+  }
+
+  QueryBuilder<Room, List<String>, QQueryOperations> sendingRelaysProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'sendingRelays');
     });
   }
 

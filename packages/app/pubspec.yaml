@@ -77,7 +77,6 @@ dependencies:
   linkify: ^5.0.0
   flutter_svg: ^2.0.10+1
   crypto: ^3.0.3
-  sentry_flutter: ^8.4.0
   web_socket_channel: ^3.0.1
   app_badge_plus: ^1.1.5
   flutter_secure_storage: ^9.2.2
@@ -86,6 +85,8 @@ dependencies:
   firebase_messaging: ^15.1.0
   barcode_scan2: ^4.3.3
   freezed_annotation: ^2.4.4
+  firebase_crashlytics: ^4.1.0
+  firebase_analytics: ^11.3.0
 
 dev_dependencies:
   flutter_test:

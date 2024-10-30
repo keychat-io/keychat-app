@@ -182,10 +182,6 @@ class NostrAPI {
           contact.picture = decodedContent['picture'];
         }
 
-        if (decodedContent['hisRelay'] != null) {
-          contact.hisRelay = decodedContent['hisRelay'];
-        }
-
         contact.updatedAt = DateTime.now();
         await ContactService().saveContact(contact, sync: false);
       }
@@ -254,17 +250,12 @@ class NostrAPI {
     }
     NostrEventModel event =
         NostrEventModel.fromJson(jsonDecode(encryptedEvent), verify: false);
-    String? hisRelay;
-    if (room.type == RoomType.common) {
-      room.contact ??=
-          await ContactService().getContact(room.identityId, room.toMainPubkey);
-      hisRelay = room.contact?.hisRelay;
-    }
+
     List relays = await Get.find<WebsocketService>().writeNostrEvent(
         event: event,
         eventString: encryptedEvent,
         roomId: room.parentRoom?.id ?? room.id,
-        hisRelay: hisRelay);
+        toRelays: room.sendingRelays);
     if (save && relays.isEmpty) {
       throw Exception(ErrorMessages.relayIsEmptyException);
     }
@@ -306,7 +297,8 @@ class NostrAPI {
     List relays = await Get.find<WebsocketService>().writeNostrEvent(
         event: event,
         eventString: encryptedEvent,
-        roomId: room.parentRoom?.id ?? room.id);
+        roomId: room.parentRoom?.id ?? room.id,
+        toRelays: room.sendingRelays);
     if (save && relays.isEmpty) {
       throw Exception(ErrorMessages.relayIsEmptyException);
     }

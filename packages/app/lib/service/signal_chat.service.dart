@@ -111,6 +111,42 @@ class SignalChatService extends BaseChatService {
     return smr;
   }
 
+  Future<SendMessageResponse> sendMessageToBot(
+    Room room,
+    String message, {
+    bool save = true,
+    String? realMessage,
+  }) async {
+    ChatxService cs = Get.find<ChatxService>();
+    rust_signal.KeychatProtocolAddress? kpa = await cs.getRoomKPA(room);
+    if (kpa == null) {
+      throw Exception("signal_session_is_null");
+    }
+    String message0 = message;
+    var keypair = await room.getKeyPair();
+    String to = await _getSignalToAddress(keypair, room);
+
+    (Uint8List, String?, String, List<String>?) enResult = await rust_signal
+        .encryptSignal(keyPair: keypair, ptext: message0, remoteAddress: kpa);
+    Uint8List ciphertext = enResult.$1;
+
+    String msgKeyHash =
+        await rust_nostr.generateMessageKeyHash(seedKey: enResult.$3);
+    Identity identity = room.getIdentity();
+    SendMessageResponse smr = await NostrAPI().sendNip4Message(
+        to, base64.encode(ciphertext),
+        save: save,
+        prikey: await identity.getSecp256k1SKHex(),
+        from: identity.secp256k1PKHex,
+        room: room,
+        encryptType: MessageEncryptType.signal,
+        realMessage: realMessage,
+        sourceContent: message0,
+        isSignalMessage: true,
+        msgKeyHash: msgKeyHash);
+    return smr;
+  }
+
   Future<String> _getSignalToAddress(
       KeychatIdentityKeyPair keyPair, Room room) async {
     rust_signal.KeychatSignalSession? bobSession = await rust_signal.getSession(

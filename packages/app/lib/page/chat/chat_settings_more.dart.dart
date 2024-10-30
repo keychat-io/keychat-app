@@ -123,26 +123,27 @@ class ChatSettingsMoreDart extends StatelessWidget {
                     ));
                   },
                 ),
-                SettingsTile.navigation(
-                  title: const Text('ReceiveFrom'),
-                  leading: const Icon(CupertinoIcons.down_arrow),
-                  description: Obx(() => Text(chatController
-                          .roomObs.value.receivingRelays.isNotEmpty
-                      ? chatController.roomObs.value.receivingRelays.join(',')
-                      : '')),
-                  onPressed: (context) async {
-                    List<String>? relays = await Get.bottomSheet(
-                        SelectRoomRelay(
-                            chatController.roomObs.value.receivingRelays));
-                    if (relays == null) return;
-                    chatController.roomObs.value.receivingRelays = relays;
-                    await RoomService()
-                        .updateRoomAndRefresh(chatController.roomObs.value);
-                    await SignalChatService().sendRelaySyncMessage(
-                        chatController.roomObs.value, relays);
-                    EasyLoading.showToast('Save Success');
-                  },
-                ),
+                if (chatController.roomObs.value.type != RoomType.bot)
+                  SettingsTile.navigation(
+                    title: const Text('ReceiveFrom'),
+                    leading: const Icon(CupertinoIcons.down_arrow),
+                    description: Obx(() => Text(chatController
+                            .roomObs.value.receivingRelays.isNotEmpty
+                        ? chatController.roomObs.value.receivingRelays.join(',')
+                        : '')),
+                    onPressed: (context) async {
+                      List<String>? relays = await Get.bottomSheet(
+                          SelectRoomRelay(
+                              chatController.roomObs.value.receivingRelays));
+                      if (relays == null) return;
+                      chatController.roomObs.value.receivingRelays = relays;
+                      await RoomService()
+                          .updateRoomAndRefresh(chatController.roomObs.value);
+                      await SignalChatService().sendRelaySyncMessage(
+                          chatController.roomObs.value, relays);
+                      EasyLoading.showToast('Save Success');
+                    },
+                  ),
               ]),
               if (receiveKeys.isNotEmpty)
                 SettingsSection(

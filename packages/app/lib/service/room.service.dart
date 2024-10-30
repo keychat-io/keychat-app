@@ -344,7 +344,7 @@ class RoomService extends BaseChatService {
     return DBProvider.database.rooms.filter().idEqualTo(id).findFirstSync();
   }
 
-  Future<Map<String, List<Room>>> getRoomList({required int indetityId}) async {
+  Future<Map<String, List<Room>>> getRoomList(int indetityId) async {
     Isar database = DBProvider.database;
 
     List<Room> list = await database.rooms
@@ -612,8 +612,7 @@ class RoomService extends BaseChatService {
     return map;
   }
 
-  Future<SendMessageResponse> sendMessageToBot(
-      Room room, Identity identity, String message,
+  Future sendMessageToBot(Room room, Identity identity, String message,
       {String? realMessage}) async {
     BotClientMessageModel? cmm;
     try {
@@ -648,6 +647,21 @@ class RoomService extends BaseChatService {
 
     String toSendMessage = jsonEncode(cmm.toJson());
     logger.d('toSendMessage: $toSendMessage');
+    if (room.encryptMode == EncryptMode.signal) {
+      try {
+        return await SignalChatService().sendMessage(room, toSendMessage,
+            realMessage: realMessage ?? message);
+      } catch (e) {
+        logger.e('send signal message to bot error', error: e);
+        return await NostrAPI().sendNip4Message(
+            room.toMainPubkey, toSendMessage,
+            prikey: await identity.getSecp256k1SKHex(),
+            from: identity.secp256k1PKHex,
+            room: room,
+            realMessage: realMessage ?? message,
+            encryptType: MessageEncryptType.nip4);
+      }
+    }
     return await NostrAPI().sendNip4Message(room.toMainPubkey, toSendMessage,
         prikey: await identity.getSecp256k1SKHex(),
         from: identity.secp256k1PKHex,

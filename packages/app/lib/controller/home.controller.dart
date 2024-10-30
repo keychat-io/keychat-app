@@ -242,8 +242,8 @@ class HomeController extends GetxController
     for (var i = 0; i < mys.length; i++) {
       int id = mys[i].id;
 
-      Map<String, List<Room>> res =
-          await RoomService().getRoomList(indetityId: id);
+      Map<String, List<Room>> res = await RoomService().getRoomList(id);
+
       List<dynamic> rooms = res['friends'] ?? [];
       List<Room> approving = res['approving'] ?? [];
       List<Room> requesting = res['requesting'] ?? [];
@@ -322,8 +322,7 @@ class HomeController extends GetxController
         'loadIdentityRoomList:$identityId', const Duration(milliseconds: 200),
         () async {
       logger.d('Loading rooms: $identityId');
-      Map<String, List<Room>> res =
-          await RoomService().getRoomList(indetityId: identityId);
+      Map<String, List<Room>> res = await RoomService().getRoomList(identityId);
       List<dynamic> rooms = res['friends'] ?? [];
       List<Room> approving = res['approving'] ?? [];
       List<Room> requesting = res['requesting'] ?? [];

@@ -119,7 +119,7 @@ class RoomList extends StatelessWidget {
                         data.identity, List<Room>.from(rooms.sublist(4)));
                   }
                   if (index == 2) {
-                    return getNewFriendsWidget(data, rooms[3] as List<Room>,
+                    return getNewFriendsWidget(data, rooms[2] as List<Room>,
                         pinTileBackground, context);
                   }
                   if (index == 3) {

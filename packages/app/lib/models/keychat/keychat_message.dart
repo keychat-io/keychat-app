@@ -7,6 +7,7 @@ import 'package:app/models/signal_id.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/group.service.dart';
 import 'package:app/service/kdf_group.service.dart';
+import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/signalId.service.dart';
 import 'package:get/get.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -40,6 +41,8 @@ class KeychatMessage {
         return GroupService();
       case MessageType.kdfGroup:
         return KdfGroupService.instance;
+      case MessageType.mls:
+        return MlsGroupService.instance;
     }
   }
 
@@ -102,4 +105,4 @@ $greeting''';
   }
 }
 
-enum MessageType { nip04, signal, group, kdfGroup }
+enum MessageType { nip04, signal, group, kdfGroup, mls }

@@ -291,7 +291,6 @@ class RoomService extends BaseChatService {
     return await DBProvider.database.rooms
         .filter()
         .typeEqualTo(RoomType.group)
-        .groupTypeEqualTo(GroupType.kdf)
         .mykey((q) => q.pubkeyEqualTo(to))
         .findFirst();
   }

@@ -119,10 +119,10 @@ Future initServices() async {
 
   await DBProvider.initDB(dbPath);
   SettingController sc = Get.put(SettingController(), permanent: true);
+  MlsGroupService.instance.initDB(dbPath);
   Get.put(EcashController(dbPath), permanent: true);
   Get.putAsync(() => ChatxService().init(dbPath));
   Get.putAsync(() => WebsocketService().init());
-  MlsGroupService.instance.initDB(dbPath);
   return sc;
 }
 

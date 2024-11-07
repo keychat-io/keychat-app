@@ -36,4 +36,5 @@ const _$MessageTypeEnumMap = {
   MessageType.signal: 'signal',
   MessageType.group: 'group',
   MessageType.kdfGroup: 'kdfGroup',
+  MessageType.mls: 'mls',
 };

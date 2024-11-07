@@ -1,4 +1,5 @@
 import 'package:app/service/kdf_group.service.dart';
+import 'package:app/service/mls_group.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
@@ -48,7 +49,12 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
     Identity identity = hc.getSelectedIdentity();
     List<Contact> contactList =
         await ContactService().getListExcludeSelf(identity.id);
-
+    if (widget.groupType == GroupType.mls) {
+      for (var contact in contactList) {
+        String? pk = await MlsGroupService.instance.getPK(contact.pubkey);
+        contact.mlsPK = pk;
+      }
+    }
     setState(() {
       _contactList = contactList.toList();
     });
@@ -56,6 +62,7 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
 
   void _completeToCreatGroup() async {
     Map<String, String> selectAccounts = {};
+    List<Map<String, dynamic>> selectedContact = [];
     for (int i = 0; i < _contactList.length; i++) {
       Contact contact = _contactList[i];
       if (contact.isCheck) {
@@ -66,6 +73,11 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
           selectAccount = contact.pubkey;
         }
         selectAccounts[selectAccount] = contact.displayName;
+        selectedContact.add({
+          'pubkey': contact.pubkey,
+          'displayName': contact.displayName,
+          'pk': contact.mlsPK
+        });
       }
     }
     if (selectAccounts.isEmpty) {
@@ -82,11 +94,15 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
       } else if (widget.groupType == GroupType.kdf) {
         room = await KdfGroupService.instance
             .createGroup(widget.groupName, identity, selectAccounts);
+      } else if (widget.groupType == GroupType.mls) {
+        room = await MlsGroupService.instance
+            .createGroup(widget.groupName, identity, selectedContact);
       }
       Get.back();
     } catch (e, s) {
-      logger.e('create room', error: e, stackTrace: s);
-      EasyLoading.showError(e.toString());
+      String msg = Utils.getErrorMessage(e);
+      logger.e('create group error', error: e, stackTrace: s);
+      EasyLoading.showError(msg);
       return;
     }
 
@@ -112,19 +128,35 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
           itemCount: _contactList.length,
           controller: _scrollController,
           itemBuilder: (context, index) {
+            Contact contact = _contactList[index];
             return ListTile(
                 dense: true,
-                leading: getRandomAvatar(_contactList[index].pubkey,
-                    height: 30, width: 30),
-                title: Text(_contactList[index].displayName, maxLines: 1),
-                subtitle: Text(_contactList[index].npubkey,
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                leading: getRandomAvatar(contact.pubkey, height: 30, width: 30),
+                title: Text(contact.displayName, maxLines: 1),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(contact.npubkey,
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    if (contact.mlsPK == null)
+                      Text(
+                        'Not upload MLS keys',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: Colors.pink),
+                      )
+                  ],
+                ),
                 trailing: Checkbox(
-                    value: _contactList[index].isCheck,
-                    onChanged: (isCheck) {
-                      _contactList[index].isCheck = isCheck!;
-                      setState(() {});
-                    }));
+                    value: contact.isCheck,
+                    tristate: contact.mlsPK == null,
+                    onChanged: contact.mlsPK == null
+                        ? null
+                        : (isCheck) {
+                            contact.isCheck = isCheck!;
+                            setState(() {});
+                          }));
           },
         )));
   }

@@ -47,6 +47,7 @@ enum RoomStatus {
   'isSendAllGroup',
   'isShareKeyGroup',
   'isKDFGroup',
+  'isMLSGroup',
   'parentRoom',
   'keyPair'
 })
@@ -129,6 +130,7 @@ class Room extends Equatable {
   bool get isShareKeyGroup =>
       groupType == GroupType.shareKey && type == RoomType.group;
   bool get isKDFGroup => groupType == GroupType.kdf && type == RoomType.group;
+  bool get isMLSGroup => groupType == GroupType.mls && type == RoomType.group;
 
   @override
   List<Object?> get props => [

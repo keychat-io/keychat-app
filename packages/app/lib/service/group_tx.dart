@@ -120,7 +120,8 @@ class GroupTx {
     List<dynamic> users = roomProfile.users;
     Mykey? roomKey;
     if ((roomProfile.groupType == GroupType.shareKey ||
-            roomProfile.groupType == GroupType.kdf) &&
+            roomProfile.groupType == GroupType.kdf ||
+            roomProfile.groupType == GroupType.mls) &&
         toRoomPriKey == null) {
       throw Exception('Prikey is null, failed to join group.');
     } else if (toRoomPriKey != null) {

@@ -100,7 +100,9 @@ class GroupService extends BaseChatService {
       [String? groupRelay]) async {
     Mykey? sharedKey;
     late String toMainPubkey;
-    if (groupType == GroupType.shareKey || groupType == GroupType.kdf) {
+    if (groupType == GroupType.shareKey ||
+        groupType == GroupType.kdf ||
+        groupType == GroupType.mls) {
       sharedKey = await GroupTx().createMykey(identity.id);
       toMainPubkey = sharedKey.pubkey;
     } else {
@@ -352,7 +354,8 @@ class GroupService extends BaseChatService {
 
     if (groupRoom == null) {
       if (roomProfile.groupType == GroupType.shareKey ||
-          roomProfile.groupType == GroupType.kdf) {
+          roomProfile.groupType == GroupType.kdf ||
+          roomProfile.groupType == GroupType.mls) {
         await MessageService().saveMessageToDB(
             from: event.pubkey,
             to: event.tags[0][1],
@@ -556,7 +559,7 @@ class GroupService extends BaseChatService {
   // 3. Check if the secret key matches. There is a situation where the roomID is the same, but the shared secret key has been changed.
   Future<RoomProfile> inviteToJoinGroup(
       Room groupRoom, Map<String, String> toUsers,
-      {SignalId? signalId, Mykey? mykey}) async {
+      {SignalId? signalId, Mykey? mykey, String? mlsWelcome}) async {
     if (toUsers.isEmpty) throw Exception('no users to invite');
     Identity identity = groupRoom.getIdentity();
     await roomService.checkRoomStatus(groupRoom);
@@ -593,8 +596,8 @@ class GroupService extends BaseChatService {
       toMembers.add(rm);
     }
 
-    RoomProfile roomProfile =
-        await getRoomProfile(groupRoom, signalId: signalId, mykey: mykey);
+    RoomProfile roomProfile = await getRoomProfile(groupRoom,
+        signalId: signalId, mykey: mykey, mlsWelcome: mlsWelcome);
 
     List<String> addUsersName = toMembers.map((e) => e.name).toList();
     String names = addUsersName.join(',');
@@ -619,7 +622,7 @@ class GroupService extends BaseChatService {
             realMessage: realMessage);
 
         break;
-      case GroupType.kdf:
+      case GroupType.mls:
         await sendPrivateMessageToMembers(realMessage, toMembers, identity,
             groupRoom: groupRoom, km: km);
         break;
@@ -1142,7 +1145,7 @@ ${rm.idPubkey}
   }
 
   Future<RoomProfile> getRoomProfile(Room groupRoom,
-      {SignalId? signalId, Mykey? mykey}) async {
+      {SignalId? signalId, Mykey? mykey, String? mlsWelcome}) async {
     List<RoomMember> allMembers = await groupRoom.getMembers();
 
     Mykey? roomMykey = groupRoom.mykey.value;
@@ -1153,6 +1156,9 @@ ${rm.idPubkey}
       ..oldToRoomPubKey = groupRoom.toMainPubkey
       ..prikey = mykey?.prikey ?? roomMykey?.prikey;
 
+    if (mlsWelcome != null) {
+      roomProfile.ext = mlsWelcome;
+    }
     // shared signalId's QRCode
     if (groupRoom.isKDFGroup && signalId != null) {
       roomProfile.signalKeys = signalId.keys;

@@ -482,7 +482,7 @@ Let's start an encrypted chat.''';
 
   static String getGroupModeName(GroupType type) {
     switch (type) {
-      case GroupType.shareKey:
+      case GroupType.mls:
         return 'Big Group';
       case GroupType.kdf:
         return 'Medium Group';
@@ -496,6 +496,14 @@ Let's start an encrypted chat.''';
   static String getGroupModeDescription(GroupType type) {
     switch (type) {
       case GroupType.kdf:
+        return '''1. Anti-Forgery ✅
+2. End-to-End Encryption ✅
+3. Forward Secrecy ✅
+4. Backward Secrecy 🟢60% 
+5. Metadata Privacy 🟢80%
+6. Recommended Group Limit: <60
+''';
+      case GroupType.mls:
         return '''1. Anti-Forgery ✅
 2. End-to-End Encryption ✅
 3. Forward Secrecy ✅

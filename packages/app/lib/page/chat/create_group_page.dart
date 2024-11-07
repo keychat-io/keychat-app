@@ -21,9 +21,9 @@ class _AddGroupPageState extends State<AddGroupPage>
     with TickerProviderStateMixin {
   GroupService groupService = GroupService();
   ContactService contactService = ContactService();
-  GroupType selectedGroupType = GroupType.kdf;
+  GroupType selectedGroupType = GroupType.mls;
   late TextEditingController _groupNameController;
-  GroupType groupType = GroupType.kdf;
+  GroupType groupType = GroupType.mls;
   List<String> relays = [];
   late WebsocketService ws;
   @override
@@ -68,24 +68,24 @@ class _AddGroupPageState extends State<AddGroupPage>
                           style: Theme.of(context).textTheme.titleMedium),
                     ),
                     ListTile(
-                        title: Text("Medium Group",
+                        title: Text("Large Group - MLS Protocl",
                             style: Theme.of(context).textTheme.titleSmall),
                         subtitle: Text(
-                          RoomUtil.getGroupModeDescription(GroupType.kdf),
+                          RoomUtil.getGroupModeDescription(GroupType.mls),
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                         leading: Radio<GroupType>(
-                          value: GroupType.kdf,
+                          value: GroupType.mls,
                           groupValue: groupType,
                           onChanged: (value) {
                             FocusScope.of(context).unfocus();
                             setState(() {
                               groupType = value as GroupType;
-                              selectedGroupType = GroupType.kdf;
+                              selectedGroupType = GroupType.mls;
                             });
                           },
                         ),
-                        selected: selectedGroupType == GroupType.kdf,
+                        selected: selectedGroupType == GroupType.mls,
                         selectedTileColor: Theme.of(context)
                             .colorScheme
                             .primary
@@ -95,7 +95,7 @@ class _AddGroupPageState extends State<AddGroupPage>
                           .colorScheme
                           .primary
                           .withOpacity(0.1),
-                      title: Text('Small Group',
+                      title: Text('Small Group - Signal Protocol',
                           style: Theme.of(context).textTheme.titleSmall),
                       subtitle: Text(
                           RoomUtil.getGroupModeDescription(GroupType.sendAll),

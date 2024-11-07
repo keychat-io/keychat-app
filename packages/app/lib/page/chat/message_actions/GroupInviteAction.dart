@@ -12,6 +12,7 @@ import 'package:app/service/group_tx.dart';
 import 'package:app/service/group.service.dart';
 import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/message.service.dart';
+import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
@@ -100,28 +101,49 @@ class GroupInviteAction extends StatelessWidget {
                     EasyLoading.showError('Join group failed');
                     return;
                   }
-                  if (groupRoom!.isShareKeyGroup) {
-                    await GroupService().sendMessageToGroup(
-                        groupRoom!, '${identity.displayName} joined group.',
-                        subtype: KeyChatEventKinds.groupHi);
-                  } else if (groupRoom!.isKDFGroup) {
-                    await KdfGroupService.instance.sendHelloMessage(identity,
-                        groupRoom!.getGroupSharedSignalId(), groupRoom!);
-                  }
-
-                  await MessageService().updateMessageAndRefresh(message);
-                  EasyLoading.showSuccess('Join group success');
                 } catch (e, s) {
-                  logger.e(e.toString(), error: e, stackTrace: s);
-                  EasyLoading.showError('Join Group Error: ${e.toString()}',
-                      duration: const Duration(seconds: 2));
+                  String msg = Utils.getErrorMessage(e);
+                  logger.e(msg, error: e, stackTrace: s);
+                  EasyLoading.showError('Join Group Error: $msg',
+                      duration: const Duration(seconds: 3));
                   return;
                 }
+                if (groupRoom != null) {
+                  try {
+                    if (groupRoom!.isShareKeyGroup) {
+                      await GroupService().sendMessageToGroup(
+                          groupRoom!, '${identity.displayName} joined group.',
+                          subtype: KeyChatEventKinds.groupHi);
+                    } else if (groupRoom!.isKDFGroup) {
+                      await KdfGroupService.instance.sendHelloMessage(identity,
+                          groupRoom!.getGroupSharedSignalId(), groupRoom!);
+                    } else if (groupRoom!.isMLSGroup) {
+                      String? ext = roomProfile.ext;
+                      if (ext == null) {
+                        throw 'Welcome message is null';
+                      }
+                      await MlsGroupService.instance
+                          .sendHelloMessage(identity, groupRoom!, ext);
+                    }
 
-                await Get.offAndToNamed('/room/${groupRoom!.id}',
-                    arguments: groupRoom);
-                Get.find<HomeController>()
-                    .loadIdentityRoomList(groupRoom!.identityId);
+                    await MessageService().updateMessageAndRefresh(message);
+                    EasyLoading.showSuccess('Join group success');
+                  } catch (e, s) {
+                    RoomService().deleteRoom(groupRoom!);
+                    message.requestConfrim = RequestConfrimEnum.request;
+                    await MessageService().updateMessageAndRefresh(message);
+                    String msg = Utils.getErrorMessage(e);
+                    logger.e(msg, error: e, stackTrace: s);
+                    EasyLoading.showError('Join Group Error: $msg',
+                        duration: const Duration(seconds: 3));
+                    return;
+                  }
+
+                  await Get.offAndToNamed('/room/${groupRoom!.id}',
+                      arguments: groupRoom);
+                  Get.find<HomeController>()
+                      .loadIdentityRoomList(groupRoom!.identityId);
+                }
               });
             },
             child: const Text('Group Info >'));

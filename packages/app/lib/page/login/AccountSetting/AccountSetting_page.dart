@@ -4,6 +4,7 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/routes.dart';
+import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/utils.dart';
@@ -24,10 +25,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          centerTitle: true,
-          title: const Text('ID Settings'),
-        ),
+        appBar: AppBar(centerTitle: true, title: const Text('ID Settings')),
         body: SafeArea(
             child: Column(
           children: [
@@ -121,6 +119,51 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                             arguments: controller.identity.value);
                       },
                     ),
+                  ],
+                ),
+                SettingsSection(
+                  tiles: [
+                    SettingsTile(
+                      leading: const Icon(Icons.mail_lock),
+                      title: const Text("MLS Keys"),
+                      onPressed: (context) async {
+                        String? pk = await MlsGroupService.instance
+                            .getPK(controller.identity.value.secp256k1PKHex);
+
+                        Get.dialog(CupertinoAlertDialog(
+                          title: const Text("MLS Keys"),
+                          content: Text(pk ?? 'not uploaded', maxLines: 3),
+                          actions: <Widget>[
+                            CupertinoDialogAction(
+                              isDefaultAction: true,
+                              onPressed: () async {
+                                if (pk != null) {
+                                  Clipboard.setData(ClipboardData(text: pk));
+                                  EasyLoading.showSuccess("Copied");
+                                  Get.back();
+                                  return;
+                                }
+
+                                await MlsGroupService.instance
+                                    .uploadPKByIdentity(
+                                        controller.identity.value);
+                                EasyLoading.showSuccess('Uploaded');
+                                Get.back();
+                              },
+                              child: pk == null
+                                  ? const Text("Upload")
+                                  : const Text("Copy"),
+                            ),
+                            CupertinoDialogAction(
+                              child: const Text("Close"),
+                              onPressed: () {
+                                Get.back();
+                              },
+                            ),
+                          ],
+                        ));
+                      },
+                    )
                   ],
                 ),
                 SettingsSection(

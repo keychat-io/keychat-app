@@ -1,5 +1,6 @@
 import 'package:app/models/nostr_event_status.dart';
 import 'package:app/nostr-core/subscribe_result.dart';
+import 'package:app/service/mls_group.service.dart';
 import 'package:flutter/foundation.dart' show kReleaseMode;
 
 import 'package:queue/queue.dart';
@@ -368,10 +369,17 @@ class NostrAPI {
         String to = event.tags[0][1];
         try {
           if (event.isNip4) {
-            Room? kdfRoom = await RoomService().getGroupByReceivePubkey(to);
-            if (kdfRoom != null) {
-              await _proccessByKDFRoom(event, kdfRoom, relay, failedCallback);
-              return;
+            Room? groupRoom = await RoomService().getGroupByReceivePubkey(to);
+            if (groupRoom != null) {
+              if (groupRoom.groupType == GroupType.kdf) {
+                await _proccessByKDFRoom(
+                    event, groupRoom, relay, failedCallback);
+                return;
+              }
+              if (groupRoom.groupType == GroupType.mls) {
+                return MlsGroupService.instance.decryptMessage(groupRoom, event,
+                    failedCallback: failedCallback);
+              }
             }
             await dmNip4Proccess(event, relay, failedCallback);
             return;

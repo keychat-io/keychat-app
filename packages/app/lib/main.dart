@@ -1,6 +1,7 @@
 import 'dart:io' show Directory;
 
 import 'package:app/service/chatx.service.dart';
+import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -124,7 +125,7 @@ Future initServices() async {
   Get.put(EcashController(dbPath), permanent: true);
   Get.putAsync(() => ChatxService().init(dbPath));
   Get.putAsync(() => WebsocketService().init());
-
+  MlsGroupService.instance.initDB(dbPath);
   return sc;
 }
 

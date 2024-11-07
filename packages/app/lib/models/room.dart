@@ -22,7 +22,7 @@ part 'room.g.dart';
 
 enum RoomType { common, private, group, bot }
 
-enum GroupType { shareKey, sendAll, kdf }
+enum GroupType { shareKey, sendAll, kdf, mls }
 
 enum EncryptMode { nip04, signal }
 

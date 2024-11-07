@@ -77,7 +77,7 @@ class NostrAPI {
             if (message == 'could not parse command') {
               message = 'ping respose';
             }
-            loggerNoLine.i("Nostr notice: ${relay.url} $message");
+            loggerNoLine.i("Nostr notice: ${relay.url} $res");
             _proccessNotice(relay, res[1]);
             break;
           default:
@@ -161,34 +161,6 @@ class NostrAPI {
     //       pubkey: profile['pubkey'],
     //       petname: profile['petname']);
     // }
-  }
-
-  _proccessNip5(NostrEventModel event) async {
-    try {
-      Map decodedContent = jsonDecode(event.content);
-      if (decodedContent.keys.isEmpty) return;
-      List contacts = await ContactService().getContacts(event.pubkey);
-      if (contacts.isEmpty) return;
-      for (Contact contact in contacts) {
-        if (decodedContent['name'] != null) {
-          contact.name = decodedContent['name'];
-        }
-
-        if (decodedContent['about'] != null) {
-          contact.about = decodedContent['about'];
-        }
-
-        if (decodedContent['picture'] != null) {
-          contact.picture = decodedContent['picture'];
-        }
-
-        contact.updatedAt = DateTime.now();
-        await ContactService().saveContact(contact, sync: false);
-      }
-      Get.find<HomeController>().loadRoomList();
-    } catch (e, s) {
-      logger.e('update user metadata', error: e, stackTrace: s);
-    }
   }
 
   Future syncContact(String pubkey) async {
@@ -524,24 +496,6 @@ class NostrAPI {
       return KeychatMessage.fromJson(str);
     } catch (e) {}
     return null;
-  }
-
-  updateMyMetadata({
-    required String name,
-    String about = '',
-    String picture = '',
-  }) async {
-    // Map data = {"name": name, "about": about, "picture": picture};
-    // Mykey mainMykey = await IdentityService().getDefaultMykey();
-    // NostrEvent event = NostrEvent.from(
-    //     kind: EventKinds.SET_METADATA,
-    //     tags: [],
-    //     content: jsonEncode(data),
-    //     privkey: mainMykey.prikey);
-    // _socket.writeReq(event.serialize());
-
-    // mainMykey.name = name;
-    // await IdentityService().updateMykey(mainMykey);
   }
 
   Future subscripAllMetaData() async {

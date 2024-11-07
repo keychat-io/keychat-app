@@ -188,6 +188,21 @@ class WebsocketService extends GetxService {
     if (sent == 0) throw Exception('Not connected with relay server');
   }
 
+  sendMessage(String content, [String? relay]) {
+    if (relay != null && channels[relay] != null) {
+      return channels[relay]!.sendRawREQ(content);
+    }
+    int sent = 0;
+    for (RelayWebsocket rw in channels.values) {
+      if (rw.channelStatus != RelayStatusEnum.success || rw.channel == null) {
+        continue;
+      }
+      sent++;
+      rw.sendRawREQ(content);
+    }
+    if (sent == 0) throw Exception('Not connected with relay server');
+  }
+
   setChannelStatus(String relay, RelayStatusEnum status,
       [String? errorMessage]) {
     channels[relay]?.channelStatus = status;

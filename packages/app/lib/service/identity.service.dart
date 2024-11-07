@@ -2,6 +2,7 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/models/nostr_event_status.dart';
+import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/secure_storage.dart';
 
@@ -108,7 +109,7 @@ class IdentityService {
     } else {
       NotifyService.addPubkeys([account.pubkey]);
     }
-
+    MlsGroupService.instance.initIdentities([iden]);
     return iden;
   }
 
@@ -129,6 +130,7 @@ class IdentityService {
     Get.find<WebsocketService>().listenPubkey([hexPubkey]);
     Get.find<WebsocketService>().listenPubkeyNip17([hexPubkey]);
     NotifyService.addPubkeys([hexPubkey]);
+    MlsGroupService.instance.initIdentities([iden]);
     return iden;
   }
 

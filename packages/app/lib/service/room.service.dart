@@ -10,6 +10,7 @@ import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/service/kdf_group.service.dart';
+import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/signalId.service.dart';
 import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
@@ -216,7 +217,9 @@ class RoomService extends BaseChatService {
         .group((q) => q
             .groupTypeEqualTo(GroupType.shareKey)
             .or()
-            .groupTypeEqualTo(GroupType.kdf))
+            .groupTypeEqualTo(GroupType.kdf)
+            .or()
+            .groupTypeEqualTo(GroupType.mls))
         .findAll();
   }
 
@@ -481,7 +484,8 @@ class RoomService extends BaseChatService {
       String? fromIdPubkey,
       RequestConfrimEnum? requestConfrim,
       MessageMediaType? mediaType,
-      String? msgKeyHash}) async {
+      String? msgKeyHash,
+      MessageEncryptType? encryptType}) async {
     MsgReply? reply;
     if (km != null) {
       if (km.type == KeyChatEventKinds.dm && km.name != null) {
@@ -504,7 +508,7 @@ class RoomService extends BaseChatService {
         realMessage: realMessage,
         subEvent: sourceEvent != null ? event.toJson().toString() : null,
         content: decodedContent ?? km?.msg ?? event.content,
-        encryptType: RoomUtil.getEncryptMode(event, sourceEvent),
+        encryptType: encryptType ?? RoomUtil.getEncryptMode(event, sourceEvent),
         reply: reply,
         sent: SendStatusType.success,
         isMeSend: fromIdPubkey == room.getIdentity().secp256k1PKHex,
@@ -734,6 +738,9 @@ class RoomService extends BaseChatService {
     switch (room.groupType) {
       case GroupType.shareKey:
         return await groupService.sendMessage(room, message,
+            reply: reply, realMessage: realMessage, mediaType: mediaType);
+      case GroupType.mls:
+        return await MlsGroupService.instance.sendMessage(room, message,
             reply: reply, realMessage: realMessage, mediaType: mediaType);
       case GroupType.sendAll:
         return await groupService.sendToAllMessage(room, message,

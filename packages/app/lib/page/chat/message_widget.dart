@@ -244,8 +244,9 @@ class MessageWidget extends StatelessWidget {
                         overflow: TextOverflow.ellipsis, style: style),
                     Text('To: ${message.to}',
                         overflow: TextOverflow.ellipsis, style: style),
-                    Text('EncryptionKeyHash: ${message.msgKeyHash ?? ''}',
-                        overflow: TextOverflow.ellipsis, style: style),
+                    if (message.msgKeyHash != null)
+                      Text('EncryptionKeyHash: ${message.msgKeyHash}',
+                          overflow: TextOverflow.ellipsis, style: style),
                     Text(
                         'SendAt: ${formatTime(message.createdAt.millisecondsSinceEpoch)}',
                         overflow: TextOverflow.ellipsis,

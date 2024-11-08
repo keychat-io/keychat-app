@@ -1,6 +1,7 @@
 import 'package:app/app.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/message_bill/pay_to_relay_page.dart';
+import 'package:flutter/foundation.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:app/service/contact.service.dart';
@@ -96,10 +97,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                   generalSection(),
                   SettingsSection(tiles: [
                     RoomUtil.pinRoomSection(chatController),
-                    if (chatController.room.isShareKeyGroup ||
-                        chatController.room.isKDFGroup)
-                      RoomUtil.muteSection(chatController),
-                    if (chatController.room.isKDFGroup)
+                    if (!chatController.room.isSendAllGroup)
                       SettingsTile.switchTile(
                         title: const Text('Show Addresses'),
                         initialValue: chatController.showFromAndTo.value,
@@ -109,6 +107,10 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                         },
                         leading: const Icon(CupertinoIcons.mail),
                       ),
+                    if (chatController.room.isShareKeyGroup ||
+                        chatController.room.isKDFGroup ||
+                        chatController.room.isMLSGroup)
+                      RoomUtil.muteSection(chatController),
                   ]),
                   payToRelaySection(),
                   // receiveInPostOffice(),
@@ -403,6 +405,43 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
           }
         },
       ),
+      if (kDebugMode)
+        SettingsTile.navigation(
+          title: const Text("Not Invited Member"),
+          leading: const Icon(CupertinoIcons.person),
+          onPressed: (context) async {
+            List<RoomMember> members = await room.getNotEnableMembers();
+            List list = [];
+            members.map((e) {
+              list.add('${e.name} ${e.idPubkey} ${e.status.name}');
+            });
+            Get.dialog(
+              CupertinoAlertDialog(
+                title: const Text('Not enabled members'),
+                content: SizedBox(
+                  height: 300,
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: list.length,
+                    itemBuilder: (context, index) {
+                      return ListTile(
+                        title: Text(list[index]),
+                      );
+                    },
+                  ),
+                ),
+                actions: <Widget>[
+                  CupertinoDialogAction(
+                    child: const Text('Close'),
+                    onPressed: () {
+                      Get.back();
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
     ]);
   }
 

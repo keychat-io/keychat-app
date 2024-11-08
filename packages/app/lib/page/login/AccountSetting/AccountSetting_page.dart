@@ -135,28 +135,21 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                           content: Text(pk ?? 'not uploaded', maxLines: 3),
                           actions: <Widget>[
                             CupertinoDialogAction(
-                              isDefaultAction: true,
-                              onPressed: () async {
-                                if (pk != null) {
-                                  Clipboard.setData(ClipboardData(text: pk));
-                                  EasyLoading.showSuccess("Copied");
+                                isDefaultAction: true,
+                                onPressed: () async {
+                                  await MlsGroupService.instance
+                                      .uploadPKByIdentity(
+                                          controller.identity.value);
+                                  EasyLoading.showSuccess('Uploaded');
                                   Get.back();
-                                  return;
-                                }
-
-                                await MlsGroupService.instance
-                                    .uploadPKByIdentity(
-                                        controller.identity.value);
-                                EasyLoading.showSuccess('Uploaded');
-                                Get.back();
-                              },
-                              child: pk == null
-                                  ? const Text("Upload")
-                                  : const Text("Copy"),
-                            ),
+                                },
+                                child: const Text("Upload")),
                             CupertinoDialogAction(
-                              child: const Text("Close"),
+                              child: const Text("Copy"),
                               onPressed: () {
+                                Clipboard.setData(
+                                    ClipboardData(text: pk ?? ''));
+                                EasyLoading.showSuccess("Copied");
                                 Get.back();
                               },
                             ),

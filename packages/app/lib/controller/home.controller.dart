@@ -321,7 +321,6 @@ class HomeController extends GetxController
     EasyDebounce.debounce(
         'loadIdentityRoomList:$identityId', const Duration(milliseconds: 200),
         () async {
-      logger.d('Loading rooms: $identityId');
       Map<String, List<Room>> res = await RoomService().getRoomList(identityId);
       List<dynamic> rooms = res['friends'] ?? [];
       List<Room> approving = res['approving'] ?? [];

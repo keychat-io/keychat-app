@@ -92,7 +92,7 @@ class GroupTx {
       me.status = UserStatusType.invited;
       await DBProvider.database.roomMembers.put(me);
     }
-    if (room.isShareKeyGroup || room.isKDFGroup) {
+    if (room.isShareKeyGroup || room.isKDFGroup || room.isMLSGroup) {
       DateTime since = roomUpdateAt != null
           ? DateTime.fromMillisecondsSinceEpoch(roomUpdateAt)
           : DateTime.now().subtract(const Duration(days: 30));

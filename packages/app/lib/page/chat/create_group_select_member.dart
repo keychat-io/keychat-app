@@ -75,8 +75,8 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
         selectAccounts[selectAccount] = contact.displayName;
         selectedContact.add({
           'pubkey': contact.pubkey,
-          'displayName': contact.displayName,
-          'pk': contact.mlsPK
+          'name': contact.displayName,
+          'mlsPK': contact.mlsPK
         });
       }
     }
@@ -139,13 +139,11 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
                     Text(contact.npubkey,
                         maxLines: 1, overflow: TextOverflow.ellipsis),
                     if (contact.mlsPK == null)
-                      Text(
-                        'Not upload MLS keys',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: Colors.pink),
-                      )
+                      Text('Not upload MLS keys',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(color: Colors.pink))
                   ],
                 ),
                 trailing: Checkbox(

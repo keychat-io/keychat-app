@@ -865,7 +865,7 @@ class GroupService extends BaseChatService {
       await room.updateMember(me);
     }
     // listen pubkey
-    if (room.isShareKeyGroup || room.isKDFGroup) {
+    if (room.isShareKeyGroup || room.isKDFGroup || room.isMLSGroup) {
       await Get.find<WebsocketService>()
           .listenPubkey([toMainPubkey], limit: 300);
       NotifyService.addPubkeys([toMainPubkey]);

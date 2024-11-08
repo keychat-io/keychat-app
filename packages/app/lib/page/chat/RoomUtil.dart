@@ -483,11 +483,11 @@ Let's start an encrypted chat.''';
   static String getGroupModeName(GroupType type) {
     switch (type) {
       case GroupType.mls:
-        return 'Big Group';
+        return 'Big Group - Mls';
       case GroupType.kdf:
         return 'Medium Group';
       case GroupType.sendAll:
-        return 'Small Group';
+        return 'Small Group - Signal';
       default:
     }
     return 'common';

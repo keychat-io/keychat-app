@@ -368,21 +368,18 @@ class NostrAPI {
       case EventKinds.encryptedDirectMessage:
         String to = event.tags[0][1];
         try {
-          if (event.isNip4) {
-            Room? groupRoom = await RoomService().getGroupByReceivePubkey(to);
-            if (groupRoom != null) {
-              if (groupRoom.groupType == GroupType.kdf) {
-                await _proccessByKDFRoom(
-                    event, groupRoom, relay, failedCallback);
-                return;
-              }
-              if (groupRoom.groupType == GroupType.mls) {
-                return MlsGroupService.instance.decryptMessage(groupRoom, event,
-                    failedCallback: failedCallback);
-              }
+          Room? groupRoom = await RoomService().getGroupByReceivePubkey(to);
+          if (groupRoom != null) {
+            if (groupRoom.groupType == GroupType.kdf) {
+              await _proccessByKDFRoom(event, groupRoom, relay, failedCallback);
+              return;
             }
-            await dmNip4Proccess(event, relay, failedCallback);
-            return;
+            if (groupRoom.groupType == GroupType.mls) {
+              await MlsGroupService.instance.decryptMessage(groupRoom, event,
+                  failedCallback: failedCallback);
+              return;
+            }
+            throw Exception('groupRoom not found');
           }
 
           // if signal message , to_address is myIDPubkey or one-time-key

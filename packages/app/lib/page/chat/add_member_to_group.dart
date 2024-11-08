@@ -1,6 +1,6 @@
-import 'package:app/controller/home.controller.dart';
 import 'package:app/models/models.dart';
 import 'package:app/service/kdf_group.service.dart';
+import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:flutter/cupertino.dart';
 
@@ -29,7 +29,8 @@ class AddMemberToGroup extends StatefulWidget {
 
 class _AddMemberToGroupState extends State<AddMemberToGroup>
     with TickerProviderStateMixin {
-  List<Contact> _contactList = [];
+  List<Map<String, dynamic>> users = [];
+  Map<String, String> cachePKs = {};
   bool isLoading = false;
 
   _AddMemberToGroupState();
@@ -56,38 +57,45 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
   _getData() async {
     List<Contact> contactList =
         await ContactService().getListExcludeSelf(widget.room.identityId);
+    List<Map<String, dynamic>> list = [];
+    contactList = contactList.reversed.toList();
+    for (int i = 0; i < contactList.length; i++) {
+      var exist = false;
+      if (widget.members.contains(contactList[i].pubkey)) {
+        exist = true;
+      }
+      list.add({
+        "pubkey": contactList[i].pubkey,
+        "npubkey": contactList[i].npubkey,
+        "name": contactList[i].displayName,
+        "exist": exist,
+        "isCheck": false,
+        "mlsPK": null,
+        "isAdmin": widget.adminPubkey == contactList[i].pubkey
+      });
+    }
 
     setState(() {
-      _contactList = contactList.reversed.toList();
+      users = list;
     });
   }
 
   void _completeFromContacts() async {
-    EasyLoading.show(status: 'Proccessing');
-    String myPubkey =
-        Get.find<HomeController>().getSelectedIdentity().secp256k1PKHex;
     Map<String, String> selectAccounts = {};
-    for (int i = 0; i < _contactList.length; i++) {
-      Contact contact = _contactList[i];
-      if (contact.isCheck) {
-        String selectAccount = "";
-        if (myPubkey == contact.pubkey) {
-          selectAccount = myPubkey;
-        } else {
-          selectAccount = contact.pubkey;
-        }
-        selectAccounts[selectAccount] = contact.displayName;
+    List<Map<String, dynamic>> selectUsers = [];
+    for (int i = 0; i < users.length; i++) {
+      Map<String, dynamic> contact = users[i];
+      if (contact['isCheck']) {
+        selectAccounts[contact['pubkey']] = contact['name'];
+        selectUsers.add(contact);
       }
     }
-    _sendInvite(myPubkey, selectAccounts);
-  }
 
-  Future _sendInvite(
-      String myPubkey, Map<String, String> selectAccounts) async {
     if (selectAccounts.isEmpty) {
       EasyLoading.showError("Please select at least one user");
       return;
     }
+    String myPubkey = widget.room.getIdentity().secp256k1PKHex;
     RoomMember? meMember = await widget.room.getMember(myPubkey);
     if (meMember != null) {
       if (!meMember.isAdmin) {
@@ -116,8 +124,11 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
 
     try {
       Room groupRoom = await RoomService().getRoomByIdOrFail(widget.room.id);
-      if (widget.room.isKDFGroup) {
-        String sender = meMember == null ? myPubkey : meMember.name;
+      String sender = meMember == null ? myPubkey : meMember.name;
+      if (widget.room.isMLSGroup) {
+        await MlsGroupService.instance
+            .inviteToJoinGroup(groupRoom, selectUsers, sender: sender);
+      } else if (widget.room.isKDFGroup) {
         await KdfGroupService.instance
             .inviteToJoinGroup(groupRoom, selectAccounts, sender);
       } else {
@@ -135,7 +146,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar:
-          AppBar(centerTitle: true, title: const Text("Add Member"), actions: [
+          AppBar(centerTitle: true, title: const Text("Add Members"), actions: [
         FilledButton(
             onPressed: () {
               EasyThrottle.throttle('_completeFromContacts',
@@ -145,24 +156,68 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
       ]),
       body: SafeArea(
           child: ListView.builder(
-              itemCount: _contactList.length,
+              itemCount: users.length,
               controller: _scrollController,
               itemBuilder: (context, index) {
+                Map<String, dynamic> user = users[index];
                 return ListTile(
-                    leading: getRandomAvatar(_contactList[index].pubkey,
-                        height: 40, width: 40),
-                    title: Text(_contactList[index].displayName),
+                    leading:
+                        getRandomAvatar(user['pubkey'], height: 40, width: 40),
+                    title: Text(
+                      user['name'],
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                     dense: true,
-                    subtitle: Text(_contactList[index].npubkey,
-                        overflow: TextOverflow.ellipsis),
-                    trailing: widget.adminPubkey == _contactList[index].pubkey
+                    subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(user['npubkey'],
+                              overflow: TextOverflow.ellipsis),
+                          FutureBuilder(future: () async {
+                            if (widget.room.groupType != GroupType.mls) {
+                              return null;
+                            }
+                            if (user['mlsPK'] != null) return user['mlsPK'];
+                            if (user['isAdmin']) return null;
+                            if (user['exist']) return null;
+
+                            String? pk = await MlsGroupService.instance
+                                .getPK(user['pubkey']);
+                            if (pk != null) {
+                              user['mlsPK'] = pk;
+                              setState(() {});
+                              return pk;
+                            }
+                            return null;
+                          }(), builder: (context, snapshot) {
+                            if (user['isAdmin']) return Container();
+                            if (user['exist']) return Container();
+
+                            if (widget.room.groupType == GroupType.mls &&
+                                snapshot.data == null) {
+                              return Text('Not upload MLS keys',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(color: Colors.pink));
+                            }
+                            return Container();
+                          })
+                        ]),
+                    trailing: user['isAdmin'] || user['exist']
                         ? const Icon(Icons.check_box,
                             color: Colors.grey, size: 30)
                         : Checkbox(
-                            value: _contactList[index].isCheck,
+                            value: user['isCheck'],
                             onChanged: (isCheck) {
-                              _contactList[index].isCheck = isCheck!;
-                              setState(() {});
+                              user['isCheck'] = isCheck!;
+                              setState(() {
+                                if (user['mlsPK'] == null) {
+                                  user['isCheck'] = false;
+                                  EasyLoading.showError(
+                                      'User Not upload MLS keys');
+                                }
+                              });
                             }));
               })),
     );

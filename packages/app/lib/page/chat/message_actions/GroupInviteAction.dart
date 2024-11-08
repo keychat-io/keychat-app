@@ -123,7 +123,7 @@ class GroupInviteAction extends StatelessWidget {
                         throw 'Welcome message is null';
                       }
                       await MlsGroupService.instance
-                          .sendHelloMessage(identity, groupRoom!, ext);
+                          .acceptJoinGroup(identity, groupRoom!, ext);
                     }
 
                     await MessageService().updateMessageAndRefresh(message);

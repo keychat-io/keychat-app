@@ -240,6 +240,15 @@ class Room extends Equatable {
         .findAll();
   }
 
+  Future<List<RoomMember>> getNotEnableMembers() async {
+    return await DBProvider.database.roomMembers
+        .filter()
+        .roomIdEqualTo(id)
+        .not()
+        .statusEqualTo(UserStatusType.invited)
+        .findAll();
+  }
+
   // inviting + invited
   Future<List<RoomMember>> getActiveMembers() async {
     return await DBProvider.database.roomMembers
@@ -393,12 +402,10 @@ class Room extends Equatable {
   }
 
   Future<void> setMemberInvited(RoomMember rm, String? name) async {
-    if (rm.status != UserStatusType.invited) {
-      rm.status = UserStatusType.invited;
-      if (name != null) rm.name = name;
-      await updateMember(rm);
-      RoomService.getController(id)?.resetMembers();
-    }
+    rm.status = UserStatusType.invited;
+    if (name != null) rm.name = name;
+    await updateMember(rm);
+    RoomService.getController(id)?.resetMembers();
   }
 
   Future updateMember(RoomMember rm) async {

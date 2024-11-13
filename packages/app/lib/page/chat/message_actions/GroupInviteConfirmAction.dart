@@ -60,6 +60,7 @@ class GroupInviteConfirmAction extends StatelessWidget {
                     CupertinoDialogAction(
                         child: const Text('Confirm'),
                         onPressed: () async {
+                          Get.back();
                           try {
                             if (groupRoom.isKDFGroup) {
                               await KdfGroupService.instance.inviteToJoinGroup(
@@ -106,7 +107,6 @@ class GroupInviteConfirmAction extends StatelessWidget {
                               }
                               await MlsGroupService.instance.inviteToJoinGroup(
                                   groupRoom, users, senderName);
-
                               Get.dialog(CupertinoAlertDialog(
                                 title: const Text('Partially successful'),
                                 content: Column(
@@ -134,7 +134,6 @@ class GroupInviteConfirmAction extends StatelessWidget {
                             message.requestConfrim =
                                 RequestConfrimEnum.approved;
                             MessageService().updateMessageAndRefresh(message);
-                            Get.back();
                           } catch (e, s) {
                             String msg = Utils.getErrorMessage(e);
                             EasyLoading.showError(msg);

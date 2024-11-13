@@ -71,9 +71,18 @@ class GroupInviteAction extends StatelessWidget {
                       .filter()
                       .toMainPubkeyEqualTo(
                           roomProfile.oldToRoomPubKey ?? roomProfile.pubkey)
-                      .identityIdEqualTo(identity.id)
                       .findFirst();
                   if (exist != null) {
+                    // joined with another identity
+                    if (exist.identityId != identity.id) {
+                      message.requestConfrim = RequestConfrimEnum.rejected;
+                      await MessageService().updateMessageAndRefresh(message);
+                      EasyLoading.showError(
+                          'You have joined this group with another identity',
+                          duration: const Duration(seconds: 3));
+                      return;
+                    }
+                    // duplicated invitation
                     if (exist.version == roomProfile.updatedAt) {
                       message.requestConfrim = RequestConfrimEnum.approved;
                       await MessageService().updateMessageAndRefresh(message);
@@ -82,6 +91,7 @@ class GroupInviteAction extends StatelessWidget {
                           duration: const Duration(seconds: 3));
                       return;
                     }
+                    // expired invitation
                     if (roomProfile.updatedAt < exist.version) {
                       message.requestConfrim = RequestConfrimEnum.expired;
                       await MessageService().updateMessageAndRefresh(message);
@@ -133,6 +143,15 @@ class GroupInviteAction extends StatelessWidget {
                     message.requestConfrim = RequestConfrimEnum.request;
                     await MessageService().updateMessageAndRefresh(message);
                     String msg = Utils.getErrorMessage(e);
+                    if (msg.contains(
+                        'Error creating StagedWelcome from Welcome')) {
+                      msg =
+                          'PackageMessage is invalid, Contact the group admin, resend the invitation';
+                      await MlsGroupService.instance
+                          .uploadPKByIdentity(identity);
+                      message.requestConfrim = RequestConfrimEnum.expired;
+                      await MessageService().updateMessageAndRefresh(message);
+                    }
                     logger.e(msg, error: e, stackTrace: s);
                     EasyLoading.showError('Join Group Error: $msg',
                         duration: const Duration(seconds: 3));

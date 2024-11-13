@@ -698,10 +698,8 @@ class _ChatPage2State extends State<ChatPage> {
             .loadIdentityRoomList(controller.room.identityId);
         await Get.offAllNamed(Routes.root);
       },
-      child: const Text(
-        'Exit and Delete Room',
-        style: TextStyle(color: Colors.white),
-      ),
+      child: const Text('Exit and Delete Room',
+          style: TextStyle(color: Colors.white)),
     ));
   }
 

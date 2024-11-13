@@ -72,7 +72,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
             IconButton(
                 onPressed: () async {
                   List<RoomMember> members =
-                      await chatController.room.getActiveMembers();
+                      await chatController.room.getEnableMembers();
                   RoomMember? admin = await chatController.room.getAdmin();
                   Set<String> memberPubkeys = {};
                   for (RoomMember rm in members) {
@@ -455,7 +455,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
           ),
           title: Text(
               chatController.meMember.value.isAdmin
-                  ? "Delete Group"
+                  ? "Disband Group"
                   : "Leave Group",
               style: const TextStyle(color: Colors.pink)),
           onPressed: (context) {
@@ -552,8 +552,9 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
 
   Widget _selfExitGroup(BuildContext context) {
     return CupertinoAlertDialog(
-      title: Text(chatController.meMember.value.isAdmin ? "Delete?" : "Leave?"),
-      content: const Text('Are you sure to delete the group?'),
+      title:
+          Text(chatController.meMember.value.isAdmin ? "Disband?" : "Leave?"),
+      content: const Text('Are you sure to disband the group?'),
       actions: <Widget>[
         CupertinoDialogAction(
           child: const Text('Cancel'),
@@ -564,8 +565,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
         CupertinoDialogAction(
             isDestructiveAction: true,
             child: Text(
-              chatController.meMember.value.isAdmin ? "Delete" : "Leave",
-            ),
+                chatController.meMember.value.isAdmin ? "Disband" : "Leave"),
             onPressed: () async {
               EasyLoading.show(status: 'Loading...');
               try {

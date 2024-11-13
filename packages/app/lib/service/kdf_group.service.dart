@@ -14,7 +14,6 @@ import 'package:app/models/keychat/keychat_message.dart';
 import 'package:app/models/keychat/room_profile.dart';
 import 'package:app/models/message.dart';
 import 'package:app/models/mykey.dart';
-import 'package:app/models/nostr_event_status.dart';
 import 'package:app/models/room.dart';
 import 'package:app/models/room_member.dart';
 import 'package:app/models/signal_id.dart';

@@ -337,7 +337,7 @@ $error ''';
             fromIdPubkey: fromIdPubkey,
             encryptType: MessageEncryptType.mls);
       case KeyChatEventKinds.groupAdminRemoveMembers:
-        await _proccessAdminRemoveMembers(room, event, km);
+        await _proccessAdminRemoveMembers(room, event, km, fromIdPubkey!);
         return;
       case KeyChatEventKinds.inviteNewMember:
         RoomProfile roomProfile = RoomProfile.fromJson(jsonDecode(km.name!));
@@ -428,7 +428,9 @@ $error ''';
       idPubkeys.add(rm.idPubkey);
       names.add(rm.name);
       var bLeafNode = await rust_mls.getLeadNodeIndex(
-          nostrId: rm.idPubkey, groupId: room.toMainPubkey);
+          nostrIdAdmin: identity.secp256k1PKHex,
+          nostrIdCommon: rm.idPubkey,
+          groupId: room.toMainPubkey);
       bLeafNodes.add(bLeafNode);
     }
     var queuedMsg = await rust_mls.removeMembers(
@@ -503,125 +505,10 @@ $error ''';
     }
   }
 
-  Future<void> _initMlsDB(String dbpath) async {
-    try {
-      print("_initMlsDB");
-      String path = './mls.sqlite';
-      String groupId = "G11";
-      String signalPath = '$dbpath$path';
-      await rust_mls.initMlsDb(dbPath: signalPath, nostrId: "A");
-      await rust_mls.initMlsDb(dbPath: signalPath, nostrId: "B");
-      await rust_mls.initMlsDb(dbPath: signalPath, nostrId: "C");
-      var bPk = await rust_mls.createKeyPackage(nostrId: "B");
-      var cPk = await rust_mls.createKeyPackage(nostrId: "C");
-      var groupJoinConfig =
-          await rust_mls.createMlsGroup(nostrId: "A", groupId: groupId);
-      print("groupJoinConfig is $groupJoinConfig");
-
-      // A add B
-      var welcome = await rust_mls.addMembers(
-          nostrId: "A", groupId: groupId, keyPackages: [bPk].toList());
-      // A commit
-      await rust_mls.selfCommit(nostrId: "A", groupId: groupId);
-      // b join in the group
-      await rust_mls.joinMlsGroup(
-          nostrId: "B",
-          groupId: groupId,
-          welcome: welcome.$2,
-          groupJoinConfig: groupJoinConfig);
-
-      // A send msg to B
-      var msg = await rust_mls.sendMsg(
-          nostrId: "A", groupId: groupId, msg: "hello, B");
-      // B decrypt A's msg
-      var text = await rust_mls.decryptMsg(
-          nostrId: "B", groupId: groupId, msg: msg.$1);
-      print("B decryptMsg is $text");
-
-      // A add C
-      var welcome2 = await rust_mls.addMembers(
-          nostrId: "A", groupId: groupId, keyPackages: [cPk].toList());
-      // A commit
-      await rust_mls.selfCommit(nostrId: "A", groupId: groupId);
-      // B commit
-      await rust_mls.othersCommitNormal(
-          nostrId: "B", groupId: groupId, queuedMsg: welcome2.$1);
-      // C join in the group
-      await rust_mls.joinMlsGroup(
-          nostrId: "C",
-          groupId: groupId,
-          welcome: welcome2.$2,
-          groupJoinConfig: groupJoinConfig);
-
-      // A send msg to B C
-      var msg2 = await rust_mls.sendMsg(
-          nostrId: "A", groupId: groupId, msg: "hello, B C");
-      // B decrypt A's msg
-      var textB = await rust_mls.decryptMsg(
-          nostrId: "B", groupId: groupId, msg: msg2.$1);
-      print("B decryptMsg is $textB");
-      // B decrypt A's msg
-      var textC = await rust_mls.decryptMsg(
-          nostrId: "C", groupId: groupId, msg: msg2.$1);
-      print("C decryptMsg is $textC");
-      var aHash =
-          await rust_mls.getExportSecret(nostrId: "A", groupId: groupId);
-      print("a_hash: $aHash");
-      var bHash =
-          await rust_mls.getExportSecret(nostrId: "B", groupId: groupId);
-      print("b_hash: $bHash");
-      var cHash =
-          await rust_mls.getExportSecret(nostrId: "C", groupId: groupId);
-      print("c_hash: $cHash");
-
-      // get B leaf node
-      var bLeafNode =
-          await rust_mls.getLeadNodeIndex(nostrId: "B", groupId: groupId);
-
-      // A remove B
-      var queuedMsg = await rust_mls.removeMembers(
-          nostrId: "A", groupId: groupId, members: [bLeafNode].toList());
-
-      // B commit
-      await rust_mls.othersCommitNormal(
-          nostrId: "B", groupId: groupId, queuedMsg: queuedMsg);
-
-      // C commit
-      await rust_mls.othersCommitNormal(
-          nostrId: "C", groupId: groupId, queuedMsg: queuedMsg);
-
-      var aHash2 =
-          await rust_mls.getExportSecret(nostrId: "A", groupId: groupId);
-      print("a_hash2: $aHash2");
-
-      var cHash2 =
-          await rust_mls.getExportSecret(nostrId: "C", groupId: groupId);
-      print("c_hash2: $cHash2");
-
-      // admin update
-      var queuedMsg2 =
-          await rust_mls.selfUpdate(nostrId: "A", groupId: groupId);
-
-      // C commit
-      await rust_mls.othersCommitNormal(
-          nostrId: "C", groupId: groupId, queuedMsg: queuedMsg2);
-
-      var aHash3 =
-          await rust_mls.getExportSecret(nostrId: "A", groupId: groupId);
-      print("a_hash3: $aHash3");
-
-      var cHash3 =
-          await rust_mls.getExportSecret(nostrId: "C", groupId: groupId);
-      print("c_hash3: $cHash3");
-    } catch (e, s) {
-      logger.e(e.toString(), error: e, stackTrace: s);
-    }
-  }
-
   // If the deleted person includes himself, mark the room as kicked.
   // If it is not included, it will not be processed and the message will be displayed directly.
-  Future _proccessAdminRemoveMembers(
-      Room room, NostrEventModel event, KeychatMessage km) async {
+  Future _proccessAdminRemoveMembers(Room room, NostrEventModel event,
+      KeychatMessage km, String fromIdPubkey) async {
     Identity identity = room.getIdentity();
     List list = jsonDecode(km.name!);
     List toRemoveIdPubkeys = list[0];
@@ -636,6 +523,7 @@ $error ''';
       RoomService().receiveDM(room, event,
           decodedContent: toSaveMsg,
           isSystem: true,
+          fromIdPubkey: fromIdPubkey,
           encryptType: MessageEncryptType.mls);
       room = await RoomService().updateRoom(room);
       RoomService.getController(room.id)?.setRoom(room);
@@ -651,7 +539,10 @@ $error ''';
         queuedMsg: welcome);
 
     await RoomService().receiveDM(room, event,
-        decodedContent: km.msg, encryptType: MessageEncryptType.mls);
+        decodedContent: km.toString(),
+        realMessage: km.msg,
+        encryptType: MessageEncryptType.mls,
+        fromIdPubkey: fromIdPubkey);
     await RoomService.getController(room.id)?.resetMembers();
   }
 
@@ -697,7 +588,7 @@ $error ''';
         encryptType: MessageEncryptType.mls);
     RoomMember? meMember = await room.getAdmin();
     if (room.myIdPubkey != meMember?.idPubkey) return;
-    var commitData = await rust_mls.adminCommitLeave(
+    var commitData = await rust_mls.adminProposalLeave(
         nostrId: room.myIdPubkey, groupId: room.toMainPubkey);
 
     String toSendMessage = KeychatMessage.getFeatureMessageString(
@@ -708,10 +599,16 @@ $error ''';
         data: base64.encode(commitData));
     var smr = await MlsGroupService.instance
         .sendMessage(room, toSendMessage, realMessage: '[Commit]: ${km.msg}');
-    RoomUtil.messageReceiveCheck(
-        room, smr.events[0], const Duration(milliseconds: 300), 3);
-    await room.removeMember(fromIdPubkey);
-    RoomService.getController(room.id)?.resetMembers();
+    await RoomUtil.messageReceiveCheck(
+            room, smr.events[0], const Duration(milliseconds: 300), 3)
+        .then((res) async {
+      if (res) {
+        await rust_mls.adminCommitLeave(
+            nostrId: room.myIdPubkey, groupId: room.toMainPubkey);
+        await room.removeMember(fromIdPubkey);
+        RoomService.getController(room.id)?.resetMembers();
+      }
+    });
   }
 
   Future _uploadPKMessage(Identity identity) async {

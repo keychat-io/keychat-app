@@ -144,6 +144,11 @@ class GroupService extends BaseChatService {
         String toSendMessage = KeychatMessage.getFeatureMessageString(
             MessageType.kdfGroup, room, message, subtype);
         await KdfGroupService.instance.sendMessage(room, toSendMessage);
+      } else if (room.isMLSGroup) {
+        String toSendMessage = KeychatMessage.getFeatureMessageString(
+            MessageType.mls, room, message, subtype);
+        await MlsGroupService.instance
+            .sendMessage(room, toSendMessage, save: false);
       } else {
         await sendMessageToGroup(room, message, subtype: subtype);
       }
@@ -183,7 +188,7 @@ class GroupService extends BaseChatService {
       await sendMessageToGroup(room, message, subtype: subtype);
     }
 
-    // await roomService.deleteRoom(room);
+    await roomService.deleteRoom(room);
   }
 
   isAdminCheck(Room room, String pubkey, RoomMember? roomMember) async {

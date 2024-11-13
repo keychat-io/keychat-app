@@ -144,7 +144,7 @@ class RoomService extends BaseChatService {
     var groupType = room.groupType;
     var roomType = room.type;
     int roomId = room.id;
-
+    String toMainPubkey = room.toMainPubkey;
     // delete room's signalId
     String? signalIdPubkey = room.signalIdPubkey;
     List<Room> sameSignalIdrooms = [];
@@ -194,8 +194,14 @@ class RoomService extends BaseChatService {
       await database.rooms.filter().idEqualTo(roomId).deleteFirst();
       await FileUtils.deleteFolderByRoomId(room.identityId, room.id);
     });
-    if (roomType == RoomType.group && groupType == GroupType.shareKey) {
+    if (roomType == RoomType.group &&
+        (groupType == GroupType.shareKey ||
+            groupType == GroupType.kdf ||
+            groupType == GroupType.mls)) {
       NotifyService.removePubkeys([room.toMainPubkey]);
+    }
+    if (groupType == GroupType.mls) {
+      // await rust_mls.removeGroup(room.toMainPubkey);
     }
   }
 
@@ -408,7 +414,6 @@ class RoomService extends BaseChatService {
       {NostrEventModel? sourceEvent, // parent event
       Room? room}) async {
     String toAddress = event.tags[0][1];
-    String from = event.pubkey;
     // group room message
     room ??= await _getGroupRoom(toAddress);
     if (room == null) {}

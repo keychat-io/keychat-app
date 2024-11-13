@@ -1,6 +1,5 @@
 import 'dart:convert' show jsonDecode;
 
-import 'package:app/constants.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/db_provider.dart';
@@ -9,7 +8,6 @@ import 'package:app/models/models.dart';
 
 import 'package:app/page/chat/message_actions/GroupInfoWidget.dart';
 import 'package:app/service/group_tx.dart';
-import 'package:app/service/group.service.dart';
 import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/mls_group.service.dart';
@@ -120,11 +118,7 @@ class GroupInviteAction extends StatelessWidget {
                 }
                 if (groupRoom != null) {
                   try {
-                    if (groupRoom!.isShareKeyGroup) {
-                      await GroupService().sendMessageToGroup(
-                          groupRoom!, '${identity.displayName} joined group.',
-                          subtype: KeyChatEventKinds.groupHi);
-                    } else if (groupRoom!.isKDFGroup) {
+                    if (groupRoom!.isKDFGroup) {
                       await KdfGroupService.instance.sendHelloMessage(identity,
                           groupRoom!.getGroupSharedSignalId(), groupRoom!);
                     } else if (groupRoom!.isMLSGroup) {

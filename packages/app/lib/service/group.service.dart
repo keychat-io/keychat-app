@@ -53,7 +53,7 @@ class GroupService extends BaseChatService {
   ContactService contactService = ContactService();
   IdentityService identityService = IdentityService();
 
-  changeMyNickname(Room room, String nickname) async {
+  Future changeMyNickname(Room room, String newName) async {
     Isar database = DBProvider.database;
 
     RoomMember? rm = await database.roomMembers
@@ -62,25 +62,24 @@ class GroupService extends BaseChatService {
         .idPubkeyEqualTo(room.myIdPubkey)
         .findFirst();
     if (rm == null) return;
-    await sendMessageToGroup(room, '${rm.name} $changeNickName$nickname',
-        subtype: KeyChatEventKinds.groupChangeNickname,
-        realMessage: '🤖 My new nickname: $nickname');
-    rm.name = nickname;
+    await sendMessageToGroup(room, '🤖 My new nickname: $newName',
+        ext: newName, subtype: KeyChatEventKinds.groupChangeNickname);
+    rm.name = newName;
     await database.writeTxn(() async {
       await database.roomMembers.put(rm);
     });
   }
 
-  changeRoomName(int roomId, String name) async {
+  Future changeRoomName(int roomId, String newName) async {
     Room room = await roomService.getRoomByIdOrFail(roomId);
     if (!await room.checkAdminByIdPubkey(room.myIdPubkey)) {
       throw Exception('only admin can change name');
     }
-    room.name = name;
-    await roomService.updateRoom(room);
-    await sendMessageToGroup(room, name,
-        subtype: KeyChatEventKinds.groupChangeRoomName,
-        realMessage: '🤖 New room name: $name');
+    room.name = newName;
+
+    await sendMessageToGroup(room, '🤖 New room name: $newName',
+        subtype: KeyChatEventKinds.groupChangeRoomName, ext: newName);
+    await roomService.updateRoomAndRefresh(room);
   }
 
   bool checkUserInList(List<dynamic> list, String pubkey) {
@@ -131,7 +130,7 @@ class GroupService extends BaseChatService {
     return room;
   }
 
-  dissolveGroup(Room room) async {
+  Future dissolveGroup(Room room) async {
     if (!await room.checkAdminByIdPubkey(room.myIdPubkey)) {
       throw Exception('Only admin can exit group');
     }
@@ -140,18 +139,7 @@ class GroupService extends BaseChatService {
 
     List list = await room.getActiveMembers();
     if (list.isNotEmpty) {
-      if (room.isKDFGroup) {
-        String toSendMessage = KeychatMessage.getFeatureMessageString(
-            MessageType.kdfGroup, room, message, subtype);
-        await KdfGroupService.instance.sendMessage(room, toSendMessage);
-      } else if (room.isMLSGroup) {
-        String toSendMessage = KeychatMessage.getFeatureMessageString(
-            MessageType.mls, room, message, subtype);
-        await MlsGroupService.instance
-            .sendMessage(room, toSendMessage, save: false);
-      } else {
-        await sendMessageToGroup(room, message, subtype: subtype);
-      }
+      await sendMessageToGroup(room, message, subtype: subtype);
     }
 
     await roomService.deleteRoom(room);
@@ -290,9 +278,13 @@ class GroupService extends BaseChatService {
         await _processHelloMessage(room, signPubkey, updatedAt, newName);
         break;
       case KeyChatEventKinds.groupChangeNickname:
-        String newName = groupMessage.message.split(changeNickName)[1];
-        await room.updateMemberName(signPubkey, newName);
-        updateChatControllerMembers(room.id);
+        if (groupMessage.ext != null) {
+          await room.updateMemberName(
+            signPubkey,
+            groupMessage.ext!,
+          );
+          updateChatControllerMembers(room.id);
+        }
         break;
       case KeyChatEventKinds.groupSelfLeave:
         // self exit group
@@ -1122,7 +1114,21 @@ ${rm.idPubkey}
       String? ext,
       String? realMessage}) async {
     if (room.type != RoomType.group) throw Exception('room type error');
-
+    if (room.groupType == GroupType.kdf) {
+      KeychatMessage sm =
+          KeychatMessage(c: MessageType.kdfGroup, type: subtype ?? 0)
+            ..name = ext
+            ..msg = message;
+      return await KdfGroupService.instance.sendMessage(room, sm.toString(),
+          realMessage: realMessage ?? message, save: save);
+    }
+    if (room.groupType == GroupType.mls) {
+      KeychatMessage sm = KeychatMessage(c: MessageType.mls, type: subtype ?? 0)
+        ..name = ext
+        ..msg = message;
+      return await MlsGroupService.instance.sendMessage(room, sm.toString(),
+          realMessage: realMessage ?? message, save: save);
+    }
     if (room.groupType == GroupType.shareKey) {
       return await sendMessage(room, message,
           subtype: subtype, ext: ext, save: save, realMessage: realMessage);

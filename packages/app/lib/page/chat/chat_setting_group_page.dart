@@ -398,9 +398,47 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
         leading: const Icon(CupertinoIcons.person),
         value: textP(chatController.meMember.value.name),
         onPressed: (context) async {
-          if (chatController.room.isSendAllGroup) {
-            _showMyNameDialog();
-          }
+          if (!chatController.room.isMLSGroup) return;
+
+          await Get.dialog(CupertinoAlertDialog(
+            title: const Text("My Name"),
+            content: Container(
+              color: Colors.transparent,
+              padding: const EdgeInsets.only(top: 15),
+              child: TextField(
+                controller: userNameController,
+                textInputAction: TextInputAction.done,
+                decoration: const InputDecoration(
+                    labelText: 'Name', border: OutlineInputBorder()),
+              ),
+            ),
+            actions: <Widget>[
+              CupertinoDialogAction(
+                child: const Text("Cancel"),
+                onPressed: () {
+                  Get.back();
+                },
+              ),
+              CupertinoDialogAction(
+                isDefaultAction: true,
+                onPressed: () async {
+                  String name = userNameController.text.trim();
+                  if (name.isNotEmpty) {
+                    await groupService.changeMyNickname(
+                        chatController.roomObs.value, name);
+                    await chatController.setMeMember(name);
+                    chatController.meMember.refresh();
+                    userNameController.clear();
+                    chatController.resetMembers();
+                    EasyLoading.showSuccess('Success');
+                  }
+
+                  Get.back();
+                },
+                child: const Text("Confirm"),
+              ),
+            ],
+          ));
         },
       ),
       if (kDebugMode)
@@ -444,11 +482,10 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
   }
 
   dangerZoom(BuildContext context) {
-    return SettingsSection(
-      tiles: [
-        RoomUtil.autoCleanMessage(chatController),
-        RoomUtil.clearHistory(chatController),
-        SettingsTile(
+    return SettingsSection(tiles: [
+      RoomUtil.autoCleanMessage(chatController),
+      RoomUtil.clearHistory(chatController),
+      SettingsTile(
           leading: const Icon(
             CupertinoIcons.trash,
             color: Colors.pink,
@@ -460,10 +497,8 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
               style: const TextStyle(color: Colors.pink)),
           onPressed: (context) {
             Get.dialog(_selfExitGroup(context));
-          },
-        ),
-      ],
-    );
+          })
+    ]);
   }
 
   void _showGroupNameDialog() async {
@@ -476,18 +511,15 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
           controller: textEditingController,
           textInputAction: TextInputAction.done,
           decoration: const InputDecoration(
-            labelText: 'Group Name',
-            border: OutlineInputBorder(),
-          ),
+              labelText: 'New Group Name', border: OutlineInputBorder()),
         ),
       ),
       actions: <Widget>[
         CupertinoDialogAction(
-          child: const Text("Cancel"),
-          onPressed: () {
-            Get.back();
-          },
-        ),
+            child: const Text("Cancel"),
+            onPressed: () {
+              Get.back();
+            }),
         CupertinoDialogAction(
           child: const Text("Confirm"),
           onPressed: () async {
@@ -500,49 +532,8 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
               chatController.roomObs.value.name = newName;
               textEditingController.clear();
               chatController.roomObs.update((val) {});
+              EasyLoading.showSuccess('Success');
             }
-            Get.back();
-          },
-        ),
-      ],
-    ));
-  }
-
-  void _showMyNameDialog() async {
-    await Get.dialog(CupertinoAlertDialog(
-      title: const Text("My Name"),
-      content: Container(
-        color: Colors.transparent,
-        padding: const EdgeInsets.only(top: 15),
-        child: TextField(
-          controller: userNameController,
-          textInputAction: TextInputAction.done,
-          decoration: const InputDecoration(
-            labelText: 'Name',
-            border: OutlineInputBorder(),
-          ),
-        ),
-      ),
-      actions: <Widget>[
-        CupertinoDialogAction(
-          child: const Text("Cancel"),
-          onPressed: () {
-            Get.back();
-          },
-        ),
-        CupertinoDialogAction(
-          child: const Text("Confirm"),
-          onPressed: () async {
-            String name = userNameController.text.trim();
-            if (name.isNotEmpty) {
-              await groupService.changeMyNickname(
-                  chatController.roomObs.value, name);
-              await chatController.setMeMember(name);
-              chatController.meMember.refresh();
-              chatController.resetMembers();
-            }
-            userNameController.clear();
-
             Get.back();
           },
         ),

@@ -321,12 +321,6 @@ $error ''';
         }
         await room.removeMember(event.pubkey);
         RoomService.getController(room.id)?.resetMembers();
-        await RoomService().receiveDM(room, event,
-            realMessage: km.msg,
-            isSystem: true,
-            fromIdPubkey: fromIdPubkey,
-            encryptType: MessageEncryptType.mls);
-        return;
       case KeyChatEventKinds.groupDissolve:
         room.status = RoomStatus.dissolved;
         await RoomService().updateRoom(room);
@@ -353,23 +347,37 @@ $error ''';
             nostrId: identity.secp256k1PKHex,
             groupId: groupRoom.toMainPubkey,
             queuedMsg: base64.decode(roomProfile.ext!));
-
-        await RoomService().receiveDM(groupRoom, event,
-            sourceEvent: sourceEvent,
-            decodedContent: km.msg!,
-            isSystem: true,
-            fromIdPubkey: fromIdPubkey,
-            encryptType: MessageEncryptType.mls);
         await proccessUpdateKeys(groupRoom, roomProfile);
 
-        return;
+        break;
+      case KeyChatEventKinds.groupChangeRoomName:
+        if (km.name != null) {
+          room.name = km.name;
+          await RoomService().updateRoomAndRefresh(room);
+        }
+        break;
+      case KeyChatEventKinds.groupChangeNickname:
+        if (km.name != null && fromIdPubkey != null) {
+          await room.updateMemberName(
+            fromIdPubkey,
+            km.name!,
+          );
+          RoomService.getController(room.id)?.resetMembers();
+        }
+        break;
       default:
-        await RoomService().receiveDM(room, event,
+        return await RoomService().receiveDM(room, event,
             sourceEvent: sourceEvent,
             km: km,
             fromIdPubkey: fromIdPubkey,
             encryptType: MessageEncryptType.mls);
     }
+    await RoomService().receiveDM(room, event,
+        decodedContent: km.toString(),
+        realMessage: km.msg,
+        isSystem: true,
+        fromIdPubkey: fromIdPubkey,
+        encryptType: MessageEncryptType.mls);
   }
 
   Future<Room> proccessUpdateKeys(
@@ -586,8 +594,8 @@ $error ''';
         isSystem: true,
         fromIdPubkey: fromIdPubkey,
         encryptType: MessageEncryptType.mls);
-    RoomMember? meMember = await room.getAdmin();
-    if (room.myIdPubkey != meMember?.idPubkey) return;
+    RoomMember? adminMember = await room.getAdmin();
+    if (room.myIdPubkey != adminMember?.idPubkey) return;
     var commitData = await rust_mls.adminProposalLeave(
         nostrId: room.myIdPubkey, groupId: room.toMainPubkey);
 

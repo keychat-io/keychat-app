@@ -406,8 +406,9 @@ class NostrAPI {
         try {
           await _processNip17Message(event, relay, failedCallback);
         } catch (e, s) {
-          ess.setError('nip17 ${e.toString()} ${s.toString()}');
-          logger.e('nip17 decrypt error', error: e, stackTrace: s);
+          String msg = Utils.getErrorMessage(e);
+          ess.setError('nip17 $msg ${s.toString()}');
+          logger.e('nip17 decrypt error: $msg', error: e, stackTrace: s);
         }
         break;
       default:

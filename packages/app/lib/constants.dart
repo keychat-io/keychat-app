@@ -26,7 +26,7 @@ class KeyChatEventKinds {
   static const int groupSharedKeyMessage = 12;
   static const int groupHi = 14;
   static const int groupChangeNickname = 15;
-  static const int groupExist = 16;
+  static const int groupSelfLeave = 16;
   static const int groupDissolve = 17;
   static const int groupSyncMembers = 18;
   static const int groupChangeSignKey =
@@ -35,6 +35,7 @@ class KeyChatEventKinds {
   static const int groupSendToAllMessage = 30; // send message to all
   static const int groupRemoveMember = 31; // remove room member
   static const int groupRemoveSingleMember = 32; // remove single room member
+  static const int groupSelfLeaveConfirm = 33; // confirm to remove member
 
   static const int groupShreKeyEnd = 39;
 
@@ -57,12 +58,12 @@ class KeyChatEventKinds {
   static const int webrtcEnd = 2006;
 
   // kdf group
-  static const int kdfHelloMessage = 3001;
-  static const int kdfWelcomeMessage = 3002;
+  static const int groupHelloMessage = 3001;
+  static const int groupWelcomeMessage = 3002;
   static const int inviteNewMember = 3004;
   static const int inviteToGroupRequest = 3005;
-  static const int kdfUpdateKeys = 3006;
-  static const int kdfAdminRemoveMembers = 3007;
+  static const int groupUpdateKeys = 3006;
+  static const int groupAdminRemoveMembers = 3007;
 }
 
 class EventKinds {

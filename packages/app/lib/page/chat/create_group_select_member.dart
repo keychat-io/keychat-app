@@ -30,7 +30,7 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
   final TextEditingController _userNameController =
       TextEditingController(text: "");
 
-  List<Contact> _contactList = [];
+  List<Map<String, dynamic>> users = [];
 
   @override
   void initState() {
@@ -49,34 +49,44 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
     Identity identity = hc.getSelectedIdentity();
     List<Contact> contactList =
         await ContactService().getListExcludeSelf(identity.id);
-    if (widget.groupType == GroupType.mls) {
-      for (var contact in contactList) {
-        String? pk = await MlsGroupService.instance.getPK(contact.pubkey);
-        contact.mlsPK = pk;
-      }
+    contactList = contactList.reversed.toList();
+    List<Map<String, dynamic>> list = [];
+    for (int i = 0; i < contactList.length; i++) {
+      var exist = false;
+
+      list.add({
+        "pubkey": contactList[i].pubkey,
+        "npubkey": contactList[i].npubkey,
+        "name": contactList[i].displayName,
+        "exist": exist,
+        "isCheck": false,
+        "mlsPK": null,
+        "isAdmin": false,
+        'mlsPKLoaded': false
+      });
     }
     setState(() {
-      _contactList = contactList.toList();
+      users = list;
     });
   }
 
   void _completeToCreatGroup() async {
     Map<String, String> selectAccounts = {};
     List<Map<String, dynamic>> selectedContact = [];
-    for (int i = 0; i < _contactList.length; i++) {
-      Contact contact = _contactList[i];
-      if (contact.isCheck) {
+    for (int i = 0; i < users.length; i++) {
+      Map contact = users[i];
+      if (contact['isCheck']) {
         String selectAccount = "";
-        if (hc.getSelectedIdentity().secp256k1PKHex == contact.pubkey) {
+        if (hc.getSelectedIdentity().secp256k1PKHex == contact['pubkey']) {
           selectAccount = hc.getSelectedIdentity().secp256k1PKHex;
         } else {
-          selectAccount = contact.pubkey;
+          selectAccount = contact['pubkey'];
         }
-        selectAccounts[selectAccount] = contact.displayName;
+        selectAccounts[selectAccount] = contact['name'];
         selectedContact.add({
-          'pubkey': contact.pubkey,
-          'name': contact.displayName,
-          'mlsPK': contact.mlsPK
+          'pubkey': contact['pubkey'],
+          'name': contact['name'],
+          'mlsPK': contact['mlsPK']
         });
       }
     }
@@ -125,36 +135,65 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
         ),
         body: SafeArea(
             child: ListView.builder(
-          itemCount: _contactList.length,
+          itemCount: users.length,
           controller: _scrollController,
           itemBuilder: (context, index) {
-            Contact contact = _contactList[index];
+            Map user = users[index];
             return ListTile(
                 dense: true,
-                leading: getRandomAvatar(contact.pubkey, height: 30, width: 30),
-                title: Text(contact.displayName, maxLines: 1),
+                leading: getRandomAvatar(user['pubkey'], height: 30, width: 30),
+                title: Text(user['name'], maxLines: 1),
                 subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(contact.npubkey,
-                        maxLines: 1, overflow: TextOverflow.ellipsis),
-                    if (contact.mlsPK == null)
-                      Text('Not upload MLS keys',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(color: Colors.pink))
-                  ],
-                ),
-                trailing: Checkbox(
-                    value: contact.isCheck,
-                    tristate: contact.mlsPK == null,
-                    onChanged: contact.mlsPK == null
-                        ? null
-                        : (isCheck) {
-                            contact.isCheck = isCheck!;
-                            setState(() {});
-                          }));
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(user['npubkey'], overflow: TextOverflow.ellipsis),
+                      FutureBuilder(future: () async {
+                        if (widget.groupType != GroupType.mls) {
+                          return null;
+                        }
+                        if (user['mlsPK'] != null) return user['mlsPK'];
+                        if (user['mlsPKLoaded']) return null;
+                        if (user['isAdmin']) return null;
+                        if (user['exist']) return null;
+
+                        String? pk = await MlsGroupService.instance
+                            .getPK(user['pubkey']);
+                        user['mlsPKLoaded'] = true;
+                        user['mlsPK'] = pk;
+                        setState(() {});
+                        return null;
+                      }(), builder: (context, snapshot) {
+                        if (user['isAdmin']) return Container();
+                        if (user['exist']) return Container();
+
+                        if (widget.groupType == GroupType.mls &&
+                            snapshot.data == null) {
+                          return Text('Not upload MLS keys',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(color: Colors.pink));
+                        }
+                        return Container();
+                      })
+                    ]),
+                trailing: widget.groupType == GroupType.mls &&
+                        user['mlsPKLoaded'] == false
+                    ? const SizedBox(
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : Checkbox(
+                        value: user['isCheck'],
+                        tristate: widget.groupType == GroupType.mls &&
+                            user['mlsPK'] == null,
+                        onChanged: widget.groupType == GroupType.mls &&
+                                user['mlsPK'] == null
+                            ? null
+                            : (isCheck) {
+                                user['isCheck'] = isCheck!;
+                                setState(() {});
+                              }));
           },
         )));
   }

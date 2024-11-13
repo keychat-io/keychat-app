@@ -10,6 +10,7 @@ import 'package:app/models/nostr_event_status.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/ChatMediaFilesPage.dart';
 import 'package:app/page/chat/contact_page.dart';
+import 'package:app/service/websocket.service.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
@@ -38,6 +39,29 @@ import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart' hide Contact;
 import 'package:settings_ui/settings_ui.dart';
 
 class RoomUtil {
+  static Future<bool> messageReceiveCheck(
+      Room room, NostrEventModel event, Duration delay, int maxRetry) async {
+    if (maxRetry == 0) return false;
+    maxRetry--;
+    await Future.delayed(delay);
+    String id = event.id;
+    NostrEventStatus? nes = await DBProvider.database.nostrEventStatus
+        .filter()
+        .eventIdEqualTo(id)
+        .sendStatusEqualTo(EventSendEnum.success)
+        .findFirst();
+    if (nes != null) {
+      return true;
+    }
+    Get.find<WebsocketService>().writeNostrEvent(
+        event: event,
+        eventString: event.toJsonString(),
+        roomId: room.id,
+        toRelays: room.sendingRelays);
+    logger.i('_messageReceiveCheck: ${event.id}, maxRetry: $maxRetry');
+    return await messageReceiveCheck(room, event, delay, maxRetry);
+  }
+
   static GroupMessage getGroupMessage(Room room, String message,
       {int? subtype,
       required String pubkey,
@@ -483,11 +507,11 @@ Let's start an encrypted chat.''';
   static String getGroupModeName(GroupType type) {
     switch (type) {
       case GroupType.mls:
-        return 'Big Group - Mls';
+        return 'Big Group - MLS';
       case GroupType.kdf:
-        return 'Medium Group';
+        return 'Medium Group - Signal';
       case GroupType.sendAll:
-        return 'Small Group - Signal';
+        return 'Small Group - P2P Signal';
       default:
     }
     return 'common';
@@ -507,9 +531,9 @@ Let's start an encrypted chat.''';
         return '''1. Anti-Forgery ✅
 2. End-to-End Encryption ✅
 3. Forward Secrecy ✅
-4. Backward Secrecy 🟢60% 
+4. Backward Secrecy ✅
 5. Metadata Privacy 🟢80%
-6. Recommended Group Limit: <60
+6. Recommended Group Limit: unlimited
 ''';
       case GroupType.shareKey:
         return '''1. Members < 30

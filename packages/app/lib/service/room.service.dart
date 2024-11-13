@@ -285,7 +285,6 @@ class RoomService extends BaseChatService {
     return await DBProvider.database.rooms
         .filter()
         .typeEqualTo(RoomType.group)
-        .groupTypeEqualTo(GroupType.shareKey)
         .mykey((q) => q.pubkeyEqualTo(to))
         .findFirst();
   }
@@ -403,18 +402,16 @@ class RoomService extends BaseChatService {
   }
 
   Future processKeychatMessage(
-    KeychatMessage km,
-    NostrEventModel event, // as subEvent
-    Relay relay, [
-    NostrEventModel? sourceEvent, // parent event
-  ]) async {
+      KeychatMessage km,
+      NostrEventModel event, // as subEvent
+      Relay relay,
+      {NostrEventModel? sourceEvent, // parent event
+      Room? room}) async {
     String toAddress = event.tags[0][1];
     String from = event.pubkey;
-    Room? room;
     // group room message
-    if (from == toAddress) {
-      room = await _getGroupRoom(toAddress);
-    }
+    room ??= await _getGroupRoom(toAddress);
+    if (room == null) {}
     if (room == null) {
       Identity? identity;
       Mykey? mykey;
@@ -832,16 +829,6 @@ class RoomService extends BaseChatService {
     if (refresh) Get.find<HomeController>().loadIdentityRoomList(identityId);
   }
 
-  // Future sendHelloMessage(Room room, Identity identity,
-  //     {int type = KeyChatEventKinds.dmAddContactFromAlice,
-  //     String? greeting}) async {
-  //   KeychatMessage sm = await KeychatMessage(c: MessageType.signal, type: type)
-  //       .setHelloMessagge(identity, greeting: greeting);
-  //   await sendNip17Message(room, identity,
-  //       sourceContent: sm.toString(), realMessage: sm.msg);
-  //   return;
-  // }
-
   Future<SendMessageResponse> sendNip17Message(
     Room room,
     Identity identity, {
@@ -870,12 +857,10 @@ class RoomService extends BaseChatService {
     KeychatMessage sm =
         KeychatMessage(c: MessageType.signal, type: KeyChatEventKinds.dmReject);
 
-    await sendNip17Message(
-      room,
-      room.getIdentity(),
-      sourceContent: sm.toString(),
-      realMessage: 'Reject',
-    );
+    await sendNip17Message(room, room.getIdentity(),
+        sourceContent: sm.toString(),
+        realMessage: 'Reject',
+        timestampTweaked: false);
   }
 }
 

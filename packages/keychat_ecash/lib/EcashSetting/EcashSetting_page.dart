@@ -1,3 +1,5 @@
+import 'package:app/service/secure_storage.dart';
+import 'package:flutter/services.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:app/utils.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
@@ -13,24 +15,18 @@ class EcashSettingPage extends GetView<EcashSettingController> {
 
   @override
   Widget build(BuildContext context) {
-    EcashController ec = Get.find<EcashController>();
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Setting'),
-      ),
+      appBar: AppBar(title: const Text('Setting')),
       body: SettingsList(platform: DevicePlatform.iOS, sections: [
         SettingsSection(tiles: [
           SettingsTile.navigation(
-            leading: getRandomAvatar(ec.currentIdentity!.secp256k1PKHex,
-                height: 30, width: 30),
-            title: Text(
-              ec.currentIdentity!.displayName.length > 8
-                  ? "${ec.currentIdentity!.displayName.substring(0, 8)}..."
-                  : ec.currentIdentity!.displayName,
-            ),
-            onPressed: (context) {
+            leading: const Icon(Icons.lock),
+            title: const Text('Ecash Seed Phrase'),
+            onPressed: (context) async {
+              String? words = await SecureStorage.instance.getPhraseWords();
               Get.dialog(CupertinoAlertDialog(
-                content: const Text(
+                title: const Text('Ecash Seed Phrase'),
+                content: Text(words ??
                     'The seed phrase for the first ID is also the seed phrase for ecash.'),
                 actions: [
                   CupertinoDialogAction(
@@ -38,12 +34,22 @@ class EcashSettingPage extends GetView<EcashSettingController> {
                     onPressed: () {
                       Get.back();
                     },
-                  )
+                  ),
+                  if (words != null)
+                    CupertinoDialogAction(
+                      isDefaultAction: true,
+                      onPressed: () async {
+                        await Clipboard.setData(ClipboardData(text: words));
+                        EasyLoading.showSuccess('Copied');
+                        Get.back();
+                      },
+                      child: const Text('Copy'),
+                    )
                 ],
               ));
             },
           ),
-          SettingsTile(
+          SettingsTile.navigation(
             leading: const Icon(Icons.restore),
             title: const Text('Restore From Mint Server'),
             onPressed: (context) async {

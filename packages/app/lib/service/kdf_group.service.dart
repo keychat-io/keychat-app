@@ -20,6 +20,7 @@ import 'package:app/models/room_member.dart';
 import 'package:app/models/signal_id.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/nostr-core/nostr_event.dart';
+import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/chat.service.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/group.service.dart';
@@ -45,9 +46,9 @@ class KdfGroupService extends BaseChatService {
 
   bool adminOnlyMiddleware(RoomMember from, int type) {
     const Set<int> adminTypes = {
-      KeyChatEventKinds.kdfAdminRemoveMembers,
+      KeyChatEventKinds.groupAdminRemoveMembers,
       KeyChatEventKinds.inviteNewMember,
-      KeyChatEventKinds.kdfUpdateKeys,
+      KeyChatEventKinds.groupUpdateKeys,
       KeyChatEventKinds.groupDissolve
     };
     if (adminTypes.contains(type)) {
@@ -255,11 +256,11 @@ Let's create a new group.''';
       String? fromIdPubkey,
       required KeychatMessage km}) async {
     switch (km.type) {
-      case KeyChatEventKinds.kdfHelloMessage:
+      case KeyChatEventKinds.groupHelloMessage:
         await _proccessHelloMessage(room, event, km,
             sourceEvent: sourceEvent, msgKeyHash: msgKeyHash);
         return;
-      case KeyChatEventKinds.groupExist:
+      case KeyChatEventKinds.groupSelfLeave:
         // self exit group
         if (event.pubkey == room.myIdPubkey) {
           return;
@@ -280,11 +281,11 @@ Let's create a new group.''';
             decodedContent: km.msg!,
             isSystem: true,
             fromIdPubkey: fromIdPubkey);
-      case KeyChatEventKinds.kdfAdminRemoveMembers:
+      case KeyChatEventKinds.groupAdminRemoveMembers:
         await _proccessAdminRemoveMembers(room, event, km, sourceEvent);
         return;
       case KeyChatEventKinds.inviteNewMember:
-      case KeyChatEventKinds.kdfUpdateKeys:
+      case KeyChatEventKinds.groupUpdateKeys:
         RoomProfile roomProfile = RoomProfile.fromJson(jsonDecode(km.name!));
         Room groupRoom = await getGroupRoomByIdRoom(room, roomProfile);
         if (roomProfile.updatedAt < groupRoom.version) {
@@ -405,7 +406,8 @@ Let's create a new group.''';
       names.add(rm.name);
     }
     KeychatMessage sm = KeychatMessage(
-        c: MessageType.kdfGroup, type: KeyChatEventKinds.kdfAdminRemoveMembers)
+        c: MessageType.kdfGroup,
+        type: KeyChatEventKinds.groupAdminRemoveMembers)
       ..name = jsonEncode(idPubkeys)
       ..msg = 'Admin remove members: ${names.join(',')}';
 
@@ -433,7 +435,7 @@ Let's create a new group.''';
         getKDFRoomIdentityForShared(room.id));
     // send hello message
     KeychatMessage sm = KeychatMessage(
-        c: MessageType.kdfGroup, type: KeyChatEventKinds.kdfHelloMessage)
+        c: MessageType.kdfGroup, type: KeyChatEventKinds.groupHelloMessage)
       ..name = identity.displayName
       ..msg = '${identity.displayName} joined group';
     SendMessageResponse smr = await KdfGroupService.instance
@@ -442,7 +444,7 @@ Let's create a new group.''';
     var toSendEvent = smr.events[0];
     DateTime createdAt =
         DateTime.fromMillisecondsSinceEpoch(toSendEvent.createdAt * 1000);
-    _messageReceiveCheck(
+    RoomUtil.messageReceiveCheck(
             room, toSendEvent, const Duration(milliseconds: 500), 3)
         .then((success) async {
       if (success) return;
@@ -514,7 +516,7 @@ Let's create a new group.''';
         .getRoomProfile(room, signalId: signalId, mykey: mykey);
 
     KeychatMessage km = KeychatMessage(
-        c: MessageType.kdfGroup, type: KeyChatEventKinds.kdfUpdateKeys)
+        c: MessageType.kdfGroup, type: KeyChatEventKinds.groupUpdateKeys)
       ..name = roomProfile.toString()
       ..msg = 'Let\'s reset the status of group [${room.name}]';
 
@@ -594,29 +596,6 @@ Let's create a new group.''';
         event: event,
         sourceEvent: sourceEvent,
         fromIdPubkey: fromMember.idPubkey);
-  }
-
-  Future<bool> _messageReceiveCheck(
-      Room room, NostrEventModel event, Duration delay, int maxRetry) async {
-    if (maxRetry == 0) return false;
-    maxRetry--;
-    await Future.delayed(delay);
-    String id = event.id;
-    NostrEventStatus? nes = await DBProvider.database.nostrEventStatus
-        .filter()
-        .eventIdEqualTo(id)
-        .sendStatusEqualTo(EventSendEnum.success)
-        .findFirst();
-    if (nes != null) {
-      return true;
-    }
-    Get.find<WebsocketService>().writeNostrEvent(
-        event: event,
-        eventString: event.toJsonString(),
-        roomId: room.id,
-        toRelays: room.sendingRelays);
-    logger.i('_messageReceiveCheck: ${event.id}, maxRetry: $maxRetry');
-    return await _messageReceiveCheck(room, event, delay, maxRetry);
   }
 
   // If the deleted person includes himself, mark the room as kicked.

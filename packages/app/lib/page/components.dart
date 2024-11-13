@@ -266,20 +266,28 @@ showFitSheetWidget(BuildContext context, String title, List<Widget> bodys,
 }
 
 getGroupInfoBottomSheetWidget(BuildContext context) {
-  showFitSheetWidget(
-    context,
-    'Group Type Info',
-    [
-      ListTile(
-        title: const Text('1. Medium Group'),
-        subtitle: Text(RoomUtil.getGroupModeDescription(GroupType.kdf)),
-      ),
-      ListTile(
-        title: const Text('2. Small Group'),
-        subtitle: Text(RoomUtil.getGroupModeDescription(GroupType.sendAll)),
-      ),
-    ],
-  );
+  showModalBottomSheetWidget(
+      context,
+      'Group Type Info',
+      ListView(
+        children: [
+          ListTile(
+            title: Text('Large Group - MLS',
+                style: Theme.of(context).textTheme.titleMedium),
+            subtitle: Text(RoomUtil.getGroupModeDescription(GroupType.mls)),
+          ),
+          ListTile(
+            title: Text('Medium Group - Signal',
+                style: Theme.of(context).textTheme.titleMedium),
+            subtitle: Text(RoomUtil.getGroupModeDescription(GroupType.kdf)),
+          ),
+          ListTile(
+            title: Text('Small Group - P2P Signal',
+                style: Theme.of(context).textTheme.titleMedium),
+            subtitle: Text(RoomUtil.getGroupModeDescription(GroupType.sendAll)),
+          ),
+        ],
+      ));
 }
 
 Widget codeSnippet(String text) {

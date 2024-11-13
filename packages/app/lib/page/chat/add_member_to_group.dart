@@ -71,6 +71,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
         "exist": exist,
         "isCheck": false,
         "mlsPK": null,
+        "mlsPKLoaded": false,
         "isAdmin": widget.adminPubkey == contactList[i].pubkey
       });
     }
@@ -127,7 +128,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
       String sender = meMember == null ? myPubkey : meMember.name;
       if (widget.room.isMLSGroup) {
         await MlsGroupService.instance
-            .inviteToJoinGroup(groupRoom, selectUsers, sender: sender);
+            .inviteToJoinGroup(groupRoom, selectUsers, sender);
       } else if (widget.room.isKDFGroup) {
         await KdfGroupService.instance
             .inviteToJoinGroup(groupRoom, selectAccounts, sender);
@@ -178,17 +179,16 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
                               return null;
                             }
                             if (user['mlsPK'] != null) return user['mlsPK'];
+                            if (user['mlsPKLoaded']) return user['mlsPK'];
                             if (user['isAdmin']) return null;
                             if (user['exist']) return null;
 
                             String? pk = await MlsGroupService.instance
                                 .getPK(user['pubkey']);
-                            if (pk != null) {
-                              user['mlsPK'] = pk;
-                              setState(() {});
-                              return pk;
-                            }
-                            return null;
+                            user['mlsPKLoaded'] = true;
+                            user['mlsPK'] = pk;
+                            setState(() {});
+                            return pk;
                           }(), builder: (context, snapshot) {
                             if (user['isAdmin']) return Container();
                             if (user['exist']) return Container();
@@ -204,21 +204,31 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
                             return Container();
                           })
                         ]),
-                    trailing: user['isAdmin'] || user['exist']
-                        ? const Icon(Icons.check_box,
-                            color: Colors.grey, size: 30)
-                        : Checkbox(
-                            value: user['isCheck'],
-                            onChanged: (isCheck) {
-                              user['isCheck'] = isCheck!;
-                              setState(() {
-                                if (user['mlsPK'] == null) {
-                                  user['isCheck'] = false;
-                                  EasyLoading.showError(
-                                      'User Not upload MLS keys');
-                                }
-                              });
-                            }));
+                    trailing: widget.room.groupType == GroupType.mls &&
+                            user['mlsPKLoaded'] == false &&
+                            !user['isAdmin'] &&
+                            !user['exist']
+                        ? const SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2))
+                        : (user['isAdmin'] || user['exist']
+                            ? const Icon(Icons.check_box,
+                                color: Colors.grey, size: 30)
+                            : Checkbox(
+                                value: user['isCheck'],
+                                onChanged: (isCheck) {
+                                  user['isCheck'] = isCheck!;
+                                  setState(() {
+                                    if (widget.room.groupType ==
+                                            GroupType.mls &&
+                                        user['mlsPK'] == null) {
+                                      user['isCheck'] = false;
+                                      EasyLoading.showError(
+                                          'User Not upload MLS keys');
+                                    }
+                                  });
+                                })));
               })),
     );
   }

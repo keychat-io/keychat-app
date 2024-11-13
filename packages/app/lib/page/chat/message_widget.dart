@@ -593,9 +593,11 @@ class MessageWidget extends StatelessWidget {
           child: Padding(
               padding:
                   const EdgeInsets.only(left: 10, right: 4, top: 8, bottom: 4),
-              child: Text(
-                title,
-              ))),
+              child: Text(title,
+                  style: Theme.of(Get.context!)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: fontColor.withOpacity(0.7))))),
       TableCell(
           child: Padding(
               padding:
@@ -843,6 +845,7 @@ class MessageWidget extends StatelessWidget {
   }
 
   Map encryptText = {
+    'mls': 'MLS Protocol',
     'signal': 'Signal Protocol',
     'nip4': 'NIP4',
     'nip17': 'NIP17',

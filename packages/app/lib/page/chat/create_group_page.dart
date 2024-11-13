@@ -45,6 +45,23 @@ class _AddGroupPageState extends State<AddGroupPage>
           centerTitle: true,
           title: const Text("New Group Chat"),
         ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+        floatingActionButton: Container(
+            padding: const EdgeInsets.only(left: 16, right: 16, top: 30),
+            child: FilledButton(
+                style: ButtonStyle(
+                    minimumSize: WidgetStateProperty.all(
+                        const Size(double.infinity, 44))),
+                onPressed: () {
+                  String groupName = _groupNameController.text.trim();
+                  if (groupName.isEmpty) {
+                    EasyLoading.showToast('Please input group name');
+                    return;
+                  }
+
+                  Get.to(() => CreateGroupSelectMember(groupName, groupType));
+                },
+                child: const Text('Next'))),
         body: SafeArea(
           child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 16),
@@ -62,18 +79,16 @@ class _AddGroupPageState extends State<AddGroupPage>
                           ),
                         )),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 8, horizontal: 16),
-                      child: Text("Select Group Mode",
-                          style: Theme.of(context).textTheme.titleMedium),
-                    ),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 8, horizontal: 16),
+                        child: Text("Select Group Mode",
+                            style: Theme.of(context).textTheme.titleMedium)),
                     ListTile(
-                        title: Text("Large Group - MLS Protocl",
+                        title: Text("Large Group - MLS Protocol",
                             style: Theme.of(context).textTheme.titleSmall),
                         subtitle: Text(
-                          RoomUtil.getGroupModeDescription(GroupType.mls),
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
+                            RoomUtil.getGroupModeDescription(GroupType.mls),
+                            style: Theme.of(context).textTheme.bodySmall),
                         leading: Radio<GroupType>(
                           value: GroupType.mls,
                           groupValue: groupType,
@@ -91,11 +106,33 @@ class _AddGroupPageState extends State<AddGroupPage>
                             .primary
                             .withOpacity(0.1)),
                     ListTile(
+                        title: Text("Medium Group - Signal Protocol",
+                            style: Theme.of(context).textTheme.titleSmall),
+                        subtitle: Text(
+                            RoomUtil.getGroupModeDescription(GroupType.kdf),
+                            style: Theme.of(context).textTheme.bodySmall),
+                        leading: Radio<GroupType>(
+                          value: GroupType.kdf,
+                          groupValue: groupType,
+                          onChanged: (value) {
+                            FocusScope.of(context).unfocus();
+                            setState(() {
+                              groupType = value as GroupType;
+                              selectedGroupType = GroupType.kdf;
+                            });
+                          },
+                        ),
+                        selected: selectedGroupType == GroupType.kdf,
+                        selectedTileColor: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withOpacity(0.1)),
+                    ListTile(
                       selectedTileColor: Theme.of(context)
                           .colorScheme
                           .primary
                           .withOpacity(0.1),
-                      title: Text('Small Group - Signal Protocol',
+                      title: Text('Small Group - P2P Signal Protocol',
                           style: Theme.of(context).textTheme.titleSmall),
                       subtitle: Text(
                           RoomUtil.getGroupModeDescription(GroupType.sendAll),
@@ -113,63 +150,6 @@ class _AddGroupPageState extends State<AddGroupPage>
                         },
                       ),
                     ),
-                    // Visibility(
-                    //   visible: groupType == GroupType.shareKey,
-                    //   child: Container(
-                    //     padding: const EdgeInsets.only(left: 16, top: 16),
-                    //     child: Text(
-                    //       "Group Relay",
-                    //       style: Theme.of(context).textTheme.titleMedium,
-                    //     ),
-                    //   ),
-                    // ),
-                    // Visibility(
-                    //   visible: groupType == GroupType.shareKey,
-                    //   child: relays.isEmpty
-                    //       ? const Text('No any connected relay')
-                    //       : ListView.builder(
-                    //           shrinkWrap: true,
-                    //           physics: const NeverScrollableScrollPhysics(),
-                    //           itemCount: relays.length,
-                    //           itemBuilder: (context, index) {
-                    //             return RadioListTile<int>(
-                    //               title: Text(relays[index]),
-                    //               value: index,
-                    //               dense: true,
-                    //               groupValue: _selectedRelay,
-                    //               subtitle: Text(
-                    //                   'Fee: ${_getRelayFee(relays[index])} sat/message'),
-                    //               onChanged: (int? value) {
-                    //                 if (value == null) return;
-
-                    //                 setState(() {
-                    //                   _selectedRelay = value;
-                    //                 });
-                    //               },
-                    //             );
-                    //           },
-                    //         ),
-                    // ),
-                    Container(
-                        padding:
-                            const EdgeInsets.only(left: 16, right: 16, top: 30),
-                        child: FilledButton(
-                            style: ButtonStyle(
-                                minimumSize: WidgetStateProperty.all(
-                                    const Size(double.infinity, 44))),
-                            onPressed: () {
-                              String groupName =
-                                  _groupNameController.text.trim();
-                              if (groupName.isEmpty) {
-                                EasyLoading.showToast(
-                                    'Please input group name');
-                                return;
-                              }
-
-                              Get.to(() => CreateGroupSelectMember(
-                                  groupName, groupType));
-                            },
-                            child: const Text('Next'))),
                   ]))),
         ));
   }

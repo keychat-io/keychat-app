@@ -451,6 +451,19 @@ class Room extends Equatable {
     });
   }
 
+  Future setMemberDisableByPubkey(String idPubkey) async {
+    RoomMember? model = await DBProvider.database.roomMembers
+        .filter()
+        .roomIdEqualTo(id)
+        .idPubkeyEqualTo(idPubkey)
+        .findFirst();
+    if (model == null) return;
+    await DBProvider.database.writeTxn(() async {
+      model.status = UserStatusType.removed;
+      await DBProvider.database.roomMembers.put(model);
+    });
+  }
+
   String getRoomName() {
     if (type == RoomType.group) {
       return name!;

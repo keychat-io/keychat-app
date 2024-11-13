@@ -24,13 +24,14 @@ class KeychatMessage {
   late int type; // = KeyChatEventKinds.start;
   String? msg;
   String? name;
+  String? data;
 
-  KeychatMessage({
-    required this.type,
-    required this.c, // category
-    this.msg,
-    this.name,
-  });
+  KeychatMessage(
+      {required this.type,
+      required this.c, // category
+      this.msg,
+      this.name,
+      this.data});
   BaseChatService get service {
     switch (c) {
       case MessageType.nip04:
@@ -102,6 +103,14 @@ $greeting''';
             msg: content,
             name: reply.toString())
         .toString();
+  }
+
+  static String getFeatureMessageString(
+      MessageType type, Room room, String message, int subtype,
+      {String? name, String? data}) {
+    KeychatMessage km = KeychatMessage(
+        c: type, type: subtype, msg: message, data: data, name: name);
+    return km.toString();
   }
 }
 

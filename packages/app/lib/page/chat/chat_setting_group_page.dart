@@ -381,20 +381,18 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
           value: Text(RoomUtil.getGroupModeName(
               chatController.roomObs.value.groupType)),
           onPressed: getGroupInfoBottomSheetWidget),
-      SettingsTile.navigation(
-        title: const Text("Group Name"),
-        leading: const Icon(CupertinoIcons.pencil),
-        value: Text("${chatController.roomObs.value.name}"),
-        onPressed: (context) async {
-          if (!chatController.room.isSendAllGroup) return;
-
-          if (!chatController.meMember.value.isAdmin) {
-            EasyLoading.showError("Admin only");
-            return;
-          }
-          _showGroupNameDialog();
-        },
-      ),
+      chatController.meMember.value.isAdmin
+          ? SettingsTile.navigation(
+              title: const Text("Group Name"),
+              leading: const Icon(CupertinoIcons.flag),
+              value: Text("${chatController.roomObs.value.name}"),
+              onPressed: (context) async {
+                _showGroupNameDialog();
+              })
+          : SettingsTile(
+              title: const Text("Group Name"),
+              leading: const Icon(CupertinoIcons.flag),
+              value: Text("${chatController.roomObs.value.name}")),
       SettingsTile.navigation(
         title: const Text("My Alias in Group"),
         leading: const Icon(CupertinoIcons.person),
@@ -461,7 +459,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                   : "Leave Group",
               style: const TextStyle(color: Colors.pink)),
           onPressed: (context) {
-            Get.dialog(_exitGroup(context));
+            Get.dialog(_selfExitGroup(context));
           },
         ),
       ],
@@ -552,7 +550,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
     ));
   }
 
-  Widget _exitGroup(BuildContext context) {
+  Widget _selfExitGroup(BuildContext context) {
     return CupertinoAlertDialog(
       title: Text(chatController.meMember.value.isAdmin ? "Delete?" : "Leave?"),
       content: const Text('Are you sure to delete the group?'),
@@ -575,11 +573,12 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                     ? await groupService
                         .dissolveGroup(chatController.roomObs.value)
                     : await groupService
-                        .exitGroup(chatController.roomObs.value);
+                        .selfExitGroup(chatController.roomObs.value);
                 EasyLoading.showSuccess('Success');
               } catch (e, s) {
-                logger.e(e.toString(), error: e, stackTrace: s);
-                EasyLoading.showError(e.toString());
+                String msg = Utils.getErrorMessage(e);
+                logger.e(msg, error: e, stackTrace: s);
+                EasyLoading.showError(msg);
                 return;
               }
               await Get.find<HomeController>()

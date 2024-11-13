@@ -4,6 +4,7 @@ import 'package:app/models/models.dart';
 import 'package:app/service/group.service.dart';
 import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/message.service.dart';
+import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
@@ -63,18 +64,81 @@ class GroupInviteConfirmAction extends StatelessWidget {
                             if (groupRoom.isKDFGroup) {
                               await KdfGroupService.instance.inviteToJoinGroup(
                                   groupRoom, toJoinUserMap, senderName);
+                            } else if (groupRoom.isMLSGroup) {
+                              List<Map<String, dynamic>> users = [];
+                              List<String> invited = [];
+                              List<String> pkIsNull = [];
+
+                              for (var entry in toJoinUserMap.entries) {
+                                String? pk = await MlsGroupService.instance
+                                    .getPK(entry.key);
+                                if (pk == null) {
+                                  pkIsNull.add(entry.value);
+                                } else {
+                                  invited.add(entry.value);
+                                }
+
+                                users.add({
+                                  'pubkey': entry.key,
+                                  'name': entry.value,
+                                  'mlsPK': pk
+                                });
+                              }
+                              if (invited.isEmpty) {
+                                Get.dialog(CupertinoAlertDialog(
+                                  title: const Text('Sent Invitation Failed'),
+                                  content: const Column(
+                                    children: [
+                                      Text(
+                                          'All users\'s keyPackage is null, They need login app first.'),
+                                    ],
+                                  ),
+                                  actions: [
+                                    CupertinoDialogAction(
+                                      child: const Text('OK'),
+                                      onPressed: () {
+                                        Get.back();
+                                      },
+                                    ),
+                                  ],
+                                ));
+                                return;
+                              }
+                              await MlsGroupService.instance.inviteToJoinGroup(
+                                  groupRoom, users, senderName);
+
+                              Get.dialog(CupertinoAlertDialog(
+                                title: const Text('Partially successful'),
+                                content: Column(
+                                  children: [
+                                    Text(
+                                        'Successfully invited: ${invited.join(',')}'),
+                                    Text(
+                                        'Failed to invite ${pkIsNull.join(',')}. They need login app first.'),
+                                  ],
+                                ),
+                                actions: [
+                                  CupertinoDialogAction(
+                                    child: const Text('OK'),
+                                    onPressed: () {
+                                      Get.back();
+                                    },
+                                  ),
+                                ],
+                              ));
                             } else {
                               await GroupService()
                                   .inviteToJoinGroup(groupRoom, toJoinUserMap);
+                              EasyLoading.showSuccess('Success');
                             }
-                            EasyLoading.showSuccess('Success');
                             message.requestConfrim =
                                 RequestConfrimEnum.approved;
                             MessageService().updateMessageAndRefresh(message);
                             Get.back();
                           } catch (e, s) {
-                            EasyLoading.showError(e.toString());
-                            logger.e(e.toString(), error: e, stackTrace: s);
+                            String msg = Utils.getErrorMessage(e);
+                            EasyLoading.showError(msg);
+                            logger.e(msg, error: e, stackTrace: s);
                           }
                         })
                   ]));

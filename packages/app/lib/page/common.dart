@@ -39,7 +39,7 @@ Widget getAvatarDot(Room room, {double width = 50}) {
     String account = room.getRoomName();
     List<Color> colors = _getGroupColor(room.groupType);
     child = getAvatorByName(account,
-        room: room, width: width, borderRadius: 5, backgroudColors: colors);
+        room: room, width: width, borderRadius: 12, backgroudColors: colors);
   } else {
     child = getRandomAvatar(room.toMainPubkey, height: width, width: width);
   }
@@ -64,13 +64,17 @@ Widget getAvatarDot(Room room, {double width = 50}) {
 
 List<Color> _getGroupColor(GroupType groupType) {
   switch (groupType) {
+    case GroupType.mls:
+      return [const Color(0xffDF4D9E), const Color(0xffEC6E0E)];
     case GroupType.kdf:
       return [const Color(0xffCE9FFC), const Color(0xff7367F0)];
     case GroupType.shareKey:
       return [const Color(0xff823C70), const Color(0xffAF362D)];
+    case GroupType.sendAll:
+      return [const Color(0xff713CD0), const Color(0xff945BF3)];
     default:
   }
-  return [const Color(0xff0044C1), const Color(0xff4D77FF)];
+  return [const Color(0xff439368), const Color(0xff02F700)];
 }
 
 Widget getAvatorByName(String account,
@@ -83,10 +87,7 @@ Widget getAvatorByName(String account,
   Widget child = Center(
     child: Text(
       letter.toUpperCase(),
-      style: TextStyle(
-        fontSize: fontSize,
-        color: Colors.white,
-      ),
+      style: TextStyle(fontSize: fontSize, color: Colors.white),
     ),
   );
   if (room != null) {
@@ -96,10 +97,7 @@ Widget getAvatorByName(String account,
         children: [
           Text(
             letter.toUpperCase(),
-            style: TextStyle(
-              fontSize: fontSize,
-              color: Colors.white,
-            ),
+            style: TextStyle(fontSize: fontSize, color: Colors.white),
           ),
           Padding(
               padding: const EdgeInsets.only(bottom: 2),

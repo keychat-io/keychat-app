@@ -14,6 +14,7 @@ import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/signalId.service.dart';
 import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
+import 'package:keychat_rust_ffi_plugin/api_mls.dart' as rust_mls;
 import 'package:app/service/chat.service.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/notify.service.dart';
@@ -141,10 +142,12 @@ class RoomService extends BaseChatService {
   Future deleteRoom(Room room) async {
     Isar database = DBProvider.database;
     int? roomMykeyId = room.mykey.value?.id;
+    String? listenPubkey = room.mykey.value?.pubkey;
     var groupType = room.groupType;
     var roomType = room.type;
     int roomId = room.id;
     String toMainPubkey = room.toMainPubkey;
+    String myIdPubkey = room.myIdPubkey;
     // delete room's signalId
     String? signalIdPubkey = room.signalIdPubkey;
     List<Room> sameSignalIdrooms = [];
@@ -194,14 +197,16 @@ class RoomService extends BaseChatService {
       await database.rooms.filter().idEqualTo(roomId).deleteFirst();
       await FileUtils.deleteFolderByRoomId(room.identityId, room.id);
     });
-    if (roomType == RoomType.group &&
-        (groupType == GroupType.shareKey ||
-            groupType == GroupType.kdf ||
-            groupType == GroupType.mls)) {
-      NotifyService.removePubkeys([room.toMainPubkey]);
+    if (listenPubkey != null) {
+      if (roomType == RoomType.group &&
+          (groupType == GroupType.shareKey ||
+              groupType == GroupType.kdf ||
+              groupType == GroupType.mls)) {
+        NotifyService.removePubkeys([listenPubkey]);
+      }
     }
     if (groupType == GroupType.mls) {
-      // await rust_mls.removeGroup(room.toMainPubkey);
+      await rust_mls.deleteGroup(nostrId: myIdPubkey, groupId: toMainPubkey);
     }
   }
 

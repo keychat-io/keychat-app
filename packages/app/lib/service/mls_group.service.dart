@@ -18,7 +18,6 @@ import 'package:app/models/room.dart';
 import 'package:app/models/room_member.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/nostr-core/nostr_event.dart';
-import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/chat.service.dart';
 import 'package:app/service/group.service.dart';
 import 'package:app/service/group_tx.dart';
@@ -324,12 +323,7 @@ $error ''';
       case KeyChatEventKinds.groupDissolve:
         room.status = RoomStatus.dissolved;
         await RoomService().updateRoom(room);
-        await RoomService().receiveDM(room, event,
-            sourceEvent: sourceEvent,
-            decodedContent: km.msg!,
-            isSystem: true,
-            fromIdPubkey: fromIdPubkey,
-            encryptType: MessageEncryptType.mls);
+        break;
       case KeyChatEventKinds.groupAdminRemoveMembers:
         await _proccessAdminRemoveMembers(room, event, km, fromIdPubkey!);
         return;
@@ -358,10 +352,7 @@ $error ''';
         break;
       case KeyChatEventKinds.groupChangeNickname:
         if (km.name != null && fromIdPubkey != null) {
-          await room.updateMemberName(
-            fromIdPubkey,
-            km.name!,
-          );
+          await room.updateMemberName(fromIdPubkey, km.name!);
           RoomService.getController(room.id)?.resetMembers();
         }
         break;
@@ -584,10 +575,6 @@ $error ''';
       return;
     }
 
-    await rust_mls.othersProposalLeave(
-        nostrId: room.myIdPubkey,
-        groupId: room.toMainPubkey,
-        queuedMsg: base64.decode(km.data!));
     await RoomService().receiveDM(room, event,
         decodedContent: km.toString(),
         realMessage: '[Proposal]: ${km.msg}',
@@ -596,27 +583,31 @@ $error ''';
         encryptType: MessageEncryptType.mls);
     RoomMember? adminMember = await room.getAdmin();
     if (room.myIdPubkey != adminMember?.idPubkey) return;
-    var commitData = await rust_mls.adminProposalLeave(
-        nostrId: room.myIdPubkey, groupId: room.toMainPubkey);
+    RoomMember? rm = await room.getMemberByIdPubkey(fromIdPubkey);
+    if (rm != null) {
+      await removeMembers(room, [rm]);
+    }
+    // var commitData = await rust_mls.adminProposalLeave(
+    //     nostrId: room.myIdPubkey, groupId: room.toMainPubkey);
 
-    String toSendMessage = KeychatMessage.getFeatureMessageString(
-        MessageType.mls,
-        room,
-        '[Commit]: ${km.msg}',
-        KeyChatEventKinds.groupSelfLeaveConfirm,
-        data: base64.encode(commitData));
-    var smr = await MlsGroupService.instance
-        .sendMessage(room, toSendMessage, realMessage: '[Commit]: ${km.msg}');
-    await RoomUtil.messageReceiveCheck(
-            room, smr.events[0], const Duration(milliseconds: 300), 3)
-        .then((res) async {
-      if (res) {
-        await rust_mls.adminCommitLeave(
-            nostrId: room.myIdPubkey, groupId: room.toMainPubkey);
-        await room.removeMember(fromIdPubkey);
-        RoomService.getController(room.id)?.resetMembers();
-      }
-    });
+    // String toSendMessage = KeychatMessage.getFeatureMessageString(
+    //     MessageType.mls,
+    //     room,
+    //     '[Commit]: ${km.msg}',
+    //     KeyChatEventKinds.groupSelfLeaveConfirm,
+    //     data: base64.encode(commitData));
+    // var smr = await MlsGroupService.instance
+    //     .sendMessage(room, toSendMessage, realMessage: '[Commit]: ${km.msg}');
+    // await RoomUtil.messageReceiveCheck(
+    //         room, smr.events[0], const Duration(milliseconds: 300), 3)
+    //     .then((res) async {
+    //   if (res) {
+    //     await rust_mls.adminCommitLeave(
+    //         nostrId: room.myIdPubkey, groupId: room.toMainPubkey);
+    //     await room.removeMember(fromIdPubkey);
+    //     RoomService.getController(room.id)?.resetMembers();
+    //   }
+    // });
   }
 
   Future _uploadPKMessage(Identity identity) async {

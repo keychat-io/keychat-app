@@ -902,8 +902,10 @@ class MessageWidget extends StatelessWidget {
                                   )
                                 ])),
                       const SizedBox(height: 10),
-                      NoticeTextWidget.success(
-                          'Encrypted by ${encryptText[message.encryptType.name]}'),
+                      Padding(
+                          padding: const EdgeInsets.only(left: 4),
+                          child: NoticeTextWidget.success(
+                              'Encrypted by ${encryptText[message.encryptType.name]}')),
                       if (event != null)
                         Card(
                             child: Table(

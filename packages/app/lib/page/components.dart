@@ -308,7 +308,7 @@ Widget relayStatusList(BuildContext context, List<NostrEventStatus> ess) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text('Message Status', style: Theme.of(context).textTheme.titleMedium),
+      Text('  Message Status', style: Theme.of(context).textTheme.titleMedium),
       ...ess.map((NostrEventStatus es) => ListTile(
           dense: true,
           visualDensity: VisualDensity.compact,

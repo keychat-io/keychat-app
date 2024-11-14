@@ -368,22 +368,22 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
         : chatController.roomObs.value.mykey.value!.pubkey;
     return SettingsSection(tiles: [
       SettingsTile(
-          title: const Text("Group ID"),
+          title: const Text("ID"),
           leading: const Icon(CupertinoIcons.person_3),
-          value: textP(getPublicKeyDisplay(pubkey)),
+          value: textP(getPublicKeyDisplay(pubkey, 4)),
           onPressed: (context) {
             Clipboard.setData(ClipboardData(text: pubkey));
             EasyLoading.showToast('Copied');
           }),
       SettingsTile.navigation(
           leading: const Icon(CupertinoIcons.chart_bar),
-          title: const Text('Group Mode'),
+          title: const Text('Mode'),
           value: Text(RoomUtil.getGroupModeName(
               chatController.roomObs.value.groupType)),
           onPressed: getGroupInfoBottomSheetWidget),
       chatController.meMember.value.isAdmin
           ? SettingsTile.navigation(
-              title: const Text("Group Name"),
+              title: const Text("Name"),
               leading: const Icon(CupertinoIcons.flag),
               value: Text("${chatController.roomObs.value.name}"),
               onPressed: (context) async {
@@ -398,7 +398,8 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
         leading: const Icon(CupertinoIcons.person),
         value: textP(chatController.meMember.value.name),
         onPressed: (context) async {
-          if (!chatController.room.isMLSGroup) return;
+          if (chatController.room.isKDFGroup ||
+              chatController.room.isShareKeyGroup) return;
 
           await Get.dialog(CupertinoAlertDialog(
             title: const Text("My Name"),
@@ -406,11 +407,10 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
               color: Colors.transparent,
               padding: const EdgeInsets.only(top: 15),
               child: TextField(
-                controller: userNameController,
-                textInputAction: TextInputAction.done,
-                decoration: const InputDecoration(
-                    labelText: 'Name', border: OutlineInputBorder()),
-              ),
+                  controller: userNameController,
+                  textInputAction: TextInputAction.done,
+                  decoration: const InputDecoration(
+                      labelText: 'Name', border: OutlineInputBorder())),
             ),
             actions: <Widget>[
               CupertinoDialogAction(

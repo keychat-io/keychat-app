@@ -108,7 +108,7 @@ class GroupInviteConfirmAction extends StatelessWidget {
                               await MlsGroupService.instance.inviteToJoinGroup(
                                   groupRoom, users, senderName);
                               Get.dialog(CupertinoAlertDialog(
-                                title: const Text('Successful'),
+                                title: const Text('Success'),
                                 content: Column(
                                   children: [
                                     Text(

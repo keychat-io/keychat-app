@@ -1,8 +1,3 @@
-// KDF group is a shared key group
-// Use signal protocol to encrypt message
-// Every Member in the group has the same signal id key pair, it's a virtual Member in group
-// Every member send message to virtual member
-
 import 'dart:convert' show base64, jsonDecode, jsonEncode;
 
 import 'package:app/constants.dart';
@@ -18,6 +13,7 @@ import 'package:app/models/room.dart';
 import 'package:app/models/room_member.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/nostr-core/nostr_event.dart';
+import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/chat.service.dart';
 import 'package:app/service/group.service.dart';
 import 'package:app/service/group_tx.dart';
@@ -60,8 +56,7 @@ class MlsGroupService extends BaseChatService {
       ..name = identity.displayName
       ..msg = '${identity.displayName} joined group';
 
-    await MlsGroupService.instance
-        .sendMessage(room, sm.toString(), realMessage: sm.msg);
+    await sendMessage(room, sm.toString(), realMessage: sm.msg);
   }
 
   bool adminOnlyMiddleware(RoomMember from, int type) {
@@ -69,7 +64,8 @@ class MlsGroupService extends BaseChatService {
       KeyChatEventKinds.groupAdminRemoveMembers,
       KeyChatEventKinds.inviteNewMember,
       KeyChatEventKinds.groupUpdateKeys,
-      KeyChatEventKinds.groupDissolve
+      KeyChatEventKinds.groupDissolve,
+      KeyChatEventKinds.groupChangeRoomName
     };
     if (adminTypes.contains(type)) {
       if (from.isAdmin) return true;
@@ -97,13 +93,6 @@ $error ''';
     await MessageService().updateMessageAndRefresh(message);
   }
 
-  // create a group
-  // setup room's sharedSignalID
-  // setup room's signal session
-  // show shared signalID's QRCode
-  // inti identity's signal session
-  // send hello message to group shared key but not save
-  // shared signal init signal session
   Future<Room> createGroup(String groupName, Identity identity,
       List<Map<String, dynamic>> toUsers) async {
     Room room =
@@ -143,8 +132,6 @@ $error ''';
     return base64.encode(pk);
   }
 
-  // shared key receive message then decrypt message
-  // message struct: nip4 wrap signal
   Future decryptMessage(Room room, NostrEventModel nostrEvent,
       {required Function(String) failedCallback}) async {
     Identity identity = room.getIdentity();
@@ -448,7 +435,6 @@ $error ''';
     RoomService.getController(room.id)?.resetMembers();
   }
 
-  // nip4 wrap signal message
   @override
   Future<SendMessageResponse> sendMessage(Room room, String message,
       {MessageMediaType? mediaType,
@@ -466,7 +452,7 @@ $error ''';
 
     var randomAccount = await rust_nostr.generateSimple();
     Mykey mykey = room.mykey.value!;
-    return await NostrAPI().sendNip4Message(
+    var smr = await NostrAPI().sendNip4Message(
         mykey.pubkey, base64.encode(enctypted.$1),
         prikey: randomAccount.prikey,
         from: randomAccount.pubkey,
@@ -478,6 +464,14 @@ $error ''';
         realMessage: realMessage,
         reply: reply,
         isSignalMessage: true);
+    RoomUtil.messageReceiveCheck(
+            room, smr.events[0], const Duration(milliseconds: 500), 3)
+        .then((res) {
+      if (res == false) {
+        logger.e('MLS Message Send failed: $message');
+      }
+    });
+    return smr;
   }
 
   Future updateMlsPK(Identity identity, String pk) async {

@@ -303,9 +303,9 @@ class GroupService extends BaseChatService {
         break;
       case KeyChatEventKinds.groupChangeRoomName:
         await isAdminCheck(room, signPubkey, member);
-        room.name = toSaveMsg.content;
-        await roomService.updateRoom(room);
-        toSaveMsg.content = '🤖 New room name: ${toSaveMsg.content}';
+        room.name = ext;
+        await roomService.updateRoomAndRefresh(room);
+        toSaveMsg.content = toSaveMsg.content;
         break;
       case KeyChatEventKinds.groupRemoveSingleMember:
         await isAdminCheck(room, signPubkey, member);

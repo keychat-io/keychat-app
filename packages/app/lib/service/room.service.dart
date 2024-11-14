@@ -148,6 +148,7 @@ class RoomService extends BaseChatService {
     int roomId = room.id;
     String toMainPubkey = room.toMainPubkey;
     String myIdPubkey = room.myIdPubkey;
+    String? mlsListenPubkey = room.onetimekey;
     // delete room's signalId
     String? signalIdPubkey = room.signalIdPubkey;
     List<Room> sameSignalIdrooms = [];
@@ -199,13 +200,17 @@ class RoomService extends BaseChatService {
     });
     if (listenPubkey != null) {
       if (roomType == RoomType.group &&
-          (groupType == GroupType.shareKey ||
-              groupType == GroupType.kdf ||
-              groupType == GroupType.mls)) {
+          (groupType == GroupType.shareKey || groupType == GroupType.kdf)) {
         NotifyService.removePubkeys([listenPubkey]);
+        Get.find<WebsocketService>().removePubkeyFromSubscription(listenPubkey);
       }
     }
     if (groupType == GroupType.mls) {
+      if (mlsListenPubkey != null) {
+        Get.find<WebsocketService>()
+            .removePubkeyFromSubscription(mlsListenPubkey);
+        NotifyService.removePubkeys([mlsListenPubkey]);
+      }
       await rust_mls.deleteGroup(nostrId: myIdPubkey, groupId: toMainPubkey);
     }
   }
@@ -228,9 +233,15 @@ class RoomService extends BaseChatService {
         .group((q) => q
             .groupTypeEqualTo(GroupType.shareKey)
             .or()
-            .groupTypeEqualTo(GroupType.kdf)
-            .or()
-            .groupTypeEqualTo(GroupType.mls))
+            .groupTypeEqualTo(GroupType.kdf))
+        .findAll();
+  }
+
+  Future<List<Room>> getMlgRooms() async {
+    return await DBProvider.database.rooms
+        .filter()
+        .groupTypeEqualTo(GroupType.mls)
+        .onetimekeyIsNotEmpty()
         .findAll();
   }
 
@@ -305,6 +316,13 @@ class RoomService extends BaseChatService {
         .filter()
         .typeEqualTo(RoomType.group)
         .mykey((q) => q.pubkeyEqualTo(to))
+        .findFirst();
+  }
+
+  Future<Room?> getRoomByOnetimeKey(String to) async {
+    return await DBProvider.database.rooms
+        .filter()
+        .onetimekeyEqualTo(to)
         .findFirst();
   }
 

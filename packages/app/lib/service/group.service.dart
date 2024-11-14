@@ -1,5 +1,5 @@
 import 'dart:collection' as collection;
-import 'dart:convert' show base64, jsonDecode, jsonEncode;
+import 'dart:convert' show jsonDecode, jsonEncode;
 
 import 'package:app/controller/chat.controller.dart';
 import 'package:app/controller/home.controller.dart';
@@ -21,7 +21,6 @@ import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
-import 'package:keychat_rust_ffi_plugin/api_mls.dart' as rust_mls;
 import 'package:keychat_rust_ffi_plugin/api_signal.dart';
 import 'package:queue/queue.dart';
 
@@ -101,9 +100,7 @@ class GroupService extends BaseChatService {
       [String? groupRelay]) async {
     Mykey? sharedKey;
     late String toMainPubkey;
-    if (groupType == GroupType.shareKey ||
-        groupType == GroupType.kdf ||
-        groupType == GroupType.mls) {
+    if (groupType == GroupType.shareKey || groupType == GroupType.kdf) {
       sharedKey = await GroupTx().createMykey(identity.id);
       toMainPubkey = sharedKey.pubkey;
     } else {
@@ -134,7 +131,7 @@ class GroupService extends BaseChatService {
     if (!await room.checkAdminByIdPubkey(room.myIdPubkey)) {
       throw Exception('Only admin can exit group');
     }
-    String message = '🤖 Admin dissolved this room. Please delete.';
+    String message = '[System] Admin disband this room. Please delete.';
     int subtype = KeyChatEventKinds.groupDissolve;
 
     List list = await room.getActiveMembers();
@@ -152,22 +149,14 @@ class GroupService extends BaseChatService {
     RoomMember? rm = await room.getMemberByIdPubkey(room.myIdPubkey);
     if (rm == null) return;
 
-    String message = '${rm.name} exit group';
+    String message = '[System] ${rm.name} exit group';
     int subtype = KeyChatEventKinds.groupSelfLeave;
     if (room.isMLSGroup) {
-      var leaveData = await rust_mls.selfLeave(
-          nostrId: room.myIdPubkey, groupId: room.toMainPubkey);
       String toSendMessage = KeychatMessage.getFeatureMessageString(
           MessageType.mls, room, message, subtype,
-          name: room.myIdPubkey, data: base64.encode(leaveData));
-      Identity identity = room.getIdentity();
-      Mykey mykey = room.mykey.value!;
-      await RoomService().sendNip17Message(room, identity,
-          sourceContent: toSendMessage,
-          toPubkey: mykey.pubkey,
-          realMessage: message,
-          timestampTweaked: false,
-          save: false);
+          name: room.myIdPubkey);
+      await MlsGroupService.instance
+          .sendMessage(room, toSendMessage, realMessage: message);
     } else if (room.isKDFGroup) {
       String toSendMessage = KeychatMessage.getFeatureMessageString(
           MessageType.kdfGroup, room, message, subtype);
@@ -298,8 +287,9 @@ class GroupService extends BaseChatService {
       case KeyChatEventKinds.groupDissolve:
         await isAdminCheck(room, signPubkey, member);
         room.status = RoomStatus.dissolved;
-        toSaveMsg.content = '🤖 The admin dissolved this room. Please delete.';
-        await roomService.updateRoom(room);
+        toSaveMsg.content =
+            '[System] The admin disband this room. Please delete.';
+        await roomService.updateRoomAndRefresh(room);
         break;
       case KeyChatEventKinds.groupChangeRoomName:
         await isAdminCheck(room, signPubkey, member);
@@ -875,7 +865,7 @@ class GroupService extends BaseChatService {
       await room.updateMember(me);
     }
     // listen pubkey
-    if (room.isShareKeyGroup || room.isKDFGroup || room.isMLSGroup) {
+    if (room.isShareKeyGroup || room.isKDFGroup) {
       await Get.find<WebsocketService>()
           .listenPubkey([toMainPubkey], limit: 300);
       await Get.find<WebsocketService>()

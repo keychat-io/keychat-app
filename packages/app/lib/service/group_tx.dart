@@ -92,7 +92,7 @@ class GroupTx {
       me.status = UserStatusType.invited;
       await DBProvider.database.roomMembers.put(me);
     }
-    if (room.isShareKeyGroup || room.isKDFGroup || room.isMLSGroup) {
+    if (room.isShareKeyGroup || room.isKDFGroup) {
       DateTime since = roomUpdateAt != null
           ? DateTime.fromMillisecondsSinceEpoch(roomUpdateAt)
           : DateTime.now().subtract(const Duration(days: 30));
@@ -120,11 +120,11 @@ class GroupTx {
     List<dynamic> users = roomProfile.users;
     Mykey? roomKey;
     if ((roomProfile.groupType == GroupType.shareKey ||
-            roomProfile.groupType == GroupType.kdf ||
-            roomProfile.groupType == GroupType.mls) &&
+            roomProfile.groupType == GroupType.kdf) &&
         toRoomPriKey == null) {
       throw Exception('Prikey is null, failed to join group.');
-    } else if (toRoomPriKey != null) {
+    }
+    if (toRoomPriKey != null) {
       roomKey = await importMykeyTx(
           identity.id, await rust_nostr.importKey(senderKeys: toRoomPriKey));
     }

@@ -1,10 +1,12 @@
 import 'package:app/constants.dart';
 import 'package:app/models/relay.dart';
+import 'package:app/models/room.dart';
 import 'package:app/nostr-core/nostr_nip4_req.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/relay.service.dart';
+import 'package:app/service/room.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
@@ -36,8 +38,14 @@ class RelayWebsocket {
     listenPubkeys(pubkeys, DateTime.now().subtract(const Duration(days: 2)),
         [EventKinds.nip17]);
 
+    // only listen nip04
     List<String> signal = await ContactService().getAllReceiveKeys();
-    listenPubkeys(signal, since);
+    Set<String> mlsPubkeys = {};
+    // mls room's receive key
+    List<Room> mlsRooms = await RoomService().getMlgRooms();
+    mlsPubkeys.addAll(mlsRooms.map((e) => e.onetimekey!));
+    mlsPubkeys.addAll(signal);
+    listenPubkeys(mlsPubkeys.toList(), since);
   }
 
   Future listenPubkeys(List<String> pubkeys, DateTime since,

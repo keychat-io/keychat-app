@@ -368,14 +368,23 @@ class NostrAPI {
       case EventKinds.encryptedDirectMessage:
         String to = event.tags[0][1];
         try {
-          Room? groupRoom = await RoomService().getGroupByReceivePubkey(to);
-          if (groupRoom != null) {
+          // shared key room
+          Room? sharedKeyRoom = await RoomService().getGroupByReceivePubkey(to);
+          if (sharedKeyRoom != null) {
             await _groupMessageHandle(
-                groupRoom, event, relay, failedCallback, to);
+                sharedKeyRoom, event, relay, failedCallback, to);
             return;
           }
 
-          // if signal message , to_address is myIDPubkey or one-time-key
+          // mls group room. receive address is one-time-key field
+          Room? mlsRoom = await RoomService().getRoomByOnetimeKey(to);
+          if (mlsRoom != null && mlsRoom.isMLSGroup) {
+            await _groupMessageHandle(
+                mlsRoom, event, relay, failedCallback, to);
+            return;
+          }
+
+          // private chat.  to_address is myIDPubkey or one-time-key
           Room? room = await RoomService().getRoomByReceiveKey(to);
           if (room != null) {
             await SignalChatService().decryptMessage(room, event, relay,
@@ -389,6 +398,7 @@ class NostrAPI {
             return;
           }
 
+          // identity pubkey is receive address
           Identity? identity =
               await IdentityService().getIdentityByNostrPubkey(to);
           if (identity != null) {

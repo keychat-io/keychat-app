@@ -8,8 +8,10 @@ import 'package:app/models/models.dart';
 import 'package:app/models/signal_id.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/message.service.dart';
+import 'package:app/service/notify.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/signalId.service.dart';
+import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:equatable/equatable.dart';
 import 'package:get/get.dart';
@@ -586,5 +588,21 @@ Room: $id, ${getRoomName()} $toMainPubkey, $identityId, $groupType''';
       return null;
     }
     return bmd;
+  }
+
+  Future replaceListenPubkey(String newPubkey, int startAt,
+      [String? toDeletePubkey]) async {
+    onetimekey = newPubkey;
+    await RoomService().updateRoom(this);
+
+    var ws = Get.find<WebsocketService>();
+    if (toDeletePubkey != null) {
+      ws.removePubkeyFromSubscription(toDeletePubkey);
+      NotifyService.removePubkeys([toDeletePubkey]);
+    }
+    await ws.listenPubkey([newPubkey],
+        since: DateTime.fromMillisecondsSinceEpoch(startAt));
+
+    NotifyService.addPubkeys([newPubkey]);
   }
 }

@@ -231,7 +231,7 @@ class IdentityService {
         pubkeys.add(pubkey);
       }
     }
-    // onetime key
+    // my receive onetime key
     List<Mykey> oneTimeKeys = await getOneTimeKeys();
     pubkeys.addAll(oneTimeKeys.map((e) => e.pubkey));
 

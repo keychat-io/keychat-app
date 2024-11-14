@@ -363,9 +363,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
   }
 
   generalSection() {
-    String pubkey = chatController.roomObs.value.isSendAllGroup
-        ? chatController.roomObs.value.toMainPubkey
-        : chatController.roomObs.value.mykey.value!.pubkey;
+    String pubkey = chatController.roomObs.value.toMainPubkey;
     return SettingsSection(tiles: [
       SettingsTile(
           title: const Text("ID"),

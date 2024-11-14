@@ -65,16 +65,16 @@ Widget getAvatarDot(Room room, {double width = 50}) {
 List<Color> _getGroupColor(GroupType groupType) {
   switch (groupType) {
     case GroupType.mls:
-      return [const Color(0xffDF4D9E), const Color(0xffEC6E0E)];
+      return [const Color(0xffEC6E0E), const Color(0xffDF4D9E)];
     case GroupType.kdf:
       return [const Color(0xffCE9FFC), const Color(0xff7367F0)];
     case GroupType.shareKey:
       return [const Color(0xff823C70), const Color(0xffAF362D)];
     case GroupType.sendAll:
-      return [const Color(0xff713CD0), const Color(0xff945BF3)];
+      return [const Color(0xff945BF3), const Color(0xff713CD0)];
     default:
   }
-  return [const Color(0xff439368), const Color(0xff02F700)];
+  return [const Color(0xff02F700), const Color(0xff439368)];
 }
 
 Widget getAvatorByName(String account,

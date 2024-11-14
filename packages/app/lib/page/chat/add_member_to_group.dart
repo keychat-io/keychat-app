@@ -164,10 +164,8 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
                 return ListTile(
                     leading:
                         getRandomAvatar(user['pubkey'], height: 40, width: 40),
-                    title: Text(
-                      user['name'],
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
+                    title: Text(user['name'],
+                        style: Theme.of(context).textTheme.titleMedium),
                     dense: true,
                     subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,18 +215,17 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
                                 color: Colors.grey, size: 30)
                             : Checkbox(
                                 value: user['isCheck'],
-                                onChanged: (isCheck) {
-                                  user['isCheck'] = isCheck!;
-                                  setState(() {
-                                    if (widget.room.groupType ==
-                                            GroupType.mls &&
-                                        user['mlsPK'] == null) {
-                                      user['isCheck'] = false;
-                                      EasyLoading.showError(
-                                          'User Not upload MLS keys');
-                                    }
-                                  });
-                                })));
+                                tristate:
+                                    widget.room.groupType == GroupType.mls &&
+                                        user['mlsPK'] == null,
+                                onChanged:
+                                    widget.room.groupType == GroupType.mls &&
+                                            user['mlsPK'] == null
+                                        ? null
+                                        : (isCheck) {
+                                            user['isCheck'] = isCheck!;
+                                            setState(() {});
+                                          })));
               })),
     );
   }

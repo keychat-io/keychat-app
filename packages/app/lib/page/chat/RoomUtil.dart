@@ -507,7 +507,7 @@ Let's start an encrypted chat.''';
   static String getGroupModeName(GroupType type) {
     switch (type) {
       case GroupType.mls:
-        return 'Big Group';
+        return 'Large Group';
       case GroupType.kdf:
         return 'Medium Group';
       case GroupType.sendAll:

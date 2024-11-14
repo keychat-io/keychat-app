@@ -143,11 +143,9 @@ class RoomList extends StatelessWidget {
                           child: ListTile(
                             leading: getAvatarDot(room),
                             key: Key('room:${room.id}'),
-                            title: Text(
-                              room.getRoomName(),
-                              maxLines: 1,
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
+                            title: Text(room.getRoomName(),
+                                maxLines: 1,
+                                style: Theme.of(context).textTheme.titleMedium),
                             subtitle: RoomUtil.getSubtitleDisplay(
                                     room, messageExpired) ??
                                 const Text(''),

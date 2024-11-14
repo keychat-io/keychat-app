@@ -1,6 +1,7 @@
 import 'dart:convert' show base64, jsonDecode, jsonEncode;
 
 import 'package:app/constants.dart';
+import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/db_provider.dart';
 import 'package:app/models/embedded/msg_reply.dart';
@@ -335,6 +336,7 @@ $error ''';
         if (km.name != null) {
           room.name = km.name;
           await RoomService().updateRoomAndRefresh(room);
+          Get.find<HomeController>().loadIdentityRoomList(room.id);
         }
         break;
       case KeyChatEventKinds.groupChangeNickname:

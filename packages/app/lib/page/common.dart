@@ -26,8 +26,8 @@ Widget showBaseImageBigWithName(String account, String name) {
   return genAvatorUserLetterWithNewName(account, name, 20, 16);
 }
 
-String regrexLetter(String account) {
-  return account.length > 1 ? account.substring(0, 2) : account;
+String regrexLetter(String account, [int length = 2]) {
+  return account.length > length - 1 ? account.substring(0, length) : account;
 }
 
 Widget getAvatarDot(Room room, {double width = 50}) {
@@ -79,43 +79,10 @@ List<Color> _getGroupColor(GroupType groupType) {
 
 Widget getAvatorByName(String account,
     {double width = 45,
-    double fontSize = 18,
+    double fontSize = 16,
     Room? room,
     double borderRadius = 100,
     List<Color>? backgroudColors}) {
-  String letter = regrexLetter(account);
-  Widget child = Center(
-    child: Text(
-      letter.toUpperCase(),
-      style: TextStyle(fontSize: fontSize, color: Colors.white),
-    ),
-  );
-  if (room != null) {
-    if (room.isShareKeyGroup) {
-      child = Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          Text(
-            letter.toUpperCase(),
-            style: TextStyle(fontSize: fontSize, color: Colors.white),
-          ),
-          Padding(
-              padding: const EdgeInsets.only(bottom: 2),
-              child: ColorFiltered(
-                colorFilter: ColorFilter.mode(
-                    Colors.white.withOpacity(0.5), BlendMode.srcIn),
-                child: Image.asset(
-                  // "assets/images/${room.groupType == GroupType.shareKey ? 'key' : 'group'}.png",
-                  "assets/images/key.png",
-                  fit: BoxFit.fitWidth,
-                  width: 24,
-                  height: 12,
-                ),
-              ))
-        ],
-      );
-    }
-  }
   return Container(
       width: width,
       height: width,
@@ -125,7 +92,10 @@ Widget getAvatorByName(String account,
             colors: backgroudColors ??
                 [const Color(0xff713CD0), const Color(0xff945BF3)]),
       ),
-      child: child);
+      child: Center(
+        child: Text(regrexLetter(account, 2).toUpperCase(),
+            style: TextStyle(fontSize: fontSize, color: Colors.white)),
+      ));
 }
 
 genAvatorUserLetterWithNewName(
@@ -138,15 +108,9 @@ genAvatorUserLetterWithNewName(
         foregroundColor: Colors.white,
         backgroundColor: MaterialTheme.lightScheme().primary,
         radius: radius,
-        child: Text(
-          letter.toUpperCase(),
-          style: TextStyle(fontSize: size),
-        ),
+        child: Text(letter.toUpperCase(), style: TextStyle(fontSize: size)),
       ),
-      Text(
-        name,
-        overflow: TextOverflow.ellipsis,
-      ),
+      Text(name, overflow: TextOverflow.ellipsis),
     ],
   );
 }

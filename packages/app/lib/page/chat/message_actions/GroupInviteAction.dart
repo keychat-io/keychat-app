@@ -126,7 +126,7 @@ class GroupInviteAction extends StatelessWidget {
                       if (ext == null) {
                         throw 'Welcome message is null';
                       }
-                      await MlsGroupService.instance
+                      groupRoom = await MlsGroupService.instance
                           .acceptJoinGroup(identity, groupRoom!, ext);
                     }
 

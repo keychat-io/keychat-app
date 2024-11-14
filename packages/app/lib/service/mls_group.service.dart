@@ -36,7 +36,8 @@ class MlsGroupService extends BaseChatService {
   // Avoid self instance
   MlsGroupService._();
 
-  Future acceptJoinGroup(Identity identity, Room room, String mlsInfo) async {
+  Future<Room> acceptJoinGroup(
+      Identity identity, Room room, String mlsInfo) async {
     logger.d('sendHelloMessage, version: ${room.version}');
     List<dynamic> info = jsonDecode(mlsInfo);
     List<int> groupJoinConfig = base64.decode(info[0]).toList();
@@ -46,7 +47,7 @@ class MlsGroupService extends BaseChatService {
         groupId: room.toMainPubkey,
         welcome: welcome,
         groupJoinConfig: groupJoinConfig);
-    await replaceListenPubkey(room, identity.secp256k1PKHex);
+    room = await replaceListenPubkey(room, identity.secp256k1PKHex);
 
     // update a new mls pk
     await MlsGroupService.instance.uploadPKByIdentity(room.getIdentity());
@@ -56,6 +57,7 @@ class MlsGroupService extends BaseChatService {
       ..msg = '${identity.displayName} joined group';
 
     await sendMessage(room, sm.toString(), realMessage: sm.msg);
+    return room;
   }
 
   bool adminOnlyMiddleware(RoomMember from, int type) {
@@ -112,7 +114,7 @@ $error ''';
         keyPackages: keyPackages);
     await rust_mls.selfCommit(
         nostrId: identity.secp256k1PKHex, groupId: room.toMainPubkey);
-    await replaceListenPubkey(room, identity.secp256k1PKHex);
+    room = await replaceListenPubkey(room, identity.secp256k1PKHex);
     String welcomeMsg = base64.encode(welcome.$2);
     String mlsGroupInfo = base64.encode(groupJoinConfig);
 
@@ -127,13 +129,14 @@ $error ''';
     return room;
   }
 
-  Future replaceListenPubkey(Room room, String secp256k1PKHex) async {
+  Future<Room> replaceListenPubkey(Room room, String secp256k1PKHex) async {
     Uint8List secret = await rust_mls.getExportSecret(
         nostrId: secp256k1PKHex, groupId: room.toMainPubkey);
     String newPubkey =
         await rust_nostr.generateSeedFromKey(seedKey: List<int>.from(secret));
-    if (newPubkey == room.onetimekey) return;
-    await room.replaceListenPubkey(newPubkey, room.version, room.onetimekey);
+    if (newPubkey == room.onetimekey) return room;
+    return await room.replaceListenPubkey(
+        newPubkey, room.version, room.onetimekey);
   }
 
   Future<String> createKeyMessages(String pubkey) async {
@@ -379,7 +382,7 @@ $error ''';
       groupRoom.version = roomProfile.updatedAt;
       groupRoom = await GroupTx().updateRoom(groupRoom);
     });
-    await replaceListenPubkey(groupRoom, identity.secp256k1PKHex);
+    groupRoom = await replaceListenPubkey(groupRoom, identity.secp256k1PKHex);
 
     RoomService.getController(groupRoom.id)?.setRoom(groupRoom).resetMembers();
     return groupRoom;
@@ -413,8 +416,8 @@ $error ''';
     await sendMessage(room, sm.toString(), realMessage: sm.msg);
     await rust_mls.selfCommit(
         nostrId: identity.secp256k1PKHex, groupId: room.toMainPubkey);
-    await replaceListenPubkey(room, identity.secp256k1PKHex);
-    RoomService.getController(room.id)?.resetMembers();
+    room = await replaceListenPubkey(room, identity.secp256k1PKHex);
+    RoomService.getController(room.id)?.setRoom(room).resetMembers();
   }
 
   @override
@@ -432,7 +435,7 @@ $error ''';
         groupId: room.toMainPubkey,
         msg: message);
     if (room.onetimekey == null) {
-      throw Exception('MLS Group\'s receive pubkey is null');
+      throw Exception('MLS Group\'s receiving pubkey is null');
     }
     var randomAccount = await rust_nostr.generateSimple();
     var smr = await NostrAPI().sendNip4Message(
@@ -508,13 +511,13 @@ $error ''';
         nostrId: identity.secp256k1PKHex,
         groupId: room.toMainPubkey,
         queuedMsg: welcome);
-    await replaceListenPubkey(room, identity.secp256k1PKHex);
+    room = await replaceListenPubkey(room, identity.secp256k1PKHex);
     await RoomService().receiveDM(room, event,
         decodedContent: km.toString(),
         realMessage: km.msg,
         encryptType: MessageEncryptType.mls,
         fromIdPubkey: fromIdPubkey);
-    await RoomService.getController(room.id)?.resetMembers();
+    await RoomService.getController(room.id)?.setRoom(room).resetMembers();
   }
 
   _proccessHelloMessage(Room room, NostrEventModel event, KeychatMessage km,

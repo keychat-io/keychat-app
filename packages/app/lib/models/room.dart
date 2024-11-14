@@ -590,7 +590,7 @@ Room: $id, ${getRoomName()} $toMainPubkey, $identityId, $groupType''';
     return bmd;
   }
 
-  Future replaceListenPubkey(String newPubkey, int startAt,
+  Future<Room> replaceListenPubkey(String newPubkey, int startAt,
       [String? toDeletePubkey]) async {
     onetimekey = newPubkey;
     await RoomService().updateRoom(this);
@@ -604,5 +604,6 @@ Room: $id, ${getRoomName()} $toMainPubkey, $identityId, $groupType''';
         since: DateTime.fromMillisecondsSinceEpoch(startAt));
 
     NotifyService.addPubkeys([newPubkey]);
+    return this;
   }
 }

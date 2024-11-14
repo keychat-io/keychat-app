@@ -149,7 +149,8 @@ class GroupService extends BaseChatService {
     RoomMember? rm = await room.getMemberByIdPubkey(room.myIdPubkey);
     if (rm == null) return;
 
-    String message = '[System] ${rm.name} exit group';
+    String message =
+        '[System] ${rm.name} exit group, waiting for admin commit.';
     int subtype = KeyChatEventKinds.groupSelfLeave;
     if (room.isMLSGroup) {
       String toSendMessage = KeychatMessage.getFeatureMessageString(

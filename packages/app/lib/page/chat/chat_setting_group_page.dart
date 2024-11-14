@@ -543,7 +543,8 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
     return CupertinoAlertDialog(
       title:
           Text(chatController.meMember.value.isAdmin ? "Disband?" : "Leave?"),
-      content: const Text('Are you sure to disband the group?'),
+      content: Text(
+          'Are you sure to ${chatController.meMember.value.isAdmin ? 'disband' : 'leave'} this group?'),
       actions: <Widget>[
         CupertinoDialogAction(
           child: const Text('Cancel'),

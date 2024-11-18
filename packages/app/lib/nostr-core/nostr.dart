@@ -428,22 +428,18 @@ class NostrAPI {
   Future<void> _groupMessageHandle(Room groupRoom, NostrEventModel event,
       Relay relay, Function(String error) failedCallback, String to) async {
     if (groupRoom.groupType == GroupType.kdf) {
-      await _proccessByKDFRoom(event, groupRoom, relay, failedCallback);
+      await _proccessByKDFRoom(groupRoom, event, relay, failedCallback);
       return;
     }
     if (groupRoom.groupType == GroupType.mls) {
-      if (event.isNip4) {
-        await dmNip4Proccess(event, relay, failedCallback, room: groupRoom);
-        return;
-      }
       await MlsGroupService.instance
           .decryptMessage(groupRoom, event, failedCallback: failedCallback);
       return;
     }
-    throw Exception('groupRoom not match type');
+    await dmNip4Proccess(event, relay, failedCallback, room: groupRoom);
   }
 
-  Future _proccessByKDFRoom(NostrEventModel event, Room kdfRoom, Relay relay,
+  Future _proccessByKDFRoom(Room kdfRoom, NostrEventModel event, Relay relay,
       Function(String error) failedCallback) async {
     String? content = await decryptNip4Content(event);
     if (content == null) {

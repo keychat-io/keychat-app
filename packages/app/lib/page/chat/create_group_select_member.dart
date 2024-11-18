@@ -97,7 +97,8 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
     late Room room;
     Identity identity = hc.getSelectedIdentity();
     try {
-      if (widget.groupType == GroupType.sendAll) {
+      if (widget.groupType == GroupType.shareKey ||
+          widget.groupType == GroupType.sendAll) {
         room = await GroupService()
             .createGroup(widget.groupName, identity, widget.groupType);
         await GroupService().inviteToJoinGroup(room, selectAccounts);

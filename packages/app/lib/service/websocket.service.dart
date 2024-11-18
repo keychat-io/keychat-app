@@ -119,6 +119,11 @@ class WebsocketService extends GetxService {
   Future<WebsocketService> init() async {
     relayStatusInt.value = RelayStatusEnum.connecting.name;
     List<Relay> list = await rs.initRelay();
+    list = list.where((element) => element.active).toList();
+    if (list.isEmpty) {
+      relayStatusInt.value = RelayStatusEnum.noAcitveRelay.name;
+      return this;
+    }
     start(list);
     return this;
   }

@@ -130,6 +130,17 @@ class SignalChatService extends BaseChatService {
         .encryptSignal(keyPair: keypair, ptext: message0, remoteAddress: kpa);
     Uint8List ciphertext = enResult.$1;
 
+    // listen new receving pubkey
+    if (enResult.$2 != null) {
+      String myReceiverAddr = await rust_nostr.generateSeedFromRatchetkeyPair(
+          seedKey: enResult.$2!);
+      List<String> toAddPubkeys = await ContactService()
+          .addReceiveKey(room.identityId, room.toMainPubkey, myReceiverAddr);
+      Get.find<WebsocketService>().listenPubkey(toAddPubkeys,
+          since: DateTime.now().subtract(const Duration(seconds: 5)));
+      if (!room.isMute) NotifyService.addPubkeys(toAddPubkeys);
+    }
+
     String msgKeyHash =
         await rust_nostr.generateMessageKeyHash(seedKey: enResult.$3);
     Identity identity = room.getIdentity();

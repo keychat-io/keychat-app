@@ -354,6 +354,9 @@ $error ''';
           RoomService.getController(room.id)?.resetMembers();
         }
         break;
+      case KeyChatEventKinds.groupUpdateKeys:
+        await memberProccessUpdateKey(room, km);
+        break;
       default:
         return await RoomService().receiveDM(room, event,
             sourceEvent: sourceEvent,
@@ -418,6 +421,22 @@ $error ''';
         nostrId: identity.secp256k1PKHex, groupId: room.toMainPubkey);
     room = await replaceListenPubkey(room, identity.secp256k1PKHex);
     RoomService.getController(room.id)?.setRoom(room).resetMembers();
+  }
+
+  Future adminUpdateKey(Room room) async {
+    Identity identity = room.getIdentity();
+    var queuedMsg = await rust_mls.selfUpdate(
+        nostrId: identity.secp256k1PKHex, groupId: room.toMainPubkey);
+    KeychatMessage sm = KeychatMessage(
+        c: MessageType.mls, type: KeyChatEventKinds.groupUpdateKeys)
+      ..name = base64.encode(queuedMsg)
+      ..msg =
+          '[System] Admin update the shared-key, all members\'s keys will be updated.';
+
+    await sendMessage(room, sm.toString(), realMessage: sm.msg);
+    await rust_mls.selfCommit(
+        nostrId: identity.secp256k1PKHex, groupId: room.toMainPubkey);
+    room = await replaceListenPubkey(room, identity.secp256k1PKHex);
   }
 
   @override
@@ -598,5 +617,14 @@ $error ''';
             DateTime.now().millisecondsSinceEpoch);
       }
     }
+  }
+
+  Future memberProccessUpdateKey(Room room, KeychatMessage km) async {
+    Uint8List welcome = base64.decode(km.name!);
+    await rust_mls.othersCommitNormal(
+        nostrId: room.myIdPubkey,
+        groupId: room.toMainPubkey,
+        queuedMsg: welcome);
+    await replaceListenPubkey(room, room.myIdPubkey);
   }
 }

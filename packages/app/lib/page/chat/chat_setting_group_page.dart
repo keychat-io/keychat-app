@@ -1,6 +1,7 @@
 import 'package:app/app.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/message_bill/pay_to_relay_page.dart';
+import 'package:app/service/mls_group.service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
@@ -391,6 +392,35 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
               title: const Text("Group Name"),
               leading: const Icon(CupertinoIcons.flag),
               value: Text("${chatController.roomObs.value.name}")),
+      if (chatController.meMember.value.isAdmin)
+        SettingsTile.navigation(
+            title: const Text("Update SharedKey"),
+            leading: const Icon(Icons.refresh),
+            onPressed: (context) async {
+              await Get.dialog(CupertinoAlertDialog(
+                title: const Text("Update SharedKey"),
+                content: const Text(
+                    "Regularly updating shared keys makes group chats more secure, and the receiving address will also be updated."),
+                actions: <Widget>[
+                  CupertinoDialogAction(
+                    child: const Text("Cancel"),
+                    onPressed: () {
+                      Get.back();
+                    },
+                  ),
+                  CupertinoDialogAction(
+                    isDefaultAction: true,
+                    child: const Text("Confirm"),
+                    onPressed: () async {
+                      Get.back();
+                      await MlsGroupService.instance
+                          .adminUpdateKey(chatController.roomObs.value);
+                      EasyLoading.showSuccess('Success');
+                    },
+                  ),
+                ],
+              ));
+            }),
       SettingsTile.navigation(
         title: const Text("My Alias in Group"),
         leading: const Icon(CupertinoIcons.person),

@@ -119,12 +119,11 @@ class WebsocketService extends GetxService {
   Future<WebsocketService> init() async {
     relayStatusInt.value = RelayStatusEnum.connecting.name;
     List<Relay> list = await rs.initRelay();
-    list = list.where((element) => element.active).toList();
-    if (list.isEmpty) {
-      relayStatusInt.value = RelayStatusEnum.noAcitveRelay.name;
-      return this;
-    }
     start(list);
+    int activeCount = list.where((element) => element.active).length;
+    if (activeCount == 0) {
+      relayStatusInt.value = RelayStatusEnum.noAcitveRelay.name;
+    }
     return this;
   }
 
@@ -428,23 +427,20 @@ class WebsocketService extends GetxService {
     }));
   }
 
-  Future<RelayWebsocket> _startConnectRelay(RelayWebsocket rw,
-      [bool skipCheck = false]) async {
-    if (skipCheck == false) {
-      if (!rw.relay.active) {
-        return rw;
-      }
+  Future<RelayWebsocket> _startConnectRelay(RelayWebsocket rw) async {
+    if (rw.relay.active == false) {
+      return rw;
+    }
 
-      if (rw.failedTimes > failedTimesLimit) {
-        rw.channelStatus = RelayStatusEnum.failed;
-        rw.channel?.sink.close();
-        clearFailedEvents(rw.relay.url);
-        return rw;
-      }
+    if (rw.failedTimes > failedTimesLimit) {
+      rw.channelStatus = RelayStatusEnum.failed;
+      rw.channel?.sink.close();
+      clearFailedEvents(rw.relay.url);
+      return rw;
     }
 
     loggerNoLine
-        .i('start onnect ${rw.relay.url}, failedTimes: ${rw.failedTimes}');
+        .i('start connect ${rw.relay.url}, failedTimes: ${rw.failedTimes}');
 
     final channel = IOWebSocketChannel.connect(Uri.parse(rw.relay.url),
         pingInterval: const Duration(seconds: 10),

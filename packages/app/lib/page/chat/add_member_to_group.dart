@@ -1,4 +1,5 @@
 import 'package:app/models/models.dart';
+import 'package:app/page/components.dart';
 import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/room.service.dart';
@@ -9,19 +10,15 @@ import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
 
-import '../../service/contact.service.dart';
 import '../../service/group.service.dart';
 
 class AddMemberToGroup extends StatefulWidget {
   final Room room;
-  final Set<String> members;
-  final String adminPubkey;
+  final List<Map<String, dynamic>> contacts;
   const AddMemberToGroup(
-      {super.key,
-      required this.room,
-      required this.members,
-      required this.adminPubkey});
+      {super.key, required this.room, required this.contacts});
 
   @override
   State<StatefulWidget> createState() => _AddMemberToGroupState();
@@ -37,48 +34,24 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
 
   late ScrollController _scrollController;
   late TextEditingController _userNameController;
+  final RefreshController _refreshController =
+      RefreshController(initialRefresh: true);
+  bool pageLoading = true;
 
   @override
   void initState() {
     super.initState();
     _userNameController = TextEditingController(text: "");
     _scrollController = ScrollController();
-
-    _getData();
+    _onLoading();
   }
 
   @override
   void dispose() {
     _userNameController.dispose();
     _scrollController.dispose();
+    _refreshController.dispose();
     super.dispose();
-  }
-
-  _getData() async {
-    List<Contact> contactList =
-        await ContactService().getListExcludeSelf(widget.room.identityId);
-    List<Map<String, dynamic>> list = [];
-    contactList = contactList.reversed.toList();
-    for (int i = 0; i < contactList.length; i++) {
-      var exist = false;
-      if (widget.members.contains(contactList[i].pubkey)) {
-        exist = true;
-      }
-      list.add({
-        "pubkey": contactList[i].pubkey,
-        "npubkey": contactList[i].npubkey,
-        "name": contactList[i].displayName,
-        "exist": exist,
-        "isCheck": false,
-        "mlsPK": null,
-        "mlsPKLoaded": false,
-        "isAdmin": widget.adminPubkey == contactList[i].pubkey
-      });
-    }
-
-    setState(() {
-      users = list;
-    });
   }
 
   void _completeFromContacts() async {
@@ -143,6 +116,34 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
     }
   }
 
+  void _onLoading() async {
+    int currentLength = users.length;
+    int nextLength = currentLength + 15;
+    if (nextLength > widget.contacts.length) {
+      nextLength = widget.contacts.length;
+    }
+    List<Map<String, dynamic>> news =
+        widget.contacts.getRange(currentLength, nextLength).toList();
+    if (news.isNotEmpty) {
+      List<String> pubkeys = [];
+      for (var u in news) {
+        pubkeys.add(u['pubkey']);
+      }
+      Map res = await MlsGroupService.instance.getPKs(pubkeys);
+
+      for (var u in news) {
+        String pubkey = u['pubkey'];
+        if (res[pubkey] != null && res[pubkey].length > 0) {
+          u['mlsPK'] = res[pubkey];
+        }
+      }
+      users.addAll(news);
+    }
+    pageLoading = false;
+    setState(() {});
+    _refreshController.loadComplete();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -156,77 +157,56 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
             child: const Text("Done"))
       ]),
       body: SafeArea(
-          child: ListView.builder(
-              itemCount: users.length,
-              controller: _scrollController,
-              itemBuilder: (context, index) {
-                Map<String, dynamic> user = users[index];
-                return ListTile(
-                    leading:
-                        getRandomAvatar(user['pubkey'], height: 40, width: 40),
-                    title: Text(user['name'],
-                        style: Theme.of(context).textTheme.titleMedium),
-                    dense: true,
-                    subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(user['npubkey'],
-                              overflow: TextOverflow.ellipsis),
-                          FutureBuilder(future: () async {
-                            if (widget.room.groupType != GroupType.mls) {
-                              return null;
-                            }
-                            if (user['mlsPK'] != null) return user['mlsPK'];
-                            if (user['mlsPKLoaded']) return user['mlsPK'];
-                            if (user['isAdmin']) return null;
-                            if (user['exist']) return null;
-
-                            String? pk = await MlsGroupService.instance
-                                .getPK(user['pubkey']);
-                            user['mlsPKLoaded'] = true;
-                            user['mlsPK'] = pk;
-                            setState(() {});
-                            return pk;
-                          }(), builder: (context, snapshot) {
-                            if (user['isAdmin']) return Container();
-                            if (user['exist']) return Container();
-
-                            if (widget.room.groupType == GroupType.mls &&
-                                snapshot.data == null) {
-                              return Text('Not upload MLS keys',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.copyWith(color: Colors.pink));
-                            }
-                            return Container();
-                          })
-                        ]),
-                    trailing: widget.room.groupType == GroupType.mls &&
-                            user['mlsPKLoaded'] == false &&
-                            !user['isAdmin'] &&
-                            !user['exist']
-                        ? const SizedBox(
-                            height: 16,
-                            width: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2))
-                        : (user['isAdmin'] || user['exist']
-                            ? const Icon(Icons.check_box,
-                                color: Colors.grey, size: 30)
-                            : Checkbox(
-                                value: user['isCheck'],
-                                tristate:
-                                    widget.room.groupType == GroupType.mls &&
+          child: pageLoading
+              ? pageLoadingSpinKit()
+              : SmartRefresher(
+                  enablePullDown: false,
+                  enablePullUp: true,
+                  header: const WaterDropHeader(),
+                  controller: _refreshController,
+                  onLoading: _onLoading,
+                  child: ListView.builder(
+                      itemCount: users.length,
+                      controller: _scrollController,
+                      itemBuilder: (context, index) {
+                        Map<String, dynamic> user = users[index];
+                        return ListTile(
+                            leading: getRandomAvatar(user['pubkey'],
+                                height: 40, width: 40),
+                            title: Text(user['name'],
+                                style: Theme.of(context).textTheme.titleMedium),
+                            dense: true,
+                            subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(user['npubkey'],
+                                      overflow: TextOverflow.ellipsis),
+                                  widget.room.groupType == GroupType.mls &&
+                                          user['mlsPK'] == null
+                                      ? Text('Not upload MLS keys',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(color: Colors.pink))
+                                      : Container()
+                                ]),
+                            trailing: (user['isAdmin'] || user['exist']
+                                ? const Icon(Icons.check_box,
+                                    color: Colors.grey, size: 30)
+                                : Checkbox(
+                                    value: user['isCheck'],
+                                    tristate: widget.room.groupType ==
+                                            GroupType.mls &&
                                         user['mlsPK'] == null,
-                                onChanged:
-                                    widget.room.groupType == GroupType.mls &&
+                                    onChanged: widget.room.groupType ==
+                                                GroupType.mls &&
                                             user['mlsPK'] == null
                                         ? null
                                         : (isCheck) {
                                             user['isCheck'] = isCheck!;
                                             setState(() {});
                                           })));
-              })),
+                      }))),
     );
   }
 }

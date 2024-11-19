@@ -1,3 +1,4 @@
+import 'package:app/page/chat/create_contact_page.dart';
 import 'package:barcode_scan2/barcode_scan2.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -84,6 +85,10 @@ class QrScanService {
     }
     if (str.startsWith('lnbc')) {
       return _proccessPayLightingBill(str);
+    }
+    if (str.startsWith('npub') || str.length == 64) {
+      Get.to(() => AddtoContactsPage(str));
+      return;
     }
     bool isBase = isBase64(str);
     if (isBase) {

@@ -1,4 +1,4 @@
-import 'package:app/models/room.dart';
+import 'package:app/controller/home.controller.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/create_group_select_member.dart';
 import 'package:app/service/websocket.service.dart';
@@ -52,14 +52,34 @@ class _AddGroupPageState extends State<AddGroupPage>
                 style: ButtonStyle(
                     minimumSize: WidgetStateProperty.all(
                         const Size(double.infinity, 44))),
-                onPressed: () {
+                onPressed: () async {
                   String groupName = _groupNameController.text.trim();
                   if (groupName.isEmpty) {
                     EasyLoading.showToast('Please input group name');
                     return;
                   }
 
-                  Get.to(() => CreateGroupSelectMember(groupName, groupType));
+                  Identity identity =
+                      Get.find<HomeController>().getSelectedIdentity();
+                  List<Contact> contactList =
+                      await ContactService().getListExcludeSelf(identity.id);
+                  contactList = contactList.reversed.toList();
+                  List<Map<String, dynamic>> list = [];
+                  for (int i = 0; i < contactList.length; i++) {
+                    var exist = false;
+                    list.add({
+                      "pubkey": contactList[i].pubkey,
+                      "npubkey": contactList[i].npubkey,
+                      "name": contactList[i].displayName,
+                      "exist": exist,
+                      "isCheck": false,
+                      "mlsPK": null,
+                      "isAdmin": false
+                    });
+                  }
+
+                  Get.to(() =>
+                      CreateGroupSelectMember(groupName, groupType, list));
                 },
                 child: const Text('Next'))),
         body: SafeArea(

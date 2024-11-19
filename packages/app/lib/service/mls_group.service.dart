@@ -228,9 +228,20 @@ $error ''';
     return null;
   }
 
-  initDB(String path) {
+  Future<Map> getPKs(List<String> pubkeys) async {
+    try {
+      var res = await Dio().post('${KeychatGlobal.mlsPKServer}batch',
+          data: {'pubkeys': pubkeys});
+      return res.data['data'] ?? {};
+    } catch (e, s) {
+      logger.e('getPK failed', error: e, stackTrace: s);
+    }
+    return {};
+  }
+
+  Future initDB(String path) async {
     dbPath = path;
-    initIdentities();
+    await initIdentities();
   }
 
   Future initIdentities([List<Identity>? identities]) async {
@@ -238,13 +249,13 @@ $error ''';
       throw Exception('MLS dbPath is null');
     }
     identities ??= await IdentityService().getIdentityList();
-    for (Identity identity in identities) {
+    await Future.wait(identities.map((identity) async {
       await rust_mls.initMlsDb(
           dbPath: '$dbPath${KeychatGlobal.mlsDBFile}',
           nostrId: identity.secp256k1PKHex);
       logger.i('MLS init success: ${identity.secp256k1PKHex}');
       await _uploadPKMessage(identity);
-    }
+    }));
   }
 
   Future inviteToJoinGroup(Room room, List<Map<String, dynamic>> toUsers,

@@ -67,8 +67,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
     return Scaffold(
         appBar: AppBar(
           title: Obx(() => Text(
-                "${chatController.roomObs.value.name ?? ""}(${chatController.enableMembers.length})",
-              )),
+              "${chatController.roomObs.value.name ?? ""}(${chatController.enableMembers.length})")),
           actions: [
             IconButton(
                 onPressed: () async {
@@ -79,10 +78,32 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                   for (RoomMember rm in members) {
                     memberPubkeys.add(rm.idPubkey);
                   }
+
+                  // contacts
+                  List<Contact> contactList = await ContactService()
+                      .getListExcludeSelf(widget.room.identityId);
+                  List<Map<String, dynamic>> contacts = [];
+                  contactList = contactList.reversed.toList();
+                  for (int i = 0; i < contactList.length; i++) {
+                    var exist = false;
+                    if (memberPubkeys.contains(contactList[i].pubkey)) {
+                      exist = true;
+                    }
+                    contacts.add({
+                      "pubkey": contactList[i].pubkey,
+                      "npubkey": contactList[i].npubkey,
+                      "name": contactList[i].displayName,
+                      "exist": exist,
+                      "isCheck": false,
+                      "mlsPK": null,
+                      "isAdmin":
+                          (admin?.idPubkey ?? '') == contactList[i].pubkey
+                    });
+                  }
                   Get.to(() => AddMemberToGroup(
-                      room: chatController.roomObs.value,
-                      adminPubkey: admin?.idPubkey ?? '',
-                      members: memberPubkeys));
+                        room: chatController.roomObs.value,
+                        contacts: contacts,
+                      ));
                 },
                 icon: const Icon(CupertinoIcons.plus_circle_fill))
           ],

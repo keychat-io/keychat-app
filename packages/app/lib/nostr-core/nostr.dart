@@ -197,7 +197,7 @@ class NostrAPI {
   }
 
   Future<SendMessageResponse> sendNip4Message(
-      String toPublicKey, String toEncryptText,
+      String toPubkey, String toEncryptText,
       {bool save = true,
       required String prikey,
       required String from,
@@ -213,7 +213,7 @@ class NostrAPI {
       String? msgKeyHash}) async {
     late String encryptedEvent;
     if (isSignalMessage) {
-      var receiverPubkeys = [toPublicKey];
+      var receiverPubkeys = [toPubkey];
       if (signalReceiveAddress != null) {
         receiverPubkeys.add(signalReceiveAddress);
       }
@@ -223,9 +223,7 @@ class NostrAPI {
           content: toEncryptText);
     } else {
       encryptedEvent = await rust_nostr.getEncryptEvent(
-          senderKeys: prikey,
-          receiverPubkey: toPublicKey,
-          content: toEncryptText);
+          senderKeys: prikey, receiverPubkey: toPubkey, content: toEncryptText);
     }
     NostrEventModel event =
         NostrEventModel.fromJson(jsonDecode(encryptedEvent), verify: false);
@@ -245,7 +243,7 @@ class NostrAPI {
         events: [event],
         reply: reply,
         from: from,
-        to: toPublicKey,
+        to: toPubkey,
         isSystem: isSystem ?? false,
         idPubkey: room.myIdPubkey,
         content: sourceContent ?? toEncryptText,

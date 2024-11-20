@@ -639,7 +639,8 @@ class RoomService extends BaseChatService {
     return map;
   }
 
-  Future sendMessageToBot(Room room, Identity identity, String message,
+  Future<SendMessageResponse> sendMessageToBot(
+      Room room, Identity identity, String message,
       {String? realMessage}) async {
     BotClientMessageModel? cmm;
     try {
@@ -676,9 +677,8 @@ class RoomService extends BaseChatService {
     logger.d('toSendMessage: $toSendMessage');
     if (room.encryptMode == EncryptMode.signal) {
       try {
-        await SignalChatService.instance.sendMessage(room, toSendMessage,
+        return await SignalChatService.instance.sendMessage(room, toSendMessage,
             realMessage: realMessage ?? message);
-        return;
       } catch (e) {
         logger.e('send signal message to bot error', error: e);
       }

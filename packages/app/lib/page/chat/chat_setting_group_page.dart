@@ -35,8 +35,6 @@ class GroupChatSettingPage extends StatefulWidget {
 }
 
 class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
-  GroupService groupService = GroupService.instance;
-  RoomService roomService = RoomService.instance;
   HomeController homeController = Get.find<HomeController>();
   int gridCount = 5;
   late ChatController chatController;
@@ -111,7 +109,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
         body: Obx(
           () => Column(
             children: [
-              getImageGridView(chatController.enableMembers),
+              getImageGridView(chatController.members),
               Expanded(
                   child: SettingsList(
                 platform: DevicePlatform.iOS,
@@ -194,6 +192,11 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
   }
 
   Widget getImageGridView(List<RoomMember> list) {
+    list = list
+        .where((e) =>
+            e.status == UserStatusType.invited ||
+            e.status == UserStatusType.inviting)
+        .toList();
     return Padding(
         padding: const EdgeInsets.only(top: 10),
         child: SizedBox(
@@ -225,12 +228,16 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                     contact.name ??= rm.name;
                     Get.dialog(CupertinoAlertDialog(
                       title: Text(rm.name),
-                      content: Container(
-                        color: Colors.transparent,
-                        child: Text(
-                          npub,
-                          style: const TextStyle(fontSize: 12),
-                        ),
+                      content: Column(
+                        children: [
+                          if (rm.status == UserStatusType.inviting)
+                            Text('Inviting',
+                                style: Theme.of(Get.context!)
+                                    .textTheme
+                                    .bodyLarge
+                                    ?.copyWith(color: Colors.amber.shade700)),
+                          Text(npub),
+                        ],
                       ),
                       actions: <Widget>[
                         CupertinoDialogAction(
@@ -285,8 +292,10 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                                     onPressed: () async {
                                       EasyLoading.show(status: 'Processing...');
                                       try {
-                                        await groupService.removeMember(
-                                            chatController.roomObs.value, rm);
+                                        await GroupService.instance
+                                            .removeMember(
+                                                chatController.roomObs.value,
+                                                rm);
                                         EasyLoading.dismiss();
                                         EasyLoading.showSuccess("Removed",
                                             duration:
@@ -319,10 +328,13 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                   },
                   child: Column(children: [
                     getRandomAvatar(rm.idPubkey, height: 40, width: 40),
-                    Text(
-                      rm.name,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    Text(rm.name, overflow: TextOverflow.ellipsis),
+                    if (rm.status == UserStatusType.inviting)
+                      Text('Inviting',
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelSmall
+                              ?.copyWith(color: Colors.amber.shade700))
                   ]),
                 );
               },
@@ -342,7 +354,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
               for (RoomMember rm in members) {
                 selectAccounts[rm.idPubkey] = rm.name;
               }
-              await groupService.inviteToJoinGroup(
+              await GroupService.instance.inviteToJoinGroup(
                   chatController.roomObs.value, selectAccounts);
               EasyLoading.showSuccess("Send invitation successfully");
             },
@@ -413,7 +425,8 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
               title: const Text("Group Name"),
               leading: const Icon(CupertinoIcons.flag),
               value: Text("${chatController.roomObs.value.name}")),
-      if (chatController.meMember.value.isAdmin)
+      if (chatController.meMember.value.isAdmin &&
+          chatController.room.isMLSGroup)
         SettingsTile.navigation(
             title: const Text("Update SharedKey"),
             leading: const Icon(Icons.refresh),
@@ -473,8 +486,8 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                 onPressed: () async {
                   String name = userNameController.text.trim();
                   if (name.isNotEmpty) {
-                    await groupService.changeMyNickname(
-                        chatController.roomObs.value, name);
+                    await GroupService.instance
+                        .changeMyNickname(chatController.roomObs.value, name);
                     await chatController.setMeMember(name);
                     chatController.meMember.refresh();
                     userNameController.clear();
@@ -489,44 +502,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
             ],
           ));
         },
-      ),
-      if (kDebugMode)
-        SettingsTile.navigation(
-          title: const Text("Not Invited Member"),
-          leading: const Icon(CupertinoIcons.person),
-          onPressed: (context) async {
-            List<RoomMember> members = await room.getNotEnableMembers();
-            List list = [];
-            members.map((e) {
-              list.add('${e.name} ${e.idPubkey} ${e.status.name}');
-            });
-            Get.dialog(
-              CupertinoAlertDialog(
-                title: const Text('Not enabled members'),
-                content: SizedBox(
-                  height: 300,
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: list.length,
-                    itemBuilder: (context, index) {
-                      return ListTile(
-                        title: Text(list[index]),
-                      );
-                    },
-                  ),
-                ),
-                actions: <Widget>[
-                  CupertinoDialogAction(
-                    child: const Text('Close'),
-                    onPressed: () {
-                      Get.back();
-                    },
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
+      )
     ]);
   }
 
@@ -575,8 +551,8 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
             String newName = textEditingController.text;
             if (newName.isNotEmpty &&
                 newName != chatController.roomObs.value.name) {
-              await groupService.changeRoomName(
-                  chatController.roomObs.value.id, newName);
+              await GroupService.instance
+                  .changeRoomName(chatController.roomObs.value.id, newName);
 
               chatController.roomObs.value.name = newName;
               textEditingController.clear();
@@ -611,9 +587,9 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
               EasyLoading.show(status: 'Loading...');
               try {
                 chatController.meMember.value.isAdmin
-                    ? await groupService
+                    ? await GroupService.instance
                         .dissolveGroup(chatController.roomObs.value)
-                    : await groupService
+                    : await GroupService.instance
                         .selfExitGroup(chatController.roomObs.value);
                 EasyLoading.showSuccess('Success');
               } catch (e, s) {

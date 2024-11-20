@@ -185,6 +185,11 @@ class ChatController extends GetxController {
     if (room.type == RoomType.common) {
       return roomContact.value;
     }
+    if (room.type == RoomType.bot) {
+      return Contact(
+          pubkey: room.toMainPubkey, npubkey: '', identityId: room.identityId)
+        ..name = room.getRoomName();
+    }
     var roomMember = members
         .firstWhereOrNull((element) => element.idPubkey == message.idPubkey);
     roomMember ??= RoomMember(

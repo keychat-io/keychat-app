@@ -598,12 +598,15 @@ Room: $id, ${getRoomName()} $toMainPubkey, $identityId, $groupType''';
     var ws = Get.find<WebsocketService>();
     if (toDeletePubkey != null) {
       ws.removePubkeyFromSubscription(toDeletePubkey);
-      NotifyService.removePubkeys([toDeletePubkey]);
+      if (isMute == false) {
+        NotifyService.removePubkeys([toDeletePubkey]);
+      }
     }
     await ws.listenPubkey([newPubkey],
         since: DateTime.fromMillisecondsSinceEpoch(startAt));
-
-    NotifyService.addPubkeys([newPubkey]);
+    if (isMute == false) {
+      NotifyService.addPubkeys([newPubkey]);
+    }
     return this;
   }
 }

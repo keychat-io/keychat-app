@@ -75,17 +75,20 @@ class MlsGroupService extends BaseChatService {
     return true;
   }
 
-  Future appendMessageOrCreate(String error, Room room, String content,
-      NostrEventModel nostrEvent) async {
+  Future appendMessageOrCreate(
+      String error, Room room, String content, NostrEventModel nostrEvent,
+      {String? fromIdPubkey}) async {
     Message? message = await DBProvider.database.messages
         .filter()
         .msgidEqualTo(nostrEvent.id)
         .findFirst();
     if (message == null) {
-      await RoomService.instance.receiveDM(room, nostrEvent, decodedContent: '''
+      await RoomService.instance.receiveDM(room, nostrEvent,
+          decodedContent: '''
 $error
 
-track: $content''');
+track: $content''',
+          fromIdPubkey: fromIdPubkey);
       return;
     }
     message.content = '''${message.content}
@@ -206,7 +209,8 @@ $error ''';
       String msg = Utils.getErrorMessage(e);
       logger.e('decryptPreKeyMessage error: $msg', error: e, stackTrace: s);
       await appendMessageOrCreate(
-          msg, room, 'mls km processMessage', nostrEvent);
+          msg, room, 'mls km processMessage', nostrEvent,
+          fromIdPubkey: fromIdPubkey);
     }
   }
 
@@ -471,14 +475,15 @@ $error ''';
     if (reply != null) {
       message = KeychatMessage.getTextMessage(MessageType.mls, message, reply);
     }
+    if (room.onetimekey == null) {
+      throw Exception('Receiving pubkey is null');
+    }
     Identity identity = room.getIdentity();
     var enctypted = await rust_mls.sendMsg(
         nostrId: identity.secp256k1PKHex,
         groupId: room.toMainPubkey,
         msg: message);
-    if (room.onetimekey == null) {
-      throw Exception('MLS Group\'s receiving pubkey is null');
-    }
+
     var randomAccount = await rust_nostr.generateSimple();
     var smr = await NostrAPI.instance.sendNip4Message(
         room.onetimekey!, base64.encode(enctypted.$1),
@@ -486,6 +491,7 @@ $error ''';
         from: randomAccount.pubkey,
         room: room,
         encryptType: MessageEncryptType.mls,
+        msgKeyHash: enctypted.$2 == null ? null : base64.encode(enctypted.$2!),
         save: save,
         mediaType: mediaType,
         sourceContent: message,
@@ -653,6 +659,10 @@ $error ''';
         nostrId: room.myIdPubkey,
         groupId: room.toMainPubkey,
         queuedMsg: welcome);
-    await replaceListenPubkey(room, room.myIdPubkey);
+    try {
+      await replaceListenPubkey(room, room.myIdPubkey);
+    } catch (e) {
+      logger.e(e.toString(), error: e);
+    }
   }
 }

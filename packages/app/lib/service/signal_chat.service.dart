@@ -90,21 +90,24 @@ class SignalChatService extends BaseChatService {
     }
 
     var senderKey = await rust_nostr.generateSimple();
-
+    String toPubkey = room.type == RoomType.bot ? room.toMainPubkey : to;
     SendMessageResponse smr = await NostrAPI.instance.sendNip4Message(
-        to, base64.encode(ciphertext),
-        save: save,
-        prikey: senderKey.prikey,
-        from: senderKey.pubkey,
-        room: room,
-        isSystem: isSystem,
-        encryptType: MessageEncryptType.signal,
-        realMessage: realMessage,
-        sourceContent: message0,
-        reply: reply,
-        mediaType: mediaType,
-        isSignalMessage: true,
-        msgKeyHash: msgKeyHash);
+      toPubkey,
+      base64.encode(ciphertext),
+      save: save,
+      prikey: senderKey.prikey,
+      from: senderKey.pubkey,
+      room: room,
+      isSystem: isSystem,
+      encryptType: MessageEncryptType.signal,
+      realMessage: realMessage,
+      sourceContent: message0,
+      reply: reply,
+      mediaType: mediaType,
+      isSignalMessage: true,
+      msgKeyHash: msgKeyHash,
+      signalReceiveAddress: room.type == RoomType.bot ? to : null,
+    );
     smr.toAddPubkeys = toAddPubkeys;
     return smr;
   }
@@ -212,6 +215,7 @@ class SignalChatService extends BaseChatService {
     await RoomService.instance.receiveDM(room, event,
         decodedContent: decodeString,
         sourceEvent: sourceEvent,
+        fromIdPubkey: room.toMainPubkey,
         msgKeyHash: msgKeyHash);
     return decodeString;
   }

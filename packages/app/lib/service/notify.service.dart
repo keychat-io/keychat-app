@@ -3,9 +3,11 @@ import 'dart:convert' show utf8;
 
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
+import 'package:app/models/room.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/relay.service.dart';
+import 'package:app/service/room.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
@@ -32,7 +34,7 @@ class NotifyService {
         'toRemove': toRemovePubkeys,
         'relays': relays
       });
-      logger.i('addPubkeys ${res.data}');
+      logger.i('addPubkeys $toAddPubkeys, response: ${res.data}');
       return res.data['data'] ?? true;
     } on DioException catch (e) {
       logger.e('addPubkeys error: ${e.response?.data}', error: e);
@@ -86,6 +88,7 @@ class NotifyService {
     return false;
   }
 
+  // Listening Keys: identity pubkey, mls group pubkey, signal chat receive key, onetime key
   static syncPubkeysToServer([bool checkUpload = false]) async {
     bool isGrant = await NotifyService.checkAllNotifyPermission();
     if (!isGrant) return;
@@ -104,8 +107,13 @@ class NotifyService {
         await IdentityService.instance.getListenPubkeys(skipMute: true);
     List<String> pubkeys2 =
         await ContactService.instance.getAllReceiveKeysSkipMute();
-
-    if (pubkeys.isEmpty) return;
+    List<Room> mlsRooms = await RoomService.instance.getMlgRooms();
+    List<String> mlsPubkeys = [];
+    for (var room in mlsRooms) {
+      if (room.isMute == false && room.onetimekey != null) {
+        mlsPubkeys.add(room.onetimekey!);
+      }
+    }
 
     List<String> relays = await RelayService.instance.getEnableList();
     if (toRemovePubkeys.isNotEmpty) {
@@ -113,8 +121,8 @@ class NotifyService {
     }
     if (checkUpload) {
       // OneSignal.Notifications.clearAll();
-      String hashcode =
-          NotifyService.calculateHash([...pubkeys, ...pubkeys2, ...relays]);
+      String hashcode = NotifyService.calculateHash(
+          [...pubkeys, ...pubkeys2, ...mlsPubkeys, ...relays]);
       bool hasUploaded = await NotifyService.checkHashcode(fcmToken!, hashcode);
 
       if (hasUploaded) return;
@@ -122,7 +130,7 @@ class NotifyService {
     var map = {
       "kind": 4,
       "deviceId": fcmToken,
-      "pubkeys": [...pubkeys, ...pubkeys2],
+      "pubkeys": [...pubkeys, ...pubkeys2, ...mlsPubkeys],
       "relays": relays
     };
     try {

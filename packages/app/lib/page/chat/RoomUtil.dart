@@ -11,6 +11,7 @@ import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/ChatMediaFilesPage.dart';
 import 'package:app/page/chat/contact_page.dart';
 import 'package:app/service/websocket.service.dart';
+import 'package:easy_debounce/easy_throttle.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
@@ -223,33 +224,41 @@ Let's start an encrypted chat.''';
       description: const Text(
           'If muted, receive pubkey will not be uploaded to the notification server and metadata will be protected'),
       onToggle: (value) async {
-        Room room = chatController.roomObs.value;
-        List<String> pubkeys = [];
+        EasyThrottle.throttle('mute_notification', const Duration(seconds: 3),
+            () async {
+          Room room = chatController.roomObs.value;
+          List<String> pubkeys = [];
 
-        if (room.type == RoomType.group) {
-          pubkeys.add(room.mykey.value!.pubkey);
-        } else {
-          List<String>? data = ContactService.instance.getMyReceiveKeys(room);
-          if (data != null) pubkeys.addAll(data);
-        }
-        bool res = false;
-        if (value) {
-          res = await NotifyService.removePubkeys(pubkeys);
-        } else {
-          res = await NotifyService.addPubkeys(pubkeys);
-        }
-        if (!res) {
-          EasyLoading.showError('Failed, Please try again');
-          return;
-        }
-        if (room.type == RoomType.common) {
-          await ContactService.instance.updateReceiveKeyIsMute(room, value);
-        }
-        chatController.roomObs.value.isMute = value;
-        await RoomService.instance.updateRoom(chatController.roomObs.value);
-        chatController.roomObs.refresh();
-        EasyLoading.showSuccess('Saved');
-        await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
+          if (room.type == RoomType.group) {
+            if (room.isMLSGroup && room.onetimekey != null) {
+              pubkeys.add(room.onetimekey!);
+            } else if (room.mykey.value?.pubkey != null) {
+              pubkeys.add(room.mykey.value!.pubkey);
+            }
+          } else {
+            List<String>? data = ContactService.instance.getMyReceiveKeys(room);
+            if (data != null) pubkeys.addAll(data);
+          }
+          bool res = false;
+          if (value) {
+            res = await NotifyService.removePubkeys(pubkeys);
+          } else {
+            res = await NotifyService.addPubkeys(pubkeys);
+          }
+          if (!res) {
+            EasyLoading.showError('Failed, Please try again');
+            return;
+          }
+          if (room.type == RoomType.common) {
+            await ContactService.instance.updateReceiveKeyIsMute(room, value);
+          }
+          chatController.roomObs.value.isMute = value;
+          await RoomService.instance
+              .updateRoomAndRefresh(chatController.roomObs.value);
+          EasyLoading.showSuccess('Saved');
+          await Get.find<HomeController>()
+              .loadIdentityRoomList(room.identityId);
+        });
       },
     );
   }

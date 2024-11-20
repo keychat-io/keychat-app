@@ -23,7 +23,7 @@ melos bs --ignore="*build_tool_runner*"
 cd packages/app/
 dart fix --apply
 
-flutter build ipa -t lib/main.dart --dart-define=dart.vm.product=true --release --analyze-size # --obfuscate --split-debug-info=./build/obfuscate/ios/
+flutter build ipa -v -t lib/main.dart --dart-define=dart.vm.product=true --release --analyze-size # --obfuscate --split-debug-info=./build/obfuscate/ios/
 
 # open build/ios/archive/Runner.xcarchive/
 

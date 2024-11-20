@@ -37,7 +37,7 @@ android {
     // minSdkVersion localProperties.getProperty('flutter.minSdkVersion').toInteger()
     ndkVersion flutter.ndkVersion
     namespace "com.keychat.io"
-    // ndkVersion "25.1.8937393"
+    ndkVersion "28.0.12674087"
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8

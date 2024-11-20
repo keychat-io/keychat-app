@@ -665,8 +665,12 @@ class MessageWidget extends StatelessWidget {
     String content = message.content;
     return AnyLinkPreview(
         key: Key(content),
+        cache: const Duration(days: 7),
         link: content,
-        bodyMaxLines: 2,
+        titleStyle: Theme.of(Get.context!)
+            .textTheme
+            .titleSmall
+            ?.copyWith(overflow: TextOverflow.visible),
         onTap: () {
           Utils.hideKeyboard(Get.context!);
           launchUrl(Uri.parse(content));

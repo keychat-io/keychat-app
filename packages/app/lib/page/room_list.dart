@@ -132,7 +132,7 @@ class RoomList extends StatelessWidget {
                       onTap: () async {
                         await Get.toNamed('/room/${room.id}', arguments: room);
 
-                        RoomService().markAllRead(
+                        RoomService.instance.markAllRead(
                             identityId: room.identityId, roomId: room.id);
                       },
                       onLongPress: () =>

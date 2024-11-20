@@ -45,7 +45,7 @@ class _ShowContactDetailState extends State<ShowContactDetail> {
   @override
   void initState() {
     super.initState();
-    RelayService().getDefault().then((value) {
+    RelayService.instance.getDefault().then((value) {
       setState(() {
         relay = value;
       });
@@ -197,7 +197,7 @@ class _ShowContactDetailState extends State<ShowContactDetail> {
               'Delete',
             ),
             onPressed: () async {
-              RoomService()
+              RoomService.instance
                   .deleteRoomHandler(room.toMainPubkey, room.identityId);
             }),
       ],

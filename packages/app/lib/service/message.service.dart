@@ -18,13 +18,11 @@ import '../controller/home.controller.dart';
 import '../models/db_provider.dart';
 
 class MessageService {
-  static final MessageService _singleton = MessageService._internal();
-  static final DBProvider dbProvider = DBProvider();
-  factory MessageService() {
-    return _singleton;
-  }
-
-  MessageService._internal();
+  static MessageService? _instance;
+  static MessageService get instance => _instance ??= MessageService._();
+  // Avoid self instance
+  MessageService._();
+  static final DBProvider dbProvider = DBProvider.instance;
 
   Future saveMessageModel(Message model,
       {bool persist = true, Room? room}) async {
@@ -90,7 +88,7 @@ $content'''
   }
 
   Future updateMessageAndRefresh(Message message) async {
-    await MessageService().updateMessage(message);
+    await MessageService.instance.updateMessage(message);
     refreshMessageInPage(message);
   }
 
@@ -260,7 +258,7 @@ $content'''
       return DateTime.fromMillisecondsSinceEpoch(lastMessageAt * 1000)
           .subtract(const Duration(minutes: 3));
     }
-    DateTime? time = await MessageService().getLastMessageTime();
+    DateTime? time = await MessageService.instance.getLastMessageTime();
     if (time != null) return time.subtract(const Duration(minutes: 30));
 
     return DateTime.now().subtract(const Duration(days: 14));

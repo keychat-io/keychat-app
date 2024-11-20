@@ -72,7 +72,7 @@ class _UnreadMessagesState extends State<UnreadMessages> {
 
     for (var m in ms) {
       if (!map.containsKey(m.roomId)) {
-        Room? room = await RoomService().getRoomById(m.roomId);
+        Room? room = await RoomService.instance.getRoomById(m.roomId);
         if (room != null) {
           map[m.roomId] = room;
         }

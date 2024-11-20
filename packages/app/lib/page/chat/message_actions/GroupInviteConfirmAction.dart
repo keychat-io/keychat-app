@@ -27,7 +27,7 @@ class GroupInviteConfirmAction extends StatelessWidget {
 
               String toMainPubkey = list[0];
 
-              Room? groupRoom = await RoomService()
+              Room? groupRoom = await RoomService.instance
                   .getRoomByIdentity(toMainPubkey, message.identityId);
               if (groupRoom == null) throw Exception('room not found');
               // List<RoomMember> members = await groupRoom.getActiveMembers();
@@ -53,7 +53,8 @@ class GroupInviteConfirmAction extends StatelessWidget {
                       child: const Text('Reject'),
                       onPressed: () {
                         message.requestConfrim = RequestConfrimEnum.rejected;
-                        MessageService().updateMessageAndRefresh(message);
+                        MessageService.instance
+                            .updateMessageAndRefresh(message);
                         Get.back();
                       },
                     ),
@@ -128,13 +129,14 @@ class GroupInviteConfirmAction extends StatelessWidget {
                                 ],
                               ));
                             } else {
-                              await GroupService()
+                              await GroupService.instance
                                   .inviteToJoinGroup(groupRoom, toJoinUserMap);
                               EasyLoading.showSuccess('Success');
                             }
                             message.requestConfrim =
                                 RequestConfrimEnum.approved;
-                            MessageService().updateMessageAndRefresh(message);
+                            MessageService.instance
+                                .updateMessageAndRefresh(message);
                           } catch (e, s) {
                             String msg = Utils.getErrorMessage(e);
                             EasyLoading.showError(msg);

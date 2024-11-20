@@ -112,8 +112,8 @@ class _ImportKey extends State<ImportKey> {
                     try {
                       var kc = await rust_nostr.importFromPhrase(phrase: input);
                       bool isFirstAccount =
-                          await IdentityService().count() == 0;
-                      await IdentityService().createIdentity(
+                          await IdentityService.instance.count() == 0;
+                      await IdentityService.instance.createIdentity(
                           name: name,
                           account: kc,
                           index: 0,

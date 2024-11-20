@@ -42,7 +42,8 @@ class GroupInviteAction extends StatelessWidget {
                   if (expiredAt.isBefore(DateTime.now())) {
                     message.requestConfrim = RequestConfrimEnum.expired;
                     message.isRead = true;
-                    await MessageService().updateMessageAndRefresh(message);
+                    await MessageService.instance
+                        .updateMessageAndRefresh(message);
                     EasyLoading.showError('The invitation has expired');
                     return;
                   }
@@ -58,7 +59,8 @@ class GroupInviteAction extends StatelessWidget {
 
                 message.isRead = true;
                 if (accept == false) {
-                  await MessageService().updateMessageAndRefresh(message);
+                  await MessageService.instance
+                      .updateMessageAndRefresh(message);
                   return;
                 }
                 Room? groupRoom;
@@ -74,7 +76,8 @@ class GroupInviteAction extends StatelessWidget {
                     // joined with another identity
                     if (exist.identityId != identity.id) {
                       message.requestConfrim = RequestConfrimEnum.rejected;
-                      await MessageService().updateMessageAndRefresh(message);
+                      await MessageService.instance
+                          .updateMessageAndRefresh(message);
                       EasyLoading.showError(
                           'You have joined this group with another identity',
                           duration: const Duration(seconds: 3));
@@ -83,7 +86,8 @@ class GroupInviteAction extends StatelessWidget {
                     // duplicated invitation
                     if (exist.version == roomProfile.updatedAt) {
                       message.requestConfrim = RequestConfrimEnum.approved;
-                      await MessageService().updateMessageAndRefresh(message);
+                      await MessageService.instance
+                          .updateMessageAndRefresh(message);
                       EasyLoading.showSuccess(
                           'The invitation has been auto proccessed',
                           duration: const Duration(seconds: 3));
@@ -92,16 +96,17 @@ class GroupInviteAction extends StatelessWidget {
                     // expired invitation
                     if (roomProfile.updatedAt < exist.version) {
                       message.requestConfrim = RequestConfrimEnum.expired;
-                      await MessageService().updateMessageAndRefresh(message);
+                      await MessageService.instance
+                          .updateMessageAndRefresh(message);
                       EasyLoading.showError('The invitation has expired',
                           duration: const Duration(seconds: 3));
                       return;
                     }
-                    await RoomService().deleteRoom(exist);
+                    await RoomService.instance.deleteRoom(exist);
                   }
 
                   await database.writeTxn(() async {
-                    groupRoom = await GroupTx()
+                    groupRoom = await GroupTx.instance
                         .joinGroup(roomProfile, identity, message);
                     await database.messages.put(message);
                   });
@@ -130,12 +135,14 @@ class GroupInviteAction extends StatelessWidget {
                           .acceptJoinGroup(identity, groupRoom!, ext);
                     }
 
-                    await MessageService().updateMessageAndRefresh(message);
+                    await MessageService.instance
+                        .updateMessageAndRefresh(message);
                     EasyLoading.showSuccess('Join group success');
                   } catch (e, s) {
-                    RoomService().deleteRoom(groupRoom!);
+                    RoomService.instance.deleteRoom(groupRoom!);
                     message.requestConfrim = RequestConfrimEnum.request;
-                    await MessageService().updateMessageAndRefresh(message);
+                    await MessageService.instance
+                        .updateMessageAndRefresh(message);
                     String msg = Utils.getErrorMessage(e);
                     if (msg.contains(
                         'Error creating StagedWelcome from Welcome')) {
@@ -144,7 +151,8 @@ class GroupInviteAction extends StatelessWidget {
                       await MlsGroupService.instance
                           .uploadPKByIdentity(identity);
                       message.requestConfrim = RequestConfrimEnum.expired;
-                      await MessageService().updateMessageAndRefresh(message);
+                      await MessageService.instance
+                          .updateMessageAndRefresh(message);
                     }
                     logger.e(msg, error: e, stackTrace: s);
                     EasyLoading.showError('Join Group Error: $msg',

@@ -19,8 +19,8 @@ class AddGroupPage extends StatefulWidget {
 
 class _AddGroupPageState extends State<AddGroupPage>
     with TickerProviderStateMixin {
-  GroupService groupService = GroupService();
-  ContactService contactService = ContactService();
+  GroupService groupService = GroupService.instance;
+  ContactService contactService = ContactService.instance;
   GroupType selectedGroupType = GroupType.mls;
   late TextEditingController _groupNameController;
   GroupType groupType = GroupType.mls;
@@ -61,8 +61,8 @@ class _AddGroupPageState extends State<AddGroupPage>
 
                   Identity identity =
                       Get.find<HomeController>().getSelectedIdentity();
-                  List<Contact> contactList =
-                      await ContactService().getListExcludeSelf(identity.id);
+                  List<Contact> contactList = await ContactService.instance
+                      .getListExcludeSelf(identity.id);
                   contactList = contactList.reversed.toList();
                   List<Map<String, dynamic>> list = [];
                   for (int i = 0; i < contactList.length; i++) {

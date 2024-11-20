@@ -10,11 +10,11 @@ class RelayInfoController extends GetxController {
   void onInit() async {
     relay.value = Get.arguments as Relay;
     Map<String, dynamic>? res =
-        await RelayService().fetchRelayNostrInfo(relay.value);
+        await RelayService.instance.fetchRelayNostrInfo(relay.value);
     if (res != null) {
       info.value = res;
     }
     super.onInit();
-    RelayService().initRelayFeeInfo([relay.value]);
+    RelayService.instance.initRelayFeeInfo([relay.value]);
   }
 }

@@ -150,7 +150,7 @@ Let's start an encrypted chat.''';
   static SettingsTile autoCleanMessage(ChatController cc) {
     autoDeleteHandle(int day) {
       cc.roomObs.value.autoDeleteDays = day;
-      RoomService().updateRoom(cc.roomObs.value);
+      RoomService.instance.updateRoom(cc.roomObs.value);
       cc.roomObs.refresh();
       EasyLoading.showSuccess('Saved');
       if (day > 0) {
@@ -204,7 +204,7 @@ Let's start an encrypted chat.''';
       onToggle: (value) async {
         chatController.roomObs.value.pin = value;
         chatController.roomObs.value.pinAt = DateTime.now();
-        await RoomService().updateRoom(chatController.roomObs.value);
+        await RoomService.instance.updateRoom(chatController.roomObs.value);
         chatController.roomObs.refresh();
         EasyLoading.showSuccess('Saved');
         await Get.find<HomeController>()
@@ -229,7 +229,7 @@ Let's start an encrypted chat.''';
         if (room.type == RoomType.group) {
           pubkeys.add(room.mykey.value!.pubkey);
         } else {
-          List<String>? data = ContactService().getMyReceiveKeys(room);
+          List<String>? data = ContactService.instance.getMyReceiveKeys(room);
           if (data != null) pubkeys.addAll(data);
         }
         bool res = false;
@@ -243,10 +243,10 @@ Let's start an encrypted chat.''';
           return;
         }
         if (room.type == RoomType.common) {
-          await ContactService().updateReceiveKeyIsMute(room, value);
+          await ContactService.instance.updateReceiveKeyIsMute(room, value);
         }
         chatController.roomObs.value.isMute = value;
-        await RoomService().updateRoom(chatController.roomObs.value);
+        await RoomService.instance.updateRoom(chatController.roomObs.value);
         chatController.roomObs.refresh();
         EasyLoading.showSuccess('Saved');
         await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
@@ -325,7 +325,7 @@ Let's start an encrypted chat.''';
               /// This parameter indicates the action would be a default
               /// default behavior, turns the action's text to bold text.
               onPressed: () async {
-                await RoomService().deleteRoomMessage(room);
+                await RoomService.instance.deleteRoomMessage(room);
                 Get.find<HomeController>()
                     .loadIdentityRoomList(room.identityId);
                 if (onDeleteHistory != null) {
@@ -341,7 +341,7 @@ Let's start an encrypted chat.''';
                 onPressed: () async {
                   try {
                     EasyLoading.show(status: 'Loading...');
-                    await RoomService().deleteRoom(room);
+                    await RoomService.instance.deleteRoom(room);
                     if (onDeletRoom != null) {
                       onDeletRoom();
                     }
@@ -418,7 +418,7 @@ Let's start an encrypted chat.''';
                   Get.back();
                   try {
                     EasyLoading.show(status: 'Processing');
-                    await RoomService()
+                    await RoomService.instance
                         .deleteRoomMessage(chatController.roomObs.value);
                     chatController.messages.clear();
                     EasyLoading.showSuccess('Successfully');
@@ -436,7 +436,8 @@ Let's start an encrypted chat.''';
       [String? greeting]) {
     return SettingsTile(
       title: FutureBuilder(
-          future: RoomService().getRoomAndContainSession(pubkey, identityId),
+          future:
+              RoomService.instance.getRoomAndContainSession(pubkey, identityId),
           builder: (context, snapshot) {
             Room? room = snapshot.data;
             if (room == null) {
@@ -444,7 +445,7 @@ Let's start an encrypted chat.''';
                 onPressed: () async {
                   Identity identity =
                       Get.find<HomeController>().identities[identityId]!;
-                  await RoomService().createRoomAndsendInvite(pubkey,
+                  await RoomService.instance.createRoomAndsendInvite(pubkey,
                       identity: identity, greeting: greeting);
                 },
                 child: const Text('Add'),

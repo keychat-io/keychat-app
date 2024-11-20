@@ -117,13 +117,13 @@ class _ImportNsec extends State<ImportNsec> {
                       }
                       String hexPubkey =
                           rust_nostr.getHexPubkeyByPrikey(prikey: input);
-                      Identity? exist = await IdentityService()
+                      Identity? exist = await IdentityService.instance
                           .getIdentityByNostrPubkey(hexPubkey);
                       if (exist != null) {
                         EasyLoading.showError('This prikey already exists');
                         return;
                       }
-                      var newIdentity = await IdentityService()
+                      var newIdentity = await IdentityService.instance
                           .createIdentityByPrikey(
                               name: name, prikey: input, hexPubkey: hexPubkey);
                       Get.find<HomeController>().identities.length == 1;

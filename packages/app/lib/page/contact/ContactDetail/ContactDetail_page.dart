@@ -103,7 +103,7 @@ class ContactDetailPage extends GetView<ContactDetailController> {
                         ),
                         // ElevatedButton(
                         //     onPressed: () async {
-                        //       Room room = await RoomService()
+                        //       Room room = await RoomService.instance
                         //           .getRoomByContact(controller.contact.value);
                         //       Get.offAndToNamed('/room/${room.id}',
                         //           arguments: room);
@@ -172,9 +172,9 @@ class ContactDetailPage extends GetView<ContactDetailController> {
 
   Future handleUpdateContact(Contact contact) async {
     controller.contact.value = contact;
-    await ContactService().saveContact(controller.contact.value);
+    await ContactService.instance.saveContact(controller.contact.value);
     controller.contact.refresh();
-    Room? room = await RoomService()
+    Room? room = await RoomService.instance
         .getRoomByIdentity(contact.pubkey, contact.identityId);
     if (room != null) {
       ChatController? cc = RoomService.getController(room.id);
@@ -214,7 +214,7 @@ class ContactDetailPage extends GetView<ContactDetailController> {
                       'Delete',
                     ),
                     onPressed: () {
-                      RoomService().deleteRoomHandler(
+                      RoomService.instance.deleteRoomHandler(
                           controller.contact.value.pubkey,
                           controller.contact.value.identityId);
                     }),
@@ -264,8 +264,8 @@ class ContactDetailPage extends GetView<ContactDetailController> {
     if (controller.usernameController.text.isEmpty) return;
     Contact contact0 = controller.contact.value;
     contact0.petname = controller.usernameController.text.trim();
-    int id = await ContactService().saveContact(contact0);
-    Contact? contact = await ContactService().getContactById(id);
+    int id = await ContactService.instance.saveContact(contact0);
+    Contact? contact = await ContactService.instance.getContactById(id);
     await handleUpdateContact(contact!);
     Get.back();
   }

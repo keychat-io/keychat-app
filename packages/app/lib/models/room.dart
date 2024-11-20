@@ -483,7 +483,7 @@ class Room extends Equatable {
     for (RoomMember rm in rms) {
       if (rm.idPubkey == myIdPubkey) continue;
 
-      Room idRoom = await RoomService().getOrCreateRoom(
+      Room idRoom = await RoomService.instance.getOrCreateRoom(
           rm.idPubkey, myIdPubkey, RoomStatus.groupUser,
           contactName: rm.name);
       memberRooms[rm.idPubkey] = idRoom;
@@ -497,7 +497,7 @@ class Room extends Equatable {
     for (RoomMember rm in rms) {
       if (rm.idPubkey == mainMykey.pubkey) continue;
 
-      Room idRoom = await RoomService()
+      Room idRoom = await RoomService.instance
           .getOrCreateRoom(rm.idPubkey, mainMykey.pubkey, RoomStatus.groupUser);
       memberRooms[rm.idPubkey] = idRoom;
     }
@@ -568,7 +568,7 @@ class Room extends Equatable {
     logger.i('clean signal keys: $toMainPubkey');
     signalId.keys = "";
     await SignalIdService.instance.updateSignalId(signalId);
-    MessageService()
+    MessageService.instance
         .saveSystemMessage(this, 'Clear shared signal-id-keys successfully');
   }
 
@@ -593,7 +593,7 @@ Room: $id, ${getRoomName()} $toMainPubkey, $identityId, $groupType''';
   Future<Room> replaceListenPubkey(String newPubkey, int startAt,
       [String? toDeletePubkey]) async {
     onetimekey = newPubkey;
-    await RoomService().updateRoom(this);
+    await RoomService.instance.updateRoom(this);
 
     var ws = Get.find<WebsocketService>();
     if (toDeletePubkey != null) {

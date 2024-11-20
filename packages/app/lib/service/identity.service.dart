@@ -19,18 +19,14 @@ import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
 
 import '../models/db_provider.dart';
-import '../nostr-core/nostr.dart';
 import 'file_util.dart';
 
 class IdentityService {
-  static final IdentityService _singleton = IdentityService._internal();
-  static final DBProvider dbProvider = DBProvider();
-  static final NostrAPI nostrAPI = NostrAPI();
-  factory IdentityService() {
-    return _singleton;
-  }
-
-  IdentityService._internal();
+  static IdentityService? _instance;
+  static IdentityService get instance => _instance ??= IdentityService._();
+  // Avoid self instance
+  IdentityService._();
+  static final DBProvider dbProvider = DBProvider.instance;
 
   Future<bool> checkPrikeyExist(String prikey) async {
     var res = await DBProvider.database.mykeys
@@ -102,7 +98,7 @@ class IdentityService {
         }).catchError((e, s) {
           logger.e('initNotifycation error', error: e, stackTrace: s);
         });
-        RelayService().initRelay();
+        RelayService.instance.initRelay();
       } catch (e, s) {
         logger.e(e.toString(), error: e, stackTrace: s);
       }
@@ -221,7 +217,7 @@ class IdentityService {
     if (pubkeys.isEmpty) return [];
 
     // sharing group 's mykey
-    List<Room> rooms = await RoomService().getGroupsSharedKey();
+    List<Room> rooms = await RoomService.instance.getGroupsSharedKey();
     for (var room in rooms) {
       if (skipMute && room.isMute) {
         continue;
@@ -339,7 +335,7 @@ class IdentityService {
     if (identities.isNotEmpty) {
       prikey = await identities[0].getSecp256k1SKHex();
     } else {
-      Mykey? mykey = await IdentityService().getMykeyByPubkey(pubkey);
+      Mykey? mykey = await IdentityService.instance.getMykeyByPubkey(pubkey);
       if (mykey == null) return null;
       prikey = mykey.prikey;
     }

@@ -109,9 +109,9 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
     try {
       if (widget.groupType == GroupType.shareKey ||
           widget.groupType == GroupType.sendAll) {
-        room = await GroupService()
+        room = await GroupService.instance
             .createGroup(widget.groupName, identity, widget.groupType);
-        await GroupService().inviteToJoinGroup(room, selectAccounts);
+        await GroupService.instance.inviteToJoinGroup(room, selectAccounts);
       } else if (widget.groupType == GroupType.kdf) {
         room = await KdfGroupService.instance
             .createGroup(widget.groupName, identity, selectAccounts);

@@ -35,11 +35,11 @@ class KeychatMessage {
   BaseChatService get service {
     switch (c) {
       case MessageType.nip04:
-        return Nip4ChatService();
+        return Nip4ChatService.instance;
       case MessageType.signal:
-        return SignalChatService();
+        return SignalChatService.instance;
       case MessageType.group:
-        return GroupService();
+        return GroupService.instance;
       case MessageType.kdfGroup:
         return KdfGroupService.instance;
       case MessageType.mls:

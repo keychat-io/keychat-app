@@ -35,8 +35,8 @@ class GroupChatSettingPage extends StatefulWidget {
 }
 
 class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
-  GroupService groupService = GroupService();
-  RoomService roomService = RoomService();
+  GroupService groupService = GroupService.instance;
+  RoomService roomService = RoomService.instance;
   HomeController homeController = Get.find<HomeController>();
   int gridCount = 5;
   late ChatController chatController;
@@ -80,7 +80,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                   }
 
                   // contacts
-                  List<Contact> contactList = await ContactService()
+                  List<Contact> contactList = await ContactService.instance
                       .getListExcludeSelf(widget.room.identityId);
                   List<Map<String, dynamic>> contacts = [];
                   contactList = contactList.reversed.toList();
@@ -213,7 +213,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                       EasyLoading.showToast('It \'s me');
                       return;
                     }
-                    Contact? contact = await ContactService().getContact(
+                    Contact? contact = await ContactService.instance.getContact(
                         chatController.room.identityId, rm.idPubkey);
                     String npub =
                         rust_nostr.getBech32PubkeyByHex(hex: rm.idPubkey);
@@ -235,11 +235,11 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                       actions: <Widget>[
                         CupertinoDialogAction(
                           onPressed: () async {
-                            Room? room = await RoomService()
+                            Room? room = await RoomService.instance
                                 .getRoomAndContainSession(contact!.pubkey,
                                     chatController.room.identityId);
                             if (room == null) {
-                              await RoomService().createRoomAndsendInvite(
+                              await RoomService.instance.createRoomAndsendInvite(
                                   contact.pubkey,
                                   identity: chatController.room.getIdentity(),
                                   greeting:

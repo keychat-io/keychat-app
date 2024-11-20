@@ -30,8 +30,8 @@ class _ContactsPageState extends State<ContactsPage> {
   };
 
   _getData() async {
-    List<Contact> contactList =
-        await ContactService().getContactList((Get.arguments as Identity).id);
+    List<Contact> contactList = await ContactService.instance
+        .getContactList((Get.arguments as Identity).id);
 
     List<Contact> contactStartNum = [];
     List<Contact> restContacts = [];

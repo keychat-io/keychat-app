@@ -113,6 +113,6 @@ class SubscribeEventStatus {
       message.sent =
           sentSuccessRelay > 0 ? SendStatusType.success : SendStatusType.failed;
     }
-    MessageService().updateMessageAndRefresh(message);
+    MessageService.instance.updateMessageAndRefresh(message);
   }
 }

@@ -534,7 +534,7 @@ class MessageWidget extends StatelessWidget {
             .toList();
         if (success.isNotEmpty) {
           message.sent = SendStatusType.success;
-          await MessageService().updateMessageAndRefresh(message);
+          await MessageService.instance.updateMessageAndRefresh(message);
         }
       }
 
@@ -692,7 +692,8 @@ class MessageWidget extends StatelessWidget {
                   ?.copyWith(color: fontColor.withOpacity(0.7), height: 1),
               maxLines: 5));
     } else {
-      Message? msg = MessageService().getMessageByMsgIdSync(message.reply!.id!);
+      Message? msg =
+          MessageService.instance.getMessageByMsgIdSync(message.reply!.id!);
       if (msg != null) {
         if (msg.mediaType == MessageMediaType.image) {
           MsgFileInfo mfi = MsgFileInfo.fromJson(jsonDecode(msg.realMessage!));
@@ -810,7 +811,7 @@ class MessageWidget extends StatelessWidget {
           isDestructiveAction: true,
           child: const Text('Delete'),
           onPressed: () async {
-            await MessageService().deleteMessageById(message.id);
+            await MessageService.instance.deleteMessageById(message.id);
             chatController.messages.remove(message);
             Get.back();
             try {
@@ -1044,7 +1045,7 @@ class MessageWidget extends StatelessWidget {
     if (forwardRoom == null) return;
     EasyLoading.show(status: 'Sending...');
     if (message.mediaType == MessageMediaType.text) {
-      await RoomService().sendTextMessage(forwardRoom, content);
+      await RoomService.instance.sendTextMessage(forwardRoom, content);
       EasyLoading.dismiss();
       EasyLoading.showSuccess('Sent');
       return;
@@ -1053,7 +1054,7 @@ class MessageWidget extends StatelessWidget {
         message.mediaType == MessageMediaType.video ||
         message.mediaType == MessageMediaType.file) {
       MsgFileInfo mfi = MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
-      await RoomService().forwardFileMessage(
+      await RoomService.instance.forwardFileMessage(
         room: forwardRoom,
         content: message.content,
         mfi: mfi,

@@ -162,7 +162,7 @@ class _SearchPageState extends State<SearchPage> {
           }
           if (result.type == 'contact') {
             return FutureBuilder(future: () async {
-              Room room = await RoomService().getOrCreateRoom(
+              Room room = await RoomService.instance.getOrCreateRoom(
                   _searchResults[index].data.pubkey,
                   identity.secp256k1PKHex,
                   RoomStatus.enabled);
@@ -198,9 +198,9 @@ class _SearchPageState extends State<SearchPage> {
             });
           } else {
             return FutureBuilder(future: () async {
-              Room room = await RoomService()
+              Room room = await RoomService.instance
                   .getRoomByIdOrFail(_searchResults[index].data.roomId);
-              Contact? contact = await ContactService().getContact(
+              Contact? contact = await ContactService.instance.getContact(
                   _searchResults[index].data.identityId,
                   _searchResults[index].data.idPubkey);
               room.contact = contact;
@@ -250,7 +250,8 @@ class _SearchPageState extends State<SearchPage> {
     if (query.isEmpty) {
       return [];
     }
-    return await MessageService().getMessageByContent(query, identity.id);
+    return await MessageService.instance
+        .getMessageByContent(query, identity.id);
   }
 
   List<Contact> _mockSearchContact(String query) {
@@ -258,7 +259,7 @@ class _SearchPageState extends State<SearchPage> {
       return [];
     } else {
       List<Contact> list =
-          ContactService().getContactListSearch(query, identity.id);
+          ContactService.instance.getContactListSearch(query, identity.id);
       return list;
     }
   }

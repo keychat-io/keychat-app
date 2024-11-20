@@ -89,9 +89,10 @@ class NotifyService {
   static syncPubkeysToServer([bool checkUpload = false]) async {
     bool isGrant = await NotifyService.checkAllNotifyPermission();
     if (!isGrant) return;
-    List<String> toRemovePubkeys = await ContactService().getAllToRemoveKeys();
+    List<String> toRemovePubkeys =
+        await ContactService.instance.getAllToRemoveKeys();
     if (toRemovePubkeys.isNotEmpty) {
-      await ContactService().removeAllToRemoveKeys();
+      await ContactService.instance.removeAllToRemoveKeys();
     }
     if (!GetPlatform.isMobile) return;
 
@@ -100,12 +101,13 @@ class NotifyService {
     if (fcmToken == null) return;
 
     List<String> pubkeys =
-        await IdentityService().getListenPubkeys(skipMute: true);
-    List<String> pubkeys2 = await ContactService().getAllReceiveKeysSkipMute();
+        await IdentityService.instance.getListenPubkeys(skipMute: true);
+    List<String> pubkeys2 =
+        await ContactService.instance.getAllReceiveKeysSkipMute();
 
     if (pubkeys.isEmpty) return;
 
-    List<String> relays = await RelayService().getEnableList();
+    List<String> relays = await RelayService.instance.getEnableList();
     if (toRemovePubkeys.isNotEmpty) {
       await removePubkeys(toRemovePubkeys);
     }

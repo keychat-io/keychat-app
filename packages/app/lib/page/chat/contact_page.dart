@@ -86,7 +86,8 @@ class ContactPage extends StatelessWidget {
   SettingsTile fromQRCode() {
     return SettingsTile(
       title: FutureBuilder(
-          future: RoomService().getRoomByIdentity(contact.pubkey, identityId),
+          future: RoomService.instance
+              .getRoomByIdentity(contact.pubkey, identityId),
           builder: (context, snapshot) {
             Room? room = snapshot.data;
             return FilledButton(
@@ -99,7 +100,7 @@ class ContactPage extends StatelessWidget {
                     EasyLoading.show(status: 'Proccessing...');
                     Identity identity =
                         Get.find<HomeController>().identities[identityId]!;
-                    room0 = await RoomService().createPrivateRoom(
+                    room0 = await RoomService.instance.createPrivateRoom(
                         toMainPubkey: contact.pubkey,
                         identity: identity,
                         name: contact.displayName,
@@ -139,7 +140,7 @@ class ContactPage extends StatelessWidget {
                             "Signal Session create failed. Please generate a new QR Code");
                         return;
                       }
-                      await SignalChatService().sendMessage(room0,
+                      await SignalChatService.instance.sendMessage(room0,
                           RoomUtil.getHelloMessage(identity.displayName));
                       EasyLoading.showSuccess('Successfully added');
                     }

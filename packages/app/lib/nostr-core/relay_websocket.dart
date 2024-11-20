@@ -18,7 +18,7 @@ import '../utils.dart' as utils;
 const _maxReqCount = 20; // max pool size is 32. be setting by relay server
 
 class RelayWebsocket {
-  RelayService rs = RelayService();
+  RelayService rs = RelayService.instance;
   late Relay relay;
   RelayStatusEnum channelStatus = RelayStatusEnum.init;
   WebSocketChannel? channel;
@@ -32,17 +32,18 @@ class RelayWebsocket {
 
   // listen identity key will take position.
   _startListen() async {
-    DateTime since = await MessageService().getNostrListenStartAt(relay.url);
-    List<String> pubkeys = await IdentityService().getListenPubkeys();
+    DateTime since =
+        await MessageService.instance.getNostrListenStartAt(relay.url);
+    List<String> pubkeys = await IdentityService.instance.getListenPubkeys();
     listenPubkeys(pubkeys, since);
     listenPubkeys(pubkeys, DateTime.now().subtract(const Duration(days: 2)),
         [EventKinds.nip17]);
 
     // only listen nip04
-    List<String> signal = await ContactService().getAllReceiveKeys();
+    List<String> signal = await ContactService.instance.getAllReceiveKeys();
     Set<String> mlsPubkeys = {};
     // mls room's receive key
-    List<Room> mlsRooms = await RoomService().getMlgRooms();
+    List<Room> mlsRooms = await RoomService.instance.getMlgRooms();
     mlsPubkeys.addAll(mlsRooms.map((e) => e.onetimekey!));
     mlsPubkeys.addAll(signal);
     listenPubkeys(mlsPubkeys.toList(), since);

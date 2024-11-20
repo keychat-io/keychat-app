@@ -28,8 +28,8 @@ import '../utils.dart' as utils;
 const int failedTimesLimit = 3;
 
 class WebsocketService extends GetxService {
-  RelayService rs = RelayService();
-  NostrAPI nostrAPI = NostrAPI();
+  RelayService rs = RelayService.instance;
+  NostrAPI nostrAPI = NostrAPI.instance;
   RxString relayStatusInt = RelayStatusEnum.init.name.obs;
   final RxMap<String, RelayWebsocket> channels = <String, RelayWebsocket>{}.obs;
   final RxMap<String, RelayMessageFee> relayMessageFeeModels =
@@ -43,7 +43,7 @@ class WebsocketService extends GetxService {
   void onReady() {
     super.onReady();
     localFeesConfigFromLocalStorage();
-    RelayService().initRelayFeeInfo();
+    RelayService.instance.initRelayFeeInfo();
   }
 
   int activitySocketCount() {
@@ -63,7 +63,8 @@ class WebsocketService extends GetxService {
 
     rw = await _startConnectRelay(rw);
     if (pubkeys.isNotEmpty) {
-      DateTime since = await MessageService().getNostrListenStartAt(relay.url);
+      DateTime since =
+          await MessageService.instance.getNostrListenStartAt(relay.url);
       rw.listenPubkeys(pubkeys, since);
     }
   }
@@ -245,11 +246,11 @@ class WebsocketService extends GetxService {
     if (startLock) return;
     try {
       startLock = true;
-      NostrAPI().processedEventIds.clear();
+      NostrAPI.instance.processedEventIds.clear();
       initAt = DateTime.now();
       SubscribeEventStatus.clear();
       await stopListening();
-      list ??= await RelayService().list();
+      list ??= await RelayService.instance.list();
       await createChannels(list);
     } finally {
       startLock = false;

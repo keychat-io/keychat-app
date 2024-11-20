@@ -68,7 +68,7 @@ class Contact extends Equatable {
   Future saveNameIfNull(String newName) async {
     if (petname == null || name == null) {
       name = newName;
-      await ContactService().saveContact(this);
+      await ContactService.instance.saveContact(this);
     }
   }
 

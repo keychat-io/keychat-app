@@ -123,7 +123,7 @@ Future<void> showDeleteMsgDialog(BuildContext context, Room room) async {
               ),
               onPressed: () async {
                 Get.back();
-                await RoomService().deleteRoomMessage(room);
+                await RoomService.instance.deleteRoomMessage(room);
                 Get.find<HomeController>()
                     .loadIdentityRoomList(room.identityId);
               },
@@ -459,7 +459,7 @@ showSearchContactsPage(BuildContext context, List<Contact> contactList) {
 showSearchContactsPage2(BuildContext context) async {
   Identity identity = Get.find<HomeController>().getSelectedIdentity();
   List<Contact> contactList =
-      await ContactService().getContactList(identity.id);
+      await ContactService.instance.getContactList(identity.id);
   String input = "";
   showSearch(
       context: context,

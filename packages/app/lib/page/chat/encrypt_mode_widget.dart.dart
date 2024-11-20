@@ -92,7 +92,7 @@ class EncryptModeWidget extends StatelessWidget {
       return;
     }
     if (mode == EncryptMode.signal && room.curve25519PkHex == null) {
-      await SignalChatService().sendHelloMessage(
+      await SignalChatService.instance.sendHelloMessage(
           chatController.room, chatController.room.getIdentity());
       Get.back();
       Get.back();
@@ -101,7 +101,7 @@ class EncryptModeWidget extends StatelessWidget {
       return;
     }
     chatController.roomObs.value.encryptMode = mode;
-    await RoomService().updateRoom(chatController.roomObs.value);
+    await RoomService.instance.updateRoom(chatController.roomObs.value);
     chatController.roomObs.refresh();
     EasyLoading.showSuccess('Switch successfully');
   }

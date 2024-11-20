@@ -70,7 +70,8 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                     initialValue: controller.relay.value.active,
                     onToggle: (bool value) async {
                       controller.relay.value.active = value;
-                      await RelayService().update(controller.relay.value);
+                      await RelayService.instance
+                          .update(controller.relay.value);
                       controller.relay.refresh();
                       WebsocketService websocketService =
                           Get.find<WebsocketService>();
@@ -82,7 +83,7 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                                   ?.channelStatus !=
                               RelayStatusEnum.success) {
                         websocketService.addChannel(controller.relay.value);
-                        RelayService()
+                        RelayService.instance
                             .initRelayFeeInfo([controller.relay.value]);
                       }
                       EasyLoading.showToast('Setting saved');
@@ -94,7 +95,7 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                   //   description: const Text(
                   //       'It is the main relay to connect my friends.'),
                   //   onToggle: (bool value) async {
-                  //     await RelayService()
+                  //     await RelayService.instance
                   //         .updateDefault(controller.relay.value, value);
                   //     controller.relay.value.isDefault = value;
                   //     controller.relay.refresh();
@@ -109,7 +110,7 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                   //   initialValue: controller.relay.value.write,
                   //   onToggle: (bool value) async {
                   //     controller.relay.value.write = value;
-                  //     await RelayService().update(controller.relay.value);
+                  //     await RelayService.instance.update(controller.relay.value);
                   //     controller.relay.refresh();
                   //     Get.find<SettingController>()
                   //         .setRelayEnableStatus(controller.relay.value);
@@ -123,7 +124,7 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                   //       '1. Apply config when reconnection. \n2. The room\'s configuration will overrides this settings.'),
                   //   onToggle: (bool value) async {
                   //     controller.relay.value.read = value;
-                  //     await RelayService().update(controller.relay.value);
+                  //     await RelayService.instance.update(controller.relay.value);
                   //     controller.relay.refresh();
                   //     Get.find<SettingController>()
                   //         .setRelayEnableStatus(controller.relay.value);
@@ -288,7 +289,7 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                                 return;
                               }
 
-                              await RelayService()
+                              await RelayService.instance
                                   .delete(controller.relay.value.id);
                               websocketService
                                   .deleteRelay(controller.relay.value);

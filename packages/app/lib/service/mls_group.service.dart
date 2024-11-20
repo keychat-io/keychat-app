@@ -82,7 +82,7 @@ class MlsGroupService extends BaseChatService {
         .msgidEqualTo(nostrEvent.id)
         .findFirst();
     if (message == null) {
-      await RoomService().receiveDM(room, nostrEvent, decodedContent: '''
+      await RoomService.instance.receiveDM(room, nostrEvent, decodedContent: '''
 $error
 
 track: $content''');
@@ -91,13 +91,13 @@ track: $content''');
     message.content = '''${message.content}
 
 $error ''';
-    await MessageService().updateMessageAndRefresh(message);
+    await MessageService.instance.updateMessageAndRefresh(message);
   }
 
   Future<Room> createGroup(String groupName, Identity identity,
       List<Map<String, dynamic>> toUsers) async {
-    Room room =
-        await GroupService().createGroup(groupName, identity, GroupType.mls);
+    Room room = await GroupService.instance
+        .createGroup(groupName, identity, GroupType.mls);
     var groupJoinConfig = await rust_mls.createMlsGroup(
         nostrId: identity.secp256k1PKHex, groupId: room.toMainPubkey);
     List<Uint8List> keyPackages = [];
@@ -123,7 +123,7 @@ $error ''';
       users[user['pubkey']] = user['name'];
     }
 
-    await GroupService().inviteToJoinGroup(room, users,
+    await GroupService.instance.inviteToJoinGroup(room, users,
         mlsWelcome: jsonEncode([mlsGroupInfo, welcomeMsg]));
 
     return room;
@@ -148,13 +148,14 @@ $error ''';
       {required Function(String) failedCallback}) async {
     Identity identity = room.getIdentity();
     List<int> decoded = base64.decode(nostrEvent.content).toList();
-    var exist = await MessageService().getMessageByEventId(nostrEvent.id);
+    var exist =
+        await MessageService.instance.getMessageByEventId(nostrEvent.id);
     if (exist != null) {
       logger.d('Event may sent by me: ${nostrEvent.id}');
       return;
     }
 
-    (String, String)? decryptedMsg;
+    (String, String, Uint8List?)? decryptedMsg;
     try {
       decryptedMsg = await rust_mls.decryptMsg(
           nostrId: identity.secp256k1PKHex,
@@ -169,6 +170,8 @@ $error ''';
     }
     String fromIdPubkey = decryptedMsg.$2;
     String decodeString = decryptedMsg.$1;
+    String? msgKeyHash =
+        decryptedMsg.$3 != null ? base64.encode(decryptedMsg.$3!) : null;
     // try km message
     KeychatMessage? km;
     try {
@@ -177,10 +180,11 @@ $error ''';
       // ignore: empty_catches
     } catch (e) {}
     if (km == null) {
-      await RoomService().receiveDM(room, nostrEvent,
+      await RoomService.instance.receiveDM(room, nostrEvent,
           decodedContent: decodeString,
           fromIdPubkey: fromIdPubkey,
-          encryptType: MessageEncryptType.mls);
+          encryptType: MessageEncryptType.mls,
+          msgKeyHash: msgKeyHash);
       return;
     }
     try {
@@ -193,7 +197,11 @@ $error ''';
       }
       adminOnlyMiddleware(fromMember, km.type);
       await km.service.proccessMessage(
-          room: room, km: km, event: nostrEvent, fromIdPubkey: fromIdPubkey);
+          room: room,
+          km: km,
+          event: nostrEvent,
+          fromIdPubkey: fromIdPubkey,
+          msgKeyHash: msgKeyHash);
     } catch (e, s) {
       String msg = Utils.getErrorMessage(e);
       logger.e('decryptPreKeyMessage error: $msg', error: e, stackTrace: s);
@@ -248,7 +256,7 @@ $error ''';
     if (dbPath == null) {
       throw Exception('MLS dbPath is null');
     }
-    identities ??= await IdentityService().getIdentityList();
+    identities ??= await IdentityService.instance.getIdentityList();
     await Future.wait(identities.map((identity) async {
       await rust_mls.initMlsDb(
           dbPath: '$dbPath${KeychatGlobal.mlsDBFile}',
@@ -283,7 +291,7 @@ $error ''';
     Uint8List groupJoinConfig = await rust_mls.getGroupConfig(
         nostrId: identity.secp256k1PKHex, groupId: room.toMainPubkey);
     String mlsGroupInfo = base64.encode(groupJoinConfig);
-    RoomProfile roomProfile = await GroupService().inviteToJoinGroup(
+    RoomProfile roomProfile = await GroupService.instance.inviteToJoinGroup(
         room, users,
         mlsWelcome: jsonEncode([mlsGroupInfo, welcomeMsg]));
 
@@ -319,7 +327,8 @@ $error ''';
             msgKeyHash: msgKeyHash, fromIdPubkey: fromIdPubkey!);
         return;
       case KeyChatEventKinds.groupSelfLeave:
-        await _processGroupSelfExit(room, event, km, fromIdPubkey!);
+        await _processGroupSelfExit(room, event, km, fromIdPubkey!,
+            msgKeyHash: msgKeyHash);
         return;
       case KeyChatEventKinds.groupSelfLeaveConfirm:
         // self exit group
@@ -330,10 +339,11 @@ $error ''';
         RoomService.getController(room.id)?.resetMembers();
       case KeyChatEventKinds.groupDissolve:
         room.status = RoomStatus.dissolved;
-        await RoomService().updateRoom(room);
+        await RoomService.instance.updateRoom(room);
         break;
       case KeyChatEventKinds.groupAdminRemoveMembers:
-        await _proccessAdminRemoveMembers(room, event, km, fromIdPubkey!);
+        await _proccessAdminRemoveMembers(room, event, km, fromIdPubkey!,
+            msgKeyHash: msgKeyHash);
         return;
       case KeyChatEventKinds.inviteNewMember:
         RoomProfile roomProfile = RoomProfile.fromJson(jsonDecode(km.name!));
@@ -355,7 +365,7 @@ $error ''';
       case KeyChatEventKinds.groupChangeRoomName:
         if (km.name != null) {
           room.name = km.name;
-          await RoomService().updateRoomAndRefresh(room);
+          await RoomService.instance.updateRoomAndRefresh(room);
           Get.find<HomeController>().loadIdentityRoomList(room.id);
         }
         break;
@@ -369,18 +379,20 @@ $error ''';
         await memberProccessUpdateKey(room, km);
         break;
       default:
-        return await RoomService().receiveDM(room, event,
+        return await RoomService.instance.receiveDM(room, event,
             sourceEvent: sourceEvent,
             km: km,
             fromIdPubkey: fromIdPubkey,
-            encryptType: MessageEncryptType.mls);
+            encryptType: MessageEncryptType.mls,
+            msgKeyHash: msgKeyHash);
     }
-    await RoomService().receiveDM(room, event,
+    await RoomService.instance.receiveDM(room, event,
         decodedContent: km.toString(),
         realMessage: km.msg,
         isSystem: true,
         fromIdPubkey: fromIdPubkey,
-        encryptType: MessageEncryptType.mls);
+        encryptType: MessageEncryptType.mls,
+        msgKeyHash: msgKeyHash);
   }
 
   Future<Room> proccessUpdateKeys(
@@ -394,7 +406,7 @@ $error ''';
 
       groupRoom.status = RoomStatus.enabled;
       groupRoom.version = roomProfile.updatedAt;
-      groupRoom = await GroupTx().updateRoom(groupRoom);
+      groupRoom = await GroupTx.instance.updateRoom(groupRoom);
     });
     groupRoom = await replaceListenPubkey(groupRoom, identity.secp256k1PKHex);
 
@@ -468,7 +480,7 @@ $error ''';
       throw Exception('MLS Group\'s receiving pubkey is null');
     }
     var randomAccount = await rust_nostr.generateSimple();
-    var smr = await NostrAPI().sendNip4Message(
+    var smr = await NostrAPI.instance.sendNip4Message(
         room.onetimekey!, base64.encode(enctypted.$1),
         prikey: randomAccount.prikey,
         from: randomAccount.pubkey,
@@ -516,8 +528,9 @@ $error ''';
 
   // If the deleted person includes himself, mark the room as kicked.
   // If it is not included, it will not be processed and the message will be displayed directly.
-  Future _proccessAdminRemoveMembers(Room room, NostrEventModel event,
-      KeychatMessage km, String fromIdPubkey) async {
+  Future _proccessAdminRemoveMembers(
+      Room room, NostrEventModel event, KeychatMessage km, String fromIdPubkey,
+      {String? msgKeyHash}) async {
     Identity identity = room.getIdentity();
     List list = jsonDecode(km.name!);
     List toRemoveIdPubkeys = list[0];
@@ -525,12 +538,13 @@ $error ''';
 
     if (toRemoveIdPubkeys.contains(identity.secp256k1PKHex)) {
       room.status = RoomStatus.removedFromGroup;
-      RoomService().receiveDM(room, event,
+      await RoomService.instance.receiveDM(room, event,
           decodedContent: '🤖 You have been removed by admin.',
           isSystem: true,
           fromIdPubkey: fromIdPubkey,
-          encryptType: MessageEncryptType.mls);
-      await RoomService().updateChatRoomPage(room);
+          encryptType: MessageEncryptType.mls,
+          msgKeyHash: msgKeyHash);
+      await RoomService.instance.updateChatRoomPage(room);
       return;
     }
     for (String memberIdPubkey in toRemoveIdPubkeys) {
@@ -542,11 +556,12 @@ $error ''';
         groupId: room.toMainPubkey,
         queuedMsg: welcome);
     room = await replaceListenPubkey(room, identity.secp256k1PKHex);
-    await RoomService().receiveDM(room, event,
+    await RoomService.instance.receiveDM(room, event,
         decodedContent: km.toString(),
         realMessage: km.msg,
         encryptType: MessageEncryptType.mls,
-        fromIdPubkey: fromIdPubkey);
+        fromIdPubkey: fromIdPubkey,
+        msgKeyHash: msgKeyHash);
     await RoomService.getController(room.id)?.setRoom(room).resetMembers();
   }
 
@@ -563,7 +578,7 @@ $error ''';
     await room.setMemberInvited(rm!, km.name!);
 
     // receive message
-    await RoomService().receiveDM(room, event,
+    await RoomService.instance.receiveDM(room, event,
         km: km,
         msgKeyHash: msgKeyHash,
         isSystem: true,
@@ -573,19 +588,21 @@ $error ''';
         encryptType: MessageEncryptType.mls);
   }
 
-  Future _processGroupSelfExit(Room room, NostrEventModel event,
-      KeychatMessage km, String fromIdPubkey) async {
+  Future _processGroupSelfExit(
+      Room room, NostrEventModel event, KeychatMessage km, String fromIdPubkey,
+      {String? msgKeyHash}) async {
     // self exit group
     if (fromIdPubkey == room.myIdPubkey) {
       return;
     }
 
-    await RoomService().receiveDM(room, event,
+    await RoomService.instance.receiveDM(room, event,
         decodedContent: km.toString(),
         realMessage: km.msg,
         isSystem: true,
         fromIdPubkey: fromIdPubkey,
-        encryptType: MessageEncryptType.mls);
+        encryptType: MessageEncryptType.mls,
+        msgKeyHash: msgKeyHash);
     RoomMember? adminMember = await room.getAdmin();
     if (room.myIdPubkey != adminMember?.idPubkey) return;
     // admin task

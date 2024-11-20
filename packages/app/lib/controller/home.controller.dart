@@ -42,7 +42,7 @@ class TabData {
 
 class HomeController extends GetxController
     with GetTickerProviderStateMixin, WidgetsBindingObserver {
-  IdentityService identityService = IdentityService();
+  IdentityService identityService = IdentityService.instance;
   RxMap<int, Identity> identities = <int, Identity>{}.obs;
   RxInt allUnReadCount = 0.obs;
   bool isAppBadgeSupported = false;
@@ -134,7 +134,7 @@ class HomeController extends GetxController
     List<Secp256k1Account> secp256k1Accounts = await rust_nostr
         .importFromPhraseWith(phrase: mnemonic, offset: unusedIndex, count: 1);
 
-    await IdentityService().createIdentity(
+    await IdentityService.instance.createIdentity(
         name: idName,
         account: secp256k1Accounts[0],
         index: unusedIndex,
@@ -166,7 +166,7 @@ class HomeController extends GetxController
           WebsocketService ws = Get.find<WebsocketService>();
           ws.start();
           if (ws.relayFileFeeModels.entries.isEmpty) {
-            RelayService().initRelayFeeInfo();
+            RelayService.instance.initRelayFeeInfo();
           }
         });
       }
@@ -209,7 +209,7 @@ class HomeController extends GetxController
   Future<List<Identity>> loadIdentity(
       [List<Identity> list = const <Identity>[]]) async {
     if (list.isEmpty) {
-      list = await IdentityService().getIdentityList();
+      list = await IdentityService.instance.getIdentityList();
     }
     identities.clear();
     for (var i = 0; i < list.length; i++) {
@@ -233,7 +233,7 @@ class HomeController extends GetxController
   }
 
   Future<List<Identity>> loadRoomList({bool init = false}) async {
-    List<Identity> mys = await IdentityService().getIdentityList();
+    List<Identity> mys = await IdentityService.instance.getIdentityList();
     loadIdentity(mys);
 
     int firstUnreadIndex = -1;
@@ -242,7 +242,7 @@ class HomeController extends GetxController
     for (var i = 0; i < mys.length; i++) {
       int id = mys[i].id;
 
-      Map<String, List<Room>> res = await RoomService().getRoomList(id);
+      Map<String, List<Room>> res = await RoomService.instance.getRoomList(id);
 
       List<dynamic> rooms = res['friends'] ?? [];
       List<Room> approving = res['approving'] ?? [];
@@ -321,7 +321,8 @@ class HomeController extends GetxController
     EasyDebounce.debounce(
         'loadIdentityRoomList:$identityId', const Duration(milliseconds: 200),
         () async {
-      Map<String, List<Room>> res = await RoomService().getRoomList(identityId);
+      Map<String, List<Room>> res =
+          await RoomService.instance.getRoomList(identityId);
       List<dynamic> rooms = res['friends'] ?? [];
       List<Room> approving = res['approving'] ?? [];
       List<Room> requesting = res['requesting'] ?? [];
@@ -435,7 +436,7 @@ class HomeController extends GetxController
 
   Future updateIdentityName(Identity identity, String name) async {
     identity.name = name;
-    await IdentityService().updateIdentity(identity);
+    await IdentityService.instance.updateIdentity(identity);
     TabData? item = tabBodyDatas[identity.id];
     if (item == null) return;
     item.identity = identity;

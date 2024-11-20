@@ -52,7 +52,7 @@ class RecommendBots extends StatelessWidget {
                       String hexPubkey =
                           rust_nostr.getHexPubkeyByBech32(bech32: bot['npub']);
 
-                      await RoomService().getOrCreateRoom(hexPubkey,
+                      await RoomService.instance.getOrCreateRoom(hexPubkey,
                           identity.secp256k1PKHex, RoomStatus.enabled,
                           contactName: bot['name'],
                           type: RoomType.bot,

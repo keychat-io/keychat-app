@@ -171,7 +171,7 @@ class _ChatPage2State extends State<ChatPage> {
                         child: const Text('Fix it',
                             style: TextStyle(color: Colors.white)),
                         onPressed: () async {
-                          await SignalChatService().sendHelloMessage(
+                          await SignalChatService.instance.sendHelloMessage(
                               controller.room, controller.room.getIdentity());
                           EasyLoading.showInfo('Request sent successfully.');
                         }),
@@ -408,7 +408,7 @@ class _ChatPage2State extends State<ChatPage> {
                                       context, element['description'],
                                       overflow: TextOverflow.clip)),
                               onPressed: (context) async {
-                                RoomService().sendTextMessage(
+                                RoomService.instance.sendTextMessage(
                                     controller.roomObs.value, element['name']);
                                 Get.back();
                               }),
@@ -540,7 +540,7 @@ class _ChatPage2State extends State<ChatPage> {
                             Timer(Duration(seconds: seconds), () {
                               count++;
                               controller.getRoomStats();
-                              RoomService().sendTextMessage(
+                              RoomService.instance.sendTextMessage(
                                   controller.room, count.toString());
                               randomTimer();
                             });
@@ -558,7 +558,7 @@ class _ChatPage2State extends State<ChatPage> {
                         child: const Text('Stop '))),
                 OutlinedButton(
                     onPressed: () {
-                      MessageService()
+                      MessageService.instance
                           .deleteMessageByRoomId(controller.room.id);
                       Get.back();
                     },
@@ -693,7 +693,7 @@ class _ChatPage2State extends State<ChatPage> {
     return _inputSectionContainer(FilledButton(
       style: ButtonStyle(backgroundColor: WidgetStateProperty.all(Colors.red)),
       onPressed: () async {
-        await RoomService().deleteRoom(controller.roomObs.value);
+        await RoomService.instance.deleteRoom(controller.roomObs.value);
         await Get.find<HomeController>()
             .loadIdentityRoomList(controller.room.identityId);
         await Get.offAllNamed(Routes.root);
@@ -721,10 +721,10 @@ class _ChatPage2State extends State<ChatPage> {
                   Room room = controller.roomObs.value;
                   if (room.status == RoomStatus.approving) {
                     String displayName = room.getIdentity().displayName;
-                    await SignalChatService().sendMessage(
+                    await SignalChatService.instance.sendMessage(
                         room, RoomUtil.getHelloMessage(displayName));
                     room.status = RoomStatus.enabled;
-                    await RoomService().updateRoom(room);
+                    await RoomService.instance.updateRoom(room);
                     controller.setRoom(room);
                   }
                 } catch (e, s) {
@@ -741,9 +741,9 @@ class _ChatPage2State extends State<ChatPage> {
             FilledButton(
               onPressed: () async {
                 int identityId = controller.room.identityId;
-                await SignalChatService()
+                await SignalChatService.instance
                     .sendRejectMessage(controller.roomObs.value);
-                await RoomService().deleteRoom(controller.roomObs.value);
+                await RoomService.instance.deleteRoom(controller.roomObs.value);
                 Get.find<HomeController>().loadIdentityRoomList(identityId);
                 Get.back();
               },
@@ -777,7 +777,7 @@ class _ChatPage2State extends State<ChatPage> {
                 ),
                 CupertinoDialogAction(
                   onPressed: () async {
-                    await RoomService().createRoomAndsendInvite(
+                    await RoomService.instance.createRoomAndsendInvite(
                         controller.room.toMainPubkey,
                         autoJump: false);
                     Get.back();
@@ -808,7 +808,8 @@ class _ChatPage2State extends State<ChatPage> {
                   onPressed: () async {
                     Get.back();
                     int id = controller.roomObs.value.identityId;
-                    await RoomService().deleteRoom(controller.roomObs.value);
+                    await RoomService.instance
+                        .deleteRoom(controller.roomObs.value);
                     await Get.find<HomeController>().loadIdentityRoomList(id);
                     Get.back();
                   },
@@ -822,8 +823,9 @@ class _ChatPage2State extends State<ChatPage> {
         OutlinedButton(
           onPressed: () async {
             controller.roomObs.value.status = RoomStatus.enabled;
-            await RoomService().updateRoom(controller.roomObs.value);
-            await RoomService().updateChatRoomPage(controller.roomObs.value);
+            await RoomService.instance.updateRoom(controller.roomObs.value);
+            await RoomService.instance
+                .updateChatRoomPage(controller.roomObs.value);
             await Get.find<HomeController>()
                 .loadIdentityRoomList(controller.room.identityId);
           },
@@ -837,7 +839,7 @@ class _ChatPage2State extends State<ChatPage> {
     int roomId = int.parse(Get.parameters['id']!);
     Room? room;
     if (Get.arguments == null) {
-      room = RoomService().getRoomByIdSync(roomId);
+      room = RoomService.instance.getRoomByIdSync(roomId);
     } else {
       // room = Get.arguments as Room;
       try {
@@ -889,7 +891,7 @@ class _ChatPage2State extends State<ChatPage> {
                               itemCount: controller.kpaIsNullRooms.length,
                               itemBuilder: (context, index) {
                                 Room room = controller.kpaIsNullRooms[index];
-                                room.contact ??= ContactService()
+                                room.contact ??= ContactService.instance
                                     .getOrCreateContactSync(
                                         room.identityId, room.toMainPubkey);
                                 return ListTile(
@@ -898,7 +900,7 @@ class _ChatPage2State extends State<ChatPage> {
                                   title: Text(room.getRoomName()),
                                   trailing: OutlinedButton(
                                       onPressed: () async {
-                                        Room? room0 = await RoomService()
+                                        Room? room0 = await RoomService.instance
                                             .createRoomAndsendInvite(
                                                 room.toMainPubkey,
                                                 autoJump: false,

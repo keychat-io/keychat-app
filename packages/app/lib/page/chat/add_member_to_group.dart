@@ -74,7 +74,8 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
     if (meMember != null) {
       if (!meMember.isAdmin) {
         try {
-          await GroupService().sendInviteToAdmin(widget.room, selectAccounts);
+          await GroupService.instance
+              .sendInviteToAdmin(widget.room, selectAccounts);
 
           EasyLoading.dismiss();
           Get.dialog(CupertinoAlertDialog(
@@ -97,7 +98,8 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
     }
 
     try {
-      Room groupRoom = await RoomService().getRoomByIdOrFail(widget.room.id);
+      Room groupRoom =
+          await RoomService.instance.getRoomByIdOrFail(widget.room.id);
       String sender = meMember == null ? myPubkey : meMember.name;
       if (widget.room.isMLSGroup) {
         await MlsGroupService.instance
@@ -106,7 +108,8 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
         await KdfGroupService.instance
             .inviteToJoinGroup(groupRoom, selectAccounts, sender);
       } else {
-        await GroupService().inviteToJoinGroup(groupRoom, selectAccounts);
+        await GroupService.instance
+            .inviteToJoinGroup(groupRoom, selectAccounts);
       }
       EasyLoading.showSuccess('Success');
       Get.back();

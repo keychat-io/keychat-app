@@ -7,11 +7,10 @@ import 'config_dev3.dart' as config_dev3;
 import 'config_prod.dart' as config_prod;
 
 class Config {
-  static final Config _singleton = Config._internal();
-  factory Config() {
-    return _singleton;
-  }
-  Config._internal();
+  static Config? _instance;
+  static Config get instance => _instance ??= Config._();
+  // Avoid self instance
+  Config._();
   static String _env = 'prod';
   static get env => _env;
 

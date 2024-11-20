@@ -20,8 +20,9 @@ class ChatSettingsMoreDart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    List<String> receiveKeys =
-        ContactService().getMyReceiveKeys(chatController.roomObs.value) ?? [];
+    List<String> receiveKeys = ContactService.instance
+            .getMyReceiveKeys(chatController.roomObs.value) ??
+        [];
     return Scaffold(
         appBar:
             AppBar(centerTitle: true, title: const Text('Security Settings')),
@@ -70,10 +71,11 @@ class ChatSettingsMoreDart extends StatelessWidget {
                                   await Get.find<ChatxService>()
                                       .deleteSignalSessionKPA(chatController
                                           .room); // delete old session
-                                  await SignalChatService().sendHelloMessage(
-                                      chatController.room,
-                                      chatController.room.getIdentity(),
-                                      greeting: 'Reset signal session status');
+                                  await SignalChatService.instance
+                                      .sendHelloMessage(chatController.room,
+                                          chatController.room.getIdentity(),
+                                          greeting:
+                                              'Reset signal session status');
                                   EasyLoading.showInfo(
                                       'Request sent successfully.');
                                   Get.back();
@@ -112,7 +114,7 @@ class ChatSettingsMoreDart extends StatelessWidget {
                           isDestructiveAction: true,
                           onPressed: () async {
                             chatController.roomObs.value.receivingRelays = [];
-                            await RoomService().updateRoomAndRefresh(
+                            await RoomService.instance.updateRoomAndRefresh(
                                 chatController.roomObs.value);
                             EasyLoading.showToast('Save Success');
                             Get.back();
@@ -137,9 +139,9 @@ class ChatSettingsMoreDart extends StatelessWidget {
                               chatController.roomObs.value.receivingRelays));
                       if (relays == null) return;
                       chatController.roomObs.value.receivingRelays = relays;
-                      await RoomService()
+                      await RoomService.instance
                           .updateRoomAndRefresh(chatController.roomObs.value);
-                      await SignalChatService().sendRelaySyncMessage(
+                      await SignalChatService.instance.sendRelaySyncMessage(
                           chatController.roomObs.value, relays);
                       EasyLoading.showToast('Save Success');
                     },

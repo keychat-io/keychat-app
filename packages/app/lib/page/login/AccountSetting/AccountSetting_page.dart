@@ -209,7 +209,8 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                                 controller.confirmDeleteController.clear();
                                 HomeController hc = Get.find<HomeController>();
                                 List<Identity> identities =
-                                    await IdentityService().getIdentityList();
+                                    await IdentityService.instance
+                                        .getIdentityList();
                                 if (identities.length == 1) {
                                   Get.back();
                                   EasyLoading.showError(
@@ -230,7 +231,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                                 }
                                 try {
                                   EasyLoading.showInfo('Deleting...');
-                                  await IdentityService()
+                                  await IdentityService.instance
                                       .delete(controller.identity.value);
                                   hc.identities.refresh();
 
@@ -376,7 +377,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                     return;
                   }
                   identity.name = controller.usernameController.text.trim();
-                  await IdentityService().updateIdentity(identity);
+                  await IdentityService.instance.updateIdentity(identity);
                   controller.identity.value = identity;
                   controller.identity.refresh();
                   controller.usernameController.clear();

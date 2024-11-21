@@ -1,3 +1,4 @@
+import 'package:app/controller/home.controller.dart';
 import 'package:app/models/room.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/common.dart';
@@ -52,6 +53,7 @@ class _AnonymousRoomsState extends State<AnonymousRooms> {
   Widget build(BuildContext context) {
     DateTime messageExpired =
         DateTime.now().subtract(const Duration(seconds: 5));
+    HomeController homeController = Get.find<HomeController>();
     return Scaffold(
       appBar: AppBar(
         title: const Text('New Friends'),
@@ -71,7 +73,7 @@ class _AnonymousRoomsState extends State<AnonymousRooms> {
                   onLongPress: () async {
                     await RoomUtil.showRoomActionSheet(context, room,
                         onDeleteHistory: () {
-                      room.lastMessageModel = null;
+                      homeController.roomLastMessage[room.id] = null;
                       _updateRoom(room);
                     }, onDeletRoom: () {
                       _removeRoom(room);
@@ -92,11 +94,15 @@ class _AnonymousRoomsState extends State<AnonymousRooms> {
                     maxLines: 1,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  subtitle: RoomUtil.getSubtitleDisplay(room, messageExpired),
-                  trailing: room.lastMessageModel?.createdAt != null
-                      ? textSmallGray(Get.context!,
-                          formatTimeMsg(room.lastMessageModel!.createdAt))
-                      : null,
+                  subtitle: RoomUtil.getSubtitleDisplay(room, messageExpired,
+                      homeController.roomLastMessage[room.id]),
+                  trailing:
+                      homeController.roomLastMessage[room.id]?.createdAt != null
+                          ? textSmallGray(
+                              Get.context!,
+                              formatTimeMsg(homeController
+                                  .roomLastMessage[room.id]!.createdAt))
+                          : null,
                 );
               })),
     );

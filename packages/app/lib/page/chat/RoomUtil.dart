@@ -263,21 +263,21 @@ Let's start an encrypted chat.''';
     );
   }
 
-  static Widget? getSubtitleDisplay(Room room, DateTime messageExpired) {
+  static Widget getSubtitleDisplay(
+      Room room, DateTime messageExpired, Message? lastMessage) {
     if (room.signalDecodeError) {
       return const Text('Decode Error', style: TextStyle(color: Colors.pink));
     }
-    if (room.lastMessageModel == null) {
+    if (lastMessage == null) {
       return const Text('');
     }
-    Message m = room.lastMessageModel!;
     late String text;
-    if (m.mediaType == MessageMediaType.text) {
-      text = m.realMessage ?? m.content;
+    if (lastMessage.mediaType == MessageMediaType.text) {
+      text = lastMessage.realMessage ?? lastMessage.content;
     } else {
-      text = '${[m.mediaType.name]}';
+      text = '${[lastMessage.mediaType.name]}';
     }
-    if (m.isMeSend) {
+    if (lastMessage.isMeSend) {
       text = 'You: $text';
     }
     if (room.isMute && room.unReadCount > 1) {
@@ -286,7 +286,7 @@ Let's start an encrypted chat.''';
     var style = TextStyle(
         color: Theme.of(Get.context!).colorScheme.onSurface.withOpacity(0.6),
         fontSize: 14);
-    if (m.isMeSend && m.sent == SendStatusType.failed) {
+    if (lastMessage.isMeSend && lastMessage.sent == SendStatusType.failed) {
       style = style.copyWith(color: Colors.red);
     }
 
@@ -594,6 +594,7 @@ Let's start an encrypted chat.''';
   }
 
   static List<Room> sortRoomList(List<Room> rooms) {
+    HomeController hc = Get.find<HomeController>();
     rooms.sort((a, b) {
       if (a.pin || b.pin) {
         if (a.pin && b.pin) {
@@ -601,10 +602,10 @@ Let's start an encrypted chat.''';
         }
         return a.pin ? -1 : 1;
       }
-      if (a.lastMessageModel == null) return 1;
-      if (b.lastMessageModel == null) return -1;
-      return b.lastMessageModel!.createdAt
-          .compareTo(a.lastMessageModel!.createdAt);
+      if (hc.roomLastMessage[a.id] == null) return 1;
+      if (hc.roomLastMessage[b.id] == null) return -1;
+      return hc.roomLastMessage[b.id]!.createdAt
+          .compareTo(hc.roomLastMessage[a.id]!.createdAt);
     });
     return rooms;
   }

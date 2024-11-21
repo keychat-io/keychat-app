@@ -146,10 +146,35 @@ class RoomList extends StatelessWidget {
                             title: Text(room.getRoomName(),
                                 maxLines: 1,
                                 style: Theme.of(context).textTheme.titleMedium),
-                            subtitle: RoomUtil.getSubtitleDisplay(
-                                    room, messageExpired) ??
-                                const Text(''),
-                            trailing: _getRoomTrailing(context, room),
+                            subtitle: Obx(() => RoomUtil.getSubtitleDisplay(
+                                room,
+                                messageExpired,
+                                homeController.roomLastMessage[room.id])),
+                            trailing: homeController.roomLastMessage[room.id] ==
+                                    null
+                                ? null
+                                : Wrap(
+                                    direction: Axis.vertical,
+                                    alignment: WrapAlignment.center,
+                                    crossAxisAlignment: WrapCrossAlignment.end,
+                                    children: [
+                                      textSmallGray(
+                                          Get.context!,
+                                          formatTimeMsg(homeController
+                                              .roomLastMessage[room.id]!
+                                              .createdAt)),
+                                      room.isMute
+                                          ? Icon(
+                                              Icons.notifications_off_outlined,
+                                              color: Theme.of(Get.context!)
+                                                  .colorScheme
+                                                  .onSurface
+                                                  .withOpacity(0.6),
+                                              size: 16,
+                                            )
+                                          : Container()
+                                    ],
+                                  ),
                           )));
                 });
           }).toList())),
@@ -360,29 +385,6 @@ class RoomList extends StatelessWidget {
         ),
       ],
     ));
-  }
-
-  Widget? _getRoomTrailing(BuildContext context, Room room) {
-    if (room.lastMessageModel?.createdAt != null) {
-      return Wrap(
-        direction: Axis.vertical,
-        alignment: WrapAlignment.center,
-        crossAxisAlignment: WrapCrossAlignment.end,
-        children: [
-          textSmallGray(
-              Get.context!, formatTimeMsg(room.lastMessageModel!.createdAt)),
-          room.isMute
-              ? Icon(
-                  Icons.notifications_off_outlined,
-                  color:
-                      Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                  size: 16,
-                )
-              : Container()
-        ],
-      );
-    }
-    return null;
   }
 
   Widget _getEcashFailedStatusWidget() {

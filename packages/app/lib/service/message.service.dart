@@ -52,10 +52,10 @@ class MessageService {
     logger.i(
         'message_room:${model.roomId} ${model.isMeSend ? 'Send' : 'Receive'}: ${model.content} ');
     await RoomService.getController(model.roomId)?.addMessage(model);
+    var hc = Get.find<HomeController>();
+    hc.roomLastMessage[model.roomId] = model;
     if (!model.isRead) {
-      Get.find<HomeController>().loadIdentityRoomList(model.identityId);
-    } else {
-      Get.find<HomeController>().updateLatestMessage(model);
+      hc.loadIdentityRoomList(model.identityId);
     }
     return model;
   }

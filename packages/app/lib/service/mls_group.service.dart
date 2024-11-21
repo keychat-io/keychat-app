@@ -64,7 +64,6 @@ class MlsGroupService extends BaseChatService {
     const Set<int> adminTypes = {
       KeyChatEventKinds.groupAdminRemoveMembers,
       KeyChatEventKinds.inviteNewMember,
-      KeyChatEventKinds.groupUpdateKeys,
       KeyChatEventKinds.groupDissolve,
       KeyChatEventKinds.groupChangeRoomName
     };
@@ -450,15 +449,20 @@ $error ''';
     RoomService.getController(room.id)?.setRoom(room).resetMembers();
   }
 
-  Future adminUpdateKey(Room room) async {
+  Future selfUpdateKey(Room room) async {
+    String key = 'mlsUpdate:${room.toMainPubkey}';
+    int lastUpdate = await Storage.getIntOrZero(key);
+    if (DateTime.now().millisecondsSinceEpoch - lastUpdate < 86400000) {
+      throw Exception('You can only update your key once per day.');
+    }
+    await Storage.setInt(key, DateTime.now().millisecondsSinceEpoch);
     Identity identity = room.getIdentity();
     var queuedMsg = await rust_mls.selfUpdate(
         nostrId: identity.secp256k1PKHex, groupId: room.toMainPubkey);
     KeychatMessage sm = KeychatMessage(
         c: MessageType.mls, type: KeyChatEventKinds.groupUpdateKeys)
       ..name = base64.encode(queuedMsg)
-      ..msg =
-          '[System] Admin update the shared-key, all members\'s keys will be updated.';
+      ..msg = '[System] Update my mls-group-key.';
 
     await sendMessage(room, sm.toString(), realMessage: sm.msg);
     await rust_mls.selfCommit(
@@ -550,7 +554,7 @@ $error ''';
           fromIdPubkey: fromIdPubkey,
           encryptType: MessageEncryptType.mls,
           msgKeyHash: msgKeyHash);
-      await RoomService.instance.updateChatRoomPage(room);
+      await RoomService.instance.updateRoomAndRefresh(room);
       return;
     }
     for (String memberIdPubkey in toRemoveIdPubkeys) {

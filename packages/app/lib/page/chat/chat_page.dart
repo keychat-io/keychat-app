@@ -74,6 +74,10 @@ class _ChatPage2State extends State<ChatPage> {
         MarkdownStyleSheet.fromTheme(AppThemeCustom.dark()).copyWith(
             strong: Theme.of(Get.context!).textTheme.titleSmall?.copyWith(
                 fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+            a: Theme.of(Get.context!)
+                .textTheme
+                .bodyLarge
+                ?.copyWith(color: Colors.white, fontSize: 16),
             p: Theme.of(Get.context!)
                 .textTheme
                 .bodyLarge
@@ -823,9 +827,8 @@ class _ChatPage2State extends State<ChatPage> {
         OutlinedButton(
           onPressed: () async {
             controller.roomObs.value.status = RoomStatus.enabled;
-            await RoomService.instance.updateRoom(controller.roomObs.value);
             await RoomService.instance
-                .updateChatRoomPage(controller.roomObs.value);
+                .updateRoomAndRefresh(controller.roomObs.value);
             await Get.find<HomeController>()
                 .loadIdentityRoomList(controller.room.identityId);
           },

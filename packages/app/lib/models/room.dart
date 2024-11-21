@@ -593,7 +593,7 @@ Room: $id, ${getRoomName()} $toMainPubkey, $identityId, $groupType''';
   Future<Room> replaceListenPubkey(String newPubkey, int startAt,
       [String? toDeletePubkey]) async {
     onetimekey = newPubkey;
-    await RoomService.instance.updateRoom(this);
+    await RoomService.instance.updateRoomAndRefresh(this);
 
     var ws = Get.find<WebsocketService>();
     if (toDeletePubkey != null) {

@@ -198,9 +198,6 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
                                     color: Colors.grey, size: 30)
                                 : Checkbox(
                                     value: user['isCheck'],
-                                    tristate: widget.room.groupType ==
-                                            GroupType.mls &&
-                                        user['mlsPK'] == null,
                                     onChanged: widget.room.groupType ==
                                                 GroupType.mls &&
                                             user['mlsPK'] == null

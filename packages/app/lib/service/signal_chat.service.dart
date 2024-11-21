@@ -225,8 +225,7 @@ class SignalChatService extends BaseChatService {
     if (signalDecodeError == room.signalDecodeError) return;
 
     room.signalDecodeError = signalDecodeError;
-    await RoomService.instance.updateRoom(room);
-    RoomService.instance.updateChatRoomPage(room);
+    await RoomService.instance.updateRoomAndRefresh(room);
   }
 
   @override
@@ -342,7 +341,7 @@ class SignalChatService extends BaseChatService {
       room.encryptMode = EncryptMode.signal;
     }
     room.contact = contact;
-    room = await RoomService.instance.updateRoom(room);
+    room = await RoomService.instance.updateRoomAndRefresh(room);
 
     await RoomService.instance.receiveDM(room, event,
         sourceEvent: sourceEvent,
@@ -358,7 +357,6 @@ class SignalChatService extends BaseChatService {
       await SignalChatService.instance
           .sendMessage(room, RoomUtil.getHelloMessage(displayName));
     }
-    RoomService.instance.updateChatRoomPage(room);
   }
 
   Future _processRelaySyncMessage(Room room, NostrEventModel event,
@@ -427,8 +425,7 @@ ${relays.join('\n')}
         decodedContent: km.toString(),
         realMessage: 'Rejected');
 
-    await RoomService.instance.updateRoom(room);
-    RoomService.instance.updateChatRoomPage(room);
+    await RoomService.instance.updateRoomAndRefresh(room);
     await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
   }
 
@@ -493,8 +490,7 @@ ${relays.join('\n')}
         identityId: room.identityId,
         pubkey: room.toMainPubkey,
         name: prekeyMessageModel.name);
-    await RoomService.instance.updateRoom(room);
-    await RoomService.instance.updateChatRoomPage(room);
+    await RoomService.instance.updateRoomAndRefresh(room);
     await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
 
     KeychatMessage? km;

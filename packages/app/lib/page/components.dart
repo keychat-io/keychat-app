@@ -277,12 +277,7 @@ getGroupInfoBottomSheetWidget(BuildContext context) {
             subtitle: Text(RoomUtil.getGroupModeDescription(GroupType.mls)),
           ),
           ListTile(
-            title: Text('Medium Group - Signal',
-                style: Theme.of(context).textTheme.titleMedium),
-            subtitle: Text(RoomUtil.getGroupModeDescription(GroupType.kdf)),
-          ),
-          ListTile(
-            title: Text('Small Group - P2P Signal',
+            title: Text('Small Group - Signal Protocol',
                 style: Theme.of(context).textTheme.titleMedium),
             subtitle: Text(RoomUtil.getGroupModeDescription(GroupType.sendAll)),
           ),

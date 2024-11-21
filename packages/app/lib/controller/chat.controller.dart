@@ -1,5 +1,5 @@
 import 'dart:async' show Future, Timer;
-import 'dart:convert';
+import 'dart:convert' show jsonDecode, jsonEncode;
 import 'dart:io' show Directory, File, FileSystemEntity;
 
 import 'package:app/models/models.dart';
@@ -9,7 +9,6 @@ import 'package:app/page/chat/RoomDraft.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/file_util.dart' as file_util;
 import 'package:app/service/message.service.dart';
-import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:file_selector/file_selector.dart';
@@ -111,7 +110,6 @@ class ChatController extends GetxController {
   ];
 
   List<Function> featuresOnTaps = [];
-  WebsocketService ws = Get.find<WebsocketService>();
 
   ChatController(this.room) {
     roomObs.value = room;
@@ -131,16 +129,6 @@ class ChatController extends GetxController {
       messages.insert(index, message);
     } else {
       messagesMore.add(message);
-    }
-
-    try {
-      bool isCurrent = DBProvider.instance.isCurrentPage(message.roomId);
-      if (!isCurrent) return;
-      if (autoScrollController.position.pixels < 100) {
-        jumpToBottom(100);
-      }
-    } catch (e, s) {
-      logger.e('jump error', error: e, stackTrace: s);
     }
   }
 

@@ -54,7 +54,7 @@ class SetRoomRelayAction extends StatelessWidget {
 
                   chatController.roomObs.value.sendingRelays = relays;
                   await RoomService.instance
-                      .updateChatRoomPage(chatController.roomObs.value);
+                      .updateRoomAndRefresh(chatController.roomObs.value);
 
                   message.requestConfrim = RequestConfrimEnum.approved;
                   await MessageService.instance

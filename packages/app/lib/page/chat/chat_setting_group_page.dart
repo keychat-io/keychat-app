@@ -113,7 +113,127 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                   child: SettingsList(
                 platform: DevicePlatform.iOS,
                 sections: [
-                  generalSection(),
+                  SettingsSection(tiles: [
+                    SettingsTile(
+                        title: const Text("ID"),
+                        leading: const Icon(CupertinoIcons.person_3),
+                        value: textSmallGray(
+                            context,
+                            getPublicKeyDisplay(
+                                chatController.roomObs.value.toMainPubkey, 4),
+                            fontSize: 16),
+                        onPressed: (context) {
+                          Clipboard.setData(ClipboardData(
+                              text: chatController.roomObs.value.toMainPubkey));
+                          EasyLoading.showToast('Copied');
+                        }),
+                    SettingsTile.navigation(
+                        leading: const Icon(CupertinoIcons.chart_bar),
+                        title: const Text('Mode'),
+                        value: Text(RoomUtil.getGroupModeName(
+                            chatController.roomObs.value.groupType)),
+                        onPressed: getGroupInfoBottomSheetWidget),
+                    chatController.meMember.value.isAdmin
+                        ? SettingsTile.navigation(
+                            title: const Text("Name"),
+                            leading: const Icon(CupertinoIcons.flag),
+                            value: Text("${chatController.roomObs.value.name}"),
+                            onPressed: (context) async {
+                              _showGroupNameDialog();
+                            })
+                        : SettingsTile(
+                            title: const Text("Group Name"),
+                            leading: const Icon(CupertinoIcons.flag),
+                            value: textSmallGray(
+                                context, "${chatController.roomObs.value.name}",
+                                fontSize: 16)),
+                    if (chatController.room.isMLSGroup)
+                      SettingsTile.navigation(
+                          title: const Text("Update My Group Key"),
+                          leading: const Icon(Icons.refresh),
+                          onPressed: (context) async {
+                            await Get.dialog(CupertinoAlertDialog(
+                              title: const Text("Update My Group Key"),
+                              content: const Text(
+                                  "Regularly updating my group key makes chats more secure."),
+                              actions: <Widget>[
+                                CupertinoDialogAction(
+                                  child: const Text("Cancel"),
+                                  onPressed: () {
+                                    Get.back();
+                                  },
+                                ),
+                                CupertinoDialogAction(
+                                  isDefaultAction: true,
+                                  child: const Text("Confirm"),
+                                  onPressed: () async {
+                                    Get.back();
+                                    try {
+                                      await MlsGroupService.instance
+                                          .selfUpdateKey(
+                                              chatController.roomObs.value);
+                                      EasyLoading.showSuccess('Success');
+                                    } catch (e, s) {
+                                      EasyLoading.showError(e.toString(),
+                                          duration: const Duration(seconds: 3));
+                                      logger.e(e.toString(),
+                                          error: e, stackTrace: s);
+                                    }
+                                  },
+                                ),
+                              ],
+                            ));
+                          }),
+                    SettingsTile.navigation(
+                      title: const Text("My Alias in Group"),
+                      leading: const Icon(CupertinoIcons.person),
+                      value: textP(chatController.meMember.value.name),
+                      onPressed: (context) async {
+                        if (chatController.room.isKDFGroup ||
+                            chatController.room.isShareKeyGroup) return;
+
+                        await Get.dialog(CupertinoAlertDialog(
+                          title: const Text("My Name"),
+                          content: Container(
+                            color: Colors.transparent,
+                            padding: const EdgeInsets.only(top: 15),
+                            child: TextField(
+                                controller: userNameController,
+                                textInputAction: TextInputAction.done,
+                                decoration: const InputDecoration(
+                                    labelText: 'Name',
+                                    border: OutlineInputBorder())),
+                          ),
+                          actions: <Widget>[
+                            CupertinoDialogAction(
+                              child: const Text("Cancel"),
+                              onPressed: () {
+                                Get.back();
+                              },
+                            ),
+                            CupertinoDialogAction(
+                              isDefaultAction: true,
+                              onPressed: () async {
+                                String name = userNameController.text.trim();
+                                if (name.isNotEmpty) {
+                                  await GroupService.instance.changeMyNickname(
+                                      chatController.roomObs.value, name);
+                                  await chatController.setMeMember(name);
+                                  chatController.meMember.refresh();
+                                  userNameController.clear();
+                                  chatController.resetMembers();
+                                  EasyLoading.showSuccess('Success');
+                                }
+
+                                Get.back();
+                              },
+                              child: const Text("Confirm"),
+                            ),
+                          ],
+                        ));
+                      },
+                    )
+                  ]),
                   SettingsSection(tiles: [
                     RoomUtil.pinRoomSection(chatController),
                     if (!chatController.room.isSendAllGroup)
@@ -393,116 +513,6 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
         ),
       ],
     );
-  }
-
-  generalSection() {
-    String pubkey = chatController.roomObs.value.toMainPubkey;
-    return SettingsSection(tiles: [
-      SettingsTile(
-          title: const Text("ID"),
-          leading: const Icon(CupertinoIcons.person_3),
-          value: textP(getPublicKeyDisplay(pubkey, 4)),
-          onPressed: (context) {
-            Clipboard.setData(ClipboardData(text: pubkey));
-            EasyLoading.showToast('Copied');
-          }),
-      SettingsTile.navigation(
-          leading: const Icon(CupertinoIcons.chart_bar),
-          title: const Text('Mode'),
-          value: Text(RoomUtil.getGroupModeName(
-              chatController.roomObs.value.groupType)),
-          onPressed: getGroupInfoBottomSheetWidget),
-      chatController.meMember.value.isAdmin
-          ? SettingsTile.navigation(
-              title: const Text("Name"),
-              leading: const Icon(CupertinoIcons.flag),
-              value: Text("${chatController.roomObs.value.name}"),
-              onPressed: (context) async {
-                _showGroupNameDialog();
-              })
-          : SettingsTile(
-              title: const Text("Group Name"),
-              leading: const Icon(CupertinoIcons.flag),
-              value: Text("${chatController.roomObs.value.name}")),
-      if (chatController.meMember.value.isAdmin &&
-          chatController.room.isMLSGroup)
-        SettingsTile.navigation(
-            title: const Text("Update SharedKey"),
-            leading: const Icon(Icons.refresh),
-            onPressed: (context) async {
-              await Get.dialog(CupertinoAlertDialog(
-                title: const Text("Update SharedKey"),
-                content: const Text(
-                    "Regularly updating shared keys makes group chats more secure, and the receiving address will also be updated."),
-                actions: <Widget>[
-                  CupertinoDialogAction(
-                    child: const Text("Cancel"),
-                    onPressed: () {
-                      Get.back();
-                    },
-                  ),
-                  CupertinoDialogAction(
-                    isDefaultAction: true,
-                    child: const Text("Confirm"),
-                    onPressed: () async {
-                      Get.back();
-                      await MlsGroupService.instance
-                          .adminUpdateKey(chatController.roomObs.value);
-                      EasyLoading.showSuccess('Success');
-                    },
-                  ),
-                ],
-              ));
-            }),
-      SettingsTile.navigation(
-        title: const Text("My Alias in Group"),
-        leading: const Icon(CupertinoIcons.person),
-        value: textP(chatController.meMember.value.name),
-        onPressed: (context) async {
-          if (chatController.room.isKDFGroup ||
-              chatController.room.isShareKeyGroup) return;
-
-          await Get.dialog(CupertinoAlertDialog(
-            title: const Text("My Name"),
-            content: Container(
-              color: Colors.transparent,
-              padding: const EdgeInsets.only(top: 15),
-              child: TextField(
-                  controller: userNameController,
-                  textInputAction: TextInputAction.done,
-                  decoration: const InputDecoration(
-                      labelText: 'Name', border: OutlineInputBorder())),
-            ),
-            actions: <Widget>[
-              CupertinoDialogAction(
-                child: const Text("Cancel"),
-                onPressed: () {
-                  Get.back();
-                },
-              ),
-              CupertinoDialogAction(
-                isDefaultAction: true,
-                onPressed: () async {
-                  String name = userNameController.text.trim();
-                  if (name.isNotEmpty) {
-                    await GroupService.instance
-                        .changeMyNickname(chatController.roomObs.value, name);
-                    await chatController.setMeMember(name);
-                    chatController.meMember.refresh();
-                    userNameController.clear();
-                    chatController.resetMembers();
-                    EasyLoading.showSuccess('Success');
-                  }
-
-                  Get.back();
-                },
-                child: const Text("Confirm"),
-              ),
-            ],
-          ));
-        },
-      )
-    ]);
   }
 
   dangerZoom(BuildContext context) {

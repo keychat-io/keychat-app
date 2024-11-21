@@ -222,7 +222,7 @@ Let's start an encrypted chat.''';
       ),
       title: const Text('Mute Notifications'),
       description: const Text(
-          'If muted, receive pubkey will not be uploaded to the notification server and metadata will be protected'),
+          'If muted, receiving pubkey will not be uploaded to the notification server.'),
       onToggle: (value) async {
         EasyThrottle.throttle('mute_notification', const Duration(seconds: 3),
             () async {

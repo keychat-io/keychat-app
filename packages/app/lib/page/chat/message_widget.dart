@@ -667,10 +667,6 @@ class MessageWidget extends StatelessWidget {
         key: Key(content),
         cache: const Duration(days: 7),
         link: content,
-        titleStyle: Theme.of(Get.context!)
-            .textTheme
-            .titleSmall
-            ?.copyWith(overflow: TextOverflow.visible),
         onTap: () {
           Utils.hideKeyboard(Get.context!);
           launchUrl(Uri.parse(content));

@@ -177,8 +177,6 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
                           ]),
                       trailing: Checkbox(
                           value: user['isCheck'],
-                          tristate: widget.groupType == GroupType.mls &&
-                              user['mlsPK'] == null,
                           onChanged: widget.groupType == GroupType.mls &&
                                   user['mlsPK'] == null
                               ? null

@@ -125,34 +125,34 @@ class _AddGroupPageState extends State<AddGroupPage>
                             .colorScheme
                             .primary
                             .withOpacity(0.1)),
-                    ListTile(
-                        title: Text("Medium Group - Signal Protocol",
-                            style: Theme.of(context).textTheme.titleSmall),
-                        subtitle: Text(
-                            RoomUtil.getGroupModeDescription(GroupType.kdf),
-                            style: Theme.of(context).textTheme.bodySmall),
-                        leading: Radio<GroupType>(
-                          value: GroupType.kdf,
-                          groupValue: groupType,
-                          onChanged: (value) {
-                            FocusScope.of(context).unfocus();
-                            setState(() {
-                              groupType = value as GroupType;
-                              selectedGroupType = GroupType.kdf;
-                            });
-                          },
-                        ),
-                        selected: selectedGroupType == GroupType.kdf,
-                        selectedTileColor: Theme.of(context)
-                            .colorScheme
-                            .primary
-                            .withOpacity(0.1)),
+                    // ListTile(
+                    //     title: Text("Medium Group - Signal Protocol",
+                    //         style: Theme.of(context).textTheme.titleSmall),
+                    //     subtitle: Text(
+                    //         RoomUtil.getGroupModeDescription(GroupType.kdf),
+                    //         style: Theme.of(context).textTheme.bodySmall),
+                    //     leading: Radio<GroupType>(
+                    //       value: GroupType.kdf,
+                    //       groupValue: groupType,
+                    //       onChanged: (value) {
+                    //         FocusScope.of(context).unfocus();
+                    //         setState(() {
+                    //           groupType = value as GroupType;
+                    //           selectedGroupType = GroupType.kdf;
+                    //         });
+                    //       },
+                    //     ),
+                    //     selected: selectedGroupType == GroupType.kdf,
+                    //     selectedTileColor: Theme.of(context)
+                    //         .colorScheme
+                    //         .primary
+                    //         .withOpacity(0.1)),
                     ListTile(
                       selectedTileColor: Theme.of(context)
                           .colorScheme
                           .primary
                           .withOpacity(0.1),
-                      title: Text('Small Group - P2P Signal Protocol',
+                      title: Text('Small Group - Signal Protocol',
                           style: Theme.of(context).textTheme.titleSmall),
                       subtitle: Text(
                           RoomUtil.getGroupModeDescription(GroupType.sendAll),

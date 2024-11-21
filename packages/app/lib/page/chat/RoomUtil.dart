@@ -602,6 +602,13 @@ Let's start an encrypted chat.''';
         }
         return a.pin ? -1 : 1;
       }
+      if (a.unReadCount > 0 && b.unReadCount == 0) {
+        return -1;
+      }
+      if (a.unReadCount == 0 && b.unReadCount > 0) {
+        return 1;
+      }
+
       if (hc.roomLastMessage[a.id] == null) return 1;
       if (hc.roomLastMessage[b.id] == null) return -1;
       return hc.roomLastMessage[b.id]!.createdAt

@@ -90,9 +90,9 @@ class IdentityService {
     if (isFirstAccount) {
       try {
         Get.find<EcashController>().initIdentity(iden);
-        // homeController.fetchBots();
-        // homeController
-        //     .createAIIdentity([iden], KeychatGlobal.bot); // create ai identity
+        // create ai identity
+        await homeController.createAIIdentity([iden], KeychatGlobal.bot);
+        homeController.fetchBots();
         NotifyService.init(true).then((c) {
           NotifyService.addPubkeys([account.pubkey]);
         }).catchError((e, s) {

@@ -5,6 +5,7 @@ import 'package:app/models/room.dart';
 import 'package:app/page/common.dart';
 import 'package:app/page/components.dart';
 import 'package:app/service/room.service.dart';
+import 'package:app/service/signal_chat.service.dart';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -52,11 +53,15 @@ class RecommendBots extends StatelessWidget {
                       String hexPubkey =
                           rust_nostr.getHexPubkeyByBech32(bech32: bot['npub']);
 
-                      await RoomService.instance.getOrCreateRoom(hexPubkey,
-                          identity.secp256k1PKHex, RoomStatus.enabled,
+                      Room room = await RoomService.instance.getOrCreateRoom(
+                          hexPubkey,
+                          identity.secp256k1PKHex,
+                          RoomStatus.enabled,
                           contactName: bot['name'],
                           type: RoomType.bot,
                           identity: identity);
+                      await SignalChatService.instance
+                          .sendHelloMessage(room, identity);
                     },
                     child: const Text('Add')),
               );

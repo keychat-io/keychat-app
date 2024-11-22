@@ -1,4 +1,4 @@
-library keychat_models;
+library;
 
 export 'package:app/models/contact.dart';
 export 'package:app/models/contact_receive_key.dart';

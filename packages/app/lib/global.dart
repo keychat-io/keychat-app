@@ -1,4 +1,4 @@
-library keychat.global;
+library;
 
 class KeychatGlobal {
   static const String bot = 'Bot';

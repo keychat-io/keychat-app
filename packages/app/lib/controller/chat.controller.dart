@@ -30,6 +30,8 @@ import '../service/file_util.dart';
 import '../service/room.service.dart';
 
 const int messageLimitPerPage = 30;
+const int maxMessageId = 999999999999;
+
 String newlineChar = String.fromCharCode(13);
 
 class ChatController extends GetxController {
@@ -313,14 +315,16 @@ class ChatController extends GetxController {
   }
 
   Future loadAllChat() async {
-    DateTime from = DateTime.now();
     List<Message> list = await MessageService.instance.getMessagesByView(
         roomId: roomObs.value.id,
-        from: from,
+        maxId: maxMessageId,
         isRead: true,
         limit: messageLimitPerPage);
     List<Message> unreads = await MessageService.instance.getMessagesByView(
-        roomId: roomObs.value.id, from: from, isRead: false, limit: 200);
+        roomId: roomObs.value.id,
+        maxId: maxMessageId,
+        isRead: false,
+        limit: 200);
     if (unreads.isNotEmpty) {
       if (unreads.length > 12) {
         unreadIndex.value = unreads.length - 1;

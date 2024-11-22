@@ -490,6 +490,22 @@ class HomeController extends GetxController
     _checkWebsocketTimer?.cancel();
     _checkWebsocketTimer = null;
   }
+
+  void updateLastMessage(Message model, bool resort) {
+    roomLastMessage[model.roomId] = model;
+    TabData? item = tabBodyDatas[model.identityId];
+    if (item == null || !resort) return;
+    List<Room> friendsRooms =
+        List.castFrom(item.rooms.whereType<Room>().toList());
+    // is the first room. nothing changed
+    if (friendsRooms.isNotEmpty) {
+      if (friendsRooms[0].id == model.roomId) return;
+    }
+    List<dynamic> nonRoomItems =
+        item.rooms.where((element) => element is! Room).toList();
+    item.rooms = [...nonRoomItems, ...RoomUtil.sortRoomList(friendsRooms)];
+    tabBodyDatas[model.identityId] = item;
+  }
 }
 
 class TabData {

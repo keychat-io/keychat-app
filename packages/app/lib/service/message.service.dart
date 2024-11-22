@@ -53,7 +53,7 @@ class MessageService {
         'message_room:${model.roomId} ${model.isMeSend ? 'Send' : 'Receive'}: ${model.content} ');
     await RoomService.getController(model.roomId)?.addMessage(model);
     var hc = Get.find<HomeController>();
-    hc.roomLastMessage[model.roomId] = model;
+    hc.updateLastMessage(model, model.isRead);
     if (!model.isRead) {
       hc.loadIdentityRoomList(model.identityId);
     }
@@ -282,14 +282,14 @@ $content'''
 
   Future<List<Message>> getMessagesByView({
     required int roomId,
-    required DateTime from,
+    required int maxId,
     required bool isRead,
     limit = 100,
   }) async {
     return DBProvider.database.messages
         .filter()
         .roomIdEqualTo(roomId)
-        .createdAtLessThan(from)
+        .idLessThan(maxId)
         .isReadEqualTo(isRead)
         .sortByCreatedAtDesc()
         .limit(limit)

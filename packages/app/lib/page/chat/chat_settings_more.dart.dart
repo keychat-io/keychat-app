@@ -1,6 +1,7 @@
 import 'package:app/page/chat/SelectRoomRelay.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/contact.service.dart';
+import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:flutter/material.dart';
@@ -68,17 +69,21 @@ class ChatSettingsMoreDart extends StatelessWidget {
                               CupertinoDialogAction(
                                 child: const Text('OK'),
                                 onPressed: () async {
-                                  await Get.find<ChatxService>()
-                                      .deleteSignalSessionKPA(chatController
-                                          .room); // delete old session
-                                  await SignalChatService.instance
-                                      .sendHelloMessage(chatController.room,
-                                          chatController.room.getIdentity(),
-                                          greeting:
-                                              'Reset signal session status');
-                                  EasyLoading.showInfo(
-                                      'Request sent successfully.');
-                                  Get.back();
+                                  EasyThrottle.throttle('ResetSessionStatus',
+                                      const Duration(seconds: 3), () async {
+                                    await Get.find<ChatxService>()
+                                        .deleteSignalSessionKPA(chatController
+                                            .room); // delete old session
+                                    await SignalChatService.instance
+                                        .sendHelloMessage(chatController.room,
+                                            chatController.room.getIdentity(),
+                                            greeting:
+                                                'Reset signal session status');
+                                    Get.back();
+
+                                    EasyLoading.showInfo(
+                                        'Request sent successfully.');
+                                  });
                                 },
                               )
                             ],

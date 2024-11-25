@@ -116,6 +116,7 @@ class EventKinds {
 // }
 
 class MessageInfo {
-  static String resetSessionRequst = '🤖 Try to reset encrypt session status';
-  static String resetSessionSuccess = '🤖 Reset successfully';
+  static String resetSessionRequst =
+      '[System] Try to reset encrypt session status';
+  static String resetSessionSuccess = '[System] Reset successfully';
 }

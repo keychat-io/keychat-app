@@ -147,9 +147,7 @@ class _MyQRCodeState extends State<MyQRCode> {
                                     box!.localToGlobal(Offset.zero) & box.size,
                               );
                             },
-                            child: const Text(
-                              "Share",
-                            ),
+                            child: const Text("Share"),
                           ),
                         ],
                       )

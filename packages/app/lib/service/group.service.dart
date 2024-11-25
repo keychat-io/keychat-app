@@ -59,7 +59,7 @@ class GroupService extends BaseChatService {
         .idPubkeyEqualTo(room.myIdPubkey)
         .findFirst();
     if (rm == null) return;
-    await sendMessageToGroup(room, '🤖 My new nickname: $newName',
+    await sendMessageToGroup(room, 'My new nickname: $newName',
         ext: newName, subtype: KeyChatEventKinds.groupChangeNickname);
     rm.name = newName;
     await database.writeTxn(() async {
@@ -74,7 +74,7 @@ class GroupService extends BaseChatService {
     }
     room.name = newName;
 
-    await sendMessageToGroup(room, '🤖 New room name: $newName',
+    await sendMessageToGroup(room, '[System] New room name: $newName',
         subtype: KeyChatEventKinds.groupChangeRoomName, ext: newName);
     await roomService.updateRoomAndRefresh(room);
   }
@@ -304,7 +304,7 @@ class GroupService extends BaseChatService {
           // Check if I am still in the group, otherwise I will be marked as kicked out of the group
           RoomMember? rm = await room.getMemberByIdPubkey(room.myIdPubkey);
           if (rm == null || rm.status == UserStatusType.removed) {
-            toSaveMsg.content = '🤖 You have been removed by admin.';
+            toSaveMsg.content = '[System] You have been removed by admin.';
             room.status = RoomStatus.removedFromGroup;
             room = await RoomService.instance.updateRoom(room);
             updateChatControllerMembers(room.id);
@@ -596,7 +596,7 @@ class GroupService extends BaseChatService {
 
     List<String> addUsersName = toMembers.map((e) => e.name).toList();
     String names = addUsersName.join(',');
-    String realMessage = '🤖 Invite [$names] to join group ${groupRoom.name}';
+    String realMessage = 'Invite [$names] to join group ${groupRoom.name}';
 
     KeychatMessage km = KeychatMessage(
         c: MessageType.group,
@@ -1011,7 +1011,7 @@ class GroupService extends BaseChatService {
         sent: SendStatusType.success,
         mediaType: MessageMediaType.text,
         content: event.content,
-        realMessage: '🤖 You have been removed');
+        realMessage: '[System] You have been removed');
 
     groupRoom.status = RoomStatus.removedFromGroup;
     await RoomService.instance.updateRoom(groupRoom);

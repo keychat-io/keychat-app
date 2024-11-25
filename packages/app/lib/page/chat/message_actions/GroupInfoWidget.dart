@@ -39,17 +39,16 @@ class GroupInfoWidget extends StatelessWidget {
             sections: [
               SettingsSection(tiles: [
                 SettingsTile(
-                  title: const Text("Group ID"),
+                  title: const Text("ID"),
                   value: textP(getPublicKeyDisplay(roomProfile.pubkey)),
                 ),
                 SettingsTile(
-                    title: const Text('Group mode'),
+                    title: const Text('Mode'),
                     value:
                         Text(RoomUtil.getGroupModeName(roomProfile.groupType))),
                 SettingsTile(
-                  title: const Text("Members Count"),
-                  value: Text(members.length.toString()),
-                ),
+                    title: const Text("Members Count"),
+                    value: Text(members.length.toString())),
               ])
             ],
           )),
@@ -71,8 +70,7 @@ class GroupInfoWidget extends StatelessWidget {
                               if (states.contains(WidgetState.pressed)) {
                                 return Theme.of(context).colorScheme.primary;
                               } else {
-                                return Colors
-                                    .red; // Use the component's default.
+                                return Colors.red;
                               }
                             },
                           ),

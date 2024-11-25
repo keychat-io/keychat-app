@@ -289,7 +289,7 @@ class MessageWidget extends StatelessWidget {
     switch (fileInfo.status) {
       case FileStatus.downloading:
         return Row(children: [
-          textCallback('🤖 Loading...'),
+          textCallback('Loading...'),
           const SpinKitFadingCircle(
             color: Color(0xfff0aa35),
             size: 25.0,

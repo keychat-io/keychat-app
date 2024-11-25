@@ -548,7 +548,7 @@ $error ''';
     if (toRemoveIdPubkeys.contains(identity.secp256k1PKHex)) {
       room.status = RoomStatus.removedFromGroup;
       await RoomService.instance.receiveDM(room, event,
-          decodedContent: '🤖 You have been removed by admin.',
+          decodedContent: '[System] You have been removed by admin.',
           isSystem: true,
           fromIdPubkey: fromIdPubkey,
           encryptType: MessageEncryptType.mls,

@@ -171,7 +171,7 @@ class _FriendCell extends StatelessWidget {
         InkWell(
           onTap: () async {
             await Get.bottomSheet(ContactDetailPage(contact),
-                isScrollControlled: true);
+                isScrollControlled: true, ignoreSafeArea: false);
             updateList();
           },
           child: ListTile(

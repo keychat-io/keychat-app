@@ -19,7 +19,7 @@ class _AnonymousRoomsState extends State<AnonymousRooms> {
   @override
   void initState() {
     setState(() {
-      list = widget.rooms;
+      list = RoomUtil.sortRoomList(widget.rooms);
     });
     super.initState();
   }
@@ -61,9 +61,8 @@ class _AnonymousRoomsState extends State<AnonymousRooms> {
       body: SafeArea(
           child: ListView.separated(
               separatorBuilder: (context, index) => Divider(
-                    height: 1,
-                    color: Theme.of(context).dividerColor.withOpacity(0.05),
-                  ),
+                  height: 1,
+                  color: Theme.of(context).dividerColor.withOpacity(0.05)),
               itemCount: list.length,
               itemBuilder: (context, index) {
                 Room room = list[index];

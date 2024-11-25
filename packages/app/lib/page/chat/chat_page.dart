@@ -109,10 +109,7 @@ class _ChatPage2State extends State<ChatPage> {
                 if (controller.roomObs.value.type == RoomType.bot)
                   const Padding(
                       padding: EdgeInsets.only(left: 5),
-                      child: Icon(
-                        Icons.android_outlined,
-                        color: Colors.purple,
-                      ))
+                      child: Icon(Icons.android_outlined, color: Colors.purple))
               ],
             )),
         bottom: PreferredSize(
@@ -498,9 +495,7 @@ class _ChatPage2State extends State<ChatPage> {
           room: controller.roomObs.value, chatController: controller));
     } else {
       await Get.to(() => ShowContactDetail(
-          contact: controller.roomContact.value,
-          room: controller.roomObs.value,
-          chatController: controller));
+          room: controller.roomObs.value, chatController: controller));
     }
     await controller.openPageAction();
     return;

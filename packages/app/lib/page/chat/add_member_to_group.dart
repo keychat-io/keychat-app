@@ -71,7 +71,9 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
     }
     String myPubkey = widget.room.getIdentity().secp256k1PKHex;
     RoomMember? meMember = await widget.room.getMember(myPubkey);
-    if (meMember != null) {
+
+    // only isSendAllGroup
+    if (meMember != null && widget.room.isSendAllGroup) {
       if (!meMember.isAdmin) {
         try {
           await GroupService.instance

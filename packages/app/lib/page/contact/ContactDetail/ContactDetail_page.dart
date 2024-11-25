@@ -19,8 +19,9 @@ import './ContactDetail_controller.dart';
 
 String defaultAvatar = "assets/images/logo.png";
 
-class ContactDetailPage extends GetView<ContactDetailController> {
-  const ContactDetailPage({super.key});
+class ContactDetailPage extends StatelessWidget {
+  final Contact contact;
+  const ContactDetailPage(this.contact, {super.key});
 
   SizedBox avatarSection(String url, Widget child) {
     return SizedBox(
@@ -34,9 +35,7 @@ class ContactDetailPage extends GetView<ContactDetailController> {
             fit: BoxFit.fitWidth,
             width: double.infinity,
           ),
-          ClipRect(
-            child: buildBackdropFilter(child),
-          ),
+          ClipRect(child: buildBackdropFilter(child)),
         ],
       ),
     );
@@ -73,6 +72,8 @@ class ContactDetailPage extends GetView<ContactDetailController> {
 
   @override
   Widget build(BuildContext context) {
+    ContactDetailController controller =
+        Get.put(ContactDetailController(contact));
     return Scaffold(
       body: Column(
         mainAxisAlignment: MainAxisAlignment.start,
@@ -84,10 +85,7 @@ class ContactDetailPage extends GetView<ContactDetailController> {
                     width: double.infinity),
                 Column(
                   children: [
-                    AppBar(
-                      // title: const Text('123'),
-                      backgroundColor: Colors.transparent,
-                    ),
+                    AppBar(backgroundColor: Colors.transparent),
                     Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -154,7 +152,7 @@ class ContactDetailPage extends GetView<ContactDetailController> {
                             leading: const Icon(CupertinoIcons.pencil),
                             value: Text(controller.contact.value.petname ?? ''),
                             onPressed: (context) async {
-                              await _showContactNameDialog(
+                              await _showContactNameDialog(controller,
                                   controller.contact.value.petname ?? '');
                             },
                           ),
@@ -163,14 +161,15 @@ class ContactDetailPage extends GetView<ContactDetailController> {
                                 controller.contact.value.pubkey,
                                 controller.contact.value.identityId),
                         ]),
-                        dangerZoom()
+                        dangerZoom(controller)
                       ]))),
         ],
       ),
     );
   }
 
-  Future handleUpdateContact(Contact contact) async {
+  Future handleUpdateContact(
+      ContactDetailController controller, Contact contact) async {
     controller.contact.value = contact;
     await ContactService.instance.saveContact(controller.contact.value);
     controller.contact.refresh();
@@ -186,14 +185,11 @@ class ContactDetailPage extends GetView<ContactDetailController> {
     EasyLoading.showSuccess("Updated");
   }
 
-  SettingsSection dangerZoom() {
+  SettingsSection dangerZoom(ContactDetailController controller) {
     return SettingsSection(
       tiles: [
         SettingsTile(
-          leading: const Icon(
-            CupertinoIcons.trash,
-            color: Colors.red,
-          ),
+          leading: const Icon(CupertinoIcons.trash, color: Colors.red),
           title:
               const Text('Delete Contact', style: TextStyle(color: Colors.red)),
           onPressed: (context) async {
@@ -201,22 +197,27 @@ class ContactDetailPage extends GetView<ContactDetailController> {
               title: const Text("Delete chat?"),
               actions: <Widget>[
                 CupertinoDialogAction(
-                  child: const Text(
-                    'Cancel',
-                  ),
+                  child: const Text('Cancel'),
                   onPressed: () {
                     Get.back();
                   },
                 ),
                 CupertinoDialogAction(
                     isDestructiveAction: true,
-                    child: const Text(
-                      'Delete',
-                    ),
-                    onPressed: () {
-                      RoomService.instance.deleteRoomHandler(
-                          controller.contact.value.pubkey,
-                          controller.contact.value.identityId);
+                    child: const Text('Delete'),
+                    onPressed: () async {
+                      try {
+                        await RoomService.instance.deleteRoomHandler(
+                            controller.contact.value.pubkey,
+                            controller.contact.value.identityId);
+                        EasyLoading.showSuccess('Deleted');
+                        Get.back();
+                        Get.back(result: false);
+                      } catch (e) {
+                        String msg = Utils.getErrorMessage(e);
+                        logger.e(msg, error: e, stackTrace: StackTrace.current);
+                        EasyLoading.showError('Error: $msg');
+                      }
                     }),
               ],
             ));
@@ -226,7 +227,8 @@ class ContactDetailPage extends GetView<ContactDetailController> {
     );
   }
 
-  Future _showContactNameDialog(String preRoomName) async {
+  Future _showContactNameDialog(
+      ContactDetailController controller, String preRoomName) async {
     await Get.dialog(CupertinoAlertDialog(
       title: const Text("Name"),
       content: Container(
@@ -236,7 +238,7 @@ class ContactDetailPage extends GetView<ContactDetailController> {
           controller: controller.usernameController,
           autofocus: true,
           textInputAction: TextInputAction.done,
-          onSubmitted: (value) => handleUpdateName(),
+          onSubmitted: (value) => handleUpdateName(controller),
           decoration: const InputDecoration(
             labelText: 'Name',
             border: OutlineInputBorder(),
@@ -253,20 +255,20 @@ class ContactDetailPage extends GetView<ContactDetailController> {
         CupertinoDialogAction(
           child: const Text("Confirm"),
           onPressed: () async {
-            await handleUpdateName();
+            await handleUpdateName(controller);
           },
         ),
       ],
     ));
   }
 
-  Future handleUpdateName() async {
+  Future handleUpdateName(ContactDetailController controller) async {
     if (controller.usernameController.text.isEmpty) return;
     Contact contact0 = controller.contact.value;
     contact0.petname = controller.usernameController.text.trim();
     int id = await ContactService.instance.saveContact(contact0);
     Contact? contact = await ContactService.instance.getContactById(id);
-    await handleUpdateContact(contact!);
+    await handleUpdateContact(controller, contact!);
     Get.back();
   }
 }

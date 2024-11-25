@@ -63,7 +63,6 @@ class MlsGroupService extends BaseChatService {
   bool adminOnlyMiddleware(RoomMember from, int type) {
     const Set<int> adminTypes = {
       KeyChatEventKinds.groupAdminRemoveMembers,
-      KeyChatEventKinds.inviteNewMember,
       KeyChatEventKinds.groupDissolve,
       KeyChatEventKinds.groupChangeRoomName
     };

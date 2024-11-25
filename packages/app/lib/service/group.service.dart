@@ -129,7 +129,7 @@ class GroupService extends BaseChatService {
     if (!await room.checkAdminByIdPubkey(room.myIdPubkey)) {
       throw Exception('Only admin can exit group');
     }
-    String message = '[System] Admin disband this room. Please delete.';
+    String message = '[System] The admin closed the group chat';
     int subtype = KeyChatEventKinds.groupDissolve;
 
     List list = await room.getActiveMembers();
@@ -286,8 +286,7 @@ class GroupService extends BaseChatService {
       case KeyChatEventKinds.groupDissolve:
         await isAdminCheck(room, signPubkey, member);
         room.status = RoomStatus.dissolved;
-        toSaveMsg.content =
-            '[System] The admin disband this room. Please delete.';
+        toSaveMsg.content = '[System] The admin closed the group chat';
         await roomService.updateRoomAndRefresh(room);
         break;
       case KeyChatEventKinds.groupChangeRoomName:

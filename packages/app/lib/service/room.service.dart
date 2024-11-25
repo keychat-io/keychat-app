@@ -8,7 +8,6 @@ import 'package:app/models/models.dart';
 import 'package:app/models/nostr_event_status.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/page/routes.dart';
 import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/signalId.service.dart';
@@ -117,22 +116,10 @@ class RoomService extends BaseChatService {
 
   Future deleteRoomHandler(String pubkey, int identityId) async {
     Room? room;
-    // try {
-    EasyLoading.show(status: 'Loading...');
     await ContactService.instance.deleteContactByPubkey(pubkey, identityId);
     room = await RoomService.instance.getRoomByIdentity(pubkey, identityId);
     if (room != null) {
       await RoomService.instance.deleteRoom(room);
-    }
-    EasyLoading.showSuccess('Deleted');
-    // } catch (e, s) {
-    //   logger.e(e.toString(), error: s, stackTrace: s);
-    //   EasyLoading.showError(e.toString());
-    //   return;
-    // }
-    if (room != null) {
-      homeController.loadIdentityRoomList(room.identityId);
-      await Get.offAllNamed(Routes.root);
     }
   }
 

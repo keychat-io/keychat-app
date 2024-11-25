@@ -5,15 +5,16 @@ import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 
 class ContactDetailController extends GetxController {
+  final Contact source;
+  ContactDetailController(this.source);
   Rx<Contact> contact = Contact(pubkey: '', npubkey: '', identityId: 0).obs;
   late TextEditingController usernameController;
   @override
   void onInit() async {
-    var c = Get.arguments as Contact;
-    if (c.npubkey.isEmpty) {
-      c.npubkey = rust_nostr.getBech32PubkeyByHex(hex: c.pubkey);
+    if (source.npubkey.isEmpty) {
+      source.npubkey = rust_nostr.getBech32PubkeyByHex(hex: source.pubkey);
     }
-    contact.value = c;
+    contact.value = source;
     usernameController = TextEditingController();
     usernameController.text = contact.value.petname ?? '';
     super.onInit();

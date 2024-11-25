@@ -312,6 +312,7 @@ class MessageWidget extends StatelessWidget {
                     iconSize: 18,
                     onPressed: () {
                       EasyLoading.showToast('Start downloading');
+                      message.isRead = true;
                       FileUtils.downloadForMessage(message, fileInfo);
                     },
                     icon: const Icon(
@@ -642,10 +643,8 @@ class MessageWidget extends StatelessWidget {
                       greeting: 'From Group: ${chatController.room.name}'));
                 } else {
                   await Get.to(() => ShowContactDetail(
-                        contact: contact,
-                        room: chatController.room,
-                        chatController: chatController,
-                      ));
+                      room: chatController.room,
+                      chatController: chatController));
                 }
                 await chatController.openPageAction();
               },

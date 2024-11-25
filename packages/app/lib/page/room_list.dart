@@ -134,6 +134,7 @@ class RoomList extends StatelessWidget {
 
                         RoomService.instance.markAllRead(
                             identityId: room.identityId, roomId: room.id);
+                        homeController.resortRoomList(room.identityId);
                       },
                       onLongPress: () =>
                           RoomUtil.showRoomActionSheet(context, room),
@@ -265,21 +266,16 @@ class RoomList extends StatelessWidget {
         child: ListTile(
           key: const Key('room:requesting'),
           leading: badges.Badge(
-            showBadge: rooms.isNotEmpty,
-            badgeContent: Text(
-              rooms.length.toString(),
-              style: const TextStyle(color: Colors.white),
-            ),
-            position: badges.BadgePosition.topEnd(top: -8, end: -5),
-            child: CircleAvatar(
-              radius: 26,
-              backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-              child: const Icon(
-                CupertinoIcons.person_badge_plus_fill,
-                size: 26,
-              ),
-            ),
-          ),
+              showBadge: rooms.isNotEmpty,
+              badgeContent: Text(rooms.length.toString(),
+                  style: const TextStyle(color: Colors.white)),
+              position: badges.BadgePosition.topEnd(top: -8, end: -5),
+              child: CircleAvatar(
+                  radius: 26,
+                  backgroundColor:
+                      Theme.of(context).colorScheme.secondaryContainer,
+                  child: const Icon(CupertinoIcons.person_badge_plus_fill,
+                      size: 26))),
           title: Text(
             'Requesting Friends',
             style: Theme.of(context).textTheme.titleMedium,

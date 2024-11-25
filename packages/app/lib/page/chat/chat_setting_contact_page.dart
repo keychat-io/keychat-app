@@ -1,11 +1,14 @@
 import 'package:app/controller/chat.controller.dart';
+import 'package:app/controller/home.controller.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/chat_settings_more.dart.dart';
 import 'package:app/page/chat/message_bill/pay_to_relay_page.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/routes.dart';
+import 'package:app/service/contact.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -18,15 +21,11 @@ import '../../service/room.service.dart';
 
 // ignore: must_be_immutable
 class ShowContactDetail extends StatefulWidget {
-  Contact contact;
   Room room;
   ChatController chatController;
 
   ShowContactDetail(
-      {super.key,
-      required this.contact,
-      required this.room,
-      required this.chatController});
+      {super.key, required this.room, required this.chatController});
 
   @override
   State<StatefulWidget> createState() => _ShowContactDetailState();
@@ -74,21 +73,24 @@ class _ShowContactDetailState extends State<ShowContactDetail> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   ListTile(
-                      onTap: () {
-                        if (chatController
-                            .roomContact.value.pubkey.isNotEmpty) {
-                          Get.toNamed(Routes.contact,
-                              arguments: chatController.roomContact.value);
-                        }
-                      },
                       leading: getRandomAvatar(chatController.room.toMainPubkey,
                           height: 60, width: 60),
-                      title: Text(
-                        chatController.roomObs.value.getRoomName(),
-                        style: Theme.of(context).textTheme.titleMedium,
+                      title: Obx(() => Text(
+                            chatController.roomObs.value.getRoomName(),
+                            style: Theme.of(context).textTheme.titleMedium,
+                          )),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if ((chatController.roomContact.value.name ?? '')
+                              .isNotEmpty)
+                            textSmallGray(context,
+                                'Name: ${chatController.roomContact.value.name}'),
+                          textSmallGray(
+                              context, chatController.roomObs.value.npub,
+                              overflow: TextOverflow.visible)
+                        ],
                       ),
-                      subtitle: Text(getPublicKeyDisplay(
-                          chatController.roomObs.value.npub)),
                       trailing: IconButton(
                           onPressed: () {
                             Clipboard.setData(ClipboardData(
@@ -117,6 +119,61 @@ class _ShowContactDetailState extends State<ShowContactDetail> {
               child: Obx(
             () => SettingsList(platform: DevicePlatform.iOS, sections: [
               SettingsSection(tiles: [
+                if (kDebugMode)
+                  SettingsTile(
+                    leading: const Icon(Icons.copy),
+                    title: const Text("Hex ID Key"),
+                    value: Text(getPublicKeyDisplay(
+                        chatController.roomContact.value.pubkey, 6)),
+                    onPressed: (context) {
+                      Clipboard.setData(ClipboardData(
+                          text: chatController.roomContact.value.pubkey));
+                      EasyLoading.showSuccess("ID Key copied");
+                    },
+                  ),
+                if (chatController.roomObs.value.type == RoomType.common)
+                  SettingsTile.navigation(
+                    title: const Text('Nickname'),
+                    leading: const Icon(CupertinoIcons.pencil),
+                    value: Text(chatController.roomContact.value.petname ?? ''),
+                    onPressed: (context) async {
+                      TextEditingController usernameController =
+                          TextEditingController(
+                              text: chatController.roomContact.value.petname);
+                      await Get.dialog(CupertinoAlertDialog(
+                        title: const Text("Nickname"),
+                        content: Container(
+                          color: Colors.transparent,
+                          padding: const EdgeInsets.only(top: 15),
+                          child: TextField(
+                              controller: usernameController,
+                              autofocus: true,
+                              textInputAction: TextInputAction.done,
+                              onSubmitted: (value) => handleUpdateName(
+                                  chatController, usernameController),
+                              decoration: const InputDecoration(
+                                  labelText: 'Nickname',
+                                  border: OutlineInputBorder())),
+                        ),
+                        actions: <Widget>[
+                          CupertinoDialogAction(
+                            child: const Text("Cancel"),
+                            onPressed: () {
+                              Get.back();
+                            },
+                          ),
+                          CupertinoDialogAction(
+                            isDefaultAction: true,
+                            onPressed: () async {
+                              await handleUpdateName(
+                                  chatController, usernameController);
+                            },
+                            child: const Text("Confirm"),
+                          ),
+                        ],
+                      ));
+                    },
+                  ),
                 SettingsTile.navigation(
                   title: const Text('Security Settings'),
                   leading: const Icon(CupertinoIcons.lock_shield),
@@ -193,14 +250,33 @@ class _ShowContactDetailState extends State<ShowContactDetail> {
         ),
         CupertinoDialogAction(
             isDestructiveAction: true,
-            child: const Text(
-              'Delete',
-            ),
+            child: const Text('Delete'),
             onPressed: () async {
-              RoomService.instance
-                  .deleteRoomHandler(room.toMainPubkey, room.identityId);
+              try {
+                await RoomService.instance
+                    .deleteRoomHandler(room.toMainPubkey, room.identityId);
+                Get.find<HomeController>()
+                    .loadIdentityRoomList(room.identityId);
+                await Get.offAllNamed(Routes.root);
+              } catch (e) {
+                String msg = Utils.getErrorMessage(e);
+                logger.e(msg, error: e, stackTrace: StackTrace.current);
+                EasyLoading.showError('Error: $msg');
+              }
             }),
       ],
     ));
+  }
+
+  Future handleUpdateName(ChatController chatController,
+      TextEditingController usernameController) async {
+    if (usernameController.text.isEmpty) return;
+    Contact contact0 = chatController.roomContact.value;
+    contact0.petname = usernameController.text.trim();
+    await ContactService.instance.saveContact(contact0);
+    chatController.roomContact.value = contact0;
+    chatController.roomContact.refresh();
+
+    Get.back();
   }
 }

@@ -460,62 +460,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
             )));
   }
 
-//sync key
-  Widget reinviteGroup() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: <Widget>[
-        Expanded(
-          child: InkWell(
-            onTap: () async {
-              var members = await chatController.roomObs.value.getMembers();
-              Map<String, String> selectAccounts = {};
-              for (RoomMember rm in members) {
-                selectAccounts[rm.idPubkey] = rm.name;
-              }
-              await GroupService.instance.inviteToJoinGroup(
-                  chatController.roomObs.value, selectAccounts);
-              EasyLoading.showSuccess("Send invitation successfully");
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                Container(
-                  margin:
-                      const EdgeInsets.only(bottom: 15.0, top: 15, left: 12),
-                  child: const Text(
-                    "Reinvite",
-                    style: TextStyle(
-                      fontSize: 20,
-                    ),
-                  ),
-                ),
-                const Expanded(child: Text("")),
-                Container(
-                  margin:
-                      const EdgeInsets.only(bottom: 15.0, top: 15, right: 8),
-                  child: Text(
-                    "",
-                    style: TextStyle(fontSize: 20, color: Colors.grey.shade800),
-                  ),
-                ),
-                Container(
-                  margin:
-                      const EdgeInsets.only(top: 15, bottom: 15.0, right: 10.0),
-                  child: const Icon(
-                    Icons.chevron_right,
-                    color: Colors.grey,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  dangerZoom(BuildContext context) {
+  SettingsSection dangerZoom(BuildContext context) {
     return SettingsSection(tiles: [
       RoomUtil.autoCleanMessage(chatController),
       RoomUtil.clearHistory(chatController),

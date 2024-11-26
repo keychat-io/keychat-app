@@ -66,7 +66,7 @@ android {
         multiDexEnabled true
         ndk {
             // abiFilters 'x86','armeabi-v7a','arm64-v8a','x86_64'
-            abiFilters 'x86','arm64-v8a'
+            abiFilters 'arm64-v8a'
             // abiFilters 'ARCH_X86','ARCH_ARM32','ARCH_ARM64'
         }        
     }
@@ -74,7 +74,7 @@ android {
         abi {
             enable true //enables the ABIs split mechanism
             reset()
-            include 'x86','arm64-v8a'
+            include 'arm64-v8a'
             // include 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'
             universalApk  true
         }

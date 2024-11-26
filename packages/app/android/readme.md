@@ -12,6 +12,6 @@ adb devices
 
 adb push ./packages/app/build/app/outputs/apk/release/app-arm64-v8a-release.apk /sdcard/Download
 
-adb install /sdcard/Download/app-arm64-v8a-release.apk
+adb install /storage/emulated/0/Download/app-arm64-v8a-release.apk
 
 ```

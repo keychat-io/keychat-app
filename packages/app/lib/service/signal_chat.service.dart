@@ -11,7 +11,6 @@ import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/chat.service.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/identity.service.dart';
-import 'package:app/service/nip4_chat.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/signal_chat_util.dart';
 import 'package:app/service/signalId.service.dart';
@@ -58,8 +57,9 @@ class SignalChatService extends BaseChatService {
     PrekeyMessageModel? pmm;
     if (room.onetimekey != null) {
       if (to == room.onetimekey) {
-        pmm = await SignalChatUtil.getSignalPrekeyMessageContent(
-            room, room.getIdentity(), message);
+        SignalId? si = room.getMySignalId();
+        pmm = await SignalChatUtil.getSignalPrekeyMessage(
+            room: room, message: message, signalPubkey: si?.pubkey ?? '');
       }
     }
 
@@ -394,13 +394,10 @@ ${relays.join('\n')}
     room = await RoomService.instance.updateRoom(room);
     KeychatMessage sm = await KeychatMessage(c: MessageType.signal, type: type)
         .setHelloMessagge(signalId: signalId, identity, greeting: greeting);
-    await Nip4ChatService.instance.sendIncognitoNip4Message(
-      room,
-      sm.toString(),
-      toAddress: onetimekey,
-      realMessage: sm.msg,
-      isSystem: true,
-    );
+    await NostrAPI.instance.sendNip17Message(room, identity,
+        toPubkey: onetimekey,
+        sourceContent: sm.toString(),
+        realMessage: sm.msg);
   }
 
   Future sendRejectMessage(Room room) async {
@@ -469,8 +466,8 @@ ${relays.join('\n')}
     logger.i(
         'decryptPreKeyMessage, plainrtext: $prekeyMessageModel, msgKeyHash: $msgKeyHash');
 
-    await SignalChatUtil.verifyPrekeyMessage(
-        prekeyMessageModel, identity.secp256k1PKHex);
+    await SignalChatUtil.verifySignedMessage(
+        pmm: prekeyMessageModel, signalIdPubkey: signalIdPubkey);
 
     Room? room = await RoomService.instance
         .getRoomByIdentity(prekeyMessageModel.nostrId, identity.id);

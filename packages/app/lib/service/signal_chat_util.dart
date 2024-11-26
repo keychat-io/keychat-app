@@ -4,14 +4,48 @@ import 'package:app/models/room.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class SignalChatUtil {
-  static Future<PrekeyMessageModel> getSignalPrekeyMessageContent(
-      Room room, Identity identity, String message) async {
-    String sourceContent = getPrekeySigContent(
-        [identity.secp256k1PKHex, room.toMainPubkey, message]);
-    String sig = await rust_nostr.signSchnorr(
-        senderKeys: await identity.getSecp256k1SKHex(), content: sourceContent);
-    return PrekeyMessageModel(
+  static Future<String> getToSignMessage(
+      {required String nostrPrikey,
+      required String nostrId,
+      required String signalId,
+      required int time}) async {
+    String source = "Keychat-$nostrId-$signalId-$time";
+    return await rust_nostr.signSchnorr(
+        senderKeys: nostrPrikey, content: source);
+  }
+
+  static Future verifySignedMessage(
+      {required PrekeyMessageModel pmm, required String signalIdPubkey}) async {
+    String source = "Keychat-${pmm.nostrId}-$signalIdPubkey-${pmm.time}";
+
+    // if (DateTime.now().millisecondsSinceEpoch - pmm.time > 2592000000) {
+    //   throw 'The message is expired';
+    // }
+    bool verify = await rust_nostr.verifySchnorr(
+      pubkey: pmm.nostrId,
+      content: source,
+      sig: pmm.sig,
+      hash: true,
+    );
+    if (!verify) throw Exception('Signature verification failed');
+  }
+
+  static Future<PrekeyMessageModel> getSignalPrekeyMessage(
+      {required Room room,
+      required String message,
+      required String signalPubkey}) async {
+    int time = DateTime.now().millisecondsSinceEpoch;
+    Identity identity = room.getIdentity();
+    String sig = await SignalChatUtil.getToSignMessage(
+        nostrPrikey: await identity.getSecp256k1SKHex(),
         nostrId: identity.secp256k1PKHex,
+        signalId: signalPubkey,
+        time: time);
+
+    return PrekeyMessageModel(
+        signalId: signalPubkey,
+        nostrId: identity.secp256k1PKHex,
+        time: time,
         name: identity.displayName,
         sig: sig,
         message: message);
@@ -21,21 +55,5 @@ class SignalChatUtil {
     ids.sort((a, b) => a.compareTo(b));
     String sourceContent = ids.join(',');
     return sourceContent;
-  }
-
-  static Future<void> verifyPrekeyMessage(
-      PrekeyMessageModel prekeyMessageModel, String myIdentityPubkey) async {
-    String sourceContent = SignalChatUtil.getPrekeySigContent([
-      prekeyMessageModel.nostrId,
-      myIdentityPubkey,
-      prekeyMessageModel.message
-    ]);
-    bool verify = await rust_nostr.verifySchnorr(
-      pubkey: prekeyMessageModel.nostrId,
-      content: sourceContent,
-      sig: prekeyMessageModel.sig,
-      hash: true,
-    );
-    if (!verify) throw Exception('Signature verification failed');
   }
 }

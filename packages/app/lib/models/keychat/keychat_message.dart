@@ -1,6 +1,7 @@
 import 'dart:convert' show jsonEncode;
 
 import 'package:app/constants.dart';
+import 'package:app/global.dart';
 
 import 'package:app/models/models.dart';
 import 'package:app/models/signal_id.dart';
@@ -68,13 +69,14 @@ class KeychatMessage {
     if (signalId == null) throw Exception('signalId is null');
 
     Map userInfo = await SignalIdService.instance.getQRCodeData(signalId);
-
+    int expiredTime = DateTime.now().millisecondsSinceEpoch +
+        KeychatGlobal.oneTimePubkeysLifetime * 3600 * 1000;
     Map<String, dynamic> data = {
       'name': identity.displayName,
       'pubkey': identity.secp256k1PKHex,
       'curve25519PkHex': signalId.pubkey,
       'onetimekey': onetimekey,
-      'time': -1,
+      'time': expiredTime,
       'relay': "",
       "globalSign": "",
       ...userInfo

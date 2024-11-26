@@ -86,8 +86,8 @@ class _ShowContactDetailState extends State<ShowContactDetail> {
                               .isNotEmpty)
                             textSmallGray(context,
                                 'Name: ${chatController.roomContact.value.name}'),
-                          textSmallGray(
-                              context, chatController.roomObs.value.npub,
+                          textSmallGray(context,
+                              'ID: ${chatController.roomObs.value.npub}',
                               overflow: TextOverflow.visible)
                         ],
                       ),

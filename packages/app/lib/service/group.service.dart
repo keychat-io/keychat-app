@@ -959,11 +959,10 @@ class GroupService extends BaseChatService {
               realMessage:
                   'Send private message to [${rm.name}]: $realMessage');
         } else {
-          await RoomService.instance.sendNip17Message(groupRoom, identity,
+          await NostrAPI.instance.sendNip17Message(groupRoom, identity,
               toPubkey: rm.idPubkey,
               sourceContent: km.toString(),
-              realMessage: realMessage,
-              timestampTweaked: false);
+              realMessage: realMessage);
         }
       });
     }

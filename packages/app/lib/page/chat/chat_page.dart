@@ -735,7 +735,8 @@ class _ChatPage2State extends State<ChatPage> {
               },
               style: ButtonStyle(
                   backgroundColor: WidgetStateProperty.all(Colors.green)),
-              child: const Text('Approve'),
+              child:
+                  const Text('Approve', style: TextStyle(color: Colors.white)),
             ),
             FilledButton(
               onPressed: () async {
@@ -748,7 +749,8 @@ class _ChatPage2State extends State<ChatPage> {
               },
               style: ButtonStyle(
                   backgroundColor: WidgetStateProperty.all(Colors.red)),
-              child: const Text('Reject'),
+              child:
+                  const Text('Reject', style: TextStyle(color: Colors.white)),
             ),
           ],
         )
@@ -788,7 +790,8 @@ class _ChatPage2State extends State<ChatPage> {
           },
           style: ButtonStyle(
               backgroundColor: WidgetStateProperty.all(Colors.green)),
-          child: const Text('Requesting'),
+          child:
+              const Text('Requesting', style: TextStyle(color: Colors.white)),
         ),
         OutlinedButton(
           onPressed: () async {

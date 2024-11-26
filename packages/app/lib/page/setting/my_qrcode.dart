@@ -95,7 +95,7 @@ class _MyQRCodeState extends State<MyQRCode> {
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
                       Text(
                           widget.isOneTime
-                              ? 'Expires in ${widget.time != null ? formatTimeToYYYYMMDDhhmm(widget.time!) : '24 hours'}'
+                              ? 'Expires in ${widget.time != null ? formatTime(widget.time!) : '24 hours'}'
                               : "",
                           style: Theme.of(context).textTheme.titleMedium,
                           overflow: TextOverflow.ellipsis),

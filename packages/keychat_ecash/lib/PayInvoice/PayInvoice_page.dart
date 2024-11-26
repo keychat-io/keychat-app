@@ -1,12 +1,16 @@
 // ignore_for_file: depend_on_referenced_packages
+import 'package:app/page/components.dart';
 import 'package:app/page/theme.dart';
 import 'package:app/service/qrscan.service.dart';
+import 'package:app/utils.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:keychat_ecash/components/SelectMint.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart';
 import './PayInvoice_controller.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 class PayInvoicePage extends StatefulWidget {
   final String? invoce;
@@ -21,23 +25,26 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
   late PayInvoiceController controller;
   @override
   void initState() {
-    controller = Get.put(PayInvoiceController(widget.invoce));
+    controller = Get.put(PayInvoiceController(invoice: widget.invoce));
     cashuController = Get.find<EcashController>();
     cashuController.getBalance();
     super.initState();
   }
 
   @override
+  void dispose() {
+    Get.delete<PayInvoiceController>();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          leading: Container(),
-          centerTitle: true,
-          title: Text(
-            'Send to LightingNetwork',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ),
+            leading: Container(),
+            centerTitle: true,
+            title: Text('Send to Lightning',
+                style: Theme.of(context).textTheme.bodyMedium)),
         body: SafeArea(
             child: Padding(
                 padding:
@@ -60,7 +67,6 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                           child: TextField(
                             controller: controller.textController,
                             textInputAction: TextInputAction.done,
-                            autofocus: true,
                             maxLines: 8,
                             style: const TextStyle(fontSize: 10),
                             decoration: InputDecoration(
@@ -84,6 +90,42 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                 )),
                           ),
                         ),
+                        Obx(() => FutureBuilder(future: () async {
+                              if (controller.selectedInvoice.value.isEmpty) {
+                                return null;
+                              }
+                              try {
+                                String invoice =
+                                    controller.selectedInvoice.value;
+                                if (invoice.startsWith('lightning:')) {
+                                  invoice =
+                                      invoice.replaceFirst('lightning:', '');
+                                }
+                                return await rust_cashu.decodeInvoice(
+                                    encodedInvoice:
+                                        controller.selectedInvoice.value);
+                              } catch (e) {
+                                return null;
+                              }
+                            }(), builder: (context, snapshot) {
+                              if (snapshot.data == null ||
+                                  snapshot.connectionState !=
+                                      ConnectionState.done) return Container();
+                              InvoiceInfo invoiceInfo =
+                                  snapshot.data as InvoiceInfo;
+                              return ListTile(
+                                title: Text(
+                                    '${invoiceInfo.amount} sat - ${invoiceInfo.memo}'),
+                                subtitle: textSmallGray(
+                                    context,
+                                    invoiceInfo.expiryTs.toInt() <
+                                            DateTime.now()
+                                                .millisecondsSinceEpoch
+                                        ? 'Expired'
+                                        : 'Expires in ${formatTime(invoiceInfo.expiryTs.toInt())}'),
+                              );
+                            })),
+                        const SizedBox(height: 10),
                         OutlinedButton.icon(
                             onPressed: () async {
                               String? result =
@@ -123,9 +165,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                               },
                             ),
                           ),
-                          child: const Text(
-                            'Disabled By Mint Server',
-                          ))),
+                          child: const Text('Disabled By Mint Server'))),
                 ]))));
   }
 }

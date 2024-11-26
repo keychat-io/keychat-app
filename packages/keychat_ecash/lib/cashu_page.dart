@@ -690,9 +690,6 @@ class CashuPage extends GetView<EcashController> {
                   ),
                   InkWell(
                     onTap: () async {
-                      // await Get.to(() => const PayInvoicePage(),
-                      //     binding: PayInvoiceBindings(),
-                      //     transition: Transition.downToUp);
                       await showModalBottomSheetWidget(
                           context, '', const PayInvoicePage(),
                           showAppBar: false);
@@ -754,7 +751,7 @@ class CashuPage extends GetView<EcashController> {
           },
         ),
         SettingsTile.navigation(
-          title: const Text('Send to Lighting Network'),
+          title: const Text('Send to Lightning'),
           onPressed: (context) async {
             await showModalBottomSheetWidget(
                 context, '', const PayInvoicePage(),

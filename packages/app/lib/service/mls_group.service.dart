@@ -306,8 +306,7 @@ $error ''';
       ..name = roomProfile.toString()
       ..msg =
           '''${sender == null ? 'Invite' : '[$sender] invite'} [${names.isNotEmpty ? names : users.keys.join(',').toString()}] to join group.''';
-    await MlsGroupService.instance
-        .sendMessage(room, sm.toString(), realMessage: sm.msg);
+    await sendMessage(room, sm.toString(), realMessage: sm.msg);
     await rust_mls.selfCommit(
         nostrId: identity.secp256k1PKHex, groupId: room.toMainPubkey);
     // self update keys
@@ -412,7 +411,9 @@ $error ''';
     });
     groupRoom = await replaceListenPubkey(groupRoom, identity.secp256k1PKHex);
 
-    RoomService.getController(groupRoom.id)?.setRoom(groupRoom).resetMembers();
+    await RoomService.getController(groupRoom.id)
+        ?.setRoom(groupRoom)
+        .resetMembers();
     return groupRoom;
   }
 
@@ -487,6 +488,10 @@ $error ''';
         groupId: room.toMainPubkey,
         msg: message);
 
+    // refresh onetime key
+    if (realMessage != null) {
+      room = await RoomService.instance.getRoomByIdOrFail(room.id);
+    }
     var randomAccount = await rust_nostr.generateSimple();
     var smr = await NostrAPI.instance.sendNip4Message(
         room.onetimekey!, base64.encode(enctypted.$1),

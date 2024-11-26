@@ -197,7 +197,7 @@ class ChatxService extends GetxService {
       roomKPA[key] = remoteAddress;
       return remoteAddress;
     }
-    throw Exception('signal_session_not_found');
+    throw Exception('signal_session_is_null');
   }
 
   Future<KeychatProtocolAddress?> getSignalSession(

@@ -29,145 +29,7 @@ class GroupInviteAction extends StatelessWidget {
     switch (message.requestConfrim) {
       case RequestConfrimEnum.request:
         return FilledButton(
-            onPressed: () async {
-              EasyThrottle.throttle('joingroup', const Duration(seconds: 2),
-                  () async {
-                RoomProfile roomProfile =
-                    RoomProfile.fromJson(jsonDecode(message.content));
-
-                if (roomProfile.groupType == GroupType.kdf) {
-                  DateTime expiredAt = DateTime.fromMillisecondsSinceEpoch(
-                          roomProfile.updatedAt)
-                      .add(Duration(days: KeychatGlobal.kdfGroupKeysExpired));
-                  if (expiredAt.isBefore(DateTime.now())) {
-                    message.requestConfrim = RequestConfrimEnum.expired;
-                    message.isRead = true;
-                    await MessageService.instance
-                        .updateMessageAndRefresh(message);
-                    EasyLoading.showError('The invitation has expired');
-                    return;
-                  }
-                }
-                bool? accept = await Get.bottomSheet(
-                    ignoreSafeArea: false,
-                    isScrollControlled: true,
-                    GroupInfoWidget(roomProfile, identity.secp256k1PKHex));
-                if (accept == null) return;
-                message.requestConfrim = accept == true
-                    ? RequestConfrimEnum.approved
-                    : RequestConfrimEnum.rejected;
-
-                message.isRead = true;
-                if (accept == false) {
-                  await MessageService.instance
-                      .updateMessageAndRefresh(message);
-                  return;
-                }
-                Room? groupRoom;
-                try {
-                  EasyLoading.show(status: 'Loading...');
-                  Isar database = DBProvider.database;
-                  Room? exist = await database.rooms
-                      .filter()
-                      .toMainPubkeyEqualTo(
-                          roomProfile.oldToRoomPubKey ?? roomProfile.pubkey)
-                      .findFirst();
-                  if (exist != null) {
-                    // joined with another identity
-                    if (exist.identityId != identity.id) {
-                      message.requestConfrim = RequestConfrimEnum.rejected;
-                      await MessageService.instance
-                          .updateMessageAndRefresh(message);
-                      EasyLoading.showError(
-                          'You have joined this group with another identity',
-                          duration: const Duration(seconds: 3));
-                      return;
-                    }
-                    // duplicated invitation
-                    if (exist.version == roomProfile.updatedAt) {
-                      message.requestConfrim = RequestConfrimEnum.approved;
-                      await MessageService.instance
-                          .updateMessageAndRefresh(message);
-                      EasyLoading.showSuccess(
-                          'The invitation has been auto proccessed',
-                          duration: const Duration(seconds: 3));
-                      return;
-                    }
-                    // expired invitation
-                    if (roomProfile.updatedAt < exist.version) {
-                      message.requestConfrim = RequestConfrimEnum.expired;
-                      await MessageService.instance
-                          .updateMessageAndRefresh(message);
-                      EasyLoading.showError('The invitation has expired',
-                          duration: const Duration(seconds: 3));
-                      return;
-                    }
-                    await RoomService.instance.deleteRoom(exist);
-                  }
-
-                  await database.writeTxn(() async {
-                    groupRoom = await GroupTx.instance
-                        .joinGroup(roomProfile, identity, message);
-                    await database.messages.put(message);
-                  });
-                  if (groupRoom == null) {
-                    EasyLoading.showError('Join group failed');
-                    return;
-                  }
-                } catch (e, s) {
-                  String msg = Utils.getErrorMessage(e);
-                  logger.e(msg, error: e, stackTrace: s);
-                  EasyLoading.showError('Join Group Error: $msg',
-                      duration: const Duration(seconds: 3));
-                  return;
-                }
-                if (groupRoom != null) {
-                  try {
-                    if (groupRoom!.isKDFGroup) {
-                      await KdfGroupService.instance.sendHelloMessage(identity,
-                          groupRoom!.getGroupSharedSignalId(), groupRoom!);
-                    } else if (groupRoom!.isMLSGroup) {
-                      String? ext = roomProfile.ext;
-                      if (ext == null) {
-                        throw 'Welcome message is null';
-                      }
-                      groupRoom = await MlsGroupService.instance
-                          .acceptJoinGroup(identity, groupRoom!, ext);
-                    }
-
-                    await MessageService.instance
-                        .updateMessageAndRefresh(message);
-                    EasyLoading.showSuccess('Join group success');
-                  } catch (e, s) {
-                    RoomService.instance.deleteRoom(groupRoom!);
-                    message.requestConfrim = RequestConfrimEnum.request;
-                    await MessageService.instance
-                        .updateMessageAndRefresh(message);
-                    String msg = Utils.getErrorMessage(e);
-                    if (msg.contains(
-                        'Error creating StagedWelcome from Welcome')) {
-                      msg =
-                          'PackageMessage is invalid, Contact the group admin, resend the invitation';
-                      await MlsGroupService.instance
-                          .uploadPKByIdentity(identity);
-                      message.requestConfrim = RequestConfrimEnum.expired;
-                      await MessageService.instance
-                          .updateMessageAndRefresh(message);
-                    }
-                    logger.e(msg, error: e, stackTrace: s);
-                    EasyLoading.showError('Join Group Error: $msg',
-                        duration: const Duration(seconds: 3));
-                    return;
-                  }
-
-                  await Get.offAndToNamed('/room/${groupRoom!.id}',
-                      arguments: groupRoom);
-                  Get.find<HomeController>()
-                      .loadIdentityRoomList(groupRoom!.identityId);
-                }
-              });
-            },
-            child: const Text('Group Info >'));
+            onPressed: handleQuest, child: const Text('Group Info >'));
       case RequestConfrimEnum.approved:
         return const Text('  Approved', style: TextStyle(color: Colors.green));
       case RequestConfrimEnum.rejected:
@@ -177,5 +39,130 @@ class GroupInviteAction extends StatelessWidget {
       default:
         return Text(message.content);
     }
+  }
+
+  handleQuest() async {
+    EasyThrottle.throttle('joingroup', const Duration(seconds: 2), () async {
+      RoomProfile roomProfile =
+          RoomProfile.fromJson(jsonDecode(message.content));
+
+      if (roomProfile.groupType == GroupType.kdf) {
+        DateTime expiredAt =
+            DateTime.fromMillisecondsSinceEpoch(roomProfile.updatedAt)
+                .add(Duration(days: KeychatGlobal.kdfGroupKeysExpired));
+        if (expiredAt.isBefore(DateTime.now())) {
+          message.requestConfrim = RequestConfrimEnum.expired;
+          message.isRead = true;
+          await MessageService.instance.updateMessageAndRefresh(message);
+          EasyLoading.showError('The invitation has expired');
+          return;
+        }
+      }
+      bool? accept = await Get.bottomSheet(
+          ignoreSafeArea: false,
+          isScrollControlled: true,
+          GroupInfoWidget(roomProfile, identity.secp256k1PKHex));
+      if (accept == null) return;
+      message.requestConfrim = accept == true
+          ? RequestConfrimEnum.approved
+          : RequestConfrimEnum.rejected;
+
+      message.isRead = true;
+      if (accept == false) {
+        await MessageService.instance.updateMessageAndRefresh(message);
+        return;
+      }
+      Room? groupRoom;
+      try {
+        EasyLoading.show(status: 'Loading...');
+        Isar database = DBProvider.database;
+        Room? exist = await database.rooms
+            .filter()
+            .toMainPubkeyEqualTo(
+                roomProfile.oldToRoomPubKey ?? roomProfile.pubkey)
+            .findFirst();
+        if (exist != null) {
+          // joined with another identity
+          if (exist.identityId != identity.id) {
+            message.requestConfrim = RequestConfrimEnum.rejected;
+            await MessageService.instance.updateMessageAndRefresh(message);
+            EasyLoading.showError(
+                'You have joined this group with another identity',
+                duration: const Duration(seconds: 3));
+            return;
+          }
+          // duplicated invitation
+          if (exist.version == roomProfile.updatedAt) {
+            message.requestConfrim = RequestConfrimEnum.approved;
+            await MessageService.instance.updateMessageAndRefresh(message);
+            EasyLoading.showSuccess('The invitation has been auto proccessed',
+                duration: const Duration(seconds: 3));
+            return;
+          }
+          // expired invitation
+          if (roomProfile.updatedAt < exist.version) {
+            message.requestConfrim = RequestConfrimEnum.expired;
+            await MessageService.instance.updateMessageAndRefresh(message);
+            EasyLoading.showError('The invitation has expired',
+                duration: const Duration(seconds: 3));
+            return;
+          }
+          await RoomService.instance.deleteRoom(exist);
+        }
+
+        await database.writeTxn(() async {
+          groupRoom =
+              await GroupTx.instance.joinGroup(roomProfile, identity, message);
+          await database.messages.put(message);
+        });
+        if (groupRoom == null) {
+          EasyLoading.showError('Join group failed');
+          return;
+        }
+      } catch (e, s) {
+        String msg = Utils.getErrorMessage(e);
+        logger.e(msg, error: e, stackTrace: s);
+        EasyLoading.showError('Join Group Error: $msg',
+            duration: const Duration(seconds: 3));
+        return;
+      }
+      if (groupRoom != null) {
+        try {
+          if (groupRoom!.isKDFGroup) {
+            await KdfGroupService.instance.sendHelloMessage(
+                identity, groupRoom!.getGroupSharedSignalId(), groupRoom!);
+          } else if (groupRoom!.isMLSGroup) {
+            String? ext = roomProfile.ext;
+            if (ext == null) {
+              throw 'Welcome message is null';
+            }
+            groupRoom = await MlsGroupService.instance
+                .acceptJoinGroup(identity, groupRoom!, ext);
+          }
+
+          await MessageService.instance.updateMessageAndRefresh(message);
+          EasyLoading.showSuccess('Join group success');
+        } catch (e, s) {
+          RoomService.instance.deleteRoom(groupRoom!);
+          message.requestConfrim = RequestConfrimEnum.request;
+          await MessageService.instance.updateMessageAndRefresh(message);
+          String msg = Utils.getErrorMessage(e);
+          if (msg.contains('Error creating StagedWelcome from Welcome')) {
+            msg =
+                'PackageMessage is invalid, Contact the group admin, resend the invitation';
+            await MlsGroupService.instance.uploadPKByIdentity(identity);
+            message.requestConfrim = RequestConfrimEnum.expired;
+            await MessageService.instance.updateMessageAndRefresh(message);
+          }
+          logger.e(msg, error: e, stackTrace: s);
+          EasyLoading.showError('Join Group Error: $msg',
+              duration: const Duration(seconds: 3));
+          return;
+        }
+
+        await Get.offAndToNamed('/room/${groupRoom!.id}', arguments: groupRoom);
+        Get.find<HomeController>().loadIdentityRoomList(groupRoom!.identityId);
+      }
+    });
   }
 }

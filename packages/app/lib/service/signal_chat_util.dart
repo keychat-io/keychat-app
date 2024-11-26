@@ -17,10 +17,6 @@ class SignalChatUtil {
   static Future verifySignedMessage(
       {required PrekeyMessageModel pmm, required String signalIdPubkey}) async {
     String source = "Keychat-${pmm.nostrId}-$signalIdPubkey-${pmm.time}";
-
-    // if (DateTime.now().millisecondsSinceEpoch - pmm.time > 2592000000) {
-    //   throw 'The message is expired';
-    // }
     bool verify = await rust_nostr.verifySchnorr(
       pubkey: pmm.nostrId,
       content: source,

@@ -257,7 +257,31 @@ class NostrAPI {
     return SendMessageResponse(events: [event], message: model);
   }
 
-  Future<SendMessageResponse> sendAndSaveGiftMessage(
+  Future<SendMessageResponse> sendNip17Message(
+    Room room,
+    Identity identity, {
+    required String sourceContent,
+    String? toPubkey,
+    String? realMessage,
+    bool timestampTweaked = false, // use DateTime.now
+    bool save = true,
+  }) async {
+    String result = await rust_nostr.createGiftJson(
+        kind: 14,
+        senderKeys: await identity.getSecp256k1SKHex(),
+        receiverPubkey: toPubkey ?? room.toMainPubkey,
+        timestampTweaked: timestampTweaked,
+        content: sourceContent);
+    return await _sendAndSaveGiftMessage(
+        toPubkey ?? room.toMainPubkey, sourceContent,
+        room: room,
+        encryptedEvent: result,
+        from: identity.secp256k1PKHex,
+        realMessage: realMessage,
+        save: save);
+  }
+
+  Future<SendMessageResponse> _sendAndSaveGiftMessage(
     String to,
     String sourceContent, {
     required String encryptedEvent,

@@ -837,38 +837,12 @@ class RoomService extends BaseChatService {
     if (refresh) homeController.loadIdentityRoomList(identityId);
   }
 
-  Future<SendMessageResponse> sendNip17Message(
-    Room room,
-    Identity identity, {
-    required String sourceContent,
-    String? toPubkey,
-    String? realMessage,
-    bool? timestampTweaked,
-    bool save = true,
-  }) async {
-    String result = await rust_nostr.createGiftJson(
-        kind: 14,
-        senderKeys: await identity.getSecp256k1SKHex(),
-        receiverPubkey: toPubkey ?? room.toMainPubkey,
-        timestampTweaked: timestampTweaked,
-        content: sourceContent);
-    return await NostrAPI.instance.sendAndSaveGiftMessage(
-        toPubkey ?? room.toMainPubkey, sourceContent,
-        room: room,
-        encryptedEvent: result,
-        from: identity.secp256k1PKHex,
-        realMessage: realMessage,
-        save: save);
-  }
-
   Future sendRejectMessage(Room room) async {
     KeychatMessage sm =
         KeychatMessage(c: MessageType.signal, type: KeyChatEventKinds.dmReject);
 
-    await sendNip17Message(room, room.getIdentity(),
-        sourceContent: sm.toString(),
-        realMessage: 'Reject',
-        timestampTweaked: false);
+    await NostrAPI.instance.sendNip17Message(room, room.getIdentity(),
+        sourceContent: sm.toString(), realMessage: 'Reject');
   }
 }
 

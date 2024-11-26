@@ -14,15 +14,9 @@ if (flutterRoot == null) {
     throw new FileNotFoundException("Flutter SDK not found. Define location with flutter.sdk in the local.properties file.")
 }
 
-def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
-if (flutterVersionCode == null) {
-    flutterVersionCode = '1'
-}
-
-def flutterVersionName = localProperties.getProperty('flutter.versionName')
-if (flutterVersionName == null) {
-    flutterVersionName = '1.0'
-}
+def flutterVersionCode = localProperties.getProperty('flutter.versionCode','1')
+def flutterVersionName = localProperties.getProperty('flutter.versionName','1.0')
+ 
 
 apply plugin: 'com.android.application'
 // START: FlutterFire Configuration
@@ -31,13 +25,17 @@ apply plugin: 'com.google.firebase.crashlytics'
 // END: FlutterFire Configuration
 apply plugin: 'kotlin-android'
 apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
+apply from: "../../../keychat_rust_ffi_plugin/cargokit/gradle/plugin.gradle"
+
+cargokit {
+    manifestDir = "../../../keychat_rust_ffi_plugin/rust"
+    libname = "keychat_rust_ffi_plugin"
+}
 
 android {
     compileSdkVersion localProperties.getProperty('flutter.compileSdkVersion').toInteger()
-    // minSdkVersion localProperties.getProperty('flutter.minSdkVersion').toInteger()
-    ndkVersion flutter.ndkVersion
+    ndkVersion localProperties.getProperty('flutter.ndkVersion')
     namespace "com.keychat.io"
-    ndkVersion "28.0.12674087"
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -62,8 +60,7 @@ android {
         applicationId "com.keychat.io"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
-        minSdkVersion 27
-        targetSdkVersion flutter.targetSdkVersion
+        minSdkVersion localProperties.getProperty('flutter.minSdkVersion','34').toInteger()
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         multiDexEnabled true
@@ -106,11 +103,4 @@ dependencies {
     implementation 'com.android.support:multidex:1.0.3'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'com.google.android.material:material:1.9.0'
-}
-
-apply from: "../../../keychat_rust_ffi_plugin/cargokit/gradle/plugin.gradle"
-
-cargokit {
-    manifestDir = "../../../keychat_rust_ffi_plugin/rust"
-    libname = "keychat_rust_ffi_plugin"
 }

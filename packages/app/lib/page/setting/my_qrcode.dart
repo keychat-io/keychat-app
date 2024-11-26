@@ -5,7 +5,7 @@ import 'package:app/models/models.dart';
 import 'package:app/models/signal_id.dart';
 import 'package:app/page/components.dart';
 import 'package:app/service/signalId.service.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
+import 'package:app/service/signal_chat_util.dart';
 
 import 'package:app/utils.dart';
 
@@ -95,7 +95,7 @@ class _MyQRCodeState extends State<MyQRCode> {
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
                       Text(
                           widget.isOneTime
-                              ? 'Expires in ${widget.time != null ? formatTimeToYYYYMMDDhhmm(widget.time!) : '24 hours'}'
+                              ? 'Expires in ${widget.time != null ? formatTime(widget.time!) : '24 hours'}'
                               : "",
                           style: Theme.of(context).textTheme.titleMedium,
                           overflow: TextOverflow.ellipsis),
@@ -159,12 +159,12 @@ class _MyQRCodeState extends State<MyQRCode> {
     Map userInfo = signalId.keys == null
         ? await SignalIdService.instance.getQRCodeData(signalId)
         : jsonDecode(signalId.keys!);
-    String globalSignStr =
-        "Keychat-${identity.secp256k1PKHex}-${signalId.pubkey}-$time";
-    // add gloabl sign
+    String sign = await SignalChatUtil.getToSignMessage(
+        nostrPrikey: await identity.getSecp256k1SKHex(),
+        nostrId: identity.secp256k1PKHex,
+        signalId: signalId.pubkey,
+        time: time ?? -1);
 
-    String globalSignResult = await rust_nostr.signSchnorr(
-        senderKeys: await identity.getSecp256k1SKHex(), content: globalSignStr);
     Map<String, dynamic> data = {
       'pubkey': identity.secp256k1PKHex,
       'curve25519PkHex': signalId.pubkey,
@@ -172,7 +172,7 @@ class _MyQRCodeState extends State<MyQRCode> {
       'time': time ?? -1,
       'relay': "",
       "onetimekey": onetimekey,
-      "globalSign": globalSignResult,
+      "globalSign": sign,
       ...userInfo
     };
     logger.d('qrcode, $data');

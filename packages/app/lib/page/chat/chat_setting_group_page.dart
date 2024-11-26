@@ -70,7 +70,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
             IconButton(
                 onPressed: () async {
                   List<RoomMember> members =
-                      await chatController.room.getEnableMembers();
+                      await chatController.room.getActiveMembers();
                   RoomMember? admin = await chatController.room.getAdmin();
                   Set<String> memberPubkeys = {};
                   for (RoomMember rm in members) {
@@ -136,7 +136,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                         onPressed: getGroupInfoBottomSheetWidget),
                     chatController.meMember.value.isAdmin
                         ? SettingsTile.navigation(
-                            title: const Text("Name"),
+                            title: const Text("Group Name"),
                             leading: const Icon(CupertinoIcons.flag),
                             value: Text("${chatController.roomObs.value.name}"),
                             onPressed: (context) async {
@@ -324,7 +324,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
     return Padding(
         padding: const EdgeInsets.only(top: 10),
         child: SizedBox(
-            height: list.length < 10 ? 140 : 200,
+            height: list.length < 5 ? 100 : (list.length <= 10 ? 200 : 300),
             child: GridView.builder(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: gridCount,

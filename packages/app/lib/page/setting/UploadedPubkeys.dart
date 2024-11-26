@@ -16,12 +16,7 @@ class UploadedPubkeys extends StatefulWidget {
 }
 
 class _UploadedPubkeysState extends State<UploadedPubkeys> {
-  Map<String, List> titles = {
-    'Identity Keys': <List<String>>[],
-    'ShareKey Room Keys': <List<String>>[],
-    'SignalChat Room Keys': <List<String>>[],
-    'OneTime Keys': <List<String>>[]
-  };
+  Map<String, List> titles = {};
   @override
   Widget build(BuildContext context) {
     return Scaffold(

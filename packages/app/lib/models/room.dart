@@ -574,7 +574,8 @@ class Room extends Equatable {
 
   String getDebugInfo(String error) {
     return '''$error
-Room: $id, ${getRoomName()} $toMainPubkey, $identityId, $groupType''';
+Room: $id, ${getRoomName()} $toMainPubkey,
+Please reset room's session: Chat Setting-> Security Settings -> Reset Session''';
   }
 
   BotMessageData? getBotMessagePriceModel() {

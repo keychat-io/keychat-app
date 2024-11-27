@@ -2,6 +2,7 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/create_group_select_member.dart';
 import 'package:app/service/websocket.service.dart';
+import 'package:app/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
@@ -26,6 +27,7 @@ class _AddGroupPageState extends State<AddGroupPage>
   GroupType groupType = GroupType.mls;
   List<String> relays = [];
   late WebsocketService ws;
+  Identity identity = Get.find<HomeController>().getSelectedIdentity();
   @override
   void initState() {
     _groupNameController = TextEditingController();
@@ -42,6 +44,19 @@ class _AddGroupPageState extends State<AddGroupPage>
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
+          leading: GestureDetector(
+              onTap: () {
+                Get.back();
+              },
+              child: Padding(
+                  padding: const EdgeInsets.only(left: 10),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.arrow_back_ios),
+                      getRandomAvatar(identity.secp256k1PKHex,
+                          height: 22, width: 22)
+                    ],
+                  ))),
           centerTitle: true,
           title: const Text("New Group Chat"),
         ),

@@ -876,50 +876,46 @@ class _ChatPage2State extends State<ChatPage> {
             showModalBottomSheetWidget(
                 Get.context!,
                 'Add Contacts',
-                Column(
-                    // padding: const EdgeInsets.symmetric(horizontal: 10),
-                    // color: Theme.of(Get.context!).colorScheme.background,
-                    children: [
-                      NoticeTextWidget.warning(
-                          'You are not friends, cannot send and receive messages'),
-                      const SizedBox(height: 16),
-                      Expanded(
-                          child: Obx(() => ListView.separated(
-                              physics: const NeverScrollableScrollPhysics(),
-                              separatorBuilder: (context, index) =>
-                                  const SizedBox(height: 4),
-                              shrinkWrap: true,
-                              itemCount: controller.kpaIsNullRooms.length,
-                              itemBuilder: (context, index) {
-                                Room room = controller.kpaIsNullRooms[index];
-                                room.contact ??= ContactService.instance
-                                    .getOrCreateContactSync(
-                                        room.identityId, room.toMainPubkey);
-                                return ListTile(
-                                  leading: getAvatarDot(room, width: 40),
-                                  key: Key('room:${room.id}'),
-                                  title: Text(room.getRoomName()),
-                                  trailing: OutlinedButton(
-                                      onPressed: () async {
-                                        Room? room0 = await RoomService.instance
-                                            .createRoomAndsendInvite(
-                                                room.toMainPubkey,
-                                                autoJump: false,
-                                                greeting:
-                                                    'From group: ${controller.roomObs.value.getRoomName()}');
-                                        if (room0 != null) {
-                                          controller.kpaIsNullRooms[index] =
-                                              room0;
-                                          controller.kpaIsNullRooms.refresh();
-                                        }
-                                      },
-                                      child: Text(
-                                          room.status == RoomStatus.requesting
-                                              ? 'Requesting'
-                                              : 'Send')),
-                                );
-                              })))
-                    ]));
+                Column(children: [
+                  NoticeTextWidget.warning(
+                      'You are not friends, cannot send and receive messages'),
+                  const SizedBox(height: 16),
+                  Expanded(
+                      child: Obx(() => ListView.separated(
+                          physics: const NeverScrollableScrollPhysics(),
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 4),
+                          shrinkWrap: true,
+                          itemCount: controller.kpaIsNullRooms.length,
+                          itemBuilder: (context, index) {
+                            Room room = controller.kpaIsNullRooms[index];
+                            room.contact ??= ContactService.instance
+                                .getOrCreateContactSync(
+                                    room.identityId, room.toMainPubkey);
+                            return ListTile(
+                              leading: getAvatarDot(room, width: 40),
+                              key: Key('room:${room.id}'),
+                              title: Text(room.getRoomName()),
+                              trailing: OutlinedButton(
+                                  onPressed: () async {
+                                    Room? room0 = await RoomService.instance
+                                        .createRoomAndsendInvite(
+                                            room.toMainPubkey,
+                                            autoJump: false,
+                                            greeting:
+                                                'From group: ${controller.roomObs.value.getRoomName()}');
+                                    if (room0 != null) {
+                                      controller.kpaIsNullRooms[index] = room0;
+                                      controller.kpaIsNullRooms.refresh();
+                                    }
+                                  },
+                                  child: Text(
+                                      room.status == RoomStatus.requesting
+                                          ? 'Requesting'
+                                          : 'Send')),
+                            );
+                          })))
+                ]));
           },
           child: const Text('View')),
     );

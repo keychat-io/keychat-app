@@ -26,9 +26,8 @@ class RecommendBots extends StatelessWidget {
         ? Container()
         : ListView.separated(
             separatorBuilder: (context, index) => Divider(
-                  height: 1,
-                  color: Theme.of(context).dividerColor.withOpacity(0.05),
-                ),
+                height: 1,
+                color: Theme.of(context).dividerColor.withOpacity(0.05)),
             itemCount: homeController.recommendBots.length,
             shrinkWrap: true,
             padding: const EdgeInsets.only(bottom: 0),
@@ -48,7 +47,7 @@ class RecommendBots extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 subtitle: textSmallGray(context, bot['description']),
-                trailing: FilledButton(
+                trailing: OutlinedButton(
                     onPressed: () async {
                       String hexPubkey =
                           rust_nostr.getHexPubkeyByBech32(bech32: bot['npub']);

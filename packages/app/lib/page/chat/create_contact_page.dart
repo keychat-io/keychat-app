@@ -25,12 +25,12 @@ class AddtoContactsPage extends StatefulWidget {
 class _SearchFriendsState extends State<AddtoContactsPage> {
   late TextEditingController _controller;
   late TextEditingController _helloController;
-  // bool isBot = false;
-
+  Identity identity = Get.find<HomeController>().getSelectedIdentity();
   @override
   void initState() {
     _controller = TextEditingController(text: widget.defaultInput.toString());
     _helloController = TextEditingController();
+
     super.initState();
   }
 
@@ -44,7 +44,22 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(centerTitle: true, title: const Text("Add Contacts")),
+        appBar: AppBar(
+            leading: GestureDetector(
+                onTap: () {
+                  Get.back();
+                },
+                child: Padding(
+                    padding: const EdgeInsets.only(left: 10),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.arrow_back_ios),
+                        getRandomAvatar(identity.secp256k1PKHex,
+                            height: 22, width: 22)
+                      ],
+                    ))),
+            centerTitle: true,
+            title: const Text("Add Contact")),
         body: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 20),
           child: Column(

@@ -8,8 +8,10 @@ import 'package:app/models/models.dart';
 import 'package:app/models/signal_id.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/message.service.dart';
+import 'package:app/service/notify.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/signalId.service.dart';
+import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:equatable/equatable.dart';
 import 'package:get/get.dart';
@@ -22,7 +24,7 @@ part 'room.g.dart';
 
 enum RoomType { common, private, group, bot }
 
-enum GroupType { shareKey, sendAll, kdf }
+enum GroupType { shareKey, sendAll, kdf, mls }
 
 enum EncryptMode { nip04, signal }
 
@@ -47,6 +49,7 @@ enum RoomStatus {
   'isSendAllGroup',
   'isShareKeyGroup',
   'isKDFGroup',
+  'isMLSGroup',
   'parentRoom',
   'keyPair'
 })
@@ -129,6 +132,7 @@ class Room extends Equatable {
   bool get isShareKeyGroup =>
       groupType == GroupType.shareKey && type == RoomType.group;
   bool get isKDFGroup => groupType == GroupType.kdf && type == RoomType.group;
+  bool get isMLSGroup => groupType == GroupType.mls && type == RoomType.group;
 
   @override
   List<Object?> get props => [
@@ -234,6 +238,15 @@ class Room extends Equatable {
     return await DBProvider.database.roomMembers
         .filter()
         .roomIdEqualTo(id)
+        .statusEqualTo(UserStatusType.invited)
+        .findAll();
+  }
+
+  Future<List<RoomMember>> getNotEnableMembers() async {
+    return await DBProvider.database.roomMembers
+        .filter()
+        .roomIdEqualTo(id)
+        .not()
         .statusEqualTo(UserStatusType.invited)
         .findAll();
   }
@@ -391,12 +404,10 @@ class Room extends Equatable {
   }
 
   Future<void> setMemberInvited(RoomMember rm, String? name) async {
-    if (rm.status != UserStatusType.invited) {
-      rm.status = UserStatusType.invited;
-      if (name != null) rm.name = name;
-      await updateMember(rm);
-      RoomService.getController(id)?.resetMembers();
-    }
+    rm.status = UserStatusType.invited;
+    if (name != null) rm.name = name;
+    await updateMember(rm);
+    RoomService.getController(id)?.resetMembers();
   }
 
   Future updateMember(RoomMember rm) async {
@@ -442,6 +453,19 @@ class Room extends Equatable {
     });
   }
 
+  Future setMemberDisableByPubkey(String idPubkey) async {
+    RoomMember? model = await DBProvider.database.roomMembers
+        .filter()
+        .roomIdEqualTo(id)
+        .idPubkeyEqualTo(idPubkey)
+        .findFirst();
+    if (model == null) return;
+    await DBProvider.database.writeTxn(() async {
+      model.status = UserStatusType.removed;
+      await DBProvider.database.roomMembers.put(model);
+    });
+  }
+
   String getRoomName() {
     if (type == RoomType.group) {
       return name!;
@@ -459,7 +483,7 @@ class Room extends Equatable {
     for (RoomMember rm in rms) {
       if (rm.idPubkey == myIdPubkey) continue;
 
-      Room idRoom = await RoomService().getOrCreateRoom(
+      Room idRoom = await RoomService.instance.getOrCreateRoom(
           rm.idPubkey, myIdPubkey, RoomStatus.groupUser,
           contactName: rm.name);
       memberRooms[rm.idPubkey] = idRoom;
@@ -473,7 +497,7 @@ class Room extends Equatable {
     for (RoomMember rm in rms) {
       if (rm.idPubkey == mainMykey.pubkey) continue;
 
-      Room idRoom = await RoomService()
+      Room idRoom = await RoomService.instance
           .getOrCreateRoom(rm.idPubkey, mainMykey.pubkey, RoomStatus.groupUser);
       memberRooms[rm.idPubkey] = idRoom;
     }
@@ -544,13 +568,14 @@ class Room extends Equatable {
     logger.i('clean signal keys: $toMainPubkey');
     signalId.keys = "";
     await SignalIdService.instance.updateSignalId(signalId);
-    MessageService()
+    MessageService.instance
         .saveSystemMessage(this, 'Clear shared signal-id-keys successfully');
   }
 
   String getDebugInfo(String error) {
     return '''$error
-Room: $id, ${getRoomName()} $toMainPubkey, $identityId, $groupType''';
+Room: $id, ${getRoomName()} $toMainPubkey,
+Please reset room's session: Chat Setting-> Security Settings -> Reset Session''';
   }
 
   BotMessageData? getBotMessagePriceModel() {
@@ -564,5 +589,25 @@ Room: $id, ${getRoomName()} $toMainPubkey, $identityId, $groupType''';
       return null;
     }
     return bmd;
+  }
+
+  Future<Room> replaceListenPubkey(String newPubkey, int startAt,
+      [String? toDeletePubkey]) async {
+    onetimekey = newPubkey;
+    await RoomService.instance.updateRoomAndRefresh(this);
+
+    var ws = Get.find<WebsocketService>();
+    if (toDeletePubkey != null) {
+      ws.removePubkeyFromSubscription(toDeletePubkey);
+      if (isMute == false) {
+        NotifyService.removePubkeys([toDeletePubkey]);
+      }
+    }
+    await ws.listenPubkey([newPubkey],
+        since: DateTime.fromMillisecondsSinceEpoch(startAt));
+    if (isMute == false) {
+      NotifyService.addPubkeys([newPubkey]);
+    }
+    return this;
   }
 }

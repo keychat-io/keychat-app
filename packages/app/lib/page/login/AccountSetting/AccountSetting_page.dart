@@ -4,6 +4,7 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/routes.dart';
+import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/utils.dart';
@@ -24,10 +25,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          centerTitle: true,
-          title: const Text('ID Settings'),
-        ),
+        appBar: AppBar(centerTitle: true, title: const Text('ID Settings')),
         body: SafeArea(
             child: Column(
           children: [
@@ -126,6 +124,44 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                 SettingsSection(
                   tiles: [
                     SettingsTile(
+                      leading: const Icon(Icons.mail_lock),
+                      title: const Text("MLS Keys"),
+                      onPressed: (context) async {
+                        String? pk = await MlsGroupService.instance
+                            .getPK(controller.identity.value.secp256k1PKHex);
+
+                        Get.dialog(CupertinoAlertDialog(
+                          title: const Text("MLS Keys"),
+                          content: Text(pk ?? 'not uploaded', maxLines: 3),
+                          actions: <Widget>[
+                            CupertinoDialogAction(
+                                isDefaultAction: true,
+                                onPressed: () async {
+                                  await MlsGroupService.instance
+                                      .uploadPKByIdentity(
+                                          controller.identity.value);
+                                  EasyLoading.showSuccess('Uploaded');
+                                  Get.back();
+                                },
+                                child: const Text("Upload")),
+                            CupertinoDialogAction(
+                              child: const Text("Copy"),
+                              onPressed: () {
+                                Clipboard.setData(
+                                    ClipboardData(text: pk ?? ''));
+                                EasyLoading.showSuccess("Copied");
+                                Get.back();
+                              },
+                            ),
+                          ],
+                        ));
+                      },
+                    )
+                  ],
+                ),
+                SettingsSection(
+                  tiles: [
+                    SettingsTile(
                       leading: const Icon(
                         CupertinoIcons.trash,
                         color: Colors.red,
@@ -173,7 +209,8 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                                 controller.confirmDeleteController.clear();
                                 HomeController hc = Get.find<HomeController>();
                                 List<Identity> identities =
-                                    await IdentityService().getIdentityList();
+                                    await IdentityService.instance
+                                        .getIdentityList();
                                 if (identities.length == 1) {
                                   Get.back();
                                   EasyLoading.showError(
@@ -194,7 +231,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                                 }
                                 try {
                                   EasyLoading.showInfo('Deleting...');
-                                  await IdentityService()
+                                  await IdentityService.instance
                                       .delete(controller.identity.value);
                                   hc.identities.refresh();
 
@@ -340,7 +377,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                     return;
                   }
                   identity.name = controller.usernameController.text.trim();
-                  await IdentityService().updateIdentity(identity);
+                  await IdentityService.instance.updateIdentity(identity);
                   controller.identity.value = identity;
                   controller.identity.refresh();
                   controller.usernameController.clear();

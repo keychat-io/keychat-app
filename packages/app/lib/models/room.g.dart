@@ -454,11 +454,13 @@ const _RoomgroupTypeEnumValueMap = {
   'shareKey': 0,
   'sendAll': 1,
   'kdf': 2,
+  'mls': 3,
 };
 const _RoomgroupTypeValueEnumMap = {
   0: GroupType.shareKey,
   1: GroupType.sendAll,
   2: GroupType.kdf,
+  3: GroupType.mls,
 };
 const _RoomstatusEnumValueMap = {
   'init': 0,

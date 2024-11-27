@@ -41,12 +41,13 @@ class GroupInviteConfirmPage extends StatelessWidget {
                           await KdfGroupService.instance.inviteToJoinGroup(
                               groupRoom, toJoinUserMap, identity.displayName);
                         } else {
-                          await GroupService()
+                          await GroupService.instance
                               .inviteToJoinGroup(groupRoom, toJoinUserMap);
                         }
                         EasyLoading.showSuccess('Success');
                         message.requestConfrim = RequestConfrimEnum.approved;
-                        MessageService().updateMessageAndRefresh(message);
+                        MessageService.instance
+                            .updateMessageAndRefresh(message);
                         Get.back();
                       } catch (e) {
                         EasyLoading.showError(e.toString());
@@ -58,7 +59,7 @@ class GroupInviteConfirmPage extends StatelessWidget {
                   FilledButton(
                     onPressed: () {
                       message.requestConfrim = RequestConfrimEnum.rejected;
-                      MessageService().updateMessageAndRefresh(message);
+                      MessageService.instance.updateMessageAndRefresh(message);
                       Get.back();
                     },
                     style: ButtonStyle(

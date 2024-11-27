@@ -14,12 +14,12 @@ import 'package:app/models/keychat/keychat_message.dart';
 import 'package:app/models/keychat/room_profile.dart';
 import 'package:app/models/message.dart';
 import 'package:app/models/mykey.dart';
-import 'package:app/models/nostr_event_status.dart';
 import 'package:app/models/room.dart';
 import 'package:app/models/room_member.dart';
 import 'package:app/models/signal_id.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/nostr-core/nostr_event.dart';
+import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/chat.service.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/group.service.dart';
@@ -45,9 +45,9 @@ class KdfGroupService extends BaseChatService {
 
   bool adminOnlyMiddleware(RoomMember from, int type) {
     const Set<int> adminTypes = {
-      KeyChatEventKinds.kdfAdminRemoveMembers,
+      KeyChatEventKinds.groupAdminRemoveMembers,
       KeyChatEventKinds.inviteNewMember,
-      KeyChatEventKinds.kdfUpdateKeys,
+      KeyChatEventKinds.groupUpdateKeys,
       KeyChatEventKinds.groupDissolve
     };
     if (adminTypes.contains(type)) {
@@ -64,7 +64,7 @@ class KdfGroupService extends BaseChatService {
         .msgidEqualTo(nostrEvent.id)
         .findFirst();
     if (message == null) {
-      await RoomService().receiveDM(room, signalEvent,
+      await RoomService.instance.receiveDM(room, signalEvent,
           decodedContent: '''
 $error
 
@@ -75,7 +75,7 @@ track: $content''',
     message.content = '''${message.content}
 
 $error ''';
-    await MessageService().updateMessageAndRefresh(message);
+    await MessageService.instance.updateMessageAndRefresh(message);
   }
 
   // create a group
@@ -89,12 +89,13 @@ $error ''';
       String groupName, Identity identity, Map<String, String> toUsers) async {
     SignalId signalId =
         await SignalIdService.instance.createSignalId(identity.id, true);
-    Room room =
-        await GroupService().createGroup(groupName, identity, GroupType.kdf);
+    Room room = await GroupService.instance
+        .createGroup(groupName, identity, GroupType.kdf);
     room.sharedSignalID = signalId.pubkey;
-    await RoomService().updateRoom(room);
+    await RoomService.instance.updateRoom(room);
     if (toUsers.isNotEmpty) {
-      await GroupService().inviteToJoinGroup(room, toUsers, signalId: signalId);
+      await GroupService.instance
+          .inviteToJoinGroup(room, toUsers, signalId: signalId);
     }
     await sendHelloMessage(identity, signalId, room);
 
@@ -188,7 +189,7 @@ $error ''';
       // ignore: empty_catches
     } catch (e) {}
     if (km == null) {
-      await RoomService().receiveDM(room, signalEvent,
+      await RoomService.instance.receiveDM(room, signalEvent,
           decodedContent: decodeString,
           sourceEvent: nostrEvent,
           msgKeyHash: msgKeyHash);
@@ -230,8 +231,8 @@ $error ''';
       [String? sender]) async {
     SignalId signalId =
         await SignalIdService.instance.createSignalId(room.identityId, true);
-    Mykey mykey = await GroupTx().createMykey(room.identityId, room.id);
-    RoomProfile roomProfile = await GroupService()
+    Mykey mykey = await GroupTx.instance.createMykey(room.identityId, room.id);
+    RoomProfile roomProfile = await GroupService.instance
         .inviteToJoinGroup(room, users, signalId: signalId, mykey: mykey);
 
     String names = users.values.toList().join(',');
@@ -255,18 +256,18 @@ Let's create a new group.''';
       String? fromIdPubkey,
       required KeychatMessage km}) async {
     switch (km.type) {
-      case KeyChatEventKinds.kdfHelloMessage:
+      case KeyChatEventKinds.groupHelloMessage:
         await _proccessHelloMessage(room, event, km,
             sourceEvent: sourceEvent, msgKeyHash: msgKeyHash);
         return;
-      case KeyChatEventKinds.groupExist:
+      case KeyChatEventKinds.groupSelfLeave:
         // self exit group
         if (event.pubkey == room.myIdPubkey) {
           return;
         }
         await room.removeMember(event.pubkey);
         RoomService.getController(room.id)?.resetMembers();
-        await RoomService().receiveDM(room, event,
+        await RoomService.instance.receiveDM(room, event,
             sourceEvent: sourceEvent,
             realMessage: km.msg,
             isSystem: true,
@@ -274,23 +275,23 @@ Let's create a new group.''';
         return;
       case KeyChatEventKinds.groupDissolve:
         room.status = RoomStatus.dissolved;
-        await RoomService().updateRoom(room);
-        await RoomService().receiveDM(room, event,
+        await RoomService.instance.updateRoom(room);
+        await RoomService.instance.receiveDM(room, event,
             sourceEvent: sourceEvent,
             decodedContent: km.msg!,
             isSystem: true,
             fromIdPubkey: fromIdPubkey);
-      case KeyChatEventKinds.kdfAdminRemoveMembers:
+      case KeyChatEventKinds.groupAdminRemoveMembers:
         await _proccessAdminRemoveMembers(room, event, km, sourceEvent);
         return;
       case KeyChatEventKinds.inviteNewMember:
-      case KeyChatEventKinds.kdfUpdateKeys:
+      case KeyChatEventKinds.groupUpdateKeys:
         RoomProfile roomProfile = RoomProfile.fromJson(jsonDecode(km.name!));
         Room groupRoom = await getGroupRoomByIdRoom(room, roomProfile);
         if (roomProfile.updatedAt < groupRoom.version) {
           throw Exception('The invitation has expired');
         }
-        await RoomService().receiveDM(groupRoom, event,
+        await RoomService.instance.receiveDM(groupRoom, event,
             sourceEvent: sourceEvent,
             decodedContent: km.msg!,
             isSystem: true,
@@ -298,7 +299,7 @@ Let's create a new group.''';
         await proccessUpdateKeys(groupRoom, roomProfile);
         return;
       default:
-        await RoomService().receiveDM(room, event,
+        await RoomService.instance.receiveDM(room, event,
             sourceEvent: sourceEvent, km: km, fromIdPubkey: fromIdPubkey);
     }
   }
@@ -352,13 +353,14 @@ Let's create a new group.''';
       await groupRoom.updateAllMemberTx(roomProfile.users);
       // delete old mykey and import new one
 
-      Mykey mykey =
-          await GroupTx().importMykeyTx(identity.id, keychain, groupRoom.id);
+      Mykey mykey = await GroupTx.instance
+          .importMykeyTx(identity.id, keychain, groupRoom.id);
       groupRoom.sharedSignalID = sharedSignalId.pubkey;
       groupRoom.mykey.value = mykey;
       groupRoom.status = RoomStatus.enabled;
       groupRoom.version = roomProfile.updatedAt;
-      groupRoom = await GroupTx().updateRoom(groupRoom, updateMykey: true);
+      groupRoom =
+          await GroupTx.instance.updateRoom(groupRoom, updateMykey: true);
 
       // proccess shared nostr pubkey
       Get.find<WebsocketService>()
@@ -379,7 +381,7 @@ Let's create a new group.''';
 
     // String toSaveSystemMessage =
     //     '''Reset room's session success. ${groupRoom.sharedSignalID}''';
-    // await MessageService().saveSystemMessage(groupRoom, toSaveSystemMessage);
+    // await MessageService.instance.saveSystemMessage(groupRoom, toSaveSystemMessage);
     // start listen
     await Get.find<WebsocketService>().listenPubkey([keychain.pubkey],
         since: DateTime.fromMillisecondsSinceEpoch(
@@ -405,7 +407,8 @@ Let's create a new group.''';
       names.add(rm.name);
     }
     KeychatMessage sm = KeychatMessage(
-        c: MessageType.kdfGroup, type: KeyChatEventKinds.kdfAdminRemoveMembers)
+        c: MessageType.kdfGroup,
+        type: KeyChatEventKinds.groupAdminRemoveMembers)
       ..name = jsonEncode(idPubkeys)
       ..msg = 'Admin remove members: ${names.join(',')}';
 
@@ -423,7 +426,7 @@ Let's create a new group.''';
     SignalId userSignalId =
         await SignalIdService.instance.createSignalId(room.identityId);
     room.signalIdPubkey = userSignalId.pubkey;
-    await RoomService().updateRoom(room);
+    await RoomService.instance.updateRoom(room);
     RoomService.getController(room.id)?.setRoom(room);
 
     await Get.find<ChatxService>().addKPAByRoomSignalId(
@@ -433,7 +436,7 @@ Let's create a new group.''';
         getKDFRoomIdentityForShared(room.id));
     // send hello message
     KeychatMessage sm = KeychatMessage(
-        c: MessageType.kdfGroup, type: KeyChatEventKinds.kdfHelloMessage)
+        c: MessageType.kdfGroup, type: KeyChatEventKinds.groupHelloMessage)
       ..name = identity.displayName
       ..msg = '${identity.displayName} joined group';
     SendMessageResponse smr = await KdfGroupService.instance
@@ -442,15 +445,16 @@ Let's create a new group.''';
     var toSendEvent = smr.events[0];
     DateTime createdAt =
         DateTime.fromMillisecondsSinceEpoch(toSendEvent.createdAt * 1000);
-    _messageReceiveCheck(
+    RoomUtil.messageReceiveCheck(
             room, toSendEvent, const Duration(milliseconds: 500), 3)
         .then((success) async {
       if (success) return;
-      Room exist = await RoomService().getRoomByIdOrFail(room.id);
+      Room exist = await RoomService.instance.getRoomByIdOrFail(room.id);
       String msg = exist.version == room.version
           ? 'Send hello_message failed, but the receive key changed, ignore this message, version: ${room.version}'
           : 'The receive key changed, ignore this message';
-      MessageService().saveSystemMessage(room, msg, createdAt: createdAt);
+      MessageService.instance
+          .saveSystemMessage(room, msg, createdAt: createdAt);
     });
   }
 
@@ -490,12 +494,13 @@ Let's create a new group.''';
     String receiverPubkey = room.mykey.value!.pubkey;
     String unEncryptedEvent = await rust_nostr.getUnencryptEvent(
         senderKeys: await identity.getSecp256k1SKHex(),
-        receiverPubkey: room.toMainPubkey,
+        receiverPubkeys: [room.toMainPubkey],
         content: encryptedContent);
 
     var randomAccount = await rust_nostr.generateSimple();
 
-    return await NostrAPI().sendNip4Message(receiverPubkey, unEncryptedEvent,
+    return await NostrAPI.instance.sendNip4Message(
+        receiverPubkey, unEncryptedEvent,
         prikey: randomAccount.prikey,
         from: randomAccount.pubkey,
         room: room,
@@ -509,17 +514,17 @@ Let's create a new group.''';
   Future sendNewKeysToActiveMembers(Room room) async {
     SignalId signalId =
         await SignalIdService.instance.createSignalId(room.identityId, true);
-    Mykey mykey = await GroupTx().createMykey(room.identityId, room.id);
-    RoomProfile roomProfile = await GroupService()
+    Mykey mykey = await GroupTx.instance.createMykey(room.identityId, room.id);
+    RoomProfile roomProfile = await GroupService.instance
         .getRoomProfile(room, signalId: signalId, mykey: mykey);
 
     KeychatMessage km = KeychatMessage(
-        c: MessageType.kdfGroup, type: KeyChatEventKinds.kdfUpdateKeys)
+        c: MessageType.kdfGroup, type: KeyChatEventKinds.groupUpdateKeys)
       ..name = roomProfile.toString()
       ..msg = 'Let\'s reset the status of group [${room.name}]';
 
     List<RoomMember> members = await room.getActiveMembers();
-    await GroupService().sendPrivateMessageToMembers(
+    await GroupService.instance.sendPrivateMessageToMembers(
         km.msg!, members, room.getIdentity(),
         groupRoom: room, km: km);
     await Future.delayed(const Duration(seconds: 1));
@@ -577,7 +582,7 @@ Let's create a new group.''';
       // ignore: empty_catches
     } catch (e) {}
     if (km == null) {
-      await RoomService().receiveDM(room, event,
+      await RoomService.instance.receiveDM(room, event,
           sourceEvent: sourceEvent,
           km: km,
           decodedContent: decryptedContent,
@@ -596,29 +601,6 @@ Let's create a new group.''';
         fromIdPubkey: fromMember.idPubkey);
   }
 
-  Future<bool> _messageReceiveCheck(
-      Room room, NostrEventModel event, Duration delay, int maxRetry) async {
-    if (maxRetry == 0) return false;
-    maxRetry--;
-    await Future.delayed(delay);
-    String id = event.id;
-    NostrEventStatus? nes = await DBProvider.database.nostrEventStatus
-        .filter()
-        .eventIdEqualTo(id)
-        .sendStatusEqualTo(EventSendEnum.success)
-        .findFirst();
-    if (nes != null) {
-      return true;
-    }
-    Get.find<WebsocketService>().writeNostrEvent(
-        event: event,
-        eventString: event.toJsonString(),
-        roomId: room.id,
-        toRelays: room.sendingRelays);
-    logger.i('_messageReceiveCheck: ${event.id}, maxRetry: $maxRetry');
-    return await _messageReceiveCheck(room, event, delay, maxRetry);
-  }
-
   // If the deleted person includes himself, mark the room as kicked.
   // If it is not included, it will not be processed and the message will be displayed directly.
   Future _proccessAdminRemoveMembers(Room room, NostrEventModel event,
@@ -628,17 +610,17 @@ Let's create a new group.''';
     String toSaveMsg = km.msg!;
     if (toRemoveIdPubkeys.contains(identity.secp256k1PKHex)) {
       room.status = RoomStatus.removedFromGroup;
-      await RoomService().updateRoom(room);
+      await RoomService.instance.updateRoom(room);
       room.status = RoomStatus.removedFromGroup;
       toSaveMsg = '🤖 You have been removed by admin.';
-      RoomService().receiveDM(room, event,
+      RoomService.instance.receiveDM(room, event,
           decodedContent: toSaveMsg, sourceEvent: sourceEvent, isSystem: true);
-      room = await RoomService().updateRoom(room);
+      room = await RoomService.instance.updateRoom(room);
       RoomService.getController(room.id)?.setRoom(room);
       return;
     }
 
-    RoomService().receiveDM(room, event,
+    RoomService.instance.receiveDM(room, event,
         sourceEvent: sourceEvent, decodedContent: km.msg);
   }
 
@@ -653,7 +635,7 @@ Let's create a new group.''';
         await room.createMember(event.pubkey, km.name!, UserStatusType.invited);
 
     // receive message
-    await RoomService().receiveDM(room, event,
+    await RoomService.instance.receiveDM(room, event,
         sourceEvent: sourceEvent,
         km: km,
         msgKeyHash: msgKeyHash,

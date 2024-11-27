@@ -12,6 +12,7 @@ KeychatMessage _$KeychatMessageFromJson(Map<String, dynamic> json) =>
       c: $enumDecode(_$MessageTypeEnumMap, json['c']),
       msg: json['msg'] as String?,
       name: json['name'] as String?,
+      data: json['data'] as String?,
     );
 
 Map<String, dynamic> _$KeychatMessageToJson(KeychatMessage instance) {
@@ -28,6 +29,7 @@ Map<String, dynamic> _$KeychatMessageToJson(KeychatMessage instance) {
 
   writeNotNull('msg', instance.msg);
   writeNotNull('name', instance.name);
+  writeNotNull('data', instance.data);
   return val;
 }
 
@@ -36,4 +38,5 @@ const _$MessageTypeEnumMap = {
   MessageType.signal: 'signal',
   MessageType.group: 'group',
   MessageType.kdfGroup: 'kdfGroup',
+  MessageType.mls: 'mls',
 };

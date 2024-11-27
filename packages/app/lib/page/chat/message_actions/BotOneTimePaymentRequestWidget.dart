@@ -113,13 +113,13 @@ class _BotOneTimePaymentRequestWidgetState
                           message: confirmResult,
                           payToken: cashuTokenString);
 
-                      await RoomService().sendTextMessage(
+                      await RoomService.instance.sendTextMessage(
                           widget.room, jsonEncode(bcm.toJson()),
                           realMessage:
                               'Selected ${data.name}, and send ecash: ${data.price} ${data.unit}');
 
                       widget.message.confirmResult = confirmResult;
-                      await MessageService()
+                      await MessageService.instance
                           .updateMessageAndRefresh(widget.message);
                       EasyLoading.showSuccess('Success');
                       Get.back();

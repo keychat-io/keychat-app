@@ -225,7 +225,7 @@ class MinePage extends GetView<SettingController> {
             Get.back();
             var url = settingController.relayTextController.text.trim();
             if (url.startsWith("ws://") || url.startsWith("wss://")) {
-              await RelayService().addAndConnect(url);
+              await RelayService.instance.addAndConnect(url);
               settingController.relayTextController.clear();
               return;
             } else {

@@ -198,7 +198,7 @@ class MoreSetting extends StatelessWidget {
             onPressed: () async {
               EasyLoading.show(status: 'Processing...');
               try {
-                await DBProvider().deleteAll();
+                await DBProvider.instance.deleteAll();
                 await deleteAllFolder(); // delete all files
                 await Get.find<WebsocketService>().stopListening();
                 await Storage.clearAll();

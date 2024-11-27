@@ -244,8 +244,9 @@ class MessageWidget extends StatelessWidget {
                         overflow: TextOverflow.ellipsis, style: style),
                     Text('To: ${message.to}',
                         overflow: TextOverflow.ellipsis, style: style),
-                    Text('EncryptionKeyHash: ${message.msgKeyHash ?? ''}',
-                        overflow: TextOverflow.ellipsis, style: style),
+                    if (message.msgKeyHash != null)
+                      Text('EncryptionKeyHash: ${message.msgKeyHash}',
+                          overflow: TextOverflow.ellipsis, style: style),
                     Text(
                         'SendAt: ${formatTime(message.createdAt.millisecondsSinceEpoch)}',
                         overflow: TextOverflow.ellipsis,
@@ -288,7 +289,7 @@ class MessageWidget extends StatelessWidget {
     switch (fileInfo.status) {
       case FileStatus.downloading:
         return Row(children: [
-          textCallback('🤖 Loading...'),
+          textCallback('Loading...'),
           const SpinKitFadingCircle(
             color: Color(0xfff0aa35),
             size: 25.0,
@@ -311,6 +312,7 @@ class MessageWidget extends StatelessWidget {
                     iconSize: 18,
                     onPressed: () {
                       EasyLoading.showToast('Start downloading');
+                      message.isRead = true;
                       FileUtils.downloadForMessage(message, fileInfo);
                     },
                     icon: const Icon(
@@ -533,7 +535,7 @@ class MessageWidget extends StatelessWidget {
             .toList();
         if (success.isNotEmpty) {
           message.sent = SendStatusType.success;
-          await MessageService().updateMessageAndRefresh(message);
+          await MessageService.instance.updateMessageAndRefresh(message);
         }
       }
 
@@ -592,9 +594,11 @@ class MessageWidget extends StatelessWidget {
           child: Padding(
               padding:
                   const EdgeInsets.only(left: 10, right: 4, top: 8, bottom: 4),
-              child: Text(
-                title,
-              ))),
+              child: Text(title,
+                  style: Theme.of(Get.context!)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: fontColor.withOpacity(0.7))))),
       TableCell(
           child: Padding(
               padding:
@@ -639,10 +643,8 @@ class MessageWidget extends StatelessWidget {
                       greeting: 'From Group: ${chatController.room.name}'));
                 } else {
                   await Get.to(() => ShowContactDetail(
-                        contact: contact,
-                        room: chatController.room,
-                        chatController: chatController,
-                      ));
+                      room: chatController.room,
+                      chatController: chatController));
                 }
                 await chatController.openPageAction();
               },
@@ -662,8 +664,8 @@ class MessageWidget extends StatelessWidget {
     String content = message.content;
     return AnyLinkPreview(
         key: Key(content),
+        cache: const Duration(days: 7),
         link: content,
-        bodyMaxLines: 2,
         onTap: () {
           Utils.hideKeyboard(Get.context!);
           launchUrl(Uri.parse(content));
@@ -689,7 +691,8 @@ class MessageWidget extends StatelessWidget {
                   ?.copyWith(color: fontColor.withOpacity(0.7), height: 1),
               maxLines: 5));
     } else {
-      Message? msg = MessageService().getMessageByMsgIdSync(message.reply!.id!);
+      Message? msg =
+          MessageService.instance.getMessageByMsgIdSync(message.reply!.id!);
       if (msg != null) {
         if (msg.mediaType == MessageMediaType.image) {
           MsgFileInfo mfi = MsgFileInfo.fromJson(jsonDecode(msg.realMessage!));
@@ -807,7 +810,7 @@ class MessageWidget extends StatelessWidget {
           isDestructiveAction: true,
           child: const Text('Delete'),
           onPressed: () async {
-            await MessageService().deleteMessageById(message.id);
+            await MessageService.instance.deleteMessageById(message.id);
             chatController.messages.remove(message);
             Get.back();
             try {
@@ -842,6 +845,7 @@ class MessageWidget extends StatelessWidget {
   }
 
   Map encryptText = {
+    'mls': 'MLS Protocol',
     'signal': 'Signal Protocol',
     'nip4': 'NIP4',
     'nip17': 'NIP17',
@@ -898,8 +902,10 @@ class MessageWidget extends StatelessWidget {
                                   )
                                 ])),
                       const SizedBox(height: 10),
-                      NoticeTextWidget.success(
-                          'Encrypted by ${encryptText[message.encryptType.name]}'),
+                      Padding(
+                          padding: const EdgeInsets.only(left: 4),
+                          child: NoticeTextWidget.success(
+                              'Encrypted by ${encryptText[message.encryptType.name]}')),
                       if (event != null)
                         Card(
                             child: Table(
@@ -1038,7 +1044,7 @@ class MessageWidget extends StatelessWidget {
     if (forwardRoom == null) return;
     EasyLoading.show(status: 'Sending...');
     if (message.mediaType == MessageMediaType.text) {
-      await RoomService().sendTextMessage(forwardRoom, content);
+      await RoomService.instance.sendTextMessage(forwardRoom, content);
       EasyLoading.dismiss();
       EasyLoading.showSuccess('Sent');
       return;
@@ -1047,7 +1053,7 @@ class MessageWidget extends StatelessWidget {
         message.mediaType == MessageMediaType.video ||
         message.mediaType == MessageMediaType.file) {
       MsgFileInfo mfi = MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
-      await RoomService().forwardFileMessage(
+      await RoomService.instance.forwardFileMessage(
         room: forwardRoom,
         content: message.content,
         mfi: mfi,

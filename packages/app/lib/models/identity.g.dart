@@ -52,43 +52,48 @@ const IdentitySchema = CollectionSchema(
       name: r'isDefault',
       type: IsarType.bool,
     ),
-    r'mnemonic': PropertySchema(
+    r'metadata': PropertySchema(
       id: 7,
+      name: r'metadata',
+      type: IsarType.string,
+    ),
+    r'mnemonic': PropertySchema(
+      id: 8,
       name: r'mnemonic',
       type: IsarType.string,
     ),
     r'name': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'name',
       type: IsarType.string,
     ),
     r'note': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'note',
       type: IsarType.string,
     ),
     r'npub': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'npub',
       type: IsarType.string,
     ),
     r'secp256k1PKHex': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'secp256k1PKHex',
       type: IsarType.string,
     ),
     r'secp256k1SKHex': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'secp256k1SKHex',
       type: IsarType.string,
     ),
     r'stringify': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'weight': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'weight',
       type: IsarType.long,
     )
@@ -146,6 +151,12 @@ int _identityEstimateSize(
     }
   }
   {
+    final value = object.metadata;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.mnemonic;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -182,14 +193,15 @@ void _identitySerialize(
   writer.writeLong(offsets[4], object.hashCode);
   writer.writeLong(offsets[5], object.index);
   writer.writeBool(offsets[6], object.isDefault);
-  writer.writeString(offsets[7], object.mnemonic);
-  writer.writeString(offsets[8], object.name);
-  writer.writeString(offsets[9], object.note);
-  writer.writeString(offsets[10], object.npub);
-  writer.writeString(offsets[11], object.secp256k1PKHex);
-  writer.writeString(offsets[12], object.secp256k1SKHex);
-  writer.writeBool(offsets[13], object.stringify);
-  writer.writeLong(offsets[14], object.weight);
+  writer.writeString(offsets[7], object.metadata);
+  writer.writeString(offsets[8], object.mnemonic);
+  writer.writeString(offsets[9], object.name);
+  writer.writeString(offsets[10], object.note);
+  writer.writeString(offsets[11], object.npub);
+  writer.writeString(offsets[12], object.secp256k1PKHex);
+  writer.writeString(offsets[13], object.secp256k1SKHex);
+  writer.writeBool(offsets[14], object.stringify);
+  writer.writeLong(offsets[15], object.weight);
 }
 
 Identity _identityDeserialize(
@@ -199,10 +211,10 @@ Identity _identityDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Identity(
-    name: reader.readString(offsets[8]),
-    note: reader.readStringOrNull(offsets[9]),
-    npub: reader.readString(offsets[10]),
-    secp256k1PKHex: reader.readString(offsets[11]),
+    name: reader.readString(offsets[9]),
+    note: reader.readStringOrNull(offsets[10]),
+    npub: reader.readString(offsets[11]),
+    secp256k1PKHex: reader.readString(offsets[12]),
   );
   object.about = reader.readStringOrNull(offsets[0]);
   object.createdAt = reader.readDateTime(offsets[1]);
@@ -211,9 +223,10 @@ Identity _identityDeserialize(
   object.id = id;
   object.index = reader.readLong(offsets[5]);
   object.isDefault = reader.readBool(offsets[6]);
-  object.mnemonic = reader.readStringOrNull(offsets[7]);
-  object.secp256k1SKHex = reader.readStringOrNull(offsets[12]);
-  object.weight = reader.readLong(offsets[14]);
+  object.metadata = reader.readStringOrNull(offsets[7]);
+  object.mnemonic = reader.readStringOrNull(offsets[8]);
+  object.secp256k1SKHex = reader.readStringOrNull(offsets[13]);
+  object.weight = reader.readLong(offsets[15]);
   return object;
 }
 
@@ -241,18 +254,20 @@ P _identityDeserializeProp<P>(
     case 7:
       return (reader.readStringOrNull(offset)) as P;
     case 8:
-      return (reader.readString(offset)) as P;
-    case 9:
       return (reader.readStringOrNull(offset)) as P;
-    case 10:
+    case 9:
       return (reader.readString(offset)) as P;
+    case 10:
+      return (reader.readStringOrNull(offset)) as P;
     case 11:
       return (reader.readString(offset)) as P;
     case 12:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 13:
-      return (reader.readBoolOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 14:
+      return (reader.readBoolOrNull(offset)) as P;
+    case 15:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1121,6 +1136,152 @@ extension IdentityQueryFilter
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'isDefault',
         value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> metadataIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'metadata',
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> metadataIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'metadata',
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> metadataEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'metadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> metadataGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'metadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> metadataLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'metadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> metadataBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'metadata',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> metadataStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'metadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> metadataEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'metadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> metadataContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'metadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> metadataMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'metadata',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> metadataIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'metadata',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> metadataIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'metadata',
+        value: '',
       ));
     });
   }
@@ -2136,6 +2297,18 @@ extension IdentityQuerySortBy on QueryBuilder<Identity, Identity, QSortBy> {
     });
   }
 
+  QueryBuilder<Identity, Identity, QAfterSortBy> sortByMetadata() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'metadata', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy> sortByMetadataDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'metadata', Sort.desc);
+    });
+  }
+
   QueryBuilder<Identity, Identity, QAfterSortBy> sortByMnemonic() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'mnemonic', Sort.asc);
@@ -2331,6 +2504,18 @@ extension IdentityQuerySortThenBy
     });
   }
 
+  QueryBuilder<Identity, Identity, QAfterSortBy> thenByMetadata() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'metadata', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy> thenByMetadataDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'metadata', Sort.desc);
+    });
+  }
+
   QueryBuilder<Identity, Identity, QAfterSortBy> thenByMnemonic() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'mnemonic', Sort.asc);
@@ -2477,6 +2662,13 @@ extension IdentityQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Identity, Identity, QDistinct> distinctByMetadata(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'metadata', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<Identity, Identity, QDistinct> distinctByMnemonic(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -2581,6 +2773,12 @@ extension IdentityQueryProperty
   QueryBuilder<Identity, bool, QQueryOperations> isDefaultProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isDefault');
+    });
+  }
+
+  QueryBuilder<Identity, String?, QQueryOperations> metadataProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'metadata');
     });
   }
 

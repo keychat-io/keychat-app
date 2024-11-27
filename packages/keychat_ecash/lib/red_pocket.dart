@@ -39,7 +39,7 @@ class _RedPocketState extends State<RedPocket> {
         if (model != null) {
           if (model.status != _cashuInfoModel.status) {
             widget.message.cashuInfo = model;
-            await MessageService().updateMessage(widget.message);
+            await MessageService.instance.updateMessage(widget.message);
             setState(() {
               _cashuInfoModel = model;
             });

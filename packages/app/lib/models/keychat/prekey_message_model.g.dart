@@ -9,6 +9,8 @@ part of 'prekey_message_model.dart';
 PrekeyMessageModel _$PrekeyMessageModelFromJson(Map<String, dynamic> json) =>
     PrekeyMessageModel(
       nostrId: json['nostrId'] as String,
+      signalId: json['signalId'] as String,
+      time: (json['time'] as num).toInt(),
       name: json['name'] as String,
       sig: json['sig'] as String,
       message: json['message'] as String,
@@ -17,7 +19,9 @@ PrekeyMessageModel _$PrekeyMessageModelFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$PrekeyMessageModelToJson(PrekeyMessageModel instance) =>
     <String, dynamic>{
       'nostrId': instance.nostrId,
-      'name': instance.name,
+      'signalId': instance.signalId,
+      'time': instance.time,
       'sig': instance.sig,
+      'name': instance.name,
       'message': instance.message,
     };

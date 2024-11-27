@@ -12,7 +12,8 @@ part 'contact.g.dart';
   'indexLetter',
   'isCheck',
   'admin',
-  'imageAssets'
+  'imageAssets',
+  'mlsPK'
 })
 // ignore: must_be_immutable
 class Contact extends Equatable {
@@ -50,6 +51,7 @@ class Contact extends Equatable {
   bool admin = false;
   String get indexLetter => displayName[0];
   String? imageAssets;
+  String? mlsPK;
 
   Contact({
     required this.identityId,
@@ -66,7 +68,7 @@ class Contact extends Equatable {
   Future saveNameIfNull(String newName) async {
     if (petname == null || name == null) {
       name = newName;
-      await ContactService().saveContact(this);
+      await ContactService.instance.saveContact(this);
     }
   }
 

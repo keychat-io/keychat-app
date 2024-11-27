@@ -93,7 +93,7 @@ class CashuUtil {
       CashuInfoModel model = await RustAPI.receiveToken(encodedToken: token);
       Get.find<EcashController>().getBalance();
       if (messageId != null) {
-        MessageService().updateMessageCashuStatus(messageId);
+        MessageService.instance.updateMessageCashuStatus(messageId);
       }
       EasyLoading.showToast(
           'Received ${model.amount} ${EcashTokenSymbol.sat.name}');
@@ -104,7 +104,7 @@ class CashuUtil {
       if (message.contains('11001')) {
         EasyLoading.showError('Exception: Token already spent.');
         if (messageId != null) {
-          await MessageService().updateMessageCashuStatus(messageId);
+          await MessageService.instance.updateMessageCashuStatus(messageId);
         }
       } else {
         EasyLoading.showError('Error! $message',

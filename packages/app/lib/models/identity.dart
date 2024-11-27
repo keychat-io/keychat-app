@@ -32,6 +32,7 @@ class Identity extends Equatable {
 
   String? note;
   late DateTime createdAt;
+  String? metadata;
 
   int index = 0;
 

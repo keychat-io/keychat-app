@@ -433,6 +433,8 @@ const _MessageencryptTypeEnumValueMap = {
   'nip4': 2,
   'nip4WrapNip4': 3,
   'nip17': 4,
+  'nip4WrapMls': 5,
+  'mls': 6,
 };
 const _MessageencryptTypeValueEnumMap = {
   0: MessageEncryptType.signal,
@@ -440,6 +442,8 @@ const _MessageencryptTypeValueEnumMap = {
   2: MessageEncryptType.nip4,
   3: MessageEncryptType.nip4WrapNip4,
   4: MessageEncryptType.nip17,
+  5: MessageEncryptType.nip4WrapMls,
+  6: MessageEncryptType.mls,
 };
 const _MessagemediaTypeEnumValueMap = {
   'text': 0,

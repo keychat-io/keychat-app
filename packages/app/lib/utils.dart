@@ -81,15 +81,9 @@ String formatTimeToHHmm(int time) {
   return '$minutesStr:$secondsStr';
 }
 
-String formatTimeToYYYYMMDDhhmm(int time) {
+String formatTime(int time, [String format = 'yyyy-MM-dd HH:mm:ss']) {
   DateTime dateTime = DateTime.fromMillisecondsSinceEpoch(time);
-  final dateFormat = DateFormat('yyyy-MM-dd HH:mm');
-  return dateFormat.format(dateTime);
-}
-
-String formatTime(int time) {
-  DateTime dateTime = DateTime.fromMillisecondsSinceEpoch(time);
-  final dateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
+  final dateFormat = DateFormat(format);
   return dateFormat.format(dateTime);
 }
 

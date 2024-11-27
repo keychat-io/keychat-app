@@ -1,4 +1,4 @@
-library app;
+library;
 
 export 'package:app/utils/config.dart';
 export 'package:app/utils.dart';

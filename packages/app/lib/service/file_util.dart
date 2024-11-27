@@ -180,7 +180,7 @@ class FileUtils {
     Directory appFolder = await getApplicationDocumentsDirectory();
 
     String relativePath = localFile.path.replaceAll(appFolder.path, '');
-    await RoomService().sendFileMessage(
+    await RoomService.instance.sendFileMessage(
         relativePath: relativePath, fileInfo: fileInfo, room: room, type: type);
   }
 
@@ -222,7 +222,7 @@ class FileUtils {
       mfi.updateAt = DateTime.now();
       mfi.localPath = newFile.path.replaceAll(appFolder.path, '');
       message.realMessage = mfi.toString();
-      bool isCurrentPage = DBProvider().isCurrentPage(message.roomId);
+      bool isCurrentPage = DBProvider.instance.isCurrentPage(message.roomId);
       if (isCurrentPage) {
         message.isRead = true;
       }
@@ -244,11 +244,11 @@ class FileUtils {
 
   static Future<void> updateMessageAndCallback(Message message, MsgFileInfo mfi,
       [Function(MsgFileInfo fi)? callback]) async {
-    await MessageService().updateMessage(message);
+    await MessageService.instance.updateMessage(message);
     if (callback != null) {
       callback(mfi);
     } else {
-      await MessageService().refreshMessageInPage(message);
+      await MessageService.instance.refreshMessageInPage(message);
     }
   }
 

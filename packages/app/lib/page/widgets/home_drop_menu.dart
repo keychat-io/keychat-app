@@ -16,7 +16,7 @@ class MenuItem {
   final IconData icon;
 }
 
-const menuAddContacts = 'Add Contacts';
+const menuAddContacts = 'Add Contact';
 const menuNewGroup = 'New Group';
 const menuScan = 'Scan';
 const menuMyQrcode = 'My QRCode';

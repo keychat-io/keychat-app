@@ -1,7 +1,5 @@
 import 'package:app/page/login/OnboardingPage2.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
-import 'package:app/page/contact/ContactDetail/ContactDetail_bindings.dart';
-import 'package:app/page/contact/ContactDetail/ContactDetail_page.dart';
 import 'package:app/page/contact/contact_list_page.dart';
 import 'package:app/page/login/AccountSetting/AccountSetting_bindings.dart';
 import 'package:app/page/login/AccountSetting/AccountSetting_page.dart';
@@ -50,10 +48,6 @@ class Pages {
       name: Routes.contactList,
       page: () => const ContactsPage(),
     ),
-    GetPage(
-        name: Routes.contact,
-        page: () => const ContactDetailPage(),
-        binding: ContactDetailBindings()),
     GetPage(name: Routes.room, page: () => const ChatPage()),
     GetPage(name: Routes.ecash, page: () => const CashuPage()),
     GetPage(name: Routes.ecashBillCashu, page: () => const CashuBillPage()),

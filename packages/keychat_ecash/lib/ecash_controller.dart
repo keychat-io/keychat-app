@@ -52,7 +52,7 @@ class EcashController extends GetxController {
     SettingController settingController = Get.find<SettingController>();
 
     if (ws.relayFileFeeModels.isEmpty) {
-      await RelayService().fetchRelayFileFee();
+      await RelayService.instance.fetchRelayFileFee();
       if (ws.relayFileFeeModels.isEmpty) return null;
     }
     String? mint;
@@ -277,7 +277,8 @@ class EcashController extends GetxController {
 
   Future updateMessageStatus() async {
     List txs = await rust_cashu.getPendingTransactions();
-    List<Message> messages = await MessageService().getCashuPendingMessage();
+    List<Message> messages =
+        await MessageService.instance.getCashuPendingMessage();
     for (Message m in messages) {
       for (var i = 0; i < txs.length; i++) {
         CashuTransaction ct = txs[i].field0 as CashuTransaction;
@@ -288,7 +289,7 @@ class EcashController extends GetxController {
         if (ct.id == m.cashuInfo!.id) {
           if (m.cashuInfo!.status != ct.status) {
             m.cashuInfo!.status = ct.status;
-            await MessageService().updateMessage(m);
+            await MessageService.instance.updateMessage(m);
             break;
           }
         }

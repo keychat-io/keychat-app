@@ -5,11 +5,15 @@ import 'package:app/models/contact.dart';
 import 'package:app/models/embedded/msg_reply.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/models/keychat/group_message.dart';
+import 'package:app/models/keychat/prekey_message_model.dart';
 import 'package:app/models/keychat/qrcode_user_model.dart';
 import 'package:app/models/nostr_event_status.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/ChatMediaFilesPage.dart';
 import 'package:app/page/chat/contact_page.dart';
+import 'package:app/service/signal_chat_util.dart';
+import 'package:app/service/websocket.service.dart';
+import 'package:easy_debounce/easy_throttle.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
@@ -38,6 +42,29 @@ import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart' hide Contact;
 import 'package:settings_ui/settings_ui.dart';
 
 class RoomUtil {
+  static Future<bool> messageReceiveCheck(
+      Room room, NostrEventModel event, Duration delay, int maxRetry) async {
+    if (maxRetry == 0) return false;
+    maxRetry--;
+    await Future.delayed(delay);
+    String id = event.id;
+    NostrEventStatus? nes = await DBProvider.database.nostrEventStatus
+        .filter()
+        .eventIdEqualTo(id)
+        .sendStatusEqualTo(EventSendEnum.success)
+        .findFirst();
+    if (nes != null) {
+      return true;
+    }
+    Get.find<WebsocketService>().writeNostrEvent(
+        event: event,
+        eventString: event.toJsonString(),
+        roomId: room.id,
+        toRelays: room.sendingRelays);
+    logger.i('_messageReceiveCheck: ${event.id}, maxRetry: $maxRetry');
+    return await messageReceiveCheck(room, event, delay, maxRetry);
+  }
+
   static GroupMessage getGroupMessage(Room room, String message,
       {int? subtype,
       required String pubkey,
@@ -126,7 +153,7 @@ Let's start an encrypted chat.''';
   static SettingsTile autoCleanMessage(ChatController cc) {
     autoDeleteHandle(int day) {
       cc.roomObs.value.autoDeleteDays = day;
-      RoomService().updateRoom(cc.roomObs.value);
+      RoomService.instance.updateRoom(cc.roomObs.value);
       cc.roomObs.refresh();
       EasyLoading.showSuccess('Saved');
       if (day > 0) {
@@ -180,7 +207,7 @@ Let's start an encrypted chat.''';
       onToggle: (value) async {
         chatController.roomObs.value.pin = value;
         chatController.roomObs.value.pinAt = DateTime.now();
-        await RoomService().updateRoom(chatController.roomObs.value);
+        await RoomService.instance.updateRoom(chatController.roomObs.value);
         chatController.roomObs.refresh();
         EasyLoading.showSuccess('Saved');
         await Get.find<HomeController>()
@@ -197,54 +224,62 @@ Let's start an encrypted chat.''';
       ),
       title: const Text('Mute Notifications'),
       description: const Text(
-          'If muted, receive pubkey will not be uploaded to the notification server and metadata will be protected'),
+          'If muted, receiving pubkey will not be uploaded to the notification server.'),
       onToggle: (value) async {
-        Room room = chatController.roomObs.value;
-        List<String> pubkeys = [];
+        EasyThrottle.throttle('mute_notification', const Duration(seconds: 3),
+            () async {
+          Room room = chatController.roomObs.value;
+          List<String> pubkeys = [];
 
-        if (room.type == RoomType.group) {
-          pubkeys.add(room.mykey.value!.pubkey);
-        } else {
-          List<String>? data = ContactService().getMyReceiveKeys(room);
-          if (data != null) pubkeys.addAll(data);
-        }
-        bool res = false;
-        if (value) {
-          res = await NotifyService.removePubkeys(pubkeys);
-        } else {
-          res = await NotifyService.addPubkeys(pubkeys);
-        }
-        if (!res) {
-          EasyLoading.showError('Failed, Please try again');
-          return;
-        }
-        if (room.type == RoomType.common) {
-          await ContactService().updateReceiveKeyIsMute(room, value);
-        }
-        chatController.roomObs.value.isMute = value;
-        await RoomService().updateRoom(chatController.roomObs.value);
-        chatController.roomObs.refresh();
-        EasyLoading.showSuccess('Saved');
-        await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
+          if (room.type == RoomType.group) {
+            if (room.isMLSGroup && room.onetimekey != null) {
+              pubkeys.add(room.onetimekey!);
+            } else if (room.mykey.value?.pubkey != null) {
+              pubkeys.add(room.mykey.value!.pubkey);
+            }
+          } else {
+            List<String>? data = ContactService.instance.getMyReceiveKeys(room);
+            if (data != null) pubkeys.addAll(data);
+          }
+          bool res = false;
+          if (value) {
+            res = await NotifyService.removePubkeys(pubkeys);
+          } else {
+            res = await NotifyService.addPubkeys(pubkeys);
+          }
+          if (!res) {
+            EasyLoading.showError('Failed, Please try again');
+            return;
+          }
+          if (room.type == RoomType.common) {
+            await ContactService.instance.updateReceiveKeyIsMute(room, value);
+          }
+          chatController.roomObs.value.isMute = value;
+          await RoomService.instance
+              .updateRoomAndRefresh(chatController.roomObs.value);
+          EasyLoading.showSuccess('Saved');
+          await Get.find<HomeController>()
+              .loadIdentityRoomList(room.identityId);
+        });
       },
     );
   }
 
-  static Widget? getSubtitleDisplay(Room room, DateTime messageExpired) {
+  static Widget getSubtitleDisplay(
+      Room room, DateTime messageExpired, Message? lastMessage) {
     if (room.signalDecodeError) {
       return const Text('Decode Error', style: TextStyle(color: Colors.pink));
     }
-    if (room.lastMessageModel == null) {
+    if (lastMessage == null) {
       return const Text('');
     }
-    Message m = room.lastMessageModel!;
     late String text;
-    if (m.mediaType == MessageMediaType.text) {
-      text = m.realMessage ?? m.content;
+    if (lastMessage.mediaType == MessageMediaType.text) {
+      text = lastMessage.realMessage ?? lastMessage.content;
     } else {
-      text = '${[m.mediaType.name]}';
+      text = '${[lastMessage.mediaType.name]}';
     }
-    if (m.isMeSend) {
+    if (lastMessage.isMeSend) {
       text = 'You: $text';
     }
     if (room.isMute && room.unReadCount > 1) {
@@ -253,7 +288,7 @@ Let's start an encrypted chat.''';
     var style = TextStyle(
         color: Theme.of(Get.context!).colorScheme.onSurface.withOpacity(0.6),
         fontSize: 14);
-    if (m.isMeSend && m.sent == SendStatusType.failed) {
+    if (lastMessage.isMeSend && lastMessage.sent == SendStatusType.failed) {
       style = style.copyWith(color: Colors.red);
     }
 
@@ -301,7 +336,7 @@ Let's start an encrypted chat.''';
               /// This parameter indicates the action would be a default
               /// default behavior, turns the action's text to bold text.
               onPressed: () async {
-                await RoomService().deleteRoomMessage(room);
+                await RoomService.instance.deleteRoomMessage(room);
                 Get.find<HomeController>()
                     .loadIdentityRoomList(room.identityId);
                 if (onDeleteHistory != null) {
@@ -317,7 +352,7 @@ Let's start an encrypted chat.''';
                 onPressed: () async {
                   try {
                     EasyLoading.show(status: 'Loading...');
-                    await RoomService().deleteRoom(room);
+                    await RoomService.instance.deleteRoom(room);
                     if (onDeletRoom != null) {
                       onDeletRoom();
                     }
@@ -394,7 +429,7 @@ Let's start an encrypted chat.''';
                   Get.back();
                   try {
                     EasyLoading.show(status: 'Processing');
-                    await RoomService()
+                    await RoomService.instance
                         .deleteRoomMessage(chatController.roomObs.value);
                     chatController.messages.clear();
                     EasyLoading.showSuccess('Successfully');
@@ -412,7 +447,8 @@ Let's start an encrypted chat.''';
       [String? greeting]) {
     return SettingsTile(
       title: FutureBuilder(
-          future: RoomService().getRoomAndContainSession(pubkey, identityId),
+          future:
+              RoomService.instance.getRoomAndContainSession(pubkey, identityId),
           builder: (context, snapshot) {
             Room? room = snapshot.data;
             if (room == null) {
@@ -420,7 +456,7 @@ Let's start an encrypted chat.''';
                 onPressed: () async {
                   Identity identity =
                       Get.find<HomeController>().identities[identityId]!;
-                  await RoomService().createRoomAndsendInvite(pubkey,
+                  await RoomService.instance.createRoomAndsendInvite(pubkey,
                       identity: identity, greeting: greeting);
                 },
                 child: const Text('Add'),
@@ -451,17 +487,16 @@ Let's start an encrypted chat.''';
     String pubkey = rust_nostr.getHexPubkeyByBech32(bech32: model.pubkey);
     String npub = rust_nostr.getBech32PubkeyByHex(hex: model.pubkey);
     String globalSign = model.globalSign;
-    String needVerifySignStr =
-        "Keychat-${model.pubkey}-${model.curve25519PkHex}-${model.time}";
-    bool sign = await rust_nostr.verifySchnorr(
-        pubkey: pubkey,
+    var pmm = PrekeyMessageModel(
+        signalId: model.curve25519PkHex,
+        nostrId: model.pubkey,
+        time: model.time,
+        name: model.name,
         sig: globalSign,
-        content: needVerifySignStr,
-        hash: true);
-    if (!sign) {
-      EasyLoading.showToast('QR Code globalSign error');
-      return;
-    }
+        message: '');
+
+    await SignalChatUtil.verifySignedMessage(
+        pmm: pmm, signalIdPubkey: model.curve25519PkHex);
 
     Contact contact =
         Contact(pubkey: pubkey, npubkey: npub, identityId: identity.id)
@@ -482,8 +517,8 @@ Let's start an encrypted chat.''';
 
   static String getGroupModeName(GroupType type) {
     switch (type) {
-      case GroupType.shareKey:
-        return 'Big Group';
+      case GroupType.mls:
+        return 'Large Group';
       case GroupType.kdf:
         return 'Medium Group';
       case GroupType.sendAll:
@@ -502,6 +537,13 @@ Let's start an encrypted chat.''';
 4. Backward Secrecy 🟢60% 
 5. Metadata Privacy 🟢80%
 6. Recommended Group Limit: <60
+''';
+      case GroupType.mls:
+        return '''1. Anti-Forgery ✅
+2. End-to-End Encryption ✅
+3. Forward Secrecy ✅
+4. Backward Secrecy 🟢80%
+5. Metadata Privacy 🟢80%
 ''';
       case GroupType.shareKey:
         return '''1. Members < 30
@@ -552,6 +594,7 @@ Let's start an encrypted chat.''';
   }
 
   static List<Room> sortRoomList(List<Room> rooms) {
+    HomeController hc = Get.find<HomeController>();
     rooms.sort((a, b) {
       if (a.pin || b.pin) {
         if (a.pin && b.pin) {
@@ -559,10 +602,17 @@ Let's start an encrypted chat.''';
         }
         return a.pin ? -1 : 1;
       }
-      if (a.lastMessageModel == null) return 1;
-      if (b.lastMessageModel == null) return -1;
-      return b.lastMessageModel!.createdAt
-          .compareTo(a.lastMessageModel!.createdAt);
+      if (a.unReadCount > 0 && b.unReadCount == 0) {
+        return -1;
+      }
+      if (a.unReadCount == 0 && b.unReadCount > 0) {
+        return 1;
+      }
+
+      if (hc.roomLastMessage[a.id] == null) return 1;
+      if (hc.roomLastMessage[b.id] == null) return -1;
+      return hc.roomLastMessage[b.id]!.createdAt
+          .compareTo(hc.roomLastMessage[a.id]!.createdAt);
     });
     return rooms;
   }

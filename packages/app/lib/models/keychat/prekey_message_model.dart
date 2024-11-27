@@ -7,14 +7,18 @@ part 'prekey_message_model.g.dart';
 @JsonSerializable(includeIfNull: false)
 class PrekeyMessageModel {
   late String nostrId;
-  late String name;
+  late String signalId;
+  late int time;
   late String sig;
+  late String name;
   late String message;
   @override
   String toString() => jsonEncode(toJson());
 
   PrekeyMessageModel(
       {required this.nostrId,
+      required this.signalId,
+      required this.time,
       required this.name,
       required this.sig,
       required this.message});

@@ -1,6 +1,7 @@
 // ignore_for_file: must_be_immutable
 
 import 'package:app/models/models.dart';
+import 'package:app/page/contact/ContactDetail/ContactDetail_page.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/utils.dart';
@@ -30,8 +31,8 @@ class _ContactsPageState extends State<ContactsPage> {
   };
 
   _getData() async {
-    List<Contact> contactList =
-        await ContactService().getContactList((Get.arguments as Identity).id);
+    List<Contact> contactList = await ContactService.instance
+        .getContactList((Get.arguments as Identity).id);
 
     List<Contact> contactStartNum = [];
     List<Contact> restContacts = [];
@@ -116,7 +117,7 @@ class _ContactsPageState extends State<ContactsPage> {
               return _FriendCell(
                   contact: _headerData[index],
                   imageAssets: _headerData[index].imageAssets,
-                  onDelete: _getData);
+                  updateList: _getData);
             } else {
               String? groupTitle = _listDatas[index].indexLetter;
 
@@ -132,7 +133,7 @@ class _ContactsPageState extends State<ContactsPage> {
               return _FriendCell(
                   contact: _listDatas[index - _headerData.length],
                   groupTitle: groupTitle,
-                  onDelete: _getData);
+                  updateList: _getData);
             }
           },
         ));
@@ -143,11 +144,11 @@ class _FriendCell extends StatelessWidget {
   final Contact contact;
   final String? groupTitle;
   final String? imageAssets;
-  final VoidCallback onDelete;
+  final VoidCallback updateList;
 
   const _FriendCell(
       {required this.contact,
-      required this.onDelete,
+      required this.updateList,
       this.groupTitle,
       this.imageAssets});
   @override
@@ -169,26 +170,23 @@ class _FriendCell extends StatelessWidget {
         ),
         InkWell(
           onTap: () async {
-            Get.toNamed('/contact/${contact.id}', arguments: contact);
+            await Get.bottomSheet(ContactDetailPage(contact),
+                isScrollControlled: true, ignoreSafeArea: false);
+            updateList();
           },
           child: ListTile(
-            leading: getRandomAvatar(contact.pubkey, height: 36, width: 36),
-            title: Text(
-              contact.displayName,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 18,
-              ),
-            ),
-            subtitle: textSmallGray(
-                context, getPublicKeyDisplay(contact.npubkey, 14)),
-          ),
+              leading: getRandomAvatar(contact.pubkey, height: 36, width: 36),
+              title: Text(contact.displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 18)),
+              subtitle: textSmallGray(
+                  context, getPublicKeyDisplay(contact.npubkey, 14))),
         ),
         Container(
-          height: 0.4,
-          color: Get.isDarkMode ? Colors.grey.shade900 : Colors.grey.shade300,
-        ),
+            height: 0.4,
+            color:
+                Get.isDarkMode ? Colors.grey.shade900 : Colors.grey.shade300),
       ],
     );
   }

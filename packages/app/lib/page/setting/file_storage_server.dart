@@ -32,7 +32,7 @@ class _FileStorageSettingState extends State<FileStorageSetting> {
 
   _init() async {
     String data = settingController.defaultFileServer.value;
-    RelayFileFee? fuc = await RelayService().initRelayFileFeeModel(data);
+    RelayFileFee? fuc = await RelayService.instance.initRelayFileFeeModel(data);
     if (fuc != null) {
       ws.relayFileFeeModels[data] = fuc;
     }
@@ -59,7 +59,7 @@ class _FileStorageSettingState extends State<FileStorageSetting> {
                           value: Text(Uri.parse(defaultFileServer).host),
                           onPressed: (context) async {
                             List<Relay> relays =
-                                await RelayService().getEnableRelays();
+                                await RelayService.instance.getEnableRelays();
                             Get.bottomSheet(SettingsList(
                                 platform: DevicePlatform.iOS,
                                 sections: [

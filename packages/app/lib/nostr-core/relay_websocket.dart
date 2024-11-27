@@ -1,10 +1,12 @@
 import 'package:app/constants.dart';
 import 'package:app/models/relay.dart';
+import 'package:app/models/room.dart';
 import 'package:app/nostr-core/nostr_nip4_req.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/relay.service.dart';
+import 'package:app/service/room.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
@@ -16,7 +18,7 @@ import '../utils.dart' as utils;
 const _maxReqCount = 20; // max pool size is 32. be setting by relay server
 
 class RelayWebsocket {
-  RelayService rs = RelayService();
+  RelayService rs = RelayService.instance;
   late Relay relay;
   RelayStatusEnum channelStatus = RelayStatusEnum.init;
   WebSocketChannel? channel;
@@ -30,14 +32,21 @@ class RelayWebsocket {
 
   // listen identity key will take position.
   _startListen() async {
-    DateTime since = await MessageService().getNostrListenStartAt(relay.url);
-    List<String> pubkeys = await IdentityService().getListenPubkeys();
+    DateTime since =
+        await MessageService.instance.getNostrListenStartAt(relay.url);
+    List<String> pubkeys = await IdentityService.instance.getListenPubkeys();
     listenPubkeys(pubkeys, since);
     listenPubkeys(pubkeys, DateTime.now().subtract(const Duration(days: 2)),
         [EventKinds.nip17]);
 
-    List<String> signal = await ContactService().getAllReceiveKeys();
-    listenPubkeys(signal, since);
+    // only listen nip04
+    List<String> signal = await ContactService.instance.getAllReceiveKeys();
+    Set<String> mlsPubkeys = {};
+    // mls room's receive key
+    List<Room> mlsRooms = await RoomService.instance.getMlgRooms();
+    mlsPubkeys.addAll(mlsRooms.map((e) => e.onetimekey!));
+    mlsPubkeys.addAll(signal);
+    listenPubkeys(mlsPubkeys.toList(), since);
   }
 
   Future listenPubkeys(List<String> pubkeys, DateTime since,

@@ -27,9 +27,9 @@ class ChatxService extends GetxService {
 
   Future<List<Mykey>> getOneTimePubkey(int identityId) async {
     // delete expired one time keys
-    await IdentityService().deleteExpiredOneTimeKeys();
+    await IdentityService.instance.deleteExpiredOneTimeKeys();
     List<Mykey> newKeys =
-        await IdentityService().getOneTimeKeyByIdentity(identityId);
+        await IdentityService.instance.getOneTimeKeyByIdentity(identityId);
 
     List<String> needListen = [];
     for (var key in newKeys) {
@@ -54,7 +54,8 @@ class ChatxService extends GetxService {
   Future<List<SignalId>> getSignalIds(int identityId) async {
     // delete expired signal ids
     // await deleteExpiredSignalIds();
-    Identity? identity = await IdentityService().getIdentityById(identityId);
+    Identity? identity =
+        await IdentityService.instance.getIdentityById(identityId);
     if (identity == null) throw Exception('Identity not found');
     List<SignalId> signalIds =
         await SignalIdService.instance.getSignalIdByIdentity(identityId);
@@ -196,7 +197,7 @@ class ChatxService extends GetxService {
       roomKPA[key] = remoteAddress;
       return remoteAddress;
     }
-    throw Exception('signal_session_not_found');
+    throw Exception('signal_session_is_null');
   }
 
   Future<KeychatProtocolAddress?> getSignalSession(
@@ -228,7 +229,7 @@ class ChatxService extends GetxService {
       String signalPath = '$dbpath${KeychatGlobal.signalProcotolDBFile}';
       await rust_signal.initSignalDb(dbPath: signalPath);
       await Future.delayed(const Duration(milliseconds: 100));
-      var identities = await IdentityService().getIdentityList();
+      var identities = await IdentityService.instance.getIdentityList();
       for (var identity in identities) {
         if (identity.curve25519PkHex != null) {
           if (identity.curve25519PkHex!.isNotEmpty) {
@@ -321,7 +322,7 @@ class ChatxService extends GetxService {
     room.signalDecodeError = false;
     String key = '${room.identityId}:${room.curve25519PkHex}';
     roomKPA.remove(key);
-    // await RoomService().updateRoom(room);
+    // await RoomService.instance.updateRoom(room);
     // RoomService.getController(room.id)?.setRoom(room);
   }
 
@@ -330,7 +331,8 @@ class ChatxService extends GetxService {
     List<Mykey> onetimekeys = [];
 // create three one time keys
     for (var i = 0; i < num; i++) {
-      Mykey onetimekey = await IdentityService().createOneTimeKey(identityId);
+      Mykey onetimekey =
+          await IdentityService.instance.createOneTimeKey(identityId);
       onetimekeys.add(onetimekey);
     }
     return onetimekeys;

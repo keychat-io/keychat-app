@@ -16,12 +16,7 @@ class UploadedPubkeys extends StatefulWidget {
 }
 
 class _UploadedPubkeysState extends State<UploadedPubkeys> {
-  Map<String, List> titles = {
-    'Identity Keys': <List<String>>[],
-    'ShareKey Room Keys': <List<String>>[],
-    'SignalChat Room Keys': <List<String>>[],
-    'OneTime Keys': <List<String>>[]
-  };
+  Map<String, List> titles = {};
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -55,7 +50,7 @@ class _UploadedPubkeysState extends State<UploadedPubkeys> {
 
     List<String> shareKeyRooms = [];
     // sharing group 's mykey
-    List<Room> rooms = await RoomService().getGroupsSharedKey();
+    List<Room> rooms = await RoomService.instance.getGroupsSharedKey();
     for (var room in rooms) {
       String? pubkey = room.mykey.value?.pubkey;
       if (pubkey != null) {
@@ -64,9 +59,9 @@ class _UploadedPubkeysState extends State<UploadedPubkeys> {
     }
 
     List<String> signalChatRoom =
-        await ContactService().getAllReceiveKeysSkipMute();
+        await ContactService.instance.getAllReceiveKeysSkipMute();
     List<String> oneTimeKeys = [];
-    List<Mykey> newKeys = await IdentityService().getOneTimeKeys();
+    List<Mykey> newKeys = await IdentityService.instance.getOneTimeKeys();
     for (var key in newKeys) {
       oneTimeKeys.add(key.pubkey);
     }

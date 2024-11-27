@@ -99,9 +99,10 @@ class _BotPricePerMessageRequestWidgetState
                           jsonDecode(widget.room.botLocalConfig ?? '{}');
                       localConfig[bmm!.type.name] = data;
                       widget.room.botLocalConfig = jsonEncode(localConfig);
-                      await RoomService().updateRoomAndRefresh(widget.room);
+                      await RoomService.instance
+                          .updateRoomAndRefresh(widget.room);
 
-                      await MessageService()
+                      await MessageService.instance
                           .updateMessageAndRefresh(widget.message);
                       EasyLoading.showSuccess('Success');
                       Get.back();

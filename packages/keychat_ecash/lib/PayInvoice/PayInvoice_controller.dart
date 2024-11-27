@@ -11,15 +11,22 @@ import 'package:keychat_rust_ffi_plugin/api_cashu.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 
 class PayInvoiceController extends GetxController {
-  String? invoice;
-  PayInvoiceController([this.invoice]);
+  final String? invoice;
+  final InvoiceInfo? invoiceInfo;
+  PayInvoiceController({this.invoice, this.invoiceInfo});
   late TextEditingController textController;
 
   RxString selectedMint = ''.obs;
+  RxString selectedInvoice = ''.obs;
   @override
   void onInit() {
     selectedMint.value = Get.find<EcashController>().latestMintUrl.value;
     textController = TextEditingController(text: invoice);
+    selectedInvoice.value = invoice ?? '';
+
+    textController.addListener(() {
+      selectedInvoice.value = textController.text;
+    });
     super.onInit();
   }
 
@@ -34,6 +41,10 @@ class PayInvoiceController extends GetxController {
     if (invoice.isEmpty) {
       EasyLoading.showToast('Please enter a valid invoice');
       return;
+    }
+
+    if (invoice.startsWith('lightning:')) {
+      invoice = invoice.replaceFirst('lightning:', '');
     }
     try {
       EcashController cc = Get.find<EcashController>();

@@ -18,18 +18,16 @@ class GroupInfoWidget extends StatelessWidget {
     for (var user in roomProfile.users) {
       user['roomId'] = 0;
       RoomMember rm = RoomMember.fromJson(user);
-      if (rm.status == UserStatusType.invited || rm.idPubkey == idPubkey) {
+      if (rm.status == UserStatusType.invited ||
+          rm.status == UserStatusType.inviting) {
         members.add(rm);
       }
     }
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: Get.back,
-        ),
-        title: Text('Group: ${roomProfile.name}'),
-      ),
+          leading:
+              IconButton(icon: const Icon(Icons.close), onPressed: Get.back),
+          title: Text('Group: ${roomProfile.name}')),
       body: Column(
         children: [
           getImageGridView(members),
@@ -39,17 +37,16 @@ class GroupInfoWidget extends StatelessWidget {
             sections: [
               SettingsSection(tiles: [
                 SettingsTile(
-                  title: const Text("Group ID"),
+                  title: const Text("ID"),
                   value: textP(getPublicKeyDisplay(roomProfile.pubkey)),
                 ),
                 SettingsTile(
-                    title: const Text('Group mode'),
+                    title: const Text('Mode'),
                     value:
                         Text(RoomUtil.getGroupModeName(roomProfile.groupType))),
                 SettingsTile(
-                  title: const Text("Members Count"),
-                  value: Text(members.length.toString()),
-                ),
+                    title: const Text("Members Count"),
+                    value: Text(members.length.toString())),
               ])
             ],
           )),
@@ -71,13 +68,13 @@ class GroupInfoWidget extends StatelessWidget {
                               if (states.contains(WidgetState.pressed)) {
                                 return Theme.of(context).colorScheme.primary;
                               } else {
-                                return Colors
-                                    .red; // Use the component's default.
+                                return Colors.red;
                               }
                             },
                           ),
                         ),
-                        child: const Text('Reject')),
+                        child: const Text('Reject',
+                            style: TextStyle(color: Colors.white))),
                     FilledButton(
                         onPressed: () {
                           Get.back(result: true);
@@ -93,26 +90,26 @@ class GroupInfoWidget extends StatelessWidget {
     return Padding(
         padding: const EdgeInsets.only(top: 10),
         child: SizedBox(
-            height: list.length < 10 ? 120 : 200,
+            height: list.length < 5 ? 100 : (list.length <= 10 ? 200 : 300),
             child: GridView.builder(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 5,
-                childAspectRatio: 1.0,
-              ),
+                  crossAxisCount: 5, childAspectRatio: 1.0),
               itemCount: list.length,
               itemBuilder: (context, index) {
                 RoomMember rm = list[index];
 
                 return InkWell(
-                  key: Key(rm.idPubkey),
-                  child: Column(children: [
-                    getRandomAvatar(rm.idPubkey, height: 40, width: 40),
-                    Text(
-                      rm.name,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ]),
-                );
+                    key: Key(rm.idPubkey),
+                    child: Column(children: [
+                      getRandomAvatar(rm.idPubkey, height: 40, width: 40),
+                      Text(rm.name, overflow: TextOverflow.ellipsis),
+                      if (rm.status == UserStatusType.inviting)
+                        Text('Inviting',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(color: Colors.amber.shade700))
+                    ]));
               },
             )));
   }

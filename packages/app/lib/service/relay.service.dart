@@ -17,24 +17,22 @@ import '../models/db_provider.dart';
 import 'identity.service.dart';
 
 class RelayService {
-  static final RelayService _singleton = RelayService._internal();
-  static final DBProvider dbProvider = DBProvider();
-  static final IdentityService identityService = IdentityService();
+  static final DBProvider dbProvider = DBProvider.instance;
+  static final IdentityService identityService = IdentityService.instance;
 
-  factory RelayService() {
-    return _singleton;
-  }
-
-  RelayService._internal();
+  static RelayService? _instance;
+  static RelayService get instance => _instance ??= RelayService._();
+  // Avoid self instance
+  RelayService._();
 
   Future addAndConnect(String url) async {
     WebsocketService ws = Get.find<WebsocketService>();
     if (ws.channels[url] != null) return;
 
-    Relay relay = await RelayService().getOrPutRelay(url);
+    Relay relay = await RelayService.instance.getOrPutRelay(url);
     ws.addChannel(relay);
     NotifyService.syncPubkeysToServer(); // sub new relay
-    RelayService().initRelayFeeInfo([relay]);
+    RelayService.instance.initRelayFeeInfo([relay]);
   }
 
   Future<Relay> add(String url, [bool isDefault = false]) async {
@@ -238,8 +236,8 @@ class RelayService {
         // skip if websocket not init
         return;
       }
-      await RelayService().fetchRelayMessageFee(relays);
-      await RelayService().fetchRelayFileFee(relays);
+      await RelayService.instance.fetchRelayMessageFee(relays);
+      await RelayService.instance.fetchRelayFileFee(relays);
     } catch (e, s) {
       logger.e(e.toString(), stackTrace: s);
     }
@@ -270,7 +268,7 @@ class RelayService {
 
   Future<List<Relay>> initRelay() async {
     Isar database = DBProvider.database;
-    List<Relay> list = await RelayService().list();
+    List<Relay> list = await RelayService.instance.list();
     if (list.isEmpty) {
       await database.writeTxn(() async {
         for (var url in Config.getEnvConfig('nostrRelays')) {
@@ -278,7 +276,7 @@ class RelayService {
           await database.relays.put(relay);
         }
       });
-      list = await RelayService().list();
+      list = await RelayService.instance.list();
     }
     // list = await checkDefaultRelay(list);
     return list;

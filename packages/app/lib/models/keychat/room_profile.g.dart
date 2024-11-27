@@ -54,4 +54,5 @@ const _$GroupTypeEnumMap = {
   GroupType.shareKey: 'shareKey',
   GroupType.sendAll: 'sendAll',
   GroupType.kdf: 'kdf',
+  GroupType.mls: 'mls',
 };

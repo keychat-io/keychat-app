@@ -132,8 +132,9 @@ class RoomList extends StatelessWidget {
                       onTap: () async {
                         await Get.toNamed('/room/${room.id}', arguments: room);
 
-                        RoomService().markAllRead(
+                        RoomService.instance.markAllRead(
                             identityId: room.identityId, roomId: room.id);
+                        homeController.resortRoomList(room.identityId);
                       },
                       onLongPress: () =>
                           RoomUtil.showRoomActionSheet(context, room),
@@ -143,15 +144,38 @@ class RoomList extends StatelessWidget {
                           child: ListTile(
                             leading: getAvatarDot(room),
                             key: Key('room:${room.id}'),
-                            title: Text(
-                              room.getRoomName(),
-                              maxLines: 1,
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            subtitle: RoomUtil.getSubtitleDisplay(
-                                    room, messageExpired) ??
-                                const Text(''),
-                            trailing: _getRoomTrailing(context, room),
+                            title: Text(room.getRoomName(),
+                                maxLines: 1,
+                                style: Theme.of(context).textTheme.titleMedium),
+                            subtitle: Obx(() => RoomUtil.getSubtitleDisplay(
+                                room,
+                                messageExpired,
+                                homeController.roomLastMessage[room.id])),
+                            trailing: homeController.roomLastMessage[room.id] ==
+                                    null
+                                ? null
+                                : Wrap(
+                                    direction: Axis.vertical,
+                                    alignment: WrapAlignment.center,
+                                    crossAxisAlignment: WrapCrossAlignment.end,
+                                    children: [
+                                      textSmallGray(
+                                          Get.context!,
+                                          formatTimeMsg(homeController
+                                              .roomLastMessage[room.id]!
+                                              .createdAt)),
+                                      room.isMute
+                                          ? Icon(
+                                              Icons.notifications_off_outlined,
+                                              color: Theme.of(Get.context!)
+                                                  .colorScheme
+                                                  .onSurface
+                                                  .withOpacity(0.6),
+                                              size: 16,
+                                            )
+                                          : Container()
+                                    ],
+                                  ),
                           )));
                 });
           }).toList())),
@@ -242,21 +266,16 @@ class RoomList extends StatelessWidget {
         child: ListTile(
           key: const Key('room:requesting'),
           leading: badges.Badge(
-            showBadge: rooms.isNotEmpty,
-            badgeContent: Text(
-              rooms.length.toString(),
-              style: const TextStyle(color: Colors.white),
-            ),
-            position: badges.BadgePosition.topEnd(top: -8, end: -5),
-            child: CircleAvatar(
-              radius: 26,
-              backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-              child: const Icon(
-                CupertinoIcons.person_badge_plus_fill,
-                size: 26,
-              ),
-            ),
-          ),
+              showBadge: rooms.isNotEmpty,
+              badgeContent: Text(rooms.length.toString(),
+                  style: const TextStyle(color: Colors.white)),
+              position: badges.BadgePosition.topEnd(top: -8, end: -5),
+              child: CircleAvatar(
+                  radius: 26,
+                  backgroundColor:
+                      Theme.of(context).colorScheme.secondaryContainer,
+                  child: const Icon(CupertinoIcons.person_badge_plus_fill,
+                      size: 26))),
           title: Text(
             'Requesting Friends',
             style: Theme.of(context).textTheme.titleMedium,
@@ -362,29 +381,6 @@ class RoomList extends StatelessWidget {
         ),
       ],
     ));
-  }
-
-  Widget? _getRoomTrailing(BuildContext context, Room room) {
-    if (room.lastMessageModel?.createdAt != null) {
-      return Wrap(
-        direction: Axis.vertical,
-        alignment: WrapAlignment.center,
-        crossAxisAlignment: WrapCrossAlignment.end,
-        children: [
-          textSmallGray(
-              Get.context!, formatTimeMsg(room.lastMessageModel!.createdAt)),
-          room.isMute
-              ? Icon(
-                  Icons.notifications_off_outlined,
-                  color:
-                      Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                  size: 16,
-                )
-              : Container()
-        ],
-      );
-    }
-    return null;
   }
 
   Widget _getEcashFailedStatusWidget() {

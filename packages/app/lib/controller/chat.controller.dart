@@ -1,5 +1,5 @@
 import 'dart:async' show Future, Timer;
-import 'dart:convert';
+import 'dart:convert' show jsonDecode, jsonEncode;
 import 'dart:io' show Directory, File, FileSystemEntity;
 
 import 'package:app/models/models.dart';
@@ -9,7 +9,6 @@ import 'package:app/page/chat/RoomDraft.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/file_util.dart' as file_util;
 import 'package:app/service/message.service.dart';
-import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:file_selector/file_selector.dart';
@@ -31,6 +30,8 @@ import '../service/file_util.dart';
 import '../service/room.service.dart';
 
 const int messageLimitPerPage = 30;
+const int maxMessageId = 999999999999;
+
 String newlineChar = String.fromCharCode(13);
 
 class ChatController extends GetxController {
@@ -111,7 +112,6 @@ class ChatController extends GetxController {
   ];
 
   List<Function> featuresOnTaps = [];
-  WebsocketService ws = Get.find<WebsocketService>();
 
   ChatController(this.room) {
     roomObs.value = room;
@@ -131,16 +131,6 @@ class ChatController extends GetxController {
       messages.insert(index, message);
     } else {
       messagesMore.add(message);
-    }
-
-    try {
-      bool isCurrent = DBProvider().isCurrentPage(message.roomId);
-      if (!isCurrent) return;
-      if (autoScrollController.position.pixels < 100) {
-        jumpToBottom(100);
-      }
-    } catch (e, s) {
-      logger.e('jump error', error: e, stackTrace: s);
     }
   }
 
@@ -173,7 +163,7 @@ class ChatController extends GetxController {
   }
 
   deleteMessage(Message message) async {
-    await MessageService().deleteMessageById(message.id);
+    await MessageService.instance.deleteMessageById(message.id);
     messages.remove(message);
   }
 
@@ -184,6 +174,11 @@ class ChatController extends GetxController {
   Contact getContactByMessage(Message message) {
     if (room.type == RoomType.common) {
       return roomContact.value;
+    }
+    if (room.type == RoomType.bot) {
+      return Contact(
+          pubkey: room.toMainPubkey, npubkey: '', identityId: room.identityId)
+        ..name = room.getRoomName();
     }
     var roomMember = members
         .firstWhereOrNull((element) => element.idPubkey == message.idPubkey);
@@ -262,7 +257,8 @@ class ChatController extends GetxController {
       if (GetPlatform.isMobile) {
         await Haptics.vibrate(HapticsType.light);
       }
-      await RoomService().sendTextMessage(roomObs.value, text, reply: reply);
+      await RoomService.instance
+          .sendTextMessage(roomObs.value, text, reply: reply);
       inputReplys.clear();
       hideAddIcon.value = false;
       // hideSend.value = true;
@@ -319,19 +315,22 @@ class ChatController extends GetxController {
   }
 
   Future loadAllChat() async {
-    DateTime from = DateTime.now();
-    List<Message> list = await MessageService().getMessagesByView(
+    List<Message> list = await MessageService.instance.getMessagesByView(
         roomId: roomObs.value.id,
-        from: from,
+        maxId: maxMessageId,
         isRead: true,
         limit: messageLimitPerPage);
-    List<Message> unreads = await MessageService().getMessagesByView(
-        roomId: roomObs.value.id, from: from, isRead: false, limit: 200);
+    List<Message> unreads = await MessageService.instance.getMessagesByView(
+        roomId: roomObs.value.id,
+        maxId: maxMessageId,
+        isRead: false,
+        limit: 200);
     if (unreads.isNotEmpty) {
       if (unreads.length > 12) {
         unreadIndex.value = unreads.length - 1;
       }
-      RoomService().markAllRead(identityId: room.identityId, roomId: room.id);
+      RoomService.instance
+          .markAllRead(identityId: room.identityId, roomId: room.id);
     }
     unreads.addAll(list);
     messages.value = sortMessageById(unreads.toList());
@@ -342,7 +341,7 @@ class ChatController extends GetxController {
   loadAllChatFromSearchScroll() {
     messages.clear();
     DateTime from = searchDt.value;
-    var list = MessageService().listMessageBySearchSroll(
+    var list = MessageService.instance.listMessageBySearchSroll(
         roomId: roomObs.value.id, from: from, limit: 7);
     messages.addAll(sortMessageById(list));
     messages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
@@ -356,7 +355,7 @@ class ChatController extends GetxController {
     } else {
       from = messages.first.createdAt;
     }
-    List<Message> list = await MessageService()
+    List<Message> list = await MessageService.instance
         .listLatestMessage(roomId: roomObs.value.id, from: from);
     Map<int, Message> msgs = {};
     for (var element in messages) {
@@ -372,13 +371,13 @@ class ChatController extends GetxController {
     if (messages.isEmpty) return [];
 
     DateTime from = messages.first.createdAt;
-    Message? message = MessageService().listLastestMessage(
+    Message? message = MessageService.instance.listLastestMessage(
       roomId: roomObs.value.id,
     );
     if (message != null && message.createdAt == from) {
       return [];
     }
-    var list = MessageService().listMessageByTimeSync(
+    var list = MessageService.instance.listMessageByTimeSync(
         roomId: roomObs.value.id, from: from, limit: messageLimitPerPage);
     return list;
   }
@@ -387,7 +386,7 @@ class ChatController extends GetxController {
     if (messages.isEmpty) return;
 
     DateTime from = messages.last.createdAt;
-    var list = await MessageService().listMessageByTime(
+    var list = await MessageService.instance.listMessageByTime(
         roomId: roomObs.value.id, from: from, limit: messageLimitPerPage);
     messages.addAll(sortMessageById(list));
     messages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
@@ -427,7 +426,7 @@ class ChatController extends GetxController {
     );
 
     autoScrollController.addListener(() {
-      bool isCurrent = DBProvider().isCurrentPage(room.id);
+      bool isCurrent = DBProvider.instance.isCurrentPage(room.id);
       if (!isCurrent) {
         messagesMore.clear();
         searchMsgIndex.value = -1;
@@ -477,7 +476,8 @@ class ChatController extends GetxController {
 
   openPageAction() async {
     await loadLatestMessage();
-    RoomService().markAllRead(identityId: room.identityId, roomId: room.id);
+    RoomService.instance
+        .markAllRead(identityId: room.identityId, roomId: room.id);
   }
 
   pickAndUploadImage(ImageSource imageSource) async {
@@ -659,7 +659,7 @@ class ChatController extends GetxController {
         await Get.bottomSheet(const CashuSendPage(true));
     if (cashuInfo == null) return;
     try {
-      await RoomService().sendTextMessage(room, cashuInfo.token,
+      await RoomService.instance.sendTextMessage(room, cashuInfo.token,
           realMessage: cashuInfo.toString(),
           mediaType: MessageMediaType.cashuA);
       hideAdd.value = true; // close features section
@@ -692,7 +692,7 @@ class ChatController extends GetxController {
     // private chat
     if (room.type == RoomType.common) {
       if (room.contact == null) {
-        Contact contact = await ContactService().getOrCreateContact(
+        Contact contact = await ContactService.instance.getOrCreateContact(
             roomObs.value.identityId, roomObs.value.toMainPubkey);
         roomObs.value.contact = contact;
         roomContact.value = contact;
@@ -708,7 +708,8 @@ class ChatController extends GetxController {
   _initBotInfo() async {
     if (roomObs.value.type == RoomType.group) return;
     if (roomObs.value.encryptMode == EncryptMode.signal) return;
-    NostrEventModel? res = await NostrAPI().fetchMetadata([room.toMainPubkey]);
+    NostrEventModel? res =
+        await NostrAPI.instance.fetchMetadata([room.toMainPubkey]);
     if (res == null) return;
     Map<String, dynamic> metadata =
         Map<String, dynamic>.from(jsonDecode(res.content));
@@ -738,13 +739,13 @@ class ChatController extends GetxController {
     if (metadata['botPricePerMessageRequest'] != null) {
       try {
         var config = jsonEncode(metadata['botPricePerMessageRequest']);
-        await MessageService()
+        await MessageService.instance
             .saveSystemMessage(room, config, suffix: '', isMeSend: false);
       } catch (e) {
         logger.e(e.toString(), error: e, stackTrace: StackTrace.current);
       }
     }
-    await RoomService().updateRoomAndRefresh(room);
+    await RoomService.instance.updateRoomAndRefresh(room);
   }
 
   Future<void> _initGroupInfo() async {

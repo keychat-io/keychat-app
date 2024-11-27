@@ -1,6 +1,8 @@
 import 'package:app/app.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/message_bill/pay_to_relay_page.dart';
+import 'package:app/service/mls_group.service.dart';
+import 'package:easy_debounce/easy_throttle.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:app/service/contact.service.dart';
@@ -33,8 +35,6 @@ class GroupChatSettingPage extends StatefulWidget {
 }
 
 class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
-  GroupService groupService = GroupService();
-  RoomService roomService = RoomService();
   HomeController homeController = Get.find<HomeController>();
   int gridCount = 5;
   late ChatController chatController;
@@ -65,8 +65,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
     return Scaffold(
         appBar: AppBar(
           title: Obx(() => Text(
-                "${chatController.roomObs.value.name ?? ""}(${chatController.enableMembers.length})",
-              )),
+              "${chatController.roomObs.value.name ?? ""}(${chatController.enableMembers.length})")),
           actions: [
             IconButton(
                 onPressed: () async {
@@ -77,10 +76,32 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                   for (RoomMember rm in members) {
                     memberPubkeys.add(rm.idPubkey);
                   }
+
+                  // contacts
+                  List<Contact> contactList = await ContactService.instance
+                      .getListExcludeSelf(widget.room.identityId);
+                  List<Map<String, dynamic>> contacts = [];
+                  contactList = contactList.reversed.toList();
+                  for (int i = 0; i < contactList.length; i++) {
+                    var exist = false;
+                    if (memberPubkeys.contains(contactList[i].pubkey)) {
+                      exist = true;
+                    }
+                    contacts.add({
+                      "pubkey": contactList[i].pubkey,
+                      "npubkey": contactList[i].npubkey,
+                      "name": contactList[i].displayName,
+                      "exist": exist,
+                      "isCheck": false,
+                      "mlsPK": null,
+                      "isAdmin":
+                          (admin?.idPubkey ?? '') == contactList[i].pubkey
+                    });
+                  }
                   Get.to(() => AddMemberToGroup(
-                      room: chatController.roomObs.value,
-                      adminPubkey: admin?.idPubkey ?? '',
-                      members: memberPubkeys));
+                        room: chatController.roomObs.value,
+                        contacts: contacts,
+                      ));
                 },
                 icon: const Icon(CupertinoIcons.plus_circle_fill))
           ],
@@ -88,18 +109,139 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
         body: Obx(
           () => Column(
             children: [
-              getImageGridView(chatController.enableMembers),
+              getImageGridView(chatController.members),
               Expanded(
                   child: SettingsList(
                 platform: DevicePlatform.iOS,
                 sections: [
-                  generalSection(),
+                  SettingsSection(tiles: [
+                    SettingsTile(
+                        title: const Text("ID"),
+                        leading: const Icon(CupertinoIcons.person_3),
+                        value: textSmallGray(
+                            context,
+                            getPublicKeyDisplay(
+                                chatController.roomObs.value.toMainPubkey, 4),
+                            fontSize: 16),
+                        onPressed: (context) {
+                          Clipboard.setData(ClipboardData(
+                              text: chatController.roomObs.value.toMainPubkey));
+                          EasyLoading.showToast('Copied');
+                        }),
+                    SettingsTile.navigation(
+                        leading: const Icon(CupertinoIcons.chart_bar),
+                        title: const Text('Mode'),
+                        value: Text(RoomUtil.getGroupModeName(
+                            chatController.roomObs.value.groupType)),
+                        onPressed: getGroupInfoBottomSheetWidget),
+                    chatController.meMember.value.isAdmin
+                        ? SettingsTile.navigation(
+                            title: const Text("Group Name"),
+                            leading: const Icon(CupertinoIcons.flag),
+                            value: Text("${chatController.roomObs.value.name}"),
+                            onPressed: (context) async {
+                              _showGroupNameDialog();
+                            })
+                        : SettingsTile(
+                            title: const Text("Group Name"),
+                            leading: const Icon(CupertinoIcons.flag),
+                            value: textSmallGray(
+                                context, "${chatController.roomObs.value.name}",
+                                fontSize: 16)),
+                    if (chatController.room.isMLSGroup)
+                      SettingsTile.navigation(
+                          title: const Text("Update My Group Key"),
+                          leading: const Icon(Icons.refresh),
+                          onPressed: (context) async {
+                            await Get.dialog(CupertinoAlertDialog(
+                              title: const Text("Update My Group Key"),
+                              content: const Text(
+                                  "Regularly updating my group key makes chats more secure."),
+                              actions: <Widget>[
+                                CupertinoDialogAction(
+                                  child: const Text("Cancel"),
+                                  onPressed: () {
+                                    Get.back();
+                                  },
+                                ),
+                                CupertinoDialogAction(
+                                  isDefaultAction: true,
+                                  child: const Text("Confirm"),
+                                  onPressed: () async {
+                                    Get.back();
+                                    EasyThrottle.throttle('UpdateMyGroupKey',
+                                        const Duration(seconds: 3), () async {
+                                      try {
+                                        await MlsGroupService.instance
+                                            .selfUpdateKey(
+                                                chatController.roomObs.value);
+                                        EasyLoading.showSuccess('Success');
+                                      } catch (e, s) {
+                                        EasyLoading.showError(e.toString(),
+                                            duration:
+                                                const Duration(seconds: 3));
+                                        logger.e(e.toString(),
+                                            error: e, stackTrace: s);
+                                      }
+                                    });
+                                  },
+                                ),
+                              ],
+                            ));
+                          }),
+                    SettingsTile.navigation(
+                      title: const Text("My Alias in Group"),
+                      leading: const Icon(CupertinoIcons.person),
+                      value: textP(chatController.meMember.value.name),
+                      onPressed: (context) async {
+                        if (chatController.room.isKDFGroup ||
+                            chatController.room.isShareKeyGroup) return;
+
+                        await Get.dialog(CupertinoAlertDialog(
+                          title: const Text("My Name"),
+                          content: Container(
+                            color: Colors.transparent,
+                            padding: const EdgeInsets.only(top: 15),
+                            child: TextField(
+                                controller: userNameController,
+                                textInputAction: TextInputAction.done,
+                                decoration: const InputDecoration(
+                                    labelText: 'Name',
+                                    border: OutlineInputBorder())),
+                          ),
+                          actions: <Widget>[
+                            CupertinoDialogAction(
+                              child: const Text("Cancel"),
+                              onPressed: () {
+                                Get.back();
+                              },
+                            ),
+                            CupertinoDialogAction(
+                              isDefaultAction: true,
+                              onPressed: () async {
+                                String name = userNameController.text.trim();
+                                if (name.isNotEmpty) {
+                                  await GroupService.instance.changeMyNickname(
+                                      chatController.roomObs.value, name);
+                                  await chatController.setMeMember(name);
+                                  chatController.meMember.refresh();
+                                  userNameController.clear();
+                                  chatController.resetMembers();
+                                  EasyLoading.showSuccess('Success');
+                                }
+
+                                Get.back();
+                              },
+                              child: const Text("Confirm"),
+                            ),
+                          ],
+                        ));
+                      },
+                    )
+                  ]),
                   SettingsSection(tiles: [
                     RoomUtil.pinRoomSection(chatController),
-                    if (chatController.room.isShareKeyGroup ||
-                        chatController.room.isKDFGroup)
-                      RoomUtil.muteSection(chatController),
-                    if (chatController.room.isKDFGroup)
+                    if (!chatController.room.isSendAllGroup)
                       SettingsTile.switchTile(
                         title: const Text('Show Addresses'),
                         initialValue: chatController.showFromAndTo.value,
@@ -109,6 +251,10 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                         },
                         leading: const Icon(CupertinoIcons.mail),
                       ),
+                    if (chatController.room.isShareKeyGroup ||
+                        chatController.room.isKDFGroup ||
+                        chatController.room.isMLSGroup)
+                      RoomUtil.muteSection(chatController),
                   ]),
                   payToRelaySection(),
                   // receiveInPostOffice(),
@@ -170,10 +316,15 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
   }
 
   Widget getImageGridView(List<RoomMember> list) {
+    list = list
+        .where((e) =>
+            e.status == UserStatusType.invited ||
+            e.status == UserStatusType.inviting)
+        .toList();
     return Padding(
         padding: const EdgeInsets.only(top: 10),
         child: SizedBox(
-            height: list.length < 10 ? 140 : 200,
+            height: list.length < 5 ? 100 : (list.length <= 10 ? 200 : 300),
             child: GridView.builder(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: gridCount,
@@ -189,7 +340,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                       EasyLoading.showToast('It \'s me');
                       return;
                     }
-                    Contact? contact = await ContactService().getContact(
+                    Contact? contact = await ContactService.instance.getContact(
                         chatController.room.identityId, rm.idPubkey);
                     String npub =
                         rust_nostr.getBech32PubkeyByHex(hex: rm.idPubkey);
@@ -201,21 +352,25 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                     contact.name ??= rm.name;
                     Get.dialog(CupertinoAlertDialog(
                       title: Text(rm.name),
-                      content: Container(
-                        color: Colors.transparent,
-                        child: Text(
-                          npub,
-                          style: const TextStyle(fontSize: 12),
-                        ),
+                      content: Column(
+                        children: [
+                          if (rm.status == UserStatusType.inviting)
+                            Text('Inviting',
+                                style: Theme.of(Get.context!)
+                                    .textTheme
+                                    .bodyLarge
+                                    ?.copyWith(color: Colors.amber.shade700)),
+                          Text(npub),
+                        ],
                       ),
                       actions: <Widget>[
                         CupertinoDialogAction(
                           onPressed: () async {
-                            Room? room = await RoomService()
+                            Room? room = await RoomService.instance
                                 .getRoomAndContainSession(contact!.pubkey,
                                     chatController.room.identityId);
                             if (room == null) {
-                              await RoomService().createRoomAndsendInvite(
+                              await RoomService.instance.createRoomAndsendInvite(
                                   contact.pubkey,
                                   identity: chatController.room.getIdentity(),
                                   greeting:
@@ -261,8 +416,10 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                                     onPressed: () async {
                                       EasyLoading.show(status: 'Processing...');
                                       try {
-                                        await groupService.removeMember(
-                                            chatController.roomObs.value, rm);
+                                        await GroupService.instance
+                                            .removeMember(
+                                                chatController.roomObs.value,
+                                                rm);
                                         EasyLoading.dismiss();
                                         EasyLoading.showSuccess("Removed",
                                             duration:
@@ -295,138 +452,37 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                   },
                   child: Column(children: [
                     getRandomAvatar(rm.idPubkey, height: 40, width: 40),
-                    Text(
-                      rm.name,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    Text(rm.name, overflow: TextOverflow.ellipsis),
+                    if (rm.status == UserStatusType.inviting)
+                      Text('Inviting',
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelSmall
+                              ?.copyWith(color: Colors.amber.shade700))
                   ]),
                 );
               },
             )));
   }
 
-//sync key
-  Widget reinviteGroup() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: <Widget>[
-        Expanded(
-          child: InkWell(
-            onTap: () async {
-              var members = await chatController.roomObs.value.getMembers();
-              Map<String, String> selectAccounts = {};
-              for (RoomMember rm in members) {
-                selectAccounts[rm.idPubkey] = rm.name;
-              }
-              await groupService.inviteToJoinGroup(
-                  chatController.roomObs.value, selectAccounts);
-              EasyLoading.showSuccess("Send invitation successfully");
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                Container(
-                  margin:
-                      const EdgeInsets.only(bottom: 15.0, top: 15, left: 12),
-                  child: const Text(
-                    "Reinvite",
-                    style: TextStyle(
-                      fontSize: 20,
-                    ),
-                  ),
-                ),
-                const Expanded(child: Text("")),
-                Container(
-                  margin:
-                      const EdgeInsets.only(bottom: 15.0, top: 15, right: 8),
-                  child: Text(
-                    "",
-                    style: TextStyle(fontSize: 20, color: Colors.grey.shade800),
-                  ),
-                ),
-                Container(
-                  margin:
-                      const EdgeInsets.only(top: 15, bottom: 15.0, right: 10.0),
-                  child: const Icon(
-                    Icons.chevron_right,
-                    color: Colors.grey,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  generalSection() {
-    String pubkey = chatController.roomObs.value.isSendAllGroup
-        ? chatController.roomObs.value.toMainPubkey
-        : chatController.roomObs.value.mykey.value!.pubkey;
+  SettingsSection dangerZoom(BuildContext context) {
     return SettingsSection(tiles: [
+      RoomUtil.autoCleanMessage(chatController),
+      RoomUtil.clearHistory(chatController),
       SettingsTile(
-          title: const Text("Group ID"),
-          leading: const Icon(CupertinoIcons.person_3),
-          value: textP(getPublicKeyDisplay(pubkey)),
-          onPressed: (context) {
-            Clipboard.setData(ClipboardData(text: pubkey));
-            EasyLoading.showToast('Copied');
-          }),
-      SettingsTile.navigation(
-          leading: const Icon(CupertinoIcons.chart_bar),
-          title: const Text('Group Mode'),
-          value: Text(RoomUtil.getGroupModeName(
-              chatController.roomObs.value.groupType)),
-          onPressed: getGroupInfoBottomSheetWidget),
-      SettingsTile.navigation(
-        title: const Text("Group Name"),
-        leading: const Icon(CupertinoIcons.pencil),
-        value: Text("${chatController.roomObs.value.name}"),
-        onPressed: (context) async {
-          if (!chatController.room.isSendAllGroup) return;
-
-          if (!chatController.meMember.value.isAdmin) {
-            EasyLoading.showError("Admin only");
-            return;
-          }
-          _showGroupNameDialog();
-        },
-      ),
-      SettingsTile.navigation(
-        title: const Text("My Alias in Group"),
-        leading: const Icon(CupertinoIcons.person),
-        value: textP(chatController.meMember.value.name),
-        onPressed: (context) async {
-          if (chatController.room.isSendAllGroup) {
-            _showMyNameDialog();
-          }
-        },
-      ),
-    ]);
-  }
-
-  dangerZoom(BuildContext context) {
-    return SettingsSection(
-      tiles: [
-        RoomUtil.autoCleanMessage(chatController),
-        RoomUtil.clearHistory(chatController),
-        SettingsTile(
           leading: const Icon(
             CupertinoIcons.trash,
             color: Colors.pink,
           ),
           title: Text(
               chatController.meMember.value.isAdmin
-                  ? "Delete Group"
+                  ? "Disband Group"
                   : "Leave Group",
               style: const TextStyle(color: Colors.pink)),
           onPressed: (context) {
-            Get.dialog(_exitGroup(context));
-          },
-        ),
-      ],
-    );
+            Get.dialog(_selfExitGroup(context));
+          })
+    ]);
   }
 
   void _showGroupNameDialog() async {
@@ -439,30 +495,28 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
           controller: textEditingController,
           textInputAction: TextInputAction.done,
           decoration: const InputDecoration(
-            labelText: 'Group Name',
-            border: OutlineInputBorder(),
-          ),
+              labelText: 'New Group Name', border: OutlineInputBorder()),
         ),
       ),
       actions: <Widget>[
         CupertinoDialogAction(
-          child: const Text("Cancel"),
-          onPressed: () {
-            Get.back();
-          },
-        ),
+            child: const Text("Cancel"),
+            onPressed: () {
+              Get.back();
+            }),
         CupertinoDialogAction(
           child: const Text("Confirm"),
           onPressed: () async {
             String newName = textEditingController.text;
             if (newName.isNotEmpty &&
                 newName != chatController.roomObs.value.name) {
-              await groupService.changeRoomName(
-                  chatController.roomObs.value.id, newName);
+              await GroupService.instance
+                  .changeRoomName(chatController.roomObs.value.id, newName);
 
               chatController.roomObs.value.name = newName;
               textEditingController.clear();
               chatController.roomObs.update((val) {});
+              EasyLoading.showSuccess('Success');
             }
             Get.back();
           },
@@ -471,52 +525,12 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
     ));
   }
 
-  void _showMyNameDialog() async {
-    await Get.dialog(CupertinoAlertDialog(
-      title: const Text("My Name"),
-      content: Container(
-        color: Colors.transparent,
-        padding: const EdgeInsets.only(top: 15),
-        child: TextField(
-          controller: userNameController,
-          textInputAction: TextInputAction.done,
-          decoration: const InputDecoration(
-            labelText: 'Name',
-            border: OutlineInputBorder(),
-          ),
-        ),
-      ),
-      actions: <Widget>[
-        CupertinoDialogAction(
-          child: const Text("Cancel"),
-          onPressed: () {
-            Get.back();
-          },
-        ),
-        CupertinoDialogAction(
-          child: const Text("Confirm"),
-          onPressed: () async {
-            String name = userNameController.text.trim();
-            if (name.isNotEmpty) {
-              await groupService.changeMyNickname(
-                  chatController.roomObs.value, name);
-              await chatController.setMeMember(name);
-              chatController.meMember.refresh();
-              chatController.resetMembers();
-            }
-            userNameController.clear();
-
-            Get.back();
-          },
-        ),
-      ],
-    ));
-  }
-
-  Widget _exitGroup(BuildContext context) {
+  Widget _selfExitGroup(BuildContext context) {
     return CupertinoAlertDialog(
-      title: Text(chatController.meMember.value.isAdmin ? "Delete?" : "Leave?"),
-      content: const Text('Are you sure to delete the group?'),
+      title:
+          Text(chatController.meMember.value.isAdmin ? "Disband?" : "Leave?"),
+      content: Text(
+          'Are you sure to ${chatController.meMember.value.isAdmin ? 'disband' : 'leave'} this group?'),
       actions: <Widget>[
         CupertinoDialogAction(
           child: const Text('Cancel'),
@@ -527,20 +541,20 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
         CupertinoDialogAction(
             isDestructiveAction: true,
             child: Text(
-              chatController.meMember.value.isAdmin ? "Delete" : "Leave",
-            ),
+                chatController.meMember.value.isAdmin ? "Disband" : "Leave"),
             onPressed: () async {
               EasyLoading.show(status: 'Loading...');
               try {
                 chatController.meMember.value.isAdmin
-                    ? await groupService
+                    ? await GroupService.instance
                         .dissolveGroup(chatController.roomObs.value)
-                    : await groupService
-                        .exitGroup(chatController.roomObs.value);
+                    : await GroupService.instance
+                        .selfExitGroup(chatController.roomObs.value);
                 EasyLoading.showSuccess('Success');
               } catch (e, s) {
-                logger.e(e.toString(), error: e, stackTrace: s);
-                EasyLoading.showError(e.toString());
+                String msg = Utils.getErrorMessage(e);
+                logger.e(msg, error: e, stackTrace: s);
+                EasyLoading.showError(msg);
                 return;
               }
               await Get.find<HomeController>()

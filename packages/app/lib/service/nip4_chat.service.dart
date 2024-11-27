@@ -16,18 +16,16 @@ import 'message.service.dart';
 import 'room.service.dart';
 
 class Nip4ChatService extends BaseChatService {
-  static final Nip4ChatService _singleton = Nip4ChatService._internal();
-  static final DBProvider dbProvider = DBProvider();
-  static final NostrAPI nostrAPI = NostrAPI();
-  RoomService roomService = RoomService();
-  ContactService contactService = ContactService();
-  IdentityService identityService = IdentityService();
+  static Nip4ChatService? _instance;
+  static Nip4ChatService get instance => _instance ??= Nip4ChatService._();
+  // Avoid self instance
+  Nip4ChatService._();
 
-  factory Nip4ChatService() {
-    return _singleton;
-  }
-
-  Nip4ChatService._internal();
+  static final DBProvider dbProvider = DBProvider.instance;
+  static final NostrAPI nostrAPI = NostrAPI.instance;
+  RoomService roomService = RoomService.instance;
+  ContactService contactService = ContactService.instance;
+  IdentityService identityService = IdentityService.instance;
 
   @override
   proccessMessage(
@@ -40,7 +38,7 @@ class Nip4ChatService extends BaseChatService {
       String? fromIdPubkey}) async {
     switch (km.type) {
       case KeyChatEventKinds.dm:
-        await RoomService().receiveDM(
+        await RoomService.instance.receiveDM(
           room,
           event,
           sourceEvent: sourceEvent,
@@ -52,11 +50,11 @@ class Nip4ChatService extends BaseChatService {
   }
 
   Future<Message> receiveNip4Message(NostrEventModel event, String content,
-      [NostrEventModel? sourceEvent]) async {
-    Room room = await roomService.getOrCreateRoom(
+      {NostrEventModel? sourceEvent, Room? room}) async {
+    room ??= await roomService.getOrCreateRoom(
         event.pubkey, event.tags[0][1], RoomStatus.init);
 
-    return await MessageService().saveMessageToDB(
+    return await MessageService.instance.saveMessageToDB(
         room: room,
         events: [sourceEvent ?? event],
         idPubkey: room.toMainPubkey,
@@ -95,7 +93,7 @@ class Nip4ChatService extends BaseChatService {
         content: message,
         createdAt: timestampToDateTime(event.createdAt),
         rawEvents: [event.toJsonString()]);
-    await MessageService().saveMessageModel(toSaveMsg, room: room);
+    await MessageService.instance.saveMessageModel(toSaveMsg, room: room);
   }
 
   // Send pseudonymous messages. The messages are nested in two layers, the first layer is pseudonymous messages, and the second layer is real messages.

@@ -10,11 +10,12 @@ import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 
 class DBProvider {
+  static DBProvider? _instance;
+  static DBProvider get instance => _instance ??= DBProvider._();
+  // Avoid self instance
+  DBProvider._();
   static bool _isInitializing = false;
-  static final DBProvider _instance = DBProvider._internal();
   static late Isar database;
-  DBProvider._internal();
-  factory DBProvider() => _instance;
 
   static initDB(String dbFolder) async {
     if (_isInitializing) return;

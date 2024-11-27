@@ -1,6 +1,7 @@
 import 'dart:io' show Directory;
 
 import 'package:app/service/chatx.service.dart';
+import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -30,7 +31,7 @@ void main() async {
   SettingController sc = await initServices();
   Get.put(HomeController(), permanent: true);
 
-  bool isLogin = await IdentityService().count() > 0;
+  bool isLogin = await IdentityService.instance.count() > 0;
   ThemeMode themeMode = await getThemeMode();
   sc.themeMode.value = themeMode.name;
 
@@ -104,7 +105,7 @@ Future initServices() async {
 
   await RustLib.init();
   String env =
-      'dev2'; //const String.fromEnvironment("MYENV", defaultValue: "prod");  env_config.Config().init(env);
+      'dev2'; //const String.fromEnvironment("MYENV", defaultValue: "prod");  env_config.Config.instance.init(env);
   isProdEnv = env_config.Config.isProd();
 
   var appFolder = await getApplicationDocumentsDirectory();
@@ -117,10 +118,10 @@ Future initServices() async {
 
   await DBProvider.initDB(dbPath);
   SettingController sc = Get.put(SettingController(), permanent: true);
+  MlsGroupService.instance.initDB(dbPath);
   Get.put(EcashController(dbPath), permanent: true);
   Get.putAsync(() => ChatxService().init(dbPath));
   Get.putAsync(() => WebsocketService().init());
-
   return sc;
 }
 

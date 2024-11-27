@@ -28,8 +28,8 @@ import '../utils.dart' as utils;
 const int failedTimesLimit = 3;
 
 class WebsocketService extends GetxService {
-  RelayService rs = RelayService();
-  NostrAPI nostrAPI = NostrAPI();
+  RelayService rs = RelayService.instance;
+  NostrAPI nostrAPI = NostrAPI.instance;
   RxString relayStatusInt = RelayStatusEnum.init.name.obs;
   final RxMap<String, RelayWebsocket> channels = <String, RelayWebsocket>{}.obs;
   final RxMap<String, RelayMessageFee> relayMessageFeeModels =
@@ -43,7 +43,7 @@ class WebsocketService extends GetxService {
   void onReady() {
     super.onReady();
     localFeesConfigFromLocalStorage();
-    RelayService().initRelayFeeInfo();
+    RelayService.instance.initRelayFeeInfo();
   }
 
   int activitySocketCount() {
@@ -63,7 +63,8 @@ class WebsocketService extends GetxService {
 
     rw = await _startConnectRelay(rw);
     if (pubkeys.isNotEmpty) {
-      DateTime since = await MessageService().getNostrListenStartAt(relay.url);
+      DateTime since =
+          await MessageService.instance.getNostrListenStartAt(relay.url);
       rw.listenPubkeys(pubkeys, since);
     }
   }
@@ -120,6 +121,10 @@ class WebsocketService extends GetxService {
     relayStatusInt.value = RelayStatusEnum.connecting.name;
     List<Relay> list = await rs.initRelay();
     start(list);
+    int activeCount = list.where((element) => element.active).length;
+    if (activeCount == 0) {
+      relayStatusInt.value = RelayStatusEnum.noAcitveRelay.name;
+    }
     return this;
   }
 
@@ -188,6 +193,21 @@ class WebsocketService extends GetxService {
     if (sent == 0) throw Exception('Not connected with relay server');
   }
 
+  sendMessage(String content, [String? relay]) {
+    if (relay != null && channels[relay] != null) {
+      return channels[relay]!.sendRawREQ(content);
+    }
+    int sent = 0;
+    for (RelayWebsocket rw in channels.values) {
+      if (rw.channelStatus != RelayStatusEnum.success || rw.channel == null) {
+        continue;
+      }
+      sent++;
+      rw.sendRawREQ(content);
+    }
+    if (sent == 0) throw Exception('Not connected with relay server');
+  }
+
   setChannelStatus(String relay, RelayStatusEnum status,
       [String? errorMessage]) {
     channels[relay]?.channelStatus = status;
@@ -226,11 +246,11 @@ class WebsocketService extends GetxService {
     if (startLock) return;
     try {
       startLock = true;
-      NostrAPI().processedEventIds.clear();
+      NostrAPI.instance.processedEventIds.clear();
       initAt = DateTime.now();
       SubscribeEventStatus.clear();
       await stopListening();
-      list ??= await RelayService().list();
+      list ??= await RelayService.instance.list();
       await createChannels(list);
     } finally {
       startLock = false;
@@ -408,23 +428,20 @@ class WebsocketService extends GetxService {
     }));
   }
 
-  Future<RelayWebsocket> _startConnectRelay(RelayWebsocket rw,
-      [bool skipCheck = false]) async {
-    if (skipCheck == false) {
-      if (!rw.relay.active) {
-        return rw;
-      }
+  Future<RelayWebsocket> _startConnectRelay(RelayWebsocket rw) async {
+    if (rw.relay.active == false) {
+      return rw;
+    }
 
-      if (rw.failedTimes > failedTimesLimit) {
-        rw.channelStatus = RelayStatusEnum.failed;
-        rw.channel?.sink.close();
-        clearFailedEvents(rw.relay.url);
-        return rw;
-      }
+    if (rw.failedTimes > failedTimesLimit) {
+      rw.channelStatus = RelayStatusEnum.failed;
+      rw.channel?.sink.close();
+      clearFailedEvents(rw.relay.url);
+      return rw;
     }
 
     loggerNoLine
-        .i('start onnect ${rw.relay.url}, failedTimes: ${rw.failedTimes}');
+        .i('start connect ${rw.relay.url}, failedTimes: ${rw.failedTimes}');
 
     final channel = IOWebSocketChannel.connect(Uri.parse(rw.relay.url),
         pingInterval: const Duration(seconds: 10),

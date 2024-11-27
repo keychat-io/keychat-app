@@ -1,13 +1,16 @@
 import 'dart:convert' show jsonEncode;
 
 import 'package:app/constants.dart';
+import 'package:app/global.dart';
 
 import 'package:app/models/models.dart';
 import 'package:app/models/signal_id.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/group.service.dart';
 import 'package:app/service/kdf_group.service.dart';
+import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/signalId.service.dart';
+import 'package:app/service/signal_chat_util.dart';
 import 'package:get/get.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -23,23 +26,26 @@ class KeychatMessage {
   late int type; // = KeyChatEventKinds.start;
   String? msg;
   String? name;
+  String? data;
 
-  KeychatMessage({
-    required this.type,
-    required this.c, // category
-    this.msg,
-    this.name,
-  });
+  KeychatMessage(
+      {required this.type,
+      required this.c, // category
+      this.msg,
+      this.name,
+      this.data});
   BaseChatService get service {
     switch (c) {
       case MessageType.nip04:
-        return Nip4ChatService();
+        return Nip4ChatService.instance;
       case MessageType.signal:
-        return SignalChatService();
+        return SignalChatService.instance;
       case MessageType.group:
-        return GroupService();
+        return GroupService.instance;
       case MessageType.kdfGroup:
         return KdfGroupService.instance;
+      case MessageType.mls:
+        return MlsGroupService.instance;
     }
   }
 
@@ -64,15 +70,21 @@ class KeychatMessage {
     if (signalId == null) throw Exception('signalId is null');
 
     Map userInfo = await SignalIdService.instance.getQRCodeData(signalId);
-
+    int expiredTime = DateTime.now().millisecondsSinceEpoch +
+        KeychatGlobal.oneTimePubkeysLifetime * 3600 * 1000;
+    String sign = await SignalChatUtil.getToSignMessage(
+        nostrPrikey: await identity.getSecp256k1SKHex(),
+        nostrId: identity.secp256k1PKHex,
+        signalId: signalId.pubkey,
+        time: expiredTime);
     Map<String, dynamic> data = {
       'name': identity.displayName,
       'pubkey': identity.secp256k1PKHex,
       'curve25519PkHex': signalId.pubkey,
       'onetimekey': onetimekey,
-      'time': -1,
+      'time': expiredTime,
       'relay': "",
-      "globalSign": "",
+      "globalSign": sign,
       ...userInfo
     };
     name = QRUserModel.fromJson(data).toString();
@@ -100,6 +112,14 @@ $greeting''';
             name: reply.toString())
         .toString();
   }
+
+  static String getFeatureMessageString(
+      MessageType type, Room room, String message, int subtype,
+      {String? name, String? data}) {
+    KeychatMessage km = KeychatMessage(
+        c: type, type: subtype, msg: message, data: data, name: name);
+    return km.toString();
+  }
 }
 
-enum MessageType { nip04, signal, group, kdfGroup }
+enum MessageType { nip04, signal, group, kdfGroup, mls }

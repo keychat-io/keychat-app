@@ -123,7 +123,7 @@ Future<void> showDeleteMsgDialog(BuildContext context, Room room) async {
               ),
               onPressed: () async {
                 Get.back();
-                await RoomService().deleteRoomMessage(room);
+                await RoomService.instance.deleteRoomMessage(room);
                 Get.find<HomeController>()
                     .loadIdentityRoomList(room.identityId);
               },
@@ -266,20 +266,23 @@ showFitSheetWidget(BuildContext context, String title, List<Widget> bodys,
 }
 
 getGroupInfoBottomSheetWidget(BuildContext context) {
-  showFitSheetWidget(
-    context,
-    'Group Type Info',
-    [
-      ListTile(
-        title: const Text('1. Medium Group'),
-        subtitle: Text(RoomUtil.getGroupModeDescription(GroupType.kdf)),
-      ),
-      ListTile(
-        title: const Text('2. Small Group'),
-        subtitle: Text(RoomUtil.getGroupModeDescription(GroupType.sendAll)),
-      ),
-    ],
-  );
+  showModalBottomSheetWidget(
+      context,
+      'Group Type Info',
+      ListView(
+        children: [
+          ListTile(
+            title: Text('Large Group - MLS',
+                style: Theme.of(context).textTheme.titleMedium),
+            subtitle: Text(RoomUtil.getGroupModeDescription(GroupType.mls)),
+          ),
+          ListTile(
+            title: Text('Small Group - Signal Protocol',
+                style: Theme.of(context).textTheme.titleMedium),
+            subtitle: Text(RoomUtil.getGroupModeDescription(GroupType.sendAll)),
+          ),
+        ],
+      ));
 }
 
 Widget codeSnippet(String text) {
@@ -300,7 +303,7 @@ Widget relayStatusList(BuildContext context, List<NostrEventStatus> ess) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text('Message Status', style: Theme.of(context).textTheme.titleMedium),
+      Text('  Message Status', style: Theme.of(context).textTheme.titleMedium),
       ...ess.map((NostrEventStatus es) => ListTile(
           dense: true,
           visualDensity: VisualDensity.compact,
@@ -451,7 +454,7 @@ showSearchContactsPage(BuildContext context, List<Contact> contactList) {
 showSearchContactsPage2(BuildContext context) async {
   Identity identity = Get.find<HomeController>().getSelectedIdentity();
   List<Contact> contactList =
-      await ContactService().getContactList(identity.id);
+      await ContactService.instance.getContactList(identity.id);
   String input = "";
   showSearch(
       context: context,

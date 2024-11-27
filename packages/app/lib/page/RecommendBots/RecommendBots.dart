@@ -5,6 +5,7 @@ import 'package:app/models/room.dart';
 import 'package:app/page/common.dart';
 import 'package:app/page/components.dart';
 import 'package:app/service/room.service.dart';
+import 'package:app/service/signal_chat.service.dart';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -25,9 +26,8 @@ class RecommendBots extends StatelessWidget {
         ? Container()
         : ListView.separated(
             separatorBuilder: (context, index) => Divider(
-                  height: 1,
-                  color: Theme.of(context).dividerColor.withOpacity(0.05),
-                ),
+                height: 1,
+                color: Theme.of(context).dividerColor.withOpacity(0.05)),
             itemCount: homeController.recommendBots.length,
             shrinkWrap: true,
             padding: const EdgeInsets.only(bottom: 0),
@@ -47,16 +47,20 @@ class RecommendBots extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 subtitle: textSmallGray(context, bot['description']),
-                trailing: FilledButton(
+                trailing: OutlinedButton(
                     onPressed: () async {
                       String hexPubkey =
                           rust_nostr.getHexPubkeyByBech32(bech32: bot['npub']);
 
-                      await RoomService().getOrCreateRoom(hexPubkey,
-                          identity.secp256k1PKHex, RoomStatus.enabled,
+                      Room room = await RoomService.instance.getOrCreateRoom(
+                          hexPubkey,
+                          identity.secp256k1PKHex,
+                          RoomStatus.enabled,
                           contactName: bot['name'],
                           type: RoomType.bot,
                           identity: identity);
+                      await SignalChatService.instance
+                          .sendHelloMessage(room, identity);
                     },
                     child: const Text('Add')),
               );

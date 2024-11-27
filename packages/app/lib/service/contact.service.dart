@@ -11,14 +11,11 @@ import '../models/db_provider.dart';
 import '../nostr-core/nostr.dart';
 
 class ContactService {
-  static final ContactService _singleton = ContactService._internal();
+  static ContactService? _instance;
+  static ContactService get instance => _instance ??= ContactService._();
+  // Avoid self instance
+  ContactService._();
   final Mutex myReceiveKeyMutex = Mutex();
-
-  factory ContactService() {
-    return _singleton;
-  }
-
-  ContactService._internal();
 
   Future<List<String>> addReceiveKey(
       int identityId, String toMainPubkey, String address) async {
@@ -56,7 +53,7 @@ class ContactService {
     }
     contact.createdAt = DateTime.now();
     int id = await saveContact(contact, sync: true);
-    NostrAPI().fetchMetadata([pubKeyHex]);
+    NostrAPI.instance.fetchMetadata([pubKeyHex]);
     contact = (await getContactById(id))!;
     return contact;
   }
@@ -356,7 +353,7 @@ class ContactService {
     );
     if (contact.name != contactName) {
       contact.name = contactName;
-      await ContactService().saveContact(contact);
+      await ContactService.instance.saveContact(contact);
     }
   }
 

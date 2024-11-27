@@ -25,7 +25,7 @@ class SetRoomRelayAction extends StatelessWidget {
             OutlinedButton(
                 onPressed: () {
                   message.requestConfrim = RequestConfrimEnum.rejected;
-                  MessageService().updateMessageAndRefresh(message);
+                  MessageService.instance.updateMessageAndRefresh(message);
                 },
                 child: const Text('Reject')),
             const SizedBox(width: 30),
@@ -48,16 +48,17 @@ class SetRoomRelayAction extends StatelessWidget {
                   WebsocketService ws = Get.find<WebsocketService>();
                   for (var relay in relays) {
                     if (ws.channels[relay] == null) {
-                      RelayService().addAndConnect(relay);
+                      RelayService.instance.addAndConnect(relay);
                     }
                   }
 
                   chatController.roomObs.value.sendingRelays = relays;
-                  await RoomService()
-                      .updateChatRoomPage(chatController.roomObs.value);
+                  await RoomService.instance
+                      .updateRoomAndRefresh(chatController.roomObs.value);
 
                   message.requestConfrim = RequestConfrimEnum.approved;
-                  await MessageService().updateMessageAndRefresh(message);
+                  await MessageService.instance
+                      .updateMessageAndRefresh(message);
                 },
                 child: const Text('Approve'))
           ],

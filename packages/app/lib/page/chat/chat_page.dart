@@ -74,6 +74,10 @@ class _ChatPage2State extends State<ChatPage> {
         MarkdownStyleSheet.fromTheme(AppThemeCustom.dark()).copyWith(
             strong: Theme.of(Get.context!).textTheme.titleSmall?.copyWith(
                 fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+            a: Theme.of(Get.context!)
+                .textTheme
+                .bodyLarge
+                ?.copyWith(color: Colors.white, fontSize: 16),
             p: Theme.of(Get.context!)
                 .textTheme
                 .bodyLarge
@@ -105,10 +109,7 @@ class _ChatPage2State extends State<ChatPage> {
                 if (controller.roomObs.value.type == RoomType.bot)
                   const Padding(
                       padding: EdgeInsets.only(left: 5),
-                      child: Icon(
-                        Icons.android_outlined,
-                        color: Colors.purple,
-                      ))
+                      child: Icon(Icons.android_outlined, color: Colors.purple))
               ],
             )),
         bottom: PreferredSize(
@@ -171,7 +172,7 @@ class _ChatPage2State extends State<ChatPage> {
                         child: const Text('Fix it',
                             style: TextStyle(color: Colors.white)),
                         onPressed: () async {
-                          await SignalChatService().sendHelloMessage(
+                          await SignalChatService.instance.sendHelloMessage(
                               controller.room, controller.room.getIdentity());
                           EasyLoading.showInfo('Request sent successfully.');
                         }),
@@ -408,7 +409,7 @@ class _ChatPage2State extends State<ChatPage> {
                                       context, element['description'],
                                       overflow: TextOverflow.clip)),
                               onPressed: (context) async {
-                                RoomService().sendTextMessage(
+                                RoomService.instance.sendTextMessage(
                                     controller.roomObs.value, element['name']);
                                 Get.back();
                               }),
@@ -494,9 +495,7 @@ class _ChatPage2State extends State<ChatPage> {
           room: controller.roomObs.value, chatController: controller));
     } else {
       await Get.to(() => ShowContactDetail(
-          contact: controller.roomContact.value,
-          room: controller.roomObs.value,
-          chatController: controller));
+          room: controller.roomObs.value, chatController: controller));
     }
     await controller.openPageAction();
     return;
@@ -540,7 +539,7 @@ class _ChatPage2State extends State<ChatPage> {
                             Timer(Duration(seconds: seconds), () {
                               count++;
                               controller.getRoomStats();
-                              RoomService().sendTextMessage(
+                              RoomService.instance.sendTextMessage(
                                   controller.room, count.toString());
                               randomTimer();
                             });
@@ -558,7 +557,7 @@ class _ChatPage2State extends State<ChatPage> {
                         child: const Text('Stop '))),
                 OutlinedButton(
                     onPressed: () {
-                      MessageService()
+                      MessageService.instance
                           .deleteMessageByRoomId(controller.room.id);
                       Get.back();
                     },
@@ -693,15 +692,13 @@ class _ChatPage2State extends State<ChatPage> {
     return _inputSectionContainer(FilledButton(
       style: ButtonStyle(backgroundColor: WidgetStateProperty.all(Colors.red)),
       onPressed: () async {
-        await RoomService().deleteRoom(controller.roomObs.value);
+        await RoomService.instance.deleteRoom(controller.roomObs.value);
         await Get.find<HomeController>()
             .loadIdentityRoomList(controller.room.identityId);
         await Get.offAllNamed(Routes.root);
       },
-      child: const Text(
-        'Exit and Delete Room',
-        style: TextStyle(color: Colors.white),
-      ),
+      child: const Text('Exit and Delete Room',
+          style: TextStyle(color: Colors.white)),
     ));
   }
 
@@ -723,10 +720,10 @@ class _ChatPage2State extends State<ChatPage> {
                   Room room = controller.roomObs.value;
                   if (room.status == RoomStatus.approving) {
                     String displayName = room.getIdentity().displayName;
-                    await SignalChatService().sendMessage(
+                    await SignalChatService.instance.sendMessage(
                         room, RoomUtil.getHelloMessage(displayName));
                     room.status = RoomStatus.enabled;
-                    await RoomService().updateRoom(room);
+                    await RoomService.instance.updateRoom(room);
                     controller.setRoom(room);
                   }
                 } catch (e, s) {
@@ -738,20 +735,22 @@ class _ChatPage2State extends State<ChatPage> {
               },
               style: ButtonStyle(
                   backgroundColor: WidgetStateProperty.all(Colors.green)),
-              child: const Text('Approve'),
+              child:
+                  const Text('Approve', style: TextStyle(color: Colors.white)),
             ),
             FilledButton(
               onPressed: () async {
                 int identityId = controller.room.identityId;
-                await SignalChatService()
+                await SignalChatService.instance
                     .sendRejectMessage(controller.roomObs.value);
-                await RoomService().deleteRoom(controller.roomObs.value);
+                await RoomService.instance.deleteRoom(controller.roomObs.value);
                 Get.find<HomeController>().loadIdentityRoomList(identityId);
                 Get.back();
               },
               style: ButtonStyle(
                   backgroundColor: WidgetStateProperty.all(Colors.red)),
-              child: const Text('Reject'),
+              child:
+                  const Text('Reject', style: TextStyle(color: Colors.white)),
             ),
           ],
         )
@@ -779,7 +778,7 @@ class _ChatPage2State extends State<ChatPage> {
                 ),
                 CupertinoDialogAction(
                   onPressed: () async {
-                    await RoomService().createRoomAndsendInvite(
+                    await RoomService.instance.createRoomAndsendInvite(
                         controller.room.toMainPubkey,
                         autoJump: false);
                     Get.back();
@@ -791,7 +790,8 @@ class _ChatPage2State extends State<ChatPage> {
           },
           style: ButtonStyle(
               backgroundColor: WidgetStateProperty.all(Colors.green)),
-          child: const Text('Requesting'),
+          child:
+              const Text('Requesting', style: TextStyle(color: Colors.white)),
         ),
         OutlinedButton(
           onPressed: () async {
@@ -810,7 +810,8 @@ class _ChatPage2State extends State<ChatPage> {
                   onPressed: () async {
                     Get.back();
                     int id = controller.roomObs.value.identityId;
-                    await RoomService().deleteRoom(controller.roomObs.value);
+                    await RoomService.instance
+                        .deleteRoom(controller.roomObs.value);
                     await Get.find<HomeController>().loadIdentityRoomList(id);
                     Get.back();
                   },
@@ -824,8 +825,8 @@ class _ChatPage2State extends State<ChatPage> {
         OutlinedButton(
           onPressed: () async {
             controller.roomObs.value.status = RoomStatus.enabled;
-            await RoomService().updateRoom(controller.roomObs.value);
-            await RoomService().updateChatRoomPage(controller.roomObs.value);
+            await RoomService.instance
+                .updateRoomAndRefresh(controller.roomObs.value);
             await Get.find<HomeController>()
                 .loadIdentityRoomList(controller.room.identityId);
           },
@@ -839,7 +840,7 @@ class _ChatPage2State extends State<ChatPage> {
     int roomId = int.parse(Get.parameters['id']!);
     Room? room;
     if (Get.arguments == null) {
-      room = RoomService().getRoomByIdSync(roomId);
+      room = RoomService.instance.getRoomByIdSync(roomId);
     } else {
       // room = Get.arguments as Room;
       try {
@@ -875,50 +876,46 @@ class _ChatPage2State extends State<ChatPage> {
             showModalBottomSheetWidget(
                 Get.context!,
                 'Add Contacts',
-                Column(
-                    // padding: const EdgeInsets.symmetric(horizontal: 10),
-                    // color: Theme.of(Get.context!).colorScheme.background,
-                    children: [
-                      NoticeTextWidget.warning(
-                          'You are not friends, cannot send and receive messages'),
-                      const SizedBox(height: 16),
-                      Expanded(
-                          child: Obx(() => ListView.separated(
-                              physics: const NeverScrollableScrollPhysics(),
-                              separatorBuilder: (context, index) =>
-                                  const SizedBox(height: 4),
-                              shrinkWrap: true,
-                              itemCount: controller.kpaIsNullRooms.length,
-                              itemBuilder: (context, index) {
-                                Room room = controller.kpaIsNullRooms[index];
-                                room.contact ??= ContactService()
-                                    .getOrCreateContactSync(
-                                        room.identityId, room.toMainPubkey);
-                                return ListTile(
-                                  leading: getAvatarDot(room, width: 40),
-                                  key: Key('room:${room.id}'),
-                                  title: Text(room.getRoomName()),
-                                  trailing: OutlinedButton(
-                                      onPressed: () async {
-                                        Room? room0 = await RoomService()
-                                            .createRoomAndsendInvite(
-                                                room.toMainPubkey,
-                                                autoJump: false,
-                                                greeting:
-                                                    'From group: ${controller.roomObs.value.getRoomName()}');
-                                        if (room0 != null) {
-                                          controller.kpaIsNullRooms[index] =
-                                              room0;
-                                          controller.kpaIsNullRooms.refresh();
-                                        }
-                                      },
-                                      child: Text(
-                                          room.status == RoomStatus.requesting
-                                              ? 'Requesting'
-                                              : 'Send')),
-                                );
-                              })))
-                    ]));
+                Column(children: [
+                  NoticeTextWidget.warning(
+                      'You are not friends, cannot send and receive messages'),
+                  const SizedBox(height: 16),
+                  Expanded(
+                      child: Obx(() => ListView.separated(
+                          physics: const NeverScrollableScrollPhysics(),
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 4),
+                          shrinkWrap: true,
+                          itemCount: controller.kpaIsNullRooms.length,
+                          itemBuilder: (context, index) {
+                            Room room = controller.kpaIsNullRooms[index];
+                            room.contact ??= ContactService.instance
+                                .getOrCreateContactSync(
+                                    room.identityId, room.toMainPubkey);
+                            return ListTile(
+                              leading: getAvatarDot(room, width: 40),
+                              key: Key('room:${room.id}'),
+                              title: Text(room.getRoomName()),
+                              trailing: OutlinedButton(
+                                  onPressed: () async {
+                                    Room? room0 = await RoomService.instance
+                                        .createRoomAndsendInvite(
+                                            room.toMainPubkey,
+                                            autoJump: false,
+                                            greeting:
+                                                'From group: ${controller.roomObs.value.getRoomName()}');
+                                    if (room0 != null) {
+                                      controller.kpaIsNullRooms[index] = room0;
+                                      controller.kpaIsNullRooms.refresh();
+                                    }
+                                  },
+                                  child: Text(
+                                      room.status == RoomStatus.requesting
+                                          ? 'Requesting'
+                                          : 'Send')),
+                            );
+                          })))
+                ]));
           },
           child: const Text('View')),
     );

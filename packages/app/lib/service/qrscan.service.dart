@@ -1,3 +1,5 @@
+import 'package:app/page/chat/create_contact_page.dart';
+import 'package:app/page/components.dart';
 import 'package:barcode_scan2/barcode_scan2.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -85,6 +87,10 @@ class QrScanService {
     if (str.startsWith('lnbc')) {
       return _proccessPayLightingBill(str);
     }
+    if (str.startsWith('npub') || str.length == 64) {
+      Get.to(() => AddtoContactsPage(str));
+      return;
+    }
     bool isBase = isBase64(str);
     if (isBase) {
       QRUserModel model;
@@ -170,6 +176,8 @@ class QrScanService {
     } catch (e) {
       return handleText(invoce);
     }
-    Get.to(() => PayInvoicePage(invoce: invoce));
+    await showModalBottomSheetWidget(
+        Get.context!, '', PayInvoicePage(invoce: invoce),
+        showAppBar: false);
   }
 }

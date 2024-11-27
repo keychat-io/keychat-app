@@ -14,12 +14,10 @@ import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class GroupTx {
-  static final GroupTx _singleton = GroupTx._internal();
-  factory GroupTx() {
-    return _singleton;
-  }
-
-  GroupTx._internal();
+  static GroupTx? _instance;
+  static GroupTx get instance => _instance ??= GroupTx._();
+  // Avoid self instance
+  GroupTx._();
 
   Future<Mykey> importMykeyTx(
       int identityId, rust_nostr.Secp256k1Account keychain,
@@ -123,7 +121,8 @@ class GroupTx {
             roomProfile.groupType == GroupType.kdf) &&
         toRoomPriKey == null) {
       throw Exception('Prikey is null, failed to join group.');
-    } else if (toRoomPriKey != null) {
+    }
+    if (toRoomPriKey != null) {
       roomKey = await importMykeyTx(
           identity.id, await rust_nostr.importKey(senderKeys: toRoomPriKey));
     }

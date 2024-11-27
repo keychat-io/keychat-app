@@ -10,6 +10,7 @@ import 'package:app/service/group.service.dart';
 import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/signalId.service.dart';
+import 'package:app/service/signal_chat_util.dart';
 import 'package:get/get.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -71,6 +72,11 @@ class KeychatMessage {
     Map userInfo = await SignalIdService.instance.getQRCodeData(signalId);
     int expiredTime = DateTime.now().millisecondsSinceEpoch +
         KeychatGlobal.oneTimePubkeysLifetime * 3600 * 1000;
+    String sign = await SignalChatUtil.getToSignMessage(
+        nostrPrikey: await identity.getSecp256k1SKHex(),
+        nostrId: identity.secp256k1PKHex,
+        signalId: signalId.pubkey,
+        time: expiredTime);
     Map<String, dynamic> data = {
       'name': identity.displayName,
       'pubkey': identity.secp256k1PKHex,
@@ -78,7 +84,7 @@ class KeychatMessage {
       'onetimekey': onetimekey,
       'time': expiredTime,
       'relay': "",
-      "globalSign": "",
+      "globalSign": sign,
       ...userInfo
     };
     name = QRUserModel.fromJson(data).toString();

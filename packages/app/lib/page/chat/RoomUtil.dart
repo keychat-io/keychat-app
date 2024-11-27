@@ -5,11 +5,13 @@ import 'package:app/models/contact.dart';
 import 'package:app/models/embedded/msg_reply.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/models/keychat/group_message.dart';
+import 'package:app/models/keychat/prekey_message_model.dart';
 import 'package:app/models/keychat/qrcode_user_model.dart';
 import 'package:app/models/nostr_event_status.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/ChatMediaFilesPage.dart';
 import 'package:app/page/chat/contact_page.dart';
+import 'package:app/service/signal_chat_util.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
@@ -485,17 +487,16 @@ Let's start an encrypted chat.''';
     String pubkey = rust_nostr.getHexPubkeyByBech32(bech32: model.pubkey);
     String npub = rust_nostr.getBech32PubkeyByHex(hex: model.pubkey);
     String globalSign = model.globalSign;
-    String needVerifySignStr =
-        "Keychat-${model.pubkey}-${model.curve25519PkHex}-${model.time}";
-    bool sign = await rust_nostr.verifySchnorr(
-        pubkey: pubkey,
+    var pmm = PrekeyMessageModel(
+        signalId: model.curve25519PkHex,
+        nostrId: model.pubkey,
+        time: model.time,
+        name: model.name,
         sig: globalSign,
-        content: needVerifySignStr,
-        hash: true);
-    if (!sign) {
-      EasyLoading.showToast('QR Code globalSign error');
-      return;
-    }
+        message: '');
+
+    await SignalChatUtil.verifySignedMessage(
+        pmm: pmm, signalIdPubkey: model.curve25519PkHex);
 
     Contact contact =
         Contact(pubkey: pubkey, npubkey: npub, identityId: identity.id)

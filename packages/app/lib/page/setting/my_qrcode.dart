@@ -164,7 +164,6 @@ class _MyQRCodeState extends State<MyQRCode> {
         nostrId: identity.secp256k1PKHex,
         signalId: signalId.pubkey,
         time: time ?? -1);
-
     Map<String, dynamic> data = {
       'pubkey': identity.secp256k1PKHex,
       'curve25519PkHex': signalId.pubkey,

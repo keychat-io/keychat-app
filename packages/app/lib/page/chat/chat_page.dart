@@ -822,16 +822,16 @@ class _ChatPage2State extends State<ChatPage> {
           },
           child: const Text('Cancel'),
         ),
-        OutlinedButton(
-          onPressed: () async {
-            controller.roomObs.value.status = RoomStatus.enabled;
-            await RoomService.instance
-                .updateRoomAndRefresh(controller.roomObs.value);
-            await Get.find<HomeController>()
-                .loadIdentityRoomList(controller.room.identityId);
-          },
-          child: const Text('Start Chat with Nostr Client'),
-        ),
+        // OutlinedButton(
+        //   onPressed: () async {
+        //     controller.roomObs.value.status = RoomStatus.enabled;
+        //     await RoomService.instance
+        //         .updateRoomAndRefresh(controller.roomObs.value);
+        //     await Get.find<HomeController>()
+        //         .loadIdentityRoomList(controller.room.identityId);
+        //   },
+        //   child: const Text('Start Chat with Nostr Client'),
+        // ),
       ],
     ));
   }

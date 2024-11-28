@@ -18,7 +18,9 @@ class RecommendBots extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (identity.name != KeychatGlobal.bot) return Container();
+    if (identity.name.toLowerCase() != KeychatGlobal.bot.toLowerCase()) {
+      return Container();
+    }
     HomeController homeController = Get.find<HomeController>();
     List npubs = rooms.map((e) => e.npub).toList();
 
@@ -61,6 +63,7 @@ class RecommendBots extends StatelessWidget {
                           identity: identity);
                       await SignalChatService.instance
                           .sendHelloMessage(room, identity);
+                      await Get.toNamed('/room/${room.id}', arguments: room);
                     },
                     child: const Text('Add')),
               );

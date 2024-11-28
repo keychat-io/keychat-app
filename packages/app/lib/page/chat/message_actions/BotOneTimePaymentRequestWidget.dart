@@ -2,9 +2,9 @@ import 'dart:convert' show jsonDecode, jsonEncode;
 
 import 'package:app/bot/bot_client_message_model.dart';
 import 'package:app/bot/bot_server_message_model.dart';
+import 'package:app/controller/chat.controller.dart';
 import 'package:app/models/embedded/cashu_info.dart';
 import 'package:app/models/message.dart';
-import 'package:app/models/room.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/utils.dart';
@@ -16,10 +16,11 @@ import 'package:get/get.dart';
 import 'package:keychat_ecash/utils.dart';
 
 class BotOneTimePaymentRequestWidget extends StatefulWidget {
-  final Room room;
+  final ChatController chatController;
   final Message message;
 
-  const BotOneTimePaymentRequestWidget(this.room, this.message, {super.key});
+  const BotOneTimePaymentRequestWidget(this.chatController, this.message,
+      {super.key});
 
   @override
   _BotOneTimePaymentRequestWidgetState createState() =>
@@ -114,7 +115,8 @@ class _BotOneTimePaymentRequestWidgetState
                           payToken: cashuTokenString);
 
                       await RoomService.instance.sendTextMessage(
-                          widget.room, jsonEncode(bcm.toJson()),
+                          widget.chatController.roomObs.value,
+                          jsonEncode(bcm.toJson()),
                           realMessage:
                               'Selected ${data.name}, and send ecash: ${data.price} ${data.unit}');
 

@@ -1,8 +1,8 @@
 import 'dart:convert' show jsonDecode, jsonEncode;
 
 import 'package:app/bot/bot_server_message_model.dart';
+import 'package:app/controller/chat.controller.dart';
 import 'package:app/models/message.dart';
-import 'package:app/models/room.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:flutter/cupertino.dart';
@@ -11,10 +11,11 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
 class BotPricePerMessageRequestWidget extends StatefulWidget {
-  final Room room;
+  final ChatController chatController;
   final Message message;
 
-  const BotPricePerMessageRequestWidget(this.room, this.message, {super.key});
+  const BotPricePerMessageRequestWidget(this.chatController, this.message,
+      {super.key});
 
   @override
   _BotPricePerMessageRequestWidgetState createState() =>
@@ -60,10 +61,7 @@ class _BotPricePerMessageRequestWidgetState
         border: Border.all(color: Colors.purple.shade200),
       ),
       child: ListTile(
-          leading: CircleAvatar(
-            radius: 16,
-            child: Text(index.toString()),
-          ),
+          leading: CircleAvatar(radius: 16, child: Text(index.toString())),
           dense: true,
           minVerticalPadding: 4,
           title: Text(data.name, style: Theme.of(context).textTheme.titleSmall),
@@ -95,12 +93,14 @@ class _BotPricePerMessageRequestWidgetState
                       widget.message.confirmResult = jsonEncode(data);
 
                       // save config to local db
-                      Map localConfig =
-                          jsonDecode(widget.room.botLocalConfig ?? '{}');
+                      Map localConfig = jsonDecode(
+                          widget.chatController.roomObs.value.botLocalConfig ??
+                              '{}');
                       localConfig[bmm!.type.name] = data;
-                      widget.room.botLocalConfig = jsonEncode(localConfig);
-                      await RoomService.instance
-                          .updateRoomAndRefresh(widget.room);
+                      widget.chatController.roomObs.value.botLocalConfig =
+                          jsonEncode(localConfig);
+                      await RoomService.instance.updateRoomAndRefresh(
+                          widget.chatController.roomObs.value);
 
                       await MessageService.instance
                           .updateMessageAndRefresh(widget.message);

@@ -460,10 +460,10 @@ class MessageWidget extends StatelessWidget {
         // bot
         case MessageMediaType.botPricePerMessageRequest:
           return _getActionWidget(
-              BotPricePerMessageRequestWidget(chatController.room, message));
+              BotPricePerMessageRequestWidget(chatController, message));
         case MessageMediaType.botOneTimePaymentRequest:
           return _getActionWidget(
-              BotOneTimePaymentRequestWidget(chatController.room, message));
+              BotOneTimePaymentRequestWidget(chatController, message));
         default:
       }
     } catch (e, s) {

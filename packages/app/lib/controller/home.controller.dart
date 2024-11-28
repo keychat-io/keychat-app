@@ -16,7 +16,6 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:easy_debounce/easy_throttle.dart';
-import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
@@ -149,8 +148,7 @@ class HomeController extends GetxController
   }
 
   Future fetchBots() async {
-    String fileName =
-        kReleaseMode ? 'bots-release.json' : 'bots-development.json';
+    String fileName = 'bots-release.json'; //'bots-release.json';
     var list = [
       'https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/$fileName',
       'https://mirror.ghproxy.com/https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/$fileName'

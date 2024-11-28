@@ -312,7 +312,7 @@ class SignalChatService extends BaseChatService {
 
     if (room.status == RoomStatus.requesting) {
       room.status = RoomStatus.enabled;
-    } else {
+    } else if (room.status != RoomStatus.enabled) {
       room.status = oneTimeKey != null
           ? RoomStatus.approvingNoResponse
           : RoomStatus.approving;

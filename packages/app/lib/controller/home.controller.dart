@@ -149,8 +149,7 @@ class HomeController extends GetxController
   }
 
   Future fetchBots() async {
-    String fileName =
-        kReleaseMode ? 'bots-release.json' : 'bots-development.json';
+    String fileName = 'bots-release.json'; //'bots-release.json';
     var list = [
       'https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/$fileName',
       'https://mirror.ghproxy.com/https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/$fileName'

@@ -21,22 +21,8 @@ class Login extends StatelessWidget {
                   child: Column(
                 children: <Widget>[
                   const SizedBox(height: 50),
-                  ShaderMask(
-                      shaderCallback: (Rect bounds) {
-                        return const RadialGradient(
-                          center: Alignment.centerLeft,
-                          radius: 2.0,
-                          colors: <Color>[
-                            Color(0xFF43CBFF),
-                            Color(0xFF9708CC),
-                          ],
-                          tileMode: TileMode.clamp,
-                        ).createShader(bounds);
-                      },
-                      blendMode: BlendMode.srcATop,
-                      child: const Text('Keychat',
-                          style: TextStyle(
-                              fontSize: 34, fontWeight: FontWeight.bold))),
+                  Text('Keychat',
+                      style: Theme.of(context).textTheme.titleLarge),
                   ...KeychatGlobal.keychatIntros.map((e) => Padding(
                       padding: const EdgeInsets.only(top: 10),
                       child: Text(e,

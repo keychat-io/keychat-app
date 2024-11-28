@@ -13,7 +13,6 @@ import '../../controller/chat.controller.dart';
 import '../../models/room.dart';
 import '../../service/signal_chat.service.dart';
 import '../components.dart';
-import 'encrypt_mode_widget.dart.dart';
 
 class ChatSettingsMoreDart extends StatelessWidget {
   final ChatController chatController;
@@ -31,75 +30,60 @@ class ChatSettingsMoreDart extends StatelessWidget {
               SettingsSection(
                   title: const Text('Message Encrypt Protocol'),
                   tiles: [
+                    SettingsTile(
+                        title: const Text('Encrypt mode'),
+                        leading: const Icon(CupertinoIcons.lock),
+                        value: chatController.roomObs.value.encryptMode ==
+                                EncryptMode.signal
+                            ? textP('Signal procotol', Colors.green)
+                            : textP('Nostr nip04', Colors.red)),
                     SettingsTile.navigation(
-                      title: const Text('Encrypt mode'),
-                      leading: const Icon(CupertinoIcons.lock),
-                      value: chatController.roomObs.value.encryptMode ==
-                              EncryptMode.signal
-                          ? textP('Signal procotol', Colors.green)
-                          : textP('Nostr nip04', Colors.red),
-                      onPressed: (context) async {
-                        // it is my self
-                        if (chatController.roomObs.value.toMainPubkey ==
-                            chatController.roomObs.value
-                                .getIdentity()
-                                .curve25519PkHex) {
-                          EasyLoading.showError(
-                              'You can only use nip04 mode to talk to yourself');
-                          return;
-                        }
-                        showFitSheetWidget(context, 'Encrypt Mode', [
-                          EncryptModeWidget(chatController: chatController)
-                        ]);
-                      },
-                    ),
-                    if (chatController.roomObs.value.encryptMode ==
-                        EncryptMode.signal)
-                      SettingsTile.navigation(
-                        title: const Text('Reset session status'),
-                        leading: const Icon(CupertinoIcons.refresh),
-                        description: const Text(
-                            'Execute this action when you can\'t receive new messages from your friend'),
-                        onPressed: (value) async {
-                          Get.dialog(CupertinoAlertDialog(
-                            title: const Text('Request sent successfully'),
-                            content: const Text(
-                                'Waiting for your friend comes online'),
-                            actions: [
-                              CupertinoDialogAction(
-                                child: const Text('OK'),
-                                onPressed: () async {
-                                  EasyThrottle.throttle('ResetSessionStatus',
-                                      const Duration(seconds: 3), () async {
-                                    await Get.find<ChatxService>()
-                                        .deleteSignalSessionKPA(chatController
-                                            .room); // delete old session
-                                    await SignalChatService.instance
-                                        .sendHelloMessage(chatController.room,
-                                            chatController.room.getIdentity(),
-                                            greeting:
-                                                'Reset signal session status');
-                                    Get.back();
+                      title: const Text('Reset Signal Session'),
+                      leading: const Icon(CupertinoIcons.refresh),
+                      onPressed: (value) async {
+                        Get.dialog(CupertinoAlertDialog(
+                          title: const Text('Request sent successfully'),
+                          content: const Text(
+                              'Waiting for your friend comes online and approve'),
+                          actions: [
+                            CupertinoDialogAction(
+                              child: const Text('OK'),
+                              onPressed: () async {
+                                EasyThrottle.throttle('ResetSessionStatus',
+                                    const Duration(seconds: 3), () async {
+                                  await Get.find<ChatxService>()
+                                      .deleteSignalSessionKPA(chatController
+                                          .room); // delete old session
+                                  await SignalChatService.instance
+                                      .sendHelloMessage(chatController.room,
+                                          chatController.room.getIdentity(),
+                                          greeting:
+                                              'Reset signal session status');
+                                  Get.back();
 
-                                    EasyLoading.showInfo(
-                                        'Request sent successfully.');
-                                  });
-                                },
-                              )
-                            ],
-                          ));
-                        },
-                      )
+                                  EasyLoading.showInfo(
+                                      'Request sent successfully.');
+                                });
+                              },
+                            )
+                          ],
+                        ));
+                      },
+                    )
                   ]),
               SettingsSection(title: const Text('Message Relays'), tiles: [
                 SettingsTile(
                   title: const Text('SendTo'),
                   leading: const Icon(CupertinoIcons.up_arrow),
-                  value: Obx(() => Flexible(
-                      child: Text(chatController
-                              .roomObs.value.sendingRelays.isNotEmpty
-                          ? chatController.roomObs.value.sendingRelays.join(',')
-                          : ''))),
+                  value: Obx(() =>
+                      chatController.roomObs.value.sendingRelays.isEmpty
+                          ? const Text('All Relays')
+                          : Flexible(
+                              child: Text(chatController
+                                      .roomObs.value.sendingRelays.isNotEmpty
+                                  ? chatController.roomObs.value.sendingRelays
+                                      .join(',')
+                                  : ''))),
                   onPressed: (c) {
                     if (chatController.roomObs.value.sendingRelays.isEmpty) {
                       return;

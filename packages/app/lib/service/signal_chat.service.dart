@@ -312,7 +312,7 @@ class SignalChatService extends BaseChatService {
 
     if (room.status == RoomStatus.requesting) {
       room.status = RoomStatus.enabled;
-    } else {
+    } else if (room.status != RoomStatus.enabled) {
       room.status = oneTimeKey != null
           ? RoomStatus.approvingNoResponse
           : RoomStatus.approving;
@@ -398,19 +398,6 @@ ${relays.join('\n')}
         toPubkey: onetimekey,
         sourceContent: sm.toString(),
         realMessage: sm.msg);
-  }
-
-  Future sendRejectMessage(Room room) async {
-    KeychatMessage sm =
-        KeychatMessage(c: MessageType.signal, type: KeyChatEventKinds.dmReject);
-
-    await RoomService.instance.sendTextMessage(
-      room,
-      sm.toString(),
-      realMessage: 'Reject',
-      encryptMode: EncryptMode.nip04,
-      isSystem: true,
-    );
   }
 
   Future _processReject(Room room, NostrEventModel event, KeychatMessage km,

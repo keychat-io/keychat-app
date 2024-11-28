@@ -836,14 +836,6 @@ class RoomService extends BaseChatService {
     var refresh = await MessageService.instance.setViewedMessage(roomId);
     if (refresh) homeController.loadIdentityRoomList(identityId);
   }
-
-  Future sendRejectMessage(Room room) async {
-    KeychatMessage sm =
-        KeychatMessage(c: MessageType.signal, type: KeyChatEventKinds.dmReject);
-
-    await NostrAPI.instance.sendNip17Message(room, room.getIdentity(),
-        sourceContent: sm.toString(), realMessage: 'Reject');
-  }
 }
 
 class SendMessageResponse {

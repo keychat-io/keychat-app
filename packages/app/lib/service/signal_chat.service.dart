@@ -400,19 +400,6 @@ ${relays.join('\n')}
         realMessage: sm.msg);
   }
 
-  Future sendRejectMessage(Room room) async {
-    KeychatMessage sm =
-        KeychatMessage(c: MessageType.signal, type: KeyChatEventKinds.dmReject);
-
-    await RoomService.instance.sendTextMessage(
-      room,
-      sm.toString(),
-      realMessage: 'Reject',
-      encryptMode: EncryptMode.nip04,
-      isSystem: true,
-    );
-  }
-
   Future _processReject(Room room, NostrEventModel event, KeychatMessage km,
       NostrEventModel? sourceEvent) async {
     room.status = RoomStatus.rejected;

@@ -709,7 +709,7 @@ class _ChatPage2State extends State<ChatPage> {
       crossAxisAlignment: WrapCrossAlignment.center,
       spacing: 10,
       children: [
-        const Text('Request to start secure chatting.'),
+        const Text('You have a friend request'),
         Wrap(
           runSpacing: 10,
           spacing: 30,
@@ -723,8 +723,7 @@ class _ChatPage2State extends State<ChatPage> {
                     await SignalChatService.instance.sendMessage(
                         room, RoomUtil.getHelloMessage(displayName));
                     room.status = RoomStatus.enabled;
-                    await RoomService.instance.updateRoom(room);
-                    controller.setRoom(room);
+                    await RoomService.instance.updateRoomAndRefresh(room);
                   }
                 } catch (e, s) {
                   EasyLoading.showError(e.toString());
@@ -741,8 +740,6 @@ class _ChatPage2State extends State<ChatPage> {
             FilledButton(
               onPressed: () async {
                 int identityId = controller.room.identityId;
-                await SignalChatService.instance
-                    .sendRejectMessage(controller.roomObs.value);
                 await RoomService.instance.deleteRoom(controller.roomObs.value);
                 Get.find<HomeController>().loadIdentityRoomList(identityId);
                 Get.back();
@@ -750,7 +747,7 @@ class _ChatPage2State extends State<ChatPage> {
               style: ButtonStyle(
                   backgroundColor: WidgetStateProperty.all(Colors.red)),
               child:
-                  const Text('Reject', style: TextStyle(color: Colors.white)),
+                  const Text('Ignore', style: TextStyle(color: Colors.white)),
             ),
           ],
         )
@@ -759,81 +756,13 @@ class _ChatPage2State extends State<ChatPage> {
   }
 
   Widget _requestingInputSection() {
-    return _inputSectionContainer(Wrap(
-      runSpacing: 10,
-      spacing: 30,
-      children: [
-        FilledButton(
-          onPressed: () async {
-            Get.dialog(CupertinoAlertDialog(
-              title: const Text('Waiting Approve'),
-              content: const Text(
-                  'Invitation has been sent, waiting for the his/her approval'),
-              actions: <Widget>[
-                CupertinoDialogAction(
-                  onPressed: () {
-                    Get.back();
-                  },
-                  child: const Text('OK'),
-                ),
-                CupertinoDialogAction(
-                  onPressed: () async {
-                    await RoomService.instance.createRoomAndsendInvite(
-                        controller.room.toMainPubkey,
-                        autoJump: false);
-                    Get.back();
-                  },
-                  child: const Text('Resend'),
-                ),
-              ],
-            ));
-          },
-          style: ButtonStyle(
-              backgroundColor: WidgetStateProperty.all(Colors.green)),
-          child:
-              const Text('Requesting', style: TextStyle(color: Colors.white)),
-        ),
-        OutlinedButton(
-          onPressed: () async {
-            Get.dialog(CupertinoAlertDialog(
-              title: const Text('Cancel Invitation'),
-              content: const Text('Are you sure to cancel this requesting?'),
-              actions: <Widget>[
-                CupertinoDialogAction(
-                  onPressed: () {
-                    Get.back();
-                  },
-                  child: const Text('Close'),
-                ),
-                CupertinoDialogAction(
-                  isDestructiveAction: true,
-                  onPressed: () async {
-                    Get.back();
-                    int id = controller.roomObs.value.identityId;
-                    await RoomService.instance
-                        .deleteRoom(controller.roomObs.value);
-                    await Get.find<HomeController>().loadIdentityRoomList(id);
-                    Get.back();
-                  },
-                  child: const Text('Cancel Invitation'),
-                ),
-              ],
-            ));
-          },
-          child: const Text('Cancel'),
-        ),
-        // OutlinedButton(
-        //   onPressed: () async {
-        //     controller.roomObs.value.status = RoomStatus.enabled;
-        //     await RoomService.instance
-        //         .updateRoomAndRefresh(controller.roomObs.value);
-        //     await Get.find<HomeController>()
-        //         .loadIdentityRoomList(controller.room.identityId);
-        //   },
-        //   child: const Text('Start Chat with Nostr Client'),
-        // ),
-      ],
-    ));
+    return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+        child: Text('Friend request sent. Waiting for their response.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                fontSize: 16)));
   }
 
   Room _getRoomAndInit(BuildContext context) {

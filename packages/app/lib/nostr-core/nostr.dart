@@ -259,10 +259,12 @@ class NostrAPI {
 
   Future<SendMessageResponse> sendNip17Message(
     Room room,
+    String sourceContent,
     Identity identity, {
-    required String sourceContent,
     String? toPubkey,
     String? realMessage,
+    MessageMediaType? mediaType,
+    MsgReply? reply,
     bool timestampTweaked = false, // use DateTime.now
     bool save = true,
   }) async {
@@ -277,6 +279,8 @@ class NostrAPI {
         room: room,
         encryptedEvent: result,
         from: identity.secp256k1PKHex,
+        mediaType: mediaType,
+        reply: reply,
         realMessage: realMessage,
         save: save);
   }

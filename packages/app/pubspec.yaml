@@ -87,6 +87,8 @@ dependencies:
   firebase_messaging: ^15.1.5
   firebase_crashlytics: ^4.1.5
   firebase_analytics: ^11.3.5
+  home_widget: ^0.7.0
+  workmanager: ^0.5.2
 
 dev_dependencies:
   flutter_test:

@@ -1,6 +1,5 @@
 import 'dart:convert' show jsonDecode;
 import 'dart:io' show File;
-import 'package:any_link_preview/any_link_preview.dart';
 import 'package:app/app.dart';
 import 'package:app/bot/bot_client_message_model.dart';
 import 'package:app/controller/chat.controller.dart';
@@ -11,11 +10,7 @@ import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/ForwardSelectRoom.dart';
 import 'package:app/page/chat/LongTextPreviewPage.dart';
 import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/page/chat/message_actions/BotOneTimePaymentRequestWidget.dart';
-import 'package:app/page/chat/message_actions/GroupInviteAction.dart';
-import 'package:app/page/chat/message_actions/SetRoomRelayAction.dart';
 import 'package:app/page/theme.dart';
-import 'package:app/page/widgets/image_preview_widget.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -27,13 +22,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 import 'package:haptic_feedback/haptic_feedback.dart';
-import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart';
 import 'package:settings_ui/settings_ui.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/db_provider.dart';
 import '../../service/file_util.dart';
@@ -42,11 +34,6 @@ import '../common.dart' show getFormatTimeForMessage;
 import '../components.dart';
 import 'chat_bubble.dart';
 import 'chat_bubble_clipper_4.dart';
-
-import 'message_actions/BotPricePerMessageRequestWidget.dart';
-import 'message_actions/FileMessageWidget.dart';
-import 'message_actions/GroupInviteConfirmAction.dart';
-import 'message_actions/VideoMessageWidget.dart';
 
 // ignore: must_be_immutable
 class MessageWidget extends StatelessWidget {
@@ -256,104 +243,6 @@ class MessageWidget extends StatelessWidget {
         : const SizedBox();
   }
 
-  // Widget getGifphyWidget(Message message) {
-  //   return CachedNetworkImage(
-  //       imageUrl: message.content,
-  //       httpHeaders: const {'accept': 'image/*'},
-  //       progressIndicatorBuilder: (context, url, downloadProgress) => const Row(
-  //             mainAxisAlignment: MainAxisAlignment.end,
-  //             children: [
-  //               Text('🤖Loading image'),
-  //               SpinKitFadingCircle(
-  //                 color: Color(0xfff0aa35),
-  //                 size: 25.0,
-  //               )
-  //             ],
-  //           ),
-  //       errorWidget: (context, url, error) => _getTextContainer(
-  //           getLinkify(message.content, fontColor),
-  //           isMeSend: message.isMeSend));
-  // }
-
-  Widget _getImageViewWidget(String content, MsgFileInfo fileInfo,
-      Function(String text) textCallback) {
-    if (fileInfo.updateAt != null &&
-        fileInfo.status == FileStatus.downloading) {
-      bool isTimeout = DateTime.now()
-          .subtract(const Duration(seconds: 60))
-          .isAfter(fileInfo.updateAt!);
-      if (isTimeout) {
-        fileInfo.status = FileStatus.failed;
-      }
-    }
-    switch (fileInfo.status) {
-      case FileStatus.downloading:
-        return Row(children: [
-          textCallback('Loading...'),
-          const SpinKitFadingCircle(
-            color: Color(0xfff0aa35),
-            size: 25.0,
-          )
-        ]);
-      case FileStatus.decryptSuccess:
-        return fileInfo.localPath == null
-            ? textCallback('[Image Loading]')
-            : ImagePreviewWidget(
-                localPath: fileInfo.localPath!,
-                cc: chatController,
-                textCallback: textCallback);
-      case FileStatus.failed:
-        return Row(
-          children: [
-            textCallback('[Image Crashed]'),
-            SizedBox(
-                height: 30,
-                child: IconButton(
-                    iconSize: 18,
-                    onPressed: () {
-                      EasyLoading.showToast('Start downloading');
-                      message.isRead = true;
-                      FileUtils.downloadForMessage(message, fileInfo);
-                    },
-                    icon: const Icon(
-                      Icons.refresh,
-                    )))
-          ],
-        );
-      default:
-        return textCallback('[Image Crashed]');
-    }
-  }
-
-  Widget getMarkdownView(String text) {
-    return MarkdownBody(
-        data: text,
-        selectable: false,
-        softLineBreak: true,
-        onTapLink: (text, href, title) {
-          if (href != null) {
-            Utils.hideKeyboard(Get.context!);
-            launchUrl(Uri.parse(href));
-          }
-        },
-        styleSheetTheme: MarkdownStyleSheetBaseTheme.cupertino,
-        styleSheet: markdownStyleSheet);
-    // return Linkify(
-    //   onOpen: (link) {
-    //     final Uri uri = Uri.parse(link.url);
-    //     Utils.hideKeyboard(Get.context!);
-    //     launchUrl(uri);
-    //     return;
-    //   },
-    //   style: Theme.of(Get.context!)
-    //       .textTheme
-    //       .bodyLarge
-    //       ?.copyWith(color: fontColor, fontSize: 16),
-    //   text: text,
-    //   linkStyle: const TextStyle(decoration: TextDecoration.none, fontSize: 15),
-    // );
-  }
-
   Widget? getMessageStatus() {
     if (!message.isMeSend) return null;
 
@@ -433,50 +322,13 @@ class MessageWidget extends StatelessWidget {
         ));
   }
 
-  Widget getTextViewWidget() {
-    try {
-      switch (message.mediaType) {
-        case MessageMediaType.text:
-          return _getTextItemView();
-        case MessageMediaType.video:
-          return VideoMessageWidget(message, _textCallback);
-        case MessageMediaType.image:
-          return _imageTextView();
-        case MessageMediaType.file:
-          return FileMessageWidget(message, _textCallback);
-        case MessageMediaType.cashuA:
-          if (message.cashuInfo != null) {
-            return RedPocket(
-                key: Key('mredpocket:${message.id}'), message: message);
-          }
-        case MessageMediaType.setPostOffice:
-          return _getActionWidget(SetRoomRelayAction(chatController, message));
-        case MessageMediaType.groupInvite:
-          return _getActionWidget(
-              GroupInviteAction(message, chatController.room.getIdentity()));
-        case MessageMediaType.groupInviteConfirm:
-          return _getActionWidget(GroupInviteConfirmAction(
-              chatController.room.getRoomName(), message));
-        // bot
-        case MessageMediaType.botPricePerMessageRequest:
-          return _getActionWidget(
-              BotPricePerMessageRequestWidget(chatController, message));
-        case MessageMediaType.botOneTimePaymentRequest:
-          return _getActionWidget(
-              BotOneTimePaymentRequestWidget(chatController, message));
-        default:
-      }
-    } catch (e, s) {
-      logger.e('sub content: ', error: e, stackTrace: s);
-    }
-
-    return _getTextItemView();
-  }
-
   Widget _getMessageContainer() {
     var child = GestureDetector(
         onLongPress: _handleTextLongPress,
-        child: message.reply == null ? getTextViewWidget() : _getReplyWidget());
+        child: message.reply == null
+            ? RoomUtil.getTextViewWidget(
+                message, chatController, markdownStyleSheet, _textCallback)
+            : _getReplyWidget());
 
     if (message.isMeSend) {
       Widget? messageStatus = getMessageStatus();
@@ -660,22 +512,6 @@ class MessageWidget extends StatelessWidget {
     );
   }
 
-  Widget _getLinkPreviewWidget(Message message) {
-    String content = message.content;
-    return AnyLinkPreview(
-        key: Key(content),
-        cache: const Duration(days: 7),
-        link: content,
-        onTap: () {
-          Utils.hideKeyboard(Get.context!);
-          launchUrl(Uri.parse(content));
-        },
-        placeholderWidget: _getTextContainer(getMarkdownView(content)),
-        showMultimedia: false,
-        errorBody: '',
-        errorWidget: _getTextContainer(getMarkdownView(content)));
-  }
-
   Widget _getReplyWidget() {
     Widget? subTitleChild;
     if (message.reply!.id == null) {
@@ -696,7 +532,8 @@ class MessageWidget extends StatelessWidget {
       if (msg != null) {
         if (msg.mediaType == MessageMediaType.image) {
           MsgFileInfo mfi = MsgFileInfo.fromJson(jsonDecode(msg.realMessage!));
-          subTitleChild = _getImageViewWidget(msg.content, mfi, _textCallback);
+          subTitleChild = RoomUtil.getImageViewWidget(
+              msg, chatController, mfi, _textCallback);
         } else {
           String content = msg.mediaType == MessageMediaType.text
               ? (msg.realMessage ?? msg.content)
@@ -711,7 +548,8 @@ class MessageWidget extends StatelessWidget {
       }
     }
 
-    return _getTextContainer(Column(
+    return _textCallback(
+        child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
@@ -722,11 +560,7 @@ class MessageWidget extends StatelessWidget {
                     : Theme.of(Get.context!).colorScheme.surface)
                 .withOpacity(0.5),
             border: Border(
-              left: BorderSide(
-                color: Colors.purple.shade200,
-                width: 2.0,
-              ),
-            ),
+                left: BorderSide(color: Colors.purple.shade200, width: 2.0)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -746,54 +580,29 @@ class MessageWidget extends StatelessWidget {
             ],
           ),
         ),
-        getMarkdownView(message.realMessage ?? message.content)
+        RoomUtil.getMarkdownView(
+            message.realMessage ?? message.content, markdownStyleSheet)
       ],
     ));
   }
 
-  _getTextContainer(Widget child) {
+  Widget _textCallback({String? text, Widget? child}) {
+    child ??= Text(text ?? 'null', style: TextStyle(color: fontColor));
     return GestureDetector(
       onDoubleTap: messageOnDoubleTap,
       child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: screenWidth,
-          ),
+          constraints: BoxConstraints(maxWidth: screenWidth),
           child: ChatBubble(
-            clipper: ChatBubbleClipper4(
-                type: message.isMeSend
-                    ? BubbleType.sendBubble
-                    : BubbleType.receiverBubble),
-            alignment:
-                message.isMeSend ? Alignment.centerRight : Alignment.centerLeft,
-            backGroundColor: backgroundColor,
-            child: child,
-          )),
+              clipper: ChatBubbleClipper4(
+                  type: message.isMeSend
+                      ? BubbleType.sendBubble
+                      : BubbleType.receiverBubble),
+              alignment: message.isMeSend
+                  ? Alignment.centerRight
+                  : Alignment.centerLeft,
+              backGroundColor: backgroundColor,
+              child: child)),
     );
-  }
-
-  _getTextItemView() {
-    if (AnyLinkPreview.isValidLink(message.content) &&
-        !isEmail(message.content)) {
-      return _getLinkPreviewWidget(message);
-    }
-    return _getTextContainer(
-        getMarkdownView(message.realMessage ?? message.content));
-  }
-
-  _textCallback(String text) {
-    return _getTextContainer(Text(text, style: TextStyle(color: fontColor)));
-  }
-
-  Widget _imageTextView() {
-    if (message.realMessage != null) {
-      try {
-        var mfi = MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
-        return _getImageViewWidget(message.content, mfi, _textCallback);
-        // ignore: empty_catches
-      } catch (e) {}
-    }
-
-    return _textCallback('[Image Crashed]');
   }
 
   Future<void> _showDeleteDialog(Message message) async {
@@ -1011,29 +820,9 @@ class MessageWidget extends StatelessWidget {
             )));
   }
 
-  Widget _getActionWidget(Widget child) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [_getTextItemView(), const SizedBox(height: 10), child],
-    );
-  }
-
   void _handleForward(BuildContext context) async {
-    List<dynamic> list =
-        Get.find<HomeController>().tabBodyDatas[message.identityId]?.rooms ??
-            [];
-    if (list.isEmpty) return;
-
-    List<Room> rooms = [];
-    for (var i = 0; i < list.length; i++) {
-      if (list[i] is String) continue;
-      if (list[i] is List<Room>) {
-        rooms.addAll(list[i] as List<Room>);
-      }
-      if (list[i] is Room) {
-        rooms.add(list[i] as Room);
-      }
-    }
+    List<Room> rooms =
+        Get.find<HomeController>().getRoomsByIdentity(message.identityId);
 
     String content = message.mediaType == MessageMediaType.text
         ? (message.realMessage ?? message.content)

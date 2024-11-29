@@ -12,8 +12,8 @@ import 'package:get/get.dart';
 
 class VideoMessageWidget extends StatefulWidget {
   final Message message;
-  final Function(String text) textCallback;
-  const VideoMessageWidget(this.message, this.textCallback, {super.key});
+  final Widget Function({Widget? child, String? text}) errorCallback;
+  const VideoMessageWidget(this.message, this.errorCallback, {super.key});
 
   @override
   _VideoMessageWidgetState createState() => _VideoMessageWidgetState();
@@ -96,8 +96,9 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
     if (fileStatus == FileStatus.init || fileStatus == FileStatus.failed) {
       return Row(
         children: [
-          widget.textCallback(
-              '[Video File]:  ${fileStatus == FileStatus.failed ? 'Download Failed' : FileUtils.getFileSizeDisplay(msgFileInfo?.size ?? 0)}'),
+          widget.errorCallback(
+              text:
+                  '[Video File]:  ${fileStatus == FileStatus.failed ? 'Download Failed' : FileUtils.getFileSizeDisplay(msgFileInfo?.size ?? 0)}'),
           IconButton(
             onPressed: () {
               if (msgFileInfo == null) return;
@@ -122,7 +123,7 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
     if (fileStatus == FileStatus.downloading) {
       return Row(
         children: [
-          widget.textCallback('[Downloading]: $downloadProgress%'),
+          widget.errorCallback(text: '[Downloading]: $downloadProgress%'),
           IconButton(
             onPressed: () {},
             icon: Icon(

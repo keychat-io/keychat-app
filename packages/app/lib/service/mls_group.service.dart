@@ -1,3 +1,4 @@
+import 'dart:collection' as collection;
 import 'dart:convert' show base64, jsonDecode, jsonEncode;
 
 import 'package:app/constants.dart';
@@ -23,11 +24,12 @@ import 'package:app/service/room.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show Uint8List;
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_mls.dart' as rust_mls;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
+import 'package:queue/queue.dart';
 
 class MlsGroupService extends BaseChatService {
   static MlsGroupService? _instance;
@@ -128,16 +130,6 @@ $error ''';
         mlsWelcome: jsonEncode([mlsGroupInfo, welcomeMsg]));
 
     return room;
-  }
-
-  Future<Room> replaceListenPubkey(Room room, String secp256k1PKHex) async {
-    Uint8List secret = await rust_mls.getExportSecret(
-        nostrId: secp256k1PKHex, groupId: room.toMainPubkey);
-    String newPubkey =
-        await rust_nostr.generateSeedFromKey(seedKey: List<int>.from(secret));
-    if (newPubkey == room.onetimekey) return room;
-    return await room.replaceListenPubkey(
-        newPubkey, room.version, room.onetimekey);
   }
 
   Future<String> createKeyMessages(String pubkey) async {
@@ -249,6 +241,25 @@ $error ''';
     return {};
   }
 
+  Future<String> getShareInfo(Room room) async {
+    var map = {
+      'name': room.name,
+      'pubkey': room.toMainPubkey,
+      'type': room.groupType.name,
+      'myPubkey': room.myIdPubkey,
+      'time': DateTime.now().millisecondsSinceEpoch
+    };
+
+    String contentToSign =
+        jsonEncode([map['pubkey'], map['type'], map['myPubkey'], map['time']]);
+    String signature = await rust_nostr.signSchnorr(
+        senderKeys: await room.getIdentity().getSecp256k1SKHex(),
+        content: contentToSign);
+    map['signature'] = signature;
+
+    return jsonEncode(map);
+  }
+
   Future initDB(String path) async {
     dbPath = path;
     await initIdentities();
@@ -313,6 +324,19 @@ $error ''';
     await proccessUpdateKeys(room, roomProfile);
   }
 
+  Future memberProccessUpdateKey(Room room, KeychatMessage km) async {
+    Uint8List welcome = base64.decode(km.name!);
+    await rust_mls.othersCommitNormal(
+        nostrId: room.myIdPubkey,
+        groupId: room.toMainPubkey,
+        queuedMsg: welcome);
+    try {
+      await replaceListenPubkey(room, room.myIdPubkey);
+    } catch (e) {
+      logger.e(e.toString(), error: e);
+    }
+  }
+
   @override
   Future proccessMessage(
       {required Room room,
@@ -322,6 +346,7 @@ $error ''';
       String? msgKeyHash,
       String? fromIdPubkey,
       required KeychatMessage km}) async {
+    MessageMediaType? mediaType;
     switch (km.type) {
       case KeyChatEventKinds.groupHelloMessage:
         await _proccessHelloMessage(room, event, km,
@@ -379,6 +404,8 @@ $error ''';
       case KeyChatEventKinds.groupUpdateKeys:
         await memberProccessUpdateKey(room, km);
         break;
+      case KeyChatEventKinds.groupInvitationInfo:
+        mediaType = MessageMediaType.groupInvitationInfo;
       default:
         return await RoomService.instance.receiveDM(room, event,
             sourceEvent: sourceEvent,
@@ -393,7 +420,8 @@ $error ''';
         isSystem: true,
         fromIdPubkey: fromIdPubkey,
         encryptType: MessageEncryptType.mls,
-        msgKeyHash: msgKeyHash);
+        msgKeyHash: msgKeyHash,
+        mediaType: mediaType);
   }
 
   Future<Room> proccessUpdateKeys(
@@ -447,6 +475,16 @@ $error ''';
         nostrId: identity.secp256k1PKHex, groupId: room.toMainPubkey);
     room = await replaceListenPubkey(room, identity.secp256k1PKHex);
     RoomService.getController(room.id)?.setRoom(room).resetMembers();
+  }
+
+  Future<Room> replaceListenPubkey(Room room, String secp256k1PKHex) async {
+    Uint8List secret = await rust_mls.getExportSecret(
+        nostrId: secp256k1PKHex, groupId: room.toMainPubkey);
+    String newPubkey =
+        await rust_nostr.generateSeedFromKey(seedKey: List<int>.from(secret));
+    if (newPubkey == room.onetimekey) return room;
+    return await room.replaceListenPubkey(
+        newPubkey, room.version, room.onetimekey);
   }
 
   Future selfUpdateKey(Room room) async {
@@ -514,6 +552,48 @@ $error ''';
       }
     });
     return smr;
+  }
+
+  Future sendPrivateMessageToPubkeys(
+      {required String message,
+      required String realMessage,
+      required List<Room> rooms,
+      required Identity identity,
+      bool save = true,
+      MessageMediaType? mediaType}) async {
+    final queue = Queue(parallel: 5);
+    var todo = collection.Queue.from(rooms);
+    int membersLength = todo.length;
+    for (int i = 0; i < membersLength; i++) {
+      queue.add(() async {
+        if (todo.isEmpty) return;
+        Room room = todo.removeFirst();
+        if (room.toMainPubkey == identity.secp256k1PKHex) return;
+        await RoomService.instance.sendTextMessage(room, message,
+            realMessage: realMessage, save: save, mediaType: mediaType);
+      });
+    }
+    await queue.onComplete;
+  }
+
+  Future shareToFriends(
+      Room room, List<Room> toUsers, String realMessage) async {
+    var map = {
+      'name': room.name,
+      'pubkey': room.toMainPubkey,
+      'sender': room.myIdPubkey,
+      'time': DateTime.now().millisecondsSinceEpoch
+    };
+    KeychatMessage sm = KeychatMessage(
+        c: MessageType.mls, type: KeyChatEventKinds.groupInvitationInfo)
+      ..name = jsonEncode(map)
+      ..msg = realMessage;
+    await sendPrivateMessageToPubkeys(
+        message: sm.toString(),
+        realMessage: sm.msg!,
+        rooms: toUsers,
+        identity: room.getIdentity(),
+        mediaType: MessageMediaType.groupInvitationInfo);
   }
 
   Future updateMlsPK(Identity identity, String pk) async {
@@ -658,19 +738,6 @@ $error ''';
         await Storage.setInt('mlspk:${identity.secp256k1PKHex}',
             DateTime.now().millisecondsSinceEpoch);
       }
-    }
-  }
-
-  Future memberProccessUpdateKey(Room room, KeychatMessage km) async {
-    Uint8List welcome = base64.decode(km.name!);
-    await rust_mls.othersCommitNormal(
-        nostrId: room.myIdPubkey,
-        groupId: room.toMainPubkey,
-        queuedMsg: welcome);
-    try {
-      await replaceListenPubkey(room, room.myIdPubkey);
-    } catch (e) {
-      logger.e(e.toString(), error: e);
     }
   }
 }

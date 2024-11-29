@@ -1,4 +1,5 @@
 import 'package:app/app.dart';
+import 'package:app/page/chat/ForwardSelectRoom.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/message_bill/pay_to_relay_page.dart';
 import 'package:app/service/mls_group.service.dart';
@@ -115,6 +116,26 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                 platform: DevicePlatform.iOS,
                 sections: [
                   SettingsSection(tiles: [
+                    if (chatController.roomObs.value.isMLSGroup)
+                      SettingsTile(
+                          title: const Text("Share To Friends"),
+                          leading: const Icon(CupertinoIcons.share),
+                          onPressed: (context) async {
+                            List<Room> rooms = Get.find<HomeController>()
+                                .getRoomsByIdentity(
+                                    chatController.roomObs.value.identityId);
+                            String realMessage =
+                                '[System] Invite you to join group: ${chatController.roomObs.value.name}';
+                            Room? forwardRoom = await Get.to(
+                                () => ForwardSelectRoom(rooms, realMessage),
+                                fullscreenDialog: true,
+                                transition: Transition.downToUp);
+                            if (forwardRoom == null) return;
+                            await MlsGroupService.instance.shareToFriends(
+                                chatController.roomObs.value,
+                                [forwardRoom],
+                                realMessage);
+                          }),
                     SettingsTile(
                         title: const Text("ID"),
                         leading: const Icon(CupertinoIcons.person_3),

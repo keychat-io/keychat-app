@@ -82,6 +82,7 @@ Widget getAvatorByName(String account,
     double fontSize = 16,
     Room? room,
     double borderRadius = 100,
+    int nameLength = 2,
     List<Color>? backgroudColors}) {
   return Container(
       width: width,
@@ -93,7 +94,7 @@ Widget getAvatorByName(String account,
                 [const Color(0xff713CD0), const Color(0xff945BF3)]),
       ),
       child: Center(
-        child: Text(regrexLetter(account, 2).toUpperCase(),
+        child: Text(regrexLetter(account, nameLength).toUpperCase(),
             style: TextStyle(fontSize: fontSize, color: Colors.white)),
       ));
 }

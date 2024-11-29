@@ -413,6 +413,24 @@ class HomeController extends GetxController
     });
   }
 
+  List<Room> getRoomsByIdentity(int identityId) {
+    List<dynamic> list =
+        Get.find<HomeController>().tabBodyDatas[identityId]?.rooms ?? [];
+    if (list.isEmpty) return [];
+
+    List<Room> rooms = [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i] is String) continue;
+      if (list[i] is List<Room>) {
+        rooms.addAll(list[i] as List<Room>);
+      }
+      if (list[i] is Room) {
+        rooms.add(list[i] as Room);
+      }
+    }
+    return rooms;
+  }
+
   Future<void> removeBadge() async {
     if (!GetPlatform.isMobile) return;
     try {

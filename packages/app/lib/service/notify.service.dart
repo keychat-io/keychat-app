@@ -146,7 +146,20 @@ class NotifyService {
     }
   }
 
-  static Future init(bool showDialog) async {
+  static requestPremissionAndInit() async {
+    await FirebaseMessaging.instance.requestPermission(
+      alert: true,
+      announcement: false,
+      badge: true,
+      carPlay: false,
+      criticalAlert: false,
+      provisional: false,
+      sound: true,
+    );
+    init();
+  }
+
+  static Future init() async {
     var settings = await FirebaseMessaging.instance.getNotificationSettings();
     logger.i('Notification Status: ${settings.authorizationStatus.name}');
     // app setting
@@ -160,20 +173,6 @@ class NotifyService {
     if (settingNotifyStatus == NotifySettingStatus.disable && !notDetermined) {
       homeController.notificationStatus.value = false;
       return;
-    }
-
-    // user setting
-    if (settings.authorizationStatus == AuthorizationStatus.notDetermined &&
-        showDialog) {
-      settings = await FirebaseMessaging.instance.requestPermission(
-        alert: true,
-        announcement: false,
-        badge: true,
-        carPlay: false,
-        criticalAlert: false,
-        provisional: false,
-        sound: true,
-      );
     }
 
     if (settings.authorizationStatus == AuthorizationStatus.denied) {
@@ -259,6 +258,7 @@ Fix:
 
   static Future updateUserSetting(bool status) async {
     Get.find<HomeController>().notificationStatus.value = status;
+    Get.find<HomeController>().notificationStatus.refresh();
     int intStatus = status ? 1 : -1;
     await Storage.setInt(StorageKeyString.settingNotifyStatus, intStatus);
     if (status) {

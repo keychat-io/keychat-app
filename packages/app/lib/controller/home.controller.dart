@@ -13,6 +13,7 @@ import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+
 import 'package:dio/dio.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:easy_debounce/easy_throttle.dart';
@@ -137,7 +138,9 @@ class HomeController extends GetxController
       case AppLifecycleState.paused:
         resumed = false;
         pausedTime = DateTime.now();
-        _stopConnectHeartbeat();
+        if (GetPlatform.isMobile) {
+          _stopConnectHeartbeat();
+        }
         break;
       case AppLifecycleState.detached:
         // app been killed
@@ -379,9 +382,7 @@ class HomeController extends GetxController
     List<Identity> mys = await loadRoomList(init: true);
 
     // Ecash Init
-    bool showNotificationDialog = false;
     if (mys.isNotEmpty) {
-      showNotificationDialog = true;
       Get.find<EcashController>().initIdentity(mys[0]);
     } else {
       Get.find<EcashController>().initWithoutIdentity();
@@ -392,7 +393,7 @@ class HomeController extends GetxController
     // show dot on add friends menu
     initTips(StorageKeyString.tipsAddFriends, addFriendTips);
 
-    NotifyService.init(showNotificationDialog).catchError((e, s) {
+    NotifyService.init().catchError((e, s) {
       logger.e('initNotifycation error', error: e, stackTrace: s);
     });
     // listen network status https://pub.dev/packages/connectivity_plus

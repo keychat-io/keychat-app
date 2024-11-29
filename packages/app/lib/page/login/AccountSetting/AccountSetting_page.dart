@@ -83,6 +83,13 @@ class AccountSettingPage extends GetView<AccountSettingController> {
               sections: [
                 SettingsSection(
                   tiles: [
+                    if (kDebugMode)
+                      SettingsTile(
+                        leading: const Icon(CupertinoIcons.person),
+                        title: const Text("Hex"),
+                        value: Text(getPublicKeyDisplay(
+                            controller.identity.value.secp256k1PKHex)),
+                      ),
                     SettingsTile.navigation(
                       leading: const Icon(CupertinoIcons.qrcode),
                       title: const Text("QR Code"),

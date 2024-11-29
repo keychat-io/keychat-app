@@ -599,17 +599,12 @@ class RoomService extends BaseChatService {
 
       String sm =
           KeychatMessage.getTextMessage(MessageType.nip04, content, reply);
-      map = await NostrAPI.instance.sendNip4Message(
-          toAddress ?? room.toMainPubkey, sm,
-          prikey: await identity.getSecp256k1SKHex(),
-          from: identity.secp256k1PKHex,
-          room: room,
-          reply: reply,
+      map = await NostrAPI.instance.sendNip17Message(room, sm, identity,
+          toPubkey: toAddress ?? room.toMainPubkey,
           save: save,
           realMessage: realMessageContent,
-          mediaType: mediaType,
-          encryptType: MessageEncryptType.nip4,
-          isSystem: isSystem);
+          reply: reply,
+          mediaType: mediaType);
     } else {
       String sm = realMessage == null
           ? KeychatMessage.getTextMessage(MessageType.signal, content, reply)
@@ -668,13 +663,12 @@ class RoomService extends BaseChatService {
         logger.e('send signal message to bot error', error: e);
       }
     }
-    return await NostrAPI.instance.sendNip4Message(
-        room.toMainPubkey, toSendMessage,
-        prikey: await identity.getSecp256k1SKHex(),
-        from: identity.secp256k1PKHex,
-        room: room,
-        realMessage: realMessage ?? message,
-        encryptType: MessageEncryptType.nip4);
+    return await NostrAPI.instance.sendNip17Message(
+      room,
+      toSendMessage,
+      identity,
+      realMessage: realMessage ?? message,
+    );
   }
 
   Future<ChatController?> updateChatRoomPage(Room room) async {

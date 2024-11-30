@@ -7,7 +7,8 @@ import 'package:get/get.dart';
 class ForwardSelectRoom extends StatefulWidget {
   final List<Room> rooms;
   final String message;
-  const ForwardSelectRoom(this.rooms, this.message, {super.key});
+  final String title;
+  const ForwardSelectRoom(this.rooms, this.message, this.title, {super.key});
 
   @override
   _ForwardSelectRoomState createState() => _ForwardSelectRoomState();
@@ -50,7 +51,7 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
             onPressed: () => Navigator.pop(context),
             child: const Icon(Icons.close),
           ),
-          title: const Text('Select Chat'),
+          title: Text(widget.title),
         ),
         body: Column(children: <Widget>[
           Padding(

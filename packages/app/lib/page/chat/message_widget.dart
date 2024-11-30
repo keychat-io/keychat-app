@@ -827,8 +827,10 @@ class MessageWidget extends StatelessWidget {
     String content = message.mediaType == MessageMediaType.text
         ? (message.realMessage ?? message.content)
         : '[${message.mediaType.name}]';
-    Room? forwardRoom = await Get.to(() => ForwardSelectRoom(rooms, content),
-        fullscreenDialog: true, transition: Transition.downToUp);
+    Room? forwardRoom = await Get.to(
+        () => ForwardSelectRoom(rooms, content, 'Select a Chat'),
+        fullscreenDialog: true,
+        transition: Transition.downToUp);
     Get.back();
     if (forwardRoom == null) return;
     EasyLoading.show(status: 'Sending...');

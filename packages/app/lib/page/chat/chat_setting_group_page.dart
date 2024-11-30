@@ -68,6 +68,26 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
           title: Obx(() => Text(
               "${chatController.roomObs.value.name ?? ""}(${chatController.enableMembers.length})")),
           actions: [
+            if (chatController.roomObs.value.isMLSGroup)
+              IconButton(
+                  icon: const Icon(CupertinoIcons.share),
+                  onPressed: () async {
+                    List<Room> rooms = Get.find<HomeController>()
+                        .getRoomsByIdentity(
+                            chatController.roomObs.value.identityId);
+                    String realMessage =
+                        'Invite you to join group: ${chatController.roomObs.value.name}';
+                    Room? forwardRoom = await Get.to(
+                        () => ForwardSelectRoom(
+                            rooms, realMessage, 'Share to Friends'),
+                        fullscreenDialog: true,
+                        transition: Transition.downToUp);
+                    if (forwardRoom == null) return;
+                    await MlsGroupService.instance.shareToFriends(
+                        chatController.roomObs.value,
+                        [forwardRoom],
+                        realMessage);
+                  }),
             IconButton(
                 onPressed: () async {
                   List<RoomMember> members =
@@ -116,26 +136,6 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                 platform: DevicePlatform.iOS,
                 sections: [
                   SettingsSection(tiles: [
-                    if (chatController.roomObs.value.isMLSGroup)
-                      SettingsTile(
-                          title: const Text("Share To Friends"),
-                          leading: const Icon(CupertinoIcons.share),
-                          onPressed: (context) async {
-                            List<Room> rooms = Get.find<HomeController>()
-                                .getRoomsByIdentity(
-                                    chatController.roomObs.value.identityId);
-                            String realMessage =
-                                'Invite you to join group: ${chatController.roomObs.value.name}';
-                            Room? forwardRoom = await Get.to(
-                                () => ForwardSelectRoom(rooms, realMessage),
-                                fullscreenDialog: true,
-                                transition: Transition.downToUp);
-                            if (forwardRoom == null) return;
-                            await MlsGroupService.instance.shareToFriends(
-                                chatController.roomObs.value,
-                                [forwardRoom],
-                                realMessage);
-                          }),
                     SettingsTile(
                         title: const Text("ID"),
                         leading: const Icon(CupertinoIcons.person_3),

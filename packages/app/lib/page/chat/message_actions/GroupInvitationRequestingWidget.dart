@@ -91,7 +91,7 @@ class GroupInvitationRequestingWidget extends StatelessWidget {
                           users,
                           chatController.room.getIdentity().displayName);
 
-                      message.requestConfrim = RequestConfrimEnum.expired;
+                      message.requestConfrim = RequestConfrimEnum.approved;
                       message.isRead = true;
                       await MessageService.instance
                           .updateMessageAndRefresh(message);

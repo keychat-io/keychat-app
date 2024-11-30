@@ -945,25 +945,21 @@ class GroupService extends BaseChatService {
         String hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: rm.idPubkey);
         if (identity.secp256k1PKHex == hexPubkey) return;
         Room? room =
-            await roomService.getRoom(hexPubkey, identity.secp256k1PKHex);
-        late SendMessageResponse smr;
-        if (room != null) {
-          smr = await RoomService.instance.sendTextMessage(room, km.toString(),
-              realMessage: realMessage, save: false);
-          var toSaveEvent = smr.events[0];
-          toSaveEvent.toIdPubkey = rm.idPubkey;
-          await RoomService.instance.receiveDM(groupRoom, toSaveEvent,
-              fromIdPubkey: identity.secp256k1PKHex,
-              decodedContent: km.toString(),
-              msgKeyHash: smr.msgKeyHash,
-              realMessage:
-                  'Send private message to [${rm.name}]: $realMessage');
-        } else {
+            await roomService.getRoomByIdentity(hexPubkey, identity.id);
+        if (room == null) {
+          room = await RoomService.instance.createRoomAndsendInvite(hexPubkey,
+              identity: identity, autoJump: false);
+          await Future.delayed(const Duration(seconds: 1));
+        }
+        if (room == null) {
           await NostrAPI.instance.sendNip17Message(groupRoom, identity,
               toPubkey: rm.idPubkey,
               sourceContent: km.toString(),
               realMessage: realMessage);
+          return;
         }
+        await RoomService.instance.sendTextMessage(room, km.toString(),
+            realMessage: realMessage, save: true);
       });
     }
     await queue.onComplete;

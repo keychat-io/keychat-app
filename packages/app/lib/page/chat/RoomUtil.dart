@@ -16,6 +16,7 @@ import 'package:app/page/chat/message_actions/BotOneTimePaymentRequestWidget.dar
 import 'package:app/page/chat/message_actions/BotPricePerMessageRequestWidget.dart';
 import 'package:app/page/chat/message_actions/FileMessageWidget.dart';
 import 'package:app/page/chat/message_actions/GroupInvitationInfoWidget.dart';
+import 'package:app/page/chat/message_actions/GroupInvitationRequestingWidget.dart';
 import 'package:app/page/chat/message_actions/GroupInviteAction.dart';
 import 'package:app/page/chat/message_actions/GroupInviteConfirmAction.dart';
 import 'package:app/page/chat/message_actions/SetRoomRelayAction.dart';
@@ -824,6 +825,9 @@ Let's start an encrypted chat.''';
               errorCallback);
         case MessageMediaType.groupInvitationInfo:
           return GroupInvitationInfoWidget(
+              chatController, message, errorCallback);
+        case MessageMediaType.groupInvitationRequesting:
+          return GroupInvitationRequestingWidget(
               chatController, message, errorCallback);
         default:
       }

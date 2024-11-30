@@ -7,6 +7,8 @@ import 'package:app/global.dart';
 import 'package:app/models/db_provider.dart';
 import 'package:app/models/embedded/msg_reply.dart';
 import 'package:app/models/identity.dart';
+import 'package:app/models/keychat/group_invitation_model.dart';
+import 'package:app/models/keychat/group_invitation_request_model.dart';
 import 'package:app/models/keychat/keychat_message.dart';
 import 'package:app/models/keychat/room_profile.dart';
 import 'package:app/models/message.dart';
@@ -406,6 +408,10 @@ $error ''';
         break;
       case KeyChatEventKinds.groupInvitationInfo:
         mediaType = MessageMediaType.groupInvitationInfo;
+        break;
+      case KeyChatEventKinds.groupInvitationRequesting:
+        mediaType = MessageMediaType.groupInvitationRequesting;
+        break;
       default:
         return await RoomService.instance.receiveDM(room, event,
             sourceEvent: sourceEvent,
@@ -578,15 +584,15 @@ $error ''';
 
   Future shareToFriends(
       Room room, List<Room> toUsers, String realMessage) async {
-    var map = {
-      'name': room.name,
-      'pubkey': room.toMainPubkey,
-      'sender': room.myIdPubkey,
-      'time': DateTime.now().millisecondsSinceEpoch
-    };
+    GroupInvitationModel gim = GroupInvitationModel(
+        name: room.name ?? room.toMainPubkey,
+        pubkey: room.toMainPubkey,
+        sender: room.myIdPubkey,
+        time: DateTime.now().millisecondsSinceEpoch,
+        sig: '');
     KeychatMessage sm = KeychatMessage(
         c: MessageType.mls, type: KeyChatEventKinds.groupInvitationInfo)
-      ..name = jsonEncode(map)
+      ..name = gim.toString()
       ..msg = realMessage;
     await sendPrivateMessageToPubkeys(
         message: sm.toString(),
@@ -611,8 +617,7 @@ $error ''';
   }
 
   Future uploadPKByIdentity(Identity identity) async {
-    String mlkPK = await MlsGroupService.instance
-        .createKeyMessages(identity.secp256k1PKHex);
+    String mlkPK = await createKeyMessages(identity.secp256k1PKHex);
     bool success = await updateMlsPK(identity, mlkPK);
     if (success) {
       await Storage.setInt('mlspk:${identity.secp256k1PKHex}',
@@ -739,5 +744,37 @@ $error ''';
             DateTime.now().millisecondsSinceEpoch);
       }
     }
+  }
+
+  Future sendJoinGroupRequest(
+      GroupInvitationModel gim, Identity identity) async {
+    if (gim.pubkey == identity.secp256k1PKHex) {
+      throw Exception('You are already in this group');
+    }
+    String mlkPK = await createKeyMessages(identity.secp256k1PKHex);
+    GroupInvitationRequestModel girm = GroupInvitationRequestModel(
+        name: gim.name,
+        roomPubkey: gim.pubkey,
+        myPubkey: identity.secp256k1PKHex,
+        myName: identity.displayName,
+        time: DateTime.now().millisecondsSinceEpoch,
+        mlsPK: mlkPK,
+        sig: '');
+    Room? room =
+        await RoomService.instance.getRoomByIdentity(gim.sender, identity.id);
+    if (room == null) {
+      room = await RoomService.instance.createRoomAndsendInvite(gim.sender,
+          identity: identity, autoJump: false);
+      await Future.delayed(const Duration(seconds: 1));
+    }
+    if (room == null) {
+      throw Exception('Room not found or create failed');
+    }
+    KeychatMessage sm = KeychatMessage(
+        c: MessageType.mls, type: KeyChatEventKinds.groupInvitationRequesting)
+      ..name = girm.toString()
+      ..msg = 'Request to join group: ${gim.name}';
+    await RoomService.instance
+        .sendTextMessage(room, sm.toString(), realMessage: sm.msg);
   }
 }

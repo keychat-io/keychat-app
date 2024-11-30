@@ -125,7 +125,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                                 .getRoomsByIdentity(
                                     chatController.roomObs.value.identityId);
                             String realMessage =
-                                '[System] Invite you to join group: ${chatController.roomObs.value.name}';
+                                'Invite you to join group: ${chatController.roomObs.value.name}';
                             Room? forwardRoom = await Get.to(
                                 () => ForwardSelectRoom(rooms, realMessage),
                                 fullscreenDialog: true,

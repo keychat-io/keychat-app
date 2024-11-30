@@ -65,6 +65,7 @@ class KeyChatEventKinds {
   static const int groupUpdateKeys = 3006;
   static const int groupAdminRemoveMembers = 3007;
   static const int groupInvitationInfo = 3008;
+  static const int groupInvitationRequesting = 3009;
 }
 
 class EventKinds {

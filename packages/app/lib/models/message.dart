@@ -36,6 +36,7 @@ enum MessageMediaType {
   botSelectionRequest,
   botOneTimePaymentRequest,
   groupInvitationInfo,
+  groupInvitationRequesting,
 }
 
 enum RequestConfrimEnum { none, request, approved, rejected, expired }

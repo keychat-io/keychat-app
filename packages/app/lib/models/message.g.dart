@@ -461,6 +461,7 @@ const _MessagemediaTypeEnumValueMap = {
   'botSelectionRequest': 12,
   'botOneTimePaymentRequest': 13,
   'groupInvitationInfo': 14,
+  'groupInvitationRequesting': 15,
 };
 const _MessagemediaTypeValueEnumMap = {
   0: MessageMediaType.text,
@@ -478,6 +479,7 @@ const _MessagemediaTypeValueEnumMap = {
   12: MessageMediaType.botSelectionRequest,
   13: MessageMediaType.botOneTimePaymentRequest,
   14: MessageMediaType.groupInvitationInfo,
+  15: MessageMediaType.groupInvitationRequesting,
 };
 const _MessagerequestConfrimEnumValueMap = {
   'none': 0,

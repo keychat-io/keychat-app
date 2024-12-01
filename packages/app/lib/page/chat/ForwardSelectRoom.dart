@@ -1,5 +1,8 @@
+import 'package:app/controller/home.controller.dart';
 import 'package:app/models/room.dart';
+import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/common.dart';
+import 'package:app/page/components.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -37,14 +40,13 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
 
   @override
   Widget build(BuildContext context) {
+    HomeController homeController = Get.find<HomeController>();
     var divider = Divider(
-      height: 1,
-      color: Theme.of(context).dividerColor.withOpacity(0.05),
-    );
-    var divider2 = Divider(
-      height: 0.3,
-      color: Colors.grey.shade100.withOpacity(0.01),
-    );
+        height: 1, color: Theme.of(context).dividerColor.withOpacity(0.05));
+    var divider2 =
+        Divider(height: 0.3, color: Colors.grey.shade100.withOpacity(0.01));
+    DateTime messageExpired =
+        DateTime.now().subtract(const Duration(seconds: 5));
     return Scaffold(
         appBar: AppBar(
           leading: TextButton(
@@ -125,11 +127,36 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
                         ],
                       ))
                     },
-                    title: Text(
-                      room.getRoomName(),
-                      maxLines: 1,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
+                    title: Text(room.getRoomName(),
+                        maxLines: 1,
+                        style: Theme.of(context).textTheme.titleMedium),
+                    subtitle: Obx(() => RoomUtil.getSubtitleDisplay(
+                        room,
+                        messageExpired,
+                        homeController.roomLastMessage[room.id])),
+                    trailing: homeController.roomLastMessage[room.id] == null
+                        ? null
+                        : Wrap(
+                            direction: Axis.vertical,
+                            alignment: WrapAlignment.center,
+                            crossAxisAlignment: WrapCrossAlignment.end,
+                            children: [
+                              textSmallGray(
+                                  Get.context!,
+                                  formatTimeMsg(homeController
+                                      .roomLastMessage[room.id]!.createdAt)),
+                              room.isMute
+                                  ? Icon(
+                                      Icons.notifications_off_outlined,
+                                      color: Theme.of(Get.context!)
+                                          .colorScheme
+                                          .onSurface
+                                          .withOpacity(0.6),
+                                      size: 16,
+                                    )
+                                  : Container()
+                            ],
+                          ),
                   );
                 }),
           )

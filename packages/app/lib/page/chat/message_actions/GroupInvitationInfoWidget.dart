@@ -38,7 +38,10 @@ class GroupInvitationInfoWidget extends StatelessWidget {
 
     return Card(
       child: ListTile(
-        leading: getAvatorByName(map.name, nameLength: 3),
+        leading: getAvatorByName(map.name, backgroudColors: [
+          const Color(0xffEC6E0E),
+          const Color(0xffDF4D9E)
+        ]),
         title: Text('Share a group chat: ${map.name}',
             style:
                 TextStyle(fontSize: 16, color: Theme.of(context).primaryColor)),

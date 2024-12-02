@@ -39,10 +39,9 @@ class GroupInvitationRequestingWidget extends StatelessWidget {
 
     return Card(
       child: ListTile(
-        leading: getAvatorByName(map.name, backgroudColors: [
-          const Color(0xffEC6E0E),
-          const Color(0xffDF4D9E)
-        ]),
+        leading: getAvatorByName(map.name,
+            backgroudColors: [const Color(0xffEC6E0E), const Color(0xffDF4D9E)],
+            borderRadius: 12),
         title: Text('Request to join Group: ${map.name}',
             style:
                 TextStyle(fontSize: 16, color: Theme.of(context).primaryColor)),

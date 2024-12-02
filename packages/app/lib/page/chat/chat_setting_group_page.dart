@@ -76,7 +76,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                         .getRoomsByIdentity(
                             chatController.roomObs.value.identityId);
                     String realMessage =
-                        'Invite you to join group: ${chatController.roomObs.value.name}';
+                        'Share a Group: ${chatController.roomObs.value.name}';
                     Room? forwardRoom = await Get.to(
                         () => ForwardSelectRoom(
                             rooms, realMessage, 'Share to Friends'),
@@ -87,6 +87,10 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                         chatController.roomObs.value,
                         [forwardRoom],
                         realMessage);
+                    if (forwardRoom.id != chatController.roomObs.value.id) {
+                      await Get.toNamed('/room/${forwardRoom.id}',
+                          arguments: forwardRoom);
+                    }
                   }),
             IconButton(
                 onPressed: () async {

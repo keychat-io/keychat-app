@@ -38,11 +38,10 @@ class GroupInvitationInfoWidget extends StatelessWidget {
 
     return Card(
       child: ListTile(
-        leading: getAvatorByName(map.name, backgroudColors: [
-          const Color(0xffEC6E0E),
-          const Color(0xffDF4D9E)
-        ]),
-        title: Text('Share a group chat: ${map.name}',
+        leading: getAvatorByName(map.name,
+            backgroudColors: [const Color(0xffEC6E0E), const Color(0xffDF4D9E)],
+            borderRadius: 12),
+        title: Text('Share a Group: ${map.name}',
             style:
                 TextStyle(fontSize: 16, color: Theme.of(context).primaryColor)),
         subtitle: textSmallGray(context, 'Pubkey: ${map.pubkey}'),
@@ -81,9 +80,8 @@ class GroupInvitationInfoWidget extends StatelessWidget {
             return;
           }
           Get.dialog(CupertinoAlertDialog(
-            title: const Text('Join the group?'),
-            content: const Text(
-                'Joining the group requires waiting for review by the inviter.'),
+            title: Text('Join Group: ${map.name}?'),
+            content: const Text('Waiting approve by the inviter.'),
             actions: <Widget>[
               CupertinoDialogAction(
                 child: const Text('Cancel'),

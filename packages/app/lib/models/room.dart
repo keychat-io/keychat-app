@@ -153,8 +153,6 @@ class Room extends Equatable {
     if (signalIdPubkey == null) {
       return await chatxService.getKeyPairByIdentity(getIdentity());
     }
-    var exist = chatxService.initedKeypairs[signalIdPubkey];
-    if (exist != null) return exist;
     SignalId? si = getMySignalId();
     if (si != null) {
       return chatxService.setupSignalStoreBySignalId(si.pubkey, si);

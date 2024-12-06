@@ -23,7 +23,6 @@ import '../utils.dart';
 class ChatxService extends GetxService {
   Map<String, KeychatProtocolAddress> roomKPA = {};
   final Map<String, KeychatIdentityKeyPair> _keypairs = {};
-  Map<String, KeychatIdentityKeyPair> initedKeypairs = {};
 
   Future<List<Mykey>> getOneTimePubkey(int identityId) async {
     // delete expired one time keys
@@ -278,20 +277,13 @@ class ChatxService extends GetxService {
 
   Future<KeychatIdentityKeyPair> setupSignalStoreBySignalId(String pubkey,
       [SignalId? signalId]) async {
-    if (initedKeypairs[pubkey] != null) return initedKeypairs[pubkey]!;
     var keyPair = await getKeyPairBySignalIdPubkey(pubkey, signalId);
-    await rust_signal.initKeypair(keyPair: keyPair, regId: 0);
-    initedKeypairs[pubkey] = keyPair;
     return keyPair;
   }
 
   Future<KeychatIdentityKeyPair> setupSignalStoreByIdentity(
       Identity identity) async {
-    String pubkey = identity.curve25519PkHex!;
-    if (initedKeypairs[pubkey] != null) return initedKeypairs[pubkey]!;
     KeychatIdentityKeyPair keyPair = await getKeyPairByIdentity(identity);
-    await rust_signal.initKeypair(keyPair: keyPair, regId: 0);
-    initedKeypairs[pubkey] = keyPair;
     return keyPair;
   }
 
@@ -308,9 +300,6 @@ class ChatxService extends GetxService {
 
     KeychatProtocolAddress remoteAddress = KeychatProtocolAddress(
         name: room.curve25519PkHex!, deviceId: room.identityId);
-
-    // compatible with older version about identityId:signalId = 1:1
-    await rust_signal.initKeypair(keyPair: keyPair, regId: 0);
 
     bool isDel = await rust_signal.deleteSession(
         keyPair: keyPair, address: remoteAddress);

@@ -394,10 +394,8 @@ ${relays.join('\n')}
     room = await RoomService.instance.updateRoom(room);
     KeychatMessage sm = await KeychatMessage(c: MessageType.signal, type: type)
         .setHelloMessagge(signalId: signalId, identity, greeting: greeting);
-    await NostrAPI.instance.sendNip17Message(room, identity,
-        toPubkey: onetimekey,
-        sourceContent: sm.toString(),
-        realMessage: sm.msg);
+    await NostrAPI.instance.sendNip17Message(room, sm.toString(), identity,
+        toPubkey: onetimekey, realMessage: sm.msg);
   }
 
   Future _processReject(Room room, NostrEventModel event, KeychatMessage km,
@@ -439,7 +437,6 @@ ${relays.join('\n')}
     Identity identity =
         Get.find<HomeController>().identities[signalId.identityId]!;
 
-    await rust_signal.initKeypair(keyPair: keyPair, regId: 0);
     var (plaintext, msgKeyHash, _) = await rust_signal.decryptSignal(
         keyPair: keyPair,
         ciphertext: ciphertext,

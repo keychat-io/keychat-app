@@ -938,6 +938,7 @@ class GroupService extends BaseChatService {
     final queue = Queue(parallel: 5);
     var todo = collection.Queue.from(toUsers);
     int membersLength = todo.length;
+    Identity identity = groupRoom.getIdentity();
     for (int i = 0; i < membersLength; i++) {
       queue.add(() async {
         if (todo.isEmpty) return;
@@ -952,10 +953,9 @@ class GroupService extends BaseChatService {
           await Future.delayed(const Duration(seconds: 1));
         }
         if (room == null) {
-          await NostrAPI.instance.sendNip17Message(groupRoom, identity,
-              toPubkey: rm.idPubkey,
-              sourceContent: km.toString(),
-              realMessage: realMessage);
+          await NostrAPI.instance.sendNip17Message(
+              groupRoom, km.toString(), identity,
+              toPubkey: rm.idPubkey, realMessage: realMessage);
           return;
         }
         await RoomService.instance.sendTextMessage(room, km.toString(),

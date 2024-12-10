@@ -21,12 +21,13 @@ class ContactService {
     await myReceiveKeyMutex.acquire(); // lock
     try {
       ContactReceiveKey crk = await getOrCreateContactReceiveKey(
-          room.identityId, room.toMainPubkey);
+          room.identityId, room.toMainPubkey, room.id);
       List<String> keys = crk.receiveKeys;
       receiveKeyRooms[address] = room.id;
       if (keys.isNotEmpty && keys.lastOrNull == address) return [];
       List<String> newReceiveKeys = [...keys, address];
       crk.receiveKeys = newReceiveKeys;
+      crk.roomId = room.id;
       await _saveReceiveKey(crk);
     } finally {
       myReceiveKeyMutex.release();

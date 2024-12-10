@@ -93,7 +93,7 @@ class IdentityService {
         // create ai identity
         await homeController.createAIIdentity([iden], KeychatGlobal.bot);
         homeController.fetchBots();
-        NotifyService.init(true).then((c) {
+        NotifyService.requestPremissionAndInit().then((c) {
           NotifyService.addPubkeys([account.pubkey]);
         }).catchError((e, s) {
           logger.e('initNotifycation error', error: e, stackTrace: s);

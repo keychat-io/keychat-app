@@ -354,11 +354,11 @@ class MinePage extends GetView<SettingController> {
             try {
               await NotifyService.updateUserSetting(false);
               EasyLoading.showSuccess('Disabled');
-              Get.back();
             } catch (e, s) {
               logger.e(e.toString(), error: e, stackTrace: s);
               EasyLoading.showError(e.toString());
             }
+            Get.back();
           },
         ),
       ],
@@ -398,16 +398,16 @@ class MinePage extends GetView<SettingController> {
               if (setting.authorizationStatus ==
                       AuthorizationStatus.notDetermined ||
                   NotifyService.fcmToken == null) {
-                await NotifyService.init(true);
+                await NotifyService.requestPremissionAndInit();
               }
 
               await NotifyService.updateUserSetting(true);
               EasyLoading.showSuccess('Enabled');
-              Get.back();
             } catch (e, s) {
               logger.e(e.toString(), error: e, stackTrace: s);
               EasyLoading.showError(e.toString());
             }
+            Get.back();
           },
         ),
       ],

@@ -219,7 +219,11 @@ class ChatxService extends GetxService {
   }
 
   Future<ChatxService> init(String dbpath) async {
-    _initSignalDB(dbpath);
+    var startTime = DateTime.now();
+    await _initSignalDB(dbpath);
+    var endTime = DateTime.now();
+    logger.d(
+        "Signal DB initialization took: ${endTime.difference(startTime).inMilliseconds} ms");
     return this;
   }
 

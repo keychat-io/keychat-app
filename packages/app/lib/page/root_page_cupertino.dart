@@ -33,7 +33,7 @@ class CupertinoRootPage extends GetView<HomeController> {
             EasyLoading.dismiss();
           }
           if (GetPlatform.isMobile) {
-            await Haptics.vibrate(HapticsType.light);
+            await Haptics.vibrate(HapticsType.selection);
           }
           if (value == 1) {
             EasyThrottle.throttle(

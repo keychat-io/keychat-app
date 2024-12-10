@@ -1,7 +1,5 @@
 import 'package:app/app.dart';
 import 'package:app/controller/home.controller.dart';
-import 'package:app/global.dart';
-import 'package:app/models/models.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:get/get.dart';

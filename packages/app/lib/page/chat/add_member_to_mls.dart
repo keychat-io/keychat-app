@@ -17,7 +17,7 @@ import 'package:get/get.dart';
 class AddMemberToMLS extends StatefulWidget {
   final Room room;
   final List<Message> messages;
-  const AddMemberToMLS(this.room, this.messages);
+  const AddMemberToMLS(this.room, this.messages, {super.key});
 
   @override
   State<StatefulWidget> createState() => _AddMemberToMLSState();

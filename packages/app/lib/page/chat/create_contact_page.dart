@@ -123,7 +123,8 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
 
                     // common private chat
                     await RoomService.instance.createRoomAndsendInvite(input,
-                        greeting: _helloController.text.trim());
+                        greeting: _helloController.text.trim(),
+                        identity: identity);
                   },
                   style: ButtonStyle(
                       minimumSize: WidgetStateProperty.all(

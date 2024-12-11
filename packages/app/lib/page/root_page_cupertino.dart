@@ -37,18 +37,10 @@ class CupertinoRootPage extends GetView<HomeController> {
           }
           if (value == 1) {
             EasyThrottle.throttle(
-                'loadCashuABalance', const Duration(seconds: 1), () {
+                'loadCashuABalance', const Duration(seconds: 3), () {
               getGetxController<EcashController>()?.getBalance();
             });
           }
-          // if (index == 1) {
-          //   try {
-          //     List? list = Get.find<WorldController>().feeds['bitcoin'];
-          //     if (list == null || list.isEmpty) {
-          //       await Get.find<WorldController>().getFeed('bitcoin');
-          //     }
-          //   } catch (e) {}
-          // }
         },
         items: [
           BottomNavigationBarItem(

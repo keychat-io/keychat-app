@@ -1,4 +1,5 @@
 import 'dart:convert' show jsonDecode;
+import 'package:any_link_preview/any_link_preview.dart';
 import 'package:app/constants.dart';
 import 'package:app/global.dart';
 import 'package:app/models/contact.dart';
@@ -11,9 +12,22 @@ import 'package:app/models/nostr_event_status.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/ChatMediaFilesPage.dart';
 import 'package:app/page/chat/contact_page.dart';
+import 'package:app/page/chat/message_actions/BotOneTimePaymentRequestWidget.dart';
+import 'package:app/page/chat/message_actions/BotPricePerMessageRequestWidget.dart';
+import 'package:app/page/chat/message_actions/FileMessageWidget.dart';
+import 'package:app/page/chat/message_actions/GroupInvitationInfoWidget.dart';
+import 'package:app/page/chat/message_actions/GroupInvitationRequestingWidget.dart';
+import 'package:app/page/chat/message_actions/GroupInviteAction.dart';
+import 'package:app/page/chat/message_actions/GroupInviteConfirmAction.dart';
+import 'package:app/page/chat/message_actions/SetRoomRelayAction.dart';
+import 'package:app/page/chat/message_actions/VideoMessageWidget.dart';
+import 'package:app/page/widgets/image_preview_widget.dart';
 import 'package:app/service/signal_chat_util.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:easy_debounce/easy_throttle.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:keychat_ecash/red_pocket.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
@@ -40,6 +54,7 @@ import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart' hide Contact;
 import 'package:settings_ui/settings_ui.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class RoomUtil {
   static Future<bool> messageReceiveCheck(
@@ -615,5 +630,211 @@ Let's start an encrypted chat.''';
           .compareTo(hc.roomLastMessage[a.id]!.createdAt);
     });
     return rooms;
+  }
+
+  static Widget getMarkdownView(String text, MarkdownStyleSheet styleSheet) {
+    return MarkdownBody(
+        data: text,
+        selectable: false,
+        softLineBreak: true,
+        onTapLink: (text, href, title) {
+          if (href != null) {
+            Utils.hideKeyboard(Get.context!);
+            launchUrl(Uri.parse(href));
+          }
+        },
+        styleSheetTheme: MarkdownStyleSheetBaseTheme.cupertino,
+        styleSheet: styleSheet);
+    // return Linkify(
+    //   onOpen: (link) {
+    //     final Uri uri = Uri.parse(link.url);
+    //     Utils.hideKeyboard(Get.context!);
+    //     launchUrl(uri);
+    //     return;
+    //   },
+    //   style: Theme.of(Get.context!)
+    //       .textTheme
+    //       .bodyLarge
+    //       ?.copyWith(color: fontColor, fontSize: 16),
+    //   text: text,
+    //   linkStyle: const TextStyle(decoration: TextDecoration.none, fontSize: 15),
+    // );
+  }
+
+  static Widget _getLinkPreviewWidget(
+      Message message,
+      Widget Function({Widget? child, String? text}) errorCallback,
+      MarkdownStyleSheet styleSheet) {
+    String content = message.content;
+    return AnyLinkPreview(
+        key: Key(content),
+        cache: const Duration(days: 7),
+        link: content,
+        onTap: () {
+          Utils.hideKeyboard(Get.context!);
+          launchUrl(Uri.parse(content));
+        },
+        placeholderWidget:
+            errorCallback(child: getMarkdownView(content, styleSheet)),
+        showMultimedia: false,
+        errorBody: '',
+        errorWidget:
+            errorCallback(child: getMarkdownView(content, styleSheet)));
+  }
+
+  static Widget _getActionWidget(
+      Widget child,
+      Message message,
+      MarkdownStyleSheet styleSheet,
+      Widget Function({Widget? child, String? text}) errorCallback) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _getTextItemView(message, styleSheet, errorCallback),
+        const SizedBox(height: 10),
+        child
+      ],
+    );
+  }
+
+  static _getTextItemView(Message message, MarkdownStyleSheet styleSheet,
+      Widget Function({Widget? child, String? text}) errorCallback) {
+    if (AnyLinkPreview.isValidLink(message.content) &&
+        !isEmail(message.content)) {
+      return _getLinkPreviewWidget(message, errorCallback, styleSheet);
+    }
+    return errorCallback(
+        child: getMarkdownView(
+            message.realMessage ?? message.content, styleSheet));
+  }
+
+  static Widget _imageTextView(Message message, ChatController chatController,
+      Widget Function({Widget? child, String? text}) errorCallback) {
+    if (message.realMessage != null) {
+      try {
+        var mfi = MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
+        return getImageViewWidget(message, chatController, mfi, errorCallback);
+        // ignore: empty_catches
+      } catch (e) {}
+    }
+
+    return errorCallback(text: '[Image Crashed]');
+  }
+
+  static Widget getImageViewWidget(
+      Message message,
+      ChatController chatController,
+      MsgFileInfo fileInfo,
+      Widget Function({Widget? child, String? text}) errorCallback) {
+    if (fileInfo.updateAt != null &&
+        fileInfo.status == FileStatus.downloading) {
+      bool isTimeout = DateTime.now()
+          .subtract(const Duration(seconds: 60))
+          .isAfter(fileInfo.updateAt!);
+      if (isTimeout) {
+        fileInfo.status = FileStatus.failed;
+      }
+    }
+    switch (fileInfo.status) {
+      case FileStatus.downloading:
+        return Row(children: [
+          errorCallback(text: 'Loading...'),
+          const SpinKitFadingCircle(
+            color: Color(0xfff0aa35),
+            size: 25.0,
+          )
+        ]);
+      case FileStatus.decryptSuccess:
+        return fileInfo.localPath == null
+            ? errorCallback(text: '[Image Loading]')
+            : ImagePreviewWidget(
+                localPath: fileInfo.localPath!,
+                cc: chatController,
+                errorCallback: errorCallback);
+      case FileStatus.failed:
+        return Row(
+          children: [
+            errorCallback(text: '[Image Crashed]'),
+            SizedBox(
+                height: 30,
+                child: IconButton(
+                    iconSize: 18,
+                    onPressed: () {
+                      EasyLoading.showToast('Start downloading');
+                      message.isRead = true;
+                      FileUtils.downloadForMessage(message, fileInfo);
+                    },
+                    icon: const Icon(
+                      Icons.refresh,
+                    )))
+          ],
+        );
+      default:
+        return errorCallback(text: '[Image Crashed]');
+    }
+  }
+
+  static Widget getTextViewWidget(
+      Message message,
+      ChatController chatController,
+      MarkdownStyleSheet styleSheet,
+      Widget Function({Widget? child, String? text}) errorCallback) {
+    try {
+      switch (message.mediaType) {
+        case MessageMediaType.text:
+          return _getTextItemView(message, styleSheet, errorCallback);
+        case MessageMediaType.video:
+          return VideoMessageWidget(message, errorCallback);
+        case MessageMediaType.image:
+          return _imageTextView(message, chatController, errorCallback);
+        case MessageMediaType.file:
+          return FileMessageWidget(message, errorCallback);
+        case MessageMediaType.cashuA:
+          if (message.cashuInfo != null) {
+            return RedPocket(
+                key: Key('mredpocket:${message.id}'), message: message);
+          }
+        case MessageMediaType.setPostOffice:
+          return _getActionWidget(SetRoomRelayAction(chatController, message),
+              message, styleSheet, errorCallback);
+        case MessageMediaType.groupInvite:
+          return _getActionWidget(
+              GroupInviteAction(message, chatController.room.getIdentity()),
+              message,
+              styleSheet,
+              errorCallback);
+        case MessageMediaType.groupInviteConfirm:
+          return _getActionWidget(
+              GroupInviteConfirmAction(
+                  chatController.room.getRoomName(), message),
+              message,
+              styleSheet,
+              errorCallback);
+        // bot
+        case MessageMediaType.botPricePerMessageRequest:
+          return _getActionWidget(
+              BotPricePerMessageRequestWidget(chatController, message),
+              message,
+              styleSheet,
+              errorCallback);
+        case MessageMediaType.botOneTimePaymentRequest:
+          return _getActionWidget(
+              BotOneTimePaymentRequestWidget(chatController, message),
+              message,
+              styleSheet,
+              errorCallback);
+        case MessageMediaType.groupInvitationInfo:
+          return GroupInvitationInfoWidget(
+              chatController, message, errorCallback);
+        case MessageMediaType.groupInvitationRequesting:
+          return GroupInvitationRequestingWidget(
+              chatController, message, errorCallback);
+        default:
+      }
+    } catch (e, s) {
+      logger.e('sub content: ', error: e, stackTrace: s);
+    }
+
+    return _getTextItemView(message, styleSheet, errorCallback);
   }
 }

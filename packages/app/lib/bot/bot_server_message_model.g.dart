@@ -41,6 +41,8 @@ const _$MessageMediaTypeEnumMap = {
   MessageMediaType.botPricePerMessageRequest: 'botPricePerMessageRequest',
   MessageMediaType.botSelectionRequest: 'botSelectionRequest',
   MessageMediaType.botOneTimePaymentRequest: 'botOneTimePaymentRequest',
+  MessageMediaType.groupInvitationInfo: 'groupInvitationInfo',
+  MessageMediaType.groupInvitationRequesting: 'groupInvitationRequesting',
 };
 
 _$BotMessageDataImpl _$$BotMessageDataImplFromJson(Map<String, dynamic> json) =>

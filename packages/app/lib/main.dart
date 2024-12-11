@@ -53,10 +53,19 @@ void main() async {
     theme: AppThemeCustom.light(),
     darkTheme: AppThemeCustom.dark(),
   );
-  if (kDebugMode) return runApp(getMaterialApp);
-
-  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+  if (!kDebugMode) {
+    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+  }
   runApp(getMaterialApp);
+
+  // fix https://github.com/flutter/flutter/issues/119465
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarBrightness: Brightness.light,
+    statusBarIconBrightness: Brightness.dark,
+    statusBarColor: Colors.transparent,
+    systemNavigationBarColor: Colors.transparent,
+  ));
 }
 
 Future<String> getInitRoute(bool isLogin) async {

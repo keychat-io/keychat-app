@@ -11,8 +11,8 @@ import 'FileMessagePreview.dart';
 
 class FileMessageWidget extends StatefulWidget {
   final Message message;
-  final Function(String text) textCallback;
-  const FileMessageWidget(this.message, this.textCallback, {super.key});
+  final Widget Function({Widget? child, String? text}) errorCallback;
+  const FileMessageWidget(this.message, this.errorCallback, {super.key});
 
   @override
   _FileMessageWidgetState createState() => _FileMessageWidgetState();
@@ -45,8 +45,8 @@ class _FileMessageWidgetState extends State<FileMessageWidget> {
   @override
   Widget build(BuildContext context) {
     if (decodeError == true || msgFileInfo == null) {
-      return widget
-          .textCallback('[File Decode Error]: ${widget.message.content}');
+      return widget.errorCallback(
+          text: '[File Decode Error]: ${widget.message.content}');
     }
     return Container(
         decoration: BoxDecoration(

@@ -15,20 +15,20 @@ import 'package:share_plus/share_plus.dart';
 class ImagePreviewWidget extends StatelessWidget {
   final String localPath;
   final ChatController cc;
-  final Function(String text) textCallback;
+  final Widget Function({Widget? child, String? text}) errorCallback;
 
   const ImagePreviewWidget(
       {super.key,
       required this.localPath,
       required this.cc,
-      required this.textCallback});
+      required this.errorCallback});
 
   @override
   Widget build(BuildContext context) {
     String filePath = FileUtils.getAbsolutelyFilePath(
         Get.find<SettingController>().appFolder.path, localPath);
     File file = File(filePath);
-    if (!file.existsSync()) return textCallback('[Image cleaned]');
+    if (!file.existsSync()) return errorCallback(text: '[Image cleaned]');
     return GestureDetector(
       onTap: () async {
         // List<File> files = await FileUtils.getRoomImageAndVideo(

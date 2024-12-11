@@ -16,6 +16,7 @@ class ContactReceiveKey extends Equatable {
   bool isMute = false;
   List<String> receiveKeys = [];
   List<String> removeReceiveKeys = [];
+  int roomId = -1;
 
   ContactReceiveKey({
     required this.identityId,

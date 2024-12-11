@@ -1,6 +1,5 @@
+import 'package:app/app.dart';
 import 'package:app/controller/home.controller.dart';
-import 'package:app/global.dart';
-import 'package:app/models/models.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:get/get.dart';
@@ -15,19 +14,20 @@ class ContactService {
   static ContactService get instance => _instance ??= ContactService._();
   // Avoid self instance
   ContactService._();
+  static Map<String, int> receiveKeyRooms = {};
   final Mutex myReceiveKeyMutex = Mutex();
 
-  Future<List<String>> addReceiveKey(
-      int identityId, String toMainPubkey, String address) async {
+  Future<List<String>> addReceiveKey(Room room, String address) async {
     await myReceiveKeyMutex.acquire(); // lock
     try {
-      ContactReceiveKey crk =
-          await getOrCreateContactReceiveKey(identityId, toMainPubkey);
+      ContactReceiveKey crk = await getOrCreateContactReceiveKey(
+          room.identityId, room.toMainPubkey, room.id);
       List<String> keys = crk.receiveKeys;
-
+      receiveKeyRooms[address] = room.id;
       if (keys.isNotEmpty && keys.lastOrNull == address) return [];
       List<String> newReceiveKeys = [...keys, address];
       crk.receiveKeys = newReceiveKeys;
+      crk.roomId = room.id;
       await _saveReceiveKey(crk);
     } finally {
       myReceiveKeyMutex.release();
@@ -136,6 +136,11 @@ class ContactService {
         .receiveKeysIsNotEmpty()
         .findAll();
     for (ContactReceiveKey crk in list) {
+      for (String address in crk.receiveKeys) {
+        if (crk.roomId > -1) {
+          receiveKeyRooms[address] = crk.roomId;
+        }
+      }
       set.addAll(crk.receiveKeys);
     }
     return set.toList();
@@ -246,14 +251,16 @@ class ContactService {
   }
 
   Future<ContactReceiveKey> getOrCreateContactReceiveKey(
-      int identityId, String toMainPubkey) async {
+      int identityId, String toMainPubkey,
+      [int? roomId]) async {
     ContactReceiveKey? crk = DBProvider.database.contactReceiveKeys
         .filter()
         .identityIdEqualTo(identityId)
         .pubkeyEqualTo(toMainPubkey)
         .findFirstSync();
     if (crk != null) return crk;
-    var model = ContactReceiveKey(identityId: identityId, pubkey: toMainPubkey);
+    var model = ContactReceiveKey(identityId: identityId, pubkey: toMainPubkey)
+      ..roomId = roomId ?? -1;
     await DBProvider.database.writeTxn(() async {
       int id = await DBProvider.database.contactReceiveKeys.put(model);
       model.id = id;

@@ -47,8 +47,13 @@ const ContactReceiveKeySchema = CollectionSchema(
       name: r'removeReceiveKeys',
       type: IsarType.stringList,
     ),
-    r'stringify': PropertySchema(
+    r'roomId': PropertySchema(
       id: 6,
+      name: r'roomId',
+      type: IsarType.long,
+    ),
+    r'stringify': PropertySchema(
+      id: 7,
       name: r'stringify',
       type: IsarType.bool,
     )
@@ -122,7 +127,8 @@ void _contactReceiveKeySerialize(
   writer.writeString(offsets[3], object.pubkey);
   writer.writeStringList(offsets[4], object.receiveKeys);
   writer.writeStringList(offsets[5], object.removeReceiveKeys);
-  writer.writeBool(offsets[6], object.stringify);
+  writer.writeLong(offsets[6], object.roomId);
+  writer.writeBool(offsets[7], object.stringify);
 }
 
 ContactReceiveKey _contactReceiveKeyDeserialize(
@@ -139,6 +145,7 @@ ContactReceiveKey _contactReceiveKeyDeserialize(
   object.isMute = reader.readBool(offsets[2]);
   object.receiveKeys = reader.readStringList(offsets[4]) ?? [];
   object.removeReceiveKeys = reader.readStringList(offsets[5]) ?? [];
+  object.roomId = reader.readLong(offsets[6]);
   return object;
 }
 
@@ -162,6 +169,8 @@ P _contactReceiveKeyDeserializeProp<P>(
     case 5:
       return (reader.readStringList(offset) ?? []) as P;
     case 6:
+      return (reader.readLong(offset)) as P;
+    case 7:
       return (reader.readBoolOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1262,6 +1271,62 @@ extension ContactReceiveKeyQueryFilter
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
+      roomIdEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'roomId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
+      roomIdGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'roomId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
+      roomIdLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'roomId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
+      roomIdBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'roomId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterFilterCondition>
       stringifyIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -1355,6 +1420,20 @@ extension ContactReceiveKeyQuerySortBy
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
+      sortByRoomId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'roomId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
+      sortByRoomIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'roomId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
       sortByStringify() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'stringify', Sort.asc);
@@ -1441,6 +1520,20 @@ extension ContactReceiveKeyQuerySortThenBy
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
+      thenByRoomId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'roomId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
+      thenByRoomIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'roomId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QAfterSortBy>
       thenByStringify() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'stringify', Sort.asc);
@@ -1500,6 +1593,13 @@ extension ContactReceiveKeyQueryWhereDistinct
   }
 
   QueryBuilder<ContactReceiveKey, ContactReceiveKey, QDistinct>
+      distinctByRoomId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'roomId');
+    });
+  }
+
+  QueryBuilder<ContactReceiveKey, ContactReceiveKey, QDistinct>
       distinctByStringify() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'stringify');
@@ -1550,6 +1650,12 @@ extension ContactReceiveKeyQueryProperty
       removeReceiveKeysProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'removeReceiveKeys');
+    });
+  }
+
+  QueryBuilder<ContactReceiveKey, int, QQueryOperations> roomIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'roomId');
     });
   }
 

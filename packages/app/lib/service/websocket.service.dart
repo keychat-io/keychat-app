@@ -118,6 +118,7 @@ class WebsocketService extends GetxService {
   }
 
   Future<WebsocketService> init() async {
+    logger.d('start init websocket service');
     relayStatusInt.value = RelayStatusEnum.connecting.name;
     List<Relay> list = await rs.initRelay();
     start(list);

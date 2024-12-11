@@ -69,9 +69,9 @@ class SignalChatService extends BaseChatService {
             ptext: pmm?.toString() ?? message0,
             remoteAddress: kpa);
     Uint8List ciphertext = enResult.$1;
-    String? myReceiverAddr;
+    String? newReceving;
     if (enResult.$2 != null) {
-      myReceiverAddr = await rust_nostr.generateSeedFromRatchetkeyPair(
+      newReceving = await rust_nostr.generateSeedFromRatchetkeyPair(
           seedKey: enResult.$2!);
     }
     String msgKeyHash =
@@ -80,9 +80,9 @@ class SignalChatService extends BaseChatService {
     List<String>? toAddPubkeys;
 
     // listen and sub new receive address
-    if (myReceiverAddr != null) {
-      toAddPubkeys = await ContactService.instance
-          .addReceiveKey(room.identityId, room.toMainPubkey, myReceiverAddr);
+    if (newReceving != null) {
+      toAddPubkeys =
+          await ContactService.instance.addReceiveKey(room, newReceving);
 
       Get.find<WebsocketService>().listenPubkey(toAddPubkeys,
           since: DateTime.now().subtract(const Duration(seconds: 5)));
@@ -491,5 +491,13 @@ ${relays.join('\n')}
     }
     await RoomService.instance.receiveDM(room, event,
         sourceEvent: null, decodedContent: prekeyMessageModel.message);
+  }
+
+  Future<Room?> getSignalChatRoomByTo(String to) async {
+    int? roomId = ContactService.receiveKeyRooms[to];
+    if (roomId == null) {
+      return await RoomService.instance.getRoomByReceiveKey(to);
+    }
+    return await RoomService.instance.getRoomByIdOrFail(roomId);
   }
 }

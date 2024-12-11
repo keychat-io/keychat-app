@@ -400,7 +400,17 @@ class NostrAPI {
     switch (event.kind) {
       case EventKinds.encryptedDirectMessage:
         String to = event.tags[0][1];
+
         try {
+          // signal chat room
+          Room? room =
+              await SignalChatService.instance.getSignalChatRoomByTo(to);
+          if (room != null) {
+            await SignalChatService.instance.decryptMessage(room, event, relay,
+                failedCallback: failedCallback);
+            return;
+          }
+
           // shared key room
           Room? sharedKeyRoom =
               await RoomService.instance.getGroupByReceivePubkey(to);
@@ -418,13 +428,6 @@ class NostrAPI {
             return;
           }
 
-          // private chat.  to_address is myIDPubkey or one-time-key
-          Room? room = await RoomService.instance.getRoomByReceiveKey(to);
-          if (room != null) {
-            await SignalChatService.instance.decryptMessage(room, event, relay,
-                failedCallback: failedCallback);
-            return;
-          }
           Mykey? mykey = await IdentityService.instance.getMykeyByPubkey(to);
           if (mykey != null) {
             await SignalChatService.instance.decryptPreKeyMessage(to, mykey,

@@ -1,4 +1,5 @@
 import 'package:app/app.dart';
+import 'package:app/page/chat/ForwardSelectRoom.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/message_bill/pay_to_relay_page.dart';
 import 'package:app/service/mls_group.service.dart';
@@ -67,6 +68,30 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
           title: Obx(() => Text(
               "${chatController.roomObs.value.name ?? ""}(${chatController.enableMembers.length})")),
           actions: [
+            if (chatController.roomObs.value.isMLSGroup)
+              IconButton(
+                  icon: const Icon(CupertinoIcons.share),
+                  onPressed: () async {
+                    List<Room> rooms = Get.find<HomeController>()
+                        .getRoomsByIdentity(
+                            chatController.roomObs.value.identityId);
+                    String realMessage =
+                        'Share a Group: ${chatController.roomObs.value.name}';
+                    Room? forwardRoom = await Get.to(
+                        () => ForwardSelectRoom(
+                            rooms, realMessage, 'Share to Friends'),
+                        fullscreenDialog: true,
+                        transition: Transition.downToUp);
+                    if (forwardRoom == null) return;
+                    await MlsGroupService.instance.shareToFriends(
+                        chatController.roomObs.value,
+                        [forwardRoom],
+                        realMessage);
+                    if (forwardRoom.id != chatController.roomObs.value.id) {
+                      await Get.toNamed('/room/${forwardRoom.id}',
+                          arguments: forwardRoom);
+                    }
+                  }),
             IconButton(
                 onPressed: () async {
                   List<RoomMember> members =

@@ -234,10 +234,11 @@ class MessageWidget extends StatelessWidget {
                     if (message.msgKeyHash != null)
                       Text('EncryptionKeyHash: ${message.msgKeyHash}',
                           overflow: TextOverflow.ellipsis, style: style),
-                    Text(
-                        'SendAt: ${formatTime(message.createdAt.millisecondsSinceEpoch)}',
-                        overflow: TextOverflow.ellipsis,
-                        style: style),
+                    if (message.receiveAt != null)
+                      Text(
+                          'ReceiveAt: ${formatTime(message.receiveAt!.millisecondsSinceEpoch, 'yyyy-MM-dd HH:mm:ss:SSS')}',
+                          overflow: TextOverflow.ellipsis,
+                          style: style),
                   ]),
             ))
         : const SizedBox();

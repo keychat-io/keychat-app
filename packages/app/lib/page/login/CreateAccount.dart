@@ -54,10 +54,11 @@ class _CreateAccountState extends State<CreateAccount> {
     return Scaffold(
         appBar: widget.type != "tab"
             ? AppBar(
-                title: const Text('Create ID'),
-                bottom: const PreferredSize(
-                    preferredSize: Size.fromHeight(0),
-                    child: Text('Derived from seed phrase')),
+                title: Column(children: [
+                  const Text('Create ID'),
+                  Text('Derived from seed phrase',
+                      style: Theme.of(context).textTheme.bodySmall)
+                ]),
                 actions: Get.previousRoute == '/login'
                     ? []
                     : [

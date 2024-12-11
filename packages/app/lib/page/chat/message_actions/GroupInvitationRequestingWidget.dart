@@ -5,6 +5,7 @@ import 'package:app/models/keychat/group_invitation_request_model.dart';
 import 'package:app/models/keychat/keychat_message.dart';
 import 'package:app/models/message.dart';
 import 'package:app/models/room.dart';
+import 'package:app/page/chat/add_member_to_mls.dart';
 import 'package:app/page/common.dart';
 import 'package:app/page/components.dart';
 import 'package:app/service/message.service.dart';
@@ -44,7 +45,7 @@ class GroupInvitationRequestingWidget extends StatelessWidget {
             borderRadius: 12),
         title: Text('Request to join Group: ${map.name}',
             style:
-                TextStyle(fontSize: 16, color: Theme.of(context).primaryColor)),
+                TextStyle(fontSize: 14, color: Theme.of(context).primaryColor)),
         subtitle: textSmallGray(context, 'Pubkey: ${map.roomPubkey}'),
         onTap: () async {
           if (message.requestConfrim == RequestConfrimEnum.approved) {
@@ -61,9 +62,19 @@ class GroupInvitationRequestingWidget extends StatelessWidget {
             EasyLoading.showToast('It\'s your message');
             return;
           }
-
+          // bulk to proccess multi requesting
+          String? requestId = message.requestId;
+          if (requestId != null) {
+            List<Message> requests =
+                await MessageService.instance.getMessageByRequestId(requestId);
+            if (requests.length >= 2) {
+              // bottomSheet to proccess
+              Get.bottomSheet(AddMemberToMLS(groupRoom, requests),
+                  isScrollControlled: true);
+              return;
+            }
+          }
           Get.dialog(CupertinoAlertDialog(
-            title: const Text('Approve Requesting'),
             content: Text('Join the Group: ${map.name}'),
             actions: <Widget>[
               CupertinoDialogAction(
@@ -74,7 +85,7 @@ class GroupInvitationRequestingWidget extends StatelessWidget {
               ),
               CupertinoDialogAction(
                 isDefaultAction: true,
-                child: const Text('Approve'),
+                child: const Text('Send Invite'),
                 onPressed: () async {
                   EasyThrottle.throttle(
                       'sendJoinGroupRequest', const Duration(seconds: 5),

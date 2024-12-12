@@ -43,7 +43,7 @@ class GroupInvitationInfoWidget extends StatelessWidget {
             borderRadius: 12),
         title: Text('Share a Group: ${map.name}',
             style:
-                TextStyle(fontSize: 16, color: Theme.of(context).primaryColor)),
+                TextStyle(fontSize: 14, color: Theme.of(context).primaryColor)),
         subtitle: textSmallGray(context, 'Pubkey: ${map.pubkey}'),
         onTap: () async {
           if (message.requestConfrim == RequestConfrimEnum.approved) {

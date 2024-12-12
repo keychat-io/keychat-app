@@ -399,7 +399,8 @@ class GroupService extends BaseChatService {
     }
     if (groupRoom == null) throw Exception('Group not found');
 
-    if (roomProfile.groupType == GroupType.kdf) {
+    if (roomProfile.groupType == GroupType.kdf ||
+        roomProfile.groupType == GroupType.mls) {
       await MessageService.instance.saveMessageToDB(
           from: event.pubkey,
           to: event.tags[0][1],

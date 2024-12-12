@@ -16,6 +16,7 @@ import 'package:app/service/relay.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_debounce.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:queue/queue.dart';
 import 'package:web_socket_channel/io.dart';
 
@@ -138,8 +139,13 @@ class WebsocketService extends GetxService {
 
     NostrNip4Req req = NostrNip4Req(
         reqId: subId, pubkeys: pubkeys, since: since, limit: limit);
-
-    Get.find<WebsocketService>().sendReq(req, relay);
+    try {
+      Get.find<WebsocketService>().sendReq(req, relay);
+    } catch (e) {
+      if (e.toString().contains('RelayDisconnected')) {
+        EasyLoading.showToast('Disconnected, Please check your relay server');
+      }
+    }
   }
 
   listenPubkeyNip17(List<String> pubkeys,
@@ -191,7 +197,7 @@ class WebsocketService extends GetxService {
       sent++;
       rw.sendREQ(nostrReq);
     }
-    if (sent == 0) throw Exception('Not connected with relay server');
+    if (sent == 0) throw Exception('RelayDisconnected');
   }
 
   sendMessage(String content, [String? relay]) {

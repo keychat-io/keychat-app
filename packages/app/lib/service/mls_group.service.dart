@@ -349,6 +349,7 @@ $error ''';
       String? fromIdPubkey,
       required KeychatMessage km}) async {
     MessageMediaType? mediaType;
+    String? requestId;
     switch (km.type) {
       case KeyChatEventKinds.groupHelloMessage:
         await _proccessHelloMessage(room, event, km,
@@ -382,6 +383,7 @@ $error ''';
         if (roomProfile.ext == null) {
           throw Exception('roomProfile is null');
         }
+        if (groupRoom.status == RoomStatus.removedFromGroup) {}
         Identity identity = groupRoom.getIdentity();
         await rust_mls.othersCommitNormal(
             nostrId: identity.secp256k1PKHex,
@@ -411,6 +413,10 @@ $error ''';
         break;
       case KeyChatEventKinds.groupInvitationRequesting:
         mediaType = MessageMediaType.groupInvitationRequesting;
+        GroupInvitationRequestModel gir =
+            GroupInvitationRequestModel.fromJson(jsonDecode(km.name!));
+        requestId = gir.roomPubkey;
+
         break;
       default:
         return await RoomService.instance.receiveDM(room, event,
@@ -427,7 +433,8 @@ $error ''';
         fromIdPubkey: fromIdPubkey,
         encryptType: MessageEncryptType.mls,
         msgKeyHash: msgKeyHash,
-        mediaType: mediaType);
+        mediaType: mediaType,
+        requestId: requestId);
   }
 
   Future<Room> proccessUpdateKeys(

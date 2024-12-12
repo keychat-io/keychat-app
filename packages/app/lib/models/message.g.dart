@@ -127,29 +127,34 @@ const MessageSchema = CollectionSchema(
       type: IsarType.int,
       enumMap: _MessagerequestConfrimEnumValueMap,
     ),
-    r'roomId': PropertySchema(
+    r'requestId': PropertySchema(
       id: 21,
+      name: r'requestId',
+      type: IsarType.string,
+    ),
+    r'roomId': PropertySchema(
+      id: 22,
       name: r'roomId',
       type: IsarType.long,
     ),
     r'sent': PropertySchema(
-      id: 22,
+      id: 23,
       name: r'sent',
       type: IsarType.int,
       enumMap: _MessagesentEnumValueMap,
     ),
     r'stringify': PropertySchema(
-      id: 23,
+      id: 24,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'subEvent': PropertySchema(
-      id: 24,
+      id: 25,
       name: r'subEvent',
       type: IsarType.string,
     ),
     r'to': PropertySchema(
-      id: 25,
+      id: 26,
       name: r'to',
       type: IsarType.string,
     )
@@ -248,6 +253,12 @@ int _messageEstimateSize(
     }
   }
   {
+    final value = object.requestId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.subEvent;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -294,11 +305,12 @@ void _messageSerialize(
     object.reply,
   );
   writer.writeInt(offsets[20], object.requestConfrim?.index);
-  writer.writeLong(offsets[21], object.roomId);
-  writer.writeInt(offsets[22], object.sent.index);
-  writer.writeBool(offsets[23], object.stringify);
-  writer.writeString(offsets[24], object.subEvent);
-  writer.writeString(offsets[25], object.to);
+  writer.writeString(offsets[21], object.requestId);
+  writer.writeLong(offsets[22], object.roomId);
+  writer.writeInt(offsets[23], object.sent.index);
+  writer.writeBool(offsets[24], object.stringify);
+  writer.writeString(offsets[25], object.subEvent);
+  writer.writeString(offsets[26], object.to);
 }
 
 Message _messageDeserialize(
@@ -328,10 +340,10 @@ Message _messageDeserialize(
       MsgReplySchema.deserialize,
       allOffsets,
     ),
-    roomId: reader.readLong(offsets[21]),
-    sent: _MessagesentValueEnumMap[reader.readIntOrNull(offsets[22])] ??
+    roomId: reader.readLong(offsets[22]),
+    sent: _MessagesentValueEnumMap[reader.readIntOrNull(offsets[23])] ??
         SendStatusType.sending,
-    to: reader.readString(offsets[25]),
+    to: reader.readString(offsets[26]),
   );
   object.cashuInfo = reader.readObjectOrNull<CashuInfoModel>(
     offsets[0],
@@ -347,7 +359,8 @@ Message _messageDeserialize(
   object.receiveAt = reader.readDateTimeOrNull(offsets[18]);
   object.requestConfrim =
       _MessagerequestConfrimValueEnumMap[reader.readIntOrNull(offsets[20])];
-  object.subEvent = reader.readStringOrNull(offsets[24]);
+  object.requestId = reader.readStringOrNull(offsets[21]);
+  object.subEvent = reader.readStringOrNull(offsets[25]);
   return object;
 }
 
@@ -412,15 +425,17 @@ P _messageDeserializeProp<P>(
       return (_MessagerequestConfrimValueEnumMap[reader.readIntOrNull(offset)])
           as P;
     case 21:
-      return (reader.readLong(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 22:
+      return (reader.readLong(offset)) as P;
+    case 23:
       return (_MessagesentValueEnumMap[reader.readIntOrNull(offset)] ??
           SendStatusType.sending) as P;
-    case 23:
-      return (reader.readBoolOrNull(offset)) as P;
     case 24:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBoolOrNull(offset)) as P;
     case 25:
+      return (reader.readStringOrNull(offset)) as P;
+    case 26:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -2746,6 +2761,152 @@ extension MessageQueryFilter
     });
   }
 
+  QueryBuilder<Message, Message, QAfterFilterCondition> requestIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'requestId',
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> requestIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'requestId',
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> requestIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'requestId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> requestIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'requestId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> requestIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'requestId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> requestIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'requestId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> requestIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'requestId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> requestIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'requestId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> requestIdContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'requestId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> requestIdMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'requestId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> requestIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'requestId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> requestIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'requestId',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<Message, Message, QAfterFilterCondition> roomIdEqualTo(
       int value) {
     return QueryBuilder.apply(this, (query) {
@@ -3379,6 +3540,18 @@ extension MessageQuerySortBy on QueryBuilder<Message, Message, QSortBy> {
     });
   }
 
+  QueryBuilder<Message, Message, QAfterSortBy> sortByRequestId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'requestId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterSortBy> sortByRequestIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'requestId', Sort.desc);
+    });
+  }
+
   QueryBuilder<Message, Message, QAfterSortBy> sortByRoomId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'roomId', Sort.asc);
@@ -3658,6 +3831,18 @@ extension MessageQuerySortThenBy
     });
   }
 
+  QueryBuilder<Message, Message, QAfterSortBy> thenByRequestId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'requestId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterSortBy> thenByRequestIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'requestId', Sort.desc);
+    });
+  }
+
   QueryBuilder<Message, Message, QAfterSortBy> thenByRoomId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'roomId', Sort.asc);
@@ -3843,6 +4028,13 @@ extension MessageQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Message, Message, QDistinct> distinctByRequestId(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'requestId', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<Message, Message, QDistinct> distinctByRoomId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'roomId');
@@ -4010,6 +4202,12 @@ extension MessageQueryProperty
       requestConfrimProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'requestConfrim');
+    });
+  }
+
+  QueryBuilder<Message, String?, QQueryOperations> requestIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'requestId');
     });
   }
 

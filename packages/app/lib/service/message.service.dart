@@ -123,6 +123,7 @@ $content'''
       SendStatusType sent = SendStatusType.sending,
       MessageMediaType? mediaType,
       RequestConfrimEnum? requestConfrim,
+      String? requestId,
       int? createdAt,
       bool? isRead,
       bool? isSystem,
@@ -150,7 +151,8 @@ $content'''
           return jsonEncode(m);
         }).toList())
       ..subEvent = subEvent
-      ..requestConfrim = requestConfrim;
+      ..requestConfrim = requestConfrim
+      ..requestId = requestId;
 
     if (isRead != null) model.isRead = isRead;
     if (isSystem != null) model.isSystem = isSystem;
@@ -581,5 +583,13 @@ $content'''
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.messages.clear();
     });
+  }
+
+  Future<List<Message>> getMessageByRequestId(String requestId) async {
+    return DBProvider.database.messages
+        .filter()
+        .requestIdEqualTo(requestId)
+        .requestConfrimIsNull()
+        .findAll();
   }
 }

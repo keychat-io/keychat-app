@@ -76,6 +76,9 @@ class Message extends Equatable {
   bool isSystem = false;
   bool isMeSend = false;
 
+  // for action event
+  String? requestId;
+
   @Enumerated(EnumType.ordinal32)
   RequestConfrimEnum? requestConfrim;
 

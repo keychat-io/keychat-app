@@ -493,7 +493,8 @@ class RoomService extends BaseChatService {
       RequestConfrimEnum? requestConfrim,
       MessageMediaType? mediaType,
       String? msgKeyHash,
-      MessageEncryptType? encryptType}) async {
+      MessageEncryptType? encryptType,
+      String? requestId}) async {
     MsgReply? reply;
     if (km != null) {
       if (km.type == KeyChatEventKinds.dm && km.name != null) {
@@ -523,6 +524,7 @@ class RoomService extends BaseChatService {
         isRead: isRead,
         mediaType: mediaType,
         requestConfrim: requestConfrim,
+        requestId: requestId,
         createdAt: event.createdAt,
         msgKeyHash: msgKeyHash);
   }

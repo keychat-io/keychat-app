@@ -11,7 +11,7 @@ class AppDelegate: FlutterAppDelegate {
   override func applicationDidFinishLaunching(_ aNotification: Notification) {
     if let window = NSApplication.shared.windows.first {
         window.backgroundColor = NSColor.white
-        window.setContentSize(NSMakeSize(800, 600)) 
+        window.setContentSize(NSMakeSize(375, 670)) 
         let screenFrame = window.screen?.frame ?? NSRect.zero 
         let centerX = (screenFrame.width - window.frame.width) / 2 
         let centerY = (screenFrame.height - window.frame.height) / 2

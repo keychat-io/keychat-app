@@ -87,6 +87,8 @@ dependencies:
   firebase_messaging: ^15.1.5
   firebase_crashlytics: ^4.1.5
   firebase_analytics: ^11.3.5
+  webview_flutter: ^4.10.0
+  webview_flutter_wkwebview: ^3.16.3
 
 dev_dependencies:
   flutter_test:

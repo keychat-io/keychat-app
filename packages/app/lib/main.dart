@@ -20,6 +20,7 @@ import 'package:path_provider/path_provider.dart';
 import 'controller/home.controller.dart';
 import 'controller/setting.controller.dart';
 import 'models/db_provider.dart';
+import 'page/browser/Browser_controller.dart';
 import 'page/app_theme.dart';
 import 'page/pages.dart';
 import 'service/identity.service.dart';
@@ -133,6 +134,7 @@ Future initServices() async {
   SettingController sc = Get.put(SettingController(), permanent: true);
   await MlsGroupService.instance.initDB(dbPath);
   Get.put(EcashController(dbPath), permanent: true);
+  Get.put(BrowserController(), permanent: true);
   Get.putAsync(() => ChatxService().init(dbPath));
   Get.putAsync(() => WebsocketService().init());
   return sc;

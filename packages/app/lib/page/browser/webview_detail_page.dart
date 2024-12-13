@@ -2,6 +2,7 @@ import 'package:app/utils.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -16,6 +17,22 @@ class WebviewDetailPage extends GetView<BrowserController> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () async {
+                bool canGoBack = await webViewController.canGoBack();
+                if (canGoBack) {
+                  webViewController.goBack();
+                } else {
+                  Get.back();
+                }
+              },
+            )
+          ],
+        ),
+        centerTitle: true,
         title: Obx(() => Text(controller.title.value)),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(4.0),
@@ -23,6 +40,7 @@ class WebviewDetailPage extends GetView<BrowserController> {
               controller.progress.value > 0 && controller.progress.value < 1
                   ? LinearProgressIndicator(
                       value: controller.progress.value,
+                      color: Theme.of(context).colorScheme.primary,
                       backgroundColor:
                           Theme.of(context).colorScheme.onPrimaryContainer,
                     )
@@ -31,16 +49,24 @@ class WebviewDetailPage extends GetView<BrowserController> {
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) async {
+              if (value == 'refresh') {
+                webViewController.reload();
+                return;
+              }
               final url = await webViewController.currentUrl();
               if (value == 'share') {
                 Share.share('$url');
               } else if (value == 'copy') {
                 Clipboard.setData(ClipboardData(text: url ?? ''));
-                Get.snackbar('Copied', 'URL has been copied to clipboard');
+                EasyLoading.showToast('Copied');
               }
             },
             itemBuilder: (BuildContext context) {
               return [
+                const PopupMenuItem(
+                  value: 'refresh',
+                  child: Text('Refresh'),
+                ),
                 const PopupMenuItem(
                   value: 'share',
                   child: Text('Share'),

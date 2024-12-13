@@ -88,20 +88,19 @@ class BrowserController extends GetxController {
     return NavigationDecision.navigate;
   }
 
-  lanuchWebview({String? url, String? defaultTitle}) {
-    url ??= textController.text.trim();
+  lanuchWebview({required String url, String? defaultTitle}) {
     if (url.isEmpty) return;
     EasyThrottle.throttle('browserOnComplete', const Duration(seconds: 2),
         () async {
-      if (url!.startsWith('http') == false) {
+      if (url.startsWith('http') == false) {
         url = 'https://$url';
       }
-      Uri? uri = Uri.tryParse(url!);
+      Uri? uri = Uri.tryParse(url);
       if (uri == null) return;
       if (defaultTitle != null) {
         title.value = defaultTitle;
       }
-      addUrlToHistory(url!, title.value);
+      addUrlToHistory(url, title.value);
       WebViewController controller = WebViewController();
       controller.addJavaScriptChannel('nc',
           onMessageReceived: (JavaScriptMessage message) {
@@ -188,8 +187,7 @@ window.nc.sendMessage = function (message) {
             onNavigationRequest: _onNavigationRequest))
         ..loadRequest(uri);
 
-      await Get.bottomSheet(WebviewDetailPage(controller),
-          isScrollControlled: true, ignoreSafeArea: false, enableDrag: false);
+      await Get.to(() => WebviewDetailPage(controller));
       title.value = 'Loading';
     });
   }

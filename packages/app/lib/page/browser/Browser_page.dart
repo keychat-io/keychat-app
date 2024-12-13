@@ -46,20 +46,17 @@ class BrowserPage extends GetView<BrowserController> {
                                               .textController.text.isEmpty) {
                                             return;
                                           }
-                                          if (controller.textController.text
-                                              .startsWith('http')) {
-                                            controller.lanuchWebview();
-                                          } else {
-                                            controller.lanuchWebview(
-                                                url:
-                                                    'https://${controller.textController.text}');
-                                          }
+                                          controller.lanuchWebview(
+                                              url: controller
+                                                  .textController.text
+                                                  .trim());
                                         },
                                       ),
                                     ],
                                   )),
                               onFieldSubmitted: (value) {
-                                controller.lanuchWebview();
+                                controller.lanuchWebview(
+                                    url: controller.textController.text.trim());
                               },
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
@@ -107,7 +104,7 @@ class BrowserPage extends GetView<BrowserController> {
                                       dense: true,
                                       onTap: () {
                                         controller.lanuchWebview(
-                                            url: site['url'],
+                                            url: site['url']!,
                                             defaultTitle: site['title']);
                                       },
                                     );

@@ -35,7 +35,6 @@ dependencies:
   flutter_linkify: ^6.0.0
   permission_handler: ^11.3.1
   qr_flutter: ^4.1.0
-  url_launcher: ^6.3.1
   settings_ui: ^2.0.2
   search_page: ^2.3.0
   app_settings: ^5.1.1
@@ -89,6 +88,7 @@ dependencies:
   firebase_analytics: ^11.3.5
   webview_flutter: ^4.10.0
   webview_flutter_wkwebview: ^3.16.3
+  async_queue: ^2.0.2
 
 dev_dependencies:
   flutter_test:

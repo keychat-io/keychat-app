@@ -1,9 +1,7 @@
 import 'package:app/models/nostr_event_status.dart';
 import 'package:app/nostr-core/subscribe_result.dart';
 import 'package:app/service/mls_group.service.dart';
-import 'package:flutter/foundation.dart' show kReleaseMode;
-
-import 'package:queue/queue.dart';
+import 'package:async_queue/async_queue.dart';
 import 'dart:convert' show jsonDecode, jsonEncode;
 
 import 'package:app/controller/world.controller.dart';
@@ -42,10 +40,7 @@ class NostrAPI {
   static DBProvider dbProvider = DBProvider.instance;
   Set<String> processedEventIds = {};
   String nip05SubscriptionId = '';
-  final nostrEventQueue = Queue(
-      delay: const Duration(milliseconds: kReleaseMode ? 50 : 200),
-      timeout: const Duration(seconds: 5),
-      parallel: 1);
+  final nostrEventQueue = AsyncQueue.autoStart();
 
   static NostrAPI? _instance;
   static NostrAPI get instance => _instance ??= NostrAPI._();
@@ -58,7 +53,7 @@ class NostrAPI {
 
   addNostrEventToQueue(Relay relay, dynamic message) {
     //logger.d('processWebsocketMessage, ${relay.url} $message');
-    nostrEventQueue.add(() async {
+    nostrEventQueue.addJob((_) async {
       try {
         var res = jsonDecode(message);
         switch (res[0]) {

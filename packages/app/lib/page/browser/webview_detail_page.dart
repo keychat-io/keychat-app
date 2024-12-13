@@ -1,7 +1,9 @@
 import 'package:app/utils.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import 'Browser_controller.dart';
@@ -26,6 +28,32 @@ class WebviewDetailPage extends GetView<BrowserController> {
                     )
                   : Container()),
         ),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) async {
+              final url = await webViewController.currentUrl();
+              if (value == 'share') {
+                Share.share('$url');
+              } else if (value == 'copy') {
+                Clipboard.setData(ClipboardData(text: url ?? ''));
+                Get.snackbar('Copied', 'URL has been copied to clipboard');
+              }
+            },
+            itemBuilder: (BuildContext context) {
+              return [
+                const PopupMenuItem(
+                  value: 'share',
+                  child: Text('Share'),
+                ),
+                const PopupMenuItem(
+                  value: 'copy',
+                  child: Text('Copy'),
+                ),
+              ];
+            },
+            icon: const Icon(Icons.more_vert),
+          ),
+        ],
       ),
       floatingActionButton: kDebugMode
           ? ElevatedButton(

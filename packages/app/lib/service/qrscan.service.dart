@@ -1,5 +1,4 @@
 import 'package:app/page/chat/create_contact_page.dart';
-import 'package:app/page/components.dart';
 import 'package:barcode_scan2/barcode_scan2.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -8,11 +7,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:app/models/models.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/utils.dart';
-import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
-
-import 'package:app/rust_api.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -76,16 +71,17 @@ class QrScanService {
       handleUrl(str);
       return;
     }
+    EcashController ecashController = Get.find<EcashController>();
     if (str.startsWith('cashu')) {
-      return _proccessCashuA(str);
+      return ecashController.proccessCashuAString(str);
     }
     // lighting invoice
     if (str.startsWith('lightning:')) {
       str = str.replaceFirst('lightning:', '');
-      return _proccessPayLightingBill(str);
+      return ecashController.proccessPayLightingBill(str);
     }
     if (str.startsWith('lnbc')) {
-      return _proccessPayLightingBill(str);
+      return ecashController.proccessPayLightingBill(str);
     }
     if (str.startsWith('npub') || str.length == 64) {
       Get.to(() => AddtoContactsPage(str));
@@ -159,25 +155,5 @@ class QrScanService {
         ],
       ),
     );
-  }
-
-  Future _proccessCashuA(String str) async {
-    try {
-      CashuInfoModel cashu = await RustAPI.decodeToken(encodedToken: str);
-      Get.dialog(CashuReceiveWidget(cashuinfo: cashu));
-    } catch (e) {
-      return handleText(str);
-    }
-  }
-
-  _proccessPayLightingBill(String invoce) async {
-    try {
-      await rust_cashu.decodeInvoice(encodedInvoice: invoce);
-    } catch (e) {
-      return handleText(invoce);
-    }
-    await showModalBottomSheetWidget(
-        Get.context!, '', PayInvoicePage(invoce: invoce),
-        showAppBar: false);
   }
 }

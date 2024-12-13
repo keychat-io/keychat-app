@@ -3,11 +3,15 @@ import 'dart:convert' show jsonDecode;
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/models/embedded/relay_file_fee.dart';
 import 'package:app/models/models.dart';
+import 'package:app/page/components.dart';
+import 'package:app/rust_api.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:keychat_ecash/Bills/ecash_bill_controller.dart';
 import 'package:keychat_ecash/Bills/lightning_bill_controller.dart';
+import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
+import 'package:keychat_ecash/cashu_receive.dart';
 import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
@@ -373,5 +377,33 @@ class EcashController extends GetxController {
       lightningBillController.checkPendings(pendings);
     } catch (e) {}
     refreshController.refreshCompleted();
+  }
+
+  Future proccessCashuAString(String str,
+      [Function(String str)? callback]) async {
+    try {
+      CashuInfoModel cashu = await RustAPI.decodeToken(encodedToken: str);
+      Get.dialog(CashuReceiveWidget(cashuinfo: cashu));
+    } catch (e) {
+      if (callback == null) {
+        rethrow;
+      }
+      return callback(str);
+    }
+  }
+
+  Future proccessPayLightingBill(String invoce,
+      [Function(String str)? callback]) async {
+    try {
+      await rust_cashu.decodeInvoice(encodedInvoice: invoce);
+    } catch (e) {
+      if (callback == null) {
+        rethrow;
+      }
+      return callback(invoce);
+    }
+    await showModalBottomSheetWidget(
+        Get.context!, '', PayInvoicePage(invoce: invoce),
+        showAppBar: false);
   }
 }

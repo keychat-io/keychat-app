@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import 'Browser_controller.dart';
@@ -40,9 +41,8 @@ class WebviewDetailPage extends GetView<BrowserController> {
               controller.progress.value > 0 && controller.progress.value < 1
                   ? LinearProgressIndicator(
                       value: controller.progress.value,
-                      color: Theme.of(context).colorScheme.primary,
-                      backgroundColor:
-                          Theme.of(context).colorScheme.onPrimaryContainer,
+                      backgroundColor: Theme.of(context).indicatorColor,
+                      minHeight: 1,
                     )
                   : Container()),
         ),
@@ -54,11 +54,19 @@ class WebviewDetailPage extends GetView<BrowserController> {
                 return;
               }
               final url = await webViewController.currentUrl();
+              if (url == null) return;
               if (value == 'share') {
-                Share.share('$url');
-              } else if (value == 'copy') {
-                Clipboard.setData(ClipboardData(text: url ?? ''));
+                Share.share(url);
+                return;
+              }
+              if (value == 'copy') {
+                Clipboard.setData(ClipboardData(text: url));
                 EasyLoading.showToast('Copied');
+              }
+
+              if (value == 'openInBrowser') {
+                await launchUrl(Uri.parse(url),
+                    mode: LaunchMode.externalApplication);
               }
             },
             itemBuilder: (BuildContext context) {
@@ -74,6 +82,10 @@ class WebviewDetailPage extends GetView<BrowserController> {
                 const PopupMenuItem(
                   value: 'copy',
                   child: Text('Copy'),
+                ),
+                const PopupMenuItem(
+                  value: 'openInBrowser',
+                  child: Text('Open in Browser'),
                 ),
               ];
             },

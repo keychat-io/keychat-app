@@ -7,6 +7,7 @@ import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class BrowserController extends GetxController {
@@ -67,7 +68,6 @@ class BrowserController extends GetxController {
 
   NavigationDecision _onNavigationRequest(NavigationRequest request) {
     String str = request.url;
-    print('onNavigationRequest ${request.url}');
     EcashController ecashController = Get.find<EcashController>();
 
     if (str.startsWith('cashu')) {
@@ -82,6 +82,11 @@ class BrowserController extends GetxController {
     }
     if (str.startsWith('lnbc')) {
       ecashController.proccessPayLightingBill(str);
+      return NavigationDecision.prevent;
+    }
+
+    if (!str.startsWith('http')) {
+      launchUrl(Uri.parse(str), mode: LaunchMode.externalNonBrowserApplication);
       return NavigationDecision.prevent;
     }
 

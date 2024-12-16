@@ -572,9 +572,7 @@ Let's start an encrypted chat.''';
 6. Recommended Group Limit: <6
 7. Sending a message is essentially sending multiple one-on-one chats. More stamps are required.
 ''';
-      default:
     }
-    return 'Common';
   }
 
   static MessageEncryptType getEncryptMode(NostrEventModel event,

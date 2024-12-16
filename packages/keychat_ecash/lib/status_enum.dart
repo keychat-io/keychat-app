@@ -14,12 +14,6 @@ class CashuStatus {
         return Icon(Icons.error, color: Colors.red, size: size);
       case TransactionStatus.pending:
         return Icon(CupertinoIcons.time, color: Colors.yellow, size: size);
-      default:
-        return Icon(
-          size: size,
-          CupertinoIcons.time,
-          color: Colors.yellow,
-        );
     }
   }
 }

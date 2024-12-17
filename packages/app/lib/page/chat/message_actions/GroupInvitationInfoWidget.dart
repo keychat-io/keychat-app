@@ -42,9 +42,8 @@ class GroupInvitationInfoWidget extends StatelessWidget {
             backgroudColors: [const Color(0xffEC6E0E), const Color(0xffDF4D9E)],
             borderRadius: 12),
         title: Text('Group Invitation: ${map.name}',
-            style:
-                TextStyle(fontSize: 14, color: Theme.of(context).primaryColor)),
-        subtitle: textSmallGray(context, 'Click to join'),
+            style: Theme.of(context).textTheme.titleSmall),
+        subtitle: textSmallGray(context, 'Click to join group'),
         onTap: () async {
           if (message.requestConfrim == RequestConfrimEnum.approved) {
             EasyLoading.showToast('Proccessed');

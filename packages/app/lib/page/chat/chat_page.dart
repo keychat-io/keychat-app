@@ -146,8 +146,8 @@ class _ChatPage2State extends State<ChatPage> {
                     .highlight(controller.unreadIndex.value);
                 controller.unreadIndex.value = -1;
               },
-              label:
-                  Text('${controller.unreadIndex.value + 1} Messages Unread'),
+              label: Text('Unread: ${controller.unreadIndex.value + 1}',
+                  style: const TextStyle(color: Colors.white)),
             )
           : const SizedBox()),
       body: SafeArea(

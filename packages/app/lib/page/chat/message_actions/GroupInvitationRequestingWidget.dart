@@ -44,8 +44,7 @@ class GroupInvitationRequestingWidget extends StatelessWidget {
             backgroudColors: [const Color(0xffEC6E0E), const Color(0xffDF4D9E)],
             borderRadius: 12),
         title: Text('Request to join Group: ${map.name}',
-            style:
-                TextStyle(fontSize: 14, color: Theme.of(context).primaryColor)),
+            style: Theme.of(context).textTheme.titleSmall),
         subtitle: textSmallGray(context, 'Pubkey: ${map.roomPubkey}'),
         onTap: () async {
           if (message.requestConfrim == RequestConfrimEnum.approved) {

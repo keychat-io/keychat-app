@@ -752,9 +752,7 @@ class RoomService extends BaseChatService {
 
         return await KdfGroupService.instance.sendMessage(room, sm,
             reply: reply, realMessage: realMessage, mediaType: mediaType);
-      default:
     }
-    throw Exception('not support group type');
   }
 
   static ChatController? getController(int roomId) {

@@ -470,7 +470,9 @@ class GroupService extends BaseChatService {
     await updateChatControllerMembers(groupRoom.id);
 
     if (idRoom.type == RoomType.common &&
-        (groupRoom.isShareKeyGroup || groupRoom.isKDFGroup)) return;
+        (groupRoom.isShareKeyGroup || groupRoom.isKDFGroup)) {
+      return;
+    }
 
     Message message = Message(
         identityId: groupRoom.identityId,
@@ -626,7 +628,6 @@ class GroupService extends BaseChatService {
       case GroupType.sendAll:
         await _invitePairwiseGroup(realMessage, identity, groupRoom, km);
         break;
-      default:
     }
 
     RoomService.getController(groupRoom.id)?.resetMembers();
@@ -643,7 +644,6 @@ class GroupService extends BaseChatService {
         return await KdfGroupService.instance.removeMembers(room, [rm]);
       case GroupType.mls:
         return await MlsGroupService.instance.removeMembers(room, [rm]);
-      default:
     }
   }
 

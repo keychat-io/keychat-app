@@ -8,6 +8,10 @@ class AppDelegate: FlutterAppDelegate {
     return true
   }
 
+  override func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
+    return true
+  }
+
   override func applicationDidFinishLaunching(_ aNotification: Notification) {
     if let window = NSApplication.shared.windows.first {
         window.backgroundColor = NSColor.white

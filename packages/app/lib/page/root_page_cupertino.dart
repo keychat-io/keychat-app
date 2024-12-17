@@ -4,6 +4,7 @@
 
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
+// import 'package:flutter/foundation.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:app/controller/home.controller.dart';
@@ -15,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:haptic_feedback/haptic_feedback.dart';
 
+
 class CupertinoRootPage extends GetView<HomeController> {
   const CupertinoRootPage({super.key});
 
@@ -22,7 +24,7 @@ class CupertinoRootPage extends GetView<HomeController> {
   Widget build(BuildContext context) {
     List<Widget> pages = [
       const RoomList(),
-      // const WorldPage(),
+      // const BrowserPage(),
       const MinePage(),
     ];
     return CupertinoTabScaffold(
@@ -35,7 +37,7 @@ class CupertinoRootPage extends GetView<HomeController> {
           if (GetPlatform.isMobile) {
             await Haptics.vibrate(HapticsType.selection);
           }
-          if (value == 1) {
+          if (value == pages.length - 1) {
             EasyThrottle.throttle(
                 'loadCashuABalance', const Duration(seconds: 3), () {
               getGetxController<EcashController>()?.getBalance();
@@ -52,6 +54,8 @@ class CupertinoRootPage extends GetView<HomeController> {
                   isLabelVisible: controller.allUnReadCount.value > 0,
                   child:
                       const Icon(CupertinoIcons.chat_bubble_fill, size: 22)))),
+          // const BottomNavigationBarItem(
+          //     label: 'Browser', icon: Icon(Icons.explore, size: 22)),
           const BottomNavigationBarItem(
               label: 'Me', icon: Icon(CupertinoIcons.person_fill, size: 22))
         ],

@@ -10,6 +10,7 @@ import 'package:app/models/keychat/prekey_message_model.dart';
 import 'package:app/models/keychat/qrcode_user_model.dart';
 import 'package:app/models/nostr_event_status.dart';
 import 'package:app/nostr-core/nostr_event.dart';
+import 'package:app/page/browser/Browser_controller.dart';
 import 'package:app/page/chat/ChatMediaFilesPage.dart';
 import 'package:app/page/chat/contact_page.dart';
 import 'package:app/page/chat/message_actions/BotOneTimePaymentRequestWidget.dart';
@@ -54,7 +55,6 @@ import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart' hide Contact;
 import 'package:settings_ui/settings_ui.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class RoomUtil {
   static Future<bool> messageReceiveCheck(
@@ -572,9 +572,7 @@ Let's start an encrypted chat.''';
 6. Recommended Group Limit: <6
 7. Sending a message is essentially sending multiple one-on-one chats. More stamps are required.
 ''';
-      default:
     }
-    return 'Common';
   }
 
   static MessageEncryptType getEncryptMode(NostrEventModel event,
@@ -640,7 +638,7 @@ Let's start an encrypted chat.''';
         onTapLink: (text, href, title) {
           if (href != null) {
             Utils.hideKeyboard(Get.context!);
-            launchUrl(Uri.parse(href));
+            Get.find<BrowserController>().lanuchWebview(url: href);
           }
         },
         styleSheetTheme: MarkdownStyleSheetBaseTheme.cupertino,
@@ -672,7 +670,7 @@ Let's start an encrypted chat.''';
         link: content,
         onTap: () {
           Utils.hideKeyboard(Get.context!);
-          launchUrl(Uri.parse(content));
+          Get.find<BrowserController>().lanuchWebview(url: content);
         },
         placeholderWidget:
             errorCallback(child: getMarkdownView(content, styleSheet)),

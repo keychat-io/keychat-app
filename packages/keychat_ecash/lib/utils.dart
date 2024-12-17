@@ -177,8 +177,6 @@ class CashuUtil {
       //       }
       //     },
       //     child: const Text('Pending'));
-      default:
-        return const SizedBox();
     }
   }
 
@@ -204,8 +202,6 @@ class CashuUtil {
           CupertinoIcons.time,
           color: Colors.yellow,
         );
-      default:
-        return const SizedBox();
     }
   }
 }

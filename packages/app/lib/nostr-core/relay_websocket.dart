@@ -9,8 +9,8 @@ import 'package:app/service/relay.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
+import 'package:async_queue/async_queue.dart';
 import 'package:easy_debounce/easy_throttle.dart';
-import 'package:queue/queue.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import '../utils.dart' as utils;
@@ -97,11 +97,10 @@ class RelayWebsocket {
     logger.i('proccessFailedEvents: ${failedEvents.length}');
     List<String> tasksString = failedEvents.toList();
     failedEvents.clear();
-    Queue queue = Queue(delay: const Duration(milliseconds: 100));
+    AsyncQueue queue = AsyncQueue.autoStart();
     for (String element in tasksString) {
-      queue.add(() => sendRawREQ(element, retry: true));
+      queue.addJob((_) => sendRawREQ(element, retry: true));
     }
-    await queue.onComplete;
   }
 
   sendRawREQ(String message, {bool retry = false}) {

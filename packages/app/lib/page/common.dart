@@ -72,9 +72,7 @@ List<Color> _getGroupColor(GroupType groupType) {
       return [const Color(0xff823C70), const Color(0xffAF362D)];
     case GroupType.sendAll:
       return [const Color(0xff945BF3), const Color(0xff713CD0)];
-    default:
   }
-  return [const Color(0xff02F700), const Color(0xff439368)];
 }
 
 Widget getAvatorByName(String account,

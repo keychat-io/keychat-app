@@ -470,7 +470,9 @@ class GroupService extends BaseChatService {
     await updateChatControllerMembers(groupRoom.id);
 
     if (idRoom.type == RoomType.common &&
-        (groupRoom.isShareKeyGroup || groupRoom.isKDFGroup)) return;
+        (groupRoom.isShareKeyGroup || groupRoom.isKDFGroup)) {
+      return;
+    }
 
     Message message = Message(
         identityId: groupRoom.identityId,

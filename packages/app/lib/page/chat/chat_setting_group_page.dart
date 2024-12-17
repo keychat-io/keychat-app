@@ -220,7 +220,9 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                       value: textP(chatController.meMember.value.name),
                       onPressed: (context) async {
                         if (chatController.room.isKDFGroup ||
-                            chatController.room.isShareKeyGroup) return;
+                            chatController.room.isShareKeyGroup) {
+                          return;
+                        }
 
                         await Get.dialog(CupertinoAlertDialog(
                           title: const Text("My Name"),

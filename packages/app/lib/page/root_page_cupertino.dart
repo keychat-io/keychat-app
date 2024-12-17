@@ -16,7 +16,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:haptic_feedback/haptic_feedback.dart';
 
-import 'browser/Browser_page.dart';
 
 class CupertinoRootPage extends GetView<HomeController> {
   const CupertinoRootPage({super.key});

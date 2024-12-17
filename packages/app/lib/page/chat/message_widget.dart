@@ -248,7 +248,9 @@ class MessageWidget extends StatelessWidget {
     if (!message.isMeSend) return null;
 
     if (message.sent == SendStatusType.success ||
-        message.sent == SendStatusType.partialSuccess) return null;
+        message.sent == SendStatusType.partialSuccess) {
+      return null;
+    }
     if (message.sent == SendStatusType.sending) {
       if (message.createdAt.isAfter(DateTime.now().subtract(const Duration(
           seconds: KeychatGlobal.messageFailedAfterSeconds + 1)))) {

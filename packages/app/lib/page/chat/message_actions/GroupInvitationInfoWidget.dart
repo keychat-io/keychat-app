@@ -41,10 +41,10 @@ class GroupInvitationInfoWidget extends StatelessWidget {
         leading: getAvatorByName(map.name,
             backgroudColors: [const Color(0xffEC6E0E), const Color(0xffDF4D9E)],
             borderRadius: 12),
-        title: Text('Share a Group: ${map.name}',
+        title: Text('Group Invitation: ${map.name}',
             style:
                 TextStyle(fontSize: 14, color: Theme.of(context).primaryColor)),
-        subtitle: textSmallGray(context, 'Pubkey: ${map.pubkey}'),
+        subtitle: textSmallGray(context, 'Click to join'),
         onTap: () async {
           if (message.requestConfrim == RequestConfrimEnum.approved) {
             EasyLoading.showToast('Proccessed');

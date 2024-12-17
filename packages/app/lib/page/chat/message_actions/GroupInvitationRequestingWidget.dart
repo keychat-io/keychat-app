@@ -68,9 +68,8 @@ class GroupInvitationRequestingWidget extends StatelessWidget {
             List<Message> requests =
                 await MessageService.instance.getMessageByRequestId(requestId);
             if (requests.length >= 2) {
-              // bottomSheet to proccess
               Get.bottomSheet(AddMemberToMLS(groupRoom, requests),
-                  isScrollControlled: true);
+                  isScrollControlled: true, ignoreSafeArea: false);
               return;
             }
           }

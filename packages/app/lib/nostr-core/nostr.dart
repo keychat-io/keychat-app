@@ -51,39 +51,38 @@ class NostrAPI {
     return jsonEncode(["CLOSE", subscriptionId]);
   }
 
-  addNostrEventToQueue(Relay relay, dynamic message) {
+  addNostrEventToQueue(Relay relay, dynamic message) async {
     //logger.d('processWebsocketMessage, ${relay.url} $message');
-    nostrEventQueue.addJob((_) async {
-      try {
-        var res = jsonDecode(message);
-        switch (res[0]) {
-          case NostrResKinds.ok:
-            loggerNoLine.i('OK: ${relay.url}, $res');
-            await _proccessWriteEventResponse(res, relay);
-            break;
-          case NostrResKinds.event:
-            loggerNoLine.i('receive event: ${relay.url} $message');
-            await _proccessEvent(res, relay, message);
-            break;
-          case NostrResKinds.eose:
-            loggerNoLine.i('EOSE: ${relay.url} ${res[1]}');
-            await _proccessEOSE(relay, res);
-            break;
-          case NostrResKinds.notice:
-            String message = res[1];
-            if (message == 'could not parse command') {
-              message = 'ping respose';
-            }
-            loggerNoLine.i("Nostr notice: ${relay.url} $res");
-            _proccessNotice(relay, res[1]);
-            break;
-          default:
-            logger.i('${relay.url}: $message');
-        }
-      } catch (e, s) {
-        logger.e('processWebsocketMessage', error: e, stackTrace: s);
+    // nostrEventQueue.addJob((_) async { });
+    try {
+      var res = jsonDecode(message);
+      switch (res[0]) {
+        case NostrResKinds.ok:
+          loggerNoLine.i('OK: ${relay.url}, $res');
+          await _proccessWriteEventResponse(res, relay);
+          break;
+        case NostrResKinds.event:
+          loggerNoLine.i('receive event: ${relay.url} $message');
+          await _proccessEvent01(res, relay, message);
+          break;
+        case NostrResKinds.eose:
+          loggerNoLine.i('EOSE: ${relay.url} ${res[1]}');
+          await _proccessEOSE(relay, res);
+          break;
+        case NostrResKinds.notice:
+          String message = res[1];
+          if (message == 'could not parse command') {
+            message = 'ping respose';
+          }
+          loggerNoLine.i("Nostr notice: ${relay.url} $res");
+          _proccessNotice(relay, res[1]);
+          break;
+        default:
+          logger.i('${relay.url}: $message');
       }
-    });
+    } catch (e, s) {
+      logger.e('processWebsocketMessage', error: e, stackTrace: s);
+    }
   }
 
   _proccessEOSE(Relay relay, List res) async {
@@ -116,19 +115,37 @@ class NostrAPI {
     // logger.i('auth: $serializeStr');
     // sendMessageFunction(serializeStr);
   }
-
-  Future _proccessEvent(List eventList, Relay relay, String raw) async {
+  List<(NostrEventModel, List, String, Relay)> toProccessEventsPool = [];
+  Future _proccessEvent01(List eventList, Relay relay, String raw) async {
     NostrEventModel event =
         NostrEventModel.deserialize(eventList, verify: false);
+    toProccessEventsPool.add((event, eventList, raw, relay));
+
+    // waiting 200ms to proccess all events
+    EasyDebounce.debounce('_proccessEvent01', const Duration(milliseconds: 200),
+        () async {
+      List<(NostrEventModel, List, String, Relay)> events =
+          toProccessEventsPool;
+      toProccessEventsPool = [];
+      events.sort((a, b) => a.$1.createdAt.compareTo(b.$1.createdAt));
+      for (var (event, eventList, raw, relay) in events) {
+        nostrEventQueue.addJob((_) async {
+          await _proccessEvent02(event, eventList, relay, raw);
+        });
+      }
+    });
+  }
+
+  Future _proccessEvent02(
+      NostrEventModel event, List eventList, Relay relay, String raw) async {
     String subscribeId = eventList[1];
-    // logger.i('${DateTime.now()} : ${event.createdAt}');
     switch (event.kind) {
       case EventKinds.contactList:
         await _proccessNip2(event);
         break;
       case EventKinds.encryptedDirectMessage:
       case EventKinds.nip17:
-        await _proccessNip4Message(eventList, event, relay, raw);
+        await _proccessNip4Message(event, eventList, relay, raw);
         break;
       case EventKinds.setMetadata:
         SubscribeResult.instance.fill(subscribeId, event);
@@ -362,7 +379,7 @@ class NostrAPI {
   }
 
   Future _proccessNip4Message(
-      List eventList, NostrEventModel event, Relay relay, String raw) async {
+      NostrEventModel event, List eventList, Relay relay, String raw) async {
     if (processedEventIds.contains(event.id)) {
       logger.i('duplicate_local: ${event.id}');
       return;

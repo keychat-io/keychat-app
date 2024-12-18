@@ -62,7 +62,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                             color: Theme.of(context)
                                 .colorScheme
                                 .onSurface
-                                .withOpacity(0.1),
+                                .withValues(alpha: 0.1),
                           ),
                           child: Text(
                             controller.identity.value.npub,
@@ -71,7 +71,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurface
-                                  .withOpacity(0.6),
+                                  .withValues(alpha: 0.6),
                             ),
                           ),
                         )),

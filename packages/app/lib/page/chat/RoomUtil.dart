@@ -638,7 +638,7 @@ Let's start an encrypted chat.''';
         onTapLink: (text, href, title) {
           if (href != null) {
             Utils.hideKeyboard(Get.context!);
-            Get.find<BrowserController>().lanuchWebview(url: href);
+            Get.find<BrowserController>().lanuchWebview(content: href);
           }
         },
         styleSheetTheme: MarkdownStyleSheetBaseTheme.cupertino,
@@ -670,7 +670,7 @@ Let's start an encrypted chat.''';
         link: content,
         onTap: () {
           Utils.hideKeyboard(Get.context!);
-          Get.find<BrowserController>().lanuchWebview(url: content);
+          Get.find<BrowserController>().lanuchWebview(content: content);
         },
         placeholderWidget:
             errorCallback(child: getMarkdownView(content, styleSheet)),

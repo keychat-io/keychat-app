@@ -422,4 +422,10 @@ class Utils {
     return List.generate(i, (index) => chars[random.nextInt(chars.length)])
         .join();
   }
+
+  static String capitalizeFirstLetter(String input) {
+    if (input.isEmpty || input[0].contains(RegExp(r'[^a-zA-Z]'))) return input;
+    if (input.length == 1) return input.toUpperCase();
+    return input[0].toUpperCase() + input.substring(1);
+  }
 }

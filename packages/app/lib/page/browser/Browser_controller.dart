@@ -1,7 +1,9 @@
 import 'dart:convert' show jsonEncode, jsonDecode;
 
 import 'package:app/controller/home.controller.dart';
+import 'package:app/models/identity.dart';
 import 'package:app/page/browser/webview_detail_page.dart';
+import 'package:app/service/identity.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
@@ -10,11 +12,15 @@ import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+enum BrowserEngine { google, brave, duckduckgo }
+
 class BrowserController extends GetxController {
   late TextEditingController textController;
   RxString title = 'Loading'.obs;
   RxString input = ''.obs;
   RxDouble progress = 0.2.obs;
+  Rx<Identity> identity = Identity(name: '', npub: '', secp256k1PKHex: '').obs;
+  RxSet<String> enableSearchEngine = <String>{}.obs;
 
   RxList recommendedUrls = [
     {
@@ -50,14 +56,36 @@ class BrowserController extends GetxController {
   }
 
   @override
-  void onInit() {
+  void onInit() async {
     textController = TextEditingController();
     textController.addListener(() {
       input.value = textController.text.trim();
     });
+    List<Identity> identities = await IdentityService.instance.listIdentity();
+    if (identities.isNotEmpty) {
+      identity.value = identities.first;
+    }
     _loadHistoryFromLocalStorage();
 
+    // load search engine
+    List<String> searchEngine = await Storage.getStringList('searchEngine');
+    if (searchEngine.isEmpty) {
+      enableSearchEngine.addAll(BrowserEngine.values.map((e) => e.name));
+    } else {
+      enableSearchEngine.addAll(searchEngine);
+    }
+
     super.onInit();
+  }
+
+  addSearchEngine(String engine) async {
+    enableSearchEngine.add(engine);
+    Storage.setStringList('searchEngine', enableSearchEngine.toList());
+  }
+
+  removeSearchEngine(String engine) async {
+    enableSearchEngine.remove(engine);
+    Storage.setStringList('searchEngine', enableSearchEngine.toList());
   }
 
   @override
@@ -93,20 +121,38 @@ class BrowserController extends GetxController {
     return NavigationDecision.navigate;
   }
 
-  lanuchWebview({required String url, String? defaultTitle}) {
-    if (url.isEmpty) return;
+  lanuchWebview(
+      {required String content,
+      String engine = 'google',
+      String? defaultTitle}) {
+    if (content.isEmpty) return;
     EasyThrottle.throttle('browserOnComplete', const Duration(seconds: 2),
         () async {
-      if (url.startsWith('http') == false) {
-        url = 'https://$url';
+      if (content.startsWith('http') == false) {
+        switch (engine) {
+          case 'google':
+            content = 'https://www.google.com/search?q=$content';
+            break;
+          case 'brave':
+            content = 'https://search.brave.com/search?q=$content';
+          case 'bing':
+            content = 'https://www.bing.com/search?q=$content';
+          case 'duckduckgo':
+            content = 'https://duckduckgo.com/?q=$content';
+            break;
+        }
       }
-      Uri? uri = Uri.tryParse(url);
+      Uri? uri = Uri.tryParse(content);
       if (uri == null) return;
       if (defaultTitle != null) {
         title.value = defaultTitle;
       }
-      addUrlToHistory(url, title.value);
+      addUrlToHistory(content, title.value);
       WebViewController controller = WebViewController();
+      if (GetPlatform.isDesktop) {
+        controller.setUserAgent(
+            "Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.6778.135 Mobile Safari/537.36");
+      }
       controller.addJavaScriptChannel('nc',
           onMessageReceived: (JavaScriptMessage message) {
         print('Received message from javascript: ${message.message}');

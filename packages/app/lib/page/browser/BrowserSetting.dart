@@ -1,3 +1,4 @@
+import 'package:app/page/browser/BrowserBookmarkPage.dart';
 import 'package:app/page/browser/BrowserHistoryPage.dart';
 import 'package:app/page/browser/Browser_controller.dart';
 import 'package:app/utils.dart';
@@ -12,9 +13,7 @@ class BrowserSetting extends GetView<BrowserController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: const Text('Browser Settings'),
-        ),
+        appBar: AppBar(title: const Text('Browser Settings')),
         body: SafeArea(
             child: Obx(() => SettingsList(
                   platform: DevicePlatform.iOS,
@@ -41,6 +40,13 @@ class BrowserSetting extends GetView<BrowserController> {
                             .toList()),
                     SettingsSection(
                       tiles: [
+                        SettingsTile.navigation(
+                          leading: const Icon(CupertinoIcons.bookmark),
+                          title: const Text("Bookmark"),
+                          onPressed: (context) async {
+                            Get.to(() => const BrowserBookmarkPage());
+                          },
+                        ),
                         SettingsTile.navigation(
                           leading: const Icon(CupertinoIcons.time),
                           title: const Text("History"),

@@ -352,7 +352,8 @@ Text textSmallGray(BuildContext context, String content,
       style: TextStyle(
           fontSize: fontSize,
           height: lineHeight,
-          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)));
+          color:
+              Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)));
 }
 
 void copyAllContacts(List<Contact> contactList) {

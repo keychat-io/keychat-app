@@ -54,8 +54,6 @@ class PayInvoiceController extends GetxController {
         content: Text('''
 
 Expire At: ${DateFormat("yyyy-MM-ddTHH:mm:ss").format(DateTime.fromMillisecondsSinceEpoch(ii.expiryTs.toInt()))}
-
-Hash: ${ii.hash}
 '''),
         actions: [
           CupertinoDialogAction(

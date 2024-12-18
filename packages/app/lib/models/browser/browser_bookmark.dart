@@ -1,3 +1,4 @@
+import 'package:app/models/db_provider.dart';
 import 'package:equatable/equatable.dart';
 import 'package:isar/isar.dart';
 
@@ -10,6 +11,7 @@ part 'browser_bookmark.g.dart';
 class BrowserBookmark extends Equatable {
   Id id = Isar.autoIncrement;
 
+  @Index(unique: true)
   late String url;
   int weight = 0;
   String? title;
@@ -21,4 +23,27 @@ class BrowserBookmark extends Equatable {
 
   @override
   List get props => [id, url, title];
+
+  static Future<List<BrowserBookmark>> getAll(
+      {int limit = 20, int offset = 0}) async {
+    var list = await DBProvider.database.browserBookmarks
+        .where(sort: Sort.desc)
+        .sortByCreatedAtDesc()
+        .offset(offset)
+        .limit(limit)
+        .findAll();
+    return list;
+  }
+
+  static deleteAll() async {
+    await DBProvider.database.writeTxn(() async {
+      await DBProvider.database.browserBookmarks.where().deleteAll();
+    });
+  }
+
+  static delete(Id id) async {
+    await DBProvider.database.writeTxn(() async {
+      await DBProvider.database.browserBookmarks.delete(id);
+    });
+  }
 }

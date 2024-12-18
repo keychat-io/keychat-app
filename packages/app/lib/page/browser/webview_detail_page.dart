@@ -1,38 +1,74 @@
+import 'package:app/models/browser/browser_bookmark.dart';
+import 'package:app/models/db_provider.dart';
 import 'package:app/utils.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:isar/isar.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import 'Browser_controller.dart';
 
-class WebviewDetailPage extends GetView<BrowserController> {
+class WebviewDetailPage extends StatefulWidget {
   final WebViewController webViewController;
   const WebviewDetailPage(this.webViewController, {super.key});
+
+  @override
+  _WebviewDetailPageState createState() => _WebviewDetailPageState();
+}
+
+class _WebviewDetailPageState extends State<WebviewDetailPage> {
+  bool marked = false;
+  late BrowserController controller;
+  String? url;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.find<BrowserController>();
+    controller.setUrlChanged(init);
+    init();
+
+    // widget.webViewController.setOnScrollPositionChange((scrollPositionChange) {
+    //   print('scrollPositionChange: ${scrollPositionChange.y}');
+    // });
+  }
+
+  void init() {
+    widget.webViewController.currentUrl().then((value) async {
+      if (value == null) return;
+      BrowserBookmark? bb = await DBProvider.database.browserBookmarks
+          .filter()
+          .urlEqualTo(value)
+          .findFirst();
+
+      setState(() {
+        url = value;
+        marked = bb != null;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: Row(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () async {
-                bool canGoBack = await webViewController.canGoBack();
-                if (canGoBack) {
-                  webViewController.goBack();
-                } else {
-                  Get.back();
-                }
-              },
-            )
-          ],
-        ),
+        leading: IconButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            icon: const Icon(Icons.close)),
         centerTitle: true,
         title: Obx(() => Text(controller.title.value)),
         bottom: PreferredSize(
@@ -47,30 +83,63 @@ class WebviewDetailPage extends GetView<BrowserController> {
                   : Container()),
         ),
         actions: [
+          IconButton(
+            icon: marked
+                ? const Icon(CupertinoIcons.heart_fill)
+                : const Icon(CupertinoIcons.heart),
+            onPressed: () async {
+              final url = await widget.webViewController.currentUrl();
+              if (url == null) return;
+              BrowserBookmark? bb = await DBProvider.database.browserBookmarks
+                  .filter()
+                  .urlEqualTo(url)
+                  .findFirst();
+              await DBProvider.database.writeTxn(() async {
+                if (bb != null) {
+                  await DBProvider.database.browserBookmarks.delete(bb.id);
+                } else {
+                  BrowserBookmark bookmark =
+                      BrowserBookmark(url: url, title: controller.title.value);
+                  await DBProvider.database.browserBookmarks.put(bookmark);
+                }
+              });
+              setState(() {
+                marked = !marked;
+              });
+              controller.loadBookmarks();
+            },
+          ),
           PopupMenuButton<String>(
             onSelected: (value) async {
-              if (value == 'refresh') {
-                webViewController.reload();
-                return;
-              }
-              final url = await webViewController.currentUrl();
+              final url = await widget.webViewController.currentUrl();
               if (url == null) return;
-              if (value == 'share') {
-                Share.share(url);
-                return;
-              }
-              if (value == 'copy') {
-                Clipboard.setData(ClipboardData(text: url));
-                EasyLoading.showToast('Copied');
-              }
 
-              if (value == 'openInBrowser') {
-                await launchUrl(Uri.parse(url),
-                    mode: LaunchMode.externalApplication);
+              switch (value) {
+                case 'back':
+                  widget.webViewController.goBack();
+                  break;
+                case 'refresh':
+                  widget.webViewController.reload();
+                  break;
+                case 'share':
+                  Share.share(url);
+                  break;
+                case 'copy':
+                  Clipboard.setData(ClipboardData(text: url));
+                  EasyLoading.showToast('Copied');
+                  break;
+                case 'openInBrowser':
+                  await launchUrl(Uri.parse(url),
+                      mode: LaunchMode.externalApplication);
+                  break;
               }
             },
             itemBuilder: (BuildContext context) {
               return [
+                const PopupMenuItem(
+                  value: 'back',
+                  child: Text('Back'),
+                ),
                 const PopupMenuItem(
                   value: 'refresh',
                   child: Text('Refresh'),
@@ -97,9 +166,6 @@ class WebviewDetailPage extends GetView<BrowserController> {
           ? ElevatedButton(
               onPressed: () async {
                 try {
-                  // await webViewController.runJavaScript(
-                  //     'window.nc.sendMessage({action: "getPublicKey"})');
-// async window.nostr.signEvent(event: { created_at: number, kind: number, tags: string[][], content: string }): Event // takes an event object, adds `id`, `pubkey` and `sig` and returns it
                   var event = {
                     'created_at': DateTime.now().millisecondsSinceEpoch ~/ 1000,
                     'kind': 1,
@@ -108,8 +174,8 @@ class WebviewDetailPage extends GetView<BrowserController> {
                     ],
                     'content': 'This is a demo event'
                   };
-                  await webViewController
-                      .runJavaScript('window.nostr.signEvent($event);');
+                  // await widget.webViewController
+                  //     .runJavaScript('window.nostr.signEvent($event);');
                 } catch (e) {
                   logger.e(e, error: e);
                 }
@@ -117,7 +183,8 @@ class WebviewDetailPage extends GetView<BrowserController> {
               child: const Text('Call'),
             )
           : null,
-      body: SafeArea(child: WebViewWidget(controller: webViewController)),
+      body:
+          SafeArea(child: WebViewWidget(controller: widget.webViewController)),
     );
   }
 }

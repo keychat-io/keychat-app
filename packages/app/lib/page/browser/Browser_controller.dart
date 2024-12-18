@@ -1,15 +1,18 @@
 import 'dart:convert' show jsonEncode, jsonDecode;
 
 import 'package:app/controller/home.controller.dart';
+import 'package:app/models/browser/browser_bookmark.dart';
+import 'package:app/models/browser/browser_history.dart';
+import 'package:app/models/db_provider.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/page/browser/webview_detail_page.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/storage.dart';
+import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 enum BrowserEngine { google, brave, duckduckgo }
@@ -21,6 +24,9 @@ class BrowserController extends GetxController {
   RxDouble progress = 0.2.obs;
   Rx<Identity> identity = Identity(name: '', npub: '', secp256k1PKHex: '').obs;
   RxSet<String> enableSearchEngine = <String>{}.obs;
+  RxList<BrowserBookmark> bookmarks = <BrowserBookmark>[].obs;
+
+  Function()? urlChanged;
 
   RxList recommendedUrls = [
     {
@@ -31,28 +37,16 @@ class BrowserController extends GetxController {
     {"title": "Primal", "url": "https://primal.net/"},
     {"title": "KeyChat", "url": "https://www.keychat.io/"},
   ].obs;
-  RxList<Map<String, String>> historyUrls = <Map<String, String>>[].obs;
 
-  void addUrlToHistory(String url, String title) {
-    historyUrls.removeWhere((element) => element['url'] == url);
-    historyUrls.insert(0, {'url': url, 'title': title});
-    if (historyUrls.length > 10) {
-      historyUrls.removeLast();
-    }
-    _saveHistoryToLocalStorage();
+  Future addToHistory(String url, String title) async {
+    BrowserHistory history = BrowserHistory(url: url, title: title);
+    await DBProvider.database.writeTxn(() async {
+      await DBProvider.database.browserHistorys.put(history);
+    });
   }
 
-  void _saveHistoryToLocalStorage() async {
-    List<String> historyList = historyUrls.map((e) => jsonEncode(e)).toList();
-    await Storage.setStringList('browserHistory', historyList);
-  }
-
-  void _loadHistoryFromLocalStorage() async {
-    List<String>? storedHistory = await Storage.getStringList('browserHistory');
-    var data = storedHistory
-        .map((e) => Map<String, String>.from(jsonDecode(e)))
-        .toList();
-    historyUrls.value = data;
+  setUrlChanged(Function() method) {
+    urlChanged = method;
   }
 
   @override
@@ -65,7 +59,6 @@ class BrowserController extends GetxController {
     if (identities.isNotEmpty) {
       identity.value = identities.first;
     }
-    _loadHistoryFromLocalStorage();
 
     // load search engine
     List<String> searchEngine = await Storage.getStringList('searchEngine');
@@ -74,8 +67,12 @@ class BrowserController extends GetxController {
     } else {
       enableSearchEngine.addAll(searchEngine);
     }
-
+    loadBookmarks();
     super.onInit();
+  }
+
+  loadBookmarks() async {
+    bookmarks.value = await BrowserBookmark.getAll(limit: 8);
   }
 
   addSearchEngine(String engine) async {
@@ -105,16 +102,11 @@ class BrowserController extends GetxController {
     // lighting invoice
     if (str.startsWith('lightning:')) {
       str = str.replaceFirst('lightning:', '');
-      ecashController.proccessPayLightingBill(str);
+      ecashController.proccessPayLightingBill(str, pay: true);
       return NavigationDecision.prevent;
     }
     if (str.startsWith('lnbc')) {
-      ecashController.proccessPayLightingBill(str);
-      return NavigationDecision.prevent;
-    }
-
-    if (!str.startsWith('http')) {
-      launchUrl(Uri.parse(str), mode: LaunchMode.externalNonBrowserApplication);
+      ecashController.proccessPayLightingBill(str, pay: true);
       return NavigationDecision.prevent;
     }
 
@@ -147,15 +139,17 @@ class BrowserController extends GetxController {
       if (defaultTitle != null) {
         title.value = defaultTitle;
       }
-      addUrlToHistory(content, title.value);
       WebViewController controller = WebViewController();
       if (GetPlatform.isDesktop) {
         controller.setUserAgent(
             "Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.6778.135 Mobile Safari/537.36");
       }
+      controller.setOnConsoleMessage((message) {
+        logger.d('console: ${message.message}');
+      });
       controller.addJavaScriptChannel('nc',
           onMessageReceived: (JavaScriptMessage message) {
-        print('Received message from javascript: ${message.message}');
+        logger.d('Received message from javascript: ${message.message}');
         Map<String, dynamic> data = jsonDecode(message.message);
         if (data['action'] == 'getPublicKey') {
           String publicKey = 'YOUR_PUBLIC_KEY';
@@ -164,21 +158,23 @@ class BrowserController extends GetxController {
             'success': true,
             'result': publicKey
           };
-          print(response);
+          logger.d(response);
           controller
               .runJavaScript('window.postMessage(${jsonEncode(response)},"*")');
         }
       });
       onPageFinished(String url) async {
         String? res = await controller.getTitle();
+        logger.d('Page finished loading: $url');
         if (res != null) {
           title.value = res;
-          addUrlToHistory(url, title.value);
+          await addToHistory(url, title.value);
+          if (urlChanged != null) {
+            urlChanged!();
+          }
         }
-        print('Page finished loading: $url');
         progress.value = 0.0;
 
-        //
         var identity = Get.find<HomeController>().getSelectedIdentity();
         String pubkey = identity.secp256k1PKHex;
         controller.runJavaScript('''
@@ -189,8 +185,8 @@ window.nostr.getPublicKey = function () {
   return '$pubkey';
 };
 window.nostr.signEvent = async function (event) {
-  let event = await window.nostr.sendMessage({action: 'signEvent', event: event});
-  return event;
+  let res = await window.nostr.sendMessage({action: 'signEvent', event: event});
+  return res;
 };
 
 function generateUniqueId() {
@@ -200,14 +196,14 @@ function generateUniqueId() {
 window.nc.sendMessage = function (message) {
   return new Promise((resolve, reject) => {
     const messageId = generateUniqueId();
-    window.addEventListener('message', function handler(event) {
-      console.log('receive from dart:', JSON.stringify(event.data));
-      if (event.data && event.data.messageId === messageId) {
+    window.addEventListener('message', function handler(e) {
+      console.log('receive from dart:', JSON.stringify(e.data));
+      if (e.data && e.data.messageId === messageId) {
         window.removeEventListener('message', handler);
-        if (event.data.success) {
-          resolve(event.data.result);
+        if (e.data.success) {
+          resolve(e.data.result);
         } else {
-          reject(event.data.error);
+          reject(e.data.error);
         }
       }
     });
@@ -226,28 +222,36 @@ window.nc.sendMessage = function (message) {
         ..setNavigationDelegate(NavigationDelegate(
             onProgress: onProgress,
             onPageStarted: (String url) {
-              print('Page started loading: $url');
+              logger.d('Page started loading: $url');
             },
             onPageFinished: onPageFinished,
             onHttpError: (HttpResponseError error) {
-              print('HTTP error: $error');
+              logger.d('HTTP error: $error');
             },
             onWebResourceError: (WebResourceError error) {
-              print('Web Resource error: $error');
+              logger.d('Web Resource error: $error');
             },
             onNavigationRequest: _onNavigationRequest))
         ..loadRequest(uri);
 
-      await Get.to(() => WebviewDetailPage(controller));
+      await Get.bottomSheet(
+          PopScope(
+            canPop: false,
+            child: WebviewDetailPage(controller),
+            onPopInvokedWithResult: (b, d) async {
+              bool canGoBack = await controller.canGoBack();
+              if (canGoBack) {
+                controller.goBack();
+              } else {
+                Get.back();
+              }
+            },
+          ),
+          isScrollControlled: true,
+          enableDrag: false,
+          isDismissible: false,
+          ignoreSafeArea: false);
       title.value = 'Loading';
     });
-  }
-
-  void clearHistory() {
-    historyUrls.clear();
-    if (historyUrls.isEmpty) {
-      Storage.removeString('browserHistory');
-      return;
-    }
   }
 }

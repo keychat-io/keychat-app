@@ -1,4 +1,6 @@
+import 'package:app/page/browser/BrowserBookmarkPage.dart';
 import 'package:app/page/browser/BrowserSetting.dart';
+import 'package:app/page/components.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
@@ -35,10 +37,9 @@ class BrowserPage extends GetView<BrowserController> {
                 child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8.0),
                     child: Obx(() => ListView(children: [
-                          ...controller.enableSearchEngine.map((engine) =>
-                              Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 10),
+                          ...controller.enableSearchEngine
+                              .map((engine) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 20),
                                   child: Form(
                                     key: PageStorageKey('input:$engine'),
                                     child: TextFormField(
@@ -64,8 +65,8 @@ class BrowserPage extends GetView<BrowserController> {
                                                         .clear();
                                                   },
                                                 ),
-                                              TextButton(
-                                                child: const Text('OK'),
+                                              IconButton(
+                                                icon: const Icon(Icons.search),
                                                 onPressed: () async {
                                                   if (controller.textController
                                                       .text.isEmpty) {
@@ -89,25 +90,98 @@ class BrowserPage extends GetView<BrowserController> {
                                       },
                                     ),
                                   ))),
-                          Text('Recommended URLs',
-                              style: Theme.of(context).textTheme.titleMedium),
-                          ListView.builder(
+                          if (controller.bookmarks.isNotEmpty)
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('Bookmark',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium),
+                                IconButton(
+                                  icon: const Icon(CupertinoIcons.right_chevron,
+                                      size: 14),
+                                  onPressed: () {
+                                    Get.to(() => const BrowserBookmarkPage());
+                                  },
+                                ),
+                              ],
+                            ),
+                          GridView.builder(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 8.0,
+                              mainAxisSpacing: 8.0,
+                              childAspectRatio: 3,
+                            ),
+                            itemCount: controller.bookmarks.length,
+                            itemBuilder: (context, index) {
+                              final site = controller.bookmarks[index];
+                              return Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                      color: Theme.of(context)
+                                          .dividerColor
+                                          .withAlpha(50)),
+                                  borderRadius: BorderRadius.circular(8.0),
+                                  color: Theme.of(context).cardColor,
+                                ),
+                                child: ListTile(
+                                  title: site.title != null
+                                      ? Text(site.title!,
+                                          overflow: TextOverflow.ellipsis)
+                                      : null,
+                                  subtitle: textSmallGray(context, site.url),
+                                  dense: true,
+                                  onTap: () {
+                                    controller.lanuchWebview(
+                                        engine: BrowserEngine.google.name,
+                                        content: site.url,
+                                        defaultTitle: site.title);
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 20),
+                          Text('Recommended',
+                              style: Theme.of(context).textTheme.titleMedium),
+                          GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 8.0,
+                              mainAxisSpacing: 8.0,
+                              childAspectRatio: 3,
+                            ),
                             itemCount: controller.recommendedUrls.length,
                             itemBuilder: (context, index) {
                               final site = controller.recommendedUrls[index];
-                              return ListTile(
-                                title: Text(site['title']),
-                                subtitle: Text(site['url']),
-                                minTileHeight: 4,
-                                dense: true,
-                                onTap: () {
-                                  controller.lanuchWebview(
-                                      engine: BrowserEngine.google.name,
-                                      content: site['url'],
-                                      defaultTitle: site['title']);
-                                },
+                              return Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                      color: Theme.of(context)
+                                          .dividerColor
+                                          .withAlpha(50)),
+                                  borderRadius: BorderRadius.circular(8.0),
+                                  color: Theme.of(context).cardColor,
+                                ),
+                                child: ListTile(
+                                  title: Text(site['title']),
+                                  subtitle: textSmallGray(context, site['url']),
+                                  dense: true,
+                                  onTap: () {
+                                    controller.lanuchWebview(
+                                        engine: BrowserEngine.google.name,
+                                        content: site['url'],
+                                        defaultTitle: site['title']);
+                                  },
+                                ),
                               );
                             },
                           ),

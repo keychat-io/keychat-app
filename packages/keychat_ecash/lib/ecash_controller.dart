@@ -393,7 +393,7 @@ class EcashController extends GetxController {
   }
 
   Future proccessPayLightingBill(String invoce,
-      [Function(String str)? callback]) async {
+      {bool pay = false, Function(String str)? callback}) async {
     try {
       await rust_cashu.decodeInvoice(encodedInvoice: invoce);
     } catch (e) {
@@ -402,8 +402,12 @@ class EcashController extends GetxController {
       }
       return callback(invoce);
     }
+    if (pay == true) {
+      Get.bottomSheet(PayInvoicePage(invoce: invoce, pay: pay));
+      return;
+    }
     await showModalBottomSheetWidget(
-        Get.context!, '', PayInvoicePage(invoce: invoce),
+        Get.context!, '', PayInvoicePage(invoce: invoce, pay: pay),
         showAppBar: false);
   }
 }

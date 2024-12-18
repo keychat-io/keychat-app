@@ -88,6 +88,7 @@ class FileUtils {
           )
         : Image.file(
             file,
+            width: width,
             fit: BoxFit.fitWidth,
           );
   }

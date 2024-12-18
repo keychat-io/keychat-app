@@ -38,17 +38,13 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                           height: 80,
                           width: 80),
                     ),
-                    const SizedBox(
-                      height: 5,
-                    ),
+                    const SizedBox(height: 5),
                     Text(
                       controller.identity.value.displayName,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
-                    const SizedBox(
-                      height: 8,
-                    ),
+                    const SizedBox(height: 8),
                     GestureDetector(
                         onTap: () {
                           Clipboard.setData(ClipboardData(
@@ -128,44 +124,45 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                     ),
                   ],
                 ),
-                SettingsSection(
-                  tiles: [
-                    SettingsTile(
-                      leading: const Icon(Icons.mail_lock),
-                      title: const Text("MLS Keys"),
-                      onPressed: (context) async {
-                        String? pk = await MlsGroupService.instance
-                            .getPK(controller.identity.value.secp256k1PKHex);
+                if (kDebugMode)
+                  SettingsSection(
+                    tiles: [
+                      SettingsTile(
+                        leading: const Icon(Icons.mail_lock),
+                        title: const Text("MLS Keys"),
+                        onPressed: (context) async {
+                          String? pk = await MlsGroupService.instance
+                              .getPK(controller.identity.value.secp256k1PKHex);
 
-                        Get.dialog(CupertinoAlertDialog(
-                          title: const Text("MLS Keys"),
-                          content: Text(pk ?? 'not uploaded', maxLines: 3),
-                          actions: <Widget>[
-                            CupertinoDialogAction(
-                                isDefaultAction: true,
-                                onPressed: () async {
-                                  await MlsGroupService.instance
-                                      .uploadPKByIdentity(
-                                          controller.identity.value);
-                                  EasyLoading.showSuccess('Uploaded');
+                          Get.dialog(CupertinoAlertDialog(
+                            title: const Text("MLS Keys"),
+                            content: Text(pk ?? 'not uploaded', maxLines: 3),
+                            actions: <Widget>[
+                              CupertinoDialogAction(
+                                  isDefaultAction: true,
+                                  onPressed: () async {
+                                    await MlsGroupService.instance
+                                        .uploadPKByIdentity(
+                                            controller.identity.value);
+                                    EasyLoading.showSuccess('Uploaded');
+                                    Get.back();
+                                  },
+                                  child: const Text("Upload")),
+                              CupertinoDialogAction(
+                                child: const Text("Copy"),
+                                onPressed: () {
+                                  Clipboard.setData(
+                                      ClipboardData(text: pk ?? ''));
+                                  EasyLoading.showSuccess("Copied");
                                   Get.back();
                                 },
-                                child: const Text("Upload")),
-                            CupertinoDialogAction(
-                              child: const Text("Copy"),
-                              onPressed: () {
-                                Clipboard.setData(
-                                    ClipboardData(text: pk ?? ''));
-                                EasyLoading.showSuccess("Copied");
-                                Get.back();
-                              },
-                            ),
-                          ],
-                        ));
-                      },
-                    )
-                  ],
-                ),
+                              ),
+                            ],
+                          ));
+                        },
+                      )
+                    ],
+                  ),
                 SettingsSection(
                   tiles: [
                     SettingsTile(

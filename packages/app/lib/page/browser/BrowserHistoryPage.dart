@@ -1,5 +1,6 @@
 import 'package:app/models/browser/browser_history.dart';
 import 'package:app/page/browser/Browser_controller.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
@@ -36,10 +37,26 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
             IconButton(
                 icon: const Icon(Icons.delete),
                 onPressed: () async {
-                  await BrowserHistory.deleteAll();
-                  setState(() {
-                    historyUrls = [];
-                  });
+                  Get.dialog(CupertinoAlertDialog(
+                      title: const Text('Clear History'),
+                      content: const Text(
+                          'Are you sure you want to clear your browsing history?'),
+                      actions: [
+                        CupertinoDialogAction(
+                            child: const Text('Cancel'),
+                            onPressed: () {
+                              Get.back();
+                            }),
+                        CupertinoDialogAction(
+                            child: const Text('Clear'),
+                            onPressed: () async {
+                              await BrowserHistory.deleteAll();
+                              setState(() {
+                                historyUrls = [];
+                              });
+                              Get.back();
+                            })
+                      ]));
                 })
           ],
         ),

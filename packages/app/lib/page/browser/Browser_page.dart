@@ -1,6 +1,7 @@
 import 'package:app/page/browser/BrowserBookmarkPage.dart';
 import 'package:app/page/browser/BrowserSetting.dart';
 import 'package:app/page/components.dart';
+import 'package:app/page/routes.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
@@ -19,8 +20,16 @@ class BrowserPage extends GetView<BrowserController> {
             onPressed: () {},
           ),
           actions: [
-            Obx(() => getRandomAvatar(controller.identity.value.secp256k1PKHex,
-                height: 22, width: 22)),
+            Obx(() => GestureDetector(
+                  child: getRandomAvatar(
+                      controller.identity.value.secp256k1PKHex,
+                      height: 30,
+                      width: 30),
+                  onTap: () {
+                    Get.toNamed(Routes.settingMe,
+                        arguments: controller.identity.value);
+                  },
+                )),
             IconButton(
               icon: const Icon(Icons.more_vert),
               onPressed: () {
@@ -35,7 +44,8 @@ class BrowserPage extends GetView<BrowserController> {
             },
             child: SafeArea(
                 child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8.0, vertical: 4),
                     child: Obx(() => ListView(children: [
                           ...controller.enableSearchEngine
                               .map((engine) => Padding(

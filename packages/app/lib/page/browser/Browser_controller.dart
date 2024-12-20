@@ -243,9 +243,12 @@ window.nc.sendMessage = function (message) {
               if (title.value == 'Loading') {
                 return;
               }
-              logger.d('urlChange: $urlChange');
               String? url = urlChange.url;
               if (url == null) return;
+              logger.d('urlChange: $url');
+              if (urlChangeCallBack != null) {
+                urlChangeCallBack!(url);
+              }
               String? newTitle = await controller.getTitle();
               if (newTitle != null) {
                 title.value = newTitle;
@@ -270,7 +273,18 @@ window.nc.sendMessage = function (message) {
           builder: (context) => WebviewDetailPage(controller),
         ),
       );
-      title.value = 'Loading';
+      initBrowser();
     });
+  }
+
+  initBrowser() {
+    title.value = 'Loading';
+    progress.value = 0.0;
+  }
+
+  Function(String url)? urlChangeCallBack;
+
+  setUrlChangeCallBack(Function(String url) callBack) {
+    urlChangeCallBack = callBack;
   }
 }

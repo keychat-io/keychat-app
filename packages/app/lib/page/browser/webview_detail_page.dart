@@ -26,11 +26,17 @@ class _WebviewDetailPageState extends State<WebviewDetailPage> {
   bool marked = false;
   late BrowserController controller;
   String? url;
+  bool canGoBack = false;
 
   @override
   void initState() {
     super.initState();
     controller = Get.find<BrowserController>();
+    controller.setUrlChangeCallBack((url) async {
+      setState(() {
+        canGoBack = true;
+      });
+    });
   }
 
   void initIsMarked() {
@@ -61,14 +67,7 @@ class _WebviewDetailPageState extends State<WebviewDetailPage> {
           if (didPop) {
             return;
           }
-          logger.d('d $d');
-          widget.webViewController.canGoBack().then((canGoBack) {
-            if (canGoBack) {
-              widget.webViewController.goBack();
-            } else {
-              Navigator.pop(Get.context!);
-            }
-          });
+          goBackOrPop();
         },
         child: SafeArea(
             bottom: false,
@@ -79,11 +78,21 @@ class _WebviewDetailPageState extends State<WebviewDetailPage> {
                   SliverAppBar(
                     toolbarHeight: 40,
                     floating: true,
-                    leading: IconButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
-                        icon: const Icon(Icons.close)),
+                    titleSpacing: 0,
+                    leadingWidth: canGoBack ? 100 : 50,
+                    leading: Row(children: [
+                      IconButton(
+                          onPressed: () async {
+                            goBackOrPop();
+                          },
+                          icon: const Icon(Icons.arrow_back)),
+                      if (canGoBack)
+                        IconButton(
+                            onPressed: () {
+                              Get.back();
+                            },
+                            icon: const Icon(Icons.close))
+                    ]),
                     centerTitle: true,
                     title: Obx(() => Text(controller.title.value)),
                     bottom: PreferredSize(
@@ -188,6 +197,16 @@ class _WebviewDetailPageState extends State<WebviewDetailPage> {
                     )
                   : null,
             )));
+  }
+
+  void goBackOrPop() {
+    widget.webViewController.canGoBack().then((canGoBack) {
+      if (canGoBack) {
+        widget.webViewController.goBack();
+      } else {
+        Navigator.pop(Get.context!);
+      }
+    });
   }
 
   void troggleMarkUrl() async {

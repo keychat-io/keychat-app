@@ -3,10 +3,15 @@
 import 'dart:io' show exit;
 
 import 'package:app/controller/home.controller.dart';
+import 'package:app/main.dart';
+import 'package:app/models/relay.dart';
 import 'package:app/page/FileExplore.dart';
+import 'package:app/page/dbSetup/db_setting.dart';
 import 'package:app/page/setting/QueryReceivedEvent.dart';
 import 'package:app/page/setting/UnreadMessages.dart';
+import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/notify.service.dart';
+import 'package:app/service/relay.service.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
@@ -54,6 +59,11 @@ class MoreSetting extends StatelessWidget {
                     },
                   ),
                   SettingsTile.navigation(
+                    leading: const Icon(Icons.dataset_outlined),
+                    title: const Text("Database Setting"),
+                    onPressed: handleDBSettting,
+                  ),
+                  SettingsTile.navigation(
                     leading: const Icon(Icons.event),
                     title: const Text("Query Received Event"),
                     onPressed: (context) async {
@@ -80,6 +90,217 @@ class MoreSetting extends StatelessWidget {
                 dangerZone(settingController)
               ],
             )));
+  }
+
+  void closeAllRelays() async {
+    List<Relay> relays = await RelayService.instance.getEnableRelays();
+    for (Relay relay in relays) {
+      relay.active = false;
+      await RelayService.instance.update(relay);
+    }
+    await Get.find<WebsocketService>().stopListening();
+    await Storage.setBool(StorageKeyString.checkRunStatus, false);
+  }
+
+  void restartAllRelays() async {
+    WebsocketService websocketService = Get.find<WebsocketService>();
+    List<Relay> relays = await RelayService.instance.list();
+    for (Relay relay in relays) {
+      relay.active = true;
+      await RelayService.instance.update(relay);
+      websocketService.updateRelayWidget(relay);
+    }
+    await Storage.setBool(StorageKeyString.checkRunStatus, true);
+  }
+
+  handleDBSettting(BuildContext context) async {
+    show300hSheetWidget(
+      context,
+      'Database Setting',
+      SettingsList(platform: DevicePlatform.iOS, sections: [
+        SettingsSection(title: const Text('Database Setting'), tiles: [
+          SettingsTile.switchTile(
+              initialValue:
+                  (await Storage.getBool(StorageKeyString.checkRunStatus) ==
+                      true),
+              description: NoticeTextWidget.warning(
+                  'When message sending and receiving are disabled, the database export and import functions can operate without interruption.'),
+              onToggle: (res) async {
+                res ? restartAllRelays() : closeAllRelays();
+              },
+              title: const Text('Disabled sending && receiveing')),
+          SettingsTile.navigation(
+              title: const Text('Export database'),
+              onPressed: (context) async {
+                // need check if message sending and receiving are disabled
+                // and need to set pwd to encrypt database
+                // DbSetting().exportDB(context);
+                _showSetEncryptionPwdDialog(context);
+              }),
+          SettingsTile.navigation(
+              title: const Text('Import database'),
+              onPressed: (context) async {
+                // need check if message sending and receiving are disabled
+                // and need to set pwd to decrypt database
+                enableImportDB(context);
+              }),
+        ])
+      ]),
+    );
+  }
+
+  void _showSetEncryptionPwdDialog(BuildContext context) {
+    TextEditingController passwordController = TextEditingController();
+    TextEditingController confirmPasswordController = TextEditingController();
+
+    Get.dialog(
+      CupertinoAlertDialog(
+        title: const Text("Set encryption password"),
+        content: Container(
+          color: Colors.transparent,
+          padding: const EdgeInsets.only(top: 15),
+          child: Column(
+            children: [
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                textInputAction: TextInputAction.next,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Password',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: confirmPasswordController,
+                obscureText: true,
+                textInputAction: TextInputAction.done,
+                decoration: const InputDecoration(
+                  labelText: 'Confirm Password',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Get.back();
+            },
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (passwordController.text.isNotEmpty &&
+                  passwordController.text == confirmPasswordController.text) {
+                await Storage.setString(StorageKeyString.dbBackupPwd,
+                    confirmPasswordController.text);
+                EasyLoading.showSuccess("Success");
+                Get.back();
+                await Future.delayed(const Duration(microseconds: 100));
+
+                DbSetting().exportDB(context, confirmPasswordController.text);
+              } else {
+                EasyLoading.showError('Passwords do not match');
+              }
+            },
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEnterDecryptionPwdDialog(BuildContext context) {
+    TextEditingController passwordController = TextEditingController();
+
+    Get.dialog(
+      CupertinoAlertDialog(
+        title: const Text("Enter decryption password"),
+        content: Container(
+          color: Colors.transparent,
+          padding: const EdgeInsets.only(top: 15),
+          child: Column(
+            children: [
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                textInputAction: TextInputAction.done,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Password',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Get.back();
+            },
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (passwordController.text.isNotEmpty) {
+                try {
+                  await Future.delayed(const Duration(microseconds: 100));
+                  bool success = await DbSetting()
+                      .importDB(context, passwordController.text);
+                  if (success) {
+                    EasyLoading.showSuccess("Decryption successful");
+                    // need to reload database
+                    Get.offAllNamed(Routes.root);
+                    await initServices();
+                  } else {
+                    EasyLoading.showError('Decryption failed');
+                  }
+                  // Get.back();
+                  // Get.back();
+                } catch (e) {
+                  EasyLoading.showError('Decryption failed');
+                }
+              } else {
+                EasyLoading.showError('Password cannot be empty');
+              }
+            },
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  enableImportDB(BuildContext context) {
+    Get.dialog(CupertinoAlertDialog(
+      title: const Text(
+        "Alert",
+        style: TextStyle(color: Colors.red),
+      ),
+      content: Container(
+          color: Colors.transparent,
+          padding: const EdgeInsets.only(top: 15),
+          child: const Text(
+              'Once executed, this action will permanently delete all your local data. Proceed with caution to avoid unintended consequences.')),
+      actions: <Widget>[
+        CupertinoDialogAction(
+          child: const Text("Cancel"),
+          onPressed: () {
+            Get.back();
+          },
+        ),
+        CupertinoDialogAction(
+          child: const Text("Confirm"),
+          onPressed: () {
+            _showEnterDecryptionPwdDialog(context);
+          },
+        ),
+      ],
+    ));
   }
 
   genreal(BuildContext buildContext, HomeController hc,

@@ -24,6 +24,9 @@ class StorageKeyString {
   static String taskCreateIdentity = "taskCreateAIIdentity";
   static String taskCreateRoom = "taskCreateRoom";
 
+  static String dbBackupPwd = "dbBackupPwd";
+  static String checkRunStatus = "checkRunStatus";
+
   static String getSignalAliceKey(String myPubkey, String bobPubkey) {
     return "aliceKey:$myPubkey-$bobPubkey";
   }
@@ -37,6 +40,11 @@ class Storage {
     // sp.setDouble(key, value);
     // sp.setInt(key, value);
     // sp.setStringList(key, value);
+  }
+
+  static Future<void> setBool(key, value) async {
+    SharedPreferences sp = await SharedPreferences.getInstance();
+    sp.setBool(key, value);
   }
 
   static Future<void> setStringList(String key, List<String> value) async {
@@ -59,6 +67,11 @@ class Storage {
   static Future<String?> getString(key) async {
     SharedPreferences sp = await SharedPreferences.getInstance();
     return sp.getString(key);
+  }
+
+  static Future<bool?> getBool(key) async {
+    SharedPreferences sp = await SharedPreferences.getInstance();
+    return sp.getBool(key);
   }
 
   static Future<List<String>> getStringList(key) async {

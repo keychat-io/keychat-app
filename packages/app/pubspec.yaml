@@ -90,6 +90,9 @@ dependencies:
   webview_flutter_wkwebview: ^3.16.3
   async_queue: ^2.0.2
   url_launcher: ^6.3.1
+  encrypt: ^5.0.3
+  pick_or_save: ^2.2.4
+  file_picker: ^8.1.6
 
 dev_dependencies:
   flutter_test:

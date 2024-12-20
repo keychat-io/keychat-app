@@ -62,12 +62,12 @@ class BrowserPage extends GetView<BrowserController> {
                                               borderRadius:
                                                   BorderRadius.circular(100.0)),
                                           prefixIcon: Padding(
-                                            padding: const EdgeInsets.all(8.0),
+                                            padding: const EdgeInsets.all(12.0),
                                             child: SvgPicture.asset(
-                                              'assets/images/$engine.svg',
-                                              width: 16,
-                                              height: 16,
-                                            ),
+                                                'assets/images/$engine.svg',
+                                                fit: BoxFit.contain,
+                                                width: 16,
+                                                height: 16),
                                           ),
                                           suffixIcon: Row(
                                             mainAxisSize: MainAxisSize.min,

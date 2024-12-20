@@ -58,7 +58,9 @@ class BrowserController extends GetxController {
           histories.removeAt(i);
         }
       }
-      histories.removeRange(maxHistoryInHome, histories.length);
+      if (histories.length > maxHistoryInHome) {
+        histories.removeRange(maxHistoryInHome, histories.length);
+      }
     }
   }
 
@@ -262,8 +264,12 @@ window.nc.sendMessage = function (message) {
             },
             onNavigationRequest: _onNavigationRequest))
         ..loadRequest(uri);
-
-      await Get.to(() => WebviewDetailPage(controller));
+      // fix ios Canpop issue
+      Navigator.of(Get.context!).push(
+        MaterialPageRoute(
+          builder: (context) => WebviewDetailPage(controller),
+        ),
+      );
       title.value = 'Loading';
     });
   }

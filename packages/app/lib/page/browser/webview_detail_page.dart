@@ -56,14 +56,19 @@ class _WebviewDetailPageState extends State<WebviewDetailPage> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (b, d) async {
-          bool canGoBack = await widget.webViewController.canGoBack();
-          if (canGoBack) {
-            widget.webViewController.goBack();
-          } else {
-            Get.back();
+        canPop: GetPlatform.isAndroid ? false : true,
+        onPopInvokedWithResult: (didPop, d) {
+          if (didPop) {
+            return;
           }
+          logger.d('d $d');
+          widget.webViewController.canGoBack().then((canGoBack) {
+            if (canGoBack) {
+              widget.webViewController.goBack();
+            } else {
+              Navigator.pop(Get.context!);
+            }
+          });
         },
         child: SafeArea(
             bottom: false,
@@ -210,13 +215,14 @@ class _WebviewDetailPageState extends State<WebviewDetailPage> {
 
   Widget getPopTools() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
         borderRadius: BorderRadius.circular(5),
       ),
       child: Row(
-        spacing: 8,
+        spacing: 4,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           FutureBuilder<bool>(
             future: widget.webViewController.canGoBack(),

@@ -66,7 +66,7 @@ class _ChatPage2State extends State<ChatPage> {
     Color toBackgroundColor =
         Get.isDarkMode ? const Color(0xFF2c2c2c) : const Color(0xFFFFFFFF);
 
-    //const Color(0xFFF5E2FF).withOpacity(0.8); // for light mode
+    //const Color(0xFFF5E2FF).withValues(alpha: 0.8); // for light mode
     Color meBackgroundColor = const Color(0xff7748FF);
 
     // style for text
@@ -460,7 +460,7 @@ class _ChatPage2State extends State<ChatPage> {
                     color: Theme.of(context)
                         .colorScheme
                         .onSurface
-                        .withOpacity(0.1),
+                        .withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(5.0),
                   ),
                   child: Icon(
@@ -628,7 +628,7 @@ class _ChatPage2State extends State<ChatPage> {
                     color: Theme.of(context)
                         .dividerTheme
                         .color
-                        ?.withOpacity(0.05)),
+                        ?.withValues(alpha: 0.05)),
                 itemCount: controller.enableMembers.length,
                 itemBuilder: (context, index) {
                   RoomMember rm = controller.enableMembers[index];
@@ -674,8 +674,10 @@ class _ChatPage2State extends State<ChatPage> {
         if (controller.roomObs.value.isMute)
           Icon(
             Icons.notifications_off_outlined,
-            color:
-                Theme.of(Get.context!).colorScheme.onSurface.withOpacity(0.6),
+            color: Theme.of(Get.context!)
+                .colorScheme
+                .onSurface
+                .withValues(alpha: 0.6),
             size: 18,
           )
       ],
@@ -761,7 +763,10 @@ class _ChatPage2State extends State<ChatPage> {
         child: Text('Friend request sent. Waiting for their response.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.7),
                 fontSize: 16)));
   }
 

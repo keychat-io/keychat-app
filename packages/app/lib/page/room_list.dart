@@ -31,7 +31,7 @@ class RoomList extends StatelessWidget {
 
     Divider divider = Divider(
         height: 0.1,
-        color: Theme.of(context).dividerColor.withOpacity(0.1),
+        color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
         indent: 80.0);
     return Scaffold(
       appBar: AppBar(
@@ -170,7 +170,7 @@ class RoomList extends StatelessWidget {
                                               color: Theme.of(Get.context!)
                                                   .colorScheme
                                                   .onSurface
-                                                  .withOpacity(0.6),
+                                                  .withValues(alpha: 0.6),
                                               size: 16,
                                             )
                                           : Container()
@@ -199,8 +199,10 @@ class RoomList extends StatelessWidget {
           children: [
             const SizedBox(width: 10),
             Icon(Icons.search,
-                color:
-                    Theme.of(context).colorScheme.onSurface.withOpacity(0.4)),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.4)),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -209,7 +211,7 @@ class RoomList extends StatelessWidget {
                     color: Theme.of(context)
                         .colorScheme
                         .onSurface
-                        .withOpacity(0.4)),
+                        .withValues(alpha: 0.4)),
               ),
             ),
             const SizedBox(width: 10),
@@ -253,7 +255,10 @@ class RoomList extends StatelessWidget {
           subtitle: Text('Rooms: ${rooms.length}'),
           trailing: Icon(CupertinoIcons.right_chevron,
               size: 20,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4)),
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.4)),
         ));
   }
 
@@ -287,7 +292,10 @@ class RoomList extends StatelessWidget {
           subtitle: Text('Rooms: ${rooms.length}'),
           trailing: Icon(CupertinoIcons.right_chevron,
               size: 20,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4)),
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.4)),
         ));
   }
 

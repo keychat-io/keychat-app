@@ -64,7 +64,7 @@ class ContactDetailPage extends StatelessWidget {
           sigmaY: 20,
         ),
         child: Container(
-          color: Colors.white.withOpacity(0.4),
+          color: Colors.white.withValues(alpha: 0.4),
           alignment: Alignment.center,
           child: child,
         ));

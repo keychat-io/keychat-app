@@ -29,7 +29,7 @@ class RecommendBots extends StatelessWidget {
         : ListView.separated(
             separatorBuilder: (context, index) => Divider(
                 height: 1,
-                color: Theme.of(context).dividerColor.withOpacity(0.05)),
+                color: Theme.of(context).dividerColor.withValues(alpha: 0.05)),
             itemCount: homeController.recommendBots.length,
             shrinkWrap: true,
             padding: const EdgeInsets.only(bottom: 0),

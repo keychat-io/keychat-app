@@ -123,7 +123,7 @@ class MessageWidget extends StatelessWidget {
                         color: Theme.of(Get.context!)
                             .colorScheme
                             .onSurface
-                            .withOpacity(0.6))),
+                            .withValues(alpha: 0.6))),
               ],
             ))
         : const SizedBox();
@@ -212,7 +212,7 @@ class MessageWidget extends StatelessWidget {
   getFromAndToWidget(BuildContext context, Message message) {
     var style = TextStyle(
         fontSize: 12,
-        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6));
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6));
     return chatController.showFromAndTo.value
         ? Container(
             decoration: BoxDecoration(
@@ -453,7 +453,7 @@ class MessageWidget extends StatelessWidget {
                   style: Theme.of(Get.context!)
                       .textTheme
                       .bodyMedium
-                      ?.copyWith(color: fontColor.withOpacity(0.7))))),
+                      ?.copyWith(color: fontColor.withValues(alpha: 0.7))))),
       TableCell(
           child: Padding(
               padding:
@@ -524,10 +524,8 @@ class MessageWidget extends StatelessWidget {
                 fullscreenDialog: true, transition: Transition.fadeIn);
           },
           child: Text(message.reply!.content,
-              style: Theme.of(Get.context!)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: fontColor.withOpacity(0.7), height: 1),
+              style: Theme.of(Get.context!).textTheme.bodyMedium?.copyWith(
+                  color: fontColor.withValues(alpha: 0.7), height: 1),
               maxLines: 5));
     } else {
       Message? msg =
@@ -561,7 +559,7 @@ class MessageWidget extends StatelessWidget {
             color: (message.isMeSend
                     ? MaterialTheme.lightScheme().surface
                     : Theme.of(Get.context!).colorScheme.surface)
-                .withOpacity(0.5),
+                .withValues(alpha: 0.5),
             border: Border(
                 left: BorderSide(color: Colors.purple.shade200, width: 2.0)),
           ),

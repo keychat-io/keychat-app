@@ -42,9 +42,10 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
   Widget build(BuildContext context) {
     HomeController homeController = Get.find<HomeController>();
     var divider = Divider(
-        height: 1, color: Theme.of(context).dividerColor.withOpacity(0.05));
-    var divider2 =
-        Divider(height: 0.3, color: Colors.grey.shade100.withOpacity(0.01));
+        height: 1,
+        color: Theme.of(context).dividerColor.withValues(alpha: 0.05));
+    var divider2 = Divider(
+        height: 0.3, color: Colors.grey.shade100.withValues(alpha: 0.01));
     DateTime messageExpired =
         DateTime.now().subtract(const Duration(seconds: 5));
     return Scaffold(
@@ -151,7 +152,7 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
                                       color: Theme.of(Get.context!)
                                           .colorScheme
                                           .onSurface
-                                          .withOpacity(0.6),
+                                          .withValues(alpha: 0.6),
                                       size: 16,
                                     )
                                   : Container()

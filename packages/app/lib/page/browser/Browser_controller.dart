@@ -25,32 +25,46 @@ class BrowserController extends GetxController {
   Rx<Identity> identity = Identity(name: '', npub: '', secp256k1PKHex: '').obs;
   RxSet<String> enableSearchEngine = <String>{}.obs;
   RxList<BrowserBookmark> bookmarks = <BrowserBookmark>[].obs;
-
-  Function()? urlChanged;
+  RxList<BrowserHistory> histories = <BrowserHistory>[].obs;
+  late EcashController ecashController;
 
   RxList recommendedUrls = [
+    {"title": "Iris", "url": "https://iris.to/"},
     {
       "title": "Anonymous eSIM",
       "url": "https://silent.link/#generic_price_table"
     },
     {"title": "Tetris", "url": "https://chvin.github.io/react-tetris/"},
-    {"title": "Primal", "url": "https://primal.net/"},
     {"title": "KeyChat", "url": "https://www.keychat.io/"},
   ].obs;
 
   Future addToHistory(String url, String title) async {
+    if (histories.isNotEmpty && histories[0].url == url) {
+      DateTime now = DateTime.now();
+      DateTime lastVisit = histories[0].createdAt;
+      if (now.difference(lastVisit).inMinutes < 1) {
+        return;
+      }
+    }
     BrowserHistory history = BrowserHistory(url: url, title: title);
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.browserHistorys.put(history);
     });
-  }
 
-  setUrlChanged(Function() method) {
-    urlChanged = method;
+    histories.insert(0, history);
+    if (histories.length > 2) {
+      for (int i = histories.length - 1; i > 1; i--) {
+        if (histories[i].url == url) {
+          histories.removeAt(i);
+        }
+      }
+      histories.removeRange(2, histories.length);
+    }
   }
 
   @override
   void onInit() async {
+    ecashController = Get.find<EcashController>();
     textController = TextEditingController();
     textController.addListener(() {
       input.value = textController.text.trim();
@@ -68,11 +82,16 @@ class BrowserController extends GetxController {
       enableSearchEngine.addAll(searchEngine);
     }
     loadBookmarks();
+    loadHistory();
     super.onInit();
   }
 
   loadBookmarks() async {
     bookmarks.value = await BrowserBookmark.getAll(limit: 8);
+  }
+
+  loadHistory() async {
+    histories.value = await BrowserHistory.getAll(limit: 2);
   }
 
   addSearchEngine(String engine) async {
@@ -93,8 +112,7 @@ class BrowserController extends GetxController {
 
   NavigationDecision _onNavigationRequest(NavigationRequest request) {
     String str = request.url;
-    EcashController ecashController = Get.find<EcashController>();
-
+    logger.d('NavigationRequest: $str');
     if (str.startsWith('cashu')) {
       ecashController.proccessCashuAString(str);
       return NavigationDecision.prevent;
@@ -169,9 +187,6 @@ class BrowserController extends GetxController {
         if (res != null) {
           title.value = res;
           await addToHistory(url, title.value);
-          if (urlChanged != null) {
-            urlChanged!();
-          }
         }
         progress.value = 0.0;
 
@@ -221,6 +236,16 @@ window.nc.sendMessage = function (message) {
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
         ..setNavigationDelegate(NavigationDelegate(
             onProgress: onProgress,
+            onUrlChange: (UrlChange urlChange) async {
+              logger.d('urlChange: $urlChange');
+              String? url = urlChange.url;
+              if (url == null) return;
+              String? newTitle = await controller.getTitle();
+              if (newTitle != null) {
+                title.value = newTitle;
+              }
+              addToHistory(urlChange.url!, title.value);
+            },
             onPageStarted: (String url) {
               logger.d('Page started loading: $url');
             },
@@ -234,23 +259,7 @@ window.nc.sendMessage = function (message) {
             onNavigationRequest: _onNavigationRequest))
         ..loadRequest(uri);
 
-      await Get.bottomSheet(
-          PopScope(
-            canPop: false,
-            child: WebviewDetailPage(controller),
-            onPopInvokedWithResult: (b, d) async {
-              bool canGoBack = await controller.canGoBack();
-              if (canGoBack) {
-                controller.goBack();
-              } else {
-                Get.back();
-              }
-            },
-          ),
-          isScrollControlled: true,
-          enableDrag: false,
-          isDismissible: false,
-          ignoreSafeArea: false);
+      await Get.to(() => WebviewDetailPage(controller));
       title.value = 'Loading';
     });
   }

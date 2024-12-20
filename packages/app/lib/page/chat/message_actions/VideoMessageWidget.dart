@@ -149,7 +149,7 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
               Positioned(
                 child: CircleAvatar(
                     radius: 28,
-                    backgroundColor: Colors.grey.withOpacity(0.8),
+                    backgroundColor: Colors.grey.withValues(alpha: 0.8),
                     child: IconButton(
                       onPressed: () async {
                         ChatController? cc =

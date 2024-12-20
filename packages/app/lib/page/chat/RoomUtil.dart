@@ -301,7 +301,8 @@ Let's start an encrypted chat.''';
       text = '[${room.unReadCount} messages] $text';
     }
     var style = TextStyle(
-        color: Theme.of(Get.context!).colorScheme.onSurface.withOpacity(0.6),
+        color:
+            Theme.of(Get.context!).colorScheme.onSurface.withValues(alpha: 0.6),
         fontSize: 14);
     if (lastMessage.isMeSend && lastMessage.sent == SendStatusType.failed) {
       style = style.copyWith(color: Colors.red);

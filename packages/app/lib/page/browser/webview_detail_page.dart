@@ -31,15 +31,9 @@ class _WebviewDetailPageState extends State<WebviewDetailPage> {
   void initState() {
     super.initState();
     controller = Get.find<BrowserController>();
-    controller.setUrlChanged(init);
-    init();
-
-    // widget.webViewController.setOnScrollPositionChange((scrollPositionChange) {
-    //   print('scrollPositionChange: ${scrollPositionChange.y}');
-    // });
   }
 
-  void init() {
+  void initIsMarked() {
     widget.webViewController.currentUrl().then((value) async {
       if (value == null) return;
       BrowserBookmark? bb = await DBProvider.database.browserBookmarks
@@ -61,129 +55,208 @@ class _WebviewDetailPageState extends State<WebviewDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            icon: const Icon(Icons.close)),
-        centerTitle: true,
-        title: Obx(() => Text(controller.title.value)),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(4.0),
-          child: Obx(() =>
-              controller.progress.value > 0 && controller.progress.value < 1
-                  ? LinearProgressIndicator(
-                      value: controller.progress.value,
-                      backgroundColor: Theme.of(context).indicatorColor,
-                      minHeight: 1,
-                    )
-                  : Container()),
-        ),
-        actions: [
-          IconButton(
-            icon: marked
-                ? const Icon(CupertinoIcons.heart_fill)
-                : const Icon(CupertinoIcons.heart),
-            onPressed: () async {
-              final url = await widget.webViewController.currentUrl();
-              if (url == null) return;
-              BrowserBookmark? bb = await DBProvider.database.browserBookmarks
-                  .filter()
-                  .urlEqualTo(url)
-                  .findFirst();
-              await DBProvider.database.writeTxn(() async {
-                if (bb != null) {
-                  await DBProvider.database.browserBookmarks.delete(bb.id);
-                } else {
-                  BrowserBookmark bookmark =
-                      BrowserBookmark(url: url, title: controller.title.value);
-                  await DBProvider.database.browserBookmarks.put(bookmark);
-                }
-              });
-              setState(() {
-                marked = !marked;
-              });
-              controller.loadBookmarks();
-            },
-          ),
-          PopupMenuButton<String>(
-            onSelected: (value) async {
-              final url = await widget.webViewController.currentUrl();
-              if (url == null) return;
+    return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (b, d) async {
+          bool canGoBack = await widget.webViewController.canGoBack();
+          if (canGoBack) {
+            widget.webViewController.goBack();
+          } else {
+            Get.back();
+          }
+        },
+        child: SafeArea(
+            bottom: false,
+            child: Scaffold(
+              body: CustomScrollView(
+                physics: const NeverScrollableScrollPhysics(),
+                slivers: [
+                  SliverAppBar(
+                    toolbarHeight: 40,
+                    floating: true,
+                    leading: IconButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        icon: const Icon(Icons.close)),
+                    centerTitle: true,
+                    title: Obx(() => Text(controller.title.value)),
+                    bottom: PreferredSize(
+                      preferredSize: const Size.fromHeight(0),
+                      child: Obx(() => controller.progress.value > 0 &&
+                              controller.progress.value < 1
+                          ? LinearProgressIndicator(
+                              value: controller.progress.value,
+                              backgroundColor: Theme.of(context).indicatorColor,
+                              minHeight: 1,
+                            )
+                          : Container()),
+                    ),
+                    actions: [
+                      PopupMenuButton<String>(
+                        onOpened: () {
+                          initIsMarked();
+                        },
+                        onSelected: (value) async {
+                          final url =
+                              await widget.webViewController.currentUrl();
+                          if (url == null) return;
 
-              switch (value) {
-                case 'back':
-                  widget.webViewController.goBack();
-                  break;
-                case 'refresh':
-                  widget.webViewController.reload();
-                  break;
-                case 'share':
-                  Share.share(url);
-                  break;
-                case 'copy':
-                  Clipboard.setData(ClipboardData(text: url));
-                  EasyLoading.showToast('Copied');
-                  break;
-                case 'openInBrowser':
-                  await launchUrl(Uri.parse(url),
-                      mode: LaunchMode.externalApplication);
-                  break;
-              }
-            },
-            itemBuilder: (BuildContext context) {
-              return [
-                const PopupMenuItem(
-                  value: 'back',
-                  child: Text('Back'),
-                ),
-                const PopupMenuItem(
-                  value: 'refresh',
-                  child: Text('Refresh'),
-                ),
-                const PopupMenuItem(
-                  value: 'share',
-                  child: Text('Share'),
-                ),
-                const PopupMenuItem(
-                  value: 'copy',
-                  child: Text('Copy'),
-                ),
-                const PopupMenuItem(
-                  value: 'openInBrowser',
-                  child: Text('Open in Browser'),
-                ),
-              ];
-            },
-            icon: const Icon(Icons.more_vert),
-          ),
-        ],
-      ),
-      floatingActionButton: kDebugMode
-          ? ElevatedButton(
-              onPressed: () async {
-                try {
-                  var event = {
-                    'created_at': DateTime.now().millisecondsSinceEpoch ~/ 1000,
-                    'kind': 1,
-                    'tags': [
-                      ['example', 'tag']
+                          switch (value) {
+                            case 'share':
+                              Share.share(url);
+                              break;
+                            case 'copy':
+                              Clipboard.setData(ClipboardData(text: url));
+                              EasyLoading.showToast('Copied');
+                              break;
+                            case 'openInBrowser':
+                              await launchUrl(Uri.parse(url),
+                                  mode: LaunchMode.externalApplication);
+                              break;
+                          }
+                        },
+                        itemBuilder: (BuildContext context) {
+                          return [
+                            PopupMenuItem(
+                              value: 'tools',
+                              child: getPopTools(),
+                            ),
+                            const PopupMenuItem(
+                              value: 'share',
+                              child: Row(children: [
+                                Icon(CupertinoIcons.share),
+                                SizedBox(width: 10),
+                                Text('Share')
+                              ]),
+                            ),
+                            const PopupMenuItem(
+                              value: 'copy',
+                              child: Row(children: [
+                                Icon(CupertinoIcons.doc_on_clipboard),
+                                SizedBox(width: 10),
+                                Text('Copy')
+                              ]),
+                            ),
+                            const PopupMenuItem(
+                              value: 'openInBrowser',
+                              child: Row(children: [
+                                Icon(CupertinoIcons.globe),
+                                SizedBox(width: 10),
+                                Text('Native Browser')
+                              ]),
+                            ),
+                          ];
+                        },
+                        icon: const Icon(Icons.more_vert),
+                      ),
                     ],
-                    'content': 'This is a demo event'
-                  };
-                  // await widget.webViewController
-                  //     .runJavaScript('window.nostr.signEvent($event);');
-                } catch (e) {
-                  logger.e(e, error: e);
+                  ),
+                  SliverFillRemaining(
+                    child: WebViewWidget(controller: widget.webViewController),
+                  ),
+                ],
+              ),
+              floatingActionButton: kDebugMode
+                  ? ElevatedButton(
+                      onPressed: () async {
+                        try {
+                          var event = {
+                            'created_at':
+                                DateTime.now().millisecondsSinceEpoch ~/ 1000,
+                            'kind': 1,
+                            'tags': [
+                              ['example', 'tag']
+                            ],
+                            'content': 'This is a demo event'
+                          };
+                          // await widget.webViewController
+                          //     .runJavaScript('window.nostr.signEvent($event);');
+                        } catch (e) {
+                          logger.e(e, error: e);
+                        }
+                      },
+                      child: const Text('Call'),
+                    )
+                  : null,
+            )));
+  }
+
+  void troggleMarkUrl() async {
+    final url = await widget.webViewController.currentUrl();
+    if (url == null) return;
+    BrowserBookmark? bb = await DBProvider.database.browserBookmarks
+        .filter()
+        .urlEqualTo(url)
+        .findFirst();
+    await DBProvider.database.writeTxn(() async {
+      if (bb != null) {
+        await DBProvider.database.browserBookmarks.delete(bb.id);
+      } else {
+        BrowserBookmark bookmark =
+            BrowserBookmark(url: url, title: controller.title.value);
+        await DBProvider.database.browserBookmarks.put(bookmark);
+      }
+    });
+    setState(() {
+      marked = !marked;
+    });
+    EasyLoading.showToast(marked ? 'Bookmarked' : 'Unbookmarked');
+    controller.loadBookmarks();
+  }
+
+  Widget getPopTools() {
+    return Row(
+      spacing: 5,
+      children: [
+        FutureBuilder<bool>(
+          future: widget.webViewController.canGoBack(),
+          builder: (context, snapshot) {
+            bool canGoBack = snapshot.data ?? false;
+            return IconButton(
+              icon: const Icon(CupertinoIcons.arrow_left),
+              onPressed: () async {
+                if (canGoBack) {
+                  widget.webViewController.goBack();
+                  Get.back();
                 }
               },
-              child: const Text('Call'),
-            )
-          : null,
-      body:
-          SafeArea(child: WebViewWidget(controller: widget.webViewController)),
+              color:
+                  canGoBack ? Theme.of(context).iconTheme.color : Colors.grey,
+            );
+          },
+        ),
+        FutureBuilder<bool>(
+            future: widget.webViewController.canGoForward(),
+            builder: (context, snapshot) {
+              bool can = snapshot.data ?? false;
+              return IconButton(
+                icon: const Icon(CupertinoIcons.arrow_right),
+                onPressed: () async {
+                  if (can) {
+                    widget.webViewController.goForward();
+                    Get.back();
+                  }
+                },
+                color: can ? Theme.of(context).iconTheme.color : Colors.grey,
+              );
+            }),
+        IconButton(
+          icon: marked
+              ? const Icon(CupertinoIcons.heart_fill)
+              : const Icon(CupertinoIcons.heart),
+          onPressed: () {
+            troggleMarkUrl();
+            Get.back();
+          },
+        ),
+        IconButton(
+            onPressed: () {
+              widget.webViewController.reload();
+              Get.back();
+            },
+            icon: const Icon(CupertinoIcons.refresh)),
+      ],
     );
   }
 }

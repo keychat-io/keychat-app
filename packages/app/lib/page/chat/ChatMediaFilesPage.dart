@@ -132,8 +132,8 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
                                         Positioned(
                                           child: CircleAvatar(
                                               radius: 20,
-                                              backgroundColor:
-                                                  Colors.grey.withOpacity(0.8),
+                                              backgroundColor: Colors.grey
+                                                  .withValues(alpha: 0.8),
                                               child: IconButton(
                                                 onPressed: () {},
                                                 icon: const Icon(
@@ -154,7 +154,9 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
                           width: 90,
                           height: 150,
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(5.0),
                           ),
                           child: child);

@@ -62,7 +62,8 @@ class _AnonymousRoomsState extends State<AnonymousRooms> {
           child: ListView.separated(
               separatorBuilder: (context, index) => Divider(
                   height: 1,
-                  color: Theme.of(context).dividerColor.withOpacity(0.05)),
+                  color:
+                      Theme.of(context).dividerColor.withValues(alpha: 0.05)),
               itemCount: list.length,
               itemBuilder: (context, index) {
                 Room room = list[index];

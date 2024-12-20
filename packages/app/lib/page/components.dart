@@ -56,7 +56,7 @@ textDescription(String title, BuildContext context) {
   return Text(
     title,
     style: TextStyle(
-        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
   );
 }
 
@@ -236,8 +236,8 @@ Future show300hSheetWidget(BuildContext context, String title, Widget body) {
   return showCupertinoModalBottomSheet(
     context: context,
     barrierColor: Get.isDarkMode
-        ? Colors.black.withOpacity(0.65)
-        : Colors.black.withOpacity(0.35),
+        ? Colors.black.withValues(alpha: 0.65)
+        : Colors.black.withValues(alpha: 0.35),
     builder: (context) => Container(
       constraints: BoxConstraints(maxHeight: Get.height / 2, minHeight: 200),
       child: body,
@@ -251,8 +251,8 @@ showFitSheetWidget(BuildContext context, String title, List<Widget> bodys,
   showCupertinoModalBottomSheet(
     context: context,
     barrierColor: Get.isDarkMode
-        ? Colors.black.withOpacity(0.65)
-        : Colors.black.withOpacity(0.35),
+        ? Colors.black.withValues(alpha: 0.65)
+        : Colors.black.withValues(alpha: 0.35),
     builder: (context) => SafeArea(
         top: false,
         child: Column(mainAxisSize: MainAxisSize.min, children: [

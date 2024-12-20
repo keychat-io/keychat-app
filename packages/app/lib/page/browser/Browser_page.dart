@@ -58,9 +58,8 @@ class BrowserPage extends GetView<BrowserController> {
                                               Utils.capitalizeFirstLetter(
                                                   engine),
                                           border: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(100.0),
-                                          ),
+                                              borderRadius:
+                                                  BorderRadius.circular(100.0)),
                                           suffixIcon: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
@@ -106,8 +105,8 @@ class BrowserPage extends GetView<BrowserController> {
                                         .textTheme
                                         .titleMedium),
                                 IconButton(
-                                  icon: const Icon(CupertinoIcons.right_chevron,
-                                      size: 14),
+                                  icon:
+                                      const Icon(CupertinoIcons.right_chevron),
                                   onPressed: () {
                                     Get.to(() => const BrowserHistoryPage());
                                   },
@@ -172,8 +171,8 @@ class BrowserPage extends GetView<BrowserController> {
                                         .textTheme
                                         .titleMedium),
                                 IconButton(
-                                  icon: const Icon(CupertinoIcons.right_chevron,
-                                      size: 14),
+                                  icon:
+                                      const Icon(CupertinoIcons.right_chevron),
                                   onPressed: () {
                                     Get.to(() => const BrowserBookmarkPage());
                                   },

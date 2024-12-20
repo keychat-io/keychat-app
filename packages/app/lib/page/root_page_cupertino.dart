@@ -1,6 +1,7 @@
 import 'package:app/page/browser/Browser_page.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:app/controller/home.controller.dart';
@@ -10,7 +11,6 @@ import 'package:app/page/room_list.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:haptic_feedback/haptic_feedback.dart';
 
 class CupertinoRootPage extends GetView<HomeController> {
   const CupertinoRootPage({super.key});
@@ -30,7 +30,7 @@ class CupertinoRootPage extends GetView<HomeController> {
             EasyLoading.dismiss();
           }
           if (GetPlatform.isMobile) {
-            await Haptics.vibrate(HapticsType.selection);
+            HapticFeedback.lightImpact();
           }
           if (value == pages.length - 1) {
             EasyThrottle.throttle(

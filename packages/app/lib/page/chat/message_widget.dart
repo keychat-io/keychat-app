@@ -23,7 +23,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:haptic_feedback/haptic_feedback.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart';
 import 'package:settings_ui/settings_ui.dart';
 
@@ -875,7 +874,7 @@ class MessageWidget extends StatelessWidget {
 
   void _handleTextLongPress() async {
     if (GetPlatform.isMobile) {
-      await Haptics.vibrate(HapticsType.heavy);
+      await HapticFeedback.lightImpact();
     }
     show300hSheetWidget(
       Get.context!,

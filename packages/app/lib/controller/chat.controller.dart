@@ -14,9 +14,9 @@ import 'package:easy_debounce/easy_throttle.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:haptic_feedback/haptic_feedback.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
@@ -255,7 +255,7 @@ class ChatController extends GetxController {
         }
       }
       if (GetPlatform.isMobile) {
-        await Haptics.vibrate(HapticsType.light);
+        HapticFeedback.mediumImpact();
       }
       await RoomService.instance
           .sendTextMessage(roomObs.value, text, reply: reply);

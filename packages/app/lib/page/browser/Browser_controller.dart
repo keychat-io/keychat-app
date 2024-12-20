@@ -38,7 +38,7 @@ class BrowserController extends GetxController {
     {"title": "KeyChat", "url": "https://www.keychat.io/"},
   ].obs;
 
-  Future addToHistory(String url, String title) async {
+  Future addHistory(String url, String title) async {
     if (histories.isNotEmpty && histories[0].url == url) {
       DateTime now = DateTime.now();
       DateTime lastVisit = histories[0].createdAt;
@@ -50,15 +50,15 @@ class BrowserController extends GetxController {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.browserHistorys.put(history);
     });
-
+    const maxHistoryInHome = 4;
     histories.insert(0, history);
-    if (histories.length > 2) {
+    if (histories.length > maxHistoryInHome) {
       for (int i = histories.length - 1; i > 1; i--) {
         if (histories[i].url == url) {
           histories.removeAt(i);
         }
       }
-      histories.removeRange(2, histories.length);
+      histories.removeRange(maxHistoryInHome, histories.length);
     }
   }
 
@@ -81,7 +81,7 @@ class BrowserController extends GetxController {
     } else {
       enableSearchEngine.addAll(searchEngine);
     }
-    loadBookmarks();
+    // loadBookmarks();
     loadHistory();
     super.onInit();
   }
@@ -91,7 +91,7 @@ class BrowserController extends GetxController {
   }
 
   loadHistory() async {
-    histories.value = await BrowserHistory.getAll(limit: 2);
+    histories.value = await BrowserHistory.getAll(limit: 4);
   }
 
   addSearchEngine(String engine) async {
@@ -186,7 +186,7 @@ class BrowserController extends GetxController {
         logger.d('Page finished loading: $url');
         if (res != null) {
           title.value = res;
-          await addToHistory(url, title.value);
+          await addHistory(url, title.value);
         }
         progress.value = 0.0;
 
@@ -237,6 +237,10 @@ window.nc.sendMessage = function (message) {
         ..setNavigationDelegate(NavigationDelegate(
             onProgress: onProgress,
             onUrlChange: (UrlChange urlChange) async {
+              // not proccess the first url
+              if (title.value == 'Loading') {
+                return;
+              }
               logger.d('urlChange: $urlChange');
               String? url = urlChange.url;
               if (url == null) return;
@@ -244,7 +248,7 @@ window.nc.sendMessage = function (message) {
               if (newTitle != null) {
                 title.value = newTitle;
               }
-              addToHistory(urlChange.url!, title.value);
+              addHistory(urlChange.url!, title.value);
             },
             onPageStarted: (String url) {
               logger.d('Page started loading: $url');

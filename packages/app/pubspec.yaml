@@ -4,7 +4,7 @@ description: keychat
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.24.2+6296
+version: 1.24.3+6297
 
 environment:
   sdk: ">=3.4.3 <4.0.0"
@@ -57,7 +57,6 @@ dependencies:
   queue: ^3.1.0+2
   mutex: ^3.0.1
   pull_to_refresh: ^2.0.0
-  haptic_feedback: ^0.5.1+1
   dropdown_button2: ^2.3.9
   easy_debounce: ^2.0.3
   carousel_slider: ^5.0.0

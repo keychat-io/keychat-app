@@ -88,7 +88,7 @@ class _WebviewDetailPageState extends State<WebviewDetailPage> {
                           ? LinearProgressIndicator(
                               value: controller.progress.value,
                               backgroundColor: Theme.of(context).indicatorColor,
-                              minHeight: 1,
+                              minHeight: 2,
                             )
                           : Container()),
                     ),
@@ -122,28 +122,31 @@ class _WebviewDetailPageState extends State<WebviewDetailPage> {
                               value: 'tools',
                               child: getPopTools(),
                             ),
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: 'share',
-                              child: Row(children: [
-                                Icon(CupertinoIcons.share),
-                                SizedBox(width: 10),
-                                Text('Share')
+                              child: Row(spacing: 16, children: [
+                                const Icon(CupertinoIcons.share),
+                                Text('Share',
+                                    style:
+                                        Theme.of(context).textTheme.bodyLarge)
                               ]),
                             ),
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: 'copy',
-                              child: Row(children: [
-                                Icon(CupertinoIcons.doc_on_clipboard),
-                                SizedBox(width: 10),
-                                Text('Copy')
+                              child: Row(spacing: 12, children: [
+                                const Icon(CupertinoIcons.doc_on_clipboard),
+                                Text('Copy',
+                                    style:
+                                        Theme.of(context).textTheme.bodyLarge)
                               ]),
                             ),
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: 'openInBrowser',
-                              child: Row(children: [
-                                Icon(CupertinoIcons.globe),
-                                SizedBox(width: 10),
-                                Text('Native Browser')
+                              child: Row(spacing: 12, children: [
+                                const Icon(CupertinoIcons.globe),
+                                Text('Native Browser',
+                                    style:
+                                        Theme.of(context).textTheme.bodyLarge)
                               ]),
                             ),
                           ];
@@ -206,57 +209,64 @@ class _WebviewDetailPageState extends State<WebviewDetailPage> {
   }
 
   Widget getPopTools() {
-    return Row(
-      spacing: 5,
-      children: [
-        FutureBuilder<bool>(
-          future: widget.webViewController.canGoBack(),
-          builder: (context, snapshot) {
-            bool canGoBack = snapshot.data ?? false;
-            return IconButton(
-              icon: const Icon(CupertinoIcons.arrow_left),
-              onPressed: () async {
-                if (canGoBack) {
-                  widget.webViewController.goBack();
-                  Get.back();
-                }
-              },
-              color:
-                  canGoBack ? Theme.of(context).iconTheme.color : Colors.grey,
-            );
-          },
-        ),
-        FutureBuilder<bool>(
-            future: widget.webViewController.canGoForward(),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Row(
+        spacing: 8,
+        children: [
+          FutureBuilder<bool>(
+            future: widget.webViewController.canGoBack(),
             builder: (context, snapshot) {
-              bool can = snapshot.data ?? false;
+              bool canGoBack = snapshot.data ?? false;
               return IconButton(
-                icon: const Icon(CupertinoIcons.arrow_right),
+                icon: const Icon(CupertinoIcons.arrow_left),
                 onPressed: () async {
-                  if (can) {
-                    widget.webViewController.goForward();
+                  if (canGoBack) {
+                    widget.webViewController.goBack();
                     Get.back();
                   }
                 },
-                color: can ? Theme.of(context).iconTheme.color : Colors.grey,
+                color:
+                    canGoBack ? Theme.of(context).iconTheme.color : Colors.grey,
               );
-            }),
-        IconButton(
-          icon: marked
-              ? const Icon(CupertinoIcons.heart_fill)
-              : const Icon(CupertinoIcons.heart),
-          onPressed: () {
-            troggleMarkUrl();
-            Get.back();
-          },
-        ),
-        IconButton(
+            },
+          ),
+          FutureBuilder<bool>(
+              future: widget.webViewController.canGoForward(),
+              builder: (context, snapshot) {
+                bool can = snapshot.data ?? false;
+                return IconButton(
+                  icon: const Icon(CupertinoIcons.arrow_right),
+                  onPressed: () async {
+                    if (can) {
+                      widget.webViewController.goForward();
+                      Get.back();
+                    }
+                  },
+                  color: can ? Theme.of(context).iconTheme.color : Colors.grey,
+                );
+              }),
+          IconButton(
+            icon: marked
+                ? const Icon(CupertinoIcons.star_fill)
+                : const Icon(CupertinoIcons.star),
             onPressed: () {
-              widget.webViewController.reload();
+              troggleMarkUrl();
               Get.back();
             },
-            icon: const Icon(CupertinoIcons.refresh)),
-      ],
+          ),
+          IconButton(
+              onPressed: () {
+                widget.webViewController.reload();
+                Get.back();
+              },
+              icon: const Icon(CupertinoIcons.refresh)),
+        ],
+      ),
     );
   }
 }

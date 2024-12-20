@@ -26,6 +26,7 @@ import 'package:app/page/widgets/image_preview_widget.dart';
 import 'package:app/service/signal_chat_util.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:easy_debounce/easy_throttle.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:keychat_ecash/red_pocket.dart';
@@ -339,6 +340,9 @@ Let's start an encrypted chat.''';
 
   static Future showRoomActionSheet(BuildContext context, Room room,
       {Function? onDeleteHistory, Function? onDeletRoom}) async {
+    if (GetPlatform.isMobile) {
+      HapticFeedback.vibrate();
+    }
     showCupertinoModalPopup<void>(
       context: context,
       builder: (BuildContext context) => CupertinoActionSheet(
@@ -346,11 +350,17 @@ Let's start an encrypted chat.''';
             room.getRoomName(),
             style: const TextStyle(fontSize: 18),
           ),
-          // message: const Text('Message'),
           actions: <CupertinoActionSheetAction>[
+            if (room.type == RoomType.common)
+              CupertinoActionSheetAction(
+                onPressed: () async {
+                  RoomService.instance.markAllRead(
+                      identityId: room.identityId, roomId: room.id);
+                  Get.back();
+                },
+                child: const Text('Mark as Read'),
+              ),
             CupertinoActionSheetAction(
-              /// This parameter indicates the action would be a default
-              /// default behavior, turns the action's text to bold text.
               onPressed: () async {
                 await RoomService.instance.deleteRoomMessage(room);
                 Get.find<HomeController>()
@@ -360,7 +370,7 @@ Let's start an encrypted chat.''';
                 }
                 Get.back();
               },
-              child: const Text('Clear history'),
+              child: const Text('Clear History'),
             ),
             if (room.type == RoomType.common)
               CupertinoActionSheetAction(
@@ -382,7 +392,7 @@ Let's start an encrypted chat.''';
                   }
                   Get.back();
                 },
-                child: const Text('Delete chat'),
+                child: const Text('Delete Room'),
               ),
             CupertinoActionSheetAction(
               onPressed: () {

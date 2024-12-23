@@ -17,8 +17,6 @@ import 'package:settings_ui/settings_ui.dart';
 
 import './ContactDetail_controller.dart';
 
-String defaultAvatar = "assets/images/logo.png";
-
 class ContactDetailPage extends StatelessWidget {
   final Contact contact;
   const ContactDetailPage(this.contact, {super.key});

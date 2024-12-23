@@ -64,7 +64,7 @@ class BrowserPage extends GetView<BrowserController> {
                                           prefixIcon: Padding(
                                             padding: const EdgeInsets.all(12.0),
                                             child: SvgPicture.asset(
-                                                'assets/images/$engine.svg',
+                                                'assets/images/logo/$engine.svg',
                                                 fit: BoxFit.contain,
                                                 width: 16,
                                                 height: 16),

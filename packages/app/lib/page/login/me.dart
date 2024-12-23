@@ -36,152 +36,140 @@ class MinePage extends GetView<SettingController> {
   Widget build(BuildContext context) {
     WebsocketService ws = Get.find<WebsocketService>();
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            centerTitle: true,
-            title: GestureDetector(
-              child: const Text('Me'),
-              onTap: () {
-                Get.find<HomeController>().troggleDebugModel();
-              },
-            ),
+        appBar: AppBar(
+          centerTitle: true,
+          title: GestureDetector(
+            child: const Text('Me'),
+            onTap: () {
+              Get.find<HomeController>().troggleDebugModel();
+            },
           ),
-          SliverFillRemaining(
-            child: Container(
-              padding: const EdgeInsets.only(bottom: kMinInteractiveDimension),
-              child: Obx(() => SettingsList(
-                    platform: DevicePlatform.iOS,
-                    physics: const NeverScrollableScrollPhysics(),
-                    sections: [
-                      SettingsSection(
-                          margin: const EdgeInsetsDirectional.only(
-                              start: 16, end: 16, bottom: 16, top: 0),
-                          title: const Text('Chat ID List'),
-                          tiles: [
-                            ...getIDList(
-                                context,
-                                Get.find<HomeController>()
-                                    .identities
-                                    .values
-                                    .toList()),
-                            SettingsTile(
-                                title: const Text("Create / Import ID"),
-                                trailing: Icon(CupertinoIcons.add,
-                                    color: Theme.of(Get.context!)
-                                        .iconTheme
-                                        .color
-                                        ?.withValues(alpha: 0.5),
-                                    size: 22),
-                                onPressed: (context) async {
-                                  List<Identity> identities =
-                                      Get.find<HomeController>()
-                                          .identities
-                                          .values
-                                          .toList();
-                                  List<String> npubs =
-                                      identities.map((e) => e.npub).toList();
-                                  String? mnemonic = await SecureStorage
-                                      .instance
-                                      .getPhraseWords();
-                                  Get.to(
-                                      () => CreateAccount(
-                                          type: "me",
-                                          mnemonic: mnemonic,
-                                          npubs: npubs),
-                                      arguments: 'create');
-                                })
-                          ]),
-                      cashuSetting(context),
-                      SettingsSection(
-                        margin: const EdgeInsetsDirectional.symmetric(
-                            horizontal: 16, vertical: 16),
-                        title: const Text("Message Relay List"),
-                        tiles: [
-                          ...ws.channels.values.map((RelayWebsocket rw) =>
-                              SettingsTile.navigation(
-                                title: Text(rw.relay.url),
-                                leading: Icon(
-                                    rw.relay.isDefault
-                                        ? Icons.star
-                                        : Icons.circle,
-                                    size: rw.relay.isDefault ? 16 : 12,
-                                    color: getColorByStatus(rw.channelStatus)),
-                                value: rw.relay.active
-                                    ? (ws.relayMessageFeeModels[rw.relay.url] !=
-                                            null
-                                        ? ws
-                                                    .relayMessageFeeModels[
-                                                        rw.relay.url]!
-                                                    .amount ==
-                                                0
-                                            ? const Text('free')
-                                            : Text(
-                                                '${ws.relayMessageFeeModels[rw.relay.url]!.amount} ${ws.relayMessageFeeModels[rw.relay.url]!.unit.name}')
-                                        : const Text('free'))
-                                    : null,
-                                onPressed: (context) {
-                                  Get.to(() => const RelayInfoPage(),
-                                      arguments: rw.relay,
-                                      binding: RelayInfoBindings());
-                                },
-                              )),
-                          SettingsTile(
-                            title: const Text('Add'),
-                            onPressed: _showAddRelayDialog,
-                            trailing: Icon(
-                              CupertinoIcons.add,
-                              color: Theme.of(Get.context!)
-                                  .iconTheme
-                                  .color
-                                  ?.withValues(alpha: 0.5),
-                              size: 22,
-                            ),
-                          )
-                        ],
-                      ),
-                      SettingsSection(
-                        margin: const EdgeInsetsDirectional.symmetric(
-                            horizontal: 16, vertical: 16),
-                        tiles: [
-                          SettingsTile.navigation(
-                              leading: const Icon(Icons.notifications_outlined),
-                              onPressed: handleNotificationSettting,
-                              title: const Text('Notifications')),
-                          SettingsTile.navigation(
-                            leading: const Icon(Icons.folder_open_outlined),
-                            title: const Text("File Storage Server"),
-                            onPressed: (context) {
-                              Get.to(() => const FileStorageSetting());
-                            },
-                          ),
-                          SettingsTile.navigation(
-                            leading: const Icon(CupertinoIcons.settings),
-                            title: const Text("More Settings"),
+        ),
+        body: Container(
+          padding:
+              const EdgeInsets.only(bottom: kMinInteractiveDimension * 1.5),
+          child: Obx(() => SettingsList(
+                platform: DevicePlatform.iOS,
+                sections: [
+                  SettingsSection(
+                      margin: const EdgeInsetsDirectional.only(
+                          start: 16, end: 16, bottom: 16, top: 0),
+                      title: const Text('Chat ID List'),
+                      tiles: [
+                        ...getIDList(
+                            context,
+                            Get.find<HomeController>()
+                                .identities
+                                .values
+                                .toList()),
+                        SettingsTile(
+                            title: const Text("Create / Import ID"),
+                            trailing: Icon(CupertinoIcons.add,
+                                color: Theme.of(Get.context!)
+                                    .iconTheme
+                                    .color
+                                    ?.withValues(alpha: 0.5),
+                                size: 22),
                             onPressed: (context) async {
-                              PackageInfo packageInfo =
-                                  await PackageInfo.fromPlatform();
-                              controller.appVersion.value =
-                                  "${packageInfo.version}+${packageInfo.buildNumber}";
-                              Get.toNamed(Routes.settingMore);
-                            },
-                          ),
+                              List<Identity> identities =
+                                  Get.find<HomeController>()
+                                      .identities
+                                      .values
+                                      .toList();
+                              List<String> npubs =
+                                  identities.map((e) => e.npub).toList();
+                              String? mnemonic =
+                                  await SecureStorage.instance.getPhraseWords();
+                              Get.to(
+                                  () => CreateAccount(
+                                      type: "me",
+                                      mnemonic: mnemonic,
+                                      npubs: npubs),
+                                  arguments: 'create');
+                            })
+                      ]),
+                  cashuSetting(context),
+                  SettingsSection(
+                    margin: const EdgeInsetsDirectional.symmetric(
+                        horizontal: 16, vertical: 16),
+                    title: const Text("Message Relay List"),
+                    tiles: [
+                      ...ws.channels.values.map((RelayWebsocket rw) =>
                           SettingsTile.navigation(
-                            leading: const Icon(CupertinoIcons.question_circle),
-                            title: const Text("About Keychat"),
+                            title: Text(rw.relay.url),
+                            leading: Icon(
+                                rw.relay.isDefault ? Icons.star : Icons.circle,
+                                size: rw.relay.isDefault ? 16 : 12,
+                                color: getColorByStatus(rw.channelStatus)),
+                            value: rw.relay.active
+                                ? (ws.relayMessageFeeModels[rw.relay.url] !=
+                                        null
+                                    ? ws.relayMessageFeeModels[rw.relay.url]!
+                                                .amount ==
+                                            0
+                                        ? const Text('free')
+                                        : Text(
+                                            '${ws.relayMessageFeeModels[rw.relay.url]!.amount} ${ws.relayMessageFeeModels[rw.relay.url]!.unit.name}')
+                                    : const Text('free'))
+                                : null,
                             onPressed: (context) {
-                              Get.to(() => const OnboardingPage2());
+                              Get.to(() => const RelayInfoPage(),
+                                  arguments: rw.relay,
+                                  binding: RelayInfoBindings());
                             },
-                          ),
-                        ],
+                          )),
+                      SettingsTile(
+                        title: const Text('Add'),
+                        onPressed: _showAddRelayDialog,
+                        trailing: Icon(
+                          CupertinoIcons.add,
+                          color: Theme.of(Get.context!)
+                              .iconTheme
+                              .color
+                              ?.withValues(alpha: 0.5),
+                          size: 22,
+                        ),
+                      )
+                    ],
+                  ),
+                  SettingsSection(
+                    margin: const EdgeInsetsDirectional.symmetric(
+                        horizontal: 16, vertical: 16),
+                    tiles: [
+                      SettingsTile.navigation(
+                          leading: const Icon(Icons.notifications_outlined),
+                          onPressed: handleNotificationSettting,
+                          title: const Text('Notifications')),
+                      SettingsTile.navigation(
+                        leading: const Icon(Icons.folder_open_outlined),
+                        title: const Text("File Storage Server"),
+                        onPressed: (context) {
+                          Get.to(() => const FileStorageSetting());
+                        },
+                      ),
+                      SettingsTile.navigation(
+                        leading: const Icon(CupertinoIcons.settings),
+                        title: const Text("More Settings"),
+                        onPressed: (context) async {
+                          PackageInfo packageInfo =
+                              await PackageInfo.fromPlatform();
+                          controller.appVersion.value =
+                              "${packageInfo.version}+${packageInfo.buildNumber}";
+                          Get.toNamed(Routes.settingMore);
+                        },
+                      ),
+                      SettingsTile.navigation(
+                        leading: const Icon(CupertinoIcons.question_circle),
+                        title: const Text("About Keychat"),
+                        onPressed: (context) {
+                          Get.to(() => const OnboardingPage2());
+                        },
                       ),
                     ],
-                  )),
-            ),
-          ),
-        ],
-      ),
-    );
+                  ),
+                ],
+              )),
+        ));
   }
 
   void _showAddRelayDialog(BuildContext context) {

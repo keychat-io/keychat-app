@@ -279,6 +279,12 @@ Please check ecash balance and mint.''';
 }
 
 class Utils {
+  static final RegExp domainRegExp = RegExp(
+      r'^(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[0-9]{1})|([0-9]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[-]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[-]{1}[0-9]{1})|([0-9]{1}[-]{1}[a-zA-Z]{1}))(([a-zA-Z]{1}|[0-9]{1}|[-]{1}){1,61})+[.][a-zA-Z]{2,4}$');
+  static bool isDomain(String str) {
+    return domainRegExp.hasMatch(str);
+  }
+
   static Future<void> asyncWithTimeout(Function excute, Duration timeout,
       [String? errorMessage]) async {
     try {

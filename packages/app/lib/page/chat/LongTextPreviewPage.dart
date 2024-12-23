@@ -1,4 +1,5 @@
 import 'package:app/utils.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:get/get.dart';
@@ -17,7 +18,7 @@ class LongTextPreviewPage extends StatelessWidget {
             Get.back();
           },
           icon: const Icon(
-            Icons.close,
+            CupertinoIcons.clear_circled,
             color: Colors.purple,
           ),
         ),

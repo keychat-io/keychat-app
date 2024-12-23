@@ -341,7 +341,7 @@ Let's start an encrypted chat.''';
   static Future showRoomActionSheet(BuildContext context, Room room,
       {Function? onDeleteHistory, Function? onDeletRoom}) async {
     if (GetPlatform.isMobile) {
-      HapticFeedback.vibrate();
+      HapticFeedback.lightImpact();
     }
     showCupertinoModalPopup<void>(
       context: context,
@@ -351,15 +351,14 @@ Let's start an encrypted chat.''';
             style: const TextStyle(fontSize: 18),
           ),
           actions: <CupertinoActionSheetAction>[
-            if (room.type == RoomType.common)
-              CupertinoActionSheetAction(
-                onPressed: () async {
-                  RoomService.instance.markAllRead(
-                      identityId: room.identityId, roomId: room.id);
-                  Get.back();
-                },
-                child: const Text('Mark as Read'),
-              ),
+            CupertinoActionSheetAction(
+              onPressed: () async {
+                RoomService.instance
+                    .markAllRead(identityId: room.identityId, roomId: room.id);
+                Get.back();
+              },
+              child: const Text('Mark as Read'),
+            ),
             CupertinoActionSheetAction(
               onPressed: () async {
                 await RoomService.instance.deleteRoomMessage(room);

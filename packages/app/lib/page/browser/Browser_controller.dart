@@ -15,8 +15,6 @@ import 'package:get/get.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-enum BrowserEngine { google, brave, duckduckgo }
-
 class BrowserController extends GetxController {
   late TextEditingController textController;
   RxString title = 'Loading'.obs;
@@ -38,6 +36,8 @@ class BrowserController extends GetxController {
     {"title": "KeyChat", "url": "https://www.keychat.io/"},
   ].obs;
 
+  Function(String url)? urlChangeCallBack;
+
   Future addHistory(String url, String title) async {
     if (histories.isNotEmpty && histories[0].url == url) {
       DateTime now = DateTime.now();
@@ -50,7 +50,7 @@ class BrowserController extends GetxController {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.browserHistorys.put(history);
     });
-    const maxHistoryInHome = 4;
+    const maxHistoryInHome = 2;
     histories.insert(0, history);
     if (histories.length > maxHistoryInHome) {
       for (int i = histories.length - 1; i > 1; i--) {
@@ -64,73 +64,14 @@ class BrowserController extends GetxController {
     }
   }
 
-  @override
-  void onInit() async {
-    ecashController = Get.find<EcashController>();
-    textController = TextEditingController();
-    textController.addListener(() {
-      input.value = textController.text.trim();
-    });
-    List<Identity> identities = await IdentityService.instance.listIdentity();
-    if (identities.isNotEmpty) {
-      identity.value = identities.first;
-    }
-
-    // load search engine
-    List<String> searchEngine = await Storage.getStringList('searchEngine');
-    if (searchEngine.isEmpty) {
-      enableSearchEngine.addAll(BrowserEngine.values.map((e) => e.name));
-    } else {
-      enableSearchEngine.addAll(searchEngine);
-    }
-    // loadBookmarks();
-    loadHistory();
-    super.onInit();
-  }
-
-  loadBookmarks() async {
-    bookmarks.value = await BrowserBookmark.getAll(limit: 8);
-  }
-
-  loadHistory() async {
-    histories.value = await BrowserHistory.getAll(limit: 4);
-  }
-
   addSearchEngine(String engine) async {
     enableSearchEngine.add(engine);
     Storage.setStringList('searchEngine', enableSearchEngine.toList());
   }
 
-  removeSearchEngine(String engine) async {
-    enableSearchEngine.remove(engine);
-    Storage.setStringList('searchEngine', enableSearchEngine.toList());
-  }
-
-  @override
-  void onClose() {
-    textController.dispose();
-    super.onClose();
-  }
-
-  NavigationDecision _onNavigationRequest(NavigationRequest request) {
-    String str = request.url;
-    logger.d('NavigationRequest: $str');
-    if (str.startsWith('cashu')) {
-      ecashController.proccessCashuAString(str);
-      return NavigationDecision.prevent;
-    }
-    // lighting invoice
-    if (str.startsWith('lightning:')) {
-      str = str.replaceFirst('lightning:', '');
-      ecashController.proccessPayLightingBill(str, pay: true);
-      return NavigationDecision.prevent;
-    }
-    if (str.startsWith('lnbc')) {
-      ecashController.proccessPayLightingBill(str, pay: true);
-      return NavigationDecision.prevent;
-    }
-
-    return NavigationDecision.navigate;
+  initBrowser() {
+    title.value = 'Loading';
+    progress.value = 0.0;
   }
 
   lanuchWebview(
@@ -140,21 +81,30 @@ class BrowserController extends GetxController {
     if (content.isEmpty) return;
     EasyThrottle.throttle('browserOnComplete', const Duration(seconds: 2),
         () async {
+      Uri? uri;
       if (content.startsWith('http') == false) {
-        switch (engine) {
-          case 'google':
-            content = 'https://www.google.com/search?q=$content';
-            break;
-          case 'brave':
-            content = 'https://search.brave.com/search?q=$content';
-          case 'bing':
-            content = 'https://www.bing.com/search?q=$content';
-          case 'duckduckgo':
-            content = 'https://duckduckgo.com/?q=$content';
-            break;
+        // try: domain.com
+        bool isDomain = Utils.isDomain(content);
+        // start search engine
+        if (isDomain) {
+          content = 'https://$content';
+        } else {
+          engine = engine.toLowerCase();
+          switch (engine) {
+            case 'google':
+              content = 'https://www.google.com/search?q=$content';
+              break;
+            case 'brave':
+              content = 'https://search.brave.com/search?q=$content';
+            case 'startpage':
+              content = 'https://www.startpage.com/sp/search?q=$content';
+            case 'searxng':
+              content = 'https://searx.tiekoetter.com/search?q=$content';
+              break;
+          }
         }
       }
-      Uri? uri = Uri.tryParse(content);
+      uri = Uri.tryParse(content);
       if (uri == null) return;
       if (defaultTitle != null) {
         title.value = defaultTitle;
@@ -192,42 +142,42 @@ class BrowserController extends GetxController {
         }
         progress.value = 0.0;
 
-        var identity = Get.find<HomeController>().getSelectedIdentity();
-        String pubkey = identity.secp256k1PKHex;
-        controller.runJavaScript('''
-if (typeof window.nostr === 'undefined') {
-  window.nostr = {};
-}
-window.nostr.getPublicKey = function () {
-  return '$pubkey';
-};
-window.nostr.signEvent = async function (event) {
-  let res = await window.nostr.sendMessage({action: 'signEvent', event: event});
-  return res;
-};
+        // var identity = Get.find<HomeController>().getSelectedIdentity();
+        // String pubkey = identity.secp256k1PKHex;
+//         controller.runJavaScript('''
+// if (typeof window.nostr === 'undefined') {
+//   window.nostr = {};
+// }
+// window.nostr.getPublicKey = function () {
+//   return '$pubkey';
+// };
+// window.nostr.signEvent = async function (event) {
+//   let res = await window.nostr.sendMessage({action: 'signEvent', event: event});
+//   return res;
+// };
 
-function generateUniqueId() {
-  return Math.random().toString(36).substring(2, 15);
-}
+// function generateUniqueId() {
+//   return Math.random().toString(36).substring(2, 15);
+// }
 
-window.nc.sendMessage = function (message) {
-  return new Promise((resolve, reject) => {
-    const messageId = generateUniqueId();
-    window.addEventListener('message', function handler(e) {
-      console.log('receive from dart:', JSON.stringify(e.data));
-      if (e.data && e.data.messageId === messageId) {
-        window.removeEventListener('message', handler);
-        if (e.data.success) {
-          resolve(e.data.result);
-        } else {
-          reject(e.data.error);
-        }
-      }
-    });
-    window.nc.postMessage(JSON.stringify({ ...message, messageId: messageId }));
-  });
-};       
-''');
+// window.nc.sendMessage = function (message) {
+//   return new Promise((resolve, reject) => {
+//     const messageId = generateUniqueId();
+//     window.addEventListener('message', function handler(e) {
+//       console.log('receive from dart:', JSON.stringify(e.data));
+//       if (e.data && e.data.messageId === messageId) {
+//         window.removeEventListener('message', handler);
+//         if (e.data.success) {
+//           resolve(e.data.result);
+//         } else {
+//           reject(e.data.error);
+//         }
+//       }
+//     });
+//     window.nc.postMessage(JSON.stringify({ ...message, messageId: messageId }));
+//   });
+// };
+// ''');
       }
 
       onProgress(int data) {
@@ -277,14 +227,73 @@ window.nc.sendMessage = function (message) {
     });
   }
 
-  initBrowser() {
-    title.value = 'Loading';
-    progress.value = 0.0;
+  loadBookmarks() async {
+    bookmarks.value = await BrowserBookmark.getAll(limit: 8);
   }
 
-  Function(String url)? urlChangeCallBack;
+  loadHistory() async {
+    histories.value = await BrowserHistory.getAll(limit: 4);
+  }
+
+  @override
+  void onClose() {
+    textController.dispose();
+    super.onClose();
+  }
+
+  @override
+  void onInit() async {
+    ecashController = Get.find<EcashController>();
+    textController = TextEditingController();
+    textController.addListener(() {
+      input.value = textController.text.trim();
+    });
+    List<Identity> identities = await IdentityService.instance.listIdentity();
+    if (identities.isNotEmpty) {
+      identity.value = identities.first;
+    }
+
+    // load search engine
+    List<String> searchEngine = await Storage.getStringList('searchEngine');
+    if (searchEngine.isEmpty) {
+      enableSearchEngine.addAll(BrowserEngine.values.map((e) => e.name));
+    } else {
+      enableSearchEngine.addAll(searchEngine);
+    }
+    // loadBookmarks();
+    loadHistory();
+    super.onInit();
+  }
+
+  removeSearchEngine(String engine) async {
+    enableSearchEngine.remove(engine);
+    Storage.setStringList('searchEngine', enableSearchEngine.toList());
+  }
 
   setUrlChangeCallBack(Function(String url) callBack) {
     urlChangeCallBack = callBack;
   }
+
+  NavigationDecision _onNavigationRequest(NavigationRequest request) {
+    String str = request.url;
+    logger.d('NavigationRequest: $str');
+    if (str.startsWith('cashu')) {
+      ecashController.proccessCashuAString(str);
+      return NavigationDecision.prevent;
+    }
+    // lighting invoice
+    if (str.startsWith('lightning:')) {
+      str = str.replaceFirst('lightning:', '');
+      ecashController.proccessPayLightingBill(str, pay: true);
+      return NavigationDecision.prevent;
+    }
+    if (str.startsWith('lnbc')) {
+      ecashController.proccessPayLightingBill(str, pay: true);
+      return NavigationDecision.prevent;
+    }
+
+    return NavigationDecision.navigate;
+  }
 }
+
+enum BrowserEngine { google, brave, searXNG, startpage }

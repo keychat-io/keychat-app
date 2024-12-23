@@ -255,7 +255,7 @@ class ChatController extends GetxController {
         }
       }
       if (GetPlatform.isMobile) {
-        HapticFeedback.mediumImpact();
+        HapticFeedback.lightImpact();
       }
       await RoomService.instance
           .sendTextMessage(roomObs.value, text, reply: reply);

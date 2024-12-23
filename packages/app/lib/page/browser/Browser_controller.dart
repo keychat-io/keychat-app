@@ -25,6 +25,7 @@ class BrowserController extends GetxController {
   RxList<BrowserBookmark> bookmarks = <BrowserBookmark>[].obs;
   RxList<BrowserHistory> histories = <BrowserHistory>[].obs;
   late EcashController ecashController;
+  static const maxHistoryInHome = 2;
 
   RxList recommendedUrls = [
     {"title": "Iris", "url": "https://iris.to/"},
@@ -50,7 +51,6 @@ class BrowserController extends GetxController {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.browserHistorys.put(history);
     });
-    const maxHistoryInHome = 2;
     histories.insert(0, history);
     if (histories.length > maxHistoryInHome) {
       for (int i = histories.length - 1; i > 1; i--) {
@@ -232,7 +232,7 @@ class BrowserController extends GetxController {
   }
 
   loadHistory() async {
-    histories.value = await BrowserHistory.getAll(limit: 4);
+    histories.value = await BrowserHistory.getAll(limit: maxHistoryInHome);
   }
 
   @override

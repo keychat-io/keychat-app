@@ -353,7 +353,7 @@ Let's start an encrypted chat.''';
           actions: <CupertinoActionSheetAction>[
             CupertinoActionSheetAction(
               onPressed: () async {
-                RoomService.instance
+                await RoomService.instance
                     .markAllRead(identityId: room.identityId, roomId: room.id);
                 Get.back();
               },

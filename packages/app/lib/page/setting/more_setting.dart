@@ -3,7 +3,6 @@
 import 'dart:io' show exit;
 
 import 'package:app/controller/home.controller.dart';
-import 'package:app/main.dart';
 import 'package:app/models/relay.dart';
 import 'package:app/page/FileExplore.dart';
 import 'package:app/page/dbSetup/db_setting.dart';
@@ -23,6 +22,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
 import 'package:settings_ui/settings_ui.dart';
+// import 'package:restart_app/restart_app.dart';
 
 import '../../controller/setting.controller.dart';
 import '../../models/db_provider.dart';
@@ -93,16 +93,18 @@ class MoreSetting extends StatelessWidget {
   }
 
   void closeAllRelays() async {
+    HomeController hc = Get.find<HomeController>();
     List<Relay> relays = await RelayService.instance.getEnableRelays();
     for (Relay relay in relays) {
       relay.active = false;
       await RelayService.instance.update(relay);
     }
     await Get.find<WebsocketService>().stopListening();
-    await Storage.setBool(StorageKeyString.checkRunStatus, false);
+    hc.checkRunStatus.value = false;
   }
 
   void restartAllRelays() async {
+    HomeController hc = Get.find<HomeController>();
     WebsocketService websocketService = Get.find<WebsocketService>();
     List<Relay> relays = await RelayService.instance.list();
     for (Relay relay in relays) {
@@ -110,43 +112,52 @@ class MoreSetting extends StatelessWidget {
       await RelayService.instance.update(relay);
       websocketService.updateRelayWidget(relay);
     }
-    await Storage.setBool(StorageKeyString.checkRunStatus, true);
+    hc.checkRunStatus.value = true;
   }
 
   handleDBSettting(BuildContext context) async {
+    HomeController hc = Get.find<HomeController>();
     show300hSheetWidget(
-      context,
-      'Database Setting',
-      SettingsList(platform: DevicePlatform.iOS, sections: [
-        SettingsSection(title: const Text('Database Setting'), tiles: [
-          SettingsTile.switchTile(
-              initialValue:
-                  (await Storage.getBool(StorageKeyString.checkRunStatus) ==
-                      true),
-              description: NoticeTextWidget.warning(
-                  'When message sending and receiving are disabled, the database export and import functions can operate without interruption.'),
-              onToggle: (res) async {
-                res ? restartAllRelays() : closeAllRelays();
-              },
-              title: const Text('Disabled sending && receiveing')),
-          SettingsTile.navigation(
-              title: const Text('Export database'),
-              onPressed: (context) async {
-                // need check if message sending and receiving are disabled
-                // and need to set pwd to encrypt database
-                // DbSetting().exportDB(context);
-                _showSetEncryptionPwdDialog(context);
-              }),
-          SettingsTile.navigation(
-              title: const Text('Import database'),
-              onPressed: (context) async {
-                // need check if message sending and receiving are disabled
-                // and need to set pwd to decrypt database
-                enableImportDB(context);
-              }),
-        ])
-      ]),
-    );
+        context,
+        'Database Setting',
+        Obx(
+          () => SettingsList(platform: DevicePlatform.iOS, sections: [
+            SettingsSection(title: const Text('Database Setting'), tiles: [
+              SettingsTile.switchTile(
+                  initialValue: !hc.checkRunStatus.value,
+                  description: NoticeTextWidget.warning(
+                      'When message sending and receiving are disabled, the database export and import functions can operate without interruption.'),
+                  onToggle: (res) async {
+                    res ? closeAllRelays() : restartAllRelays();
+                  },
+                  title: const Text('Disabled sending && receiveing')),
+              SettingsTile.navigation(
+                  title: const Text('Export database'),
+                  onPressed: (context) async {
+                    // need check if message sending and receiving are disabled
+                    // and need to set pwd to encrypt database
+                    if (hc.checkRunStatus.value) {
+                      EasyLoading.showError(
+                          'Please disabled sending && receiveing');
+                      return;
+                    }
+                    _showSetEncryptionPwdDialog(context);
+                  }),
+              SettingsTile.navigation(
+                  title: const Text('Import database'),
+                  onPressed: (context) async {
+                    // need check if message sending and receiving are disabled
+                    // and need to set pwd to decrypt database
+                    if (hc.checkRunStatus.value) {
+                      EasyLoading.showError(
+                          'Please disabled sending && receiveing');
+                      return;
+                    }
+                    enableImportDB(context);
+                  }),
+            ])
+          ]),
+        ));
   }
 
   void _showSetEncryptionPwdDialog(BuildContext context) {
@@ -197,10 +208,9 @@ class MoreSetting extends StatelessWidget {
                   passwordController.text == confirmPasswordController.text) {
                 await Storage.setString(StorageKeyString.dbBackupPwd,
                     confirmPasswordController.text);
-                EasyLoading.showSuccess("Success");
+                EasyLoading.showSuccess("Password successfully set");
                 Get.back();
                 await Future.delayed(const Duration(microseconds: 100));
-
                 DbSetting().exportDB(context, confirmPasswordController.text);
               } else {
                 EasyLoading.showError('Passwords do not match');
@@ -248,24 +258,48 @@ class MoreSetting extends StatelessWidget {
             onPressed: () async {
               if (passwordController.text.isNotEmpty) {
                 try {
+                  Get.back();
                   await Future.delayed(const Duration(microseconds: 100));
                   bool success = await DbSetting()
                       .importDB(context, passwordController.text);
+                  await Future.delayed(const Duration(microseconds: 500));
                   if (success) {
                     EasyLoading.showSuccess("Decryption successful");
-                    // need to reload database
-                    Get.offAllNamed(Routes.root);
-                    await initServices();
+                    // await Future.delayed(const Duration(microseconds: 100));
+                    // need to restart the app and reload database
+                    // Restart.restartApp does not work?
+                    // Restart.restartApp(
+                    //   // Customizing the notification message only on IOS
+                    //   notificationTitle: 'Restarting App',
+                    //   notificationBody:
+                    //       'Please tap here to open the app again.',
+                    // );
+                    Get.dialog(
+                      CupertinoAlertDialog(
+                        title: const Text('Restart Required'),
+                        content: const Text(
+                            'The app needs to restart to reload the database. Please restart the app manually.'),
+                        actions: [
+                          CupertinoDialogAction(
+                            child: const Text(
+                              'Exit',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                            onPressed: () {
+                              exit(0); // Exit the app
+                            },
+                          ),
+                        ],
+                      ),
+                    );
                   } else {
                     EasyLoading.showError('Decryption failed');
                   }
-                  // Get.back();
-                  // Get.back();
                 } catch (e) {
                   EasyLoading.showError('Decryption failed');
                 }
               } else {
-                EasyLoading.showError('Password cannot be empty');
+                EasyLoading.showError('Password can not be empty');
               }
             },
             child: const Text('Confirm'),

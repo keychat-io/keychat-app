@@ -25,7 +25,6 @@ class StorageKeyString {
   static String taskCreateRoom = "taskCreateRoom";
 
   static String dbBackupPwd = "dbBackupPwd";
-  static String checkRunStatus = "checkRunStatus";
 
   static String getSignalAliceKey(String myPubkey, String bobPubkey) {
     return "aliceKey:$myPubkey-$bobPubkey";

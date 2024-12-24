@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
+import 'package:app/service/secure_storage.dart';
+import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter/material.dart';
@@ -7,6 +10,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pick_or_save/pick_or_save.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DbSetting {
   Future<List<File>> getDatabaseFiles(String path) async {
@@ -72,9 +76,19 @@ class DbSetting {
     var appFolder = await getApplicationDocumentsDirectory();
     String sourcePath = '${appFolder.path}/prod/database/';
     String outputPath = '$sourcePath/$fileName';
-    // String encryptionKey = 'keychat';
+    // need export shared_preferences file to sourcePath
+    String sharedPrefsPath = '$sourcePath/shared_prefs_export.json';
+    final exportsharedPrefsFile = File(sharedPrefsPath);
+    await exportSharedPreferences(exportsharedPrefsFile);
+    // need export secure storage file to sourcePath
+    String secureStoragePath = '$sourcePath/secure_storage.json';
+    final exportSecureStorageFile = File(secureStoragePath);
+    await exportSecureStorage(exportSecureStorageFile);
     await exportAndEncryptDatabases(
         sourcePath, outputPath, fileName, encryptionKey);
+    // export then delete
+    exportsharedPrefsFile.deleteSync();
+    exportSecureStorageFile.deleteSync();
   }
 
   Future<void> exportAndEncryptDatabases(String sourcePath, String outputPath,
@@ -202,6 +216,9 @@ class DbSetting {
         final targetFile = File('$targetDirectory/$fileName');
         await targetFile.writeAsBytes(decrypted);
       }
+      // parse sharedPreferences data
+      await importSharedPreferences(targetDirectory);
+      await importSecureStorage(targetDirectory);
       return true;
     } catch (e) {
       logger.e("Error occurred: $e");
@@ -245,7 +262,9 @@ class DbSetting {
       });
       logger.d("All files in $targetDirectory have been deleted.");
     } else {
-      logger.d("Directory does not exist: $targetDirectory");
+      logger.e("Directory does not exist then create: $targetDirectory");
+      // path need to create
+      directory.createSync(recursive: true);
     }
   }
 
@@ -284,5 +303,95 @@ class DbSetting {
       throw Exception('importFileIOS is only available on iOS');
     }
     return await channel.invokeMethod<String>('importFile') ?? '';
+  }
+
+  Future<void> importSharedPreferences(String importFilePath) async {
+    try {
+      // first clear old data
+      await Storage.clearAll();
+      final file = File('$importFilePath/shared_prefs_export.json');
+      final jsonString = await file.readAsString();
+      final Map<String, dynamic> data = jsonDecode(jsonString);
+
+      data.forEach((key, value) async {
+        if (value is int) {
+          await Storage.setInt(key, value);
+        }
+        // else if (value is double) {
+        // await Storage.setDouble(key, value);
+        // }
+        else if (value is bool) {
+          await Storage.setBool(key, value);
+        } else if (value is String) {
+          await Storage.setString(key, value);
+        } else if (value is List<String>) {
+          await Storage.setStringList(key, value);
+        }
+      });
+      // load then delete
+      file.deleteSync();
+
+      logger.d('Shared preferences imported.');
+    } catch (e) {
+      logger.e('Error importing data: $e');
+    }
+  }
+
+  // first create a file in below path:
+  // String sourcePath = '${appFolder.path}/prod/database/';
+  Future<void> exportSharedPreferences(File exportFile) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final Map<String, dynamic> data = prefs.getKeys().fold({}, (map, key) {
+        map[key] = prefs.get(key);
+        return map;
+      });
+
+      final jsonString = jsonEncode(data);
+      await exportFile.writeAsString(jsonString);
+
+      logger.d('Exported to: ${exportFile.path}');
+    } catch (e) {
+      logger.e('Error exporting data: $e');
+    }
+  }
+
+  Future<void> exportSecureStorage(File exportFile) async {
+    try {
+      Map<String, String> allData = await SecureStorage.instance.readAll();
+
+      String jsonData = jsonEncode(allData);
+
+      await exportFile.writeAsString(jsonData);
+
+      logger.d('Data exported to ${exportFile.path}');
+    } catch (e) {
+      logger.e('Error exporting data: $e');
+    }
+  }
+
+  Future<void> importSecureStorage(String importFilePath) async {
+    try {
+      // first clear old data
+      await SecureStorage.instance.clearAll();
+      String filePath = '$importFilePath/secure_storage.json';
+
+      File file = File(filePath);
+      String jsonData = await file.readAsString();
+
+      Map<String, String> allData =
+          Map<String, String>.from(jsonDecode(jsonData));
+
+      // write secure storage
+      for (var entry in allData.entries) {
+        await SecureStorage.instance.write(entry.key, entry.value);
+      }
+      // load then delete
+      file.deleteSync();
+
+      logger.d('Data imported from $filePath');
+    } catch (e) {
+      logger.e('Error importing data: $e');
+    }
   }
 }

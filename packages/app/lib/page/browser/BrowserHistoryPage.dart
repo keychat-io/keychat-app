@@ -62,7 +62,7 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
           ],
         ),
         body: SmartRefresher(
-            enablePullDown: true,
+            enablePullUp: true,
             onLoading: () async {
               await loadData(limit: 20, offset: historyUrls.length);
               refreshController.loadComplete();

@@ -14,6 +14,7 @@ import 'package:convert/convert.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart' show DateFormat;
@@ -433,5 +434,17 @@ class Utils {
     if (input.isEmpty || input[0].contains(RegExp(r'[^a-zA-Z]'))) return input;
     if (input.length == 1) return input.toUpperCase();
     return input[0].toUpperCase() + input.substring(1);
+  }
+
+  static bottomSheedAndHideStatusBar(Widget widget) async {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
+    await Get.bottomSheet(widget,
+        elevation: 1,
+        isScrollControlled: true,
+        ignoreSafeArea: true,
+        enterBottomSheetDuration: Duration.zero,
+        exitBottomSheetDuration: Duration.zero);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
+        overlays: SystemUiOverlay.values);
   }
 }

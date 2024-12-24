@@ -1,19 +1,17 @@
-import 'dart:convert' show jsonEncode, jsonDecode;
-
-import 'package:app/controller/home.controller.dart';
 import 'package:app/models/browser/browser_bookmark.dart';
 import 'package:app/models/browser/browser_history.dart';
 import 'package:app/models/db_provider.dart';
 import 'package:app/models/identity.dart';
-import 'package:app/page/browser/webview_detail_page.dart';
+import 'package:app/page/browser/BrowserDetailPage.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart'
+    hide Storage, WebResourceError;
 import 'package:get/get.dart';
-import 'package:keychat_ecash/ecash_controller.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 
 class BrowserController extends GetxController {
   late TextEditingController textController;
@@ -24,7 +22,6 @@ class BrowserController extends GetxController {
   RxSet<String> enableSearchEngine = <String>{}.obs;
   RxList<BrowserBookmark> bookmarks = <BrowserBookmark>[].obs;
   RxList<BrowserHistory> histories = <BrowserHistory>[].obs;
-  late EcashController ecashController;
   static const maxHistoryInHome = 2;
 
   RxList recommendedUrls = [
@@ -109,121 +106,8 @@ class BrowserController extends GetxController {
       if (defaultTitle != null) {
         title.value = defaultTitle;
       }
-      WebViewController controller = WebViewController();
-      if (GetPlatform.isDesktop) {
-        controller.setUserAgent(
-            "Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.6778.135 Mobile Safari/537.36");
-      }
-      controller.setOnConsoleMessage((message) {
-        logger.d('console: ${message.message}');
-      });
-      controller.addJavaScriptChannel('nc',
-          onMessageReceived: (JavaScriptMessage message) {
-        logger.d('Received message from javascript: ${message.message}');
-        Map<String, dynamic> data = jsonDecode(message.message);
-        if (data['action'] == 'getPublicKey') {
-          String publicKey = 'YOUR_PUBLIC_KEY';
-          Map<String, dynamic> response = {
-            'messageId': data['messageId'],
-            'success': true,
-            'result': publicKey
-          };
-          logger.d(response);
-          controller
-              .runJavaScript('window.postMessage(${jsonEncode(response)},"*")');
-        }
-      });
-      onPageFinished(String url) async {
-        String? res = await controller.getTitle();
-        logger.d('Page finished loading: $url');
-        if (res != null) {
-          title.value = res;
-          await addHistory(url, title.value);
-        }
-        progress.value = 0.0;
-
-        // var identity = Get.find<HomeController>().getSelectedIdentity();
-        // String pubkey = identity.secp256k1PKHex;
-//         controller.runJavaScript('''
-// if (typeof window.nostr === 'undefined') {
-//   window.nostr = {};
-// }
-// window.nostr.getPublicKey = function () {
-//   return '$pubkey';
-// };
-// window.nostr.signEvent = async function (event) {
-//   let res = await window.nostr.sendMessage({action: 'signEvent', event: event});
-//   return res;
-// };
-
-// function generateUniqueId() {
-//   return Math.random().toString(36).substring(2, 15);
-// }
-
-// window.nc.sendMessage = function (message) {
-//   return new Promise((resolve, reject) => {
-//     const messageId = generateUniqueId();
-//     window.addEventListener('message', function handler(e) {
-//       console.log('receive from dart:', JSON.stringify(e.data));
-//       if (e.data && e.data.messageId === messageId) {
-//         window.removeEventListener('message', handler);
-//         if (e.data.success) {
-//           resolve(e.data.result);
-//         } else {
-//           reject(e.data.error);
-//         }
-//       }
-//     });
-//     window.nc.postMessage(JSON.stringify({ ...message, messageId: messageId }));
-//   });
-// };
-// ''');
-      }
-
-      onProgress(int data) {
-        progress.value = data / 100;
-      }
-
-      controller
-        ..setJavaScriptMode(JavaScriptMode.unrestricted)
-        ..setNavigationDelegate(NavigationDelegate(
-            onProgress: onProgress,
-            onUrlChange: (UrlChange urlChange) async {
-              // not proccess the first url
-              if (title.value == 'Loading') {
-                return;
-              }
-              String? url = urlChange.url;
-              if (url == null) return;
-              logger.d('urlChange: $url');
-              if (urlChangeCallBack != null) {
-                urlChangeCallBack!(url);
-              }
-              String? newTitle = await controller.getTitle();
-              if (newTitle != null) {
-                title.value = newTitle;
-              }
-              addHistory(urlChange.url!, title.value);
-            },
-            onPageStarted: (String url) {
-              logger.d('Page started loading: $url');
-            },
-            onPageFinished: onPageFinished,
-            onHttpError: (HttpResponseError error) {
-              logger.d('HTTP error: $error');
-            },
-            onWebResourceError: (WebResourceError error) {
-              logger.d('Web Resource error: $error');
-            },
-            onNavigationRequest: _onNavigationRequest))
-        ..loadRequest(uri);
-      // fix ios Canpop issue
-      Navigator.of(Get.context!).push(
-        MaterialPageRoute(
-          builder: (context) => WebviewDetailPage(controller),
-        ),
-      );
       initBrowser();
+      Get.to(() => BrowserDetailPage(content, title.value));
     });
   }
 
@@ -243,7 +127,10 @@ class BrowserController extends GetxController {
 
   @override
   void onInit() async {
-    ecashController = Get.find<EcashController>();
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      await InAppWebViewController.setWebContentsDebuggingEnabled(kDebugMode);
+    }
+
     textController = TextEditingController();
     textController.addListener(() {
       input.value = textController.text.trim();
@@ -268,31 +155,6 @@ class BrowserController extends GetxController {
   removeSearchEngine(String engine) async {
     enableSearchEngine.remove(engine);
     Storage.setStringList('searchEngine', enableSearchEngine.toList());
-  }
-
-  setUrlChangeCallBack(Function(String url) callBack) {
-    urlChangeCallBack = callBack;
-  }
-
-  NavigationDecision _onNavigationRequest(NavigationRequest request) {
-    String str = request.url;
-    logger.d('NavigationRequest: $str');
-    if (str.startsWith('cashu')) {
-      ecashController.proccessCashuAString(str);
-      return NavigationDecision.prevent;
-    }
-    // lighting invoice
-    if (str.startsWith('lightning:')) {
-      str = str.replaceFirst('lightning:', '');
-      ecashController.proccessPayLightingBill(str, pay: true);
-      return NavigationDecision.prevent;
-    }
-    if (str.startsWith('lnbc')) {
-      ecashController.proccessPayLightingBill(str, pay: true);
-      return NavigationDecision.prevent;
-    }
-
-    return NavigationDecision.navigate;
   }
 }
 

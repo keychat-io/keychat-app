@@ -8,7 +8,6 @@ import 'package:url_launcher/url_launcher.dart';
 class LongTextPreviewPage extends StatelessWidget {
   final String text;
   const LongTextPreviewPage(this.text, {super.key});
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

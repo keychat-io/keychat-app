@@ -128,7 +128,9 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                             style: Theme.of(context)
                                                 .textTheme
                                                 .titleLarge
-                                                ?.copyWith(color: Colors.green),
+                                                ?.copyWith(
+                                                    fontSize: 34,
+                                                    color: Colors.green),
                                           ),
                                           TextSpan(
                                               text: ' sat',

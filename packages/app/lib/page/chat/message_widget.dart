@@ -437,9 +437,9 @@ class MessageWidget extends StatelessWidget {
     return (ess, event);
   }
 
-  void messageOnDoubleTap() {
-    Get.to(() => LongTextPreviewPage(message.realMessage ?? message.content),
-        fullscreenDialog: true, transition: Transition.fadeIn);
+  void messageOnDoubleTap() async {
+    Utils.bottomSheedAndHideStatusBar(
+        LongTextPreviewPage(message.realMessage ?? message.content));
   }
 
   TableRow tableRow(String title, String text) {

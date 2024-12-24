@@ -89,6 +89,7 @@ dependencies:
   webview_flutter_wkwebview: ^3.16.3
   async_queue: ^2.0.2
   url_launcher: ^6.3.1
+  flutter_inappwebview: 6.2.0-beta.2
 
 dev_dependencies:
   flutter_test:
@@ -114,6 +115,7 @@ flutter:
   assets:
     - assets/images/
     - assets/images/logo/
+    - assets/js/
     - .env
 
 # dart run flutter_native_splash:create

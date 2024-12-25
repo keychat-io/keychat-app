@@ -151,8 +151,8 @@ class HomeController extends GetxController
     }
   }
 
-  Future fetchBots() async {
-    String fileName = 'config-release.json';
+  Future loadAppRemoteConfig() async {
+    String fileName = 'config/app.json';
     var list = [
       'https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/$fileName',
       'https://mirror.ghproxy.com/https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/$fileName'
@@ -171,13 +171,16 @@ class HomeController extends GetxController
           recommendBots.value = jsonDecode(response.data)['bots'];
           var recommendUrls =
               jsonDecode(response.data)['browserRecommend'] as List;
-          browserRecommend.value = (recommendUrls)
+
+          browserRecommend.value = recommendUrls
               .fold<Map<String, List<Map<String, dynamic>>>>({}, (acc, item) {
-            String type = item['type'];
-            if (acc[type] == null) {
-              acc[type] = [];
+            List<String> categories = List<String>.from(item['categories']);
+            for (var type in categories) {
+              if (acc[type] == null) {
+                acc[type] = [];
+              }
+              acc[type]!.add(item);
             }
-            acc[type]!.add(item);
             return acc;
           });
           logger.d('recommendBots $recommendBots');
@@ -423,7 +426,7 @@ class HomeController extends GetxController
     // start to create ai identity
     Future.delayed(const Duration(seconds: 1), () async {
       await createAIIdentity(mys, KeychatGlobal.bot);
-      fetchBots();
+      loadAppRemoteConfig();
     });
   }
 

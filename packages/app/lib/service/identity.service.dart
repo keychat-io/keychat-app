@@ -92,7 +92,7 @@ class IdentityService {
         Get.find<EcashController>().initIdentity(iden);
         // create ai identity
         await homeController.createAIIdentity([iden], KeychatGlobal.bot);
-        homeController.fetchBots();
+        homeController.loadAppRemoteConfig();
         NotifyService.requestPremissionAndInit().then((c) {
           NotifyService.addPubkeys([account.pubkey]);
         }).catchError((e, s) {

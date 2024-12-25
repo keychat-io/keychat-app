@@ -1,6 +1,5 @@
 import 'dart:convert' show jsonDecode;
 
-import 'package:app/controller/home.controller.dart';
 import 'package:app/models/browser/browser_bookmark.dart';
 import 'package:app/models/db_provider.dart';
 import 'package:app/nostr-core/nostr_event.dart';
@@ -167,7 +166,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                     ),
                   ];
                 },
-                icon: const Icon(Icons.more_vert),
+                icon: const Icon(Icons.more_horiz),
               ),
             ]),
         body: PopScope(
@@ -403,10 +402,10 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
     var method = data.args[0];
     switch (method) {
       case 'getPublicKey':
-        var identity = Get.find<HomeController>().getSelectedIdentity();
+        var identity = Get.find<BrowserController>().identity.value;
         return identity.secp256k1PKHex;
       case 'signEvent':
-        var identity = Get.find<HomeController>().getSelectedIdentity();
+        var identity = Get.find<BrowserController>().identity.value;
         var event = data.args[1];
         var res = await rust_nostr.signEvent(
             senderKeys: await identity.getSecp256k1SKHex(),
@@ -424,7 +423,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
       case 'nip04Encrypt':
         String to = data.args[1];
         String plaintext = data.args[2];
-        var identity = Get.find<HomeController>().getSelectedIdentity();
+        var identity = Get.find<BrowserController>().identity.value;
 
         var encryptedEvent = await rust_nostr.getEncryptEvent(
             senderKeys: await identity.getSecp256k1SKHex(),
@@ -435,21 +434,38 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
       case 'nip04Decrypt':
         String to = data.args[1];
         String ciphertext = data.args[2];
-        var identity = Get.find<HomeController>().getSelectedIdentity();
+        var identity = Get.find<BrowserController>().identity.value;
 
-        var encryptedEvent = await rust_nostr.decrypt(
+        var content = await rust_nostr.decrypt(
             senderKeys: await identity.getSecp256k1SKHex(),
             receiverPubkey: to,
             content: ciphertext);
+        return content;
+      case 'nip44Encrypt':
+        String to = data.args[1];
+        String plaintext = data.args[2];
+        var identity = Get.find<BrowserController>().identity.value;
+
+        var encryptedEvent = await rust_nostr.createGiftJson(
+            senderKeys: await identity.getSecp256k1SKHex(),
+            receiverPubkey: to,
+            kind: 14,
+            content: plaintext);
         var model = NostrEventModel.fromJson(jsonDecode(encryptedEvent));
         return model.content;
-      case 'nip44Encrypt':
-        break;
       case 'nip44Decrypt':
-        break;
+        String to = data.args[1];
+        String ciphertext = data.args[2];
+        var identity = Get.find<BrowserController>().identity.value;
+
+        rust_nostr.NostrEvent event = await rust_nostr.decryptGift(
+            senderKeys: await identity.getSecp256k1SKHex(),
+            receiver: to,
+            content: ciphertext);
+        return event.content;
       default:
     }
     // return data to the JavaScript side!
-    return 1111;
+    return 'Error: not implemented';
   }
 }

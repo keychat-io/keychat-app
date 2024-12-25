@@ -236,7 +236,7 @@ class BrowserPage extends GetView<BrowserController> {
                                       const SliverGridDelegateWithFixedCrossAxisCount(
                                     crossAxisCount: 2,
                                     crossAxisSpacing: 8.0,
-                                    mainAxisSpacing: 8.0,
+                                    mainAxisSpacing: 1,
                                     childAspectRatio: 2.5,
                                   ),
                                   itemCount: controller.bookmarks.length,
@@ -281,7 +281,7 @@ class BrowserPage extends GetView<BrowserController> {
                                 children: [
                                   Padding(
                                       padding: const EdgeInsets.only(
-                                          top: 8, left: 16, right: 16),
+                                          top: 16, left: 16, right: 16),
                                       child: Text(
                                           Utils.capitalizeFirstLetter(
                                               entry.key.toString()),
@@ -295,54 +295,76 @@ class BrowserPage extends GetView<BrowserController> {
                                     gridDelegate:
                                         const SliverGridDelegateWithFixedCrossAxisCount(
                                       crossAxisCount: 2,
-                                      crossAxisSpacing: 0,
-                                      mainAxisSpacing: 1.0,
-                                      childAspectRatio: 4,
+                                      crossAxisSpacing: 8.0,
+                                      mainAxisSpacing: 8.0,
+                                      childAspectRatio: 3.6,
                                     ),
                                     itemCount: entry.value.length,
                                     itemBuilder: (context, index) {
                                       final site = entry.value[index];
                                       return ListTile(
-                                        horizontalTitleGap: 8,
-                                        minVerticalPadding: 1,
-                                        minLeadingWidth: 1,
-                                        minTileHeight: 1,
-                                        leading: CachedNetworkImage(
-                                            imageUrl: site['icon'],
-                                            width: 30,
-                                            height: 30,
-                                            imageBuilder: (context,
-                                                    imageProvider) =>
-                                                Container(
-                                                  decoration: BoxDecoration(
+                                        contentPadding: const EdgeInsets.only(
+                                            left: 16, right: 4, bottom: 4),
+                                        leading: site['img'] != null
+                                            ? (site['img']
+                                                    .toString()
+                                                    .endsWith('svg')
+                                                ? ClipRRect(
                                                     borderRadius:
                                                         BorderRadius.circular(
-                                                            8.0),
-                                                    image: DecorationImage(
-                                                        image: imageProvider,
-                                                        fit: BoxFit.cover,
-                                                        colorFilter:
-                                                            const ColorFilter
-                                                                .mode(
-                                                                Colors.white,
-                                                                BlendMode
-                                                                    .colorBurn)),
-                                                  ),
-                                                ),
-                                            placeholder: (context, url) =>
-                                                const Icon(Icons.image),
-                                            errorWidget:
-                                                (context, url, error) =>
-                                                    const Icon(Icons.image)),
+                                                            4),
+                                                    child: SvgPicture.network(
+                                                        site['img'],
+                                                        width: 40,
+                                                        height: 40,
+                                                        placeholderBuilder:
+                                                            (BuildContext context) =>
+                                                                const Icon(Icons
+                                                                    .image)))
+                                                : CachedNetworkImage(
+                                                    imageUrl: site['img'],
+                                                    width: 40,
+                                                    height: 40,
+                                                    imageBuilder: (context,
+                                                            imageProvider) =>
+                                                        Container(
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        8.0),
+                                                            image: DecorationImage(
+                                                                image:
+                                                                    imageProvider,
+                                                                fit: BoxFit
+                                                                    .cover,
+                                                                colorFilter:
+                                                                    const ColorFilter
+                                                                        .mode(
+                                                                        Colors
+                                                                            .white,
+                                                                        BlendMode
+                                                                            .colorBurn)),
+                                                          ),
+                                                        ),
+                                                    placeholder: (context, url) =>
+                                                        const Icon(Icons.image),
+                                                    errorWidget: (context, url,
+                                                            error) =>
+                                                        const Icon(Icons.image)))
+                                            : null,
                                         title: Text(site['title'],
-                                            overflow: TextOverflow.clip),
-                                        subtitle:
-                                            textSmallGray(context, site['url']),
-                                        dense: true,
+                                            overflow: TextOverflow.fade,
+                                            maxLines: 1),
+                                        subtitle: textSmallGray(
+                                            context, site['description'],
+                                            lineHeight: 1, maxLines: 2),
                                         onTap: () {
                                           controller.lanuchWebview(
                                               engine: BrowserEngine.google.name,
-                                              content: site['url'],
+                                              content:
+                                                  site['url1'] ?? site['url2'],
                                               defaultTitle: site['title']);
                                         },
                                       );

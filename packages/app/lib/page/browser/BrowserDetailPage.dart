@@ -91,93 +91,90 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-            toolbarHeight: 40,
-            titleSpacing: 0,
-            leadingWidth: canGoBack ? 100 : 50,
-            leading: Row(children: [
-              IconButton(
-                  onPressed: () async {
-                    goBackOrPop();
-                  },
-                  icon: const Icon(Icons.arrow_back)),
-              if (canGoBack)
-                IconButton(
-                    onPressed: () {
-                      Get.back();
+    return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, d) {
+          if (didPop) {
+            return;
+          }
+          goBackOrPop();
+        },
+        child: Scaffold(
+            appBar: AppBar(
+                toolbarHeight: 40,
+                titleSpacing: 0,
+                leadingWidth: canGoBack ? 100 : 50,
+                leading: Row(children: [
+                  IconButton(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      onPressed: goBackOrPop,
+                      icon: const Icon(Icons.arrow_back)),
+                  if (canGoBack)
+                    IconButton(
+                        onPressed: Get.back, icon: const Icon(Icons.close))
+                ]),
+                centerTitle: true,
+                title: Text(title),
+                actions: [
+                  PopupMenuButton<String>(
+                    onOpened: () {
+                      initIsMarked();
                     },
-                    icon: const Icon(Icons.close))
-            ]),
-            centerTitle: true,
-            title: Text(title),
-            actions: [
-              PopupMenuButton<String>(
-                onOpened: () {
-                  initIsMarked();
-                },
-                onSelected: (value) async {
-                  final url = await webViewController?.getUrl();
-                  if (url == null) return;
+                    onSelected: (value) async {
+                      final url = await webViewController?.getUrl();
+                      if (url == null) return;
 
-                  switch (value) {
-                    case 'share':
-                      Share.share(url.toString());
-                      break;
-                    case 'copy':
-                      Clipboard.setData(ClipboardData(text: url.toString()));
-                      EasyLoading.showToast('Copied');
-                      break;
-                    case 'openInBrowser':
-                      await launchUrl(Uri.parse(url.toString()),
-                          mode: LaunchMode.externalApplication);
-                      break;
-                  }
-                },
-                itemBuilder: (BuildContext context) {
-                  return [
-                    PopupMenuItem(
-                      value: 'tools',
-                      child: getPopTools(),
-                    ),
-                    PopupMenuItem(
-                      value: 'share',
-                      child: Row(spacing: 16, children: [
-                        const Icon(CupertinoIcons.share),
-                        Text('Share',
-                            style: Theme.of(context).textTheme.bodyLarge)
-                      ]),
-                    ),
-                    PopupMenuItem(
-                      value: 'copy',
-                      child: Row(spacing: 12, children: [
-                        const Icon(CupertinoIcons.doc_on_clipboard),
-                        Text('Copy',
-                            style: Theme.of(context).textTheme.bodyLarge)
-                      ]),
-                    ),
-                    PopupMenuItem(
-                      value: 'openInBrowser',
-                      child: Row(spacing: 12, children: [
-                        const Icon(CupertinoIcons.globe),
-                        Text('Native Browser',
-                            style: Theme.of(context).textTheme.bodyLarge)
-                      ]),
-                    ),
-                  ];
-                },
-                icon: const Icon(Icons.more_horiz),
-              ),
-            ]),
-        body: PopScope(
-            canPop: GetPlatform.isAndroid ? false : true,
-            onPopInvokedWithResult: (didPop, d) {
-              if (didPop) {
-                return;
-              }
-              goBackOrPop();
-            },
-            child: SafeArea(
+                      switch (value) {
+                        case 'share':
+                          Share.share(url.toString());
+                          break;
+                        case 'copy':
+                          Clipboard.setData(
+                              ClipboardData(text: url.toString()));
+                          EasyLoading.showToast('Copied');
+                          break;
+                        case 'openInBrowser':
+                          await launchUrl(Uri.parse(url.toString()),
+                              mode: LaunchMode.externalApplication);
+                          break;
+                      }
+                    },
+                    itemBuilder: (BuildContext context) {
+                      return [
+                        PopupMenuItem(
+                          value: 'tools',
+                          child: getPopTools(),
+                        ),
+                        PopupMenuItem(
+                          value: 'share',
+                          child: Row(spacing: 16, children: [
+                            const Icon(CupertinoIcons.share),
+                            Text('Share',
+                                style: Theme.of(context).textTheme.bodyLarge)
+                          ]),
+                        ),
+                        PopupMenuItem(
+                          value: 'copy',
+                          child: Row(spacing: 12, children: [
+                            const Icon(CupertinoIcons.doc_on_clipboard),
+                            Text('Copy',
+                                style: Theme.of(context).textTheme.bodyLarge)
+                          ]),
+                        ),
+                        PopupMenuItem(
+                          value: 'openInBrowser',
+                          child: Row(spacing: 12, children: [
+                            const Icon(CupertinoIcons.globe),
+                            Text('Native Browser',
+                                style: Theme.of(context).textTheme.bodyLarge)
+                          ]),
+                        ),
+                      ];
+                    },
+                    icon: const Icon(Icons.more_horiz),
+                  ),
+                ]),
+            body: SafeArea(
                 child: Column(children: <Widget>[
               Expanded(
                 child: Stack(
@@ -242,6 +239,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                             return NavigationActionPolicy.CANCEL;
                           }
                         }
+
                         return NavigationActionPolicy.ALLOW;
                       },
                       onLoadStop: (controller, url) async {
@@ -250,7 +248,6 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                         pullToRefreshController?.endRefreshing();
                         setState(() {
                           this.url = url.toString();
-                          // urlController.text = this.url;
                         });
                       },
                       onReceivedError: (controller, request, error) {
@@ -268,25 +265,36 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                       onUpdateVisitedHistory:
                           (controller, url, androidIsReload) async {
                         bool? can = await webViewController?.canGoBack();
-                        Get.find<BrowserController>().addHistory(url.toString(),
-                            await controller.getTitle() ?? title);
                         setState(() {
                           canGoBack = can ?? false;
                           this.url = url.toString();
                         });
+                        // fetch new title
+                        String? newTitle = await controller.getTitle();
+                        if (newTitle == null) {
+                          Future.delayed(const Duration(seconds: 1))
+                              .then((e) async {
+                            Get.find<BrowserController>().addHistory(
+                                url.toString(),
+                                await controller.getTitle() ?? title);
+                          });
+                        } else {
+                          Get.find<BrowserController>()
+                              .addHistory(url.toString(), newTitle);
+                        }
                       },
                       onConsoleMessage: (controller, consoleMessage) {
                         if (kDebugMode) {
                           print('console: $consoleMessage');
                         }
                       },
-                      onTitleChanged: (controller, title) => setState(() {
+                      onTitleChanged: (controller, title) async {
                         if (title != null) {
                           setState(() {
                             this.title = title;
                           });
                         }
-                      }),
+                      },
                     ),
                     progress < 1.0
                         ? LinearProgressIndicator(value: progress)

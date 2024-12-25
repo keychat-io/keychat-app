@@ -28,7 +28,9 @@ class BrowserController extends GetxController {
   Function(String url)? urlChangeCallBack;
 
   Future addHistory(String url, String title) async {
-    if (histories.isNotEmpty && histories[0].url == url) {
+    if (histories.isNotEmpty &&
+        histories[0].url == url &&
+        histories[0].title == title) {
       DateTime now = DateTime.now();
       DateTime lastVisit = histories[0].createdAt;
       if (now.difference(lastVisit).inMinutes < 1) {

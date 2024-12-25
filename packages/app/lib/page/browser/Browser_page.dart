@@ -74,7 +74,7 @@ class BrowserPage extends GetView<BrowserController> {
                 child: Obx(() => ListView(children: [
                       ...controller.enableSearchEngine.map((engine) => Padding(
                           padding: const EdgeInsets.only(
-                              bottom: 0, top: 8, left: 16, right: 16),
+                              bottom: 8, top: 8, left: 16, right: 16),
                           child: Form(
                             key: PageStorageKey('input:$engine'),
                             child: TextFormField(
@@ -237,7 +237,7 @@ class BrowserPage extends GetView<BrowserController> {
                                     crossAxisCount: 2,
                                     crossAxisSpacing: 8.0,
                                     mainAxisSpacing: 1,
-                                    childAspectRatio: 2.5,
+                                    childAspectRatio: 3,
                                   ),
                                   itemCount: controller.bookmarks.length,
                                   itemBuilder: (context, index) {

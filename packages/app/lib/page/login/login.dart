@@ -4,6 +4,7 @@ import 'package:app/page/login/CreateAccount.dart';
 import 'package:app/page/login/OnboardingPage2Detail.dart';
 import 'package:app/page/login/import_nsec.dart';
 import 'package:app/page/routes.dart';
+import 'package:app/page/setting/more_setting.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -50,13 +51,14 @@ class Login extends StatelessWidget {
                     const SizedBox(height: 16.0),
                     OutlinedButton(
                         onPressed: () async {
-                          Identity? res =
-                              await Get.to(() => const ImportNsec());
-                          if (res != null) {
-                            Get.offAndToNamed(Routes.root);
-                          }
+                          // Identity? res =
+                          //     await Get.to(() => const ImportNsec());
+                          // if (res != null) {
+                          //   Get.offAndToNamed(Routes.root);
+                          // }
+                          const MoreSetting().enableImportDB(context);
                         },
-                        child: const Text("Import Nsec",
+                        child: const Text("Import Data",
                             style: TextStyle(fontWeight: FontWeight.bold)))
                   ])
             ])));

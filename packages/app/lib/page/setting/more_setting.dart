@@ -1,6 +1,6 @@
 // ignore_for_file: use_build_context_synchronously
 
-import 'dart:io' show exit;
+import 'dart:io' show File, exit;
 
 import 'package:app/controller/home.controller.dart';
 import 'package:app/models/relay.dart';
@@ -132,7 +132,7 @@ class MoreSetting extends StatelessWidget {
                   },
                   title: const Text('Disabled sending && receiveing')),
               SettingsTile.navigation(
-                  title: const Text('Export database'),
+                  title: const Text('Export data'),
                   onPressed: (context) async {
                     // need check if message sending and receiving are disabled
                     // and need to set pwd to encrypt database
@@ -144,7 +144,7 @@ class MoreSetting extends StatelessWidget {
                     _showSetEncryptionPwdDialog(context);
                   }),
               SettingsTile.navigation(
-                  title: const Text('Import database'),
+                  title: const Text('Import data'),
                   onPressed: (context) async {
                     // need check if message sending and receiving are disabled
                     // and need to set pwd to decrypt database
@@ -223,7 +223,7 @@ class MoreSetting extends StatelessWidget {
     );
   }
 
-  void _showEnterDecryptionPwdDialog(BuildContext context) {
+  void _showEnterDecryptionPwdDialog(BuildContext context, File file) {
     TextEditingController passwordController = TextEditingController();
 
     Get.dialog(
@@ -258,14 +258,13 @@ class MoreSetting extends StatelessWidget {
             onPressed: () async {
               if (passwordController.text.isNotEmpty) {
                 try {
-                  Get.back();
                   await Future.delayed(const Duration(microseconds: 100));
                   bool success = await DbSetting()
-                      .importDB(context, passwordController.text);
-                  await Future.delayed(const Duration(microseconds: 500));
+                      .importDB(context, passwordController.text, file);
+                  // await Future.delayed(const Duration(microseconds: 100));
                   if (success) {
+                    await Future.delayed(const Duration(microseconds: 100));
                     EasyLoading.showSuccess("Decryption successful");
-                    // await Future.delayed(const Duration(microseconds: 100));
                     // need to restart the app and reload database
                     // Restart.restartApp does not work?
                     // Restart.restartApp(
@@ -329,8 +328,15 @@ class MoreSetting extends StatelessWidget {
         ),
         CupertinoDialogAction(
           child: const Text("Confirm"),
-          onPressed: () {
-            _showEnterDecryptionPwdDialog(context);
+          onPressed: () async {
+            File? file = await DbSetting().importFile();
+            if (file == null) {
+              EasyLoading.showError('status: No file select',
+                  duration: const Duration(seconds: 3));
+              logger.e("No file select.");
+              return;
+            }
+            _showEnterDecryptionPwdDialog(context, file);
           },
         ),
       ],

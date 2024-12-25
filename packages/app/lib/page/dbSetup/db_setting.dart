@@ -268,16 +268,11 @@ class DbSetting {
     }
   }
 
-  Future<bool> importDB(BuildContext context, String decryptionKey) async {
+  Future<bool> importDB(
+      BuildContext context, String decryptionKey, File file) async {
     var appFolder = await getApplicationDocumentsDirectory();
     String sourcePath = '${appFolder.path}/prod/database/';
-    File? file = await importFile();
-    if (file == null) {
-      EasyLoading.showError('status: No file select',
-          duration: const Duration(seconds: 3));
-      logger.e("No file select.");
-      return false;
-    }
+
     deleteAllFilesInDirectory(sourcePath);
     return await importAndDecryptPackage(file.path, decryptionKey, sourcePath);
   }

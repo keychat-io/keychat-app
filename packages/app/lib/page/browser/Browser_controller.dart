@@ -18,21 +18,12 @@ class BrowserController extends GetxController {
   RxString title = 'Loading'.obs;
   RxString input = ''.obs;
   RxDouble progress = 0.2.obs;
-  Rx<Identity> identity = Identity(name: '', npub: '', secp256k1PKHex: '').obs;
+  Rx<Identity> identity =
+      Identity(name: '', npub: '', secp256k1PKHex: '001').obs;
   RxSet<String> enableSearchEngine = <String>{}.obs;
   RxList<BrowserBookmark> bookmarks = <BrowserBookmark>[].obs;
   RxList<BrowserHistory> histories = <BrowserHistory>[].obs;
   static const maxHistoryInHome = 2;
-
-  RxList recommendedUrls = [
-    {"title": "Iris", "url": "https://iris.to/"},
-    {
-      "title": "Anonymous eSIM",
-      "url": "https://silent.link/#generic_price_table"
-    },
-    {"title": "Tetris", "url": "https://chvin.github.io/react-tetris/"},
-    {"title": "KeyChat", "url": "https://www.keychat.io/"},
-  ].obs;
 
   Function(String url)? urlChangeCallBack;
 
@@ -112,7 +103,7 @@ class BrowserController extends GetxController {
   }
 
   loadBookmarks() async {
-    bookmarks.value = await BrowserBookmark.getAll(limit: 8);
+    bookmarks.value = await BrowserBookmark.getAll(limit: 2);
   }
 
   loadHistory() async {
@@ -135,10 +126,6 @@ class BrowserController extends GetxController {
     textController.addListener(() {
       input.value = textController.text.trim();
     });
-    List<Identity> identities = await IdentityService.instance.listIdentity();
-    if (identities.isNotEmpty) {
-      identity.value = identities.first;
-    }
 
     // load search engine
     List<String> searchEngine = await Storage.getStringList('searchEngine');
@@ -147,7 +134,8 @@ class BrowserController extends GetxController {
     } else {
       enableSearchEngine.addAll(searchEngine);
     }
-    // loadBookmarks();
+    loadDefaultIdentity();
+    loadBookmarks();
     loadHistory();
     super.onInit();
   }
@@ -155,6 +143,28 @@ class BrowserController extends GetxController {
   removeSearchEngine(String engine) async {
     enableSearchEngine.remove(engine);
     Storage.setStringList('searchEngine', enableSearchEngine.toList());
+  }
+
+  Future loadDefaultIdentity() async {
+    String? pubkey = await Storage.getString('browser_identity');
+    if (pubkey != null) {
+      var model =
+          await IdentityService.instance.getIdentityByNostrPubkey(pubkey);
+      if (model != null) {
+        identity.value = model;
+        return;
+      }
+    }
+    // set default
+    List<Identity> identities = await IdentityService.instance.listIdentity();
+    if (identities.isNotEmpty) {
+      identity.value = identities.first;
+    }
+  }
+
+  Future setDefaultIdentity(Identity identity) async {
+    await Storage.setString('browser_identity', identity.secp256k1PKHex);
+    loadDefaultIdentity();
   }
 }
 

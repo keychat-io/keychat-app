@@ -380,7 +380,8 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
     setState(() {
       marked = !marked;
     });
-    EasyLoading.showToast(marked ? 'Bookmarked' : 'Unbookmarked');
+    Get.find<BrowserController>().loadBookmarks();
+    EasyLoading.showToast('Success');
   }
 
   void goBackOrPop() {

@@ -3,6 +3,7 @@ import 'package:app/page/browser/BrowserHistoryPage.dart';
 import 'package:app/page/browser/Browser_controller.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:settings_ui/settings_ui.dart';
@@ -38,24 +39,25 @@ class BrowserSetting extends GetView<BrowserController> {
                                       Utils.capitalizeFirstLetter(str.name)),
                                 ))
                             .toList()),
-                    SettingsSection(
-                      tiles: [
-                        SettingsTile.navigation(
-                          leading: const Icon(CupertinoIcons.bookmark),
-                          title: const Text("Bookmark"),
-                          onPressed: (context) async {
-                            Get.to(() => const BrowserBookmarkPage());
-                          },
-                        ),
-                        SettingsTile.navigation(
-                          leading: const Icon(CupertinoIcons.time),
-                          title: const Text("History"),
-                          onPressed: (context) async {
-                            Get.to(() => const BrowserHistoryPage());
-                          },
-                        ),
-                      ],
-                    ),
+                    if (kDebugMode)
+                      SettingsSection(
+                        tiles: [
+                          SettingsTile.navigation(
+                            leading: const Icon(CupertinoIcons.bookmark),
+                            title: const Text("Bookmark"),
+                            onPressed: (context) async {
+                              Get.to(() => const BrowserBookmarkPage());
+                            },
+                          ),
+                          SettingsTile.navigation(
+                            leading: const Icon(CupertinoIcons.time),
+                            title: const Text("History"),
+                            onPressed: (context) async {
+                              Get.to(() => const BrowserHistoryPage());
+                            },
+                          ),
+                        ],
+                      ),
                   ],
                 ))));
   }

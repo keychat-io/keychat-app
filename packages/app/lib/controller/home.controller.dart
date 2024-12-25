@@ -61,6 +61,7 @@ class HomeController extends GetxController
   Timer? _checkWebsocketTimer;
 
   RxList recommendBots = [].obs;
+  RxMap browserRecommend = {}.obs;
 
   DateTime? pausedTime;
 
@@ -151,7 +152,7 @@ class HomeController extends GetxController
   }
 
   Future fetchBots() async {
-    String fileName = 'bots-release.json'; //'bots-release.json';
+    String fileName = 'config-release.json';
     var list = [
       'https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/$fileName',
       'https://mirror.ghproxy.com/https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/$fileName'
@@ -167,12 +168,24 @@ class HomeController extends GetxController
           ),
         );
         if (response.statusCode == 200) {
-          recommendBots.value = jsonDecode(response.data);
-          logger.d(recommendBots);
+          recommendBots.value = jsonDecode(response.data)['bots'];
+          var recommendUrls =
+              jsonDecode(response.data)['browserRecommend'] as List;
+          browserRecommend.value = (recommendUrls)
+              .fold<Map<String, List<Map<String, dynamic>>>>({}, (acc, item) {
+            String type = item['type'];
+            if (acc[type] == null) {
+              acc[type] = [];
+            }
+            acc[type]!.add(item);
+            return acc;
+          });
+          logger.d('recommendBots $recommendBots');
+          logger.d('browserRecommend $browserRecommend');
           return;
         }
-      } catch (e) {
-        logger.e('Failed to fetch bots from $url: $e');
+      } catch (e, s) {
+        logger.e('Failed to config $url: $e', stackTrace: s);
       }
     }
   }

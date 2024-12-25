@@ -94,11 +94,6 @@ class MoreSetting extends StatelessWidget {
 
   void closeAllRelays() async {
     HomeController hc = Get.find<HomeController>();
-    List<Relay> relays = await RelayService.instance.getEnableRelays();
-    for (Relay relay in relays) {
-      relay.active = false;
-      await RelayService.instance.update(relay);
-    }
     await Get.find<WebsocketService>().stopListening();
     hc.checkRunStatus.value = false;
   }
@@ -126,13 +121,15 @@ class MoreSetting extends StatelessWidget {
               SettingsTile.switchTile(
                   initialValue: !hc.checkRunStatus.value,
                   description: NoticeTextWidget.warning(
-                      'When message sending and receiving are disabled, the database export and import functions can operate without interruption.'),
+                      'When message sending and receiving are disabled, the data export and import functions can operate without interruption.'),
                   onToggle: (res) async {
                     res ? closeAllRelays() : restartAllRelays();
                   },
                   title: const Text('Disabled sending && receiveing')),
               SettingsTile.navigation(
                   title: const Text('Export data'),
+                  description: NoticeTextWidget.warning(
+                      'We strongly recommend that you stop sending and receiving messages after exporting the data, unless you import it on another device.'),
                   onPressed: (context) async {
                     // need check if message sending and receiving are disabled
                     // and need to set pwd to encrypt database
@@ -145,6 +142,8 @@ class MoreSetting extends StatelessWidget {
                   }),
               SettingsTile.navigation(
                   title: const Text('Import data'),
+                  description: NoticeTextWidget.warning(
+                      'You must import the latest data. Otherwise, the Signal session may be interrupted, and sending and receiving messages may not function properly.'),
                   onPressed: (context) async {
                     // need check if message sending and receiving are disabled
                     // and need to set pwd to decrypt database

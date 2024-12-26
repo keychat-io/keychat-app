@@ -259,7 +259,6 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                         }
                         setState(() {
                           this.progress = progress / 100;
-                          // urlController.text = url;
                         });
                       },
                       onUpdateVisitedHistory:
@@ -271,16 +270,19 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                         });
                         // fetch new title
                         String? newTitle = await controller.getTitle();
+                        String? favicon = await Get.find<BrowserController>()
+                            .getFavicon(controller);
                         if (newTitle == null) {
                           Future.delayed(const Duration(seconds: 1))
                               .then((e) async {
                             Get.find<BrowserController>().addHistory(
                                 url.toString(),
-                                await controller.getTitle() ?? title);
+                                await controller.getTitle() ?? title,
+                                favicon);
                           });
                         } else {
                           Get.find<BrowserController>()
-                              .addHistory(url.toString(), newTitle);
+                              .addHistory(url.toString(), newTitle, favicon);
                         }
                       },
                       onConsoleMessage: (controller, consoleMessage) {
@@ -369,8 +371,11 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
   }
 
   void troggleMarkUrl() async {
+    if (webViewController == null) return;
     final url = await webViewController?.getUrl();
     if (url == null) return;
+    String? favicon =
+        await Get.find<BrowserController>().getFavicon(webViewController!);
     BrowserBookmark? bb = await DBProvider.database.browserBookmarks
         .filter()
         .urlEqualTo(url.toString())
@@ -380,7 +385,9 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
         await DBProvider.database.browserBookmarks.delete(bb.id);
       } else {
         BrowserBookmark bookmark = BrowserBookmark(
-            url: url.toString(), title: await webViewController?.getTitle());
+            url: url.toString(),
+            title: await webViewController?.getTitle(),
+            favicon: favicon);
         await DBProvider.database.browserBookmarks.put(bookmark);
       }
     });
@@ -408,12 +415,11 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
     }
     logger.d('javascriptHandler: $data');
     var method = data.args[0];
+    var identity = Get.find<BrowserController>().identity.value;
     switch (method) {
       case 'getPublicKey':
-        var identity = Get.find<BrowserController>().identity.value;
         return identity.secp256k1PKHex;
       case 'signEvent':
-        var identity = Get.find<BrowserController>().identity.value;
         var event = data.args[1];
         var res = await rust_nostr.signEvent(
             senderKeys: await identity.getSecp256k1SKHex(),
@@ -431,7 +437,6 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
       case 'nip04Encrypt':
         String to = data.args[1];
         String plaintext = data.args[2];
-        var identity = Get.find<BrowserController>().identity.value;
 
         var encryptedEvent = await rust_nostr.getEncryptEvent(
             senderKeys: await identity.getSecp256k1SKHex(),
@@ -442,7 +447,6 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
       case 'nip04Decrypt':
         String to = data.args[1];
         String ciphertext = data.args[2];
-        var identity = Get.find<BrowserController>().identity.value;
 
         var content = await rust_nostr.decrypt(
             senderKeys: await identity.getSecp256k1SKHex(),
@@ -452,8 +456,6 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
       case 'nip44Encrypt':
         String to = data.args[1];
         String plaintext = data.args[2];
-        var identity = Get.find<BrowserController>().identity.value;
-
         var encryptedEvent = await rust_nostr.createGiftJson(
             senderKeys: await identity.getSecp256k1SKHex(),
             receiverPubkey: to,
@@ -464,8 +466,6 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
       case 'nip44Decrypt':
         String to = data.args[1];
         String ciphertext = data.args[2];
-        var identity = Get.find<BrowserController>().identity.value;
-
         rust_nostr.NostrEvent event = await rust_nostr.decryptGift(
             senderKeys: await identity.getSecp256k1SKHex(),
             receiver: to,

@@ -27,7 +27,7 @@ class BrowserController extends GetxController {
 
   Function(String url)? urlChangeCallBack;
 
-  Future addHistory(String url, String title) async {
+  Future addHistory(String url, String title, [String? favicon]) async {
     if (histories.isNotEmpty &&
         histories[0].url == url &&
         histories[0].title == title) {
@@ -37,7 +37,8 @@ class BrowserController extends GetxController {
         return;
       }
     }
-    BrowserHistory history = BrowserHistory(url: url, title: title);
+    BrowserHistory history =
+        BrowserHistory(url: url, title: title, favicon: favicon);
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.browserHistorys.put(history);
     });
@@ -167,6 +168,18 @@ class BrowserController extends GetxController {
   Future setDefaultIdentity(Identity identity) async {
     await Storage.setString('browser_identity', identity.secp256k1PKHex);
     loadDefaultIdentity();
+  }
+
+  Future<String?> getFavicon(InAppWebViewController controller) async {
+    List<Favicon> favicons = await controller.getFavicons();
+    Favicon? favicon;
+    if (favicons.isNotEmpty) {
+      favicon = favicons.firstWhere(
+        (favicon) => favicon.url.toString().endsWith('.png'),
+        orElse: () => favicons.first,
+      );
+    }
+    return favicon?.url.toString();
   }
 }
 

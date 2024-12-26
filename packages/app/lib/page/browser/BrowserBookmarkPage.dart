@@ -1,5 +1,6 @@
 import 'package:app/models/browser/browser_bookmark.dart';
 import 'package:app/page/browser/Browser_controller.dart';
+import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -47,6 +48,7 @@ class _BrowserBookmarkPageState extends State<BrowserBookmarkPage> {
                 final site = urls[index];
                 return ListTile(
                   minTileHeight: 4,
+                  leading: Utils.getNeworkImage(site.favicon),
                   title: site.title == null ? null : Text(site.title!),
                   subtitle: Text(site.url,
                       maxLines: 3, overflow: TextOverflow.ellipsis),

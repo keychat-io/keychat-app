@@ -10,6 +10,7 @@ import 'package:app/service/storage.dart';
 import 'package:app/utils/config.dart';
 import 'package:app/utils/log_file.dart';
 import 'package:avatar_plus/avatar_plus.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:convert/convert.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -446,5 +447,42 @@ class Utils {
         exitBottomSheetDuration: Duration.zero);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
         overlays: SystemUiOverlay.values);
+  }
+
+  static Widget? getNeworkImage(String? imageUrl, {double size = 40}) {
+    if (imageUrl == null) return null;
+
+    if (imageUrl.toString().endsWith('svg')) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8.0),
+        child: SvgPicture.network(
+          imageUrl,
+          width: size,
+          height: size,
+          placeholderBuilder: (BuildContext context) =>
+              Icon(Icons.image, size: size),
+        ),
+      );
+    }
+    return CachedNetworkImage(
+      imageUrl: imageUrl,
+      width: size,
+      height: size,
+      imageBuilder: (context, imageProvider) => Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8.0),
+          image: DecorationImage(
+            image: imageProvider,
+            fit: BoxFit.cover,
+            colorFilter: const ColorFilter.mode(
+              Colors.white,
+              BlendMode.colorBurn,
+            ),
+          ),
+        ),
+      ),
+      placeholder: (context, url) => const Icon(Icons.image),
+      errorWidget: (context, url, error) => const Icon(Icons.image),
+    );
   }
 }

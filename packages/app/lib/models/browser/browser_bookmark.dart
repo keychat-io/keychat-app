@@ -15,14 +15,15 @@ class BrowserBookmark extends Equatable {
   late String url;
   int weight = 0;
   String? title;
+  String? favicon;
   late DateTime createdAt;
 
-  BrowserBookmark({required this.url, this.title}) {
+  BrowserBookmark({required this.url, this.title, this.favicon}) {
     createdAt = DateTime.now();
   }
 
   @override
-  List get props => [id, url, title];
+  List get props => [id, url, title, favicon];
 
   static Future<List<BrowserBookmark>> getAll(
       {int limit = 20, int offset = 0}) async {

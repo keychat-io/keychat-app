@@ -13,14 +13,15 @@ class BrowserHistory extends Equatable {
 
   late String url;
   String? title;
+  String? favicon;
   late DateTime createdAt;
 
-  BrowserHistory({required this.url, this.title}) {
+  BrowserHistory({required this.url, this.title, this.favicon}) {
     createdAt = DateTime.now();
   }
 
   @override
-  List get props => [id, url, title];
+  List get props => [id, url, title, favicon];
 
   static Future<List<BrowserHistory>> getAll(
       {int limit = 20, int offset = 0}) async {

@@ -22,23 +22,28 @@ const BrowserHistorySchema = CollectionSchema(
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
-    r'hashCode': PropertySchema(
+    r'favicon': PropertySchema(
       id: 1,
+      name: r'favicon',
+      type: IsarType.string,
+    ),
+    r'hashCode': PropertySchema(
+      id: 2,
       name: r'hashCode',
       type: IsarType.long,
     ),
     r'stringify': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'title': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'title',
       type: IsarType.string,
     ),
     r'url': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'url',
       type: IsarType.string,
     )
@@ -64,6 +69,12 @@ int _browserHistoryEstimateSize(
 ) {
   var bytesCount = offsets.last;
   {
+    final value = object.favicon;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.title;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -80,10 +91,11 @@ void _browserHistorySerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeDateTime(offsets[0], object.createdAt);
-  writer.writeLong(offsets[1], object.hashCode);
-  writer.writeBool(offsets[2], object.stringify);
-  writer.writeString(offsets[3], object.title);
-  writer.writeString(offsets[4], object.url);
+  writer.writeString(offsets[1], object.favicon);
+  writer.writeLong(offsets[2], object.hashCode);
+  writer.writeBool(offsets[3], object.stringify);
+  writer.writeString(offsets[4], object.title);
+  writer.writeString(offsets[5], object.url);
 }
 
 BrowserHistory _browserHistoryDeserialize(
@@ -93,8 +105,9 @@ BrowserHistory _browserHistoryDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = BrowserHistory(
-    title: reader.readStringOrNull(offsets[3]),
-    url: reader.readString(offsets[4]),
+    favicon: reader.readStringOrNull(offsets[1]),
+    title: reader.readStringOrNull(offsets[4]),
+    url: reader.readString(offsets[5]),
   );
   object.createdAt = reader.readDateTime(offsets[0]);
   object.id = id;
@@ -111,12 +124,14 @@ P _browserHistoryDeserializeProp<P>(
     case 0:
       return (reader.readDateTime(offset)) as P;
     case 1:
-      return (reader.readLong(offset)) as P;
-    case 2:
-      return (reader.readBoolOrNull(offset)) as P;
-    case 3:
       return (reader.readStringOrNull(offset)) as P;
+    case 2:
+      return (reader.readLong(offset)) as P;
+    case 3:
+      return (reader.readBoolOrNull(offset)) as P;
     case 4:
+      return (reader.readStringOrNull(offset)) as P;
+    case 5:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -271,6 +286,160 @@ extension BrowserHistoryQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<BrowserHistory, BrowserHistory, QAfterFilterCondition>
+      faviconIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'favicon',
+      ));
+    });
+  }
+
+  QueryBuilder<BrowserHistory, BrowserHistory, QAfterFilterCondition>
+      faviconIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'favicon',
+      ));
+    });
+  }
+
+  QueryBuilder<BrowserHistory, BrowserHistory, QAfterFilterCondition>
+      faviconEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'favicon',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<BrowserHistory, BrowserHistory, QAfterFilterCondition>
+      faviconGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'favicon',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<BrowserHistory, BrowserHistory, QAfterFilterCondition>
+      faviconLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'favicon',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<BrowserHistory, BrowserHistory, QAfterFilterCondition>
+      faviconBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'favicon',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<BrowserHistory, BrowserHistory, QAfterFilterCondition>
+      faviconStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'favicon',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<BrowserHistory, BrowserHistory, QAfterFilterCondition>
+      faviconEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'favicon',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<BrowserHistory, BrowserHistory, QAfterFilterCondition>
+      faviconContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'favicon',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<BrowserHistory, BrowserHistory, QAfterFilterCondition>
+      faviconMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'favicon',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<BrowserHistory, BrowserHistory, QAfterFilterCondition>
+      faviconIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'favicon',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<BrowserHistory, BrowserHistory, QAfterFilterCondition>
+      faviconIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'favicon',
+        value: '',
       ));
     });
   }
@@ -726,6 +895,19 @@ extension BrowserHistoryQuerySortBy
     });
   }
 
+  QueryBuilder<BrowserHistory, BrowserHistory, QAfterSortBy> sortByFavicon() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'favicon', Sort.asc);
+    });
+  }
+
+  QueryBuilder<BrowserHistory, BrowserHistory, QAfterSortBy>
+      sortByFaviconDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'favicon', Sort.desc);
+    });
+  }
+
   QueryBuilder<BrowserHistory, BrowserHistory, QAfterSortBy> sortByHashCode() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'hashCode', Sort.asc);
@@ -789,6 +971,19 @@ extension BrowserHistoryQuerySortThenBy
       thenByCreatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<BrowserHistory, BrowserHistory, QAfterSortBy> thenByFavicon() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'favicon', Sort.asc);
+    });
+  }
+
+  QueryBuilder<BrowserHistory, BrowserHistory, QAfterSortBy>
+      thenByFaviconDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'favicon', Sort.desc);
     });
   }
 
@@ -864,6 +1059,13 @@ extension BrowserHistoryQueryWhereDistinct
     });
   }
 
+  QueryBuilder<BrowserHistory, BrowserHistory, QDistinct> distinctByFavicon(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'favicon', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<BrowserHistory, BrowserHistory, QDistinct> distinctByHashCode() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'hashCode');
@@ -903,6 +1105,12 @@ extension BrowserHistoryQueryProperty
   QueryBuilder<BrowserHistory, DateTime, QQueryOperations> createdAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'createdAt');
+    });
+  }
+
+  QueryBuilder<BrowserHistory, String?, QQueryOperations> faviconProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'favicon');
     });
   }
 

@@ -72,66 +72,83 @@ class BrowserPage extends GetView<BrowserController> {
             },
             child: SafeArea(
                 child: Obx(() => ListView(children: [
-                      ...controller.enableSearchEngine.map((engine) => Padding(
-                          padding: const EdgeInsets.only(
-                              bottom: 8, top: 8, left: 16, right: 16),
-                          child: Form(
-                            key: PageStorageKey('input:$engine'),
-                            child: TextFormField(
-                              textInputAction: TextInputAction.go,
-                              maxLines: 1,
-                              controller: controller.textController,
-                              decoration: InputDecoration(
-                                  labelText:
-                                      Utils.capitalizeFirstLetter(engine),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 4),
-                                  border: OutlineInputBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(100.0)),
-                                  prefixIcon: Padding(
-                                    padding: const EdgeInsets.all(12.0),
-                                    child: SvgPicture.asset(
+                      if (controller.enableSearchEngine.isNotEmpty)
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount:
+                              controller.enableSearchEngine.toList().length,
+                          itemBuilder: (context, index) {
+                            final engine =
+                                controller.enableSearchEngine.toList()[index];
+                            return Padding(
+                              padding: const EdgeInsets.only(
+                                  bottom: 8, top: 8, left: 16, right: 16),
+                              child: Form(
+                                key: PageStorageKey('input:$engine'),
+                                child: TextFormField(
+                                  textInputAction: TextInputAction.go,
+                                  maxLines: 1,
+                                  controller: controller.textController,
+                                  decoration: InputDecoration(
+                                    labelText:
+                                        Utils.capitalizeFirstLetter(engine),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 4),
+                                    border: OutlineInputBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(100.0)),
+                                    prefixIcon: Padding(
+                                      padding: const EdgeInsets.all(12.0),
+                                      child: SvgPicture.asset(
                                         'assets/images/logo/$engine.svg',
                                         fit: BoxFit.contain,
                                         width: 16,
-                                        height: 16),
-                                  ),
-                                  suffixIcon: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      if (controller.input.isNotEmpty)
+                                        height: 16,
+                                      ),
+                                    ),
+                                    suffixIcon: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (controller.input.isNotEmpty)
+                                          IconButton(
+                                            icon: const Icon(
+                                                CupertinoIcons.clear),
+                                            onPressed: () {
+                                              controller.textController.clear();
+                                            },
+                                          ),
                                         IconButton(
                                           icon:
-                                              const Icon(CupertinoIcons.clear),
-                                          onPressed: () {
-                                            controller.textController.clear();
-                                          },
-                                        ),
-                                      IconButton(
-                                        icon: const Icon(CupertinoIcons.search),
-                                        onPressed: () async {
-                                          if (controller
-                                              .textController.text.isEmpty) {
-                                            return;
-                                          }
-                                          controller.lanuchWebview(
+                                              const Icon(CupertinoIcons.search),
+                                          onPressed: () async {
+                                            if (controller
+                                                .textController.text.isEmpty) {
+                                              return;
+                                            }
+                                            controller.lanuchWebview(
                                               content: controller
                                                   .textController.text
                                                   .trim(),
-                                              engine: engine);
-                                        },
-                                      ),
-                                    ],
-                                  )),
-                              onFieldSubmitted: (value) {
-                                controller.lanuchWebview(
-                                    engine: engine,
-                                    content:
-                                        controller.textController.text.trim());
-                              },
-                            ),
-                          ))),
+                                              engine: engine,
+                                            );
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  onFieldSubmitted: (value) {
+                                    controller.lanuchWebview(
+                                      engine: engine,
+                                      content:
+                                          controller.textController.text.trim(),
+                                    );
+                                  },
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       if (controller.histories.isNotEmpty)
                         Column(children: [
                           const SizedBox(height: 8),
@@ -162,8 +179,8 @@ class BrowserPage extends GetView<BrowserController> {
                                     const SliverGridDelegateWithFixedCrossAxisCount(
                                   crossAxisCount: 2,
                                   crossAxisSpacing: 8.0,
-                                  mainAxisSpacing: 8.0,
-                                  childAspectRatio: 2.5,
+                                  mainAxisSpacing: 1,
+                                  childAspectRatio: 3.4,
                                 ),
                                 itemCount: controller.histories.length,
                                 itemBuilder: (context, index) {
@@ -178,21 +195,15 @@ class BrowserPage extends GetView<BrowserController> {
                                       color: Theme.of(context).cardColor,
                                     ),
                                     child: ListTile(
-                                      title: site.title != null
-                                          ? Text(site.title!,
-                                              overflow: TextOverflow.ellipsis)
-                                          : null,
-                                      subtitle: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          textSmallGray(context, site.url),
-                                          textSmallGray(
-                                              context,
-                                              getFormatTimeForMessage(
-                                                  site.createdAt)),
-                                        ],
-                                      ),
+                                      minTileHeight: 40,
+                                      minVerticalPadding: 8,
+                                      title: Text(site.title ?? site.url,
+                                          overflow: TextOverflow.clip,
+                                          maxLines: 1),
+                                      subtitle: textSmallGray(
+                                          context,
+                                          getFormatTimeForMessage(
+                                              site.createdAt)),
                                       dense: true,
                                       onTap: () {
                                         controller.lanuchWebview(
@@ -237,7 +248,7 @@ class BrowserPage extends GetView<BrowserController> {
                                     crossAxisCount: 2,
                                     crossAxisSpacing: 8.0,
                                     mainAxisSpacing: 1,
-                                    childAspectRatio: 3,
+                                    childAspectRatio: 3.4,
                                   ),
                                   itemCount: controller.bookmarks.length,
                                   itemBuilder: (context, index) {
@@ -253,9 +264,11 @@ class BrowserPage extends GetView<BrowserController> {
                                         color: Theme.of(context).cardColor,
                                       ),
                                       child: ListTile(
+                                        minTileHeight: 40,
+                                        minVerticalPadding: 8,
                                         title: site.title != null
                                             ? Text(site.title!,
-                                                overflow: TextOverflow.ellipsis)
+                                                overflow: TextOverflow.fade)
                                             : null,
                                         subtitle:
                                             textSmallGray(context, site.url),
@@ -272,106 +285,68 @@ class BrowserPage extends GetView<BrowserController> {
                                 ))
                           ],
                         ),
-                      Obx(() => Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: homeController.browserRecommend.entries
-                              .map((entry) {
-                            return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Padding(
-                                      padding: const EdgeInsets.only(
-                                          top: 16, left: 16, right: 16),
-                                      child: Text(
+                      Obx(() => ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount:
+                              homeController.browserRecommend.entries.length,
+                          itemBuilder: (context, index) {
+                            final entry = homeController
+                                .browserRecommend.entries
+                                .elementAt(index);
+                            return Padding(
+                                padding: const EdgeInsets.only(
+                                    top: 24, left: 16, right: 16),
+                                child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
                                           Utils.capitalizeFirstLetter(
                                               entry.key.toString()),
                                           style: Theme.of(context)
                                               .textTheme
-                                              .titleMedium)),
-                                  GridView.builder(
-                                    shrinkWrap: true,
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
-                                    gridDelegate:
-                                        const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 2,
-                                      crossAxisSpacing: 8.0,
-                                      mainAxisSpacing: 8.0,
-                                      childAspectRatio: 3.6,
-                                    ),
-                                    itemCount: entry.value.length,
-                                    itemBuilder: (context, index) {
-                                      final site = entry.value[index];
-                                      return ListTile(
-                                        contentPadding: const EdgeInsets.only(
-                                            left: 16, right: 4, bottom: 4),
-                                        leading: site['img'] != null
-                                            ? (site['img']
-                                                    .toString()
-                                                    .endsWith('svg')
-                                                ? ClipRRect(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            4),
-                                                    child: SvgPicture.network(
-                                                        site['img'],
-                                                        width: 40,
-                                                        height: 40,
-                                                        placeholderBuilder:
-                                                            (BuildContext context) =>
-                                                                const Icon(Icons
-                                                                    .image)))
-                                                : CachedNetworkImage(
-                                                    imageUrl: site['img'],
-                                                    width: 40,
-                                                    height: 40,
-                                                    imageBuilder: (context,
-                                                            imageProvider) =>
-                                                        Container(
-                                                          decoration:
-                                                              BoxDecoration(
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        8.0),
-                                                            image: DecorationImage(
-                                                                image:
-                                                                    imageProvider,
-                                                                fit: BoxFit
-                                                                    .cover,
-                                                                colorFilter:
-                                                                    const ColorFilter
-                                                                        .mode(
-                                                                        Colors
-                                                                            .white,
-                                                                        BlendMode
-                                                                            .colorBurn)),
-                                                          ),
-                                                        ),
-                                                    placeholder: (context, url) =>
-                                                        const Icon(Icons.image),
-                                                    errorWidget: (context, url,
-                                                            error) =>
-                                                        const Icon(Icons.image)))
-                                            : null,
-                                        title: Text(site['title'],
-                                            overflow: TextOverflow.fade,
-                                            maxLines: 1),
-                                        subtitle: textSmallGray(
-                                            context, site['description'],
-                                            lineHeight: 1, maxLines: 2),
-                                        onTap: () {
-                                          controller.lanuchWebview(
-                                              engine: BrowserEngine.google.name,
-                                              content:
-                                                  site['url1'] ?? site['url2'],
-                                              defaultTitle: site['title']);
+                                              .titleMedium),
+                                      GridView.builder(
+                                        shrinkWrap: true,
+                                        physics:
+                                            const NeverScrollableScrollPhysics(),
+                                        gridDelegate:
+                                            const SliverGridDelegateWithFixedCrossAxisCount(
+                                                crossAxisCount: 2,
+                                                crossAxisSpacing: 16.0,
+                                                mainAxisSpacing: 8.0,
+                                                childAspectRatio: 3.6),
+                                        itemCount: entry.value.length,
+                                        itemBuilder: (context, index) {
+                                          final site = entry.value[index];
+                                          return ListTile(
+                                            contentPadding:
+                                                const EdgeInsets.only(
+                                                    left: 0,
+                                                    right: 0,
+                                                    bottom: 4),
+                                            leading: Utils.getNeworkImage(
+                                                site['img']),
+                                            title: Text(site['title'],
+                                                overflow: TextOverflow.fade,
+                                                maxLines: 1),
+                                            subtitle: textSmallGray(
+                                                context, site['description'],
+                                                lineHeight: 1, maxLines: 2),
+                                            onTap: () {
+                                              controller.lanuchWebview(
+                                                  engine:
+                                                      BrowserEngine.google.name,
+                                                  content: site['url1'] ??
+                                                      site['url2'],
+                                                  defaultTitle: site['title']);
+                                            },
+                                          );
                                         },
-                                      );
-                                    },
-                                  ),
-                                ]);
-                          }).toList())),
+                                      ),
+                                    ]));
+                          })),
                       const SizedBox(height: 50)
                     ])))));
   }

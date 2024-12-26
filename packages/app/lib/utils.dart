@@ -449,7 +449,7 @@ class Utils {
         overlays: SystemUiOverlay.values);
   }
 
-  static Widget? getNeworkImage(String? imageUrl, {double size = 40}) {
+  static Widget? getNeworkImage(String? imageUrl, {double size = 36}) {
     if (imageUrl == null) return null;
 
     if (imageUrl.toString().endsWith('svg')) {
@@ -481,8 +481,8 @@ class Utils {
           ),
         ),
       ),
-      placeholder: (context, url) => const Icon(Icons.image),
-      errorWidget: (context, url, error) => const Icon(Icons.image),
+      placeholder: (context, url) => Icon(Icons.image, size: size),
+      errorWidget: (context, url, error) => Icon(Icons.image, size: size),
     );
   }
 }

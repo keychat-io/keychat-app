@@ -33,7 +33,7 @@ class BrowserController extends GetxController {
         histories[0].title == title) {
       DateTime now = DateTime.now();
       DateTime lastVisit = histories[0].createdAt;
-      if (now.difference(lastVisit).inMinutes < 1) {
+      if (now.difference(lastVisit).inMinutes < 5) {
         return;
       }
     }

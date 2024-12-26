@@ -64,6 +64,7 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
         ),
         body: SmartRefresher(
             enablePullUp: true,
+            enablePullDown: false,
             onLoading: () async {
               int amount = groupedHistory.values.fold<int>(0,
                   (previousValue, element) => previousValue + element.length);
@@ -83,12 +84,8 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
                     Padding(
                       padding: const EdgeInsets.only(left: 16),
                       child: Text(
-                        formatTime(date.millisecondsSinceEpoch, 'yyyy-MM-dd'),
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(height: 1),
-                      ),
+                          formatTime(date.millisecondsSinceEpoch, 'yyyy-MM-dd'),
+                          style: Theme.of(context).textTheme.titleMedium),
                     ),
                     ListView.builder(
                       shrinkWrap: true,
@@ -97,7 +94,8 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
                       itemBuilder: (context, index) {
                         final site = urls[index];
                         return ListTile(
-                          minTileHeight: 56,
+                          contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 16),
                           leading: Utils.getNeworkImage(site.favicon),
                           title: site.title == null ? null : Text(site.title!),
                           subtitle: Text(site.url,

@@ -3,11 +3,9 @@ import 'package:app/models/identity.dart';
 import 'package:app/page/browser/BrowserBookmarkPage.dart';
 import 'package:app/page/browser/BrowserHistoryPage.dart';
 import 'package:app/page/browser/BrowserSetting.dart';
-import 'package:app/page/common.dart';
 import 'package:app/page/components.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/utils.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_svg/svg.dart';
@@ -162,59 +160,43 @@ class BrowserPage extends GetView<BrowserController> {
                                           .textTheme
                                           .titleMedium)),
                               IconButton(
-                                icon: const Icon(CupertinoIcons.right_chevron),
+                                icon: const Icon(CupertinoIcons.right_chevron,
+                                    size: 18),
                                 onPressed: () {
                                   Get.to(() => const BrowserHistoryPage());
                                 },
                               ),
                             ],
                           ),
-                          Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16),
-                              child: GridView.builder(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  crossAxisSpacing: 8.0,
-                                  mainAxisSpacing: 1,
-                                  childAspectRatio: 3.4,
-                                ),
-                                itemCount: controller.histories.length,
-                                itemBuilder: (context, index) {
-                                  final site = controller.histories[index];
-                                  return Container(
-                                    decoration: BoxDecoration(
-                                      border: Border.all(
-                                          color: Theme.of(context)
-                                              .dividerColor
-                                              .withAlpha(50)),
-                                      borderRadius: BorderRadius.circular(8.0),
-                                      color: Theme.of(context).cardColor,
-                                    ),
-                                    child: ListTile(
-                                      minTileHeight: 40,
-                                      minVerticalPadding: 8,
-                                      title: Text(site.title ?? site.url,
-                                          overflow: TextOverflow.clip,
-                                          maxLines: 1),
-                                      subtitle: textSmallGray(
-                                          context,
-                                          getFormatTimeForMessage(
-                                              site.createdAt)),
-                                      dense: true,
-                                      onTap: () {
-                                        controller.lanuchWebview(
-                                            engine: BrowserEngine.google.name,
-                                            content: site.url,
-                                            defaultTitle: site.title);
-                                      },
-                                    ),
-                                  );
+                          GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 8.0,
+                              childAspectRatio: 4,
+                            ),
+                            itemCount: controller.histories.length,
+                            itemBuilder: (context, index) {
+                              final site = controller.histories[index];
+                              return ListTile(
+                                minTileHeight: 40,
+                                minVerticalPadding: 0,
+                                leading: Utils.getNeworkImage(site.favicon),
+                                title: Text(site.title ?? site.url,
+                                    overflow: TextOverflow.clip, maxLines: 1),
+                                subtitle: textSmallGray(context, site.url),
+                                dense: true,
+                                onTap: () {
+                                  controller.lanuchWebview(
+                                      engine: BrowserEngine.google.name,
+                                      content: site.url,
+                                      defaultTitle: site.title);
                                 },
-                              ))
+                              );
+                            },
+                          )
                         ]),
                       if (controller.bookmarks.isNotEmpty)
                         Column(
@@ -227,62 +209,50 @@ class BrowserPage extends GetView<BrowserController> {
                                     child: Text('Bookmark',
                                         style: Theme.of(context)
                                             .textTheme
-                                            .titleMedium)),
+                                            .titleMedium
+                                            ?.copyWith(height: 1))),
                                 IconButton(
-                                  icon:
-                                      const Icon(CupertinoIcons.right_chevron),
+                                  icon: const Icon(CupertinoIcons.right_chevron,
+                                      size: 18),
                                   onPressed: () {
                                     Get.to(() => const BrowserBookmarkPage());
                                   },
                                 ),
                               ],
                             ),
-                            Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 16),
-                                child: GridView.builder(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  gridDelegate:
-                                      const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 2,
-                                    crossAxisSpacing: 8.0,
-                                    mainAxisSpacing: 1,
-                                    childAspectRatio: 3.4,
-                                  ),
-                                  itemCount: controller.bookmarks.length,
-                                  itemBuilder: (context, index) {
-                                    final site = controller.bookmarks[index];
-                                    return Container(
-                                      decoration: BoxDecoration(
-                                        border: Border.all(
-                                            color: Theme.of(context)
-                                                .dividerColor
-                                                .withAlpha(50)),
-                                        borderRadius:
-                                            BorderRadius.circular(8.0),
-                                        color: Theme.of(context).cardColor,
-                                      ),
-                                      child: ListTile(
-                                        minTileHeight: 40,
-                                        minVerticalPadding: 8,
-                                        title: site.title != null
-                                            ? Text(site.title!,
-                                                overflow: TextOverflow.fade)
-                                            : null,
-                                        subtitle:
-                                            textSmallGray(context, site.url),
-                                        dense: true,
-                                        onTap: () {
-                                          controller.lanuchWebview(
-                                              engine: BrowserEngine.google.name,
-                                              content: site.url,
-                                              defaultTitle: site.title);
-                                        },
-                                      ),
-                                    );
+                            GridView.builder(
+                              shrinkWrap: true,
+                              padding: const EdgeInsets.all(0),
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 8.0,
+                                childAspectRatio: 4,
+                              ),
+                              itemCount: controller.bookmarks.length,
+                              itemBuilder: (context, index) {
+                                final site = controller.bookmarks[index];
+                                return ListTile(
+                                  minTileHeight: 40,
+                                  minVerticalPadding: 0,
+                                  leading: Utils.getNeworkImage(site.favicon),
+                                  title: site.title != null
+                                      ? Text(site.title!,
+                                          overflow: TextOverflow.fade,
+                                          maxLines: 1)
+                                      : null,
+                                  subtitle: textSmallGray(context, site.url),
+                                  dense: true,
+                                  onTap: () {
+                                    controller.lanuchWebview(
+                                        engine: BrowserEngine.google.name,
+                                        content: site.url,
+                                        defaultTitle: site.title);
                                   },
-                                ))
+                                );
+                              },
+                            )
                           ],
                         ),
                       Obx(() => ListView.builder(
@@ -295,8 +265,11 @@ class BrowserPage extends GetView<BrowserController> {
                                 .browserRecommend.entries
                                 .elementAt(index);
                             return Padding(
-                                padding: const EdgeInsets.only(
-                                    top: 24, left: 16, right: 16),
+                                padding: EdgeInsets.only(
+                                    top: index == 0 ? 8 : 0,
+                                    left: 16,
+                                    right: 16,
+                                    bottom: 20),
                                 child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
@@ -323,9 +296,7 @@ class BrowserPage extends GetView<BrowserController> {
                                           return ListTile(
                                             contentPadding:
                                                 const EdgeInsets.only(
-                                                    left: 0,
-                                                    right: 0,
-                                                    bottom: 4),
+                                                    left: 0, right: 0),
                                             leading: Utils.getNeworkImage(
                                                 site['img']),
                                             title: Text(site['title'],

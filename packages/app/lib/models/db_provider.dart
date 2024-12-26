@@ -1,5 +1,6 @@
 import 'package:app/app.dart';
 import 'package:app/models/browser/browser_bookmark.dart';
+import 'package:app/models/browser/browser_connect.dart';
 import 'package:app/models/browser/browser_history.dart';
 import 'package:app/models/ecash_bill.dart';
 import 'package:app/models/nostr_event_status.dart';
@@ -36,7 +37,8 @@ class DBProvider {
       NostrEventStatusSchema,
       EcashBillSchema,
       BrowserBookmarkSchema,
-      BrowserHistorySchema
+      BrowserHistorySchema,
+      BrowserConnectSchema,
     ], directory: dbFolder, name: 'keychat', inspector: kDebugMode);
     await performMigrationIfNeeded(database);
     return database;

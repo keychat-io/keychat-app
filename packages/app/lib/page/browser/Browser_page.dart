@@ -1,17 +1,12 @@
 import 'package:app/controller/home.controller.dart';
-import 'package:app/models/identity.dart';
 import 'package:app/page/browser/BrowserBookmarkPage.dart';
 import 'package:app/page/browser/BrowserHistoryPage.dart';
-import 'package:app/page/browser/BrowserSetting.dart';
 import 'package:app/page/components.dart';
-import 'package:app/service/identity.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
-import 'package:settings_ui/settings_ui.dart';
 import 'Browser_controller.dart';
 
 class BrowserPage extends GetView<BrowserController> {
@@ -21,49 +16,6 @@ class BrowserPage extends GetView<BrowserController> {
   Widget build(BuildContext context) {
     HomeController homeController = Get.find<HomeController>();
     return Scaffold(
-        appBar: AppBar(
-          toolbarHeight: 40,
-          actions: [
-            GestureDetector(
-                onTap: () async {
-                  List<Identity> identities =
-                      await IdentityService.instance.getIdentityList();
-                  Get.bottomSheet(
-                      SettingsList(platform: DevicePlatform.iOS, sections: [
-                    SettingsSection(
-                        title: const Text('Select a Identity for Browser'),
-                        tiles: identities
-                            .map((iden) => SettingsTile(
-                                leading: getRandomAvatar(iden.secp256k1PKHex,
-                                    height: 30, width: 30),
-                                value: iden.id == controller.identity.value.id
-                                    ? const Icon(
-                                        CupertinoIcons.check_mark_circled,
-                                        color: Colors.green)
-                                    : null,
-                                title: Text(iden.displayName),
-                                description: Text(iden.npub),
-                                onPressed: (context) async {
-                                  controller.setDefaultIdentity(iden);
-                                  EasyLoading.showSuccess(
-                                      'Switched to ${iden.displayName}');
-                                  Get.back();
-                                }))
-                            .toList())
-                  ]));
-                },
-                child: Obx(() => getRandomAvatar(
-                    controller.identity.value.secp256k1PKHex,
-                    height: 30,
-                    width: 30))),
-            IconButton(
-              icon: const Icon(CupertinoIcons.settings),
-              onPressed: () {
-                Get.to(() => const BrowserSetting());
-              },
-            )
-          ],
-        ),
         body: GestureDetector(
             onTap: () {
               Utils.hideKeyboard(Get.context!);
@@ -265,11 +217,8 @@ class BrowserPage extends GetView<BrowserController> {
                                 .browserRecommend.entries
                                 .elementAt(index);
                             return Padding(
-                                padding: EdgeInsets.only(
-                                    top: index == 0 ? 8 : 0,
-                                    left: 16,
-                                    right: 16,
-                                    bottom: 20),
+                                padding: const EdgeInsets.only(
+                                    left: 16, right: 16, bottom: 16),
                                 child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
@@ -289,14 +238,14 @@ class BrowserPage extends GetView<BrowserController> {
                                                 crossAxisCount: 2,
                                                 crossAxisSpacing: 16.0,
                                                 mainAxisSpacing: 8.0,
-                                                childAspectRatio: 3.6),
+                                                childAspectRatio: 3.4),
                                         itemCount: entry.value.length,
                                         itemBuilder: (context, index) {
                                           final site = entry.value[index];
                                           return ListTile(
+                                            dense: true,
                                             contentPadding:
-                                                const EdgeInsets.only(
-                                                    left: 0, right: 0),
+                                                const EdgeInsets.all(0),
                                             leading: Utils.getNeworkImage(
                                                 site['img']),
                                             title: Text(site['title'],

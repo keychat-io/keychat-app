@@ -1,4 +1,6 @@
 import 'package:app/nostr-core/relay_websocket.dart';
+import 'package:app/page/browser/BrowserConnectedWebsite.dart';
+import 'package:app/page/browser/BrowserSetting.dart';
 import 'package:app/page/login/CreateAccount.dart';
 import 'package:app/page/login/OnboardingPage2.dart';
 import 'package:app/page/setting/file_storage_server.dart';
@@ -86,6 +88,24 @@ class MinePage extends GetView<SettingController> {
                                       mnemonic: mnemonic,
                                       npubs: npubs),
                                   arguments: 'create');
+                            })
+                      ]),
+                  SettingsSection(
+                      margin: const EdgeInsetsDirectional.only(
+                          start: 16, end: 16, bottom: 16, top: 0),
+                      title: const Text('Browser'),
+                      tiles: [
+                        SettingsTile(
+                            title: const Text("Search Engines"),
+                            leading: const Icon(Icons.explore),
+                            onPressed: (context) async {
+                              Get.to(() => const BrowserSetting());
+                            }),
+                        SettingsTile(
+                            title: const Text("Nostr Website Connected"),
+                            leading: const Icon(CupertinoIcons.globe),
+                            onPressed: (context) async {
+                              Get.to(() => const BrowserConnectedWebsite());
                             })
                       ]),
                   cashuSetting(context),

@@ -1,9 +1,7 @@
 import 'package:app/models/browser/browser_bookmark.dart';
 import 'package:app/models/browser/browser_history.dart';
 import 'package:app/models/db_provider.dart';
-import 'package:app/models/identity.dart';
 import 'package:app/page/browser/BrowserDetailPage.dart';
-import 'package:app/service/identity.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
@@ -18,8 +16,7 @@ class BrowserController extends GetxController {
   RxString title = 'Loading'.obs;
   RxString input = ''.obs;
   RxDouble progress = 0.2.obs;
-  Rx<Identity> identity =
-      Identity(name: '', npub: '', secp256k1PKHex: '001').obs;
+
   RxSet<String> enableSearchEngine = <String>{}.obs;
   RxList<BrowserBookmark> bookmarks = <BrowserBookmark>[].obs;
   RxList<BrowserHistory> histories = <BrowserHistory>[].obs;
@@ -137,7 +134,6 @@ class BrowserController extends GetxController {
     } else {
       enableSearchEngine.addAll(searchEngine);
     }
-    loadDefaultIdentity();
     loadBookmarks();
     loadHistory();
     super.onInit();
@@ -146,28 +142,6 @@ class BrowserController extends GetxController {
   removeSearchEngine(String engine) async {
     enableSearchEngine.remove(engine);
     Storage.setStringList('searchEngine', enableSearchEngine.toList());
-  }
-
-  Future loadDefaultIdentity() async {
-    String? pubkey = await Storage.getString('browser_identity');
-    if (pubkey != null) {
-      var model =
-          await IdentityService.instance.getIdentityByNostrPubkey(pubkey);
-      if (model != null) {
-        identity.value = model;
-        return;
-      }
-    }
-    // set default
-    List<Identity> identities = await IdentityService.instance.listIdentity();
-    if (identities.isNotEmpty) {
-      identity.value = identities.first;
-    }
-  }
-
-  Future setDefaultIdentity(Identity identity) async {
-    await Storage.setString('browser_identity', identity.secp256k1PKHex);
-    loadDefaultIdentity();
   }
 
   Future<String?> getFavicon(InAppWebViewController controller) async {

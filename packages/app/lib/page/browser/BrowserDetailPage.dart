@@ -1,9 +1,12 @@
 import 'dart:convert' show jsonDecode;
 
 import 'package:app/models/browser/browser_bookmark.dart';
+import 'package:app/models/browser/browser_connect.dart';
 import 'package:app/models/db_provider.dart';
+import 'package:app/models/identity.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/browser/Browser_controller.dart';
+import 'package:app/service/identity.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
@@ -14,6 +17,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
+import 'package:settings_ui/settings_ui.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:isar/isar.dart';
@@ -48,8 +52,10 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
   String title = "Loading...";
   bool canGoBack = false;
   late EcashController ecashController;
+  late BrowserController browserController;
   @override
   void initState() {
+    browserController = Get.find<BrowserController>();
     ecashController = Get.find<EcashController>();
     super.initState();
     setState(() {
@@ -133,6 +139,13 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                               ClipboardData(text: url.toString()));
                           EasyLoading.showToast('Copied');
                           break;
+                        case 'clear':
+                          if (webViewController == null) return;
+                          webViewController?.webStorage.localStorage.clear();
+                          webViewController?.webStorage.sessionStorage.clear();
+                          EasyLoading.showToast('Clear Success');
+                          webViewController?.reload();
+                          break;
                         case 'openInBrowser':
                           await launchUrl(Uri.parse(url.toString()),
                               mode: LaunchMode.externalApplication);
@@ -158,6 +171,14 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                           child: Row(spacing: 12, children: [
                             const Icon(CupertinoIcons.doc_on_clipboard),
                             Text('Copy',
+                                style: Theme.of(context).textTheme.bodyLarge)
+                          ]),
+                        ),
+                        PopupMenuItem(
+                          value: 'clear',
+                          child: Row(spacing: 12, children: [
+                            const Icon(Icons.storage),
+                            Text('Clear Local Storage',
                                 style: Theme.of(context).textTheme.bodyLarge)
                           ]),
                         ),
@@ -270,19 +291,17 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                         });
                         // fetch new title
                         String? newTitle = await controller.getTitle();
-                        String? favicon = await Get.find<BrowserController>()
-                            .getFavicon(controller);
+                        String? favicon =
+                            await browserController.getFavicon(controller);
                         if (newTitle == null) {
                           Future.delayed(const Duration(seconds: 1))
                               .then((e) async {
-                            Get.find<BrowserController>().addHistory(
-                                url.toString(),
-                                await controller.getTitle() ?? title,
-                                favicon);
+                            browserController.addHistory(url.toString(),
+                                await controller.getTitle() ?? title, favicon);
                           });
                         } else {
-                          Get.find<BrowserController>()
-                              .addHistory(url.toString(), newTitle, favicon);
+                          browserController.addHistory(
+                              url.toString(), newTitle, favicon);
                         }
                       },
                       onConsoleMessage: (controller, consoleMessage) {
@@ -374,8 +393,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
     if (webViewController == null) return;
     final url = await webViewController?.getUrl();
     if (url == null) return;
-    String? favicon =
-        await Get.find<BrowserController>().getFavicon(webViewController!);
+    String? favicon = await browserController.getFavicon(webViewController!);
     BrowserBookmark? bb = await DBProvider.database.browserBookmarks
         .filter()
         .urlEqualTo(url.toString())
@@ -394,7 +412,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
     setState(() {
       marked = !marked;
     });
-    Get.find<BrowserController>().loadBookmarks();
+    browserController.loadBookmarks();
     EasyLoading.showToast('Success');
   }
 
@@ -415,7 +433,16 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
     }
     logger.d('javascriptHandler: $data');
     var method = data.args[0];
-    var identity = Get.find<BrowserController>().identity.value;
+    WebUri? uri = await webViewController?.getUrl();
+    if (uri == null) return;
+    String host = uri.host;
+    Identity? identity = await getOrSelectIdentity(host);
+    if (identity == null) {
+      // EasyLoading.showError('No identity selected');
+      return null;
+    }
+
+    logger.d('selected: ${identity.secp256k1PKHex}');
     switch (method) {
       case 'getPublicKey':
         return identity.secp256k1PKHex;
@@ -429,7 +456,6 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
             tags: (event['tags'] as List)
                 .map((e) => List<String>.from(e))
                 .toList());
-        logger.d('signEvent: $res');
         return res;
       case 'getRelays':
         var relays = await RelayService.instance.getEnableList();
@@ -475,5 +501,56 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
     }
     // return data to the JavaScript side!
     return 'Error: not implemented';
+  }
+
+  Future<Identity?> getOrSelectIdentity(String host) async {
+    BrowserConnect? bc = await BrowserConnect.getByHost(host);
+    if (bc != null) {
+      Identity? identity =
+          await IdentityService.instance.getIdentityByNostrPubkey(bc.pubkey);
+      if (identity == null) {
+        BrowserConnect.delete(bc.id);
+      } else {
+        // exist identity, auto return
+        return identity;
+      }
+    }
+    // select a identity
+    List<Identity> identities =
+        await IdentityService.instance.getIdentityList();
+    if (Get.isBottomSheetOpen ?? false) {
+      return null;
+    }
+    Identity? selected = await Get.bottomSheet(
+        SettingsList(platform: DevicePlatform.iOS, sections: [
+      SettingsSection(
+          title: Text('Request to Login: $host',
+              style: Theme.of(Get.context!).textTheme.titleMedium),
+          tiles: identities
+              .map((iden) => SettingsTile(
+                  leading: getRandomAvatar(iden.secp256k1PKHex,
+                      height: 30, width: 30),
+                  value: Text(getPublicKeyDisplay(iden.npub)),
+                  title: Text(iden.displayName),
+                  onPressed: (context) async {
+                    EasyLoading.show(status: 'Proccessing...');
+                    try {
+                      String? favicon = await browserController
+                          .getFavicon(webViewController!);
+                      BrowserConnect bc = BrowserConnect(
+                          host: host,
+                          pubkey: iden.secp256k1PKHex,
+                          favicon: favicon);
+                      await BrowserConnect.save(bc);
+                      EasyLoading.dismiss();
+                      Get.back(result: iden);
+                    } catch (e, s) {
+                      logger.e(e.toString(), stackTrace: s);
+                      EasyLoading.showError(e.toString());
+                    }
+                  }))
+              .toList())
+    ]));
+    return selected;
   }
 }

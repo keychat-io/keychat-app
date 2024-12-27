@@ -46,19 +46,19 @@ class BrowserSetting extends GetView<BrowserController> {
                               Get.to(() => const BrowserConnectedWebsite());
                             }),
                         SettingsTile.switchTile(
-                          initialValue: controller.config['enableBookmark'],
-                          leading: const Icon(CupertinoIcons.bookmark),
-                          title: const Text("Show Bookmark"),
-                          onToggle: (value) async {
-                            await controller.setConfig('enableBookmark', value);
-                          },
-                        ),
-                        SettingsTile.switchTile(
                           initialValue: controller.config['enableHistory'],
                           leading: const Icon(CupertinoIcons.time),
                           title: const Text("Show History"),
                           onToggle: (value) async {
                             await controller.setConfig('enableHistory', value);
+                          },
+                        ),
+                        SettingsTile.switchTile(
+                          initialValue: controller.config['enableBookmark'],
+                          leading: const Icon(CupertinoIcons.bookmark),
+                          title: const Text("Show Bookmark"),
+                          onToggle: (value) async {
+                            await controller.setConfig('enableBookmark', value);
                           },
                         ),
                       ],

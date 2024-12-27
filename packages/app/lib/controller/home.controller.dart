@@ -49,6 +49,7 @@ class HomeController extends GetxController
   late TabController tabController;
   late StreamSubscription<List<ConnectivityResult>> subscription;
   RxBool notificationStatus = false.obs;
+  RxBool checkRunStatus = true.obs;
   bool resumed = true; // is app in front
   RxBool isConnectedNetwork = true.obs;
   RxBool addFriendTips = false.obs;

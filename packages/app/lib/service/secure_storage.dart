@@ -21,6 +21,10 @@ class SecureStorage {
     await storage.write(key: mnemonicKey, value: words);
   }
 
+  Future write(String key, String value) async {
+    return storage.write(key: key, value: value);
+  }
+
   Future writePhraseWordsWhenNotExist(String words) async {
     String? exist = await getPhraseWords();
     if (exist == null) {

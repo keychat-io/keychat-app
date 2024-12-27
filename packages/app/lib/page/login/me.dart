@@ -1,4 +1,3 @@
-import 'package:app/nostr-core/relay_websocket.dart';
 import 'package:app/page/browser/BrowserSetting.dart';
 import 'package:app/page/login/CreateAccount.dart';
 import 'package:app/page/login/OnboardingPage2.dart';
@@ -8,7 +7,6 @@ import 'package:app/page/setting/UploadedPubkeys.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app/service/notify.service.dart';
-import 'package:app/service/websocket.service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -27,7 +25,6 @@ import 'package:settings_ui/settings_ui.dart';
 import 'package:app/models/models.dart';
 
 import '../../controller/setting.controller.dart';
-import '../../service/relay.service.dart';
 import '../routes.dart';
 
 class MinePage extends GetView<SettingController> {

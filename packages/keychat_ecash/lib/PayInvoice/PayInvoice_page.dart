@@ -14,8 +14,8 @@ import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 class PayInvoicePage extends StatefulWidget {
   final String? invoce;
-  final bool pay;
-  const PayInvoicePage({super.key, this.invoce, this.pay = false});
+  final bool isPay;
+  const PayInvoicePage({super.key, this.invoce, this.isPay = false});
 
   @override
   _PayInvoicePageState createState() => _PayInvoicePageState();
@@ -61,7 +61,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                               cashuController.latestMintUrl.value = mint;
                               controller.selectedMint.value = mint;
                             })),
-                        if (widget.pay == false)
+                        if (widget.isPay == false)
                           Padding(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 10),
@@ -140,11 +140,12 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                         ],
                                       ),
                                     ),
-                                    Text('${invoiceInfo.memo}',
-                                        textAlign: TextAlign.center,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyMedium),
+                                    if (invoiceInfo.memo != null)
+                                      Text('${invoiceInfo.memo}',
+                                          textAlign: TextAlign.center,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyMedium),
                                     textSmallGray(
                                         context,
                                         invoiceInfo.expiryTs.toInt() <
@@ -154,7 +155,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                             : 'Expires in ${formatTime(invoiceInfo.expiryTs.toInt())}'),
                                   ]);
                             })),
-                        if (widget.pay == false)
+                        if (widget.isPay == false)
                           OutlinedButton.icon(
                               onPressed: () async {
                                 String? result =
@@ -177,8 +178,9 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                   minimumSize: WidgetStateProperty.all(
                                       const Size(double.infinity, 44))),
                               onPressed: () {
-                                controller
-                                    .confirm(controller.selectedMint.value);
+                                controller.confirm(
+                                    controller.selectedMint.value,
+                                    isPay: widget.isPay);
                               },
                               child: const Text('Pay Invoice'),
                             )

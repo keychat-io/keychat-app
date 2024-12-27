@@ -403,11 +403,11 @@ class EcashController extends GetxController {
       return callback(invoce);
     }
     if (pay == true) {
-      Get.bottomSheet(PayInvoicePage(invoce: invoce, pay: pay));
+      Get.bottomSheet(PayInvoicePage(invoce: invoce, isPay: pay));
       return;
     }
     await showModalBottomSheetWidget(
-        Get.context!, '', PayInvoicePage(invoce: invoce, pay: pay),
+        Get.context!, '', PayInvoicePage(invoce: invoce, isPay: pay),
         showAppBar: false);
   }
 }

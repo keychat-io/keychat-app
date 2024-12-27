@@ -449,18 +449,30 @@ class Utils {
         overlays: SystemUiOverlay.values);
   }
 
-  static Widget? getNeworkImage(String? imageUrl, {double size = 36}) {
-    if (imageUrl == null) return null;
+  static Widget getNeworkImageOrDefault(String? imageUrl,
+      {double size = 36, double radius = 8}) {
+    if (imageUrl == null) {
+      return ClipRRect(
+          borderRadius: BorderRadius.circular(radius),
+          child: Icon(Icons.image, size: size));
+    }
+    return getNeworkImage(imageUrl, size: size, radius: radius)!;
+  }
 
+  static Widget? getNeworkImage(String? imageUrl,
+      {double size = 36, double radius = 8}) {
+    if (imageUrl == null) return null;
+    Widget child = ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: Icon(Icons.image, size: size));
     if (imageUrl.toString().endsWith('svg')) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(8.0),
+        borderRadius: BorderRadius.circular(radius),
         child: SvgPicture.network(
           imageUrl,
           width: size,
           height: size,
-          placeholderBuilder: (BuildContext context) =>
-              Icon(Icons.image, size: size),
+          placeholderBuilder: (BuildContext context) => child,
         ),
       );
     }
@@ -470,7 +482,7 @@ class Utils {
       height: size,
       imageBuilder: (context, imageProvider) => Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8.0),
+          borderRadius: BorderRadius.circular(radius),
           image: DecorationImage(
             image: imageProvider,
             fit: BoxFit.cover,
@@ -481,8 +493,8 @@ class Utils {
           ),
         ),
       ),
-      placeholder: (context, url) => Icon(Icons.image, size: size),
-      errorWidget: (context, url, error) => Icon(Icons.image, size: size),
+      placeholder: (context, url) => child,
+      errorWidget: (context, url, error) => child,
     );
   }
 }

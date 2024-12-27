@@ -1,5 +1,4 @@
 import 'package:app/nostr-core/relay_websocket.dart';
-import 'package:app/page/browser/BrowserConnectedWebsite.dart';
 import 'package:app/page/browser/BrowserSetting.dart';
 import 'package:app/page/login/CreateAccount.dart';
 import 'package:app/page/login/OnboardingPage2.dart';
@@ -91,24 +90,28 @@ class MinePage extends GetView<SettingController> {
                             })
                       ]),
                   SettingsSection(
-                      margin: const EdgeInsetsDirectional.only(
-                          start: 16, end: 16, bottom: 16, top: 0),
-                      title: const Text('Browser'),
+                      margin: const EdgeInsetsDirectional.symmetric(
+                          horizontal: 16, vertical: 16),
                       tiles: [
-                        SettingsTile(
-                            title: const Text("Search Engines"),
-                            leading: const Icon(Icons.explore),
+                        SettingsTile.navigation(
+                            title: const Text("Browser Settings"),
+                            leading: const Icon(CupertinoIcons.compass),
                             onPressed: (context) async {
                               Get.to(() => const BrowserSetting());
                             }),
-                        SettingsTile(
-                            title: const Text("Nostr Website Connected"),
-                            leading: const Icon(CupertinoIcons.globe),
-                            onPressed: (context) async {
-                              Get.to(() => const BrowserConnectedWebsite());
-                            })
+                        SettingsTile.navigation(
+                          leading: const Icon(
+                            CupertinoIcons.bitcoin,
+                            color: Color(0xfff2a900),
+                          ),
+                          value: Text(
+                              '${getGetxController<EcashController>()?.totalSats.value.toString() ?? '-'} ${EcashTokenSymbol.sat.name}'),
+                          onPressed: (context) async {
+                            Get.toNamed(Routes.ecash);
+                          },
+                          title: const Text("Bitcoin Ecash"),
+                        ),
                       ]),
-                  cashuSetting(context),
                   SettingsSection(
                     margin: const EdgeInsetsDirectional.symmetric(
                         horizontal: 16, vertical: 16),
@@ -234,28 +237,6 @@ class MinePage extends GetView<SettingController> {
         ),
       ],
     ));
-  }
-
-  SettingsSection cashuSetting(BuildContext buildContext) {
-    EcashController? ec = getGetxController<EcashController>();
-
-    return SettingsSection(
-        margin:
-            const EdgeInsetsDirectional.symmetric(horizontal: 16, vertical: 16),
-        tiles: [
-          SettingsTile.navigation(
-            leading: const Icon(
-              CupertinoIcons.bitcoin,
-              color: Color(0xfff2a900),
-            ),
-            value: Text(
-                '${ec?.totalSats.value.toString() ?? '-'} ${EcashTokenSymbol.sat.name}'),
-            onPressed: (context) async {
-              Get.toNamed(Routes.ecash);
-            },
-            title: const Text("Bitcoin Ecash"),
-          ),
-        ]);
   }
 
   handleNotificationSettting(BuildContext context) async {

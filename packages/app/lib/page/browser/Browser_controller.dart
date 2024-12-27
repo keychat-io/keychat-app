@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:app/models/browser/browser_bookmark.dart';
 import 'package:app/models/browser/browser_history.dart';
 import 'package:app/models/db_provider.dart';
@@ -20,9 +22,25 @@ class BrowserController extends GetxController {
   RxSet<String> enableSearchEngine = <String>{}.obs;
   RxList<BrowserBookmark> bookmarks = <BrowserBookmark>[].obs;
   RxList<BrowserHistory> histories = <BrowserHistory>[].obs;
+  RxMap<String, dynamic> config = <String, dynamic>{}.obs;
   static const maxHistoryInHome = 2;
 
   Function(String url)? urlChangeCallBack;
+
+  loadConfig() async {
+    String? localConfig = await Storage.getString('browserConfig');
+    if (localConfig == null) {
+      localConfig = jsonEncode({"enableHistory": true, "enableBookmark": true});
+      Storage.setString('browserConfig', localConfig);
+    }
+    config.value = jsonDecode(localConfig);
+  }
+
+  setConfig(String key, dynamic value) async {
+    config[key] = value;
+    await Storage.setString('browserConfig', jsonEncode(config));
+    config.refresh();
+  }
 
   Future addHistory(String url, String title, [String? favicon]) async {
     if (histories.isNotEmpty &&
@@ -103,7 +121,7 @@ class BrowserController extends GetxController {
   }
 
   loadBookmarks() async {
-    bookmarks.value = await BrowserBookmark.getAll(limit: 2);
+    bookmarks.value = await BrowserBookmark.getAll(limit: 10);
   }
 
   loadHistory() async {
@@ -134,6 +152,7 @@ class BrowserController extends GetxController {
     } else {
       enableSearchEngine.addAll(searchEngine);
     }
+    loadConfig();
     loadBookmarks();
     loadHistory();
     super.onInit();

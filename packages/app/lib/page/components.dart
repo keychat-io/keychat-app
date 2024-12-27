@@ -346,11 +346,13 @@ Text textSmallGray(BuildContext context, String content,
     {double? opacity = 0.6,
     double fontSize = 12,
     double lineHeight = 1.5,
+    TextAlign textAlign = TextAlign.left,
     int maxLines = 1,
     overflow = TextOverflow.ellipsis}) {
   return Text(content,
       overflow: overflow,
       maxLines: maxLines,
+      textAlign: textAlign,
       style: TextStyle(
           fontSize: fontSize,
           height: lineHeight,

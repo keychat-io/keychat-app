@@ -2,6 +2,7 @@ import 'package:app/nostr-core/relay_websocket.dart';
 import 'package:app/page/browser/BrowserSetting.dart';
 import 'package:app/page/login/CreateAccount.dart';
 import 'package:app/page/login/OnboardingPage2.dart';
+import 'package:app/page/setting/RelaySetting.dart';
 import 'package:app/page/setting/file_storage_server.dart';
 import 'package:app/page/setting/UploadedPubkeys.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
@@ -14,8 +15,7 @@ import 'package:flutter/services.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/page/components.dart';
-import 'package:app/page/setting/relay_info/relay_info_bindings.dart';
-import 'package:app/page/setting/relay_info/relay_info_page.dart';
+
 import 'package:app/utils.dart';
 import 'package:app_settings/app_settings.dart';
 import 'package:flutter/cupertino.dart';
@@ -35,7 +35,6 @@ class MinePage extends GetView<SettingController> {
 
   @override
   Widget build(BuildContext context) {
-    WebsocketService ws = Get.find<WebsocketService>();
     return Scaffold(
         appBar: AppBar(
           centerTitle: true,
@@ -94,12 +93,6 @@ class MinePage extends GetView<SettingController> {
                           horizontal: 16, vertical: 16),
                       tiles: [
                         SettingsTile.navigation(
-                            title: const Text("Browser Settings"),
-                            leading: const Icon(CupertinoIcons.compass),
-                            onPressed: (context) async {
-                              Get.to(() => const BrowserSetting());
-                            }),
-                        SettingsTile.navigation(
                           leading: const Icon(
                             CupertinoIcons.bitcoin,
                             color: Color(0xfff2a900),
@@ -111,54 +104,23 @@ class MinePage extends GetView<SettingController> {
                           },
                           title: const Text("Bitcoin Ecash"),
                         ),
+                        SettingsTile.navigation(
+                            title: const Text("Browser Settings"),
+                            leading: const Icon(CupertinoIcons.compass),
+                            onPressed: (context) async {
+                              Get.to(() => const BrowserSetting());
+                            }),
                       ]),
                   SettingsSection(
                     margin: const EdgeInsetsDirectional.symmetric(
                         horizontal: 16, vertical: 16),
-                    title: const Text("Message Relay List"),
                     tiles: [
-                      ...ws.channels.values.map((RelayWebsocket rw) =>
-                          SettingsTile.navigation(
-                            title: Text(rw.relay.url),
-                            leading: Icon(
-                                rw.relay.isDefault ? Icons.star : Icons.circle,
-                                size: rw.relay.isDefault ? 16 : 12,
-                                color: getColorByStatus(rw.channelStatus)),
-                            value: rw.relay.active
-                                ? (ws.relayMessageFeeModels[rw.relay.url] !=
-                                        null
-                                    ? ws.relayMessageFeeModels[rw.relay.url]!
-                                                .amount ==
-                                            0
-                                        ? const Text('free')
-                                        : Text(
-                                            '${ws.relayMessageFeeModels[rw.relay.url]!.amount} ${ws.relayMessageFeeModels[rw.relay.url]!.unit.name}')
-                                    : const Text('free'))
-                                : null,
-                            onPressed: (context) {
-                              Get.to(() => const RelayInfoPage(),
-                                  arguments: rw.relay,
-                                  binding: RelayInfoBindings());
-                            },
-                          )),
-                      SettingsTile(
-                        title: const Text('Add'),
-                        onPressed: _showAddRelayDialog,
-                        trailing: Icon(
-                          CupertinoIcons.add,
-                          color: Theme.of(Get.context!)
-                              .iconTheme
-                              .color
-                              ?.withValues(alpha: 0.5),
-                          size: 22,
-                        ),
-                      )
-                    ],
-                  ),
-                  SettingsSection(
-                    margin: const EdgeInsetsDirectional.symmetric(
-                        horizontal: 16, vertical: 16),
-                    tiles: [
+                      SettingsTile.navigation(
+                          leading: const Icon(CupertinoIcons.globe),
+                          onPressed: (c) {
+                            Get.to(() => const RelaySetting());
+                          },
+                          title: const Text('Network')),
                       SettingsTile.navigation(
                           leading: const Icon(Icons.notifications_outlined),
                           onPressed: handleNotificationSettting,
@@ -193,50 +155,6 @@ class MinePage extends GetView<SettingController> {
                 ],
               )),
         ));
-  }
-
-  void _showAddRelayDialog(BuildContext context) {
-    SettingController settingController = Get.find<SettingController>();
-    Get.dialog(CupertinoAlertDialog(
-      title: const Text("Add Nostr Relay"),
-      content: Container(
-        color: Colors.transparent,
-        padding: const EdgeInsets.only(top: 15),
-        child: TextField(
-          controller: settingController.relayTextController,
-          textInputAction: TextInputAction.done,
-          autofocus: true,
-          decoration: const InputDecoration(
-            labelText: 'Server url',
-            border: OutlineInputBorder(),
-          ),
-        ),
-      ),
-      actions: <Widget>[
-        CupertinoDialogAction(
-          child: const Text("Cancel"),
-          onPressed: () {
-            Get.back();
-          },
-        ),
-        CupertinoDialogAction(
-          isDefaultAction: true,
-          onPressed: () async {
-            Get.back();
-            var url = settingController.relayTextController.text.trim();
-            if (url.startsWith("ws://") || url.startsWith("wss://")) {
-              await RelayService.instance.addAndConnect(url);
-              settingController.relayTextController.clear();
-              return;
-            } else {
-              EasyLoading.showError("Please input right format relay");
-              settingController.relayTextController.clear();
-            }
-          },
-          child: const Text("Confirm"),
-        ),
-      ],
-    ));
   }
 
   handleNotificationSettting(BuildContext context) async {
@@ -390,18 +308,5 @@ class MinePage extends GetView<SettingController> {
         ),
       ],
     ));
-  }
-
-  getColorByStatus(RelayStatusEnum status) {
-    switch (status) {
-      case RelayStatusEnum.connecting:
-        return Colors.yellow;
-      case RelayStatusEnum.success:
-        return Colors.green;
-      case RelayStatusEnum.failed:
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
   }
 }

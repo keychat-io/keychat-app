@@ -1,9 +1,6 @@
 import 'package:app/global.dart';
-import 'package:app/models/identity.dart';
 import 'package:app/page/login/CreateAccount.dart';
 import 'package:app/page/login/OnboardingPage2Detail.dart';
-import 'package:app/page/login/import_nsec.dart';
-import 'package:app/page/routes.dart';
 import 'package:app/page/setting/more_setting.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:flutter/material.dart';

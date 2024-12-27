@@ -456,6 +456,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
             tags: (event['tags'] as List)
                 .map((e) => List<String>.from(e))
                 .toList());
+        logger.d('signEvent: $res');
         return res;
       case 'getRelays':
         var relays = await RelayService.instance.getEnableList();

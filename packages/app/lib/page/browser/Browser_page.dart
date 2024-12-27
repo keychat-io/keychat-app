@@ -128,18 +128,23 @@ class BrowserPage extends GetView<BrowserController> {
                                     color: Theme.of(context)
                                         .colorScheme
                                         .onSurface
-                                        .withAlpha(30),
+                                        .withAlpha(10),
                                     borderRadius: BorderRadius.circular(8)),
-                                height: 110,
+                                height: 100,
                                 child: ListView.builder(
                                   scrollDirection: Axis.horizontal,
                                   itemCount: controller.histories.length,
                                   shrinkWrap: true,
                                   itemBuilder: (context, index) {
                                     final site = controller.histories[index];
+                                    final uri = Uri.parse(site.url);
+                                    String host = uri.host;
+                                    String path = uri.path;
                                     return GestureDetector(
-                                      child: SizedBox(
+                                      child: Container(
                                         width: 80,
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 4),
                                         child: Column(
                                           mainAxisAlignment:
                                               MainAxisAlignment.start,
@@ -151,7 +156,10 @@ class BrowserPage extends GetView<BrowserController> {
                                             const SizedBox(height: 8),
                                             textSmallGray(
                                               context,
-                                              site.title ?? site.url,
+                                              site.title?.isEmpty ?? true
+                                                  ? '$host$path'
+                                                  : site.title!,
+                                              lineHeight: 1,
                                               textAlign: TextAlign.center,
                                               maxLines: 2,
                                               overflow: TextOverflow.clip,
@@ -199,9 +207,9 @@ class BrowserPage extends GetView<BrowserController> {
                                     color: Theme.of(context)
                                         .colorScheme
                                         .onSurface
-                                        .withAlpha(30),
+                                        .withAlpha(10),
                                     borderRadius: BorderRadius.circular(8)),
-                                height: 110,
+                                height: 100,
                                 child: ListView.builder(
                                   scrollDirection: Axis.horizontal,
                                   itemCount: controller.bookmarks.length,
@@ -210,8 +218,10 @@ class BrowserPage extends GetView<BrowserController> {
                                     final site = controller.bookmarks[index];
                                     String host = Uri.parse(site.url).host;
                                     return GestureDetector(
-                                      child: SizedBox(
+                                      child: Container(
                                           width: 80,
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 4),
                                           child: Column(
                                             mainAxisAlignment:
                                                 MainAxisAlignment.start,
@@ -225,6 +235,7 @@ class BrowserPage extends GetView<BrowserController> {
                                                 context,
                                                 site.title ?? host,
                                                 textAlign: TextAlign.center,
+                                                lineHeight: 1,
                                                 maxLines: 2,
                                                 overflow: TextOverflow.clip,
                                               )

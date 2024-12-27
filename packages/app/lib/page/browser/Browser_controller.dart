@@ -23,7 +23,7 @@ class BrowserController extends GetxController {
   RxList<BrowserBookmark> bookmarks = <BrowserBookmark>[].obs;
   RxList<BrowserHistory> histories = <BrowserHistory>[].obs;
   RxMap<String, dynamic> config = <String, dynamic>{}.obs;
-  static const maxHistoryInHome = 2;
+  static const maxHistoryInHome = 10;
 
   Function(String url)? urlChangeCallBack;
 
@@ -121,7 +121,7 @@ class BrowserController extends GetxController {
   }
 
   loadBookmarks() async {
-    bookmarks.value = await BrowserBookmark.getAll(limit: 10);
+    bookmarks.value = await BrowserBookmark.getAll(limit: maxHistoryInHome);
   }
 
   loadHistory() async {

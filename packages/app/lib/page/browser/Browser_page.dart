@@ -252,70 +252,73 @@ class BrowserPage extends GetView<BrowserController> {
                                 ))
                           ],
                         ),
-                      Obx(() => ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount:
-                              homeController.browserRecommend.entries.length,
-                          itemBuilder: (context, index) {
-                            final entry = homeController
-                                .browserRecommend.entries
-                                .elementAt(index);
-                            return Padding(
-                                padding: EdgeInsets.only(
-                                    top: index == 0 ? 16 : 0,
-                                    left: 16,
-                                    right: 16,
-                                    bottom: 32),
-                                child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                          Utils.capitalizeFirstLetter(
-                                              entry.key.toString()),
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleMedium),
-                                      GridView.builder(
-                                        shrinkWrap: true,
-                                        physics:
-                                            const NeverScrollableScrollPhysics(),
-                                        gridDelegate:
-                                            const SliverGridDelegateWithFixedCrossAxisCount(
-                                                crossAxisCount: 2,
-                                                crossAxisSpacing: 16.0,
-                                                mainAxisSpacing: 8.0,
-                                                childAspectRatio: 3.4),
-                                        itemCount: entry.value.length,
-                                        itemBuilder: (context, index) {
-                                          final site = entry.value[index];
-                                          return ListTile(
-                                            dense: true,
-                                            contentPadding:
-                                                const EdgeInsets.all(0),
-                                            leading:
-                                                Utils.getNeworkImageOrDefault(
-                                                    site['img']),
-                                            title: Text(site['title'],
-                                                overflow: TextOverflow.fade,
-                                                maxLines: 1),
-                                            subtitle: textSmallGray(
-                                                context, site['description'],
-                                                lineHeight: 1, maxLines: 2),
-                                            onTap: () {
-                                              controller.lanuchWebview(
-                                                  engine:
-                                                      BrowserEngine.google.name,
-                                                  content: site['url1'] ??
-                                                      site['url2'],
-                                                  defaultTitle: site['title']);
+                      Obx(() => controller.config['enableRecommend'] == false
+                          ? Container()
+                          : ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: homeController
+                                  .browserRecommend.entries.length,
+                              itemBuilder: (context, index) {
+                                final entry = homeController
+                                    .browserRecommend.entries
+                                    .elementAt(index);
+                                return Padding(
+                                    padding: EdgeInsets.only(
+                                        top: index == 0 ? 16 : 0,
+                                        left: 16,
+                                        right: 16,
+                                        bottom: 32),
+                                    child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                              Utils.capitalizeFirstLetter(
+                                                  entry.key.toString()),
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .titleMedium),
+                                          GridView.builder(
+                                            shrinkWrap: true,
+                                            physics:
+                                                const NeverScrollableScrollPhysics(),
+                                            gridDelegate:
+                                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                                    crossAxisCount: 2,
+                                                    crossAxisSpacing: 16.0,
+                                                    mainAxisSpacing: 8.0,
+                                                    childAspectRatio: 3.4),
+                                            itemCount: entry.value.length,
+                                            itemBuilder: (context, index) {
+                                              final site = entry.value[index];
+                                              return ListTile(
+                                                dense: true,
+                                                contentPadding:
+                                                    const EdgeInsets.all(0),
+                                                leading: Utils
+                                                    .getNeworkImageOrDefault(
+                                                        site['img']),
+                                                title: Text(site['title'],
+                                                    overflow: TextOverflow.fade,
+                                                    maxLines: 1),
+                                                subtitle: textSmallGray(context,
+                                                    site['description'],
+                                                    lineHeight: 1, maxLines: 2),
+                                                onTap: () {
+                                                  controller.lanuchWebview(
+                                                      engine: BrowserEngine
+                                                          .google.name,
+                                                      content: site['url1'] ??
+                                                          site['url2'],
+                                                      defaultTitle:
+                                                          site['title']);
+                                                },
+                                              );
                                             },
-                                          );
-                                        },
-                                      ),
-                                    ]));
-                          })),
+                                          ),
+                                        ]));
+                              })),
                       const SizedBox(height: 50)
                     ])))));
   }

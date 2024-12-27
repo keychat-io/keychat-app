@@ -30,7 +30,11 @@ class BrowserController extends GetxController {
   loadConfig() async {
     String? localConfig = await Storage.getString('browserConfig');
     if (localConfig == null) {
-      localConfig = jsonEncode({"enableHistory": true, "enableBookmark": true});
+      localConfig = jsonEncode({
+        "enableHistory": true,
+        "enableBookmark": true,
+        "enableRecommend": true
+      });
       Storage.setString('browserConfig', localConfig);
     }
     config.value = jsonDecode(localConfig);

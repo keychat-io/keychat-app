@@ -61,6 +61,15 @@ class BrowserSetting extends GetView<BrowserController> {
                             await controller.setConfig('enableBookmark', value);
                           },
                         ),
+                        SettingsTile.switchTile(
+                          initialValue: controller.config['enableRecommend'],
+                          leading: const Icon(CupertinoIcons.bookmark),
+                          title: const Text("Show Recommended"),
+                          onToggle: (value) async {
+                            await controller.setConfig(
+                                'enableRecommend', value);
+                          },
+                        ),
                       ],
                     ),
                   ],

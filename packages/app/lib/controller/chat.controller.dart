@@ -636,11 +636,16 @@ class ChatController extends GetxController {
     EasyThrottle.throttle('sendMediaFile', const Duration(seconds: 1),
         () async {
       try {
-        EasyLoading.showProgress(0.1, status: 'Encrypting and Uploading...');
+        String statusMessage = mediaType != MessageMediaType.image
+            ? 'Encrypting and Uploading...'
+            : '''1. Remove EXIF info
+2. Encrypting 
+3. Uploading''';
+        EasyLoading.showProgress(0.2, status: statusMessage);
         await FileUtils.encryptAndSendFile(
             roomObs.value, xfile, mediaType, compress,
-            onSendProgress: (count, total) => FileUtils.onSendProgress(
-                'Encrypting and Uploading...', count, total));
+            onSendProgress: (count, total) =>
+                FileUtils.onSendProgress(statusMessage, count, total));
         hideAdd.value = true; // close features section
         EasyLoading.dismiss();
       } catch (e, s) {

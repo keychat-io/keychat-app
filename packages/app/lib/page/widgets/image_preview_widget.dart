@@ -87,7 +87,6 @@ class ImagePreviewWidget extends StatelessWidget {
             body: GestureDetector(
                 onVerticalDragUpdate: (DragUpdateDetails details) {
                   double dy = details.delta.dy;
-                  print('dy: $dy');
                   if (dy > 20) {
                     Get.back();
                   }

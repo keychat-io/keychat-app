@@ -440,9 +440,7 @@ class Utils {
   static bottomSheedAndHideStatusBar(Widget widget) async {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
     await Get.bottomSheet(widget,
-        elevation: 1,
         isScrollControlled: true,
-        ignoreSafeArea: true,
         enterBottomSheetDuration: Duration.zero,
         exitBottomSheetDuration: Duration.zero);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,

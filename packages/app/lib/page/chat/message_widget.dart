@@ -141,10 +141,8 @@ class MessageWidget extends StatelessWidget {
       children: [
         Padding(
             padding: const EdgeInsets.only(left: 10),
-            child: Text(
-              'File Info',
-              style: Theme.of(buildContext).textTheme.bodyLarge,
-            )),
+            child: Text('File Info',
+                style: Theme.of(buildContext).textTheme.titleMedium)),
         Card(
           child: Column(children: [
             Table(
@@ -202,7 +200,7 @@ class MessageWidget extends StatelessWidget {
             padding: const EdgeInsets.only(left: 10),
             child: Text(
               'Raw Message',
-              style: Theme.of(buildContext).textTheme.bodyLarge,
+              style: Theme.of(buildContext).textTheme.titleMedium,
             )),
       ],
     );

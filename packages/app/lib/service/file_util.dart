@@ -12,21 +12,14 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:image_compression_flutter/image_compression_flutter.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:image/image.dart' as img;
 
 import 'package:aws/aws.dart';
 import 'package:video_compress/video_compress.dart';
 import '../models/message.dart';
 import '../models/room.dart';
 
-Configuration config = const Configuration(
-  outputType: ImageOutputType.webpThenJpg,
-  // can only be true for Android and iOS while using ImageOutputType.jpg or ImageOutputType.pngÏ
-  useJpgPngNativeCompressor: false,
-  // set quality between 0-100
-  quality: 70,
-);
 AwsS3 s3 = AwsS3(
     accessKey: dotenv.get('AWS_ACCESSKEY'),
     secretKey: dotenv.get('AWS_SECRETKEY'),
@@ -167,13 +160,21 @@ class FileUtils {
         identityId: room.identityId, roomId: room.id, type: type);
 
     String newPath = await getNewFilePath(appDocPath, xfile.path);
-    ImageFile sourceInput = await xfile.asImageFile;
-
+    List<int> fileBytes = [];
     if (type == MessageMediaType.image) {
-      sourceInput = await compressor
-          .compress(ImageFileConfiguration(input: sourceInput, config: config));
+      img.Image? sourceInput = await img.decodeImageFile(xfile.path);
+      if (sourceInput == null) {
+        throw Exception('Image decode failed');
+      }
+      sourceInput.exif = img.ExifData();
+      fileBytes = img.encodeJpg(sourceInput, quality: 70);
+      // img.Image? processedImage =
+      //     img.decodeImage(Uint8List.fromList(fileBytes));
+      // print('Processed EXIF: ${processedImage?.exif.toString()}');
+    } else {
+      fileBytes = await xfile.readAsBytes();
     }
-    await File(newPath).writeAsBytes(sourceInput.rawBytes);
+    await File(newPath).writeAsBytes(fileBytes);
     File localFile = File(newPath);
     FileEncryptInfo fileInfo = await s3.encryptAndUploadByRelay(localFile,
         onSendProgress: onSendProgress);

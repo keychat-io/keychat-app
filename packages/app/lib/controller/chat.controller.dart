@@ -537,7 +537,8 @@ class ChatController extends GetxController {
     try {
       EasyLoading.showProgress(0.05, status: 'Encrypting and Uploading...');
       await FileUtils.encryptAndSendFile(
-          roomObs.value, xfile, MessageMediaType.video, false,
+          roomObs.value, xfile, MessageMediaType.video,
+          compress: true,
           onSendProgress: (count, total) => FileUtils.onSendProgress(
               'Encrypting and Uploading...', count, total));
       hideAdd.value = true; // close features section
@@ -626,7 +627,7 @@ class ChatController extends GetxController {
     }
 
     if (file_util.isVideoFile(xfile.path)) {
-      return _handleSendMediaFile(xfile, MessageMediaType.video, false);
+      return _handleSendMediaFile(xfile, MessageMediaType.video, true);
     }
     _handleSendMediaFile(xfile, MessageMediaType.file, false);
   }
@@ -642,8 +643,8 @@ class ChatController extends GetxController {
 2. Encrypting 
 3. Uploading''';
         EasyLoading.showProgress(0.2, status: statusMessage);
-        await FileUtils.encryptAndSendFile(
-            roomObs.value, xfile, mediaType, compress,
+        await FileUtils.encryptAndSendFile(roomObs.value, xfile, mediaType,
+            compress: compress,
             onSendProgress: (count, total) =>
                 FileUtils.onSendProgress(statusMessage, count, total));
         hideAdd.value = true; // close features section

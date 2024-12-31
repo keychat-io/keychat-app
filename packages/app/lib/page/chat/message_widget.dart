@@ -585,7 +585,8 @@ class MessageWidget extends StatelessWidget {
   }
 
   Widget _textCallback({String? text, Widget? child}) {
-    child ??= Text(text ?? 'null', style: TextStyle(color: fontColor));
+    child ??= Text(text ?? 'null',
+        style: TextStyle(color: message.isMeSend ? Colors.white : fontColor));
     return GestureDetector(
       onDoubleTap: messageOnDoubleTap,
       child: ConstrainedBox(

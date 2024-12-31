@@ -45,16 +45,20 @@ class FileUtils {
 
   static Future<File> getOrCreateThumbForVideo(String videoFilePath) async {
     String thumbnailFilePath = getVideoThumbPath(videoFilePath);
-    if (File(thumbnailFilePath).existsSync()) {
-      return File(thumbnailFilePath);
+    var thumbnailFile = File(thumbnailFilePath);
+    bool exist = await thumbnailFile.exists();
+    if (exist) {
+      if (await thumbnailFile.length() > 0) {
+        return File(thumbnailFilePath);
+      }
     }
+
     File file = File(videoFilePath);
     File thumbnail = await VideoCompress.getFileThumbnail(
       file.path,
       quality: 50,
-      position: -1,
     );
-    await thumbnail.copy(thumbnailFilePath);
+    await thumbnailFile.writeAsBytes(await thumbnail.readAsBytes());
     return File(thumbnailFilePath);
   }
 
@@ -152,8 +156,8 @@ class FileUtils {
   static encryptAndSendFile(
     Room room,
     XFile xfile,
-    MessageMediaType type,
-    bool compress, {
+    MessageMediaType type, {
+    bool compress = false,
     Function(int count, int total)? onSendProgress,
   }) async {
     String appDocPath = await getRoomFolder(
@@ -171,7 +175,21 @@ class FileUtils {
       // img.Image? processedImage =
       //     img.decodeImage(Uint8List.fromList(fileBytes));
       // print('Processed EXIF: ${processedImage?.exif.toString()}');
-    } else {
+    } else if (type == MessageMediaType.video) {
+      if (compress) {
+        MediaInfo? compressedFile = await VideoCompress.compressVideo(
+          xfile.path,
+          quality: VideoQuality.MediumQuality,
+          deleteOrigin: true,
+        );
+
+        // compressed video
+        if (compressedFile?.path != null) {
+          fileBytes = await File(compressedFile!.path!).readAsBytes();
+        }
+      }
+    }
+    if (fileBytes.isEmpty) {
       fileBytes = await xfile.readAsBytes();
     }
     await File(newPath).writeAsBytes(fileBytes);

@@ -34,6 +34,7 @@ class CupertinoRootPage extends GetView<HomeController> {
     ];
     return CupertinoTabScaffold(
       restorationId: 'cupertino_tab_scaffold',
+      resizeToAvoidBottomInset: true,
       tabBar: CupertinoTabBar(
         onTap: (value) async {
           if (EasyLoading.isShow) {

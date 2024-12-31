@@ -77,7 +77,7 @@ class ContactDetailPage extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Obx(() => avatarSection2(
-                getRandomAvatar(controller.contact.value.pubkey,
+                Utils.getRandomAvatar(controller.contact.value.pubkey,
                     fit: BoxFit.contain,
                     height: double.infinity,
                     width: double.infinity),
@@ -88,7 +88,7 @@ class ContactDetailPage extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        getRandomAvatar(controller.contact.value.pubkey,
+                        Utils.getRandomAvatar(controller.contact.value.pubkey,
                             height: 60, width: 60),
                         Text(
                           controller.contact.value.displayName,

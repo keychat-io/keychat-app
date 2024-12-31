@@ -38,7 +38,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                   top: 0, left: 16, right: 16, bottom: 24),
               child: Obx(() => Column(children: [
                     Center(
-                      child: getRandomAvatar(
+                      child: Utils.getRandomAvatar(
                           controller.identity.value.secp256k1PKHex,
                           height: 64,
                           width: 64),

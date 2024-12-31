@@ -54,7 +54,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                     child: Row(
                       children: [
                         const Icon(Icons.arrow_back_ios),
-                        getRandomAvatar(identity.secp256k1PKHex,
+                        Utils.getRandomAvatar(identity.secp256k1PKHex,
                             height: 22, width: 22)
                       ],
                     ))),

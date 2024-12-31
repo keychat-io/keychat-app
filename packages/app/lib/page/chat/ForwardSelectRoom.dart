@@ -1,8 +1,8 @@
 import 'package:app/controller/home.controller.dart';
 import 'package:app/models/room.dart';
 import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/page/common.dart';
 import 'package:app/page/components.dart';
+import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -103,7 +103,7 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
                 itemBuilder: (context, index) {
                   Room room = rooms[index];
                   return ListTile(
-                    leading: getAvatarDot(room, width: 40),
+                    leading: Utils.getAvatarDot(room, width: 40),
                     dense: false,
                     key: Key('room:${room.id}'),
                     onTap: () => {
@@ -144,7 +144,7 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
                             children: [
                               textSmallGray(
                                   Get.context!,
-                                  formatTimeMsg(homeController
+                                  Utils.formatTimeMsg(homeController
                                       .roomLastMessage[room.id]!.createdAt)),
                               room.isMute
                                   ? Icon(

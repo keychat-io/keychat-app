@@ -61,7 +61,7 @@ class _SelectAvatarState extends State<SelectAvatar> {
                   onTap: () {
                     Get.back(result: randomStrList[index]);
                   },
-                  child: getRandomAvatar(randomStrList[index],
+                  child: Utils.getRandomAvatar(randomStrList[index],
                       height: 30, width: 30));
             }),
           ),

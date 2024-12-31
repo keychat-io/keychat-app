@@ -2,10 +2,10 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/models/room.dart';
-import 'package:app/page/common.dart';
 import 'package:app/page/components.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/signal_chat.service.dart';
+import 'package:app/utils.dart';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -39,7 +39,7 @@ class RecommendBots extends StatelessWidget {
                 return Container();
               }
               return ListTile(
-                leading: getAvatorByName(bot['name'], width: 50),
+                leading: Utils.getAvatorByName(bot['name'], width: 50),
                 key: Key('room:${bot['npub']}'),
                 onLongPress: () async {},
                 onTap: () async {},

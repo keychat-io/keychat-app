@@ -435,7 +435,8 @@ showSearchContactsPage(BuildContext context, List<Contact> contactList) {
           ),
           builder: (contact) => ListTile(
                 onTap: () async {},
-                leading: getRandomAvatar(contact.pubkey, height: 40, width: 40),
+                leading: Utils.getRandomAvatar(contact.pubkey,
+                    height: 40, width: 40),
                 title: Text(
                   contact.displayName.toString(),
                   overflow: TextOverflow.ellipsis,
@@ -516,7 +517,8 @@ showSearchContactsPage2(BuildContext context) async {
           ),
           builder: (contact) => ListTile(
                 onTap: () async {},
-                leading: getRandomAvatar(contact.pubkey, height: 40, width: 40),
+                leading: Utils.getRandomAvatar(contact.pubkey,
+                    height: 40, width: 40),
                 title: Text(
                   contact.displayName.toString(),
                   overflow: TextOverflow.ellipsis,

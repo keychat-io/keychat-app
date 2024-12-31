@@ -530,7 +530,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
               style: Theme.of(Get.context!).textTheme.titleMedium),
           tiles: identities
               .map((iden) => SettingsTile(
-                  leading: getRandomAvatar(iden.secp256k1PKHex,
+                  leading: Utils.getRandomAvatar(iden.secp256k1PKHex,
                       height: 30, width: 30),
                   value: Text(getPublicKeyDisplay(iden.npub)),
                   title: Text(iden.displayName),

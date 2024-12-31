@@ -150,8 +150,10 @@ class _CreateAccountState extends State<CreateAccount> {
                                 });
                               },
                               title: Text('#$index'),
-                              leading: getRandomAvatar(accounts[index].pubkey,
-                                  height: 50, width: 50),
+                              leading: Utils.getRandomAvatar(
+                                  accounts[index].pubkey,
+                                  height: 50,
+                                  width: 50),
                               subtitle: Text(getPublicKeyDisplay(
                                   accounts[index].pubkeyBech32, 8)),
                               selected: selected == index,

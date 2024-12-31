@@ -176,7 +176,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
                       itemBuilder: (context, index) {
                         Map<String, dynamic> user = users[index];
                         return ListTile(
-                            leading: getRandomAvatar(user['pubkey'],
+                            leading: Utils.getRandomAvatar(user['pubkey'],
                                 height: 40, width: 40),
                             title: Text(user['name'],
                                 style: Theme.of(context).textTheme.titleMedium),

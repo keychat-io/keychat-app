@@ -1,5 +1,6 @@
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/components.dart';
+import 'package:app/utils.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -9,8 +10,6 @@ import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../controller/world.controller.dart';
-
-import 'common.dart';
 
 class WorldPage extends StatelessWidget {
   const WorldPage({super.key});
@@ -71,7 +70,7 @@ class WorldPage extends StatelessWidget {
                             ),
                         itemBuilder: (BuildContext context, int index) {
                           NostrEventModel ne = list[index];
-                          String createdAt = getFormatTimeForMessage(
+                          String createdAt = Utils.getFormatTimeForMessage(
                               DateTime.fromMillisecondsSinceEpoch(
                                   ne.createdAt * 1000));
                           return ListTile(

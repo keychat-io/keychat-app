@@ -6,7 +6,6 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/page/app_theme.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/message_widget.dart';
-import 'package:app/page/common.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/theme.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
@@ -57,7 +56,7 @@ class _ChatPage2State extends State<ChatPage> {
   Widget build(BuildContext context) {
     Room room = _getRoomAndInit(context);
     HomeController hc = Get.find<HomeController>();
-    Widget myAavtar = getRandomAvatar(room.getIdentity().secp256k1PKHex,
+    Widget myAavtar = Utils.getRandomAvatar(room.getIdentity().secp256k1PKHex,
         height: 40, width: 40);
     bool isGroup = room.type == RoomType.group;
     double screenWidth = Get.width;
@@ -636,8 +635,8 @@ class _ChatPage2State extends State<ChatPage> {
                       onTap: () {
                         Get.back(result: controller.enableMembers[index]);
                       },
-                      leading:
-                          getRandomAvatar(rm.idPubkey, height: 36, width: 36),
+                      leading: Utils.getRandomAvatar(rm.idPubkey,
+                          height: 36, width: 36),
                       title: Text(
                         rm.name,
                         maxLines: 1,
@@ -827,7 +826,7 @@ class _ChatPage2State extends State<ChatPage> {
                                 .getOrCreateContactSync(
                                     room.identityId, room.toMainPubkey);
                             return ListTile(
-                              leading: getAvatarDot(room, width: 40),
+                              leading: Utils.getAvatarDot(room, width: 40),
                               key: Key('room:${room.id}'),
                               title: Text(room.getRoomName()),
                               trailing: OutlinedButton(

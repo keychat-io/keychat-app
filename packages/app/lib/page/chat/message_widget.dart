@@ -29,7 +29,6 @@ import 'package:settings_ui/settings_ui.dart';
 import '../../models/db_provider.dart';
 import '../../service/file_util.dart';
 import '../../service/message.service.dart';
-import '../common.dart' show getFormatTimeForMessage;
 import '../components.dart';
 import 'chat_bubble.dart';
 import 'chat_bubble_clipper_4.dart';
@@ -77,7 +76,7 @@ class MessageWidget extends StatelessWidget {
           child: Container(
             margin: const EdgeInsets.only(top: 2),
             child: Text(
-              getFormatTimeForMessage(message.createdAt),
+              Utils.getFormatTimeForMessage(message.createdAt),
               style: TextStyle(
                   color: Get.isDarkMode
                       ? Colors.grey.shade700
@@ -500,7 +499,8 @@ class MessageWidget extends StatelessWidget {
                 }
                 await chatController.openPageAction();
               },
-              child: getRandomAvatar(contact.pubkey, height: 40, width: 40),
+              child:
+                  Utils.getRandomAvatar(contact.pubkey, height: 40, width: 40),
             ),
           ),
           Expanded(

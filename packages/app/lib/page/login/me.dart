@@ -108,7 +108,7 @@ class MinePage extends GetView<SettingController> {
                             title: const Text('Relay Server')),
                         SettingsTile.navigation(
                           leading: const Icon(Icons.folder_open_outlined),
-                          title: const Text("File Storage Server"),
+                          title: const Text("Media Server"),
                           onPressed: (context) {
                             Get.to(() => const FileStorageSetting());
                           },
@@ -214,8 +214,8 @@ class MinePage extends GetView<SettingController> {
       Identity identity = identities[i];
 
       res.add(SettingsTile.navigation(
-          leading:
-              getRandomAvatar(identity.secp256k1PKHex, height: 30, width: 30),
+          leading: Utils.getRandomAvatar(identity.secp256k1PKHex,
+              height: 30, width: 30),
           title: Text(
             identity.displayName.length > 8
                 ? "${identity.displayName.substring(0, 8)}..."

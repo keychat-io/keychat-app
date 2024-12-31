@@ -146,8 +146,8 @@ class _AddMemberToMLSState extends State<AddMemberToMLS>
               itemBuilder: (context, index) {
                 Map<String, dynamic> user = users[index];
                 return ListTile(
-                    leading:
-                        getRandomAvatar(user['pubkey'], height: 40, width: 40),
+                    leading: Utils.getRandomAvatar(user['pubkey'],
+                        height: 40, width: 40),
                     title: Text(user['name'],
                         style: Theme.of(context).textTheme.titleMedium),
                     dense: true,

@@ -1,4 +1,3 @@
-import 'package:app/controller/home.controller.dart';
 import 'package:app/models/models.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 

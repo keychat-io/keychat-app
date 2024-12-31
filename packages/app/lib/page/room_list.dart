@@ -2,12 +2,12 @@ import 'dart:io' show exit;
 
 import 'package:app/models/models.dart';
 import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/page/common.dart';
 import 'package:app/page/new_friends_rooms.dart';
 import 'package:app/page/search_page.dart';
 import 'package:app/page/widgets/home_drop_menu.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/websocket.service.dart';
+import 'package:app/utils.dart';
 import 'package:badges/badges.dart' as badges;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -142,7 +142,7 @@ class RoomList extends StatelessWidget {
                           color:
                               room.pin ? pinTileBackground : Colors.transparent,
                           child: ListTile(
-                            leading: getAvatarDot(room),
+                            leading: Utils.getAvatarDot(room),
                             key: Key('room:${room.id}'),
                             title: Text(room.getRoomName(),
                                 maxLines: 1,
@@ -161,7 +161,7 @@ class RoomList extends StatelessWidget {
                                     children: [
                                       textSmallGray(
                                           Get.context!,
-                                          formatTimeMsg(homeController
+                                          Utils.formatTimeMsg(homeController
                                               .roomLastMessage[room.id]!
                                               .createdAt)),
                                       room.isMute

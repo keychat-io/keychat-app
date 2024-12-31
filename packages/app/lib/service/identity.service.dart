@@ -213,7 +213,7 @@ class IdentityService {
     Set<String> pubkeys = {};
 
     List<Identity> list =
-        Get.find<HomeController>().chatIdentities.values.toList();
+        Get.find<HomeController>().allIdentities.values.toList();
     pubkeys.addAll(list.map((e) => e.secp256k1PKHex));
     if (pubkeys.isEmpty) return [];
 

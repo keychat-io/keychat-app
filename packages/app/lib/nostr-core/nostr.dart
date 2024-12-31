@@ -585,7 +585,7 @@ class NostrAPI {
   }
 
   Future subscripAllMetaData() async {
-    Identity identity = Get.find<HomeController>().chatIdentities[0]!;
+    Identity identity = Get.find<HomeController>().allIdentities[0]!;
     List<Contact> contacts =
         await ContactService.instance.getContactList(identity.id);
     if (contacts.isEmpty) return;

@@ -34,7 +34,7 @@ class _BrowserConnectedWebsiteState extends State<BrowserConnectedWebsite> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(title: const Text('Nostr Connected')),
+        appBar: AppBar(title: const Text('Logged in Websites')),
         body: SmartRefresher(
             enablePullUp: true,
             enablePullDown: false,
@@ -60,7 +60,7 @@ class _BrowserConnectedWebsiteState extends State<BrowserConnectedWebsite> {
                 return ListTile(
                   contentPadding: const EdgeInsets.symmetric(
                       vertical: 1.0, horizontal: 16.0),
-                  leading: getRandomAvatar(site.pubkey, width: 36),
+                  leading: Utils.getRandomAvatar(site.pubkey, width: 36),
                   title: Row(children: [
                     const Text('x'),
                     Padding(

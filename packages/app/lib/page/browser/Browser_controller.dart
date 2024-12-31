@@ -47,6 +47,8 @@ class BrowserController extends GetxController {
   }
 
   Future addHistory(String url, String title, [String? favicon]) async {
+    if (!config['enableHistory']) return;
+
     if (histories.isNotEmpty &&
         histories[0].url == url &&
         histories[0].title == title) {

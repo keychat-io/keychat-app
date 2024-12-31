@@ -435,7 +435,7 @@ ${relays.join('\n')}
     KeychatIdentityKeyPair keyPair = await Get.find<ChatxService>()
         .setupSignalStoreBySignalId(signalId.pubkey, signalId);
     Identity identity =
-        Get.find<HomeController>().identities[signalId.identityId]!;
+        Get.find<HomeController>().allIdentities[signalId.identityId]!;
 
     var (plaintext, msgKeyHash, _) = await rust_signal.decryptSignal(
         keyPair: keyPair,

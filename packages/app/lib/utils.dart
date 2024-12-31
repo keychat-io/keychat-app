@@ -460,9 +460,7 @@ class Utils {
   static Widget? getNeworkImage(String? imageUrl,
       {double size = 36, double radius = 8}) {
     if (imageUrl == null) return null;
-    Widget child = ClipRRect(
-        borderRadius: BorderRadius.circular(radius),
-        child: Icon(Icons.image, size: size));
+
     if (imageUrl.toString().endsWith('svg')) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(radius),
@@ -470,10 +468,14 @@ class Utils {
           imageUrl,
           width: size,
           height: size,
-          placeholderBuilder: (BuildContext context) => child,
+          placeholderBuilder: (BuildContext context) =>
+              Icon(Icons.image, size: size),
         ),
       );
     }
+    Widget child = ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: Icon(Icons.image, size: size));
     return CachedNetworkImage(
       imageUrl: imageUrl,
       width: size,

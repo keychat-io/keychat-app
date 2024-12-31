@@ -36,6 +36,18 @@ class BrowserConnect extends Equatable {
     return list;
   }
 
+  static Future<List<BrowserConnect>> getAllByPubkey(
+      {required String pubkey, int limit = 20, int offset = 0}) async {
+    var list = await DBProvider.database.browserConnects
+        .filter()
+        .pubkeyEqualTo(pubkey)
+        .sortByCreatedAtDesc()
+        .offset(offset)
+        .limit(limit)
+        .findAll();
+    return list;
+  }
+
   static delete(Id id) async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.browserConnects.delete(id);
@@ -52,6 +64,15 @@ class BrowserConnect extends Equatable {
   static save(BrowserConnect bc) async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.browserConnects.put(bc);
+    });
+  }
+
+  static Future deleteByPubkey(String pubkey) async {
+    await DBProvider.database.writeTxn(() async {
+      await DBProvider.database.browserConnects
+          .filter()
+          .pubkeyEqualTo(pubkey)
+          .deleteAll();
     });
   }
 }

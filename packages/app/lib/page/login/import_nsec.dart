@@ -126,7 +126,6 @@ class _ImportNsec extends State<ImportNsec> {
                       var newIdentity = await IdentityService.instance
                           .createIdentityByPrikey(
                               name: name, prikey: input, hexPubkey: hexPubkey);
-                      Get.find<HomeController>().identities.length == 1;
 
                       EasyLoading.showSuccess('Import successfully');
                       Get.back(result: newIdentity);

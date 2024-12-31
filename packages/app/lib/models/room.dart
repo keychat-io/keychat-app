@@ -171,7 +171,7 @@ class Room extends Equatable {
   }
 
   Identity getIdentity() {
-    return Get.find<HomeController>().identities[identityId]!;
+    return Get.find<HomeController>().allIdentities[identityId]!;
   }
 
   SignalId? getMySignalId() {

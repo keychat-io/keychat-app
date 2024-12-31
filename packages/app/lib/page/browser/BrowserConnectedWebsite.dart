@@ -1,4 +1,5 @@
 import 'package:app/models/browser/browser_connect.dart';
+import 'package:app/models/identity.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -6,7 +7,8 @@ import 'package:get/get.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 class BrowserConnectedWebsite extends StatefulWidget {
-  const BrowserConnectedWebsite({super.key});
+  final Identity identity;
+  const BrowserConnectedWebsite(this.identity, {super.key});
 
   @override
   _BrowserConnectedWebsiteState createState() =>
@@ -19,7 +21,7 @@ class _BrowserConnectedWebsiteState extends State<BrowserConnectedWebsite> {
   @override
   void initState() {
     refreshController = RefreshController();
-    loadData(limit: 20, offset: 0);
+    loadData(pubkey: widget.identity.secp256k1PKHex, limit: 20, offset: 0);
     super.initState();
   }
 
@@ -37,7 +39,10 @@ class _BrowserConnectedWebsiteState extends State<BrowserConnectedWebsite> {
             enablePullUp: true,
             enablePullDown: false,
             onLoading: () async {
-              await loadData(limit: 20, offset: urls.length);
+              await loadData(
+                  pubkey: widget.identity.secp256k1PKHex,
+                  limit: 20,
+                  offset: urls.length);
               refreshController.loadComplete();
             },
             controller: refreshController,
@@ -98,8 +103,10 @@ class _BrowserConnectedWebsiteState extends State<BrowserConnectedWebsite> {
             )));
   }
 
-  Future loadData({required int limit, required int offset}) async {
-    var list = await BrowserConnect.getAll(limit: limit, offset: offset);
+  Future loadData(
+      {required String pubkey, required int limit, required int offset}) async {
+    var list = await BrowserConnect.getAllByPubkey(
+        pubkey: pubkey, limit: limit, offset: offset);
     urls.addAll(list);
     setState(() {
       urls = [...urls];

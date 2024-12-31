@@ -17,6 +17,16 @@ class CupertinoRootPage extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
+    // fix https://github.com/flutter/flutter/issues/119465
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarBrightness: Brightness.light,
+      statusBarIconBrightness: Brightness.dark,
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarContrastEnforced: false,
+    ));
+
     List<Widget> pages = [
       const RoomList(),
       const BrowserPage(),

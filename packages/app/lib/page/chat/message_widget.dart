@@ -292,7 +292,7 @@ class MessageWidget extends StatelessWidget {
 
                       if (message.reply != null) {
                         Identity identity = Get.find<HomeController>()
-                            .identities[chatController.room.identityId]!;
+                            .allIdentities[chatController.room.identityId]!;
                         message.fromContact = FromContact(
                             identity.secp256k1PKHex, identity.displayName);
                         var decodeContent = jsonDecode(message.content);
@@ -857,7 +857,7 @@ class MessageWidget extends StatelessWidget {
     Get.back();
     if (message.isMeSend) {
       Identity identity = Get.find<HomeController>()
-          .identities[chatController.room.identityId]!;
+          .allIdentities[chatController.room.identityId]!;
       message.fromContact =
           FromContact(identity.secp256k1PKHex, identity.displayName);
     } else {

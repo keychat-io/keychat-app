@@ -31,7 +31,7 @@ class _RelaySettingState extends State<RelaySetting> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: const Text('Network'),
+          title: const Text('Relay Server'),
           actions: [
             IconButton(
               onPressed: addRelay,

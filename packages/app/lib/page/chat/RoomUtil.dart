@@ -480,7 +480,7 @@ Let's start an encrypted chat.''';
               return FilledButton(
                 onPressed: () async {
                   Identity identity =
-                      Get.find<HomeController>().identities[identityId]!;
+                      Get.find<HomeController>().allIdentities[identityId]!;
                   await RoomService.instance.createRoomAndsendInvite(pubkey,
                       identity: identity, greeting: greeting);
                 },

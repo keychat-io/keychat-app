@@ -1,4 +1,3 @@
-import 'package:app/page/browser/BrowserConnectedWebsite.dart';
 import 'package:app/page/browser/Browser_controller.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
@@ -39,12 +38,6 @@ class BrowserSetting extends GetView<BrowserController> {
                             .toList()),
                     SettingsSection(
                       tiles: [
-                        SettingsTile.navigation(
-                            title: const Text("Nostr Website Connected"),
-                            leading: const Icon(CupertinoIcons.globe),
-                            onPressed: (context) async {
-                              Get.to(() => const BrowserConnectedWebsite());
-                            }),
                         SettingsTile.switchTile(
                           initialValue: controller.config['enableHistory'],
                           leading: const Icon(CupertinoIcons.time),

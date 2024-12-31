@@ -3,6 +3,7 @@ import 'dart:io' show Directory;
 import 'package:app/global.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import '../service/storage.dart';
 
@@ -35,7 +36,8 @@ class SettingController extends GetxController with StateMixin<Type> {
       if (res) return;
       Directory(avatarsFolder).createSync(recursive: true);
     });
-
+    PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    appVersion.value = "${packageInfo.version}+${packageInfo.buildNumber}";
     await initDefaultFileServerConfig();
   }
 

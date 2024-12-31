@@ -33,7 +33,8 @@ import '../service/room.service.dart';
 class HomeController extends GetxController
     with GetTickerProviderStateMixin, WidgetsBindingObserver {
   IdentityService identityService = IdentityService.instance;
-  RxMap<int, Identity> identities = <int, Identity>{}.obs;
+  RxMap<int, Identity> chatIdentities = <int, Identity>{}.obs;
+  RxMap<int, Identity> allIdentities = <int, Identity>{}.obs;
   RxInt allUnReadCount = 0.obs;
   bool isAppBadgeSupported = false;
 
@@ -199,12 +200,12 @@ class HomeController extends GetxController
   }
 
   Identity getSelectedIdentity() {
-    return identities.values.toList()[tabController.index];
+    return chatIdentities.values.toList()[tabController.index];
   }
 
   initTabController([int initialIndex = 0]) {
     tabController.dispose();
-    if (initialIndex >= identities.length) {
+    if (initialIndex >= chatIdentities.length) {
       initialIndex = 0;
     }
     tabController = TabController(
@@ -222,16 +223,17 @@ class HomeController extends GetxController
     toSetValue.value = res == 0 ? true : false;
   }
 
-  Future<List<Identity>> loadIdentity(
-      [List<Identity> list = const <Identity>[]]) async {
-    if (list.isEmpty) {
-      list = await IdentityService.instance.getIdentityList();
-    }
-    identities.clear();
+  Future<List<Identity>> loadIdentity() async {
+    var list = await IdentityService.instance.getIdentityList();
+    chatIdentities.clear();
+    allIdentities.clear();
     for (var i = 0; i < list.length; i++) {
-      identities[list[i].id] = list[i];
+      allIdentities[list[i].id] = list[i];
+      if (list[i].enableChat) {
+        chatIdentities[list[i].id] = list[i];
+      }
     }
-    return identities.values.toList();
+    return chatIdentities.values.toList();
   }
 
   loadIdentityRoomList(int identityId) {
@@ -270,7 +272,7 @@ class HomeController extends GetxController
       ];
 
       TabData tabBodyData =
-          tabBodyDatas[identityId] ?? TabData(identities[identityId]!);
+          tabBodyDatas[identityId] ?? TabData(chatIdentities[identityId]!);
       tabBodyData.unReadCount = unReadCount;
       tabBodyData.anonymousUnReadCount = anonymousUnReadCount;
       tabBodyData.requestingUnReadCount = requestingUnReadCount;
@@ -289,8 +291,7 @@ class HomeController extends GetxController
   }
 
   Future<List<Identity>> loadRoomList({bool init = false}) async {
-    List<Identity> mys = await IdentityService.instance.getIdentityList();
-    loadIdentity(mys);
+    List<Identity> mys = await loadIdentity();
 
     int firstUnreadIndex = -1;
     int unReadSum = 0;

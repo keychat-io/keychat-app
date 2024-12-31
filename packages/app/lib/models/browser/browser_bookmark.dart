@@ -17,9 +17,12 @@ class BrowserBookmark extends Equatable {
   String? title;
   String? favicon;
   late DateTime createdAt;
+  late DateTime updatedAt;
+  bool isPin = false;
 
   BrowserBookmark({required this.url, this.title, this.favicon}) {
     createdAt = DateTime.now();
+    updatedAt = DateTime.now();
   }
 
   @override
@@ -27,13 +30,21 @@ class BrowserBookmark extends Equatable {
 
   static Future<List<BrowserBookmark>> getAll(
       {int limit = 20, int offset = 0}) async {
+    var pins = [];
+    if (offset == 0) {
+      pins = await DBProvider.database.browserBookmarks
+          .filter()
+          .isPinEqualTo(true)
+          .findAll();
+    }
     var list = await DBProvider.database.browserBookmarks
-        .where(sort: Sort.desc)
+        .filter()
+        .isPinEqualTo(false)
         .sortByCreatedAtDesc()
         .offset(offset)
         .limit(limit)
         .findAll();
-    return list;
+    return [...pins, ...list];
   }
 
   static deleteAll() async {
@@ -45,6 +56,13 @@ class BrowserBookmark extends Equatable {
   static delete(Id id) async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.browserBookmarks.delete(id);
+    });
+  }
+
+  static Future update(BrowserBookmark site) async {
+    site.updatedAt = DateTime.now();
+    await DBProvider.database.writeTxn(() async {
+      DBProvider.database.browserBookmarks.put(site);
     });
   }
 }

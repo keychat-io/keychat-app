@@ -37,63 +37,73 @@ const IdentitySchema = CollectionSchema(
       name: r'curve25519SkHex',
       type: IsarType.string,
     ),
-    r'hashCode': PropertySchema(
+    r'enableBrowser': PropertySchema(
       id: 4,
+      name: r'enableBrowser',
+      type: IsarType.bool,
+    ),
+    r'enableChat': PropertySchema(
+      id: 5,
+      name: r'enableChat',
+      type: IsarType.bool,
+    ),
+    r'hashCode': PropertySchema(
+      id: 6,
       name: r'hashCode',
       type: IsarType.long,
     ),
     r'index': PropertySchema(
-      id: 5,
+      id: 7,
       name: r'index',
       type: IsarType.long,
     ),
     r'isDefault': PropertySchema(
-      id: 6,
+      id: 8,
       name: r'isDefault',
       type: IsarType.bool,
     ),
     r'metadata': PropertySchema(
-      id: 7,
+      id: 9,
       name: r'metadata',
       type: IsarType.string,
     ),
     r'mnemonic': PropertySchema(
-      id: 8,
+      id: 10,
       name: r'mnemonic',
       type: IsarType.string,
     ),
     r'name': PropertySchema(
-      id: 9,
+      id: 11,
       name: r'name',
       type: IsarType.string,
     ),
     r'note': PropertySchema(
-      id: 10,
+      id: 12,
       name: r'note',
       type: IsarType.string,
     ),
     r'npub': PropertySchema(
-      id: 11,
+      id: 13,
       name: r'npub',
       type: IsarType.string,
     ),
     r'secp256k1PKHex': PropertySchema(
-      id: 12,
+      id: 14,
       name: r'secp256k1PKHex',
       type: IsarType.string,
     ),
     r'secp256k1SKHex': PropertySchema(
-      id: 13,
+      id: 15,
       name: r'secp256k1SKHex',
       type: IsarType.string,
     ),
     r'stringify': PropertySchema(
-      id: 14,
+      id: 16,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'weight': PropertySchema(
-      id: 15,
+      id: 17,
       name: r'weight',
       type: IsarType.long,
     )
@@ -190,18 +200,20 @@ void _identitySerialize(
   writer.writeDateTime(offsets[1], object.createdAt);
   writer.writeString(offsets[2], object.curve25519PkHex);
   writer.writeString(offsets[3], object.curve25519SkHex);
-  writer.writeLong(offsets[4], object.hashCode);
-  writer.writeLong(offsets[5], object.index);
-  writer.writeBool(offsets[6], object.isDefault);
-  writer.writeString(offsets[7], object.metadata);
-  writer.writeString(offsets[8], object.mnemonic);
-  writer.writeString(offsets[9], object.name);
-  writer.writeString(offsets[10], object.note);
-  writer.writeString(offsets[11], object.npub);
-  writer.writeString(offsets[12], object.secp256k1PKHex);
-  writer.writeString(offsets[13], object.secp256k1SKHex);
-  writer.writeBool(offsets[14], object.stringify);
-  writer.writeLong(offsets[15], object.weight);
+  writer.writeBool(offsets[4], object.enableBrowser);
+  writer.writeBool(offsets[5], object.enableChat);
+  writer.writeLong(offsets[6], object.hashCode);
+  writer.writeLong(offsets[7], object.index);
+  writer.writeBool(offsets[8], object.isDefault);
+  writer.writeString(offsets[9], object.metadata);
+  writer.writeString(offsets[10], object.mnemonic);
+  writer.writeString(offsets[11], object.name);
+  writer.writeString(offsets[12], object.note);
+  writer.writeString(offsets[13], object.npub);
+  writer.writeString(offsets[14], object.secp256k1PKHex);
+  writer.writeString(offsets[15], object.secp256k1SKHex);
+  writer.writeBool(offsets[16], object.stringify);
+  writer.writeLong(offsets[17], object.weight);
 }
 
 Identity _identityDeserialize(
@@ -211,22 +223,24 @@ Identity _identityDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Identity(
-    name: reader.readString(offsets[9]),
-    note: reader.readStringOrNull(offsets[10]),
-    npub: reader.readString(offsets[11]),
-    secp256k1PKHex: reader.readString(offsets[12]),
+    name: reader.readString(offsets[11]),
+    note: reader.readStringOrNull(offsets[12]),
+    npub: reader.readString(offsets[13]),
+    secp256k1PKHex: reader.readString(offsets[14]),
   );
   object.about = reader.readStringOrNull(offsets[0]);
   object.createdAt = reader.readDateTime(offsets[1]);
   object.curve25519PkHex = reader.readStringOrNull(offsets[2]);
   object.curve25519SkHex = reader.readStringOrNull(offsets[3]);
+  object.enableBrowser = reader.readBool(offsets[4]);
+  object.enableChat = reader.readBool(offsets[5]);
   object.id = id;
-  object.index = reader.readLong(offsets[5]);
-  object.isDefault = reader.readBool(offsets[6]);
-  object.metadata = reader.readStringOrNull(offsets[7]);
-  object.mnemonic = reader.readStringOrNull(offsets[8]);
-  object.secp256k1SKHex = reader.readStringOrNull(offsets[13]);
-  object.weight = reader.readLong(offsets[15]);
+  object.index = reader.readLong(offsets[7]);
+  object.isDefault = reader.readBool(offsets[8]);
+  object.metadata = reader.readStringOrNull(offsets[9]);
+  object.mnemonic = reader.readStringOrNull(offsets[10]);
+  object.secp256k1SKHex = reader.readStringOrNull(offsets[15]);
+  object.weight = reader.readLong(offsets[17]);
   return object;
 }
 
@@ -246,28 +260,32 @@ P _identityDeserializeProp<P>(
     case 3:
       return (reader.readStringOrNull(offset)) as P;
     case 4:
-      return (reader.readLong(offset)) as P;
-    case 5:
-      return (reader.readLong(offset)) as P;
-    case 6:
       return (reader.readBool(offset)) as P;
+    case 5:
+      return (reader.readBool(offset)) as P;
+    case 6:
+      return (reader.readLong(offset)) as P;
     case 7:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 8:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 9:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 10:
       return (reader.readStringOrNull(offset)) as P;
     case 11:
       return (reader.readString(offset)) as P;
     case 12:
-      return (reader.readString(offset)) as P;
-    case 13:
       return (reader.readStringOrNull(offset)) as P;
+    case 13:
+      return (reader.readString(offset)) as P;
     case 14:
-      return (reader.readBoolOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 15:
+      return (reader.readStringOrNull(offset)) as P;
+    case 16:
+      return (reader.readBoolOrNull(offset)) as P;
+    case 17:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -968,6 +986,26 @@ extension IdentityQueryFilter
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'curve25519SkHex',
         value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> enableBrowserEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'enableBrowser',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> enableChatEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'enableChat',
+        value: value,
       ));
     });
   }
@@ -2261,6 +2299,30 @@ extension IdentityQuerySortBy on QueryBuilder<Identity, Identity, QSortBy> {
     });
   }
 
+  QueryBuilder<Identity, Identity, QAfterSortBy> sortByEnableBrowser() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'enableBrowser', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy> sortByEnableBrowserDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'enableBrowser', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy> sortByEnableChat() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'enableChat', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy> sortByEnableChatDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'enableChat', Sort.desc);
+    });
+  }
+
   QueryBuilder<Identity, Identity, QAfterSortBy> sortByHashCode() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'hashCode', Sort.asc);
@@ -2456,6 +2518,30 @@ extension IdentityQuerySortThenBy
     });
   }
 
+  QueryBuilder<Identity, Identity, QAfterSortBy> thenByEnableBrowser() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'enableBrowser', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy> thenByEnableBrowserDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'enableBrowser', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy> thenByEnableChat() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'enableChat', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy> thenByEnableChatDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'enableChat', Sort.desc);
+    });
+  }
+
   QueryBuilder<Identity, Identity, QAfterSortBy> thenByHashCode() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'hashCode', Sort.asc);
@@ -2644,6 +2730,18 @@ extension IdentityQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Identity, Identity, QDistinct> distinctByEnableBrowser() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'enableBrowser');
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QDistinct> distinctByEnableChat() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'enableChat');
+    });
+  }
+
   QueryBuilder<Identity, Identity, QDistinct> distinctByHashCode() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'hashCode');
@@ -2755,6 +2853,18 @@ extension IdentityQueryProperty
   QueryBuilder<Identity, String?, QQueryOperations> curve25519SkHexProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'curve25519SkHex');
+    });
+  }
+
+  QueryBuilder<Identity, bool, QQueryOperations> enableBrowserProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'enableBrowser');
+    });
+  }
+
+  QueryBuilder<Identity, bool, QQueryOperations> enableChatProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'enableChat');
     });
   }
 

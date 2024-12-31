@@ -1,7 +1,7 @@
 import 'package:app/global.dart';
 import 'package:app/page/login/CreateAccount.dart';
 import 'package:app/page/login/OnboardingPage2Detail.dart';
-import 'package:app/page/setting/more_setting.dart';
+import 'package:app/page/setting/more_chat_setting.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -53,7 +53,7 @@ class Login extends StatelessWidget {
                           // if (res != null) {
                           //   Get.offAndToNamed(Routes.root);
                           // }
-                          const MoreSetting().enableImportDB(context);
+                          const MoreChatSetting().enableImportDB(context);
                         },
                         child: const Text("Import Data",
                             style: TextStyle(fontWeight: FontWeight.bold)))

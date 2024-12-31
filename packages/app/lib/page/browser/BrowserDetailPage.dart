@@ -41,6 +41,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
       mediaPlaybackRequiresUserGesture: false,
       allowsInlineMediaPlayback: true,
       useShouldOverrideUrlLoading: true,
+      transparentBackground: true,
       cacheEnabled: true,
       iframeAllow: "camera; microphone",
       iframeAllowFullscreen: true);
@@ -48,7 +49,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
   PullToRefreshController? pullToRefreshController;
   String url = "";
   double progress = 0;
-  bool marked = false;
+  // bool marked = false;
   String title = "Loading...";
   bool canGoBack = false;
   late EcashController ecashController;
@@ -83,14 +84,9 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
   void initIsMarked() {
     webViewController?.getUrl().then((value) async {
       if (value == null) return;
-      BrowserBookmark? bb = await DBProvider.database.browserBookmarks
-          .filter()
-          .urlEqualTo(value.toString())
-          .findFirst();
 
       setState(() {
         url = value.toString();
-        marked = bb != null;
       });
     });
   }
@@ -369,15 +365,25 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                   color: can ? Theme.of(context).iconTheme.color : Colors.grey,
                 );
               }),
-          IconButton(
-            icon: marked
-                ? const Icon(CupertinoIcons.star_fill)
-                : const Icon(CupertinoIcons.star),
-            onPressed: () {
-              troggleMarkUrl();
-              Get.back();
-            },
-          ),
+          FutureBuilder(future: () async {
+            final url = await webViewController?.getUrl();
+            if (url == null) return null;
+            return await DBProvider.database.browserBookmarks
+                .filter()
+                .urlEqualTo(url.toString())
+                .findFirst();
+          }(), builder: (context, snapshot) {
+            BrowserBookmark? bb = snapshot.data;
+            return IconButton(
+              icon: bb != null
+                  ? const Icon(CupertinoIcons.star_fill)
+                  : const Icon(CupertinoIcons.star),
+              onPressed: () {
+                troggleMarkUrl(bb);
+                Get.back();
+              },
+            );
+          }),
           IconButton(
               onPressed: () {
                 webViewController?.reload();
@@ -389,31 +395,26 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
     );
   }
 
-  void troggleMarkUrl() async {
+  void troggleMarkUrl(BrowserBookmark? bb) async {
     if (webViewController == null) return;
-    final url = await webViewController?.getUrl();
-    if (url == null) return;
-    String? favicon = await browserController.getFavicon(webViewController!);
-    BrowserBookmark? bb = await DBProvider.database.browserBookmarks
-        .filter()
-        .urlEqualTo(url.toString())
-        .findFirst();
-    await DBProvider.database.writeTxn(() async {
-      if (bb != null) {
-        await DBProvider.database.browserBookmarks.delete(bb.id);
-      } else {
+
+    if (bb != null) {
+      await BrowserBookmark.delete(bb.id);
+    } else {
+      final url = await webViewController?.getUrl();
+      if (url == null) return;
+      String? favicon = await browserController.getFavicon(webViewController!);
+      await DBProvider.database.writeTxn(() async {
         BrowserBookmark bookmark = BrowserBookmark(
             url: url.toString(),
             title: await webViewController?.getTitle(),
             favicon: favicon);
         await DBProvider.database.browserBookmarks.put(bookmark);
-      }
-    });
-    setState(() {
-      marked = !marked;
-    });
+      });
+    }
+
+    EasyLoading.showSuccess('Success');
     browserController.loadBookmarks();
-    EasyLoading.showToast('Success');
   }
 
   void goBackOrPop() {
@@ -516,12 +517,12 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
         return identity;
       }
     }
-    // select a identity
-    List<Identity> identities =
-        await IdentityService.instance.getIdentityList();
     if (Get.isBottomSheetOpen ?? false) {
       return null;
     }
+    // select a identity
+    List<Identity> identities =
+        await IdentityService.instance.getEnableBrowserIdentityList();
     Identity? selected = await Get.bottomSheet(
         SettingsList(platform: DevicePlatform.iOS, sections: [
       SettingsSection(

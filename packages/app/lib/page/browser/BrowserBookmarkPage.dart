@@ -56,41 +56,42 @@ class _BrowserBookmarkPageState extends State<BrowserBookmarkPage> {
                   dense: true,
                   contentPadding: const EdgeInsets.symmetric(
                       vertical: 1.0, horizontal: 16.0),
-                  leading: Utils.getNeworkImage(site.favicon),
+                  leading: Utils.getNeworkImage(site.favicon, radius: 100),
                   minVerticalPadding: 0,
+                  minTileHeight: 56,
                   title: site.title == null
                       ? null
                       : Text(site.title!, maxLines: 1),
                   subtitle: Text(site.url,
                       maxLines: 1, overflow: TextOverflow.ellipsis),
-                  trailing: IconButton(
-                      onPressed: () {
-                        Get.dialog(CupertinoAlertDialog(
-                          title: const Text('Delete Bookmark'),
-                          content: const Text(
-                              'Are you sure you want to delete this bookmark?'),
-                          actions: [
-                            CupertinoDialogAction(
-                              onPressed: () {
-                                Get.back();
-                              },
-                              child: const Text('Cancel'),
-                            ),
-                            CupertinoDialogAction(
-                              isDestructiveAction: true,
-                              onPressed: () async {
-                                await BrowserBookmark.delete(site.id);
-                                setState(() {
-                                  urls.removeAt(index);
-                                });
-                                Get.back();
-                              },
-                              child: const Text('Delete'),
-                            ),
-                          ],
-                        ));
-                      },
-                      icon: const Icon(Icons.star)),
+                  trailing: Wrap(
+                    children: [
+                      IconButton(
+                        icon: site.isPin
+                            ? Icon(
+                                CupertinoIcons.pin_fill,
+                                color: Theme.of(context).colorScheme.primary,
+                              )
+                            : const Icon(CupertinoIcons.pin),
+                        onPressed: () async {
+                          site.isPin = !site.isPin;
+                          await BrowserBookmark.update(site);
+                          urls.clear();
+                          loadData(limit: 20, offset: 0);
+                          Get.find<BrowserController>().loadBookmarks();
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () {
+                          BrowserBookmark.delete(site.id);
+                          setState(() {
+                            urls.removeAt(index);
+                          });
+                        },
+                      )
+                    ],
+                  ),
                   onTap: () {
                     Get.find<BrowserController>().lanuchWebview(
                         content: site.url, defaultTitle: site.title);

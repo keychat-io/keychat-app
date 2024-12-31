@@ -32,23 +32,33 @@ const BrowserBookmarkSchema = CollectionSchema(
       name: r'hashCode',
       type: IsarType.long,
     ),
-    r'stringify': PropertySchema(
+    r'isPin': PropertySchema(
       id: 3,
+      name: r'isPin',
+      type: IsarType.bool,
+    ),
+    r'stringify': PropertySchema(
+      id: 4,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'title': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'title',
       type: IsarType.string,
     ),
+    r'updatedAt': PropertySchema(
+      id: 6,
+      name: r'updatedAt',
+      type: IsarType.dateTime,
+    ),
     r'url': PropertySchema(
-      id: 5,
+      id: 7,
       name: r'url',
       type: IsarType.string,
     ),
     r'weight': PropertySchema(
-      id: 6,
+      id: 8,
       name: r'weight',
       type: IsarType.long,
     )
@@ -112,10 +122,12 @@ void _browserBookmarkSerialize(
   writer.writeDateTime(offsets[0], object.createdAt);
   writer.writeString(offsets[1], object.favicon);
   writer.writeLong(offsets[2], object.hashCode);
-  writer.writeBool(offsets[3], object.stringify);
-  writer.writeString(offsets[4], object.title);
-  writer.writeString(offsets[5], object.url);
-  writer.writeLong(offsets[6], object.weight);
+  writer.writeBool(offsets[3], object.isPin);
+  writer.writeBool(offsets[4], object.stringify);
+  writer.writeString(offsets[5], object.title);
+  writer.writeDateTime(offsets[6], object.updatedAt);
+  writer.writeString(offsets[7], object.url);
+  writer.writeLong(offsets[8], object.weight);
 }
 
 BrowserBookmark _browserBookmarkDeserialize(
@@ -126,12 +138,14 @@ BrowserBookmark _browserBookmarkDeserialize(
 ) {
   final object = BrowserBookmark(
     favicon: reader.readStringOrNull(offsets[1]),
-    title: reader.readStringOrNull(offsets[4]),
-    url: reader.readString(offsets[5]),
+    title: reader.readStringOrNull(offsets[5]),
+    url: reader.readString(offsets[7]),
   );
   object.createdAt = reader.readDateTime(offsets[0]);
   object.id = id;
-  object.weight = reader.readLong(offsets[6]);
+  object.isPin = reader.readBool(offsets[3]);
+  object.updatedAt = reader.readDateTime(offsets[6]);
+  object.weight = reader.readLong(offsets[8]);
   return object;
 }
 
@@ -149,12 +163,16 @@ P _browserBookmarkDeserializeProp<P>(
     case 2:
       return (reader.readLong(offset)) as P;
     case 3:
-      return (reader.readBoolOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 4:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBoolOrNull(offset)) as P;
     case 5:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 6:
+      return (reader.readDateTime(offset)) as P;
+    case 7:
+      return (reader.readString(offset)) as P;
+    case 8:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -679,6 +697,16 @@ extension BrowserBookmarkQueryFilter
   }
 
   QueryBuilder<BrowserBookmark, BrowserBookmark, QAfterFilterCondition>
+      isPinEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isPin',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<BrowserBookmark, BrowserBookmark, QAfterFilterCondition>
       stringifyIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -856,6 +884,62 @@ extension BrowserBookmarkQueryFilter
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'title',
         value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<BrowserBookmark, BrowserBookmark, QAfterFilterCondition>
+      updatedAtEqualTo(DateTime value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'updatedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<BrowserBookmark, BrowserBookmark, QAfterFilterCondition>
+      updatedAtGreaterThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'updatedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<BrowserBookmark, BrowserBookmark, QAfterFilterCondition>
+      updatedAtLessThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'updatedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<BrowserBookmark, BrowserBookmark, QAfterFilterCondition>
+      updatedAtBetween(
+    DateTime lower,
+    DateTime upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'updatedAt',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
       ));
     });
   }
@@ -1102,6 +1186,19 @@ extension BrowserBookmarkQuerySortBy
     });
   }
 
+  QueryBuilder<BrowserBookmark, BrowserBookmark, QAfterSortBy> sortByIsPin() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPin', Sort.asc);
+    });
+  }
+
+  QueryBuilder<BrowserBookmark, BrowserBookmark, QAfterSortBy>
+      sortByIsPinDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPin', Sort.desc);
+    });
+  }
+
   QueryBuilder<BrowserBookmark, BrowserBookmark, QAfterSortBy>
       sortByStringify() {
     return QueryBuilder.apply(this, (query) {
@@ -1126,6 +1223,20 @@ extension BrowserBookmarkQuerySortBy
       sortByTitleDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'title', Sort.desc);
+    });
+  }
+
+  QueryBuilder<BrowserBookmark, BrowserBookmark, QAfterSortBy>
+      sortByUpdatedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'updatedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<BrowserBookmark, BrowserBookmark, QAfterSortBy>
+      sortByUpdatedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'updatedAt', Sort.desc);
     });
   }
 
@@ -1210,6 +1321,19 @@ extension BrowserBookmarkQuerySortThenBy
     });
   }
 
+  QueryBuilder<BrowserBookmark, BrowserBookmark, QAfterSortBy> thenByIsPin() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPin', Sort.asc);
+    });
+  }
+
+  QueryBuilder<BrowserBookmark, BrowserBookmark, QAfterSortBy>
+      thenByIsPinDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPin', Sort.desc);
+    });
+  }
+
   QueryBuilder<BrowserBookmark, BrowserBookmark, QAfterSortBy>
       thenByStringify() {
     return QueryBuilder.apply(this, (query) {
@@ -1234,6 +1358,20 @@ extension BrowserBookmarkQuerySortThenBy
       thenByTitleDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'title', Sort.desc);
+    });
+  }
+
+  QueryBuilder<BrowserBookmark, BrowserBookmark, QAfterSortBy>
+      thenByUpdatedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'updatedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<BrowserBookmark, BrowserBookmark, QAfterSortBy>
+      thenByUpdatedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'updatedAt', Sort.desc);
     });
   }
 
@@ -1286,6 +1424,12 @@ extension BrowserBookmarkQueryWhereDistinct
     });
   }
 
+  QueryBuilder<BrowserBookmark, BrowserBookmark, QDistinct> distinctByIsPin() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isPin');
+    });
+  }
+
   QueryBuilder<BrowserBookmark, BrowserBookmark, QDistinct>
       distinctByStringify() {
     return QueryBuilder.apply(this, (query) {
@@ -1297,6 +1441,13 @@ extension BrowserBookmarkQueryWhereDistinct
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'title', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<BrowserBookmark, BrowserBookmark, QDistinct>
+      distinctByUpdatedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'updatedAt');
     });
   }
 
@@ -1341,6 +1492,12 @@ extension BrowserBookmarkQueryProperty
     });
   }
 
+  QueryBuilder<BrowserBookmark, bool, QQueryOperations> isPinProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isPin');
+    });
+  }
+
   QueryBuilder<BrowserBookmark, bool?, QQueryOperations> stringifyProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'stringify');
@@ -1350,6 +1507,13 @@ extension BrowserBookmarkQueryProperty
   QueryBuilder<BrowserBookmark, String?, QQueryOperations> titleProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'title');
+    });
+  }
+
+  QueryBuilder<BrowserBookmark, DateTime, QQueryOperations>
+      updatedAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'updatedAt');
     });
   }
 

@@ -212,7 +212,8 @@ class IdentityService {
   Future<List<String>> getListenPubkeys({bool skipMute = false}) async {
     Set<String> pubkeys = {};
 
-    List<Identity> list = Get.find<HomeController>().identities.values.toList();
+    List<Identity> list =
+        Get.find<HomeController>().chatIdentities.values.toList();
     pubkeys.addAll(list.map((e) => e.secp256k1PKHex));
     if (pubkeys.isEmpty) return [];
 
@@ -308,6 +309,20 @@ class IdentityService {
     return await DBProvider.database.identitys.where().findAll();
   }
 
+  Future<List<Identity>> getEnableChatIdentityList() async {
+    return await DBProvider.database.identitys
+        .filter()
+        .enableChatEqualTo(true)
+        .findAll();
+  }
+
+  Future<List<Identity>> getEnableBrowserIdentityList() async {
+    return await DBProvider.database.identitys
+        .filter()
+        .enableBrowserEqualTo(true)
+        .findAll();
+  }
+
   Future<Identity?> getIdentityByNostrPubkey(String pubkey) async {
     return await DBProvider.database.identitys
         .filter()
@@ -327,7 +342,7 @@ class IdentityService {
     if (prikeys[pubkey] != null) return prikeys[pubkey];
 
     List<Identity> identities = Get.find<HomeController>()
-        .identities
+        .allIdentities
         .values
         .where((element) => element.secp256k1PKHex == pubkey)
         .toList();

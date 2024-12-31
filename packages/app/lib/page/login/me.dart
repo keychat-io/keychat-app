@@ -1,7 +1,7 @@
 import 'package:app/page/browser/BrowserSetting.dart';
 import 'package:app/page/login/CreateAccount.dart';
-import 'package:app/page/login/OnboardingPage2.dart';
 import 'package:app/page/setting/RelaySetting.dart';
+import 'package:app/page/setting/app_general_setting.dart';
 import 'package:app/page/setting/file_storage_server.dart';
 import 'package:app/page/setting/UploadedPubkeys.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
@@ -20,7 +20,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:app/models/models.dart';
 
@@ -32,13 +31,14 @@ class MinePage extends GetView<SettingController> {
 
   @override
   Widget build(BuildContext context) {
+    HomeController homeController = Get.find<HomeController>();
     return Scaffold(
         appBar: AppBar(
           centerTitle: true,
           title: GestureDetector(
             child: const Text('Me'),
             onTap: () {
-              Get.find<HomeController>().troggleDebugModel();
+              homeController.troggleDebugModel();
             },
           ),
         ),
@@ -51,14 +51,10 @@ class MinePage extends GetView<SettingController> {
                   SettingsSection(
                       margin: const EdgeInsetsDirectional.only(
                           start: 16, end: 16, bottom: 16, top: 0),
-                      title: const Text('Chat ID List'),
+                      title: const Text('Chat / Browser ID'),
                       tiles: [
-                        ...getIDList(
-                            context,
-                            Get.find<HomeController>()
-                                .identities
-                                .values
-                                .toList()),
+                        ...getIDList(context,
+                            homeController.allIdentities.values.toList()),
                         SettingsTile(
                             title: const Text("Create / Import ID"),
                             trailing: Icon(CupertinoIcons.add,
@@ -69,10 +65,7 @@ class MinePage extends GetView<SettingController> {
                                 size: 22),
                             onPressed: (context) async {
                               List<Identity> identities =
-                                  Get.find<HomeController>()
-                                      .identities
-                                      .values
-                                      .toList();
+                                  homeController.allIdentities.values.toList();
                               List<String> npubs =
                                   identities.map((e) => e.npub).toList();
                               String? mnemonic =
@@ -101,51 +94,67 @@ class MinePage extends GetView<SettingController> {
                           },
                           title: const Text("Bitcoin Ecash"),
                         ),
+                      ]),
+                  SettingsSection(
+                      title: const Text('Chat Settings'),
+                      margin: const EdgeInsetsDirectional.symmetric(
+                          horizontal: 16, vertical: 16),
+                      tiles: [
                         SettingsTile.navigation(
-                            title: const Text("Browser Settings"),
-                            leading: const Icon(CupertinoIcons.compass),
-                            onPressed: (context) async {
-                              Get.to(() => const BrowserSetting());
-                            }),
+                            leading: const Icon(CupertinoIcons.globe),
+                            onPressed: (c) {
+                              Get.to(() => const RelaySetting());
+                            },
+                            title: const Text('Relay Server')),
+                        SettingsTile.navigation(
+                          leading: const Icon(Icons.folder_open_outlined),
+                          title: const Text("File Storage Server"),
+                          onPressed: (context) {
+                            Get.to(() => const FileStorageSetting());
+                          },
+                        ),
+                        SettingsTile.navigation(
+                            leading: const Icon(Icons.notifications_outlined),
+                            onPressed: (x) {
+                              handleNotificationSettting(homeController);
+                            },
+                            title: const Text('Notifications')),
+                        SettingsTile.navigation(
+                          leading: const Icon(CupertinoIcons.chat_bubble),
+                          title: const Text("More Chat Settings"),
+                          onPressed: (context) async {
+                            Get.toNamed(Routes.settingMore);
+                          },
+                        ),
                       ]),
                   SettingsSection(
                     margin: const EdgeInsetsDirectional.symmetric(
                         horizontal: 16, vertical: 16),
                     tiles: [
                       SettingsTile.navigation(
-                          leading: const Icon(CupertinoIcons.globe),
-                          onPressed: (c) {
-                            Get.to(() => const RelaySetting());
-                          },
-                          title: const Text('Network')),
-                      SettingsTile.navigation(
-                          leading: const Icon(Icons.notifications_outlined),
-                          onPressed: handleNotificationSettting,
-                          title: const Text('Notifications')),
-                      SettingsTile.navigation(
-                        leading: const Icon(Icons.folder_open_outlined),
-                        title: const Text("File Storage Server"),
-                        onPressed: (context) {
-                          Get.to(() => const FileStorageSetting());
-                        },
-                      ),
+                          title: const Text("Browser Settings"),
+                          leading: const Icon(CupertinoIcons.compass),
+                          onPressed: (context) async {
+                            Get.to(() => const BrowserSetting());
+                          }),
+                    ],
+                  ),
+                  SettingsSection(
+                    margin: const EdgeInsetsDirectional.symmetric(
+                        horizontal: 16, vertical: 16),
+                    tiles: [
                       SettingsTile.navigation(
                         leading: const Icon(CupertinoIcons.settings),
-                        title: const Text("More Settings"),
-                        onPressed: (context) async {
-                          PackageInfo packageInfo =
-                              await PackageInfo.fromPlatform();
-                          controller.appVersion.value =
-                              "${packageInfo.version}+${packageInfo.buildNumber}";
-                          Get.toNamed(Routes.settingMore);
+                        title: const Text("General Settings"),
+                        onPressed: (context) {
+                          Get.to(() => const AppGeneralSetting());
                         },
                       ),
-                      SettingsTile.navigation(
-                        leading: const Icon(CupertinoIcons.question_circle),
-                        title: const Text("About Keychat"),
-                        onPressed: (context) {
-                          Get.to(() => const OnboardingPage2());
-                        },
+                      SettingsTile(
+                        leading: const Icon(Icons.verified_outlined),
+                        title: const Text("App Version"),
+                        value: textP(controller.appVersion.value),
+                        onPressed: (context) {},
                       ),
                     ],
                   ),
@@ -154,8 +163,7 @@ class MinePage extends GetView<SettingController> {
         ));
   }
 
-  handleNotificationSettting(BuildContext context) async {
-    HomeController hc = Get.find<HomeController>();
+  handleNotificationSettting(HomeController homeController) async {
     bool permission = await NotifyService.hasNotifyPermission();
     show300hSheetWidget(
         Get.context!,
@@ -164,14 +172,15 @@ class MinePage extends GetView<SettingController> {
           () => SettingsList(platform: DevicePlatform.iOS, sections: [
             SettingsSection(title: const Text('Notification setting'), tiles: [
               SettingsTile.switchTile(
-                  initialValue: hc.notificationStatus.value && permission,
+                  initialValue:
+                      homeController.notificationStatus.value && permission,
                   description: NoticeTextWidget.warning(
                       'When the notification function is turned on, receiving addresses will be uploaded to the notification server.'),
                   onToggle: (res) async {
                     res ? enableNotification() : disableNotification();
                   },
                   title: const Text('Notification status')),
-              if (hc.debugModel.value || kDebugMode)
+              if (homeController.debugModel.value || kDebugMode)
                 SettingsTile.navigation(
                   title: const Text("FCMToken"),
                   onPressed: (context) {

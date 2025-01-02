@@ -75,15 +75,22 @@ class MessageService {
           mainButton: TextButton(
               child: const Text('View'),
               onPressed: () {
-                Get.closeAllSnackbars();
-                Get.toNamed('/room/${room.id}', arguments: room);
+                pressSnackbar(room);
               }),
           icon: Utils.getRandomAvatar(room.toMainPubkey), onTap: (c) {
-        Get.closeAllSnackbars();
-        Get.toNamed('/room/${room.id}', arguments: room);
+        pressSnackbar(room);
       });
     }
     return model;
+  }
+
+  void pressSnackbar(Room room) {
+    Get.closeAllSnackbars();
+    if (Get.currentRoute.startsWith('/room/')) {
+      Get.offNamed('/room/${room.id}', arguments: room);
+    } else {
+      Get.toNamed('/room/${room.id}', arguments: room);
+    }
   }
 
   Future saveSystemMessage(Room room, String content,

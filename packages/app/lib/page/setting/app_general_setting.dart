@@ -38,7 +38,7 @@ class AppGeneralSetting extends GetView<SettingController> {
     return Scaffold(
         appBar: AppBar(
           centerTitle: true,
-          title: const Text('General Settings'),
+          title: const Text('App Settings'),
         ),
         body: SettingsList(
           platform: DevicePlatform.iOS,

@@ -3,7 +3,6 @@ import 'dart:io' show Directory;
 import 'package:app/global.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import '../service/storage.dart';
 
@@ -13,7 +12,6 @@ class SettingController extends GetxController with StateMixin<Type> {
   RxBool viewKeychatFutures = false.obs;
   RxInt autoCleanMessageDays = 0.obs;
   RxString themeMode = 'system'.obs;
-  RxString appVersion = ''.obs;
   RxString defaultFileServer = KeychatGlobal.defaultFileServer.obs;
 
   Directory appFolder = Directory('/');
@@ -36,8 +34,7 @@ class SettingController extends GetxController with StateMixin<Type> {
       if (res) return;
       Directory(avatarsFolder).createSync(recursive: true);
     });
-    PackageInfo packageInfo = await PackageInfo.fromPlatform();
-    appVersion.value = "${packageInfo.version}+${packageInfo.buildNumber}";
+
     await initDefaultFileServerConfig();
   }
 

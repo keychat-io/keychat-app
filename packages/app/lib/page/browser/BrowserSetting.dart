@@ -11,61 +11,61 @@ class BrowserSetting extends GetView<BrowserController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(title: const Text('Browser Settings')),
-        body: SafeArea(
-            child: Obx(() => SettingsList(
-                  platform: DevicePlatform.iOS,
-                  sections: [
-                    SettingsSection(
-                        title: const Text('Search Engine'),
-                        tiles: BrowserEngine.values
-                            .map((str) => SettingsTile(
-                                  leading: Checkbox(
-                                      value: controller.enableSearchEngine
-                                          .contains(str.name),
-                                      onChanged: (value) {
-                                        if (value == null) return;
-                                        if (value) {
-                                          controller.addSearchEngine(str.name);
-                                        } else {
-                                          controller
-                                              .removeSearchEngine(str.name);
-                                        }
-                                      }),
-                                  title: Text(
-                                      Utils.capitalizeFirstLetter(str.name)),
-                                ))
-                            .toList()),
-                    SettingsSection(
-                      tiles: [
-                        SettingsTile.switchTile(
-                          initialValue: controller.config['enableHistory'],
-                          leading: const Icon(CupertinoIcons.time),
-                          title: const Text("Show History"),
-                          onToggle: (value) async {
-                            await controller.setConfig('enableHistory', value);
-                          },
-                        ),
-                        SettingsTile.switchTile(
-                          initialValue: controller.config['enableBookmark'],
-                          leading: const Icon(CupertinoIcons.bookmark),
-                          title: const Text("Show Bookmark"),
-                          onToggle: (value) async {
-                            await controller.setConfig('enableBookmark', value);
-                          },
-                        ),
-                        SettingsTile.switchTile(
-                          initialValue: controller.config['enableRecommend'],
-                          leading: const Icon(CupertinoIcons.bookmark),
-                          title: const Text("Show Recommended"),
-                          onToggle: (value) async {
-                            await controller.setConfig(
-                                'enableRecommend', value);
-                          },
-                        ),
-                      ],
+        appBar: AppBar(
+          title: const Text('Browser Settings'),
+          centerTitle: true,
+        ),
+        body: Obx(() => SettingsList(
+              platform: DevicePlatform.iOS,
+              sections: [
+                SettingsSection(
+                    title: const Text('Search Engine'),
+                    tiles: BrowserEngine.values
+                        .map((str) => SettingsTile(
+                              leading: Checkbox(
+                                  value: controller.enableSearchEngine
+                                      .contains(str.name),
+                                  onChanged: (value) {
+                                    if (value == null) return;
+                                    if (value) {
+                                      controller.addSearchEngine(str.name);
+                                    } else {
+                                      controller.removeSearchEngine(str.name);
+                                    }
+                                  }),
+                              title:
+                                  Text(Utils.capitalizeFirstLetter(str.name)),
+                            ))
+                        .toList()),
+                SettingsSection(
+                  tiles: [
+                    SettingsTile.switchTile(
+                      initialValue: controller.config['enableHistory'],
+                      leading: const Icon(CupertinoIcons.time),
+                      title: const Text("Show History"),
+                      onToggle: (value) async {
+                        await controller.setConfig('enableHistory', value);
+                      },
+                    ),
+                    SettingsTile.switchTile(
+                      initialValue: controller.config['enableBookmark'],
+                      leading: const Icon(CupertinoIcons.bookmark),
+                      title: const Text("Show Bookmark"),
+                      onToggle: (value) async {
+                        await controller.setConfig('enableBookmark', value);
+                      },
+                    ),
+                    SettingsTile.switchTile(
+                      initialValue: controller.config['enableRecommend'],
+                      leading: const Icon(CupertinoIcons.bookmark),
+                      title: const Text("Show Recommended"),
+                      onToggle: (value) async {
+                        await controller.setConfig('enableRecommend', value);
+                      },
                     ),
                   ],
-                ))));
+                ),
+              ],
+            )));
   }
 }

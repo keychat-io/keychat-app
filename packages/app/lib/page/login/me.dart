@@ -1,30 +1,20 @@
+import 'package:app/controller/setting.controller.dart';
 import 'package:app/page/browser/BrowserSetting.dart';
 import 'package:app/page/login/CreateAccount.dart';
-import 'package:app/page/setting/RelaySetting.dart';
+import 'package:app/page/routes.dart';
 import 'package:app/page/setting/app_general_setting.dart';
-import 'package:app/page/setting/file_storage_server.dart';
-import 'package:app/page/setting/UploadedPubkeys.dart';
-import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/secure_storage.dart';
-import 'package:app/service/notify.service.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:app/controller/home.controller.dart';
-import 'package:app/page/components.dart';
 
 import 'package:app/utils.dart';
-import 'package:app_settings/app_settings.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:pub_semver/pub_semver.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:app/models/models.dart';
-
-import '../../controller/setting.controller.dart';
-import '../routes.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MinePage extends GetView<SettingController> {
   const MinePage({super.key});
@@ -96,64 +86,41 @@ class MinePage extends GetView<SettingController> {
                         ),
                       ]),
                   SettingsSection(
-                      title: const Text('Chat Settings'),
-                      margin: const EdgeInsetsDirectional.symmetric(
-                          horizontal: 16, vertical: 16),
-                      tiles: [
-                        SettingsTile.navigation(
-                            leading: const Icon(CupertinoIcons.globe),
-                            onPressed: (c) {
-                              Get.to(() => const RelaySetting());
-                            },
-                            title: const Text('Relay Server')),
-                        SettingsTile.navigation(
-                          leading: const Icon(Icons.folder_open_outlined),
-                          title: const Text("Media Server"),
-                          onPressed: (context) {
-                            Get.to(() => const FileStorageSetting());
-                          },
-                        ),
-                        SettingsTile.navigation(
-                            leading: const Icon(Icons.notifications_outlined),
-                            onPressed: (x) {
-                              handleNotificationSettting(homeController);
-                            },
-                            title: const Text('Notifications')),
-                        SettingsTile.navigation(
-                          leading: const Icon(CupertinoIcons.chat_bubble),
-                          title: const Text("More Chat Settings"),
-                          onPressed: (context) async {
-                            Get.toNamed(Routes.settingMore);
-                          },
-                        ),
-                      ]),
-                  SettingsSection(
                     margin: const EdgeInsetsDirectional.symmetric(
                         horizontal: 16, vertical: 16),
                     tiles: [
+                      SettingsTile.navigation(
+                        leading: const Icon(CupertinoIcons.chat_bubble),
+                        title: const Text("Chat Settings"),
+                        onPressed: (context) async {
+                          Get.toNamed(Routes.settingMore);
+                        },
+                      ),
                       SettingsTile.navigation(
                           title: const Text("Browser Settings"),
                           leading: const Icon(CupertinoIcons.compass),
                           onPressed: (context) async {
                             Get.to(() => const BrowserSetting());
                           }),
+                      SettingsTile.navigation(
+                        leading: const Icon(CupertinoIcons.settings),
+                        title: const Text("App Settings"),
+                        onPressed: (context) {
+                          Get.to(() => const AppGeneralSetting());
+                        },
+                      ),
                     ],
                   ),
                   SettingsSection(
                     margin: const EdgeInsetsDirectional.symmetric(
                         horizontal: 16, vertical: 16),
                     tiles: [
-                      SettingsTile.navigation(
-                        leading: const Icon(CupertinoIcons.settings),
-                        title: const Text("General Settings"),
-                        onPressed: (context) {
-                          Get.to(() => const AppGeneralSetting());
-                        },
-                      ),
                       SettingsTile(
                         leading: const Icon(Icons.verified_outlined),
                         title: const Text("App Version"),
-                        value: textP(controller.appVersion.value),
+                        description: const Text(
+                            'Keychat is a chat app, built on Bitcoin Ecash, Nostr Protocol and Signal Protocol and MLS Protocol.'),
+                        value: getVersionCode(homeController),
                         onPressed: (context) {},
                       ),
                     ],
@@ -163,49 +130,45 @@ class MinePage extends GetView<SettingController> {
         ));
   }
 
-  handleNotificationSettting(HomeController homeController) async {
-    bool permission = await NotifyService.hasNotifyPermission();
-    show300hSheetWidget(
-        Get.context!,
-        'Notifications',
-        Obx(
-          () => SettingsList(platform: DevicePlatform.iOS, sections: [
-            SettingsSection(title: const Text('Notification setting'), tiles: [
-              SettingsTile.switchTile(
-                  initialValue:
-                      homeController.notificationStatus.value && permission,
-                  description: NoticeTextWidget.warning(
-                      'When the notification function is turned on, receiving addresses will be uploaded to the notification server.'),
-                  onToggle: (res) async {
-                    res ? enableNotification() : disableNotification();
-                  },
-                  title: const Text('Notification status')),
-              if (homeController.debugModel.value || kDebugMode)
-                SettingsTile.navigation(
-                  title: const Text("FCMToken"),
-                  onPressed: (context) {
-                    Clipboard.setData(
-                        ClipboardData(text: NotifyService.fcmToken ?? ''));
-                    EasyLoading.showSuccess('Copied');
-                  },
-                  value: Text(
-                      '${(NotifyService.fcmToken ?? '').substring(0, NotifyService.fcmToken != null ? 5 : 0)}...',
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1),
-                ),
-              SettingsTile.navigation(
-                  title: const Text('Open System Settings'),
-                  onPressed: (context) async {
-                    await AppSettings.openAppSettings();
-                  }),
-              SettingsTile.navigation(
-                  title: const Text('Listening Pubkey Stats'),
-                  onPressed: (context) async {
-                    Get.to(() => const UploadedPubkeys());
-                  }),
-            ])
-          ]),
-        ));
+  Widget getVersionCode(HomeController homeController) {
+    String newVersion = GetPlatform.isAndroid
+        ? homeController.remoteAppConfig['androidVersion']
+        : homeController.remoteAppConfig['iosVersion'];
+    String localVersion = homeController.remoteAppConfig['appVersion'];
+    if (newVersion.isEmpty) {
+      newVersion = "0.0.0+0";
+    }
+    var n = Version.parse(newVersion);
+    var l = Version.parse(localVersion);
+    bool isNewVersionAvailable = n.compareTo(l) > 0;
+    return GestureDetector(
+      onTap: () {
+        if (GetPlatform.isAndroid) {
+          const url = 'https://github.com/keychat-io/keychat-app/releases';
+          launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+        } else if (GetPlatform.isIOS) {
+          const url = 'itms-beta://testflight.apple.com';
+          launchUrl(Uri.parse(url),
+              mode: LaunchMode.externalNonBrowserApplication);
+        }
+      },
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text(homeController.remoteAppConfig['appVersion']),
+          if (isNewVersionAvailable)
+            Container(
+              margin: const EdgeInsets.only(left: 5),
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   List<SettingsTile> getIDList(BuildContext context, List identities) {
@@ -232,87 +195,5 @@ class MinePage extends GetView<SettingController> {
           }));
     }
     return res;
-  }
-
-  disableNotification() {
-    Get.dialog(CupertinoAlertDialog(
-      title: const Text("Alert"),
-      content: Container(
-          color: Colors.transparent,
-          padding: const EdgeInsets.only(top: 15),
-          child: const Text(
-              'Once deactivated, your receiving addresses will be automatically deleted from the notification server.')),
-      actions: <Widget>[
-        CupertinoDialogAction(
-          child: const Text("Cancel"),
-          onPressed: () {
-            Get.back();
-          },
-        ),
-        CupertinoDialogAction(
-          child: const Text("Confirm"),
-          onPressed: () async {
-            EasyLoading.show(status: 'Processing');
-            try {
-              await NotifyService.updateUserSetting(false);
-              EasyLoading.showSuccess('Disabled');
-            } catch (e, s) {
-              logger.e(e.toString(), error: e, stackTrace: s);
-              EasyLoading.showError(e.toString());
-            }
-            Get.back();
-          },
-        ),
-      ],
-    ));
-  }
-
-  enableNotification() {
-    Get.dialog(CupertinoAlertDialog(
-      title: const Text("Alert"),
-      content: Container(
-          color: Colors.transparent,
-          padding: const EdgeInsets.only(top: 15),
-          child: const Text(
-              'Once activated, your receiving addresses will be automatically uploaded to the notification server.')),
-      actions: <Widget>[
-        CupertinoDialogAction(
-          child: const Text("Cancel"),
-          onPressed: () {
-            Get.back();
-          },
-        ),
-        CupertinoDialogAction(
-          child: const Text("Confirm"),
-          onPressed: () async {
-            EasyLoading.show(status: 'Processing');
-            var setting =
-                await FirebaseMessaging.instance.getNotificationSettings();
-
-            if (setting.authorizationStatus == AuthorizationStatus.denied) {
-              EasyLoading.showSuccess(
-                  "Please enable this config in system setting");
-
-              await AppSettings.openAppSettings();
-              return;
-            }
-            try {
-              if (setting.authorizationStatus ==
-                      AuthorizationStatus.notDetermined ||
-                  NotifyService.fcmToken == null) {
-                await NotifyService.requestPremissionAndInit();
-              }
-
-              await NotifyService.updateUserSetting(true);
-              EasyLoading.showSuccess('Enabled');
-            } catch (e, s) {
-              logger.e(e.toString(), error: e, stackTrace: s);
-              EasyLoading.showError(e.toString());
-            }
-            Get.back();
-          },
-        ),
-      ],
-    ));
   }
 }

@@ -6,13 +6,21 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/models/relay.dart';
 import 'package:app/page/dbSetup/db_setting.dart';
 import 'package:app/page/setting/QueryReceivedEvent.dart';
+import 'package:app/page/setting/RelaySetting.dart';
 import 'package:app/page/setting/UnreadMessages.dart';
+import 'package:app/page/setting/UploadedPubkeys.dart';
+import 'package:app/page/setting/file_storage_server.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
+import 'package:app/service/notify.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
+import 'package:app_settings/app_settings.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
@@ -36,6 +44,27 @@ class MoreChatSetting extends StatelessWidget {
         body: SettingsList(
           platform: DevicePlatform.iOS,
           sections: [
+            SettingsSection(title: const Text('Debug Zone'), tiles: [
+              SettingsTile.navigation(
+                  leading: const Icon(CupertinoIcons.globe),
+                  onPressed: (c) {
+                    Get.to(() => const RelaySetting());
+                  },
+                  title: const Text('Relay Server')),
+              SettingsTile.navigation(
+                leading: const Icon(Icons.folder_open_outlined),
+                title: const Text("Media Server"),
+                onPressed: (context) {
+                  Get.to(() => const FileStorageSetting());
+                },
+              ),
+              SettingsTile.navigation(
+                  leading: const Icon(Icons.notifications_outlined),
+                  onPressed: (x) {
+                    handleNotificationSettting();
+                  },
+                  title: const Text('Notifications'))
+            ]),
             SettingsSection(title: const Text('Debug Zone'), tiles: [
               SettingsTile.navigation(
                 leading: const Icon(Icons.event),
@@ -313,6 +342,134 @@ class MoreChatSetting extends StatelessWidget {
               return;
             }
             _showEnterDecryptionPwdDialog(context, file);
+          },
+        ),
+      ],
+    ));
+  }
+
+  handleNotificationSettting() async {
+    HomeController homeController = Get.find<HomeController>();
+    bool permission = await NotifyService.hasNotifyPermission();
+    show300hSheetWidget(
+        Get.context!,
+        'Notifications',
+        Obx(
+          () => SettingsList(platform: DevicePlatform.iOS, sections: [
+            SettingsSection(title: const Text('Notification setting'), tiles: [
+              SettingsTile.switchTile(
+                  initialValue:
+                      homeController.notificationStatus.value && permission,
+                  description: NoticeTextWidget.warning(
+                      'When the notification function is turned on, receiving addresses will be uploaded to the notification server.'),
+                  onToggle: (res) async {
+                    res ? enableNotification() : disableNotification();
+                  },
+                  title: const Text('Notification status')),
+              if (homeController.debugModel.value || kDebugMode)
+                SettingsTile.navigation(
+                  title: const Text("FCMToken"),
+                  onPressed: (context) {
+                    Clipboard.setData(
+                        ClipboardData(text: NotifyService.fcmToken ?? ''));
+                    EasyLoading.showSuccess('Copied');
+                  },
+                  value: Text(
+                      '${(NotifyService.fcmToken ?? '').substring(0, NotifyService.fcmToken != null ? 5 : 0)}...',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1),
+                ),
+              SettingsTile.navigation(
+                  title: const Text('Open System Settings'),
+                  onPressed: (context) async {
+                    await AppSettings.openAppSettings();
+                  }),
+              SettingsTile.navigation(
+                  title: const Text('Listening Pubkey Stats'),
+                  onPressed: (context) async {
+                    Get.to(() => const UploadedPubkeys());
+                  }),
+            ])
+          ]),
+        ));
+  }
+
+  disableNotification() {
+    Get.dialog(CupertinoAlertDialog(
+      title: const Text("Alert"),
+      content: Container(
+          color: Colors.transparent,
+          padding: const EdgeInsets.only(top: 15),
+          child: const Text(
+              'Once deactivated, your receiving addresses will be automatically deleted from the notification server.')),
+      actions: <Widget>[
+        CupertinoDialogAction(
+          child: const Text("Cancel"),
+          onPressed: () {
+            Get.back();
+          },
+        ),
+        CupertinoDialogAction(
+          child: const Text("Confirm"),
+          onPressed: () async {
+            EasyLoading.show(status: 'Processing');
+            try {
+              await NotifyService.updateUserSetting(false);
+              EasyLoading.showSuccess('Disabled');
+            } catch (e, s) {
+              logger.e(e.toString(), error: e, stackTrace: s);
+              EasyLoading.showError(e.toString());
+            }
+            Get.back();
+          },
+        ),
+      ],
+    ));
+  }
+
+  enableNotification() {
+    Get.dialog(CupertinoAlertDialog(
+      title: const Text("Alert"),
+      content: Container(
+          color: Colors.transparent,
+          padding: const EdgeInsets.only(top: 15),
+          child: const Text(
+              'Once activated, your receiving addresses will be automatically uploaded to the notification server.')),
+      actions: <Widget>[
+        CupertinoDialogAction(
+          child: const Text("Cancel"),
+          onPressed: () {
+            Get.back();
+          },
+        ),
+        CupertinoDialogAction(
+          child: const Text("Confirm"),
+          onPressed: () async {
+            EasyLoading.show(status: 'Processing');
+            var setting =
+                await FirebaseMessaging.instance.getNotificationSettings();
+
+            if (setting.authorizationStatus == AuthorizationStatus.denied) {
+              EasyLoading.showSuccess(
+                  "Please enable this config in system setting");
+
+              await AppSettings.openAppSettings();
+              return;
+            }
+            try {
+              if (setting.authorizationStatus ==
+                      AuthorizationStatus.notDetermined ||
+                  NotifyService.fcmToken == null) {
+                await NotifyService.requestPremissionAndInit();
+              }
+
+              await NotifyService.updateUserSetting(true);
+              EasyLoading.showSuccess('Enabled');
+            } catch (e, s) {
+              logger.e(e.toString(), error: e, stackTrace: s);
+              EasyLoading.showError(e.toString());
+            }
+            Get.back();
           },
         ),
       ],

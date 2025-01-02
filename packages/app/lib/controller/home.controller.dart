@@ -5,8 +5,10 @@ import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app/service/identity.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/relay.service.dart';
+import 'package:app/service/room.service.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/service/websocket.service.dart';
@@ -25,10 +27,7 @@ import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
-
-import '../constants.dart';
-import '../service/identity.service.dart';
-import '../service/room.service.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class HomeController extends GetxController
     with GetTickerProviderStateMixin, WidgetsBindingObserver {
@@ -40,8 +39,6 @@ class HomeController extends GetxController
 
   RxMap<int, TabData> tabBodyDatas = <int, TabData>{}.obs;
   RxMap<int, Message?> roomLastMessage = <int, Message?>{}.obs;
-
-  RxString title = appDefaultTitle.obs;
 
   RxInt defaultSelectedTab = 0.obs;
   RxInt selectedIndex = 0.obs; // main bottom tab index
@@ -64,6 +61,7 @@ class HomeController extends GetxController
 
   RxList recommendBots = [].obs;
   RxMap browserRecommend = {}.obs;
+  RxMap remoteAppConfig = {}.obs;
 
   DateTime? pausedTime;
 
@@ -159,6 +157,11 @@ class HomeController extends GetxController
       'https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/$fileName',
       'https://mirror.ghproxy.com/https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/$fileName'
     ];
+    // load app version
+    PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    remoteAppConfig['appVersion'] =
+        "${packageInfo.version}+${packageInfo.buildNumber}";
+    logger.d('remoteAppConfig: $remoteAppConfig');
 
     for (var url in list) {
       try {
@@ -170,10 +173,10 @@ class HomeController extends GetxController
           ),
         );
         if (response.statusCode == 200) {
-          recommendBots.value = jsonDecode(response.data)['bots'];
-          var recommendUrls =
-              jsonDecode(response.data)['browserRecommend'] as List;
+          Map config = jsonDecode(response.data);
+          recommendBots.value = config['bots'];
 
+          var recommendUrls = config['browserRecommend'] as List;
           browserRecommend.value = recommendUrls
               .fold<Map<String, List<Map<String, dynamic>>>>({}, (acc, item) {
             List<String> categories = List<String>.from(item['categories']);
@@ -185,8 +188,13 @@ class HomeController extends GetxController
             }
             return acc;
           });
-          logger.d('recommendBots $recommendBots');
-          logger.d('browserRecommend $browserRecommend');
+
+          // app version
+          for (var key in config.keys) {
+            if (key != 'bots' && key != 'browserRecommend') {
+              remoteAppConfig[key] = config[key];
+            }
+          }
           return;
         }
       } catch (e, s) {
@@ -465,12 +473,6 @@ class HomeController extends GetxController
   Future setTipsViewed(String name, RxBool toSetValue) async {
     toSetValue.value = false;
     await Storage.setInt(name, 1);
-  }
-
-  setTitle({String? title}) {
-    title ??= appDefaultTitle;
-
-    this.title.value = title;
   }
 
   setUnreadCount(int count) async {

@@ -4,7 +4,7 @@ description: keychat
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.25.1+6302
+version: 1.25.2+6303
  
 environment:
   sdk: ">=3.4.3 <4.0.0"
@@ -93,6 +93,7 @@ dependencies:
   pick_or_save: ^2.2.4
   file_picker: ^8.1.6
   image: ^4.5.2
+  pub_semver: ^2.1.5
 
 dev_dependencies:
   flutter_test:

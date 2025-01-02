@@ -15,9 +15,8 @@ Icon?
 profile
 xcuserdata
 **/.generated/
-Flutter/
-!Flutter/Release.xcconfig
-!Flutter/AppFrameworkInfo.plist
+Flutter/flutter_export_environment.sh
+Flutter/Generated.xcconfig
 ServiceDefinitions.json
 Runner/GeneratedPluginRegistrant.*
 **/GoogleService-Info.plist

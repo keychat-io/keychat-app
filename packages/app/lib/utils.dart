@@ -680,8 +680,14 @@ class Utils {
         isScrollControlled: true,
         enterBottomSheetDuration: Duration.zero,
         exitBottomSheetDuration: Duration.zero);
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge,
         overlays: SystemUiOverlay.values);
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarBrightness: Brightness.light,
+      statusBarIconBrightness: Brightness.dark,
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+    ));
   }
 
   static Widget getNeworkImageOrDefault(String? imageUrl,

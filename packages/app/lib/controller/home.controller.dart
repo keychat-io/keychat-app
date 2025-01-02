@@ -203,10 +203,6 @@ class HomeController extends GetxController
     }
   }
 
-  Future<int> getDefaultSelectedTab() async {
-    return await Storage.getIntOrZero(StorageKeyString.homeSelectedTabIndex);
-  }
-
   Identity getSelectedIdentity() {
     return chatIdentities.values.toList()[tabController.index];
   }
@@ -357,7 +353,11 @@ class HomeController extends GetxController
 
     int initialIndex = 0;
     if (firstUnreadIndex == -1) {
-      initialIndex = await getDefaultSelectedTab();
+      var saved =
+          await Storage.getIntOrZero(StorageKeyString.homeSelectedTabIndex);
+      if (saved < mys.length) {
+        initialIndex = saved;
+      }
     } else {
       initialIndex = firstUnreadIndex;
     }

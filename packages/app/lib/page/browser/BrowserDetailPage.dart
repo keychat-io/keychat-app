@@ -52,6 +52,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
   // bool marked = false;
   String title = "Loading...";
   bool canGoBack = false;
+  bool canGoForward = false;
   late EcashController ecashController;
   late BrowserController browserController;
   @override
@@ -81,6 +82,12 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
           );
   }
 
+  @override
+  void dispose() {
+    webViewController?.dispose();
+    super.dispose();
+  }
+
   void initIsMarked() {
     webViewController?.getUrl().then((value) async {
       if (value == null) return;
@@ -105,15 +112,23 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
             appBar: AppBar(
                 toolbarHeight: 40,
                 titleSpacing: 0,
-                leadingWidth: canGoBack ? 100 : 50,
-                leading: Row(children: [
+                leadingWidth: canGoForward ? 150 : 100,
+                leading: Row(spacing: 0, children: [
                   IconButton(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
                       onPressed: goBackOrPop,
                       icon: const Icon(Icons.arrow_back)),
-                  if (canGoBack)
+                  IconButton(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      onPressed: Get.back,
+                      icon: const Icon(Icons.close)),
+                  if (canGoForward)
                     IconButton(
-                        onPressed: Get.back, icon: const Icon(Icons.close))
+                        padding: const EdgeInsets.symmetric(horizontal: 2),
+                        onPressed: () {
+                          webViewController?.goForward();
+                        },
+                        icon: const Icon(Icons.arrow_forward)),
                 ]),
                 centerTitle: true,
                 title: Text(title),
@@ -150,10 +165,10 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                     },
                     itemBuilder: (BuildContext context) {
                       return [
-                        PopupMenuItem(
-                          value: 'tools',
-                          child: getPopTools(),
-                        ),
+                        // PopupMenuItem(
+                        //   value: 'tools',
+                        //   child: getPopTools(),
+                        // ),
                         PopupMenuItem(
                           value: 'share',
                           child: Row(spacing: 16, children: [
@@ -191,8 +206,12 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                     icon: const Icon(Icons.more_horiz),
                   ),
                 ]),
-            body: SafeArea(
-                child: Column(children: <Widget>[
+            // bottomNavigationBar: SafeArea(
+            //     child: SizedBox(
+            //   height: 40,
+            //   child: appBar,
+            // )),
+            body: Column(children: <Widget>[
               Expanded(
                 child: Stack(
                   children: [
@@ -280,9 +299,12 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                       },
                       onUpdateVisitedHistory:
                           (controller, url, androidIsReload) async {
-                        bool? can = await webViewController?.canGoBack();
+                        bool? canGoBack = await webViewController?.canGoBack();
+                        bool? canGoForward =
+                            await webViewController?.canGoForward();
                         setState(() {
-                          canGoBack = can ?? false;
+                          this.canGoBack = canGoBack ?? false;
+                          this.canGoForward = canGoForward ?? false;
                           this.url = url.toString();
                         });
                         // fetch new title
@@ -319,7 +341,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                   ],
                 ),
               ),
-            ]))));
+            ])));
   }
 
   Widget getPopTools() {

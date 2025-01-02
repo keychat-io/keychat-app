@@ -94,162 +94,158 @@ class _ChatPage2State extends State<ChatPage> {
                 ?.copyWith(fontSize: 16));
 
     return Scaffold(
-      appBar: AppBar(
-        scrolledUnderElevation: 0.0,
-        elevation: 0.0,
-        backgroundColor:
-            Get.isDarkMode ? const Color(0xFF000000) : const Color(0xffededed),
-        centerTitle: true,
-        title: Obx(() => Wrap(
-              direction: Axis.horizontal,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                _getRoomTite(),
-                if (controller.roomObs.value.type == RoomType.bot)
-                  const Padding(
-                      padding: EdgeInsets.only(left: 5),
-                      child: Icon(Icons.android_outlined, color: Colors.purple))
-              ],
-            )),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(0),
-          child: Obx(() =>
-              controller.roomObs.value.status == RoomStatus.enabled &&
-                      controller.roomObs.value.type == RoomType.common &&
-                      controller.roomObs.value.encryptMode == EncryptMode.nip04
-                  ? const Text('Weak Encrypt Mode')
-                  : const SizedBox()),
-        ),
-        actions: [
-          Obx(() => controller.roomObs.value.status != RoomStatus.approving
-              ? IconButton(
-                  onPressed: goToSetting,
-                  icon: const Icon(
-                    Icons.more_horiz,
-                  ),
-                )
-              : Container())
-        ],
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.miniEndTop,
-      floatingActionButton: Obx(() => controller.unreadIndex.value > 1
-          ? FilledButton.icon(
-              icon: const Icon(Icons.arrow_upward),
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: MaterialTheme.lightScheme().primary),
-              onPressed: () async {
-                await controller.autoScrollController.scrollToIndex(
-                    controller.unreadIndex.value - 3,
-                    preferPosition: AutoScrollPosition.begin);
-                controller.autoScrollController
-                    .highlight(controller.unreadIndex.value);
-                controller.unreadIndex.value = -1;
-              },
-              label: Text('Unread: ${controller.unreadIndex.value + 1}',
-                  style: const TextStyle(color: Colors.white)),
-            )
-          : const SizedBox()),
-      body: SafeArea(
-          child: GestureDetector(
-        onPanUpdate: (details) {
-          if (details.delta.dx < -10) {
-            goToSetting();
-          }
-        },
-        onTap: () {
-          controller.processClickBlank();
-        },
-        child: Column(
-          children: <Widget>[
-            Obx(() => debugWidget(hc)),
-            if (controller.room.isSendAllGroup)
-              Obx(() => _kpaIsNull(controller)),
-            Obx(() => controller.roomObs.value.signalDecodeError
-                ? MyErrorText(
-                    errorText: 'Messages decrypted failed',
-                    action: TextButton(
-                        child: const Text('Fix it',
-                            style: TextStyle(color: Colors.white)),
-                        onPressed: () async {
-                          await SignalChatService.instance.sendHelloMessage(
-                              controller.room, controller.room.getIdentity());
-                          EasyLoading.showInfo('Request sent successfully.');
-                        }),
-                  )
+        appBar: AppBar(
+          scrolledUnderElevation: 0.0,
+          elevation: 0.0,
+          backgroundColor: Get.isDarkMode
+              ? const Color(0xFF000000)
+              : const Color(0xffededed),
+          centerTitle: true,
+          title: Obx(() => Wrap(
+                direction: Axis.horizontal,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  _getRoomTite(),
+                  if (controller.roomObs.value.type == RoomType.bot)
+                    const Padding(
+                        padding: EdgeInsets.only(left: 5),
+                        child:
+                            Icon(Icons.android_outlined, color: Colors.purple))
+                ],
+              )),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(0),
+            child: Obx(() => controller.roomObs.value.status ==
+                        RoomStatus.enabled &&
+                    controller.roomObs.value.type == RoomType.common &&
+                    controller.roomObs.value.encryptMode == EncryptMode.nip04
+                ? const Text('Weak Encrypt Mode')
                 : const SizedBox()),
-            Expanded(
-                child: Container(
-                    color: Get.isDarkMode
-                        ? const Color(0xFF000000)
-                        : const Color(0xffededed),
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: RefreshIndicator(
-                      displacement: 2,
-                      onRefresh: controller.loadMoreChatHistory,
-                      child: Obx(() => Listener(
-                          onPointerMove: (event) {
-                            if (event.delta.dy < -10 && isFromSearch) {
-                              List<Message> msgs =
-                                  controller.loadMoreChatFromSearchSroll();
-                              if (msgs.isNotEmpty) {
-                                controller.messages
-                                    .addAll(controller.sortMessageById(msgs));
-                                controller.messages.value =
-                                    controller.messages.toSet().toList();
-                                controller.messages.sort(((a, b) =>
-                                    b.createdAt.compareTo(a.createdAt)));
-                              }
-                            }
-                          },
-                          child: ListView.builder(
-                            reverse: true,
-                            shrinkWrap: true,
-                            controller: controller.autoScrollController,
-                            itemCount: controller.messages.length,
-                            itemBuilder: (BuildContext context, int index) {
-                              Message message = controller.messages[index];
-                              Contact contact =
-                                  controller.getContactByMessage(message);
-                              RoomMember? rm;
-                              if (controller.room.type == RoomType.group) {
-                                rm = controller.getRoomMemberByMessage(message);
-                              }
-
-                              return AutoScrollTag(
-                                  key: ValueKey(index),
-                                  controller: controller.autoScrollController,
-                                  index: index,
-                                  highlightColor: Theme.of(context)
-                                      .colorScheme
-                                      .inversePrimary,
-                                  child: MessageWidget(
-                                    key: ObjectKey('msg:${message.id}'),
-                                    myAavtar: myAavtar,
-                                    contact: contact,
-                                    index: index,
-                                    isGroup: isGroup,
-                                    roomMember: rm,
-                                    chatController: controller,
-                                    screenWidth: screenWidth,
-                                    toDisplayNameColor: Get.isDarkMode
-                                        ? Colors.white54
-                                        : Colors.black54,
-                                    backgroundColor: message.isMeSend
-                                        ? meBackgroundColor
-                                        : toBackgroundColor,
-                                    fontColor: fontColor,
-                                    markdownStyleSheet: message.isMeSend
-                                        ? myMarkdownStyleSheet
-                                        : hisMarkdownStyleSheet,
-                                  ));
-                            },
-                          ))),
-                    ))),
-            Obx(() => getSendMessageInput(context, controller))
+          ),
+          actions: [
+            Obx(() => controller.roomObs.value.status != RoomStatus.approving
+                ? IconButton(
+                    onPressed: goToSetting,
+                    icon: const Icon(
+                      Icons.more_horiz,
+                    ),
+                  )
+                : Container())
           ],
         ),
-      )),
-    );
+        floatingActionButtonLocation: FloatingActionButtonLocation.miniEndTop,
+        floatingActionButton: Obx(() => controller.unreadIndex.value > 1
+            ? FilledButton.icon(
+                icon: const Icon(Icons.arrow_upward),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: MaterialTheme.lightScheme().primary),
+                onPressed: () async {
+                  await controller.autoScrollController.scrollToIndex(
+                      controller.unreadIndex.value - 3,
+                      preferPosition: AutoScrollPosition.begin);
+                  controller.autoScrollController
+                      .highlight(controller.unreadIndex.value);
+                  controller.unreadIndex.value = -1;
+                },
+                label: Text('Unread: ${controller.unreadIndex.value + 1}',
+                    style: const TextStyle(color: Colors.white)),
+              )
+            : const SizedBox()),
+        body: GestureDetector(
+          onTap: () {
+            controller.processClickBlank();
+          },
+          child: Column(
+            children: <Widget>[
+              Obx(() => debugWidget(hc)),
+              if (controller.room.isSendAllGroup)
+                Obx(() => _kpaIsNull(controller)),
+              Obx(() => controller.roomObs.value.signalDecodeError
+                  ? MyErrorText(
+                      errorText: 'Messages decrypted failed',
+                      action: TextButton(
+                          child: const Text('Fix it',
+                              style: TextStyle(color: Colors.white)),
+                          onPressed: () async {
+                            await SignalChatService.instance.sendHelloMessage(
+                                controller.room, controller.room.getIdentity());
+                            EasyLoading.showInfo('Request sent successfully.');
+                          }),
+                    )
+                  : const SizedBox()),
+              Expanded(
+                  child: Container(
+                      color: Get.isDarkMode
+                          ? const Color(0xFF000000)
+                          : const Color(0xffededed),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: RefreshIndicator(
+                        displacement: 2,
+                        onRefresh: controller.loadMoreChatHistory,
+                        child: Obx(() => Listener(
+                            onPointerMove: (event) {
+                              if (event.delta.dy < -10 && isFromSearch) {
+                                List<Message> msgs =
+                                    controller.loadMoreChatFromSearchSroll();
+                                if (msgs.isNotEmpty) {
+                                  controller.messages
+                                      .addAll(controller.sortMessageById(msgs));
+                                  controller.messages.value =
+                                      controller.messages.toSet().toList();
+                                  controller.messages.sort(((a, b) =>
+                                      b.createdAt.compareTo(a.createdAt)));
+                                }
+                              }
+                            },
+                            child: ListView.builder(
+                              reverse: true,
+                              shrinkWrap: true,
+                              controller: controller.autoScrollController,
+                              itemCount: controller.messages.length,
+                              itemBuilder: (BuildContext context, int index) {
+                                Message message = controller.messages[index];
+                                Contact contact =
+                                    controller.getContactByMessage(message);
+                                RoomMember? rm;
+                                if (controller.room.type == RoomType.group) {
+                                  rm = controller
+                                      .getRoomMemberByMessage(message);
+                                }
+
+                                return AutoScrollTag(
+                                    key: ValueKey(index),
+                                    controller: controller.autoScrollController,
+                                    index: index,
+                                    highlightColor: Theme.of(context)
+                                        .colorScheme
+                                        .inversePrimary,
+                                    child: MessageWidget(
+                                      key: ObjectKey('msg:${message.id}'),
+                                      myAavtar: myAavtar,
+                                      contact: contact,
+                                      index: index,
+                                      isGroup: isGroup,
+                                      roomMember: rm,
+                                      chatController: controller,
+                                      screenWidth: screenWidth,
+                                      toDisplayNameColor: Get.isDarkMode
+                                          ? Colors.white54
+                                          : Colors.black54,
+                                      backgroundColor: message.isMeSend
+                                          ? meBackgroundColor
+                                          : toBackgroundColor,
+                                      fontColor: fontColor,
+                                      markdownStyleSheet: message.isMeSend
+                                          ? myMarkdownStyleSheet
+                                          : hisMarkdownStyleSheet,
+                                    ));
+                              },
+                            ))),
+                      ))),
+              Obx(() => getSendMessageInput(context, controller))
+            ],
+          ),
+        ));
   }
 
   getSendMessageInput(BuildContext context, ChatController controller) {

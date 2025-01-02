@@ -118,8 +118,6 @@ class MinePage extends GetView<SettingController> {
                       SettingsTile(
                         leading: const Icon(Icons.verified_outlined),
                         title: const Text("App Version"),
-                        description: const Text(
-                            'Keychat is a chat app, built on Bitcoin Ecash, Nostr Protocol and Signal Protocol and MLS Protocol.'),
                         value: getVersionCode(homeController),
                         onPressed: (context) {},
                       ),
@@ -131,13 +129,13 @@ class MinePage extends GetView<SettingController> {
   }
 
   Widget getVersionCode(HomeController homeController) {
-    String newVersion = GetPlatform.isAndroid
-        ? homeController.remoteAppConfig['androidVersion']
-        : homeController.remoteAppConfig['iosVersion'];
-    String localVersion = homeController.remoteAppConfig['appVersion'];
-    if (newVersion.isEmpty) {
-      newVersion = "0.0.0+0";
-    }
+    String newVersion = (GetPlatform.isAndroid
+            ? homeController.remoteAppConfig['androidVersion']
+            : homeController.remoteAppConfig['iosVersion']) ??
+        "0.0.0+0";
+    String localVersion =
+        homeController.remoteAppConfig['appVersion'] ?? '0.0.0+0';
+
     var n = Version.parse(newVersion);
     var l = Version.parse(localVersion);
     bool isNewVersionAvailable = n.compareTo(l) > 0;

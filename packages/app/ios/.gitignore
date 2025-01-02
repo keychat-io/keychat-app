@@ -16,6 +16,8 @@ profile
 xcuserdata
 **/.generated/
 Flutter/
+!Flutter/Release.xcconfig
+!Flutter/AppFrameworkInfo.plist
 ServiceDefinitions.json
 Runner/GeneratedPluginRegistrant.*
 **/GoogleService-Info.plist

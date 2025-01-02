@@ -44,7 +44,7 @@ class MoreChatSetting extends StatelessWidget {
         body: SettingsList(
           platform: DevicePlatform.iOS,
           sections: [
-            SettingsSection(title: const Text('Debug Zone'), tiles: [
+            SettingsSection(tiles: [
               SettingsTile.navigation(
                   leading: const Icon(CupertinoIcons.globe),
                   onPressed: (c) {

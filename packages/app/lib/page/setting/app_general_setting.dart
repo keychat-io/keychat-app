@@ -120,6 +120,8 @@ class AppGeneralSetting extends GetView<SettingController> {
               SettingsTile.navigation(
                 leading: const Icon(CupertinoIcons.question_circle),
                 title: const Text("About Keychat"),
+                description: const Text(
+                    'Keychat is a chat app, built on Bitcoin Ecash, Nostr Protocol and Signal Protocol and MLS Protocol.'),
                 onPressed: (context) {
                   Get.to(() => const OnboardingPage2());
                 },

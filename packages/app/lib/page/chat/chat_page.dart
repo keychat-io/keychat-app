@@ -152,100 +152,114 @@ class _ChatPage2State extends State<ChatPage> {
               )
             : const SizedBox()),
         body: GestureDetector(
-          onTap: () {
-            controller.processClickBlank();
-          },
-          child: Column(
-            children: <Widget>[
-              Obx(() => debugWidget(hc)),
-              if (controller.room.isSendAllGroup)
-                Obx(() => _kpaIsNull(controller)),
-              Obx(() => controller.roomObs.value.signalDecodeError
-                  ? MyErrorText(
-                      errorText: 'Messages decrypted failed',
-                      action: TextButton(
-                          child: const Text('Fix it',
-                              style: TextStyle(color: Colors.white)),
-                          onPressed: () async {
-                            await SignalChatService.instance.sendHelloMessage(
-                                controller.room, controller.room.getIdentity());
-                            EasyLoading.showInfo('Request sent successfully.');
-                          }),
-                    )
-                  : const SizedBox()),
-              Expanded(
-                  child: Container(
-                      color: Get.isDarkMode
-                          ? const Color(0xFF000000)
-                          : const Color(0xffededed),
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: RefreshIndicator(
-                        displacement: 2,
-                        onRefresh: controller.loadMoreChatHistory,
-                        child: Obx(() => Listener(
-                            onPointerMove: (event) {
-                              if (event.delta.dy < -10 && isFromSearch) {
-                                List<Message> msgs =
-                                    controller.loadMoreChatFromSearchSroll();
-                                if (msgs.isNotEmpty) {
-                                  controller.messages
-                                      .addAll(controller.sortMessageById(msgs));
-                                  controller.messages.value =
-                                      controller.messages.toSet().toList();
-                                  controller.messages.sort(((a, b) =>
-                                      b.createdAt.compareTo(a.createdAt)));
-                                }
-                              }
-                            },
-                            child: ListView.builder(
-                              reverse: true,
-                              shrinkWrap: true,
-                              controller: controller.autoScrollController,
-                              itemCount: controller.messages.length,
-                              itemBuilder: (BuildContext context, int index) {
-                                Message message = controller.messages[index];
-                                Contact contact =
-                                    controller.getContactByMessage(message);
-                                RoomMember? rm;
-                                if (controller.room.type == RoomType.group) {
-                                  rm = controller
-                                      .getRoomMemberByMessage(message);
-                                }
+            onTap: () {
+              controller.processClickBlank();
+            },
+            child: GestureDetector(
+              onPanUpdate: (details) {
+                if (GetPlatform.isIOS) {
+                  if (details.delta.dx < -10) {
+                    goToSetting();
+                  }
+                }
+              },
+              child: Column(
+                children: <Widget>[
+                  Obx(() => debugWidget(hc)),
+                  if (controller.room.isSendAllGroup)
+                    Obx(() => _kpaIsNull(controller)),
+                  Obx(() => controller.roomObs.value.signalDecodeError
+                      ? MyErrorText(
+                          errorText: 'Messages decrypted failed',
+                          action: TextButton(
+                              child: const Text('Fix it',
+                                  style: TextStyle(color: Colors.white)),
+                              onPressed: () async {
+                                await SignalChatService.instance
+                                    .sendHelloMessage(controller.room,
+                                        controller.room.getIdentity());
+                                EasyLoading.showInfo(
+                                    'Request sent successfully.');
+                              }),
+                        )
+                      : const SizedBox()),
+                  Expanded(
+                      child: Container(
+                          color: Get.isDarkMode
+                              ? const Color(0xFF000000)
+                              : const Color(0xffededed),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: RefreshIndicator(
+                            displacement: 2,
+                            onRefresh: controller.loadMoreChatHistory,
+                            child: Obx(() => Listener(
+                                onPointerMove: (event) {
+                                  if (event.delta.dy < -10 && isFromSearch) {
+                                    List<Message> msgs = controller
+                                        .loadMoreChatFromSearchSroll();
+                                    if (msgs.isNotEmpty) {
+                                      controller.messages.addAll(
+                                          controller.sortMessageById(msgs));
+                                      controller.messages.value =
+                                          controller.messages.toSet().toList();
+                                      controller.messages.sort(((a, b) =>
+                                          b.createdAt.compareTo(a.createdAt)));
+                                    }
+                                  }
+                                },
+                                child: ListView.builder(
+                                  reverse: true,
+                                  shrinkWrap: true,
+                                  controller: controller.autoScrollController,
+                                  itemCount: controller.messages.length,
+                                  itemBuilder:
+                                      (BuildContext context, int index) {
+                                    Message message =
+                                        controller.messages[index];
+                                    Contact contact =
+                                        controller.getContactByMessage(message);
+                                    RoomMember? rm;
+                                    if (controller.room.type ==
+                                        RoomType.group) {
+                                      rm = controller
+                                          .getRoomMemberByMessage(message);
+                                    }
 
-                                return AutoScrollTag(
-                                    key: ValueKey(index),
-                                    controller: controller.autoScrollController,
-                                    index: index,
-                                    highlightColor: Theme.of(context)
-                                        .colorScheme
-                                        .inversePrimary,
-                                    child: MessageWidget(
-                                      key: ObjectKey('msg:${message.id}'),
-                                      myAavtar: myAavtar,
-                                      contact: contact,
-                                      index: index,
-                                      isGroup: isGroup,
-                                      roomMember: rm,
-                                      chatController: controller,
-                                      screenWidth: screenWidth,
-                                      toDisplayNameColor: Get.isDarkMode
-                                          ? Colors.white54
-                                          : Colors.black54,
-                                      backgroundColor: message.isMeSend
-                                          ? meBackgroundColor
-                                          : toBackgroundColor,
-                                      fontColor: fontColor,
-                                      markdownStyleSheet: message.isMeSend
-                                          ? myMarkdownStyleSheet
-                                          : hisMarkdownStyleSheet,
-                                    ));
-                              },
-                            ))),
-                      ))),
-              Obx(() => getSendMessageInput(context, controller))
-            ],
-          ),
-        ));
+                                    return AutoScrollTag(
+                                        key: ValueKey(index),
+                                        controller:
+                                            controller.autoScrollController,
+                                        index: index,
+                                        highlightColor: Theme.of(context)
+                                            .colorScheme
+                                            .inversePrimary,
+                                        child: MessageWidget(
+                                          key: ObjectKey('msg:${message.id}'),
+                                          myAavtar: myAavtar,
+                                          contact: contact,
+                                          index: index,
+                                          isGroup: isGroup,
+                                          roomMember: rm,
+                                          chatController: controller,
+                                          screenWidth: screenWidth,
+                                          toDisplayNameColor: Get.isDarkMode
+                                              ? Colors.white54
+                                              : Colors.black54,
+                                          backgroundColor: message.isMeSend
+                                              ? meBackgroundColor
+                                              : toBackgroundColor,
+                                          fontColor: fontColor,
+                                          markdownStyleSheet: message.isMeSend
+                                              ? myMarkdownStyleSheet
+                                              : hisMarkdownStyleSheet,
+                                        ));
+                                  },
+                                ))),
+                          ))),
+                  Obx(() => getSendMessageInput(context, controller))
+                ],
+              ),
+            )));
   }
 
   getSendMessageInput(BuildContext context, ChatController controller) {

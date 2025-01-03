@@ -122,7 +122,7 @@ class BrowserController extends GetxController {
         title.value = defaultTitle;
       }
       initBrowser();
-      Get.to(() => BrowserDetailPage(content, title.value));
+      Get.to(() => BrowserDetailPage(content, title.value), popGesture: false);
     });
   }
 

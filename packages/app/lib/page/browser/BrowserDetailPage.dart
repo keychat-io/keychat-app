@@ -9,18 +9,22 @@ import 'package:app/page/browser/Browser_controller.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/utils.dart';
+import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter_floating/floating/assist/floating_slide_type.dart';
+import 'package:flutter_floating/floating/floating.dart';
+import 'package:flutter_floating/floating/manager/floating_manager.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:get/get.dart';
+import 'package:get/get_connect/http/src/utils/utils.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class BrowserDetailPage extends StatefulWidget {
@@ -34,6 +38,7 @@ class BrowserDetailPage extends StatefulWidget {
 
 class _BrowserDetailPageState extends State<BrowserDetailPage> {
   final GlobalKey webViewKey = GlobalKey();
+  final keepAlive = InAppWebViewKeepAlive();
 
   InAppWebViewController? webViewController;
   InAppWebViewSettings settings = InAppWebViewSettings(
@@ -55,6 +60,8 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
   bool canGoForward = false;
   late EcashController ecashController;
   late BrowserController browserController;
+  BrowserConnect? browserConnect;
+
   @override
   void initState() {
     browserController = Get.find<BrowserController>();
@@ -64,6 +71,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
       title = widget.title;
       url = widget.initUrl;
     });
+    initBrowserConnect(WebUri(url));
     pullToRefreshController = kIsWeb ||
             ![TargetPlatform.iOS, TargetPlatform.android]
                 .contains(defaultTargetPlatform)
@@ -84,16 +92,23 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
 
   @override
   void dispose() {
-    webViewController?.dispose();
     super.dispose();
+    webViewController?.dispose();
   }
 
-  void initIsMarked() {
-    webViewController?.getUrl().then((value) async {
-      if (value == null) return;
+  void menuOpened() async {
+    var uri = await webViewController?.getUrl();
+    if (uri == null) return;
+    setState(() {
+      url = uri.toString();
+    });
+    initBrowserConnect(uri);
+  }
 
+  initBrowserConnect(WebUri uri) {
+    BrowserConnect.getByHost(uri.host).then((value) {
       setState(() {
-        url = value.toString();
+        browserConnect = value;
       });
     });
   }
@@ -134,41 +149,14 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                 title: Text(title),
                 actions: [
                   PopupMenuButton<String>(
-                    onOpened: () {
-                      initIsMarked();
-                    },
-                    onSelected: (value) async {
-                      final url = await webViewController?.getUrl();
-                      if (url == null) return;
-
-                      switch (value) {
-                        case 'share':
-                          Share.share(url.toString());
-                          break;
-                        case 'copy':
-                          Clipboard.setData(
-                              ClipboardData(text: url.toString()));
-                          EasyLoading.showToast('Copied');
-                          break;
-                        case 'clear':
-                          if (webViewController == null) return;
-                          webViewController?.webStorage.localStorage.clear();
-                          webViewController?.webStorage.sessionStorage.clear();
-                          EasyLoading.showToast('Clear Success');
-                          webViewController?.reload();
-                          break;
-                        case 'openInBrowser':
-                          await launchUrl(Uri.parse(url.toString()),
-                              mode: LaunchMode.externalApplication);
-                          break;
-                      }
-                    },
+                    onOpened: menuOpened,
+                    onSelected: popupMenuSelected,
                     itemBuilder: (BuildContext context) {
                       return [
-                        // PopupMenuItem(
-                        //   value: 'tools',
-                        //   child: getPopTools(),
-                        // ),
+                        PopupMenuItem(
+                          value: 'tools',
+                          child: getPopTools(url),
+                        ),
                         PopupMenuItem(
                           value: 'share',
                           child: Row(spacing: 16, children: [
@@ -193,6 +181,15 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                                 style: Theme.of(context).textTheme.bodyLarge)
                           ]),
                         ),
+                        if (browserConnect != null)
+                          PopupMenuItem(
+                            value: 'disconnect',
+                            child: Row(spacing: 12, children: [
+                              const Icon(Icons.logout),
+                              Text('Disconnect',
+                                  style: Theme.of(context).textTheme.bodyLarge)
+                            ]),
+                          ),
                         PopupMenuItem(
                           value: 'openInBrowser',
                           child: Row(spacing: 12, children: [
@@ -211,12 +208,38 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
             //   height: 40,
             //   child: appBar,
             // )),
+            floatingActionButtonLocation:
+                FloatingActionButtonLocation.miniStartFloat,
+            floatingActionButtonAnimator:
+                FloatingActionButtonAnimator.noAnimation,
+            floatingActionButton: GetPlatform.isIOS && canGoBack
+                ? Padding(
+                    padding: const EdgeInsets.only(bottom: 240),
+                    child: Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withAlpha(80),
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        child: IconButton(
+                            iconSize: 24,
+                            onPressed: goBackOrPop,
+                            padding: const EdgeInsets.all(0),
+                            icon: const Icon(
+                              Icons.arrow_back,
+                              size: 24,
+                              color: Colors.white,
+                            ))))
+                : null,
             body: Column(children: <Widget>[
               Expanded(
                 child: Stack(
                   children: [
                     InAppWebView(
                       key: webViewKey,
+                      keepAlive: keepAlive,
                       initialUrlRequest:
                           URLRequest(url: WebUri(widget.initUrl)),
                       initialSettings: settings,
@@ -238,8 +261,8 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                             resources: request.resources,
                             action: PermissionResponseAction.GRANT);
                       },
-                      shouldOverrideUrlLoading:
-                          (controller, navigationAction) async {
+                      shouldOverrideUrlLoading: (controller,
+                          NavigationAction navigationAction) async {
                         var uri = navigationAction.request.url!;
                         var str = uri.toString();
                         if (str.startsWith('cashu')) {
@@ -275,10 +298,11 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                             return NavigationActionPolicy.CANCEL;
                           }
                         }
-
+                        onUpdateVisitedHistory(str);
                         return NavigationActionPolicy.ALLOW;
                       },
                       onLoadStop: (controller, url) async {
+                        onUpdateVisitedHistory(url.toString());
                         await controller.injectJavascriptFileFromAsset(
                             assetFilePath: "assets/js/nostr.js");
                         pullToRefreshController?.endRefreshing();
@@ -297,31 +321,6 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                           this.progress = progress / 100;
                         });
                       },
-                      onUpdateVisitedHistory:
-                          (controller, url, androidIsReload) async {
-                        bool? canGoBack = await webViewController?.canGoBack();
-                        bool? canGoForward =
-                            await webViewController?.canGoForward();
-                        setState(() {
-                          this.canGoBack = canGoBack ?? false;
-                          this.canGoForward = canGoForward ?? false;
-                          this.url = url.toString();
-                        });
-                        // fetch new title
-                        String? newTitle = await controller.getTitle();
-                        String? favicon =
-                            await browserController.getFavicon(controller);
-                        if (newTitle == null) {
-                          Future.delayed(const Duration(seconds: 1))
-                              .then((e) async {
-                            browserController.addHistory(url.toString(),
-                                await controller.getTitle() ?? title, favicon);
-                          });
-                        } else {
-                          browserController.addHistory(
-                              url.toString(), newTitle, favicon);
-                        }
-                      },
                       onConsoleMessage: (controller, consoleMessage) {
                         if (kDebugMode) {
                           print('console: $consoleMessage');
@@ -334,6 +333,10 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                           });
                         }
                       },
+                      onUpdateVisitedHistory:
+                          (controller, url, androidIsReload) {
+                        onUpdateVisitedHistory(url.toString());
+                      },
                     ),
                     progress < 1.0
                         ? LinearProgressIndicator(value: progress)
@@ -344,7 +347,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
             ])));
   }
 
-  Widget getPopTools() {
+  Widget getPopTools(String url) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -355,63 +358,70 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
         spacing: 4,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          FutureBuilder<bool>(
-            future: webViewController?.canGoBack(),
-            builder: (context, snapshot) {
-              bool canGoBack = snapshot.data ?? false;
-              return IconButton(
-                icon: const Icon(CupertinoIcons.arrow_left),
-                onPressed: () async {
-                  if (canGoBack) {
-                    webViewController?.goBack();
-                    Get.back();
-                  }
-                },
-                color:
-                    canGoBack ? Theme.of(context).iconTheme.color : Colors.grey,
-              );
-            },
-          ),
-          FutureBuilder<bool>(
-              future: webViewController?.canGoForward(),
-              builder: (context, snapshot) {
-                bool can = snapshot.data ?? false;
-                return IconButton(
-                  icon: const Icon(CupertinoIcons.arrow_right),
-                  onPressed: () async {
-                    if (can) {
-                      webViewController?.goForward();
-                      Get.back();
-                    }
-                  },
-                  color: can ? Theme.of(context).iconTheme.color : Colors.grey,
-                );
-              }),
-          FutureBuilder(future: () async {
-            final url = await webViewController?.getUrl();
-            if (url == null) return null;
-            return await DBProvider.database.browserBookmarks
-                .filter()
-                .urlEqualTo(url.toString())
-                .findFirst();
-          }(), builder: (context, snapshot) {
-            BrowserBookmark? bb = snapshot.data;
-            return IconButton(
-              icon: bb != null
-                  ? const Icon(CupertinoIcons.star_fill)
-                  : const Icon(CupertinoIcons.star),
-              onPressed: () {
-                troggleMarkUrl(bb);
-                Get.back();
-              },
-            );
-          }),
-          IconButton(
-              onPressed: () {
-                webViewController?.reload();
-                Get.back();
-              },
-              icon: const Icon(CupertinoIcons.refresh)),
+          Expanded(
+            child: Text(
+              url,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          )
+          // FutureBuilder<bool>(
+          //   future: webViewController?.canGoBack(),
+          //   builder: (context, snapshot) {
+          //     bool canGoBack = snapshot.data ?? false;
+          //     return IconButton(
+          //       icon: const Icon(CupertinoIcons.arrow_left),
+          //       onPressed: () async {
+          //         if (canGoBack) {
+          //           webViewController?.goBack();
+          //           Get.back();
+          //         }
+          //       },
+          //       color:
+          //           canGoBack ? Theme.of(context).iconTheme.color : Colors.grey,
+          //     );
+          //   },
+          // ),
+          // FutureBuilder<bool>(
+          //     future: webViewController?.canGoForward(),
+          //     builder: (context, snapshot) {
+          //       bool can = snapshot.data ?? false;
+          //       return IconButton(
+          //         icon: const Icon(CupertinoIcons.arrow_right),
+          //         onPressed: () async {
+          //           if (can) {
+          //             webViewController?.goForward();
+          //             Get.back();
+          //           }
+          //         },
+          //         color: can ? Theme.of(context).iconTheme.color : Colors.grey,
+          //       );
+          //     }),
+          // FutureBuilder(future: () async {
+          //   final url = await webViewController?.getUrl();
+          //   if (url == null) return null;
+          //   return await DBProvider.database.browserBookmarks
+          //       .filter()
+          //       .urlEqualTo(url.toString())
+          //       .findFirst();
+          // }(), builder: (context, snapshot) {
+          //   BrowserBookmark? bb = snapshot.data;
+          //   return IconButton(
+          //     icon: bb != null
+          //         ? const Icon(CupertinoIcons.star_fill)
+          //         : const Icon(CupertinoIcons.star),
+          //     onPressed: () {
+          //       troggleMarkUrl(bb);
+          //       Get.back();
+          //     },
+          //   );
+          // }),
+          // IconButton(
+          //     onPressed: () {
+          //       webViewController?.reload();
+          //       Get.back();
+          //     },
+          //     icon: const Icon(CupertinoIcons.refresh)),
         ],
       ),
     );
@@ -444,7 +454,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
       if (canGoBack) {
         webViewController?.goBack();
       } else {
-        Navigator.pop(Get.context!);
+        Navigator.of(Get.context!).pop();
       }
     });
   }
@@ -456,12 +466,16 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
     }
     logger.d('javascriptHandler: $data');
     var method = data.args[0];
+    if (method == 'getRelays') {
+      var relays = await RelayService.instance.getEnableList();
+      return relays;
+    }
+
     WebUri? uri = await webViewController?.getUrl();
     if (uri == null) return;
     String host = uri.host;
     Identity? identity = await getOrSelectIdentity(host);
     if (identity == null) {
-      // EasyLoading.showError('No identity selected');
       return null;
     }
 
@@ -481,9 +495,6 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                 .toList());
         logger.d('signEvent: $res');
         return res;
-      case 'getRelays':
-        var relays = await RelayService.instance.getEnableList();
-        return relays;
       case 'nip04Encrypt':
         String to = data.args[1];
         String plaintext = data.args[2];
@@ -576,5 +587,75 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
               .toList())
     ]));
     return selected;
+  }
+
+  Future popupMenuSelected(String value) async {
+    final url = await webViewController?.getUrl();
+    if (url == null) return;
+
+    switch (value) {
+      case 'floating':
+        floatingManager.createFloating(
+            "browser_url",
+            Floating(
+                IconButton(
+                  icon: const Icon(Icons.explore),
+                  onPressed: () {
+                    Get.to(() => BrowserDetailPage(url.toString(), title));
+                  },
+                ),
+                slideType: FloatingSlideType.onLeftAndTop,
+                isShowLog: false,
+                slideBottomHeight: 100));
+        break;
+      case 'share':
+        Share.share(url.toString());
+        break;
+      case 'copy':
+        Clipboard.setData(ClipboardData(text: url.toString()));
+        EasyLoading.showToast('Copied');
+        break;
+      case 'clear':
+        if (webViewController == null) return;
+        webViewController?.webStorage.localStorage.clear();
+        webViewController?.webStorage.sessionStorage.clear();
+        EasyLoading.showToast('Clear Success');
+        webViewController?.reload();
+        break;
+      case 'disconnect':
+        BrowserConnect.getByHost(url.host).then((value) {
+          if (value != null) {
+            BrowserConnect.delete(value.id);
+            webViewController?.webStorage.localStorage.clear();
+            webViewController?.webStorage.sessionStorage.clear();
+            EasyLoading.showToast('Disconnect Success');
+            webViewController?.reload();
+          }
+        });
+        break;
+      case 'openInBrowser':
+        await launchUrl(Uri.parse(url.toString()),
+            mode: LaunchMode.externalApplication);
+        break;
+    }
+  }
+
+  onUpdateVisitedHistory(String url) async {
+    if (webViewController == null) return;
+    EasyDebounce.debounce('urlHistoryUpdate', const Duration(milliseconds: 500),
+        () async {
+      bool? canGoBack = await webViewController?.canGoBack();
+      bool? canGoForward = await webViewController?.canGoForward();
+      logger.d('canGoBack: $canGoBack, canGoForward: $canGoForward');
+      setState(() {
+        this.canGoBack = canGoBack ?? false;
+        this.canGoForward = canGoForward ?? false;
+        this.url = url.toString();
+      });
+      // fetch new title
+      String? newTitle = await webViewController!.getTitle();
+      String? favicon = await browserController.getFavicon(webViewController!);
+      browserController.addHistory(url.toString(), newTitle ?? title, favicon);
+    });
   }
 }

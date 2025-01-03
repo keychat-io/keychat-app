@@ -10,9 +10,9 @@ function generateUniqueId() {
 }
 
 window.addEventListener('flutterInAppWebViewPlatformReady', function (event) {
-  console.log('flutterInAppWebViewPlatformReady');
-  const args = [1, true, ['bar', 5], { foo: 'baz' }];
-  window.flutter_inappwebview.callHandler('keychat', ...args);
+  // console.log('flutterInAppWebViewPlatformReady');
+  // const args = [1, true, ['bar', 5], { foo: 'baz' }];
+  // window.flutter_inappwebview.callHandler('keychat', ...args);
 });
 
 window.nostr.getPublicKey = async function () {

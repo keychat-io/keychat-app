@@ -691,7 +691,7 @@ class Utils {
   }
 
   static Widget getNeworkImageOrDefault(String? imageUrl,
-      {double size = 36, double radius = 8}) {
+      {double size = 36, double radius = 100}) {
     if (imageUrl == null) {
       return ClipRRect(
           borderRadius: BorderRadius.circular(radius),
@@ -701,7 +701,7 @@ class Utils {
   }
 
   static Widget? getNeworkImage(String? imageUrl,
-      {double size = 36, double radius = 8}) {
+      {double size = 36, double radius = 100}) {
     if (imageUrl == null) return null;
 
     if (imageUrl.toString().endsWith('svg')) {
@@ -729,6 +729,7 @@ class Utils {
           image: DecorationImage(
             image: imageProvider,
             fit: BoxFit.cover,
+            scale: 0.6,
             colorFilter: const ColorFilter.mode(
               Colors.white,
               BlendMode.colorBurn,

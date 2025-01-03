@@ -321,11 +321,11 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                             return NavigationActionPolicy.CANCEL;
                           }
                         }
-                        onUpdateVisitedHistory(str);
+                        onUpdateVisitedHistory(uri);
                         return NavigationActionPolicy.ALLOW;
                       },
                       onLoadStop: (controller, url) async {
-                        onUpdateVisitedHistory(url.toString());
+                        onUpdateVisitedHistory(url);
                         await controller.injectJavascriptFileFromAsset(
                             assetFilePath: "assets/js/nostr.js");
                         pullToRefreshController?.endRefreshing();
@@ -358,7 +358,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                       },
                       onUpdateVisitedHistory:
                           (controller, url, androidIsReload) {
-                        onUpdateVisitedHistory(url.toString());
+                        onUpdateVisitedHistory(url);
                       },
                     ),
                     progress < 1.0
@@ -448,7 +448,8 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
     } else {
       final url = await webViewController?.getUrl();
       if (url == null) return;
-      String? favicon = await browserController.getFavicon(webViewController!);
+      String? favicon =
+          await browserController.getFavicon(webViewController!, url.host);
       await DBProvider.database.writeTxn(() async {
         BrowserBookmark bookmark = BrowserBookmark(
             url: url.toString(),
@@ -583,13 +584,17 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                   onPressed: (context) async {
                     EasyLoading.show(status: 'Proccessing...');
                     try {
-                      String? favicon = await browserController
-                          .getFavicon(webViewController!);
+                      String? favicon = await browserController.getFavicon(
+                          webViewController!, host);
                       BrowserConnect bc = BrowserConnect(
                           host: host,
                           pubkey: iden.secp256k1PKHex,
                           favicon: favicon);
-                      await BrowserConnect.save(bc);
+                      int id = await BrowserConnect.save(bc);
+                      bc.id = id;
+                      setState(() {
+                        browserConnect = bc;
+                      });
                       EasyLoading.dismiss();
                       Get.back(result: iden);
                     } catch (e, s) {
@@ -628,6 +633,11 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
             webViewController?.webStorage.localStorage.clear();
             webViewController?.webStorage.sessionStorage.clear();
             EasyLoading.showToast('Logout Success');
+            setState(() {
+              browserConnect = null;
+              canGoBack = false;
+              canGoForward = false;
+            });
             webViewController?.reload();
           }
         });
@@ -639,7 +649,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
     }
   }
 
-  onUpdateVisitedHistory(String url) async {
+  onUpdateVisitedHistory(WebUri? uri) async {
     if (webViewController == null) return;
     EasyDebounce.debounce('urlHistoryUpdate', const Duration(milliseconds: 500),
         () async {
@@ -649,11 +659,12 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
       setState(() {
         this.canGoBack = canGoBack ?? false;
         this.canGoForward = canGoForward ?? false;
-        this.url = url.toString();
+        url = uri.toString();
       });
       // fetch new title
       String? newTitle = await webViewController!.getTitle();
-      String? favicon = await browserController.getFavicon(webViewController!);
+      String? favicon =
+          await browserController.getFavicon(webViewController!, uri!.host);
       browserController.addHistory(url.toString(), newTitle ?? title, favicon);
     });
   }

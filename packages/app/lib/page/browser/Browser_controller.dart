@@ -169,7 +169,12 @@ class BrowserController extends GetxController {
     Storage.setStringList('searchEngine', enableSearchEngine.toList());
   }
 
-  Future<String?> getFavicon(InAppWebViewController controller) async {
+  Map<String, String> cachedFavicon = {};
+  Future<String?> getFavicon(
+      InAppWebViewController controller, String host) async {
+    if (cachedFavicon.containsKey(host)) {
+      return cachedFavicon[host];
+    }
     List<Favicon> favicons = await controller.getFavicons();
     Favicon? favicon;
     if (favicons.isNotEmpty) {
@@ -178,6 +183,7 @@ class BrowserController extends GetxController {
         orElse: () => favicons.first,
       );
     }
+    cachedFavicon[host] = favicon?.url.toString() ?? '';
     return favicon?.url.toString();
   }
 }

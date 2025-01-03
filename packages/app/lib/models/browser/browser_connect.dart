@@ -61,10 +61,12 @@ class BrowserConnect extends Equatable {
         .findFirst();
   }
 
-  static save(BrowserConnect bc) async {
+  static Future<int> save(BrowserConnect bc) async {
+    late int id;
     await DBProvider.database.writeTxn(() async {
-      await DBProvider.database.browserConnects.put(bc);
+      id = await DBProvider.database.browserConnects.put(bc);
     });
+    return id;
   }
 
   static Future deleteByPubkey(String pubkey) async {

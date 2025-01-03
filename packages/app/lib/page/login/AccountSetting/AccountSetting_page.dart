@@ -30,8 +30,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
         appBar: AppBar(
             centerTitle: true,
             title: Obx(() => Text(controller.identity.value.displayName))),
-        body: SafeArea(
-            child: Column(
+        body: Column(
           children: [
             Container(
               padding: const EdgeInsets.only(
@@ -94,17 +93,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                             onPressed: (context) {
                               Get.bottomSheet(_idKeysWidget());
                             },
-                          ),
-                        SettingsTile.navigation(
-                          leading: const Icon(CupertinoIcons.pen),
-                          title: const Text("NickName"),
-                          value: Obx(() =>
-                              Text(controller.identity.value.displayName)),
-                          onPressed: (context) async {
-                            await _updateIdentityNameDialog(
-                                context, controller.identity.value);
-                          },
-                        ),
+                          )
                       ],
                     ),
                     SettingsSection(
@@ -140,10 +129,21 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                         if (controller.identity.value.enableChat)
                           SettingsTile.navigation(
                             leading: const Icon(CupertinoIcons.qrcode),
-                            title: const Text("QR Code"),
+                            title: const Text("Private Chat Key"),
                             onPressed: (context) async {
                               await showMyQrCode(
                                   context, controller.identity.value, true);
+                            },
+                          ),
+                        if (controller.identity.value.enableChat)
+                          SettingsTile.navigation(
+                            leading: const Icon(CupertinoIcons.person),
+                            title: const Text("NickName"),
+                            value: Obx(() =>
+                                Text(controller.identity.value.displayName)),
+                            onPressed: (context) async {
+                              await _updateIdentityNameDialog(
+                                  context, controller.identity.value);
                             },
                           ),
                         if (controller.identity.value.enableChat)
@@ -197,12 +197,11 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                       ],
                     ),
                     SettingsSection(
+                      title: const Text('Danger Zone'),
                       tiles: [
                         SettingsTile(
-                          leading: const Icon(
-                            CupertinoIcons.trash,
-                            color: Colors.red,
-                          ),
+                          leading: const Icon(CupertinoIcons.trash,
+                              color: Colors.red),
                           title: const Text("Delete ID",
                               style: TextStyle(color: Colors.red)),
                           onPressed: (context) async {
@@ -249,7 +248,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                   ],
                 )))
           ],
-        )));
+        ));
   }
 
   SettingsTile _getNsec(bool showIcon) {

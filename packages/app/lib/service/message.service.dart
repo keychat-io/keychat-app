@@ -68,6 +68,11 @@ class MessageService {
         Get.closeAllSnackbars();
       }
       Get.snackbar(room.getRoomName(), contenet,
+          titleText: Text(room.getRoomName(),
+              style: Theme.of(Get.context!).textTheme.titleMedium),
+          messageText:
+              Text(contenet, maxLines: 4, overflow: TextOverflow.ellipsis),
+          backgroundColor: Theme.of(Get.context!).colorScheme.surfaceContainer,
           snackPosition: SnackPosition.TOP,
           isDismissible: true,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),

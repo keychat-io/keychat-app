@@ -15,12 +15,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:flutter_floating/floating/assist/floating_slide_type.dart';
-import 'package:flutter_floating/floating/floating.dart';
-import 'package:flutter_floating/floating/manager/floating_manager.dart';
+
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:get/get.dart';
-import 'package:get/get_connect/http/src/utils/utils.dart';
+import 'package:isar/isar.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:share_plus/share_plus.dart';
@@ -46,9 +44,10 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
       mediaPlaybackRequiresUserGesture: false,
       allowsInlineMediaPlayback: true,
       useShouldOverrideUrlLoading: true,
-      transparentBackground: true,
+      transparentBackground: Get.isDarkMode,
       cacheEnabled: true,
       iframeAllow: "camera; microphone",
+      algorithmicDarkeningAllowed: true,
       iframeAllowFullscreen: true);
 
   PullToRefreshController? pullToRefreshController;
@@ -158,6 +157,37 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                           child: getPopTools(url),
                         ),
                         PopupMenuItem(
+                          child: FutureBuilder(future: () async {
+                            final url = await webViewController?.getUrl();
+                            if (url == null) return null;
+                            return await DBProvider.database.browserBookmarks
+                                .filter()
+                                .urlEqualTo(url.toString())
+                                .findFirst();
+                          }(), builder: (context, snapshot) {
+                            BrowserBookmark? bb = snapshot.data;
+                            return GestureDetector(
+                                child: Wrap(
+                                  spacing: 16,
+                                  children: [
+                                    Icon(
+                                        bb != null
+                                            ? CupertinoIcons.star_fill
+                                            : CupertinoIcons.star,
+                                        size: 22),
+                                    Text('Bookmark',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyLarge)
+                                  ],
+                                ),
+                                onTap: () {
+                                  troggleMarkUrl(bb);
+                                  Get.back();
+                                });
+                          }),
+                        ),
+                        PopupMenuItem(
                           value: 'share',
                           child: Row(spacing: 16, children: [
                             const Icon(CupertinoIcons.share),
@@ -166,31 +196,6 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                           ]),
                         ),
                         PopupMenuItem(
-                          value: 'copy',
-                          child: Row(spacing: 12, children: [
-                            const Icon(CupertinoIcons.doc_on_clipboard),
-                            Text('Copy',
-                                style: Theme.of(context).textTheme.bodyLarge)
-                          ]),
-                        ),
-                        PopupMenuItem(
-                          value: 'clear',
-                          child: Row(spacing: 12, children: [
-                            const Icon(Icons.storage),
-                            Text('Clear Local Storage',
-                                style: Theme.of(context).textTheme.bodyLarge)
-                          ]),
-                        ),
-                        if (browserConnect != null)
-                          PopupMenuItem(
-                            value: 'disconnect',
-                            child: Row(spacing: 12, children: [
-                              const Icon(Icons.logout),
-                              Text('Disconnect',
-                                  style: Theme.of(context).textTheme.bodyLarge)
-                            ]),
-                          ),
-                        PopupMenuItem(
                           value: 'openInBrowser',
                           child: Row(spacing: 12, children: [
                             const Icon(CupertinoIcons.globe),
@@ -198,6 +203,24 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                                 style: Theme.of(context).textTheme.bodyLarge)
                           ]),
                         ),
+                        if (browserConnect == null)
+                          PopupMenuItem(
+                            value: 'clear',
+                            child: Row(spacing: 12, children: [
+                              const Icon(Icons.storage),
+                              Text('Clear Cache',
+                                  style: Theme.of(context).textTheme.bodyLarge)
+                            ]),
+                          ),
+                        if (browserConnect != null)
+                          PopupMenuItem(
+                            value: 'disconnect',
+                            child: Row(spacing: 12, children: [
+                              const Icon(Icons.logout),
+                              Text('ID Logout',
+                                  style: Theme.of(context).textTheme.bodyLarge)
+                            ]),
+                          ),
                       ];
                     },
                     icon: const Icon(Icons.more_horiz),
@@ -364,7 +387,16 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-          )
+          ),
+          IconButton(
+            icon: const Icon(Icons.copy, size: 16),
+            padding: const EdgeInsets.all(0),
+            onPressed: () {
+              Get.back();
+              Clipboard.setData(ClipboardData(text: url));
+              EasyLoading.showToast('URL Copied');
+            },
+          ),
           // FutureBuilder<bool>(
           //   future: webViewController?.canGoBack(),
           //   builder: (context, snapshot) {
@@ -397,25 +429,6 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
           //         color: can ? Theme.of(context).iconTheme.color : Colors.grey,
           //       );
           //     }),
-          // FutureBuilder(future: () async {
-          //   final url = await webViewController?.getUrl();
-          //   if (url == null) return null;
-          //   return await DBProvider.database.browserBookmarks
-          //       .filter()
-          //       .urlEqualTo(url.toString())
-          //       .findFirst();
-          // }(), builder: (context, snapshot) {
-          //   BrowserBookmark? bb = snapshot.data;
-          //   return IconButton(
-          //     icon: bb != null
-          //         ? const Icon(CupertinoIcons.star_fill)
-          //         : const Icon(CupertinoIcons.star),
-          //     onPressed: () {
-          //       troggleMarkUrl(bb);
-          //       Get.back();
-          //     },
-          //   );
-          // }),
           // IconButton(
           //     onPressed: () {
           //       webViewController?.reload();
@@ -594,20 +607,6 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
     if (url == null) return;
 
     switch (value) {
-      case 'floating':
-        floatingManager.createFloating(
-            "browser_url",
-            Floating(
-                IconButton(
-                  icon: const Icon(Icons.explore),
-                  onPressed: () {
-                    Get.to(() => BrowserDetailPage(url.toString(), title));
-                  },
-                ),
-                slideType: FloatingSlideType.onLeftAndTop,
-                isShowLog: false,
-                slideBottomHeight: 100));
-        break;
       case 'share':
         Share.share(url.toString());
         break;
@@ -628,7 +627,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
             BrowserConnect.delete(value.id);
             webViewController?.webStorage.localStorage.clear();
             webViewController?.webStorage.sessionStorage.clear();
-            EasyLoading.showToast('Disconnect Success');
+            EasyLoading.showToast('Logout Success');
             webViewController?.reload();
           }
         });

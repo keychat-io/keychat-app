@@ -522,7 +522,7 @@ class MessageWidget extends StatelessWidget {
           },
           child: Text(message.reply!.content,
               style: Theme.of(Get.context!).textTheme.bodyMedium?.copyWith(
-                  color: fontColor.withValues(alpha: 0.7), height: 1),
+                  color: fontColor.withValues(alpha: 0.7), height: 1.1),
               maxLines: 5));
     } else {
       Message? msg =

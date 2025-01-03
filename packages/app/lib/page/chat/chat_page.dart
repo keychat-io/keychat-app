@@ -136,7 +136,7 @@ class _ChatPage2State extends State<ChatPage> {
         floatingActionButtonLocation: FloatingActionButtonLocation.miniEndTop,
         floatingActionButton: Obx(() => controller.unreadIndex.value > 1
             ? FilledButton.icon(
-                icon: const Icon(Icons.arrow_upward),
+                icon: const Icon(Icons.arrow_upward, color: Colors.white),
                 style: ElevatedButton.styleFrom(
                     backgroundColor: MaterialTheme.lightScheme().primary),
                 onPressed: () async {

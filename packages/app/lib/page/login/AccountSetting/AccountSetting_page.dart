@@ -29,7 +29,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
     return Scaffold(
         appBar: AppBar(
             centerTitle: true,
-            title: Text(controller.identity.value.displayName)),
+            title: Obx(() => Text(controller.identity.value.displayName))),
         body: SafeArea(
             child: Column(
           children: [
@@ -85,15 +85,6 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                             value: Text(getPublicKeyDisplay(
                                 controller.identity.value.secp256k1PKHex)),
                           ),
-                        if (controller.identity.value.enableChat)
-                          SettingsTile.navigation(
-                            leading: const Icon(CupertinoIcons.qrcode),
-                            title: const Text("QR Code"),
-                            onPressed: (context) async {
-                              await showMyQrCode(
-                                  context, controller.identity.value, true);
-                            },
-                          ),
                         if (controller.identity.value.index == -1)
                           _getNsec(true),
                         if (controller.identity.value.index > -1)
@@ -114,16 +105,6 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                                 context, controller.identity.value);
                           },
                         ),
-                        if (controller.identity.value.enableChat)
-                          SettingsTile.navigation(
-                            leading: const Icon(
-                                CupertinoIcons.person_2_square_stack_fill),
-                            title: const Text("Contact List"),
-                            onPressed: (context) {
-                              Get.toNamed(Routes.contactList,
-                                  arguments: controller.identity.value);
-                            },
-                          ),
                       ],
                     ),
                     SettingsSection(
@@ -156,6 +137,29 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                             });
                           },
                         ),
+                        if (controller.identity.value.enableChat)
+                          SettingsTile.navigation(
+                            leading: const Icon(CupertinoIcons.qrcode),
+                            title: const Text("QR Code"),
+                            onPressed: (context) async {
+                              await showMyQrCode(
+                                  context, controller.identity.value, true);
+                            },
+                          ),
+                        if (controller.identity.value.enableChat)
+                          SettingsTile.navigation(
+                            leading: const Icon(
+                                CupertinoIcons.person_2_square_stack_fill),
+                            title: const Text("Contact List"),
+                            onPressed: (context) {
+                              Get.toNamed(Routes.contactList,
+                                  arguments: controller.identity.value);
+                            },
+                          ),
+                      ],
+                    ),
+                    SettingsSection(
+                      tiles: [
                         SettingsTile.switchTile(
                           initialValue: controller.identity.value.enableBrowser,
                           leading: const Icon(CupertinoIcons.compass),

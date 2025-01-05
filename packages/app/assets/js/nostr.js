@@ -16,10 +16,12 @@ window.addEventListener('flutterInAppWebViewPlatformReady', function (event) {
 });
 
 window.nostr.getPublicKey = async function () {
-  return await window.flutter_inappwebview.callHandler(
+  var res = await window.flutter_inappwebview.callHandler(
     'keychat',
     'getPublicKey'
   );
+  console.log('getPublicKey:', res);
+  return res;
 };
 
 window.nostr.signEvent = async function (event) {
@@ -28,6 +30,7 @@ window.nostr.signEvent = async function (event) {
     'signEvent',
     event
   );
+  console.log('signEvent:', res);
   return JSON.parse(res);
 };
 
@@ -40,6 +43,7 @@ window.nostr.getRelays = async function () {
   res.forEach((relay) => {
     map[relay] = { read: true, write: true };
   });
+  console.log('getRelays:', map);
   return map;
 };
 

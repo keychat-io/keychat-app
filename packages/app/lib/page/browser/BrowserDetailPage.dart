@@ -115,259 +115,252 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, d) {
-          if (didPop) {
-            return;
-          }
-          goBackOrPop();
-        },
-        child: Scaffold(
-            appBar: AppBar(
-                toolbarHeight: 40,
-                titleSpacing: 0,
-                leadingWidth: canGoForward ? 150 : 100,
-                leading: Row(spacing: 0, children: [
+      canPop: false,
+      onPopInvokedWithResult: (didPop, d) {
+        if (didPop) {
+          return;
+        }
+        goBackOrPop();
+      },
+      child: Scaffold(
+          appBar: AppBar(
+              toolbarHeight: 40,
+              titleSpacing: 0,
+              leadingWidth: canGoForward ? 150 : 100,
+              leading: Row(spacing: 0, children: [
+                IconButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    onPressed: goBackOrPop,
+                    icon: const Icon(Icons.arrow_back)),
+                IconButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    onPressed: Get.back,
+                    icon: const Icon(Icons.close)),
+                if (canGoForward)
                   IconButton(
                       padding: const EdgeInsets.symmetric(horizontal: 2),
-                      onPressed: goBackOrPop,
-                      icon: const Icon(Icons.arrow_back)),
-                  IconButton(
-                      padding: const EdgeInsets.symmetric(horizontal: 2),
-                      onPressed: Get.back,
-                      icon: const Icon(Icons.close)),
-                  if (canGoForward)
-                    IconButton(
-                        padding: const EdgeInsets.symmetric(horizontal: 2),
-                        onPressed: () {
-                          webViewController?.goForward();
-                        },
-                        icon: const Icon(Icons.arrow_forward)),
-                ]),
-                centerTitle: true,
-                title: Text(title),
-                actions: [
-                  PopupMenuButton<String>(
-                    onOpened: menuOpened,
-                    onSelected: popupMenuSelected,
-                    itemBuilder: (BuildContext context) {
-                      return [
+                      onPressed: () {
+                        webViewController?.goForward();
+                      },
+                      icon: const Icon(Icons.arrow_forward)),
+              ]),
+              centerTitle: true,
+              title: Text(title),
+              bottom: PreferredSize(
+                  preferredSize: const Size.fromHeight(0),
+                  child: progress < 1.0
+                      ? LinearProgressIndicator(value: progress)
+                      : Container()),
+              actions: [
+                PopupMenuButton<String>(
+                  onOpened: menuOpened,
+                  onSelected: popupMenuSelected,
+                  itemBuilder: (BuildContext context) {
+                    return [
+                      PopupMenuItem(
+                        value: 'tools',
+                        child: getPopTools(url),
+                      ),
+                      PopupMenuItem(
+                        child: FutureBuilder(future: () async {
+                          final url = await webViewController?.getUrl();
+                          if (url == null) return null;
+                          return await DBProvider.database.browserBookmarks
+                              .filter()
+                              .urlEqualTo(url.toString())
+                              .findFirst();
+                        }(), builder: (context, snapshot) {
+                          BrowserBookmark? bb = snapshot.data;
+                          return GestureDetector(
+                              child: Wrap(
+                                spacing: 16,
+                                children: [
+                                  Icon(
+                                      bb != null
+                                          ? CupertinoIcons.star_fill
+                                          : CupertinoIcons.star,
+                                      size: 22),
+                                  Text('Bookmark',
+                                      style:
+                                          Theme.of(context).textTheme.bodyLarge)
+                                ],
+                              ),
+                              onTap: () {
+                                troggleMarkUrl(bb);
+                                Get.back();
+                              });
+                        }),
+                      ),
+                      PopupMenuItem(
+                        value: 'share',
+                        child: Row(spacing: 16, children: [
+                          const Icon(CupertinoIcons.share),
+                          Text('Share',
+                              style: Theme.of(context).textTheme.bodyLarge)
+                        ]),
+                      ),
+                      PopupMenuItem(
+                        value: 'openInBrowser',
+                        child: Row(spacing: 12, children: [
+                          const Icon(CupertinoIcons.globe),
+                          Text('Native Browser',
+                              style: Theme.of(context).textTheme.bodyLarge)
+                        ]),
+                      ),
+                      if (browserConnect == null)
                         PopupMenuItem(
-                          value: 'tools',
-                          child: getPopTools(url),
-                        ),
-                        PopupMenuItem(
-                          child: FutureBuilder(future: () async {
-                            final url = await webViewController?.getUrl();
-                            if (url == null) return null;
-                            return await DBProvider.database.browserBookmarks
-                                .filter()
-                                .urlEqualTo(url.toString())
-                                .findFirst();
-                          }(), builder: (context, snapshot) {
-                            BrowserBookmark? bb = snapshot.data;
-                            return GestureDetector(
-                                child: Wrap(
-                                  spacing: 16,
-                                  children: [
-                                    Icon(
-                                        bb != null
-                                            ? CupertinoIcons.star_fill
-                                            : CupertinoIcons.star,
-                                        size: 22),
-                                    Text('Bookmark',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyLarge)
-                                  ],
-                                ),
-                                onTap: () {
-                                  troggleMarkUrl(bb);
-                                  Get.back();
-                                });
-                          }),
-                        ),
-                        PopupMenuItem(
-                          value: 'share',
-                          child: Row(spacing: 16, children: [
-                            const Icon(CupertinoIcons.share),
-                            Text('Share',
-                                style: Theme.of(context).textTheme.bodyLarge)
-                          ]),
-                        ),
-                        PopupMenuItem(
-                          value: 'openInBrowser',
+                          value: 'clear',
                           child: Row(spacing: 12, children: [
-                            const Icon(CupertinoIcons.globe),
-                            Text('Native Browser',
+                            const Icon(Icons.storage),
+                            Text('Clear Cache',
                                 style: Theme.of(context).textTheme.bodyLarge)
                           ]),
                         ),
-                        if (browserConnect == null)
-                          PopupMenuItem(
-                            value: 'clear',
-                            child: Row(spacing: 12, children: [
-                              const Icon(Icons.storage),
-                              Text('Clear Cache',
-                                  style: Theme.of(context).textTheme.bodyLarge)
-                            ]),
-                          ),
-                        if (browserConnect != null)
-                          PopupMenuItem(
-                            value: 'disconnect',
-                            child: Row(spacing: 12, children: [
-                              const Icon(Icons.logout),
-                              Text('ID Logout',
-                                  style: Theme.of(context).textTheme.bodyLarge)
-                            ]),
-                          ),
-                      ];
-                    },
-                    icon: const Icon(Icons.more_horiz),
-                  ),
-                ]),
-            // bottomNavigationBar: SafeArea(
-            //     child: SizedBox(
-            //   height: 40,
-            //   child: appBar,
-            // )),
-            floatingActionButtonLocation:
-                FloatingActionButtonLocation.miniStartFloat,
-            floatingActionButtonAnimator:
-                FloatingActionButtonAnimator.noAnimation,
-            floatingActionButton: GetPlatform.isIOS && canGoBack
-                ? Padding(
-                    padding: const EdgeInsets.only(bottom: 240),
-                    child: Container(
-                        decoration: BoxDecoration(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .primary
-                              .withAlpha(80),
-                          borderRadius: BorderRadius.circular(100),
+                      if (browserConnect != null)
+                        PopupMenuItem(
+                          value: 'disconnect',
+                          child: Row(spacing: 12, children: [
+                            const Icon(Icons.logout),
+                            Text('ID Logout',
+                                style: Theme.of(context).textTheme.bodyLarge)
+                          ]),
                         ),
-                        child: IconButton(
-                            iconSize: 24,
-                            onPressed: goBackOrPop,
-                            padding: const EdgeInsets.all(0),
-                            icon: const Icon(
-                              Icons.arrow_back,
-                              size: 24,
-                              color: Colors.white,
-                            ))))
-                : null,
-            body: Column(children: <Widget>[
-              Expanded(
-                child: Stack(
-                  children: [
-                    InAppWebView(
-                      key: webViewKey,
-                      keepAlive: keepAlive,
-                      initialUrlRequest:
-                          URLRequest(url: WebUri(widget.initUrl)),
-                      initialSettings: settings,
-                      pullToRefreshController: pullToRefreshController,
-                      onWebViewCreated: (controller) {
-                        webViewController = controller;
-
-                        controller.addJavaScriptHandler(
-                            handlerName: 'keychat',
-                            callback: javascriptHandler);
-                      },
-                      onLoadStart: (controller, url) async {
-                        setState(() {
-                          this.url = url.toString();
-                        });
-                      },
-                      onPermissionRequest: (controller, request) async {
-                        return PermissionResponse(
-                            resources: request.resources,
-                            action: PermissionResponseAction.GRANT);
-                      },
-                      shouldOverrideUrlLoading: (controller,
-                          NavigationAction navigationAction) async {
-                        var uri = navigationAction.request.url!;
-                        var str = uri.toString();
-                        if (str.startsWith('cashu')) {
-                          ecashController.proccessCashuAString(str);
-                          return NavigationActionPolicy.CANCEL;
-                        }
-                        // lighting invoice
-                        if (str.startsWith('lightning:')) {
-                          str = str.replaceFirst('lightning:', '');
-                          ecashController.proccessPayLightingBill(str,
-                              pay: true);
-                          return NavigationActionPolicy.CANCEL;
-                        }
-                        if (str.startsWith('lnbc')) {
-                          ecashController.proccessPayLightingBill(str,
-                              pay: true);
-                          return NavigationActionPolicy.CANCEL;
-                        }
-
-                        if (![
-                          "http",
-                          "https",
-                          "file",
-                          "chrome",
-                          "data",
-                          "javascript",
-                          "about"
-                        ].contains(uri.scheme)) {
-                          if (await canLaunchUrl(uri)) {
-                            // Launch the App
-                            await launchUrl(uri);
-                            // and cancel the request
-                            return NavigationActionPolicy.CANCEL;
-                          }
-                        }
-                        onUpdateVisitedHistory(uri);
-                        return NavigationActionPolicy.ALLOW;
-                      },
-                      onLoadStop: (controller, url) async {
-                        onUpdateVisitedHistory(url);
-                        await controller.injectJavascriptFileFromAsset(
-                            assetFilePath: "assets/js/nostr.js");
-                        pullToRefreshController?.endRefreshing();
-                        setState(() {
-                          this.url = url.toString();
-                        });
-                      },
-                      onReceivedError: (controller, request, error) {
-                        pullToRefreshController?.endRefreshing();
-                      },
-                      onProgressChanged: (controller, progress) {
-                        if (progress == 100) {
-                          pullToRefreshController?.endRefreshing();
-                        }
-                        setState(() {
-                          this.progress = progress / 100;
-                        });
-                      },
-                      onConsoleMessage: (controller, consoleMessage) {
-                        if (kDebugMode) {
-                          print('console: $consoleMessage');
-                        }
-                      },
-                      onTitleChanged: (controller, title) async {
-                        if (title != null) {
-                          setState(() {
-                            this.title = title;
-                          });
-                        }
-                      },
-                      onUpdateVisitedHistory:
-                          (controller, url, androidIsReload) {
-                        onUpdateVisitedHistory(url);
-                      },
-                    ),
-                    progress < 1.0
-                        ? LinearProgressIndicator(value: progress)
-                        : Container(),
-                  ],
+                    ];
+                  },
+                  icon: const Icon(Icons.more_horiz),
                 ),
-              ),
-            ])));
+              ]),
+          // bottomNavigationBar: SafeArea(
+          //     child: SizedBox(
+          //   height: 40,
+          //   child: appBar,
+          // )),
+          floatingActionButtonLocation:
+              FloatingActionButtonLocation.miniStartFloat,
+          floatingActionButtonAnimator:
+              FloatingActionButtonAnimator.noAnimation,
+          floatingActionButton: GetPlatform.isIOS && canGoBack
+              ? Container(
+                  margin: const EdgeInsets.only(bottom: 240),
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary.withAlpha(80),
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                  child: IconButton(
+                      iconSize: 24,
+                      onPressed: goBackOrPop,
+                      padding: const EdgeInsets.all(0),
+                      icon: const Icon(
+                        Icons.arrow_back,
+                        size: 24,
+                        color: Colors.white,
+                      )))
+              : null,
+          body: InAppWebView(
+            key: webViewKey,
+            keepAlive: keepAlive,
+            initialUrlRequest: URLRequest(url: WebUri(widget.initUrl)),
+            initialSettings: settings,
+            pullToRefreshController: pullToRefreshController,
+            onWebViewCreated: (controller) {
+              webViewController = controller;
+
+              controller.addJavaScriptHandler(
+                  handlerName: 'keychat', callback: javascriptHandler);
+            },
+            onLoadStart: (controller, url) async {
+              setState(() {
+                this.url = url.toString();
+              });
+            },
+            onPermissionRequest: (controller, request) async {
+              return PermissionResponse(
+                  resources: request.resources,
+                  action: PermissionResponseAction.GRANT);
+            },
+            shouldOverrideUrlLoading:
+                (controller, NavigationAction navigationAction) async {
+              WebUri? uri = navigationAction.request.url;
+              if (uri == null) return NavigationActionPolicy.ALLOW;
+              try {
+                var str = uri.toString();
+                if (str.startsWith('cashu')) {
+                  ecashController.proccessCashuAString(str);
+                  return NavigationActionPolicy.CANCEL;
+                }
+                // lighting invoice
+                if (str.startsWith('lightning:')) {
+                  str = str.replaceFirst('lightning:', '');
+                  ecashController.proccessPayLightingBill(str, pay: true);
+                  return NavigationActionPolicy.CANCEL;
+                }
+                if (str.startsWith('lnbc')) {
+                  ecashController.proccessPayLightingBill(str, pay: true);
+                  return NavigationActionPolicy.CANCEL;
+                }
+
+                if (![
+                  "http",
+                  "https",
+                  "file",
+                  "chrome",
+                  "data",
+                  "javascript",
+                  "about"
+                ].contains(uri.scheme)) {
+                  if (await canLaunchUrl(uri)) {
+                    // Launch the App
+                    await launchUrl(uri);
+                    // and cancel the request
+                    return NavigationActionPolicy.CANCEL;
+                  }
+                }
+                onUpdateVisitedHistory(uri);
+                return NavigationActionPolicy.ALLOW;
+              } catch (e) {
+                logger.d(e.toString(), error: e);
+              }
+              return NavigationActionPolicy.ALLOW;
+            },
+            onLoadStop: (controller, url) async {
+              onUpdateVisitedHistory(url);
+              await controller.injectJavascriptFileFromAsset(
+                  assetFilePath: "assets/js/nostr.js");
+              pullToRefreshController?.endRefreshing();
+              setState(() {
+                this.url = url.toString();
+              });
+            },
+            onReceivedError: (controller, request, error) {
+              pullToRefreshController?.endRefreshing();
+            },
+            onProgressChanged: (controller, progress) {
+              if (progress == 100) {
+                pullToRefreshController?.endRefreshing();
+              }
+              setState(() {
+                this.progress = progress / 100;
+              });
+            },
+            onConsoleMessage: (controller, consoleMessage) {
+              if (kDebugMode) {
+                print('console: $consoleMessage');
+              }
+            },
+            onTitleChanged: (controller, title) async {
+              if (title != null) {
+                setState(() {
+                  this.title = title;
+                });
+              }
+            },
+            onUpdateVisitedHistory: (controller, url, androidIsReload) {
+              onUpdateVisitedHistory(url);
+            },
+          )),
+    );
   }
 
   Widget getPopTools(String url) {
@@ -397,44 +390,6 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
               EasyLoading.showToast('URL Copied');
             },
           ),
-          // FutureBuilder<bool>(
-          //   future: webViewController?.canGoBack(),
-          //   builder: (context, snapshot) {
-          //     bool canGoBack = snapshot.data ?? false;
-          //     return IconButton(
-          //       icon: const Icon(CupertinoIcons.arrow_left),
-          //       onPressed: () async {
-          //         if (canGoBack) {
-          //           webViewController?.goBack();
-          //           Get.back();
-          //         }
-          //       },
-          //       color:
-          //           canGoBack ? Theme.of(context).iconTheme.color : Colors.grey,
-          //     );
-          //   },
-          // ),
-          // FutureBuilder<bool>(
-          //     future: webViewController?.canGoForward(),
-          //     builder: (context, snapshot) {
-          //       bool can = snapshot.data ?? false;
-          //       return IconButton(
-          //         icon: const Icon(CupertinoIcons.arrow_right),
-          //         onPressed: () async {
-          //           if (can) {
-          //             webViewController?.goForward();
-          //             Get.back();
-          //           }
-          //         },
-          //         color: can ? Theme.of(context).iconTheme.color : Colors.grey,
-          //       );
-          //     }),
-          // IconButton(
-          //     onPressed: () {
-          //       webViewController?.reload();
-          //       Get.back();
-          //     },
-          //     icon: const Icon(CupertinoIcons.refresh)),
         ],
       ),
     );

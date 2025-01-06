@@ -7,7 +7,6 @@ import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:pick_or_save/pick_or_save.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -117,47 +116,13 @@ class DbSetting {
   }
 
   Future<bool?> exportFile(String filePath, [String? fileName]) async {
-    if (Platform.isIOS) {
-      _exportFileIOS(filePath);
-      return null;
-    } else if (Platform.isAndroid) {
-      return await _exportFileAndroid(filePath, fileName);
-    }
-    return false;
-  }
-
-  void _exportFileIOS(String filePath) {
-    const MethodChannel channel = MethodChannel('keychat');
-    if (!Platform.isIOS) {
-      throw Exception('exportFileIOS is only available on iOS');
-    }
-    channel.invokeMethod('exportFile', {'filePath': filePath}).then((result) {
-      logger.d('File exported successfully: $result');
-    }).catchError((error) {
-      logger.e('Failed to export file: $error');
-    });
-  }
-
-  Future<bool> _exportFileAndroid(String filePath, [String? fileName]) async {
-    final pickOrSavePlugin = PickOrSave();
-    final params = FileSaverParams(
-      saveFiles: [
-        SaveFileInfo(
-          fileName: fileName,
-          filePath: filePath,
-        ),
-      ],
+    fileName ??= filePath.split('/').last;
+    String? outputFile = await FilePicker.platform.saveFile(
+      dialogTitle: 'Please select an output path:',
+      fileName: fileName,
+      bytes: await File(filePath).readAsBytes(),
     );
-    List<String>? result;
-    try {
-      result = await pickOrSavePlugin.fileSaver(params: params);
-    } on PlatformException catch (e) {
-      logger.e(e.toString());
-    } catch (e) {
-      logger.e(e.toString());
-    }
-
-    return result?.isNotEmpty ?? false;
+    return outputFile != null;
   }
 
   Future<List<Map<String, dynamic>>> parseEncryptedPackage(

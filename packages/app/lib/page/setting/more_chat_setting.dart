@@ -65,6 +65,13 @@ class MoreChatSetting extends StatelessWidget {
                   },
                   title: const Text('Notifications'))
             ]),
+            SettingsSection(title: const Text('Backup'), tiles: [
+              SettingsTile.navigation(
+                leading: const Icon(Icons.dataset_outlined),
+                title: const Text("Database Setting"),
+                onPressed: handleDBSettting,
+              )
+            ]),
             SettingsSection(title: const Text('Debug Zone'), tiles: [
               SettingsTile.navigation(
                 leading: const Icon(Icons.event),
@@ -73,11 +80,6 @@ class MoreChatSetting extends StatelessWidget {
                   Get.to(() => const NostrEventsPage(),
                       binding: NostrEventsBindings());
                 },
-              ),
-              SettingsTile.navigation(
-                leading: const Icon(Icons.dataset_outlined),
-                title: const Text("Database Setting"),
-                onPressed: handleDBSettting,
               ),
               SettingsTile.navigation(
                 leading: const Icon(Icons.event),
@@ -104,18 +106,6 @@ class MoreChatSetting extends StatelessWidget {
     hc.checkRunStatus.value = false;
   }
 
-  void restartAllRelays() async {
-    HomeController hc = Get.find<HomeController>();
-    WebsocketService websocketService = Get.find<WebsocketService>();
-    List<Relay> relays = await RelayService.instance.list();
-    for (Relay relay in relays) {
-      relay.active = true;
-      await RelayService.instance.update(relay);
-      websocketService.updateRelayWidget(relay);
-    }
-    hc.checkRunStatus.value = true;
-  }
-
   handleDBSettting(BuildContext context) async {
     HomeController hc = Get.find<HomeController>();
     show300hSheetWidget(
@@ -129,7 +119,11 @@ class MoreChatSetting extends StatelessWidget {
                   description: NoticeTextWidget.warning(
                       'When message sending and receiving are disabled, the data export and import functions can operate without interruption.'),
                   onToggle: (res) async {
-                    res ? closeAllRelays() : restartAllRelays();
+                    if (res) {
+                      closeAllRelays();
+                      return;
+                    }
+                    Get.find<WebsocketService>().start();
                   },
                   title: const Text('Disabled sending && receiveing')),
               SettingsTile.navigation(
@@ -201,13 +195,14 @@ class MoreChatSetting extends StatelessWidget {
           ),
         ),
         actions: [
-          TextButton(
+          CupertinoActionSheetAction(
             onPressed: () {
               Get.back();
             },
             child: const Text('Cancel'),
           ),
-          TextButton(
+          CupertinoActionSheetAction(
+            isDefaultAction: true,
             onPressed: () async {
               if (passwordController.text.isNotEmpty &&
                   passwordController.text == confirmPasswordController.text) {
@@ -253,22 +248,21 @@ class MoreChatSetting extends StatelessWidget {
           ),
         ),
         actions: [
-          TextButton(
+          CupertinoActionSheetAction(
             onPressed: () {
               Get.back();
             },
             child: const Text('Cancel'),
           ),
-          TextButton(
+          CupertinoActionSheetAction(
+            isDefaultAction: true,
             onPressed: () async {
               if (passwordController.text.isNotEmpty) {
                 try {
-                  await Future.delayed(const Duration(microseconds: 100));
                   bool success = await DbSetting()
                       .importDB(context, passwordController.text, file);
                   // await Future.delayed(const Duration(microseconds: 100));
                   if (success) {
-                    await Future.delayed(const Duration(microseconds: 100));
                     EasyLoading.showSuccess("Decryption successful");
                     // need to restart the app and reload database
                     // Restart.restartApp does not work?

@@ -11,7 +11,7 @@ import 'package:app/service/file_util.dart' as file_util;
 import 'package:app/service/message.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
-import 'package:file_selector/file_selector.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -612,15 +612,9 @@ class ChatController extends GetxController {
   }
 
   _handleFileUpload() async {
-    const XTypeGroup typeGroup = XTypeGroup(
-      label: 'files',
-      // extensions: <String>['jpg', 'png'],
-    );
-    final XFile? xfile =
-        await openFile(acceptedTypeGroups: <XTypeGroup>[typeGroup]);
-    if (xfile == null) {
-      return;
-    }
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+    if (result == null) return;
+    XFile xfile = result.files.first.xFile;
 
     if (file_util.isImageFile(xfile.path)) {
       return _handleSendMediaFile(xfile, MessageMediaType.image, true);

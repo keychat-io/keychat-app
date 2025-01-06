@@ -245,16 +245,14 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withAlpha(80),
+                    color: Theme.of(context).colorScheme.primary.withAlpha(128),
                     borderRadius: BorderRadius.circular(100),
                   ),
                   child: IconButton(
-                      iconSize: 24,
                       onPressed: goBackOrPop,
                       padding: const EdgeInsets.all(0),
                       icon: const Icon(
                         Icons.arrow_back,
-                        size: 24,
                         color: Colors.white,
                       )))
               : null,
@@ -266,7 +264,6 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
             pullToRefreshController: pullToRefreshController,
             onWebViewCreated: (controller) {
               webViewController = controller;
-
               controller.addJavaScriptHandler(
                   handlerName: 'keychat', callback: javascriptHandler);
             },
@@ -332,6 +329,10 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
               setState(() {
                 this.url = url.toString();
               });
+            },
+            onReceivedServerTrustAuthRequest: (_, challenge) async {
+              return ServerTrustAuthResponse(
+                  action: ServerTrustAuthResponseAction.PROCEED);
             },
             onReceivedError: (controller, request, error) {
               pullToRefreshController?.endRefreshing();

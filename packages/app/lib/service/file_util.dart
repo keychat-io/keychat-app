@@ -1,3 +1,4 @@
+import 'dart:convert' show base64Encode, utf8;
 import 'dart:io' show Directory, File, FileSystemEntity;
 import 'package:app/global.dart';
 import 'package:app/models/db_provider.dart';
@@ -14,6 +15,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image/image.dart' as img;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:aws/aws.dart';
 import 'package:video_compress/video_compress.dart';
@@ -304,6 +306,59 @@ class FileUtils {
     if (directory.existsSync()) {
       await directory.delete(recursive: true);
     }
+  }
+
+  static Future<FileEncryptInfo> signEventAndUpload(File input,
+      {void Function(int, int)? onSendProgress}) async {
+    FileEncryptInfo res = await FileService.encryptFile(input);
+    res.size = res.output.length;
+
+    rust_nostr.Secp256k1Account randomId = await rust_nostr.generateSecp256K1();
+
+    String eventString = await rust_nostr.signEvent(
+        senderKeys: randomId.prikey,
+        content: res.hash,
+        createdAt: BigInt.from(DateTime.now().millisecondsSinceEpoch ~/ 1000),
+        kind: 24242,
+        tags: [
+          ["t", "upload"],
+          ["x", res.hash]
+        ]);
+    FormData formData = FormData.fromMap({
+      'file': MultipartFile.fromBytes(res.output, filename: res.hash),
+    });
+
+    try {
+      Dio dio = Dio();
+      Response response = await dio.post(
+        'https://nostrmedia.com/upload',
+        data: formData,
+        onSendProgress: onSendProgress,
+        options: Options(
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'Authorization': 'Nostr ${base64Encode(utf8.encode(eventString))}',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        logger.i('Upload successful ${response.data}');
+        return res;
+      }
+    } on DioException catch (e, s) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx and is also not 304.
+      if (e.response != null) {
+        logger.e(e.response?.data, stackTrace: s);
+      } else {
+        // Something happened in setting up or sending the request that triggered an Error
+        logger.e(e.message, stackTrace: s);
+        throw Exception('File_upload_faild: ${e.message ?? ''}');
+      }
+    }
+
+    throw Exception('File_upload_faild');
   }
 }
 

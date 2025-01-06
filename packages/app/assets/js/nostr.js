@@ -43,7 +43,7 @@ window.nostr.getRelays = async function () {
   res.forEach((relay) => {
     map[relay] = { read: true, write: true };
   });
-  console.log('getRelays:', map);
+  console.log('getRelays:', JSON.stringify(map));
   return map;
 };
 

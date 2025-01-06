@@ -389,16 +389,14 @@ class AppGeneralSetting extends GetView<SettingController> {
             CupertinoIcons.trash,
             color: Colors.red,
           ),
-          title: const Text("Reset APP", style: TextStyle(color: Colors.red)),
-          onPressed: (context) {
-            Get.dialog(deleteAccount(context, true));
-          })
+          title: const Text("Logout", style: TextStyle(color: Colors.red)),
+          onPressed: deleteAccount)
     ]);
   }
 
-  Widget deleteAccount(BuildContext context, bool deleteAll) {
-    return CupertinoAlertDialog(
-      title: const Text("Reset All?"),
+  deleteAccount(BuildContext context) {
+    return Get.dialog(CupertinoAlertDialog(
+      title: const Text("Logout All Identity?"),
       content: const Text(
           "Please make sure you have backed up your seed phrase and contacts. This cannot be undone."),
       actions: <Widget>[
@@ -410,9 +408,7 @@ class AppGeneralSetting extends GetView<SettingController> {
         ),
         CupertinoDialogAction(
             isDestructiveAction: true,
-            child: Text(
-              deleteAll ? 'Reset and Exit' : 'Delete',
-            ),
+            child: const Text('Logout'),
             onPressed: () async {
               EasyLoading.show(status: 'Processing...');
               try {
@@ -436,6 +432,6 @@ class AppGeneralSetting extends GetView<SettingController> {
               }
             }),
       ],
-    );
+    ));
   }
 }

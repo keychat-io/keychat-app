@@ -34,7 +34,7 @@ class _BrowserConnectedWebsiteState extends State<BrowserConnectedWebsite> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(title: const Text('Logged in Websites')),
+        appBar: AppBar(title: const Text('Logged-in Websites')),
         body: SmartRefresher(
             enablePullUp: true,
             enablePullDown: false,
@@ -62,7 +62,7 @@ class _BrowserConnectedWebsiteState extends State<BrowserConnectedWebsite> {
                       vertical: 1.0, horizontal: 16.0),
                   leading: Utils.getRandomAvatar(site.pubkey, width: 36),
                   title: Row(children: [
-                    const Text('x'),
+                    const Text('+'),
                     Padding(
                         padding: const EdgeInsets.only(left: 16, right: 8),
                         child: Utils.getNeworkImage(site.favicon, size: 24) ??
@@ -70,8 +70,8 @@ class _BrowserConnectedWebsiteState extends State<BrowserConnectedWebsite> {
                     Text(site.host,
                         style: Theme.of(context).textTheme.titleMedium)
                   ]),
+                  trailing: const Icon(Icons.close),
                   onTap: () {
-                    // dialog to disconnect
                     Get.dialog(CupertinoAlertDialog(
                       title: const Text('Disconnect'),
                       content:

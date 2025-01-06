@@ -101,7 +101,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                         SettingsTile.switchTile(
                           initialValue: controller.identity.value.enableChat,
                           leading: const Icon(CupertinoIcons.chat_bubble),
-                          title: const Text("Enable Chat"),
+                          title: const Text("Chat ID"),
                           onToggle: (value) async {
                             EasyThrottle.throttle(
                                 'enableChat', const Duration(seconds: 2),
@@ -163,7 +163,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                         SettingsTile.switchTile(
                           initialValue: controller.identity.value.enableBrowser,
                           leading: const Icon(CupertinoIcons.compass),
-                          title: const Text("Enable Browser Login"),
+                          title: const Text("Browser ID"),
                           onToggle: (value) async {
                             if (value == false) {
                               int count = await DBProvider.database.identitys
@@ -186,9 +186,9 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                           },
                         ),
                         if (controller.identity.value.enableBrowser)
-                          SettingsTile(
+                          SettingsTile.navigation(
                             leading: const Icon(Icons.web),
-                            title: const Text("Logged in Websites"),
+                            title: const Text("Logged-in Websites"),
                             onPressed: (context) async {
                               Get.to(() => BrowserConnectedWebsite(
                                   controller.identity.value));

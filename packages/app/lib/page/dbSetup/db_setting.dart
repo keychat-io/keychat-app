@@ -127,7 +127,7 @@ class DbSetting {
   }
 
   void _exportFileIOS(String filePath) {
-    const MethodChannel channel = MethodChannel('com.keychat/export/channel');
+    const MethodChannel channel = MethodChannel('keychat');
     if (!Platform.isIOS) {
       throw Exception('exportFileIOS is only available on iOS');
     }
@@ -292,7 +292,7 @@ class DbSetting {
   }
 
   Future<String> importFileIOS() async {
-    const MethodChannel channel = MethodChannel('com.keychat/import/channel');
+    const MethodChannel channel = MethodChannel('keychat');
     if (!Platform.isIOS) {
       throw Exception('importFileIOS is only available on iOS');
     }

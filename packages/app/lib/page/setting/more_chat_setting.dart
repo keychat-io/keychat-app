@@ -3,7 +3,6 @@
 import 'dart:io' show File, exit;
 
 import 'package:app/controller/home.controller.dart';
-import 'package:app/models/relay.dart';
 import 'package:app/page/dbSetup/db_setting.dart';
 import 'package:app/page/setting/QueryReceivedEvent.dart';
 import 'package:app/page/setting/RelaySetting.dart';
@@ -12,7 +11,6 @@ import 'package:app/page/setting/UploadedPubkeys.dart';
 import 'package:app/page/setting/file_storage_server.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/notify.service.dart';
-import 'package:app/service/relay.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:app_settings/app_settings.dart';

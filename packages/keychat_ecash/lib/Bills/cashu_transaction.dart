@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 
 class CashuTransactionPage extends StatefulWidget {
@@ -50,8 +51,71 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
   Widget build(context) {
     return Scaffold(
         appBar: AppBar(
+          centerTitle: true,
           title: const Text('Ecash Transaction'),
         ),
+        bottomNavigationBar: SafeArea(
+            child: Wrap(
+                runAlignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                direction: Axis.vertical,
+                spacing: 8,
+                children: [
+              if (tx.status == TransactionStatus.pending)
+                FilledButton(
+                    onPressed: () async {
+                      String url = 'cashu:${tx.token}';
+                      logger.d(url);
+                      final Uri uri = Uri.parse(url);
+                      await launchUrl(uri);
+                    },
+                    child: const Text('Receive by Wallet')),
+              Wrap(
+                spacing: 16,
+                children: [
+                  OutlinedButton.icon(
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: tx.token));
+                        EasyLoading.showToast('Copied');
+                      },
+                      icon: const Icon(Icons.copy),
+                      label: const Text('Copy Token')),
+                  if (tx.status == TransactionStatus.pending)
+                    OutlinedButton.icon(
+                        icon: const Icon(CupertinoIcons.arrow_down),
+                        onPressed: () async {
+                          try {
+                            EasyLoading.show(status: 'Receiving...');
+                            CashuInfoModel cm = await RustAPI.receiveToken(
+                                encodedToken: tx.token);
+                            if (cm.status == TransactionStatus.success) {
+                              EasyLoading.showSuccess('Successed');
+                              CashuTransaction tx1 = CashuTransaction(
+                                  id: tx.id,
+                                  status: cm.status,
+                                  io: tx.io,
+                                  time: tx.time,
+                                  amount: tx.amount,
+                                  mint: tx.mint,
+                                  token: tx.token);
+                              Get.find<EcashController>().getBalance();
+                              getGetxController<EcashBillController>()
+                                  ?.getTransactions();
+                              setState(() {
+                                tx = tx1;
+                              });
+                            }
+                          } catch (e) {
+                            EasyLoading.dismiss();
+                            String msg = Utils.getErrorMessage(e);
+
+                            EasyLoading.showToast(msg);
+                          }
+                        },
+                        label: const Text('Receive'))
+                ],
+              ),
+            ])),
         body: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Column(children: [
@@ -59,9 +123,7 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   CashuStatus.getStatusIcon(tx.status, 40),
-                  const SizedBox(
-                    width: 10,
-                  ),
+                  const SizedBox(width: 10),
                   RichText(
                       text: TextSpan(
                     text: tx.amount.toString(),
@@ -81,11 +143,11 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
               ),
               if (tx.token.length < 4000)
                 Padding(
-                    padding: const EdgeInsets.only(top: 20),
+                    padding: const EdgeInsets.only(top: 8, bottom: 8),
                     child: ClipRRect(
-                        borderRadius: BorderRadius.circular(2),
+                        borderRadius: BorderRadius.circular(4),
                         child: genQRImage(tx.token,
-                            size: 370,
+                            size: Get.width - 32,
                             embeddedImageSize: 0,
                             embeddedImage: null))),
               textSmallGray(context, tx.mint),
@@ -93,53 +155,7 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                 maxLines: tx.token.length < 4000 ? 1 : 3,
                 tx.token,
                 overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(
-                height: 20,
-              ),
-              OutlinedButton.icon(
-                  onPressed: () {
-                    Clipboard.setData(ClipboardData(text: tx.token));
-                    EasyLoading.showToast('Copied');
-                  },
-                  icon: const Icon(Icons.copy),
-                  label: const Text('Copy Token')),
-              const SizedBox(
-                height: 10,
-              ),
-              if (tx.status == TransactionStatus.pending)
-                FilledButton.icon(
-                    icon: const Icon(CupertinoIcons.arrow_down),
-                    onPressed: () async {
-                      try {
-                        EasyLoading.show(status: 'Receiving...');
-                        CashuInfoModel cm =
-                            await RustAPI.receiveToken(encodedToken: tx.token);
-                        if (cm.status == TransactionStatus.success) {
-                          EasyLoading.showSuccess('Successed');
-                          CashuTransaction tx1 = CashuTransaction(
-                              id: tx.id,
-                              status: cm.status,
-                              io: tx.io,
-                              time: tx.time,
-                              amount: tx.amount,
-                              mint: tx.mint,
-                              token: tx.token);
-                          Get.find<EcashController>().getBalance();
-                          getGetxController<EcashBillController>()
-                              ?.getTransactions();
-                          setState(() {
-                            tx = tx1;
-                          });
-                        }
-                      } catch (e) {
-                        EasyLoading.dismiss();
-                        String msg = Utils.getErrorMessage(e);
-
-                        EasyLoading.showToast(msg);
-                      }
-                    },
-                    label: const Text('Receive'))
+              )
             ])));
   }
 }

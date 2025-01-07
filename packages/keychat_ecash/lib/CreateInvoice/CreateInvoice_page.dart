@@ -21,7 +21,7 @@ class CreateInvoicePage extends StatelessWidget {
           leading: Container(),
           centerTitle: true,
           title: Text(
-            'Receive From Lightning Network',
+            'Receive From Lightning',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
         ),
@@ -33,11 +33,8 @@ class CreateInvoicePage extends StatelessWidget {
               SelectMint(controller.selectedMint.value, (mint) {
                 controller.selectedMint.value = mint;
               }),
-              const SizedBox(
-                height: 10,
-              ),
+              const SizedBox(height: 10),
               Form(
-                // autovalidateMode: AutovalidateMode.onUserInteraction,
                 child: Expanded(
                     child: Column(children: [
                   Container(
@@ -81,9 +78,7 @@ class CreateInvoicePage extends StatelessWidget {
                           },
                         ),
                       ),
-                      child: const Text(
-                        'Disabled By Mint Server',
-                      )))
+                      child: const Text('Disabled By Mint Server')))
             ])));
   }
 }

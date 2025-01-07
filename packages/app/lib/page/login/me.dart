@@ -146,8 +146,7 @@ class MinePage extends GetView<SettingController> {
           launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
         } else if (GetPlatform.isIOS) {
           const url = 'itms-beta://testflight.apple.com';
-          launchUrl(Uri.parse(url),
-              mode: LaunchMode.externalNonBrowserApplication);
+          launchUrl(Uri.parse(url), mode: LaunchMode.platformDefault);
         }
       },
       child: Wrap(

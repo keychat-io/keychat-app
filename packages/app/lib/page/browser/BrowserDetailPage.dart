@@ -287,14 +287,14 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                   ecashController.proccessCashuAString(str);
                   return NavigationActionPolicy.CANCEL;
                 }
-                // lighting invoice
+                // lightning invoice
                 if (str.startsWith('lightning:')) {
                   str = str.replaceFirst('lightning:', '');
-                  ecashController.proccessPayLightingBill(str, pay: true);
+                  ecashController.proccessPayLightningBill(str, pay: true);
                   return NavigationActionPolicy.CANCEL;
                 }
                 if (str.startsWith('lnbc')) {
-                  ecashController.proccessPayLightingBill(str, pay: true);
+                  ecashController.proccessPayLightningBill(str, pay: true);
                   return NavigationActionPolicy.CANCEL;
                 }
 

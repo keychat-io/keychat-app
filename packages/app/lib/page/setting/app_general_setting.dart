@@ -121,7 +121,7 @@ class AppGeneralSetting extends GetView<SettingController> {
                 leading: const Icon(CupertinoIcons.question_circle),
                 title: const Text("About Keychat"),
                 description: const Text(
-                    'Keychat is a chat app, built on Bitcoin Ecash, Nostr Protocol and Signal Protocol and MLS Protocol.'),
+                    'Keychat is a chat app, built on Bitcoin Ecash, Nostr Protocol and Signal / MLS Protocol.'),
                 onPressed: (context) {
                   Get.to(() => const OnboardingPage2());
                 },
@@ -383,8 +383,8 @@ class AppGeneralSetting extends GetView<SettingController> {
   }
 
   dangerZone() {
-    return SettingsSection(title: const Text("Danger Zone"), tiles: [
-      SettingsTile(
+    return SettingsSection(tiles: [
+      SettingsTile.navigation(
           leading: const Icon(
             CupertinoIcons.trash,
             color: Colors.red,

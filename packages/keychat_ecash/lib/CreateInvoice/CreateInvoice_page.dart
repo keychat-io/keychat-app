@@ -21,7 +21,7 @@ class CreateInvoicePage extends StatelessWidget {
           leading: Container(),
           centerTitle: true,
           title: Text(
-            'Receive From Lightning',
+            'Receive From Lightning Network',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
         ),

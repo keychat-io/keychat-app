@@ -48,4 +48,18 @@
   <!-- https://firebase.google.com/docs/cloud-messaging/flutter/client -->
   <meta-data android:name="firebase_messaging_auto_init_enabled" android:value="false" />
   <meta-data android:name="firebase_analytics_collection_enabled" android:value="false" />
+
+  <queries>
+    <intent>
+      <action android:name="android.intent.action.VIEW" />
+      <data android:scheme="lightning" />
+    </intent>
+    <intent>
+      <action android:name="android.intent.action.VIEW" />
+      <data android:scheme="nostr" />
+    </intent>
+    <intent>
+      <action android:name="android.support.customtabs.action.CustomTabsService" />
+    </intent>
+  </queries>
 </manifest>

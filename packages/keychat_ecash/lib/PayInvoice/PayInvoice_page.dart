@@ -44,7 +44,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
         appBar: AppBar(
             leading: Container(),
             centerTitle: true,
-            title: Text('Send to Lightning',
+            title: Text('Send to Lightning Network',
                 style: Theme.of(context).textTheme.bodyMedium)),
         body: SafeArea(
             child: Padding(

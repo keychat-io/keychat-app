@@ -175,16 +175,21 @@ class BrowserController extends GetxController {
     if (cachedFavicon.containsKey(host)) {
       return cachedFavicon[host];
     }
-    List<Favicon> favicons = await controller.getFavicons();
-    Favicon? favicon;
-    if (favicons.isNotEmpty) {
-      favicon = favicons.firstWhere(
-        (favicon) => favicon.url.toString().endsWith('.png'),
-        orElse: () => favicons.first,
-      );
+    try {
+      List<Favicon> favicons = await controller.getFavicons();
+      Favicon? favicon;
+      if (favicons.isNotEmpty) {
+        favicon = favicons.firstWhere(
+          (favicon) => favicon.url.toString().endsWith('.png'),
+          orElse: () => favicons.first,
+        );
+      }
+      cachedFavicon[host] = favicon?.url.toString() ?? '';
+      return favicon?.url.toString();
+    } catch (e) {
+      debugPrint('Error getting favicon: $e');
+      return null;
     }
-    cachedFavicon[host] = favicon?.url.toString() ?? '';
-    return favicon?.url.toString();
   }
 }
 

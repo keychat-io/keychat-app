@@ -61,31 +61,44 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
     return Scaffold(
         appBar: AppBar(
             centerTitle: true,
-            title: Text(tx.io == TransactionDirection.in_
-                ? 'Receive from Lightning'
-                : 'Send to Lightning')),
+            title: Text(
+              tx.io == TransactionDirection.in_
+                  ? 'Receive from Lightning Network'
+                  : 'Send to Lightning Network',
+              style: Theme.of(context).textTheme.bodyMedium,
+            )),
         bottomNavigationBar: SafeArea(
             child: Wrap(
           runAlignment: WrapAlignment.center,
           crossAxisAlignment: WrapCrossAlignment.center,
           direction: Axis.vertical,
-          spacing: 8,
+          spacing: 16,
           children: [
             if (tx.io == TransactionDirection.in_ &&
                 tx.status == TransactionStatus.pending)
               FilledButton(
+                  style: ButtonStyle(
+                      minimumSize:
+                          WidgetStateProperty.all(Size(Get.width - 32, 48))),
                   onPressed: () async {
                     String url = 'lightning:${tx.pr}';
-                    logger.d(url);
                     final Uri uri = Uri.parse(url);
+                    bool res = await canLaunchUrl(uri);
+                    if (!res) {
+                      EasyLoading.showToast('No Lightning wallet found');
+                      return;
+                    }
                     await launchUrl(uri);
                   },
-                  child: const Text('Authorize Payment in Wallet')),
+                  child: const Text('Pay with Lightning wallet')),
             OutlinedButton.icon(
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: 'lightning:${tx.pr}'));
                   EasyLoading.showToast('Copied');
                 },
+                style: ButtonStyle(
+                    minimumSize:
+                        WidgetStateProperty.all(Size(Get.width - 32, 48))),
                 icon: const Icon(Icons.copy),
                 label: const Text('Copy Invoice')),
           ],

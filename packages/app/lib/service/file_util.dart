@@ -181,7 +181,7 @@ class FileUtils {
       if (compress) {
         MediaInfo? compressedFile = await VideoCompress.compressVideo(
           xfile.path,
-          quality: VideoQuality.MediumQuality,
+          quality: VideoQuality.HighestQuality,
           deleteOrigin: true,
         );
 

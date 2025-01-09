@@ -242,26 +242,11 @@ class DbSetting {
   }
 
   Future<File?> importFile() async {
-    if (Platform.isAndroid) {
-      FilePickerResult? result = await FilePicker.platform.pickFiles();
-      if (result != null) {
-        return File(result.files.single.path!);
-      }
-    } else if (Platform.isIOS) {
-      final filePath = await importFileIOS();
-      if (filePath.isNotEmpty) {
-        return File(filePath);
-      }
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+    if (result != null) {
+      return File(result.files.single.path!);
     }
     return null;
-  }
-
-  Future<String> importFileIOS() async {
-    const MethodChannel channel = MethodChannel('keychat');
-    if (!Platform.isIOS) {
-      throw Exception('importFileIOS is only available on iOS');
-    }
-    return await channel.invokeMethod<String>('importFile') ?? '';
   }
 
   Future<void> importSharedPreferences(String importFilePath) async {

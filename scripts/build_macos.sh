@@ -7,6 +7,7 @@
 # https://pub.dev/packages/dmg
 
 cd packages/app/
-dart run dmg --sign-certificate "Developer ID Application: Your Company" --verbose
+# flutter build macos --release -v
+dart run dmg --sign-certificate "Developer ID Application: kai mei (HDBNSZBLMN)" --verbose --no-build
 
 # output: build/macos/Build/Products/Release/<name>.dmg

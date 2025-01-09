@@ -1,5 +1,5 @@
 import 'dart:convert' show jsonDecode, jsonEncode;
-import 'dart:io' show File, Directory, Platform;
+import 'dart:io' show File, Directory;
 import 'package:app/service/secure_storage.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';

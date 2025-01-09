@@ -65,7 +65,16 @@ class MessageService {
           ? (model.realMessage ?? model.content)
           : '[${model.mediaType.name}]';
       if (Get.isSnackbarOpen) {
-        Get.closeAllSnackbars();
+        try {
+          Get.closeAllSnackbars();
+        } catch (e) {
+          logger.e('Error closing snackbars: $e');
+        }
+      }
+      if (GetPlatform.isDesktop) {
+        if (Get.find<HomeController>().resumed == false) {
+          Get.find<HomeController>().addUnreadCount();
+        }
       }
       Get.snackbar(room.getRoomName(), contenet,
           titleText: Text(room.getRoomName(),

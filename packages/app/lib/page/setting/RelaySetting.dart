@@ -34,6 +34,36 @@ class _RelaySettingState extends State<RelaySetting> {
           title: const Text('Relay Server'),
           actions: [
             IconButton(
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return CupertinoAlertDialog(
+                      title: const Text("Reconnect Relays"),
+                      content: const Text(
+                          "Are you sure you want to reconnect all relays?"),
+                      actions: [
+                        CupertinoDialogAction(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text("Cancel"),
+                        ),
+                        CupertinoDialogAction(
+                          onPressed: () async {
+                            Navigator.of(context).pop();
+                            Get.find<WebsocketService>().start();
+                          },
+                          child: const Text("Confirm"),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+              icon: const Icon(CupertinoIcons.refresh),
+            ),
+            IconButton(
               onPressed: addRelay,
               icon: const Icon(CupertinoIcons.add_circled),
             )

@@ -36,5 +36,10 @@
     <true/>
     <key>FirebaseMessagingAutoInitEnabled</key>
     <false/>
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+      <string>lightning</string>
+      <string>nostr</string>
+    </array>
   </dict>
 </plist>

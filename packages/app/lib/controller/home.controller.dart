@@ -13,7 +13,7 @@ import 'package:app/service/secure_storage.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
-import 'package:app_badge_plus/app_badge_plus.dart';
+import 'package:flutter_new_badger/flutter_new_badger.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 import 'package:dio/dio.dart';
@@ -406,7 +406,8 @@ class HomeController extends GetxController
     tabController = TabController(vsync: this, length: 0);
 
     List<Identity> mys = await loadRoomList(init: true);
-
+    isAppBadgeSupported =
+        GetPlatform.isAndroid || GetPlatform.isIOS || GetPlatform.isMacOS;
     // Ecash Init
     if (mys.isNotEmpty) {
       Get.find<EcashController>().initIdentity(mys[0]);
@@ -459,15 +460,8 @@ class HomeController extends GetxController
   }
 
   Future<void> removeBadge() async {
-    if (!GetPlatform.isMobile) return;
-    try {
-      bool supportBadge = await AppBadgePlus.isSupported();
-      if (supportBadge) {
-        AppBadgePlus.updateBadge(0);
-      }
-    } catch (e) {
-      loggerNoLine.e('removeBadge: ${e.toString()}', error: e);
-    }
+    if (!isAppBadgeSupported) return;
+    await FlutterNewBadger.removeBadge();
   }
 
   Future setTipsViewed(String name, RxBool toSetValue) async {
@@ -480,8 +474,15 @@ class HomeController extends GetxController
     allUnReadCount.value = count;
     allUnReadCount.refresh();
     if (!isAppBadgeSupported) return;
-    if (count == 0) return await AppBadgePlus.updateBadge(0);
-    AppBadgePlus.updateBadge(count);
+    if (count == 0) return await FlutterNewBadger.removeBadge();
+    FlutterNewBadger.setBadge(count);
+  }
+
+  addUnreadCount() {
+    allUnReadCount.value++;
+    allUnReadCount.refresh();
+    if (!isAppBadgeSupported) return;
+    FlutterNewBadger.setBadge(allUnReadCount.value);
   }
 
   troggleDebugModel() {

@@ -104,6 +104,12 @@ class MoreChatSetting extends StatelessWidget {
     hc.checkRunStatus.value = false;
   }
 
+  void restartAllRelays() async {
+    HomeController hc = Get.find<HomeController>();
+    await Get.find<WebsocketService>().start();
+    hc.checkRunStatus.value = true;
+  }
+
   handleDBSettting(BuildContext context) async {
     HomeController hc = Get.find<HomeController>();
     show300hSheetWidget(
@@ -121,7 +127,7 @@ class MoreChatSetting extends StatelessWidget {
                       closeAllRelays();
                       return;
                     }
-                    Get.find<WebsocketService>().start();
+                    restartAllRelays();
                   },
                   title: const Text('Disabled sending && receiveing')),
               SettingsTile.navigation(

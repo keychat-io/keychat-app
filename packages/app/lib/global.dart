@@ -47,13 +47,13 @@ class KeychatGlobal {
     },
   ];
   static const List<String> keychatIntros = [
-    'Keychat is a chat app, built on Bitcoin ecash, Nostr protocol and Signal protocol.',
+    'Keychat is a chat app, built on Bitcoin ecash, Nostr protocol and Signal/MLS protocol.',
     'Keychat is inspired by the postal system — stamps, post offices, letters.',
     'Keychat uses Bitcoin ecash as stamps and Nostr relays as post offices.',
     'Keychat uses Signal protocol to ensure message encryption security and meta-data privacy.'
   ];
   static const String keychatIntro2 =
-      '''Keychat is a chat app, built on Bitcoin ecash, Nostr protocol and Signal protocol.
+      '''Keychat is a chat app, built on Bitcoin ecash, Nostr protocol and Signal/MLS protocol.
 
 Keychat is inspired by the postal system — stamps, post offices, letters.
 

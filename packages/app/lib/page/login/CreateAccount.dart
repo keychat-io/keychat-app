@@ -55,19 +55,10 @@ class _CreateAccountState extends State<CreateAccount> {
         appBar: widget.type != "tab"
             ? AppBar(
                 title: Column(children: [
-                  const Text('Create ID'),
-                  Text('Derived from seed phrase',
-                      style: Theme.of(context).textTheme.bodySmall)
-                ]),
-                actions: Get.previousRoute == '/login'
-                    ? []
-                    : [
-                        TextButton(
-                            onPressed: () {
-                              Get.off(() => const ImportNsec());
-                            },
-                            child: const Text('Import Nsec'))
-                      ])
+                const Text('Create ID'),
+                Text('Derived from seed phrase',
+                    style: Theme.of(context).textTheme.bodySmall)
+              ]))
             : null,
         floatingActionButton: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -115,60 +106,60 @@ class _CreateAccountState extends State<CreateAccount> {
                 ])),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         body: SafeArea(
-            child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
-                child: ListView(controller: scrollController, children: [
-                  TextFormField(
-                    controller: textEditingController,
-                    focusNode: focusNode,
-                    autofocus: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Nick Name',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text('Select Your Avatar'),
-                  accounts.isEmpty
-                      ? pageLoadingSpinKit()
-                      : ListView.builder(
-                          itemCount: accounts.length,
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemBuilder: (context, index) {
-                            return ListTile(
-                              onTap: () {
-                                if (widget.npubs
-                                    .contains(accounts[index].pubkeyBech32)) {
-                                  EasyLoading.showToast(
-                                      'This account already exists');
-                                  return;
-                                }
-                                setState(() {
-                                  selected = index;
-                                });
-                              },
-                              title: Text('#$index'),
-                              leading: Utils.getRandomAvatar(
-                                  accounts[index].pubkey,
-                                  height: 50,
-                                  width: 50),
-                              subtitle: Text(getPublicKeyDisplay(
-                                  accounts[index].pubkeyBech32, 8)),
-                              selected: selected == index,
-                              trailing: widget.npubs
-                                      .contains(accounts[index].pubkeyBech32)
+            child: ListView(controller: scrollController, children: [
+          Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
+              child: TextFormField(
+                controller: textEditingController,
+                focusNode: focusNode,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Nick Name',
+                  border: OutlineInputBorder(),
+                ),
+              )),
+          const SizedBox(height: 8),
+          const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text('Select Your Avatar')),
+          accounts.isEmpty
+              ? pageLoadingSpinKit()
+              : ListView.builder(
+                  itemCount: accounts.length,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      onTap: () {
+                        if (widget.npubs
+                            .contains(accounts[index].pubkeyBech32)) {
+                          EasyLoading.showToast('This account already exists');
+                          return;
+                        }
+                        setState(() {
+                          selected = index;
+                        });
+                      },
+                      title: Text('#$index'),
+                      leading: Utils.getRandomAvatar(accounts[index].pubkey,
+                          height: 40, width: 40),
+                      subtitle: Text(
+                          getPublicKeyDisplay(accounts[index].pubkeyBech32, 8)),
+                      selected: selected == index,
+                      dense: true,
+                      trailing:
+                          widget.npubs.contains(accounts[index].pubkeyBech32)
+                              ? const Icon(Icons.check_circle,
+                                  color: Colors.grey, size: 24)
+                              : selected == index
                                   ? const Icon(Icons.check_circle,
-                                      color: Colors.grey, size: 30)
-                                  : selected == index
-                                      ? const Icon(Icons.check_circle,
-                                          color: Colors.green, size: 30)
-                                      : null,
-                            );
-                          }),
-                  const SizedBox(height: 100)
-                ]))));
+                                      color: Colors.green, size: 24)
+                                  : null,
+                    );
+                  }),
+          const SizedBox(height: 100)
+        ])));
   }
 
   void generateAccount(String? mnemonic) async {
@@ -177,8 +168,17 @@ class _CreateAccountState extends State<CreateAccount> {
       mnemonic = account.mnemonic!;
     }
 
-    List<Secp256k1Account> list = await rust_nostr.importFromPhraseWith(
-        phrase: mnemonic, offset: 0, count: 10);
+    List<Secp256k1Account> list = [];
+    try {
+      list = await rust_nostr.importFromPhraseWith(
+          phrase: mnemonic, offset: 0, count: 10);
+    } catch (e) {
+      String error = Utils.getErrorMessage(e);
+      EasyLoading.showError(error);
+      if (widget.mnemonic != null) {
+        Get.back();
+      }
+    }
 
     setState(() {
       accounts = list;

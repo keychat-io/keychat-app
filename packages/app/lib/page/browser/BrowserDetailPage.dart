@@ -236,12 +236,12 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
           //   child: appBar,
           // )),
           floatingActionButtonLocation:
-              FloatingActionButtonLocation.miniStartFloat,
+              FloatingActionButtonLocation.miniStartTop,
           floatingActionButtonAnimator:
               FloatingActionButtonAnimator.noAnimation,
           floatingActionButton: GetPlatform.isIOS && canGoBack
               ? Container(
-                  margin: const EdgeInsets.only(bottom: 240),
+                  margin: const EdgeInsets.only(top: 300),
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(

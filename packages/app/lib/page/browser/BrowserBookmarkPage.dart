@@ -43,7 +43,6 @@ class _BrowserBookmarkPageState extends State<BrowserBookmarkPage> {
             controller: refreshController,
             child: ListView.separated(
               shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
               itemCount: urls.length,
               separatorBuilder: (BuildContext context, int index) =>
                   const Divider(

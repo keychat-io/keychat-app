@@ -1,4 +1,5 @@
 import 'package:app/models/models.dart';
+import 'package:app/page/login/CreateAccount.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:app/utils.dart';
@@ -8,22 +9,20 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import '../../service/identity.service.dart';
 
-class ImportNsec extends StatefulWidget {
-  const ImportNsec({super.key});
+class ImportSeedPhrase extends StatefulWidget {
+  const ImportSeedPhrase({super.key});
 
   @override
-  _ImportNsec createState() => _ImportNsec();
+  _ImportSeedPhrase createState() => _ImportSeedPhrase();
 }
 
-class _ImportNsec extends State<ImportNsec> {
-  late TextEditingController nameController;
+class _ImportSeedPhrase extends State<ImportSeedPhrase> {
   late TextEditingController _privateKeyController;
   late FocusNode focusNode2;
 
   @override
   void initState() {
     _privateKeyController = TextEditingController();
-    nameController = TextEditingController();
     focusNode2 = FocusNode();
     super.initState();
   }
@@ -31,7 +30,6 @@ class _ImportNsec extends State<ImportNsec> {
   @override
   void dispose() {
     focusNode2.dispose();
-    nameController.dispose();
     _privateKeyController.dispose();
     super.dispose();
   }
@@ -39,8 +37,8 @@ class _ImportNsec extends State<ImportNsec> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar:
-            AppBar(centerTitle: true, title: const Text("Import from Nesc")),
+        appBar: AppBar(
+            centerTitle: true, title: const Text("Import from Seed Phrase")),
         body: SafeArea(
           child: Padding(
               padding:
@@ -53,24 +51,16 @@ class _ImportNsec extends State<ImportNsec> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.start,
                             children: [
-                          TextField(
-                              controller: nameController,
-                              textInputAction: TextInputAction.next,
-                              autofocus: true,
-                              decoration: const InputDecoration(
-                                  labelText: 'My Nickname',
-                                  hintText: 'Show to friends',
-                                  border: OutlineInputBorder())),
                           const SizedBox(height: 16),
                           TextField(
                               controller: _privateKeyController,
                               textInputAction: TextInputAction.done,
                               minLines: 1,
-                              maxLines: 2,
+                              maxLines: 6,
                               focusNode: focusNode2,
                               decoration: InputDecoration(
-                                  labelText: 'Nsec / Hex Private Key',
-                                  hintText: 'Nsec / Hex Private Key',
+                                  labelText: 'Seed Phrase',
+                                  hintText: '24 words',
                                   border: const OutlineInputBorder(),
                                   suffixIcon: IconButton(
                                       icon: const Icon(Icons.paste),
@@ -98,42 +88,25 @@ class _ImportNsec extends State<ImportNsec> {
                   style: ButtonStyle(
                       minimumSize: WidgetStateProperty.all(
                           const Size(double.infinity, 44))),
-                  child: const Text('Confirm'),
+                  child: const Text('Next'),
                   onPressed: () async {
-                    String name = nameController.text.trim();
                     String input = _privateKeyController.text.trim();
-                    if (name.isEmpty) {
-                      EasyLoading.showError('Please enter a nickname');
-                      return;
-                    }
+
                     if (input.isEmpty) {
                       EasyLoading.showError(
-                          'Please enter a Nsec / Hex Private Key');
+                          'Please enter your seed phrase (24 words)');
                       return;
                     }
-                    try {
-                      if (input.startsWith('nsec')) {
-                        input = rust_nostr.getHexPrikeyByBech32(bech32: input);
-                      }
-                      String hexPubkey =
-                          rust_nostr.getHexPubkeyByPrikey(prikey: input);
-                      Identity? exist = await IdentityService.instance
-                          .getIdentityByNostrPubkey(hexPubkey);
-                      if (exist != null) {
-                        EasyLoading.showError('This prikey already exists');
-                        return;
-                      }
-                      var newIdentity = await IdentityService.instance
-                          .createIdentityByPrikey(
-                              name: name, prikey: input, hexPubkey: hexPubkey);
-
-                      EasyLoading.showSuccess('Import successfully');
-                      Get.back(result: newIdentity);
-                    } catch (e, s) {
-                      String msg = Utils.getErrorMessage(e);
-                      logger.e('Import failed', error: e, stackTrace: s);
-                      EasyLoading.showToast('Import failed: $msg');
+                    List<String> words = input.split(' ');
+                    if (words.length != 24) {
+                      EasyLoading.showError(
+                          'Seed phrase must be exactly 24 words');
+                      return;
                     }
+                    Get.to(() => CreateAccount(
+                          type: "init",
+                          mnemonic: input,
+                        ));
                   },
                 )
               ])),

@@ -53,6 +53,11 @@ subprojects {
                     sourceCompatibility javaVersion
                     targetCompatibility javaVersion
                 }
+                tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+                     kotlinOptions {
+                         jvmTarget = javaVersion.toString()
+                     }
+                 }
                 println("Setting java version to ${javaVersion.toString()} which is $javaVersion")
                 println("Setting compileSdkVersion and targetSdkVersion to $androidApiVersion")
             }

@@ -1,13 +1,9 @@
-import 'package:app/models/models.dart';
 import 'package:app/page/login/CreateAccount.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
-import 'package:app/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import '../../service/identity.service.dart';
 
 class ImportSeedPhrase extends StatefulWidget {
   const ImportSeedPhrase({super.key});

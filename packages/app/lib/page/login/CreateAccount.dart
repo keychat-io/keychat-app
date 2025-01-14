@@ -1,5 +1,4 @@
 import 'package:app/page/components.dart';
-import 'package:app/page/login/import_nsec.dart';
 import 'package:flutter/material.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 import 'package:app/controller/home.controller.dart';

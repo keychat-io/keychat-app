@@ -453,6 +453,7 @@ class Utils {
     if (room.isMute) {
       return badges.Badge(
         position: badges.BadgePosition.topEnd(top: -5, end: -5),
+        badgeAnimation: const badges.BadgeAnimation.fade(toAnimate: false),
         child: child,
       );
     }
@@ -461,6 +462,7 @@ class Utils {
         "$newMessageCount",
         style: const TextStyle(color: Colors.white),
       ),
+      badgeAnimation: const badges.BadgeAnimation.fade(toAnimate: false),
       position: badges.BadgePosition.topEnd(top: -8, end: -5),
       child: child,
     );
@@ -552,7 +554,7 @@ class Utils {
                 ? DateTimeFormat.onlyTime
                 : DateTimeFormat.dateAndTime,
             colors: false,
-            methodCount: kReleaseMode ? 1 : 4),
+            methodCount: kReleaseMode ? 1 : 10),
         output: kReleaseMode
             ? LogFileOutputs(await Utils.createLogFile(directory.path))
             : null));

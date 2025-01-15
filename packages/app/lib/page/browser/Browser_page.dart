@@ -25,7 +25,7 @@ class BrowserPage extends GetView<BrowserController> {
             },
             child: Obx(() => Padding(
                 padding: const EdgeInsets.only(
-                    left: 16, right: 16, top: 240, bottom: 16),
+                    left: 16, right: 16, top: 140, bottom: 16),
                 child: ListView(children: [
                   ...controller.enableSearchEngine.toList().reversed.map(
                     (engine) {
@@ -283,8 +283,8 @@ class BrowserPage extends GetView<BrowserController> {
         if (index == controller.bookmarks.length) {
           return quickSectionItem(
               Utils.getAssetImage('assets/images/recommend.png', radius: 100),
-              'App Store',
-              'App Store', onTap: () async {
+              'Web Store',
+              'Web Store', onTap: () async {
             Get.bottomSheet(const Recommends(),
                 isScrollControlled: true,
                 ignoreSafeArea: false,

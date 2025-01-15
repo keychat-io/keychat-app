@@ -55,7 +55,12 @@ void main() async {
     darkTheme: AppThemeCustom.dark(),
   );
   if (!kDebugMode) {
-    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+    try {
+      FlutterError.onError =
+          FirebaseCrashlytics.instance.recordFlutterFatalError;
+    } catch (e, s) {
+      logger.e(e.toString(), stackTrace: s);
+    }
   }
   // fix https://github.com/flutter/flutter/issues/119465
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);

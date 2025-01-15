@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'dart:convert' show jsonEncode, jsonDecode;
 
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/models/browser/browser_bookmark.dart';
@@ -160,7 +160,7 @@ class BrowserController extends GetxController {
     loadConfig();
     loadBookmarks();
     // loadHistory();
-    // initWebview();
+    initWebview();
     super.onInit();
   }
 

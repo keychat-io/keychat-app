@@ -8,7 +8,6 @@ import 'package:app/page/routes.dart';
 import 'package:app/page/setting/more_chat_setting.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app/utils.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';

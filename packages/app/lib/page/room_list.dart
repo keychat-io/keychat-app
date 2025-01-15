@@ -234,6 +234,7 @@ class RoomList extends StatelessWidget {
               data.anonymousUnReadCount.toString(),
               style: const TextStyle(color: Colors.white),
             ),
+            badgeAnimation: const badges.BadgeAnimation.fade(toAnimate: false),
             position: badges.BadgePosition.topEnd(top: -8, end: -5),
             child: CircleAvatar(
               radius: 26,

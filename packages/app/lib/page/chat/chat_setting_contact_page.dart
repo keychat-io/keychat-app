@@ -73,8 +73,10 @@ class _ShowContactDetailState extends State<ShowContactDetail> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   ListTile(
-                      leading: getRandomAvatar(chatController.room.toMainPubkey,
-                          height: 60, width: 60),
+                      leading: Utils.getRandomAvatar(
+                          chatController.room.toMainPubkey,
+                          height: 60,
+                          width: 60),
                       title: Obx(() => Text(
                             chatController.roomObs.value.getRoomName(),
                             style: Theme.of(context).textTheme.titleMedium,

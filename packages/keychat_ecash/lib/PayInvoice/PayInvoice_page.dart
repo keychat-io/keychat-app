@@ -14,7 +14,8 @@ import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 class PayInvoicePage extends StatefulWidget {
   final String? invoce;
-  const PayInvoicePage({super.key, this.invoce});
+  final bool isPay;
+  const PayInvoicePage({super.key, this.invoce, this.isPay = false});
 
   @override
   _PayInvoicePageState createState() => _PayInvoicePageState();
@@ -43,12 +44,11 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
         appBar: AppBar(
             leading: Container(),
             centerTitle: true,
-            title: Text('Send to Lightning',
+            title: Text('Send to Lightning Network',
                 style: Theme.of(context).textTheme.bodyMedium)),
         body: SafeArea(
             child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10.0, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 10.0),
                 child: Column(children: [
                   Form(
                     autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -61,35 +61,36 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                               cashuController.latestMintUrl.value = mint;
                               controller.selectedMint.value = mint;
                             })),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 10),
-                          child: TextField(
-                            controller: controller.textController,
-                            textInputAction: TextInputAction.done,
-                            maxLines: 8,
-                            style: const TextStyle(fontSize: 10),
-                            decoration: InputDecoration(
-                                labelText: 'Input Invoice',
-                                hintText: 'Paste Lightning invoice',
-                                border: const OutlineInputBorder(),
-                                suffixIcon: IconButton(
-                                  icon: const Icon(Icons.paste),
-                                  onPressed: () async {
-                                    final clipboardData =
-                                        await Clipboard.getData('text/plain');
-                                    if (clipboardData != null) {
-                                      final pastedText = clipboardData.text;
-                                      if (pastedText != null &&
-                                          pastedText != '') {
-                                        controller.textController.text =
-                                            pastedText;
+                        if (widget.isPay == false)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 10),
+                            child: TextField(
+                              controller: controller.textController,
+                              textInputAction: TextInputAction.done,
+                              maxLines: 3,
+                              style: const TextStyle(fontSize: 10),
+                              decoration: InputDecoration(
+                                  labelText: 'Input Invoice',
+                                  hintText: 'Paste Lightning invoice',
+                                  border: const OutlineInputBorder(),
+                                  suffixIcon: IconButton(
+                                    icon: const Icon(Icons.paste),
+                                    onPressed: () async {
+                                      final clipboardData =
+                                          await Clipboard.getData('text/plain');
+                                      if (clipboardData != null) {
+                                        final pastedText = clipboardData.text;
+                                        if (pastedText != null &&
+                                            pastedText != '') {
+                                          controller.textController.text =
+                                              pastedText;
+                                        }
                                       }
-                                    }
-                                  },
-                                )),
+                                    },
+                                  )),
+                            ),
                           ),
-                        ),
                         Obx(() => FutureBuilder(future: () async {
                               if (controller.selectedInvoice.value.isEmpty) {
                                 return null;
@@ -110,62 +111,95 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                             }(), builder: (context, snapshot) {
                               if (snapshot.data == null ||
                                   snapshot.connectionState !=
-                                      ConnectionState.done) return Container();
+                                      ConnectionState.done) {
+                                return Container();
+                              }
                               InvoiceInfo invoiceInfo =
                                   snapshot.data as InvoiceInfo;
-                              return ListTile(
-                                title: Text(
-                                    '${invoiceInfo.amount} sat - ${invoiceInfo.memo}'),
-                                subtitle: textSmallGray(
-                                    context,
-                                    invoiceInfo.expiryTs.toInt() <
-                                            DateTime.now()
-                                                .millisecondsSinceEpoch
-                                        ? 'Expired'
-                                        : 'Expires in ${formatTime(invoiceInfo.expiryTs.toInt())}'),
-                              );
+                              return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    const SizedBox(height: 16),
+                                    RichText(
+                                      text: TextSpan(
+                                        children: [
+                                          TextSpan(
+                                            text: '${invoiceInfo.amount}',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleLarge
+                                                ?.copyWith(
+                                                    fontSize: 34,
+                                                    color: Colors.green),
+                                          ),
+                                          TextSpan(
+                                              text: ' sat',
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodySmall),
+                                        ],
+                                      ),
+                                    ),
+                                    if (invoiceInfo.memo != null)
+                                      Text('${invoiceInfo.memo}',
+                                          textAlign: TextAlign.center,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyMedium),
+                                    textSmallGray(
+                                        context,
+                                        invoiceInfo.expiryTs.toInt() <
+                                                DateTime.now()
+                                                    .millisecondsSinceEpoch
+                                            ? 'Expired'
+                                            : 'Expires in ${formatTime(invoiceInfo.expiryTs.toInt())}'),
+                                  ]);
                             })),
-                        const SizedBox(height: 10),
-                        OutlinedButton.icon(
-                            onPressed: () async {
-                              String? result =
-                                  await QrScanService.instance.handleQRScan();
-                              if (result != null) {
-                                controller.textController.text = result;
-                              }
-                            },
-                            icon: const Icon(Icons.qr_code_scanner),
-                            label: const Text('Scan')),
+                        if (widget.isPay == false)
+                          OutlinedButton.icon(
+                              onPressed: () async {
+                                String? result =
+                                    await QrScanService.instance.handleQRScan();
+                                if (result != null) {
+                                  controller.textController.text = result;
+                                }
+                              },
+                              icon: const Icon(Icons.qr_code_scanner),
+                              label: const Text('Scan')),
                       ],
                     )),
                   ),
-                  Obx(() => cashuController
-                          .supportMint(controller.selectedMint.value)
-                      ? FilledButton(
-                          style: ButtonStyle(
-                              minimumSize: WidgetStateProperty.all(
-                                  const Size(double.infinity, 44))),
-                          onPressed: () {
-                            controller.confirm(controller.selectedMint.value);
-                          },
-                          child: const Text('Pay Invoice'),
-                        )
-                      : FilledButton(
-                          onPressed: null,
-                          style: ButtonStyle(
-                            minimumSize: WidgetStateProperty.all(
-                                const Size(double.infinity, 44)),
-                            backgroundColor:
-                                WidgetStateProperty.resolveWith<Color>(
-                              (Set<WidgetState> states) {
-                                if (states.contains(WidgetState.disabled)) {
-                                  return Colors.grey;
-                                }
-                                return MaterialTheme.lightScheme().primary;
+                  Obx(() => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: cashuController
+                              .supportMint(controller.selectedMint.value)
+                          ? FilledButton(
+                              style: ButtonStyle(
+                                  minimumSize: WidgetStateProperty.all(
+                                      const Size(double.infinity, 44))),
+                              onPressed: () {
+                                controller.confirm(
+                                    controller.selectedMint.value,
+                                    isPay: widget.isPay);
                               },
-                            ),
-                          ),
-                          child: const Text('Disabled By Mint Server'))),
+                              child: const Text('Pay Invoice'),
+                            )
+                          : FilledButton(
+                              onPressed: null,
+                              style: ButtonStyle(
+                                minimumSize: WidgetStateProperty.all(
+                                    const Size(double.infinity, 44)),
+                                backgroundColor:
+                                    WidgetStateProperty.resolveWith<Color>(
+                                  (Set<WidgetState> states) {
+                                    if (states.contains(WidgetState.disabled)) {
+                                      return Colors.grey;
+                                    }
+                                    return MaterialTheme.lightScheme().primary;
+                                  },
+                                ),
+                              ),
+                              child: const Text('Disabled By Mint Server')))),
                 ]))));
   }
 }

@@ -158,7 +158,7 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
                   Map user = users[i];
                   return ListTile(
                       dense: true,
-                      leading: getRandomAvatar(user['pubkey'],
+                      leading: Utils.getRandomAvatar(user['pubkey'],
                           height: 30, width: 30),
                       title: Text(user['name'], maxLines: 1),
                       subtitle: Column(

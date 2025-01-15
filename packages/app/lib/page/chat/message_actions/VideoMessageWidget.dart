@@ -40,7 +40,7 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
     }
   }
 
-  _init(MsgFileInfo mfi) {
+  _init(MsgFileInfo mfi) async {
     if (mfi.status == FileStatus.downloading && mfi.updateAt != null) {
       bool isTimeout = DateTime.now()
           .subtract(const Duration(seconds: 120))
@@ -68,23 +68,12 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
         });
         return;
       }
-      String thumbnail = FileUtils.getVideoThumbPath(filePath);
-      File tFile = File(thumbnail);
-      if (tFile.existsSync()) {
-        setState(() {
-          fileStatus = FileStatus.decryptSuccess;
-          msgFileInfo = mfi;
-          thumbnailFile = tFile;
-          videoPath = filePath;
-        });
-        return;
-      }
+
       FileUtils.getOrCreateThumbForVideo(filePath).then((value) {
-        value.copySync(tFile.path);
         setState(() {
           fileStatus = FileStatus.decryptSuccess;
           msgFileInfo = mfi;
-          thumbnailFile = tFile;
+          thumbnailFile = value;
           videoPath = filePath;
         });
       });
@@ -94,11 +83,11 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
   @override
   Widget build(BuildContext context) {
     if (fileStatus == FileStatus.init || fileStatus == FileStatus.failed) {
-      return Row(
+      return Wrap(
         children: [
           widget.errorCallback(
               text:
-                  '[Video File]:  ${fileStatus == FileStatus.failed ? 'Download Failed' : FileUtils.getFileSizeDisplay(msgFileInfo?.size ?? 0)}'),
+                  '[Video File]: ${fileStatus == FileStatus.failed ? 'Download Failed' : FileUtils.getFileSizeDisplay(msgFileInfo?.size ?? 0)}'),
           IconButton(
             onPressed: () {
               if (msgFileInfo == null) return;
@@ -121,7 +110,7 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
     }
 
     if (fileStatus == FileStatus.downloading) {
-      return Row(
+      return Wrap(
         children: [
           widget.errorCallback(text: '[Downloading]: $downloadProgress%'),
           IconButton(
@@ -149,7 +138,7 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
               Positioned(
                 child: CircleAvatar(
                     radius: 28,
-                    backgroundColor: Colors.grey.withOpacity(0.8),
+                    backgroundColor: Colors.grey.withValues(alpha: 0.8),
                     child: IconButton(
                       onPressed: () async {
                         ChatController? cc =

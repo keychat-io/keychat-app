@@ -75,13 +75,13 @@ class QrScanService {
     if (str.startsWith('cashu')) {
       return ecashController.proccessCashuAString(str);
     }
-    // lighting invoice
+    // lightning invoice
     if (str.startsWith('lightning:')) {
       str = str.replaceFirst('lightning:', '');
-      return ecashController.proccessPayLightingBill(str);
+      return ecashController.proccessPayLightningBill(str);
     }
     if (str.startsWith('lnbc')) {
-      return ecashController.proccessPayLightingBill(str);
+      return ecashController.proccessPayLightningBill(str);
     }
     if (str.startsWith('npub') || str.length == 64) {
       Get.to(() => AddtoContactsPage(str));

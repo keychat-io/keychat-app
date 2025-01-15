@@ -37,10 +37,10 @@ class _CashuReceiveWidgetState extends State<CashuReceiveWidget> {
               style: const TextStyle(fontSize: 16),
             ),
           ],
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                height: 1.5,
-                fontSize: 34,
-              ),
+          style: Theme.of(context)
+              .textTheme
+              .titleLarge
+              ?.copyWith(height: 1.5, fontSize: 34, color: Colors.green),
         )),
         Text(widget.cashuinfo.mint),
         Text(

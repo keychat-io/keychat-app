@@ -23,14 +23,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:haptic_feedback/haptic_feedback.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart';
 import 'package:settings_ui/settings_ui.dart';
 
 import '../../models/db_provider.dart';
 import '../../service/file_util.dart';
 import '../../service/message.service.dart';
-import '../common.dart' show getFormatTimeForMessage;
 import '../components.dart';
 import 'chat_bubble.dart';
 import 'chat_bubble_clipper_4.dart';
@@ -78,7 +76,7 @@ class MessageWidget extends StatelessWidget {
           child: Container(
             margin: const EdgeInsets.only(top: 2),
             child: Text(
-              getFormatTimeForMessage(message.createdAt),
+              Utils.getFormatTimeForMessage(message.createdAt),
               style: TextStyle(
                   color: Get.isDarkMode
                       ? Colors.grey.shade700
@@ -123,7 +121,7 @@ class MessageWidget extends StatelessWidget {
                         color: Theme.of(Get.context!)
                             .colorScheme
                             .onSurface
-                            .withOpacity(0.6))),
+                            .withValues(alpha: 0.6))),
               ],
             ))
         : const SizedBox();
@@ -142,10 +140,8 @@ class MessageWidget extends StatelessWidget {
       children: [
         Padding(
             padding: const EdgeInsets.only(left: 10),
-            child: Text(
-              'File Info',
-              style: Theme.of(buildContext).textTheme.bodyLarge,
-            )),
+            child: Text('File Info',
+                style: Theme.of(buildContext).textTheme.titleMedium)),
         Card(
           child: Column(children: [
             Table(
@@ -203,7 +199,7 @@ class MessageWidget extends StatelessWidget {
             padding: const EdgeInsets.only(left: 10),
             child: Text(
               'Raw Message',
-              style: Theme.of(buildContext).textTheme.bodyLarge,
+              style: Theme.of(buildContext).textTheme.titleMedium,
             )),
       ],
     );
@@ -212,7 +208,7 @@ class MessageWidget extends StatelessWidget {
   getFromAndToWidget(BuildContext context, Message message) {
     var style = TextStyle(
         fontSize: 12,
-        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6));
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6));
     return chatController.showFromAndTo.value
         ? Container(
             decoration: BoxDecoration(
@@ -295,7 +291,7 @@ class MessageWidget extends StatelessWidget {
 
                       if (message.reply != null) {
                         Identity identity = Get.find<HomeController>()
-                            .identities[chatController.room.identityId]!;
+                            .allIdentities[chatController.room.identityId]!;
                         message.fromContact = FromContact(
                             identity.secp256k1PKHex, identity.displayName);
                         var decodeContent = jsonDecode(message.content);
@@ -438,9 +434,9 @@ class MessageWidget extends StatelessWidget {
     return (ess, event);
   }
 
-  void messageOnDoubleTap() {
-    Get.to(() => LongTextPreviewPage(message.realMessage ?? message.content),
-        fullscreenDialog: true, transition: Transition.fadeIn);
+  void messageOnDoubleTap() async {
+    Utils.bottomSheedAndHideStatusBar(
+        LongTextPreviewPage(message.realMessage ?? message.content));
   }
 
   TableRow tableRow(String title, String text) {
@@ -453,7 +449,7 @@ class MessageWidget extends StatelessWidget {
                   style: Theme.of(Get.context!)
                       .textTheme
                       .bodyMedium
-                      ?.copyWith(color: fontColor.withOpacity(0.7))))),
+                      ?.copyWith(color: fontColor.withValues(alpha: 0.7))))),
       TableCell(
           child: Padding(
               padding:
@@ -503,7 +499,8 @@ class MessageWidget extends StatelessWidget {
                 }
                 await chatController.openPageAction();
               },
-              child: getRandomAvatar(contact.pubkey, height: 40, width: 40),
+              child:
+                  Utils.getRandomAvatar(contact.pubkey, height: 40, width: 40),
             ),
           ),
           Expanded(
@@ -524,10 +521,8 @@ class MessageWidget extends StatelessWidget {
                 fullscreenDialog: true, transition: Transition.fadeIn);
           },
           child: Text(message.reply!.content,
-              style: Theme.of(Get.context!)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: fontColor.withOpacity(0.7), height: 1),
+              style: Theme.of(Get.context!).textTheme.bodyMedium?.copyWith(
+                  color: fontColor.withValues(alpha: 0.7), height: 1.1),
               maxLines: 5));
     } else {
       Message? msg =
@@ -561,7 +556,7 @@ class MessageWidget extends StatelessWidget {
             color: (message.isMeSend
                     ? MaterialTheme.lightScheme().surface
                     : Theme.of(Get.context!).colorScheme.surface)
-                .withOpacity(0.5),
+                .withValues(alpha: 0.5),
             border: Border(
                 left: BorderSide(color: Colors.purple.shade200, width: 2.0)),
           ),
@@ -590,7 +585,8 @@ class MessageWidget extends StatelessWidget {
   }
 
   Widget _textCallback({String? text, Widget? child}) {
-    child ??= Text(text ?? 'null', style: TextStyle(color: fontColor));
+    child ??= Text(text ?? 'null',
+        style: TextStyle(color: message.isMeSend ? Colors.white : fontColor));
     return GestureDetector(
       onDoubleTap: messageOnDoubleTap,
       child: ConstrainedBox(
@@ -862,7 +858,7 @@ class MessageWidget extends StatelessWidget {
     Get.back();
     if (message.isMeSend) {
       Identity identity = Get.find<HomeController>()
-          .identities[chatController.room.identityId]!;
+          .allIdentities[chatController.room.identityId]!;
       message.fromContact =
           FromContact(identity.secp256k1PKHex, identity.displayName);
     } else {
@@ -877,7 +873,7 @@ class MessageWidget extends StatelessWidget {
 
   void _handleTextLongPress() async {
     if (GetPlatform.isMobile) {
-      await Haptics.vibrate(HapticsType.heavy);
+      await HapticFeedback.lightImpact();
     }
     show300hSheetWidget(
       Get.context!,

@@ -1,4 +1,3 @@
-import 'package:app/controller/home.controller.dart';
 import 'package:app/models/models.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
@@ -40,7 +39,8 @@ class _ImportNsec extends State<ImportNsec> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(centerTitle: true, title: const Text("Import ID")),
+        appBar:
+            AppBar(centerTitle: true, title: const Text("Import from Nesc")),
         body: SafeArea(
           child: Padding(
               padding:
@@ -126,7 +126,6 @@ class _ImportNsec extends State<ImportNsec> {
                       var newIdentity = await IdentityService.instance
                           .createIdentityByPrikey(
                               name: name, prikey: input, hexPubkey: hexPubkey);
-                      Get.find<HomeController>().identities.length == 1;
 
                       EasyLoading.showSuccess('Import successfully');
                       Get.back(result: newIdentity);

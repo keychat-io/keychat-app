@@ -2,12 +2,12 @@ import 'dart:io' show exit;
 
 import 'package:app/models/models.dart';
 import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/page/common.dart';
 import 'package:app/page/new_friends_rooms.dart';
 import 'package:app/page/search_page.dart';
 import 'package:app/page/widgets/home_drop_menu.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/websocket.service.dart';
+import 'package:app/utils.dart';
 import 'package:badges/badges.dart' as badges;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -31,7 +31,7 @@ class RoomList extends StatelessWidget {
 
     Divider divider = Divider(
         height: 0.1,
-        color: Theme.of(context).dividerColor.withOpacity(0.1),
+        color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
         indent: 80.0);
     return Scaffold(
       appBar: AppBar(
@@ -142,7 +142,7 @@ class RoomList extends StatelessWidget {
                           color:
                               room.pin ? pinTileBackground : Colors.transparent,
                           child: ListTile(
-                            leading: getAvatarDot(room),
+                            leading: Utils.getAvatarDot(room),
                             key: Key('room:${room.id}'),
                             title: Text(room.getRoomName(),
                                 maxLines: 1,
@@ -161,7 +161,7 @@ class RoomList extends StatelessWidget {
                                     children: [
                                       textSmallGray(
                                           Get.context!,
-                                          formatTimeMsg(homeController
+                                          Utils.formatTimeMsg(homeController
                                               .roomLastMessage[room.id]!
                                               .createdAt)),
                                       room.isMute
@@ -170,7 +170,7 @@ class RoomList extends StatelessWidget {
                                               color: Theme.of(Get.context!)
                                                   .colorScheme
                                                   .onSurface
-                                                  .withOpacity(0.6),
+                                                  .withValues(alpha: 0.6),
                                               size: 16,
                                             )
                                           : Container()
@@ -199,8 +199,10 @@ class RoomList extends StatelessWidget {
           children: [
             const SizedBox(width: 10),
             Icon(Icons.search,
-                color:
-                    Theme.of(context).colorScheme.onSurface.withOpacity(0.4)),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.4)),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -209,7 +211,7 @@ class RoomList extends StatelessWidget {
                     color: Theme.of(context)
                         .colorScheme
                         .onSurface
-                        .withOpacity(0.4)),
+                        .withValues(alpha: 0.4)),
               ),
             ),
             const SizedBox(width: 10),
@@ -253,7 +255,10 @@ class RoomList extends StatelessWidget {
           subtitle: Text('Rooms: ${rooms.length}'),
           trailing: Icon(CupertinoIcons.right_chevron,
               size: 20,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4)),
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.4)),
         ));
   }
 
@@ -287,7 +292,10 @@ class RoomList extends StatelessWidget {
           subtitle: Text('Rooms: ${rooms.length}'),
           trailing: Icon(CupertinoIcons.right_chevron,
               size: 20,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4)),
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.4)),
         ));
   }
 

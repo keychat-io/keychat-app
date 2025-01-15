@@ -1,8 +1,7 @@
 // ignore_for_file: prefer_final_fields, unused_local_variable
 
 import 'package:flutter/material.dart';
-
-import '../common.dart';
+import 'package:get/get.dart';
 
 class IndexBar extends StatefulWidget {
   final void Function(String str)? indexBarCallBack;
@@ -42,8 +41,8 @@ class _IndexBarState extends State<IndexBar> {
     }
     return Positioned(
       right: 0.0,
-      top: screenHeight(context) / 8,
-      height: screenHeight(context) / 2,
+      top: Get.width / 8,
+      height: Get.height / 2,
       width: 120,
       child: Row(
         children: [
@@ -115,7 +114,7 @@ int getIndexItem(BuildContext context, Offset globalPosition) {
 
   var y = box.globalToLocal(globalPosition).dy;
 
-  var itemHeight = screenHeight(context) / 2 / INDEX_WORDS.length;
+  var itemHeight = Get.height / 2 / INDEX_WORDS.length;
   int index = y ~/ itemHeight.clamp(0, INDEX_WORDS.length - 1);
   return index;
 }

@@ -1,14 +1,12 @@
-import 'dart:convert';
-import 'dart:io';
+import 'dart:convert' show jsonDecode, jsonEncode;
+import 'dart:io' show File, Directory;
 import 'package:app/service/secure_storage.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:pick_or_save/pick_or_save.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -118,47 +116,13 @@ class DbSetting {
   }
 
   Future<bool?> exportFile(String filePath, [String? fileName]) async {
-    if (Platform.isIOS) {
-      _exportFileIOS(filePath);
-      return null;
-    } else if (Platform.isAndroid) {
-      return await _exportFileAndroid(filePath, fileName);
-    }
-    return false;
-  }
-
-  void _exportFileIOS(String filePath) {
-    const MethodChannel channel = MethodChannel('com.keychat/export/channel');
-    if (!Platform.isIOS) {
-      throw Exception('exportFileIOS is only available on iOS');
-    }
-    channel.invokeMethod('exportFile', {'filePath': filePath}).then((result) {
-      logger.d('File exported successfully: $result');
-    }).catchError((error) {
-      logger.e('Failed to export file: $error');
-    });
-  }
-
-  Future<bool> _exportFileAndroid(String filePath, [String? fileName]) async {
-    final pickOrSavePlugin = PickOrSave();
-    final params = FileSaverParams(
-      saveFiles: [
-        SaveFileInfo(
-          fileName: fileName,
-          filePath: filePath,
-        ),
-      ],
+    fileName ??= filePath.split('/').last;
+    String? outputFile = await FilePicker.platform.saveFile(
+      dialogTitle: 'Please select an output path:',
+      fileName: fileName,
+      bytes: await File(filePath).readAsBytes(),
     );
-    List<String>? result;
-    try {
-      result = await pickOrSavePlugin.fileSaver(params: params);
-    } on PlatformException catch (e) {
-      logger.e(e.toString());
-    } catch (e) {
-      logger.e(e.toString());
-    }
-
-    return result?.isNotEmpty ?? false;
+    return outputFile != null;
   }
 
   Future<List<Map<String, dynamic>>> parseEncryptedPackage(
@@ -278,26 +242,11 @@ class DbSetting {
   }
 
   Future<File?> importFile() async {
-    if (Platform.isAndroid) {
-      FilePickerResult? result = await FilePicker.platform.pickFiles();
-      if (result != null) {
-        return File(result.files.single.path!);
-      }
-    } else if (Platform.isIOS) {
-      final filePath = await importFileIOS();
-      if (filePath.isNotEmpty) {
-        return File(filePath);
-      }
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+    if (result != null) {
+      return File(result.files.single.path!);
     }
     return null;
-  }
-
-  Future<String> importFileIOS() async {
-    const MethodChannel channel = MethodChannel('com.keychat/import/channel');
-    if (!Platform.isIOS) {
-      throw Exception('importFileIOS is only available on iOS');
-    }
-    return await channel.invokeMethod<String>('importFile') ?? '';
   }
 
   Future<void> importSharedPreferences(String importFilePath) async {

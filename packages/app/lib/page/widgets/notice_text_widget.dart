@@ -5,7 +5,7 @@ class NoticeTextWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
       decoration: BoxDecoration(
-          color: color.withOpacity(0.2),
+          color: color.withValues(alpha: 0.2),
           border: Border.all(color: color),
           borderRadius: BorderRadius.circular(4)),
       child: Text(text),

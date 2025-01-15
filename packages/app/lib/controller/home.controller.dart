@@ -5,13 +5,15 @@ import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app/service/identity.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/relay.service.dart';
+import 'package:app/service/room.service.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
-import 'package:app_badge_plus/app_badge_plus.dart';
+import 'package:flutter_new_badger/flutter_new_badger.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 import 'package:dio/dio.dart';
@@ -25,22 +27,18 @@ import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
-
-import '../constants.dart';
-import '../service/identity.service.dart';
-import '../service/room.service.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class HomeController extends GetxController
     with GetTickerProviderStateMixin, WidgetsBindingObserver {
   IdentityService identityService = IdentityService.instance;
-  RxMap<int, Identity> identities = <int, Identity>{}.obs;
+  RxMap<int, Identity> chatIdentities = <int, Identity>{}.obs;
+  RxMap<int, Identity> allIdentities = <int, Identity>{}.obs;
   RxInt allUnReadCount = 0.obs;
   bool isAppBadgeSupported = false;
 
   RxMap<int, TabData> tabBodyDatas = <int, TabData>{}.obs;
   RxMap<int, Message?> roomLastMessage = <int, Message?>{}.obs;
-
-  RxString title = appDefaultTitle.obs;
 
   RxInt defaultSelectedTab = 0.obs;
   RxInt selectedIndex = 0.obs; // main bottom tab index
@@ -62,6 +60,8 @@ class HomeController extends GetxController
   Timer? _checkWebsocketTimer;
 
   RxList recommendBots = [].obs;
+  RxMap browserRecommend = {}.obs;
+  RxMap remoteAppConfig = {}.obs;
 
   DateTime? pausedTime;
 
@@ -151,12 +151,17 @@ class HomeController extends GetxController
     }
   }
 
-  Future fetchBots() async {
-    String fileName = 'bots-release.json'; //'bots-release.json';
+  Future loadAppRemoteConfig() async {
+    String fileName = 'config/app.json';
     var list = [
       'https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/$fileName',
       'https://mirror.ghproxy.com/https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/$fileName'
     ];
+    // load app version
+    PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    remoteAppConfig['appVersion'] =
+        "${packageInfo.version}+${packageInfo.buildNumber}";
+    logger.d('remoteAppConfig: $remoteAppConfig');
 
     for (var url in list) {
       try {
@@ -168,27 +173,43 @@ class HomeController extends GetxController
           ),
         );
         if (response.statusCode == 200) {
-          recommendBots.value = jsonDecode(response.data);
-          logger.d(recommendBots);
+          Map config = jsonDecode(response.data);
+          recommendBots.value = config['bots'];
+
+          var recommendUrls = config['browserRecommend'] as List;
+          browserRecommend.value = recommendUrls
+              .fold<Map<String, List<Map<String, dynamic>>>>({}, (acc, item) {
+            List<String> categories = List<String>.from(item['categories']);
+            for (var type in categories) {
+              if (acc[type] == null) {
+                acc[type] = [];
+              }
+              acc[type]!.add(item);
+            }
+            return acc;
+          });
+
+          // app version
+          for (var key in config.keys) {
+            if (key != 'bots' && key != 'browserRecommend') {
+              remoteAppConfig[key] = config[key];
+            }
+          }
           return;
         }
-      } catch (e) {
-        logger.e('Failed to fetch bots from $url: $e');
+      } catch (e, s) {
+        logger.e('Failed to config $url: $e', stackTrace: s);
       }
     }
   }
 
-  Future<int> getDefaultSelectedTab() async {
-    return await Storage.getIntOrZero(StorageKeyString.homeSelectedTabIndex);
-  }
-
   Identity getSelectedIdentity() {
-    return identities.values.toList()[tabController.index];
+    return chatIdentities.values.toList()[tabController.index];
   }
 
   initTabController([int initialIndex = 0]) {
     tabController.dispose();
-    if (initialIndex >= identities.length) {
+    if (initialIndex >= chatIdentities.length) {
       initialIndex = 0;
     }
     tabController = TabController(
@@ -206,16 +227,17 @@ class HomeController extends GetxController
     toSetValue.value = res == 0 ? true : false;
   }
 
-  Future<List<Identity>> loadIdentity(
-      [List<Identity> list = const <Identity>[]]) async {
-    if (list.isEmpty) {
-      list = await IdentityService.instance.getIdentityList();
-    }
-    identities.clear();
+  Future<List<Identity>> loadIdentity() async {
+    var list = await IdentityService.instance.getIdentityList();
+    chatIdentities.clear();
+    allIdentities.clear();
     for (var i = 0; i < list.length; i++) {
-      identities[list[i].id] = list[i];
+      allIdentities[list[i].id] = list[i];
+      if (list[i].enableChat) {
+        chatIdentities[list[i].id] = list[i];
+      }
     }
-    return identities.values.toList();
+    return chatIdentities.values.toList();
   }
 
   loadIdentityRoomList(int identityId) {
@@ -254,7 +276,7 @@ class HomeController extends GetxController
       ];
 
       TabData tabBodyData =
-          tabBodyDatas[identityId] ?? TabData(identities[identityId]!);
+          tabBodyDatas[identityId] ?? TabData(chatIdentities[identityId]!);
       tabBodyData.unReadCount = unReadCount;
       tabBodyData.anonymousUnReadCount = anonymousUnReadCount;
       tabBodyData.requestingUnReadCount = requestingUnReadCount;
@@ -273,8 +295,7 @@ class HomeController extends GetxController
   }
 
   Future<List<Identity>> loadRoomList({bool init = false}) async {
-    List<Identity> mys = await IdentityService.instance.getIdentityList();
-    loadIdentity(mys);
+    List<Identity> mys = await loadIdentity();
 
     int firstUnreadIndex = -1;
     int unReadSum = 0;
@@ -332,7 +353,11 @@ class HomeController extends GetxController
 
     int initialIndex = 0;
     if (firstUnreadIndex == -1) {
-      initialIndex = await getDefaultSelectedTab();
+      var saved =
+          await Storage.getIntOrZero(StorageKeyString.homeSelectedTabIndex);
+      if (saved < mys.length) {
+        initialIndex = saved;
+      }
     } else {
       initialIndex = firstUnreadIndex;
     }
@@ -381,7 +406,8 @@ class HomeController extends GetxController
     tabController = TabController(vsync: this, length: 0);
 
     List<Identity> mys = await loadRoomList(init: true);
-
+    isAppBadgeSupported =
+        GetPlatform.isAndroid || GetPlatform.isIOS || GetPlatform.isMacOS;
     // Ecash Init
     if (mys.isNotEmpty) {
       Get.find<EcashController>().initIdentity(mys[0]);
@@ -411,7 +437,7 @@ class HomeController extends GetxController
     // start to create ai identity
     Future.delayed(const Duration(seconds: 1), () async {
       await createAIIdentity(mys, KeychatGlobal.bot);
-      fetchBots();
+      loadAppRemoteConfig();
     });
   }
 
@@ -434,15 +460,8 @@ class HomeController extends GetxController
   }
 
   Future<void> removeBadge() async {
-    if (!GetPlatform.isMobile) return;
-    try {
-      bool supportBadge = await AppBadgePlus.isSupported();
-      if (supportBadge) {
-        AppBadgePlus.updateBadge(0);
-      }
-    } catch (e) {
-      loggerNoLine.e('removeBadge: ${e.toString()}', error: e);
-    }
+    if (!isAppBadgeSupported) return;
+    await FlutterNewBadger.removeBadge();
   }
 
   Future setTipsViewed(String name, RxBool toSetValue) async {
@@ -450,19 +469,20 @@ class HomeController extends GetxController
     await Storage.setInt(name, 1);
   }
 
-  setTitle({String? title}) {
-    title ??= appDefaultTitle;
-
-    this.title.value = title;
-  }
-
   setUnreadCount(int count) async {
     if (count == allUnReadCount.value) return;
     allUnReadCount.value = count;
     allUnReadCount.refresh();
     if (!isAppBadgeSupported) return;
-    if (count == 0) return await AppBadgePlus.updateBadge(0);
-    AppBadgePlus.updateBadge(count);
+    if (count == 0) return await FlutterNewBadger.removeBadge();
+    FlutterNewBadger.setBadge(count);
+  }
+
+  addUnreadCount() {
+    allUnReadCount.value++;
+    allUnReadCount.refresh();
+    if (!isAppBadgeSupported) return;
+    FlutterNewBadger.setBadge(allUnReadCount.value);
   }
 
   troggleDebugModel() {

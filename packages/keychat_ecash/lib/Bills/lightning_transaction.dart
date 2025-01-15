@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
@@ -59,59 +60,90 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
   Widget build(context) {
     return Scaffold(
         appBar: AppBar(
-            title: Text(tx.io == TransactionDirection.in_
-                ? 'Receive from Lightning'
-                : 'Send to Lightning')),
+            centerTitle: true,
+            title: Text(
+              tx.io == TransactionDirection.in_
+                  ? 'Receive from Lightning Network'
+                  : 'Send to Lightning Network',
+              style: Theme.of(context).textTheme.bodyMedium,
+            )),
+        bottomNavigationBar: SafeArea(
+            child: Wrap(
+          runAlignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          direction: Axis.vertical,
+          spacing: 16,
+          children: [
+            if (tx.io == TransactionDirection.in_ &&
+                tx.status == TransactionStatus.pending)
+              FilledButton(
+                  style: ButtonStyle(
+                      minimumSize:
+                          WidgetStateProperty.all(Size(Get.width - 32, 48))),
+                  onPressed: () async {
+                    String url = 'lightning:${tx.pr}';
+                    final Uri uri = Uri.parse(url);
+                    bool res = await canLaunchUrl(uri);
+                    if (!res) {
+                      EasyLoading.showToast('No Lightning wallet found');
+                      return;
+                    }
+                    await launchUrl(uri);
+                  },
+                  child: const Text('Pay with Lightning wallet')),
+            OutlinedButton.icon(
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: 'lightning:${tx.pr}'));
+                  EasyLoading.showToast('Copied');
+                },
+                style: ButtonStyle(
+                    minimumSize:
+                        WidgetStateProperty.all(Size(Get.width - 32, 48))),
+                icon: const Icon(Icons.copy),
+                label: const Text('Copy Invoice')),
+          ],
+        )),
         body: Container(
-            height: Get.height,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Align(
               alignment: Alignment.center,
               child: Column(children: [
-                CashuStatus.getStatusIcon(tx.status, 60),
-                if (tx.status == TransactionStatus.pending && expiryTs > 0)
-                  Text('Expire At: ${formatTime(
-                    expiryTs,
-                    'yyyy-MM-dd HH:mm:ss:SSS',
-                  )}'),
-                const SizedBox(height: 15),
-                RichText(
-                    text: TextSpan(
-                  text: tx.amount.toString(),
-                  children: <TextSpan>[
-                    TextSpan(
-                        text: ' ${EcashTokenSymbol.sat.name}',
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
-                  ],
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleLarge
-                      ?.copyWith(height: 1.0, fontSize: 34),
-                )),
+                Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    spacing: 10,
+                    children: [
+                      CashuStatus.getStatusIcon(tx.status, 40),
+                      RichText(
+                          text: TextSpan(
+                        text: tx.amount.toString(),
+                        children: <TextSpan>[
+                          TextSpan(
+                              text: ' ${EcashTokenSymbol.sat.name}',
+                              style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold)),
+                        ],
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleLarge
+                            ?.copyWith(height: 1.0, fontSize: 34),
+                      ))
+                    ]),
                 Padding(
-                    padding: const EdgeInsets.only(top: 10, bottom: 10),
-                    child: genQRImage('lightning:${tx.pr}',
-                        size: 300, embeddedImageSize: 0, embeddedImage: null)),
+                    padding: const EdgeInsets.only(top: 16, bottom: 16),
+                    child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: genQRImage('lightning:${tx.pr}',
+                            size: Get.width - 32,
+                            embeddedImageSize: 0,
+                            embeddedImage: null))),
                 if (tx.fee != null)
                   Text('Fee: ${tx.fee} ${EcashTokenSymbol.sat.name}'),
-                // textSmallGray(context, 'Hash: ${tx.hash}',
-                //     overflow: TextOverflow.ellipsis),
+                if (tx.status == TransactionStatus.pending && expiryTs > 0)
+                  Text(
+                      'Expire At: ${formatTime(expiryTs, 'yyyy-MM-dd HH:mm:ss')}'),
                 textSmallGray(context, 'Mint: ${tx.mint}'),
                 textSmallGray(context,
                     'Created At: ${DateTime.fromMillisecondsSinceEpoch(tx.time.toInt()).toIso8601String()}'),
-                const SizedBox(height: 20),
-                OutlinedButton.icon(
-                    onPressed: () {
-                      Clipboard.setData(
-                          ClipboardData(text: 'lightning:${tx.pr}'));
-                      EasyLoading.showToast('Copied');
-                    },
-                    icon: const Icon(Icons.copy),
-                    label: const Text('Copy Invoice')),
-                if (tx.io == TransactionDirection.in_ &&
-                    tx.status == TransactionStatus.pending)
-                  const Text('To pay with Bitcoin Lightning Wallet'),
               ]),
             )));
   }

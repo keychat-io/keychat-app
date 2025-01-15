@@ -1,5 +1,4 @@
 import 'package:app/models/models.dart';
-import 'package:app/page/common.dart';
 import 'package:app/service/group.service.dart';
 import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/message.service.dart';
@@ -74,7 +73,7 @@ class GroupInviteConfirmPage extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(children: [
                   ListTile(
-                    leading: getAvatarDot(groupRoom),
+                    leading: Utils.getAvatarDot(groupRoom),
                     title: Text(
                         'Group: ${groupRoom.name ?? getPublicKeyDisplay(groupRoom.toMainPubkey)}'),
                     subtitle: Text(groupRoom.toMainPubkey),
@@ -100,7 +99,8 @@ class GroupInviteConfirmPage extends StatelessWidget {
                                   direction: Axis.vertical,
                                   crossAxisAlignment: WrapCrossAlignment.center,
                                   children: [
-                                    getRandomAvatar(members[index].idPubkey),
+                                    Utils.getRandomAvatar(
+                                        members[index].idPubkey),
                                     Text(members[index].name)
                                   ]));
                         },
@@ -122,7 +122,7 @@ class GroupInviteConfirmPage extends StatelessWidget {
                           bool existName =
                               (toJoinUserMap[pubkey]?.length ?? 0) > 0;
                           return ListTile(
-                            leading: getRandomAvatar(pubkey),
+                            leading: Utils.getRandomAvatar(pubkey),
                             title: existName
                                 ? Text(toJoinUserMap[pubkey]!)
                                 : Text(getPublicKeyDisplay(pubkey)),

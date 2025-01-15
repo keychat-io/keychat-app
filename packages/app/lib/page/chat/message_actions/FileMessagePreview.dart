@@ -5,6 +5,7 @@ import 'package:app/models/embedded/msg_file_info.dart';
 import 'package:app/models/message.dart';
 import 'package:app/page/components.dart';
 import 'package:app/service/file_util.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -109,7 +110,7 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
                         color: Theme.of(context)
                             .colorScheme
                             .onSurface
-                            .withOpacity(0.5)),
+                            .withValues(alpha: 0.5)),
                     const SizedBox(
                       height: 10,
                     ),
@@ -160,19 +161,44 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
   Widget getStatusButton() {
     switch (fileStatus) {
       case FileStatus.decryptSuccess:
-        return FilledButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            onPressed: () {
-              String filePath =
-                  '${Get.find<SettingController>().appFolder.path}${msgFileInfo.localPath!}';
-              if (GetPlatform.isDesktop) {
-                String dir = filePath.substring(0, filePath.lastIndexOf('/'));
-                OpenFilex.open(dir);
-              } else {
-                OpenFilex.open(filePath);
-              }
-            },
-            child: const Text('Open in Other APP'));
+        return Wrap(
+            direction: Axis.vertical,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 16,
+            children: [
+              FilledButton(
+                  style:
+                      ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                  onPressed: () {
+                    String filePath =
+                        '${Get.find<SettingController>().appFolder.path}${msgFileInfo.localPath!}';
+                    if (GetPlatform.isDesktop) {
+                      String dir =
+                          filePath.substring(0, filePath.lastIndexOf('/'));
+                      OpenFilex.open(dir);
+                    } else {
+                      OpenFilex.open(filePath);
+                    }
+                  },
+                  child: const Text('Open in Other APP',
+                      style: TextStyle(color: Colors.white))),
+              OutlinedButton(
+                  onPressed: () async {
+                    String filePath =
+                        '${Get.find<SettingController>().appFolder.path}${msgFileInfo.localPath!}';
+                    String fileName = msgFileInfo.localPath!.split('/').last;
+                    String? outputFile = await FilePicker.platform.saveFile(
+                      dialogTitle: 'Please select an output path:',
+                      fileName: fileName,
+                      bytes: await File(filePath).readAsBytes(),
+                    );
+
+                    if (outputFile == null) {
+                      EasyLoading.showSuccess('Save to Disk successfully');
+                    }
+                  },
+                  child: const Text('Save to Disk'))
+            ]);
       case FileStatus.downloading:
         return FilledButton(
             onPressed: () {

@@ -274,7 +274,7 @@ class RoomService extends BaseChatService {
         await database.rooms.filter().toMainPubkeyEqualTo(from).findAll();
 
     for (var room in nip4Rooms) {
-      identity ??= homeController.identities[room.identityId]!;
+      identity ??= homeController.allIdentities[room.identityId]!;
       if (identity.secp256k1PKHex == to) {
         return room;
       }
@@ -428,7 +428,7 @@ class RoomService extends BaseChatService {
     if (room == null) {
       Identity? identity;
       Mykey? mykey;
-      List<Identity> identities = homeController.identities.values
+      List<Identity> identities = homeController.allIdentities.values
           .where((element) => element.secp256k1PKHex == toAddress)
           .toList();
       if (identities.isNotEmpty) {
@@ -437,7 +437,7 @@ class RoomService extends BaseChatService {
         // onetime-key is receive address
         mykey = await IdentityService.instance.getMykeyByPubkey(toAddress);
         if (mykey != null) {
-          identity = homeController.identities[mykey.identityId];
+          identity = homeController.allIdentities[mykey.identityId];
         }
       }
       if (identity == null) throw Exception('My receive address is null');
@@ -791,7 +791,7 @@ class RoomService extends BaseChatService {
         room = await RoomService.instance
             .getOrCreateRoomByIdentity(hexPubkey, identity, RoomStatus.enabled);
       } else {
-        for (var iden in homeController.identities.values) {
+        for (var iden in homeController.allIdentities.values) {
           if (iden.secp256k1PKHex == hexPubkey) {
             throw Exception('Can not add other identity\' pubkey');
           }

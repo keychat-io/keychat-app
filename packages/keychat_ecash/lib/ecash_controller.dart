@@ -370,7 +370,7 @@ class EcashController extends GetxController {
     var lightningBillController = Get.find<LightningBillController>();
     await rust_cashu.checkPending();
     await getBalance();
-    await Get.find<EcashBillController>().getTransactions();
+    await getGetxController<EcashBillController>()?.getTransactions();
     try {
       await lightningBillController.getTransactions();
       var pendings = await rust_cashu.getLnPendingTransactions();
@@ -392,8 +392,8 @@ class EcashController extends GetxController {
     }
   }
 
-  Future proccessPayLightingBill(String invoce,
-      [Function(String str)? callback]) async {
+  Future proccessPayLightningBill(String invoce,
+      {bool pay = false, Function(String str)? callback}) async {
     try {
       await rust_cashu.decodeInvoice(encodedInvoice: invoce);
     } catch (e) {
@@ -402,8 +402,12 @@ class EcashController extends GetxController {
       }
       return callback(invoce);
     }
+    if (pay == true) {
+      Get.bottomSheet(PayInvoicePage(invoce: invoce, isPay: pay));
+      return;
+    }
     await showModalBottomSheetWidget(
-        Get.context!, '', PayInvoicePage(invoce: invoce),
+        Get.context!, '', PayInvoicePage(invoce: invoce, isPay: pay),
         showAppBar: false);
   }
 }

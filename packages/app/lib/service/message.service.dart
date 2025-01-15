@@ -5,6 +5,7 @@ import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/rust_api.dart';
 import 'package:app/service/file_util.dart';
 import 'package:app/service/storage.dart';
+import 'package:flutter/material.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/models/models.dart';
@@ -25,13 +26,14 @@ class MessageService {
   static final DBProvider dbProvider = DBProvider.instance;
 
   Future saveMessageModel(Message model,
-      {bool persist = true, Room? room}) async {
+      {bool persist = true, required Room room}) async {
     model.receiveAt ??= DateTime.now();
     // none text type: media, file, cashu...
-    model = await _fillTypeForMessage(model, room?.type == RoomType.bot);
+    model = await _fillTypeForMessage(model, room.type == RoomType.bot);
 
+    bool isCurrentPage = false;
     if (!model.isRead) {
-      bool isCurrentPage = dbProvider.isCurrentPage(model.roomId);
+      isCurrentPage = dbProvider.isCurrentPage(model.roomId);
       if (isCurrentPage) model.isRead = true;
     }
 
@@ -57,7 +59,52 @@ class MessageService {
     if (model.isRead == false) {
       hc.loadIdentityRoomList(model.identityId);
     }
+    // show snackbar in other page
+    if (!model.isRead && !isCurrentPage && Get.currentRoute != '/') {
+      String contenet = model.mediaType == MessageMediaType.text
+          ? (model.realMessage ?? model.content)
+          : '[${model.mediaType.name}]';
+      if (Get.isSnackbarOpen) {
+        try {
+          Get.closeAllSnackbars();
+        } catch (e) {
+          logger.e('Error closing snackbars: $e');
+        }
+      }
+      if (GetPlatform.isDesktop) {
+        if (Get.find<HomeController>().resumed == false) {
+          Get.find<HomeController>().addUnreadCount();
+        }
+      }
+      Get.snackbar(room.getRoomName(), contenet,
+          titleText: Text(room.getRoomName(),
+              style: Theme.of(Get.context!).textTheme.titleMedium),
+          messageText:
+              Text(contenet, maxLines: 4, overflow: TextOverflow.ellipsis),
+          backgroundColor: Theme.of(Get.context!).colorScheme.surfaceContainer,
+          snackPosition: SnackPosition.TOP,
+          isDismissible: true,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          duration: const Duration(seconds: 3),
+          mainButton: TextButton(
+              child: const Text('View'),
+              onPressed: () {
+                pressSnackbar(room);
+              }),
+          icon: Utils.getRandomAvatar(room.toMainPubkey), onTap: (c) {
+        pressSnackbar(room);
+      });
+    }
     return model;
+  }
+
+  void pressSnackbar(Room room) {
+    Get.closeAllSnackbars();
+    if (Get.currentRoute.startsWith('/room/')) {
+      Get.offNamed('/room/${room.id}', arguments: room);
+    } else {
+      Get.toNamed('/room/${room.id}', arguments: room);
+    }
   }
 
   Future saveSystemMessage(Room room, String content,

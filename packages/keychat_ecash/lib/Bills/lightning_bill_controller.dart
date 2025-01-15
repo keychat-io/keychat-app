@@ -50,7 +50,8 @@ class LightningBillController extends GetxController {
     if (pendings.isEmpty) return;
     int length = pendings.length;
     while (true) {
-      if (!run) return;
+      if (run) return;
+      run = true;
       await rust_cashu.checkPending();
       var list = await rust_cashu.getLnPendingTransactions();
       if (list.isEmpty) {
@@ -89,7 +90,7 @@ class LightningBillController extends GetxController {
         return;
       }
       logger.d('Checking status: ${tx.hash}');
-      await Future.delayed(const Duration(seconds: 1));
+      await Future.delayed(const Duration(seconds: 2));
     }
   }
 }

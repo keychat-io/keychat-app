@@ -1,4 +1,7 @@
 import 'package:app/app.dart';
+import 'package:app/models/browser/browser_bookmark.dart';
+import 'package:app/models/browser/browser_connect.dart';
+import 'package:app/models/browser/browser_history.dart';
 import 'package:app/models/ecash_bill.dart';
 import 'package:app/models/nostr_event_status.dart';
 import 'package:app/models/signal_id.dart';
@@ -33,6 +36,9 @@ class DBProvider {
       SignalIdSchema,
       NostrEventStatusSchema,
       EcashBillSchema,
+      BrowserBookmarkSchema,
+      BrowserHistorySchema,
+      BrowserConnectSchema,
     ], directory: dbFolder, name: 'keychat', inspector: kDebugMode);
     await performMigrationIfNeeded(database);
     return database;
@@ -44,19 +50,15 @@ class DBProvider {
     if (currentVersion < 30) {
       await _migrateToVersion30();
       await Storage.setInt(StorageKeyString.dbVersion, 30);
-      return;
     }
-    // var model =
-    //     await DBProvider.database.identitys.filter().idEqualTo(4).findFirst();
-    // DBProvider.database.writeTxn(() async {
-    //   await DBProvider.database.identitys.delete(model!.id);
-    // });
 
     switch (currentVersion) {
       case 30:
         await _migrateToVersion31();
         await Storage.setInt(StorageKeyString.dbVersion, 31);
-        return;
+      case 31:
+        await _migrateToVersion32();
+        await Storage.setInt(StorageKeyString.dbVersion, 32);
       default:
         break;
       //throw Exception('Unknown version: $currentVersion');
@@ -123,6 +125,8 @@ class DBProvider {
     List<rust_nostr.Secp256k1Account> sa = await rust_nostr
         .importFromPhraseWith(phrase: mnemonic, offset: 0, count: 10);
     for (var i = 0; i < identities.length; i++) {
+      if (identities[i].index != 0) continue;
+
       for (var j = 0; j < sa.length; j++) {
         // if (identities[i].index > -1) continue;
         if (identities[i].secp256k1PKHex == sa[j].pubkey) {
@@ -134,5 +138,17 @@ class DBProvider {
         }
       }
     }
+  }
+
+  static Future _migrateToVersion32() async {
+    List<Identity> identities =
+        await DBProvider.database.identitys.where().findAll();
+    await DBProvider.database.writeTxn(() async {
+      for (var i = 0; i < identities.length; i++) {
+        identities[i].enableBrowser = true;
+        identities[i].enableChat = true;
+        await DBProvider.database.identitys.put(identities[i]);
+      }
+    });
   }
 }

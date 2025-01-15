@@ -491,7 +491,7 @@ class GroupService extends BaseChatService {
         content: groupInviteMsg[0],
         createdAt: timestampToDateTime(event.createdAt),
         rawEvents: [event.toJsonString()]);
-    await MessageService.instance.saveMessageModel(message);
+    await MessageService.instance.saveMessageModel(message, room: groupRoom);
   }
 
   @override
@@ -929,7 +929,7 @@ class GroupService extends BaseChatService {
         return jsonEncode(m);
       }).toList(),
     )..isRead = true;
-    await MessageService.instance.saveMessageModel(message);
+    await MessageService.instance.saveMessageModel(message, room: groupRoom);
   }
 
   // send message to users, but skip meMember

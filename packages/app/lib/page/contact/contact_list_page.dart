@@ -175,7 +175,8 @@ class _FriendCell extends StatelessWidget {
             updateList();
           },
           child: ListTile(
-              leading: getRandomAvatar(contact.pubkey, height: 36, width: 36),
+              leading:
+                  Utils.getRandomAvatar(contact.pubkey, height: 36, width: 36),
               title: Text(contact.displayName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

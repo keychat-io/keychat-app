@@ -65,7 +65,7 @@ class _BrowserConnectedWebsiteState extends State<BrowserConnectedWebsite> {
                     const Text('+'),
                     Padding(
                         padding: const EdgeInsets.only(left: 16, right: 8),
-                        child: Utils.getNeworkImage(site.favicon, size: 24) ??
+                        child: Utils.getNetworkImage(site.favicon, size: 24) ??
                             Container()),
                     Text(site.host,
                         style: Theme.of(context).textTheme.titleMedium)

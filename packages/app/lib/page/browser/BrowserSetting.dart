@@ -42,27 +42,27 @@ class BrowserSetting extends GetView<BrowserController> {
                     SettingsTile.switchTile(
                       initialValue: controller.config['enableHistory'],
                       leading: const Icon(CupertinoIcons.time),
-                      title: const Text("Show History"),
+                      title: const Text("Enable History"),
                       onToggle: (value) async {
                         await controller.setConfig('enableHistory', value);
                       },
                     ),
-                    SettingsTile.switchTile(
-                      initialValue: controller.config['enableBookmark'],
-                      leading: const Icon(CupertinoIcons.bookmark),
-                      title: const Text("Show Bookmark"),
-                      onToggle: (value) async {
-                        await controller.setConfig('enableBookmark', value);
-                      },
-                    ),
-                    SettingsTile.switchTile(
-                      initialValue: controller.config['enableRecommend'],
-                      leading: const Icon(CupertinoIcons.bookmark),
-                      title: const Text("Show Recommended"),
-                      onToggle: (value) async {
-                        await controller.setConfig('enableRecommend', value);
-                      },
-                    ),
+                    // SettingsTile.switchTile(
+                    //   initialValue: controller.config['enableBookmark'],
+                    //   leading: const Icon(CupertinoIcons.bookmark),
+                    //   title: const Text("Show Bookmark"),
+                    //   onToggle: (value) async {
+                    //     await controller.setConfig('enableBookmark', value);
+                    //   },
+                    // ),
+                    // SettingsTile.switchTile(
+                    //   initialValue: controller.config['enableRecommend'],
+                    //   leading: const Icon(CupertinoIcons.bookmark),
+                    //   title: const Text("Show Recommended"),
+                    //   onToggle: (value) async {
+                    //     await controller.setConfig('enableRecommend', value);
+                    //   },
+                    // ),
                   ],
                 ),
               ],

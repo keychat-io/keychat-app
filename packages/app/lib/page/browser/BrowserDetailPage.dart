@@ -6,6 +6,7 @@ import 'package:app/models/db_provider.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/browser/Browser_controller.dart';
+import 'package:app/page/browser/SelectIdentityForBrowser.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/utils.dart';
@@ -20,7 +21,6 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
-import 'package:settings_ui/settings_ui.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
@@ -36,7 +36,6 @@ class BrowserDetailPage extends StatefulWidget {
 
 class _BrowserDetailPageState extends State<BrowserDetailPage> {
   final GlobalKey webViewKey = GlobalKey();
-  final keepAlive = InAppWebViewKeepAlive();
 
   InAppWebViewController? webViewController;
   InAppWebViewSettings settings = InAppWebViewSettings(
@@ -172,7 +171,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                         }(), builder: (context, snapshot) {
                           BrowserBookmark? bb = snapshot.data;
                           return GestureDetector(
-                              child: Wrap(
+                              child: Row(
                                 spacing: 16,
                                 children: [
                                   Icon(
@@ -239,13 +238,13 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
               FloatingActionButtonLocation.miniStartTop,
           floatingActionButtonAnimator:
               FloatingActionButtonAnimator.noAnimation,
-          floatingActionButton: GetPlatform.isIOS && canGoBack
+          floatingActionButton: canGoBack
               ? Container(
-                  margin: const EdgeInsets.only(top: 300),
+                  margin: EdgeInsets.only(top: Get.height * 0.9),
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withAlpha(128),
+                    color: Theme.of(context).colorScheme.primary.withAlpha(100),
                     borderRadius: BorderRadius.circular(100),
                   ),
                   child: IconButton(
@@ -258,7 +257,8 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
               : null,
           body: InAppWebView(
             key: webViewKey,
-            keepAlive: keepAlive,
+            // keepAlive: keepAlive,
+            // webViewEnvironment: browserController.webViewEnvironment,
             initialUrlRequest: URLRequest(url: WebUri(widget.initUrl)),
             initialSettings: settings,
             pullToRefreshController: pullToRefreshController,
@@ -524,42 +524,25 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
       return null;
     }
     // select a identity
-    List<Identity> identities =
-        await IdentityService.instance.getEnableBrowserIdentityList();
-    Identity? selected = await Get.bottomSheet(
-        SettingsList(platform: DevicePlatform.iOS, sections: [
-      SettingsSection(
-          title: Text('Request to Login: $host',
-              style: Theme.of(Get.context!).textTheme.titleMedium),
-          tiles: identities
-              .map((iden) => SettingsTile(
-                  leading: Utils.getRandomAvatar(iden.secp256k1PKHex,
-                      height: 30, width: 30),
-                  value: Text(getPublicKeyDisplay(iden.npub)),
-                  title: Text(iden.displayName),
-                  onPressed: (context) async {
-                    EasyLoading.show(status: 'Proccessing...');
-                    try {
-                      String? favicon = await browserController.getFavicon(
-                          webViewController!, host);
-                      BrowserConnect bc = BrowserConnect(
-                          host: host,
-                          pubkey: iden.secp256k1PKHex,
-                          favicon: favicon);
-                      int id = await BrowserConnect.save(bc);
-                      bc.id = id;
-                      setState(() {
-                        browserConnect = bc;
-                      });
-                      EasyLoading.dismiss();
-                      Get.back(result: iden);
-                    } catch (e, s) {
-                      logger.e(e.toString(), stackTrace: s);
-                      EasyLoading.showError(e.toString());
-                    }
-                  }))
-              .toList())
-    ]));
+    Identity? selected = await Get.bottomSheet(SelectIdentityForBrowser(host));
+    if (selected != null) {
+      EasyLoading.show(status: 'Proccessing...');
+      try {
+        String? favicon =
+            await browserController.getFavicon(webViewController!, host);
+        BrowserConnect bc = BrowserConnect(
+            host: host, pubkey: selected.secp256k1PKHex, favicon: favicon);
+        int id = await BrowserConnect.save(bc);
+        bc.id = id;
+        setState(() {
+          browserConnect = bc;
+        });
+        EasyLoading.dismiss();
+      } catch (e, s) {
+        logger.e(e.toString(), stackTrace: s);
+        EasyLoading.showError(e.toString());
+      }
+    }
     return selected;
   }
 

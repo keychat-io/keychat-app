@@ -55,7 +55,7 @@ class _BrowserBookmarkPageState extends State<BrowserBookmarkPage> {
                   dense: true,
                   contentPadding: const EdgeInsets.symmetric(
                       vertical: 1.0, horizontal: 16.0),
-                  leading: Utils.getNeworkImage(site.favicon, radius: 100),
+                  leading: Utils.getNetworkImage(site.favicon, radius: 100),
                   minVerticalPadding: 0,
                   minTileHeight: 56,
                   title: site.title == null

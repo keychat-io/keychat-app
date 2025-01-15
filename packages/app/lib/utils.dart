@@ -2,6 +2,7 @@ import 'dart:async' show TimeoutException;
 import 'dart:convert' show JsonEncoder, jsonEncode, jsonDecode;
 import 'dart:io' show Directory, File, FileMode, Platform;
 import 'dart:math' show Random;
+import 'package:auto_size_text_plus/auto_size_text_plus.dart';
 import 'package:badges/badges.dart' as badges;
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
@@ -495,7 +496,12 @@ class Utils {
                   [const Color(0xff713CD0), const Color(0xff945BF3)]),
         ),
         child: Center(
-          child: Text(regrexLetter(account, nameLength).toUpperCase(),
+          child: AutoSizeText(_getDisplayName(account, nameLength),
+              minFontSize: 10,
+              stepGranularity: 2,
+              maxFontSize: fontSize,
+              maxLines: 1,
+              overflow: TextOverflow.clip,
               style: TextStyle(fontSize: fontSize, color: Colors.white)),
         ));
   }
@@ -690,18 +696,38 @@ class Utils {
     ));
   }
 
+  static Widget getAssetImage(String imageUrl,
+      {double size = 42, double radius = 100}) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(radius),
+        image: DecorationImage(
+          image: Image.asset(imageUrl).image,
+          fit: BoxFit.cover,
+          scale: 0.6,
+          colorFilter: const ColorFilter.mode(
+            Colors.transparent,
+            BlendMode.colorBurn,
+          ),
+        ),
+      ),
+    );
+  }
+
   static Widget getNeworkImageOrDefault(String? imageUrl,
-      {double size = 36, double radius = 100}) {
+      {double size = 42, double radius = 100}) {
     if (imageUrl == null) {
       return ClipRRect(
           borderRadius: BorderRadius.circular(radius),
           child: Icon(Icons.image, size: size));
     }
-    return getNeworkImage(imageUrl, size: size, radius: radius)!;
+    return getNetworkImage(imageUrl, size: size, radius: radius)!;
   }
 
-  static Widget? getNeworkImage(String? imageUrl,
-      {double size = 36, double radius = 100}) {
+  static Widget? getNetworkImage(String? imageUrl,
+      {double size = 42, double radius = 100}) {
     if (imageUrl == null) return null;
 
     if (imageUrl.toString().endsWith('svg')) {
@@ -740,5 +766,16 @@ class Utils {
       placeholder: (context, url) => child,
       errorWidget: (context, url, error) => child,
     );
+  }
+
+  static String _getDisplayName(String account, int nameLength) {
+    if (account.length <= nameLength) return account;
+    if (account.contains(' ')) {
+      return account.split(' ').first;
+    }
+    if (RegExp(r'^[a-zA-Z0-9]+$').hasMatch(account)) {
+      return account.split(RegExp(r'(?=[A-Z])|\s+')).first;
+    }
+    return account.substring(0, nameLength);
   }
 }

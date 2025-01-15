@@ -1,4 +1,5 @@
 import 'package:app/page/components.dart';
+import 'package:app/page/login/import_nsec.dart';
 import 'package:flutter/material.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 import 'package:app/controller/home.controller.dart';
@@ -13,9 +14,14 @@ import '../routes.dart';
 class CreateAccount extends StatefulWidget {
   final String type;
   final String? mnemonic;
+  final bool showImportNsec;
   final List<String> npubs;
   const CreateAccount(
-      {super.key, required this.type, this.mnemonic, this.npubs = const []});
+      {super.key,
+      required this.type,
+      this.mnemonic,
+      this.npubs = const [],
+      this.showImportNsec = false});
 
   @override
   _CreateAccountState createState() => _CreateAccountState();
@@ -53,11 +59,22 @@ class _CreateAccountState extends State<CreateAccount> {
     return Scaffold(
         appBar: widget.type != "tab"
             ? AppBar(
+                centerTitle: true,
                 title: Column(children: [
-                const Text('Create ID'),
-                Text('Derived from seed phrase',
-                    style: Theme.of(context).textTheme.bodySmall)
-              ]))
+                  const Text('Create ID'),
+                  Text('Derived from seed phrase',
+                      style: Theme.of(context).textTheme.bodySmall)
+                ]),
+                actions: widget.showImportNsec
+                    ? [
+                        TextButton(
+                            onPressed: () {
+                              Get.off(() => const ImportNsec());
+                            },
+                            child: const Text('Import Nsec'))
+                      ]
+                    : [],
+              )
             : null,
         floatingActionButton: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),

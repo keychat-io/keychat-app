@@ -46,7 +46,7 @@ class MinePage extends GetView<SettingController> {
                         ...getIDList(context,
                             homeController.allIdentities.values.toList()),
                         SettingsTile(
-                            title: const Text("Create / Import ID"),
+                            title: const Text("Create ID"),
                             trailing: Icon(CupertinoIcons.add,
                                 color: Theme.of(Get.context!)
                                     .iconTheme
@@ -63,6 +63,7 @@ class MinePage extends GetView<SettingController> {
                               Get.to(
                                   () => CreateAccount(
                                       type: "me",
+                                      showImportNsec: true,
                                       mnemonic: mnemonic,
                                       npubs: npubs),
                                   arguments: 'create');

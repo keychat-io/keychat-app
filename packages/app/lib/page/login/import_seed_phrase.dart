@@ -56,7 +56,7 @@ class _ImportSeedPhrase extends State<ImportSeedPhrase> {
                               focusNode: focusNode2,
                               decoration: InputDecoration(
                                   labelText: 'Seed Phrase',
-                                  hintText: '24 words',
+                                  hintText: '12 or 24 words',
                                   border: const OutlineInputBorder(),
                                   suffixIcon: IconButton(
                                       icon: const Icon(Icons.paste),
@@ -90,19 +90,16 @@ class _ImportSeedPhrase extends State<ImportSeedPhrase> {
 
                     if (input.isEmpty) {
                       EasyLoading.showError(
-                          'Please enter your seed phrase (24 words)');
+                          'Please enter your seed phrase (12 or 24 words)');
                       return;
                     }
                     List<String> words = input.split(' ');
-                    if (words.length != 24) {
+                    if (words.length != 24 && words.length != 12) {
                       EasyLoading.showError(
                           'Seed phrase must be exactly 24 words');
                       return;
                     }
-                    Get.to(() => CreateAccount(
-                          type: "init",
-                          mnemonic: input,
-                        ));
+                    Get.to(() => CreateAccount(type: "init", mnemonic: input));
                   },
                 )
               ])),

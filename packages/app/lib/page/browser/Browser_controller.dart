@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:app/controller/setting.controller.dart';
 import 'package:app/models/browser/browser_bookmark.dart';
 import 'package:app/models/browser/browser_history.dart';
 import 'package:app/models/db_provider.dart';
@@ -23,9 +24,11 @@ class BrowserController extends GetxController {
   RxList<BrowserBookmark> bookmarks = <BrowserBookmark>[].obs;
   RxList<BrowserHistory> histories = <BrowserHistory>[].obs;
   RxMap<String, dynamic> config = <String, dynamic>{}.obs;
-  static const maxHistoryInHome = 10;
+  static const maxHistoryInHome = 12;
 
   Function(String url)? urlChangeCallBack;
+
+  WebViewEnvironment? webViewEnvironment;
 
   loadConfig() async {
     String? localConfig = await Storage.getString('browserConfig');
@@ -142,10 +145,6 @@ class BrowserController extends GetxController {
 
   @override
   void onInit() async {
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      await InAppWebViewController.setWebContentsDebuggingEnabled(kDebugMode);
-    }
-
     textController = TextEditingController();
     textController.addListener(() {
       input.value = textController.text.trim();
@@ -160,8 +159,26 @@ class BrowserController extends GetxController {
     }
     loadConfig();
     loadBookmarks();
-    loadHistory();
+    // loadHistory();
+    // initWebview();
     super.onInit();
+  }
+
+  initWebview() async {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
+      final availableVersion = await WebViewEnvironment.getAvailableVersion();
+      assert(availableVersion != null,
+          'Failed to find an installed WebView2 Runtime or non-stable Microsoft Edge installation.');
+      String browserCacheFolder =
+          Get.find<SettingController>().browserCacheFolder;
+      webViewEnvironment = await WebViewEnvironment.create(
+          settings:
+              WebViewEnvironmentSettings(userDataFolder: browserCacheFolder));
+    }
+
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      await InAppWebViewController.setWebContentsDebuggingEnabled(kDebugMode);
+    }
   }
 
   removeSearchEngine(String engine) async {
@@ -176,7 +193,13 @@ class BrowserController extends GetxController {
       return cachedFavicon[host];
     }
     try {
-      List<Favicon> favicons = await controller.getFavicons();
+      List<Favicon> favicons = await controller.getFavicons().timeout(
+        const Duration(seconds: 3),
+        onTimeout: () {
+          debugPrint('Favicon request timed out');
+          return [];
+        },
+      );
       Favicon? favicon;
       if (favicons.isNotEmpty) {
         favicon = favicons.firstWhere(

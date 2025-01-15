@@ -313,15 +313,9 @@ class MoreChatSetting extends StatelessWidget {
 
   enableImportDB(BuildContext context) {
     Get.dialog(CupertinoAlertDialog(
-      title: const Text(
-        "Alert",
-        style: TextStyle(color: Colors.red),
-      ),
-      content: Container(
-          color: Colors.transparent,
-          padding: const EdgeInsets.only(top: 15),
-          child: const Text(
-              'Once executed, this action will permanently delete all your local data. Proceed with caution to avoid unintended consequences.')),
+      title: const Text("Alert"),
+      content: const Text(
+          'Once executed, this action will permanently delete all your local data. Proceed with caution to avoid unintended consequences.'),
       actions: <Widget>[
         CupertinoDialogAction(
           child: const Text("Cancel"),
@@ -334,9 +328,6 @@ class MoreChatSetting extends StatelessWidget {
           onPressed: () async {
             File? file = await DbSetting().importFile();
             if (file == null) {
-              EasyLoading.showError('status: No file select',
-                  duration: const Duration(seconds: 3));
-              logger.e("No file select.");
               return;
             }
             _showEnterDecryptionPwdDialog(context, file);

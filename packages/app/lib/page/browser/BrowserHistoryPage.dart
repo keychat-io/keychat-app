@@ -96,7 +96,7 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
                         return ListTile(
                           contentPadding:
                               const EdgeInsets.symmetric(horizontal: 16),
-                          leading: Utils.getNeworkImage(site.favicon),
+                          leading: Utils.getNetworkImage(site.favicon),
                           title: site.title == null ? null : Text(site.title!),
                           subtitle: Text(site.url,
                               maxLines: 2, overflow: TextOverflow.ellipsis),

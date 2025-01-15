@@ -16,6 +16,7 @@ class SettingController extends GetxController with StateMixin<Type> {
 
   Directory appFolder = Directory('/');
   late String avatarsFolder;
+  late String browserCacheFolder;
 
   final TextEditingController relayTextController =
       TextEditingController(text: "wss://");
@@ -30,10 +31,14 @@ class SettingController extends GetxController with StateMixin<Type> {
 
     // avatar folder
     avatarsFolder = '${appFolder.path}/avatars';
-    Directory(avatarsFolder).exists().then((res) {
-      if (res) return;
-      Directory(avatarsFolder).createSync(recursive: true);
-    });
+    browserCacheFolder = '${appFolder.path}/browserCache';
+
+    for (var folder in [avatarsFolder, browserCacheFolder]) {
+      Directory(folder).exists().then((res) {
+        if (res) return;
+        Directory(folder).createSync(recursive: true);
+      });
+    }
 
     await initDefaultFileServerConfig();
   }

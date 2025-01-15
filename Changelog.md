@@ -5,6 +5,15 @@ https://keepachangelog.com/zh-CN/1.1.0
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
 
+## 1.26.1+6313
+1. Redesign the Browser section, focusing on user bookmarks, and change the recommendation to an AppStore section.
+2. The login page supports Recover operations, and supports importing from configuration files, mnemonic phrases, and private keys.
+3. Optimize the display of group avatar names.
+4. When choosing to log in to a third-party website with an account, you can choose to create a new account.
+5. Optimize the Android packaging process.
+6. Fix: the back button moving when the keyboard is invoked in browser page.
+7. Fix other bugs.
+
 ## 1.25.2+6304
 1. Feat: support inapp browser, login an nostr website
 2. Browser: If the user has logged into a website, the more menu will support the disConnect operation

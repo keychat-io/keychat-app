@@ -2,18 +2,22 @@ import 'dart:async' show TimeoutException;
 import 'dart:convert' show JsonEncoder, jsonEncode, jsonDecode;
 import 'dart:io' show Directory, File, FileMode, Platform;
 import 'dart:math' show Random;
-
+import 'package:auto_size_text_plus/auto_size_text_plus.dart';
+import 'package:badges/badges.dart' as badges;
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
+import 'package:app/models/room.dart';
 
 import 'package:app/service/storage.dart';
 import 'package:app/utils/config.dart';
 import 'package:app/utils/log_file.dart';
 import 'package:avatar_plus/avatar_plus.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:convert/convert.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart' show DateFormat;
@@ -115,24 +119,6 @@ getPublicKeyDisplay(String publicKey, [int size = 6]) {
     return '${publicKey.substring(0, size)}...${publicKey.substring(length - size)}';
   }
   return '0x${publicKey.substring(0, size)}...${publicKey.substring(length - size)}';
-}
-
-Widget getRandomAvatar(String id,
-    {double height = 40, double width = 40, BoxFit fit = BoxFit.contain}) {
-  var avatarsFolder = Get.find<SettingController>().avatarsFolder;
-  final filePath = '$avatarsFolder/$id.svg';
-  final file = File(filePath);
-  if (file.existsSync()) {
-    return SvgPicture.file(file, width: width, height: height);
-  } else {
-    String svgCode = AvatarPlusGen.instance.generate(id);
-    file.writeAsStringSync(svgCode);
-    return SvgPicture.string(
-      svgCode,
-      width: width,
-      height: height,
-    );
-  }
 }
 
 int getRegistrationId(String pubkey) {
@@ -279,6 +265,271 @@ Please check ecash balance and mint.''';
 }
 
 class Utils {
+  static String generateRandomString(int length) {
+    final random = Random();
+    const availableChars =
+        'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz';
+    final randomString = List.generate(length,
+            (index) => availableChars[random.nextInt(availableChars.length)])
+        .join();
+
+    return randomString;
+  }
+
+  static String formatTimeMsg(DateTime formatDt) {
+    int milliNow = DateTime.now().millisecondsSinceEpoch;
+    int year = DateTime.now().year;
+    int day = DateTime.now().day;
+    int millisecond = formatDt.millisecondsSinceEpoch;
+    int yearIn = formatDt.year;
+    int month = formatDt.month;
+    int dayIn = formatDt.day;
+    int week = formatDt.weekday;
+    int hour = formatDt.hour;
+    int minute = formatDt.minute;
+    String monStr, dayStr, hourStr, mmStr;
+    String yearStr = yearIn.toString().substring(2, 4);
+    if (hour > 12) {
+      hourStr = "${hour - 12}";
+    } else {
+      hourStr = "$hour";
+    }
+
+    if (minute < 10) {
+      mmStr = "0$minute";
+    } else {
+      mmStr = "$minute";
+    }
+    monStr = "$month";
+    dayStr = "$dayIn";
+    // String h_m = DateUtil.formatDate(formatDt, format: DateFormats.h_m);
+    if (day == dayIn && milliNow - millisecond <= 24 * 3600 * 1000) {
+      if (hour >= 0 && hour < 12) {
+        return "$hourStr:$mmStr AM";
+      } else {
+        return "$hourStr:$mmStr PM";
+      }
+    } else if (milliNow - millisecond <= 72 * 3600 * 1000) {
+      String weekday = "";
+      switch (week) {
+        case 1:
+          weekday = "Mon";
+          break;
+        case 2:
+          weekday = "Tue";
+          break;
+        case 3:
+          weekday = "Wed";
+          break;
+        case 4:
+          weekday = "Thu";
+          break;
+        case 5:
+          weekday = "Fri";
+          break;
+        case 6:
+          weekday = "Sat";
+          break;
+        case 7:
+          weekday = "Sun";
+          break;
+        default:
+          break;
+      }
+      return weekday;
+    } else {
+      if (yearIn == year) {
+        return "$monStr/$dayStr";
+      } else {
+        return "$monStr/$dayStr/$yearStr";
+      }
+    }
+  }
+
+  static String getFormatTimeForMessage(DateTime formatDt) {
+    int milliNow = DateTime.now().millisecondsSinceEpoch;
+    int year = DateTime.now().year;
+    int day = DateTime.now().day;
+    int millisecond = formatDt.millisecondsSinceEpoch;
+    int yearIn = formatDt.year;
+    int month = formatDt.month;
+    int dayIn = formatDt.day;
+    int week = formatDt.weekday;
+    int hour = formatDt.hour;
+    int minute = formatDt.minute;
+    String monStr, dayStr, hourStr, mmStr;
+    String yearStr = yearIn.toString().substring(2, 4);
+    if (hour > 12) {
+      hourStr = "${hour - 12}";
+    } else {
+      hourStr = "$hour";
+    }
+
+    if (minute < 10) {
+      mmStr = "0$minute";
+    } else {
+      mmStr = "$minute";
+    }
+    monStr = "$month";
+    dayStr = "$dayIn";
+    if (day == dayIn && milliNow - millisecond <= 24 * 3600 * 1000) {
+      if (hour >= 0 && hour < 12) {
+        return "$hourStr:$mmStr AM";
+      } else {
+        return "$hourStr:$mmStr PM";
+      }
+    } else if (milliNow - millisecond <= 72 * 3600 * 1000) {
+      String weekday = "";
+      switch (week) {
+        case 1:
+          weekday = "Mon";
+          break;
+        case 2:
+          weekday = "Tue";
+          break;
+        case 3:
+          weekday = "Wed";
+          break;
+        case 4:
+          weekday = "Thu";
+          break;
+        case 5:
+          weekday = "Fri";
+          break;
+        case 6:
+          weekday = "Sat";
+          break;
+        case 7:
+          weekday = "Sun";
+          break;
+        default:
+          break;
+      }
+      if (hour >= 0 && hour < 12) {
+        return "$weekday $hourStr:$mmStr AM";
+      } else {
+        return "$weekday $hourStr:$mmStr PM";
+      }
+    } else {
+      if (yearIn == year) {
+        if (hour >= 0 && hour < 12) {
+          return "$monStr/$dayStr $hourStr:$mmStr AM";
+        } else {
+          return "$monStr/$dayStr $hourStr:$mmStr PM";
+        }
+        // return "$monStr/$dayStr";
+      } else {
+        if (hour >= 0 && hour < 12) {
+          return "$monStr/$dayStr/$yearStr $hourStr:$mmStr AM";
+        } else {
+          return "$monStr/$dayStr/$yearStr $hourStr:$mmStr PM";
+        }
+        // return "$monStr/$dayStr/$yearStr";
+      }
+    }
+  }
+
+  static String regrexLetter(String account, [int length = 2]) {
+    return account.length > length - 1 ? account.substring(0, length) : account;
+  }
+
+  static Widget getAvatarDot(Room room, {double width = 50}) {
+    int newMessageCount = room.unReadCount;
+    RoomType chatType = room.type;
+
+    late Widget child;
+    if (chatType == RoomType.group) {
+      String account = room.getRoomName();
+      List<Color> colors = _getGroupColor(room.groupType);
+      child = getAvatorByName(account,
+          room: room, width: width, borderRadius: 12, backgroudColors: colors);
+    } else {
+      child =
+          Utils.getRandomAvatar(room.toMainPubkey, height: width, width: width);
+    }
+    if (room.unReadCount == 0) return child;
+
+    // mute room
+    if (room.isMute) {
+      return badges.Badge(
+        position: badges.BadgePosition.topEnd(top: -5, end: -5),
+        child: child,
+      );
+    }
+    return badges.Badge(
+      badgeContent: Text(
+        "$newMessageCount",
+        style: const TextStyle(color: Colors.white),
+      ),
+      position: badges.BadgePosition.topEnd(top: -8, end: -5),
+      child: child,
+    );
+  }
+
+  static List<Color> _getGroupColor(GroupType groupType) {
+    switch (groupType) {
+      case GroupType.mls:
+        return [const Color(0xffEC6E0E), const Color(0xffDF4D9E)];
+      case GroupType.kdf:
+        return [const Color(0xffCE9FFC), const Color(0xff7367F0)];
+      case GroupType.shareKey:
+        return [const Color(0xff823C70), const Color(0xffAF362D)];
+      case GroupType.sendAll:
+        return [const Color(0xff945BF3), const Color(0xff713CD0)];
+    }
+  }
+
+  static Widget getAvatorByName(String account,
+      {double width = 45,
+      double fontSize = 16,
+      Room? room,
+      double borderRadius = 100,
+      int nameLength = 2,
+      List<Color>? backgroudColors}) {
+    return Container(
+        width: width,
+        height: width,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(borderRadius),
+          gradient: LinearGradient(
+              colors: backgroudColors ??
+                  [const Color(0xff713CD0), const Color(0xff945BF3)]),
+        ),
+        child: Center(
+          child: AutoSizeText(_getDisplayName(account, nameLength),
+              minFontSize: 10,
+              stepGranularity: 2,
+              maxFontSize: fontSize,
+              maxLines: 1,
+              overflow: TextOverflow.clip,
+              style: TextStyle(fontSize: fontSize, color: Colors.white)),
+        ));
+  }
+
+  static Widget getRandomAvatar(String id,
+      {double height = 40, double width = 40, BoxFit fit = BoxFit.contain}) {
+    var avatarsFolder = Get.find<SettingController>().avatarsFolder;
+    final filePath = '$avatarsFolder/$id.svg';
+    final file = File(filePath);
+    if (file.existsSync()) {
+      return SvgPicture.file(file, width: width, height: height);
+    } else {
+      String svgCode = AvatarPlusGen.instance.generate(id);
+      file.writeAsStringSync(svgCode);
+      return SvgPicture.string(
+        svgCode,
+        width: width,
+        height: height,
+      );
+    }
+  }
+
+  static final RegExp domainRegExp = RegExp(
+      r'^(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[0-9]{1})|([0-9]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[-]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[-]{1}[0-9]{1})|([0-9]{1}[-]{1}[a-zA-Z]{1}))(([a-zA-Z]{1}|[0-9]{1}|[-]{1}){1,61})+[.][a-zA-Z]{2,4}$');
+  static bool isDomain(String str) {
+    return domainRegExp.hasMatch(str);
+  }
+
   static Future<void> asyncWithTimeout(Function excute, Duration timeout,
       [String? errorMessage]) async {
     try {
@@ -421,5 +672,110 @@ class Utils {
     final random = Random.secure();
     return List.generate(i, (index) => chars[random.nextInt(chars.length)])
         .join();
+  }
+
+  static String capitalizeFirstLetter(String input) {
+    if (input.isEmpty || input[0].contains(RegExp(r'[^a-zA-Z]'))) return input;
+    if (input.length == 1) return input.toUpperCase();
+    return input[0].toUpperCase() + input.substring(1);
+  }
+
+  static bottomSheedAndHideStatusBar(Widget widget) async {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
+    await Get.bottomSheet(widget,
+        isScrollControlled: true,
+        enterBottomSheetDuration: Duration.zero,
+        exitBottomSheetDuration: Duration.zero);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge,
+        overlays: SystemUiOverlay.values);
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarBrightness: Brightness.light,
+      statusBarIconBrightness: Brightness.dark,
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+    ));
+  }
+
+  static Widget getAssetImage(String imageUrl,
+      {double size = 42, double radius = 100}) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(radius),
+        image: DecorationImage(
+          image: Image.asset(imageUrl).image,
+          fit: BoxFit.cover,
+          scale: 0.6,
+          colorFilter: const ColorFilter.mode(
+            Colors.transparent,
+            BlendMode.colorBurn,
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Widget getNeworkImageOrDefault(String? imageUrl,
+      {double size = 42, double radius = 100}) {
+    if (imageUrl == null) {
+      return ClipRRect(
+          borderRadius: BorderRadius.circular(radius),
+          child: Icon(Icons.image, size: size));
+    }
+    return getNetworkImage(imageUrl, size: size, radius: radius)!;
+  }
+
+  static Widget? getNetworkImage(String? imageUrl,
+      {double size = 42, double radius = 100}) {
+    if (imageUrl == null) return null;
+
+    if (imageUrl.toString().endsWith('svg')) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: SvgPicture.network(
+          imageUrl,
+          width: size,
+          height: size,
+          placeholderBuilder: (BuildContext context) =>
+              Icon(Icons.image, size: size),
+        ),
+      );
+    }
+    Widget child = ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: Icon(Icons.image, size: size));
+    return CachedNetworkImage(
+      imageUrl: imageUrl,
+      width: size,
+      height: size,
+      imageBuilder: (context, imageProvider) => Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(radius),
+          image: DecorationImage(
+            image: imageProvider,
+            fit: BoxFit.cover,
+            scale: 0.6,
+            colorFilter: const ColorFilter.mode(
+              Colors.white,
+              BlendMode.colorBurn,
+            ),
+          ),
+        ),
+      ),
+      placeholder: (context, url) => child,
+      errorWidget: (context, url, error) => child,
+    );
+  }
+
+  static String _getDisplayName(String account, int nameLength) {
+    if (account.length <= nameLength) return account;
+    if (account.contains(' ')) {
+      return account.split(' ').first;
+    }
+    if (RegExp(r'^[a-zA-Z0-9]+$').hasMatch(account)) {
+      return account.split(RegExp(r'(?=[A-Z])|\s+')).first;
+    }
+    return account.substring(0, nameLength);
   }
 }

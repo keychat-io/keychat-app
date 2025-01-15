@@ -1,8 +1,8 @@
 import 'package:app/controller/home.controller.dart';
 import 'package:app/models/room.dart';
 import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/page/common.dart';
 import 'package:app/page/components.dart';
+import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -42,9 +42,10 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
   Widget build(BuildContext context) {
     HomeController homeController = Get.find<HomeController>();
     var divider = Divider(
-        height: 1, color: Theme.of(context).dividerColor.withOpacity(0.05));
-    var divider2 =
-        Divider(height: 0.3, color: Colors.grey.shade100.withOpacity(0.01));
+        height: 1,
+        color: Theme.of(context).dividerColor.withValues(alpha: 0.05));
+    var divider2 = Divider(
+        height: 0.3, color: Colors.grey.shade100.withValues(alpha: 0.01));
     DateTime messageExpired =
         DateTime.now().subtract(const Duration(seconds: 5));
     return Scaffold(
@@ -102,7 +103,7 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
                 itemBuilder: (context, index) {
                   Room room = rooms[index];
                   return ListTile(
-                    leading: getAvatarDot(room, width: 40),
+                    leading: Utils.getAvatarDot(room, width: 40),
                     dense: false,
                     key: Key('room:${room.id}'),
                     onTap: () => {
@@ -143,7 +144,7 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
                             children: [
                               textSmallGray(
                                   Get.context!,
-                                  formatTimeMsg(homeController
+                                  Utils.formatTimeMsg(homeController
                                       .roomLastMessage[room.id]!.createdAt)),
                               room.isMute
                                   ? Icon(
@@ -151,7 +152,7 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
                                       color: Theme.of(Get.context!)
                                           .colorScheme
                                           .onSurface
-                                          .withOpacity(0.6),
+                                          .withValues(alpha: 0.6),
                                       size: 16,
                                     )
                                   : Container()

@@ -36,6 +36,9 @@ class Identity extends Equatable {
 
   int index = 0;
 
+  bool enableChat = true;
+  bool enableBrowser = true;
+
   Identity({
     required this.name,
     required this.npub,

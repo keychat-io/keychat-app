@@ -751,7 +751,7 @@ class CashuPage extends GetView<EcashController> {
           },
         ),
         SettingsTile.navigation(
-          title: const Text('Send to Lightning'),
+          title: const Text('Send to Lightning Network'),
           onPressed: (context) async {
             await showModalBottomSheetWidget(
                 context, '', const PayInvoicePage(),
@@ -776,7 +776,7 @@ class CashuPage extends GetView<EcashController> {
           },
         ),
         SettingsTile.navigation(
-          title: const Text('Receive from Lighting Network'),
+          title: const Text('Receive from Lightning Network'),
           onPressed: (context) async {
             await showModalBottomSheetWidget(
                 context, '', const CreateInvoicePage(),

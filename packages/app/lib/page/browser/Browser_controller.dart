@@ -1,14 +1,18 @@
-import 'dart:convert' show jsonEncode, jsonDecode;
+import 'dart:convert';
 
-import 'package:app/controller/home.controller.dart';
-import 'package:app/page/browser/webview_detail_page.dart';
+import 'package:app/controller/setting.controller.dart';
+import 'package:app/models/browser/browser_bookmark.dart';
+import 'package:app/models/browser/browser_history.dart';
+import 'package:app/models/db_provider.dart';
+import 'package:app/page/browser/BrowserDetailPage.dart';
 import 'package:app/service/storage.dart';
+import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart'
+    hide Storage, WebResourceError;
 import 'package:get/get.dart';
-import 'package:keychat_ecash/ecash_controller.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 
 class BrowserController extends GetxController {
   late TextEditingController textController;
@@ -16,48 +20,121 @@ class BrowserController extends GetxController {
   RxString input = ''.obs;
   RxDouble progress = 0.2.obs;
 
-  RxList recommendedUrls = [
-    {
-      "title": "Anonymous eSIM",
-      "url": "https://silent.link/#generic_price_table"
-    },
-    {"title": "Tetris", "url": "https://chvin.github.io/react-tetris/"},
-    {"title": "Primal", "url": "https://primal.net/"},
-    {"title": "KeyChat", "url": "https://www.keychat.io/"},
-  ].obs;
-  RxList<Map<String, String>> historyUrls = <Map<String, String>>[].obs;
+  RxSet<String> enableSearchEngine = <String>{}.obs;
+  RxList<BrowserBookmark> bookmarks = <BrowserBookmark>[].obs;
+  RxList<BrowserHistory> histories = <BrowserHistory>[].obs;
+  RxMap<String, dynamic> config = <String, dynamic>{}.obs;
+  static const maxHistoryInHome = 12;
 
-  void addUrlToHistory(String url, String title) {
-    historyUrls.removeWhere((element) => element['url'] == url);
-    historyUrls.insert(0, {'url': url, 'title': title});
-    if (historyUrls.length > 10) {
-      historyUrls.removeLast();
+  Function(String url)? urlChangeCallBack;
+
+  WebViewEnvironment? webViewEnvironment;
+
+  loadConfig() async {
+    String? localConfig = await Storage.getString('browserConfig');
+    if (localConfig == null) {
+      localConfig = jsonEncode({
+        "enableHistory": true,
+        "enableBookmark": true,
+        "enableRecommend": true
+      });
+      Storage.setString('browserConfig', localConfig);
     }
-    _saveHistoryToLocalStorage();
+    config.value = jsonDecode(localConfig);
   }
 
-  void _saveHistoryToLocalStorage() async {
-    List<String> historyList = historyUrls.map((e) => jsonEncode(e)).toList();
-    await Storage.setStringList('browserHistory', historyList);
+  setConfig(String key, dynamic value) async {
+    config[key] = value;
+    await Storage.setString('browserConfig', jsonEncode(config));
+    config.refresh();
   }
 
-  void _loadHistoryFromLocalStorage() async {
-    List<String>? storedHistory = await Storage.getStringList('browserHistory');
-    var data = storedHistory
-        .map((e) => Map<String, String>.from(jsonDecode(e)))
-        .toList();
-    historyUrls.value = data;
-  }
+  Future addHistory(String url, String title, [String? favicon]) async {
+    if (!config['enableHistory']) return;
 
-  @override
-  void onInit() {
-    textController = TextEditingController();
-    textController.addListener(() {
-      input.value = textController.text.trim();
+    if (histories.isNotEmpty &&
+        histories[0].url == url &&
+        histories[0].title == title) {
+      DateTime now = DateTime.now();
+      DateTime lastVisit = histories[0].createdAt;
+      if (now.difference(lastVisit).inMinutes < 5) {
+        return;
+      }
+    }
+    BrowserHistory history =
+        BrowserHistory(url: url, title: title, favicon: favicon);
+    await DBProvider.database.writeTxn(() async {
+      await DBProvider.database.browserHistorys.put(history);
     });
-    _loadHistoryFromLocalStorage();
+    histories.insert(0, history);
+    if (histories.length > maxHistoryInHome) {
+      for (int i = histories.length - 1; i > 1; i--) {
+        if (histories[i].url == url) {
+          histories.removeAt(i);
+        }
+      }
+      if (histories.length > maxHistoryInHome) {
+        histories.removeRange(maxHistoryInHome, histories.length);
+      }
+    }
+  }
 
-    super.onInit();
+  addSearchEngine(String engine) async {
+    enableSearchEngine.add(engine);
+    Storage.setStringList('searchEngine', enableSearchEngine.toList());
+  }
+
+  initBrowser() {
+    title.value = 'Loading';
+    progress.value = 0.0;
+  }
+
+  lanuchWebview(
+      {required String content,
+      String engine = 'google',
+      String? defaultTitle}) {
+    if (content.isEmpty) return;
+    EasyThrottle.throttle('browserOnComplete', const Duration(seconds: 2),
+        () async {
+      Uri? uri;
+      if (content.startsWith('http') == false) {
+        // try: domain.com
+        bool isDomain = Utils.isDomain(content);
+        // start search engine
+        if (isDomain) {
+          content = 'https://$content';
+        } else {
+          engine = engine.toLowerCase();
+          switch (engine) {
+            case 'google':
+              content = 'https://www.google.com/search?q=$content';
+              break;
+            case 'brave':
+              content = 'https://search.brave.com/search?q=$content';
+            case 'startpage':
+              content = 'https://www.startpage.com/sp/search?q=$content';
+            case 'searxng':
+              content = 'https://searx.tiekoetter.com/search?q=$content';
+              break;
+          }
+        }
+      }
+      uri = Uri.tryParse(content);
+      if (uri == null) return;
+      if (defaultTitle != null) {
+        title.value = defaultTitle;
+      }
+      initBrowser();
+      Get.to(() => BrowserDetailPage(content, title.value));
+    });
+  }
+
+  loadBookmarks() async {
+    bookmarks.value = await BrowserBookmark.getAll(limit: maxHistoryInHome);
+  }
+
+  loadHistory() async {
+    histories.value = await BrowserHistory.getAll(limit: maxHistoryInHome);
   }
 
   @override
@@ -66,142 +143,77 @@ class BrowserController extends GetxController {
     super.onClose();
   }
 
-  NavigationDecision _onNavigationRequest(NavigationRequest request) {
-    String str = request.url;
-    EcashController ecashController = Get.find<EcashController>();
-
-    if (str.startsWith('cashu')) {
-      ecashController.proccessCashuAString(str);
-      return NavigationDecision.prevent;
-    }
-    // lighting invoice
-    if (str.startsWith('lightning:')) {
-      str = str.replaceFirst('lightning:', '');
-      ecashController.proccessPayLightingBill(str);
-      return NavigationDecision.prevent;
-    }
-    if (str.startsWith('lnbc')) {
-      ecashController.proccessPayLightingBill(str);
-      return NavigationDecision.prevent;
-    }
-
-    if (!str.startsWith('http')) {
-      launchUrl(Uri.parse(str), mode: LaunchMode.externalNonBrowserApplication);
-      return NavigationDecision.prevent;
-    }
-
-    return NavigationDecision.navigate;
-  }
-
-  lanuchWebview({required String url, String? defaultTitle}) {
-    if (url.isEmpty) return;
-    EasyThrottle.throttle('browserOnComplete', const Duration(seconds: 2),
-        () async {
-      if (url.startsWith('http') == false) {
-        url = 'https://$url';
-      }
-      Uri? uri = Uri.tryParse(url);
-      if (uri == null) return;
-      if (defaultTitle != null) {
-        title.value = defaultTitle;
-      }
-      addUrlToHistory(url, title.value);
-      WebViewController controller = WebViewController();
-      controller.addJavaScriptChannel('nc',
-          onMessageReceived: (JavaScriptMessage message) {
-        print('Received message from javascript: ${message.message}');
-        Map<String, dynamic> data = jsonDecode(message.message);
-        if (data['action'] == 'getPublicKey') {
-          String publicKey = 'YOUR_PUBLIC_KEY';
-          Map<String, dynamic> response = {
-            'messageId': data['messageId'],
-            'success': true,
-            'result': publicKey
-          };
-          print(response);
-          controller
-              .runJavaScript('window.postMessage(${jsonEncode(response)},"*")');
-        }
-      });
-      onPageFinished(String url) async {
-        String? res = await controller.getTitle();
-        if (res != null) {
-          title.value = res;
-          addUrlToHistory(url, title.value);
-        }
-        print('Page finished loading: $url');
-        progress.value = 0.0;
-
-        //
-        var identity = Get.find<HomeController>().getSelectedIdentity();
-        String pubkey = identity.secp256k1PKHex;
-        controller.runJavaScript('''
-if (typeof window.nostr === 'undefined') {
-  window.nostr = {};
-}
-window.nostr.getPublicKey = function () {
-  return '$pubkey';
-};
-window.nostr.signEvent = async function (event) {
-  let event = await window.nostr.sendMessage({action: 'signEvent', event: event});
-  return event;
-};
-
-function generateUniqueId() {
-  return Math.random().toString(36).substring(2, 15);
-}
-
-window.nc.sendMessage = function (message) {
-  return new Promise((resolve, reject) => {
-    const messageId = generateUniqueId();
-    window.addEventListener('message', function handler(event) {
-      console.log('receive from dart:', JSON.stringify(event.data));
-      if (event.data && event.data.messageId === messageId) {
-        window.removeEventListener('message', handler);
-        if (event.data.success) {
-          resolve(event.data.result);
-        } else {
-          reject(event.data.error);
-        }
-      }
+  @override
+  void onInit() async {
+    textController = TextEditingController();
+    textController.addListener(() {
+      input.value = textController.text.trim();
     });
-    window.nc.postMessage(JSON.stringify({ ...message, messageId: messageId }));
-  });
-};       
-''');
-      }
 
-      onProgress(int data) {
-        progress.value = data / 100;
-      }
-
-      controller
-        ..setJavaScriptMode(JavaScriptMode.unrestricted)
-        ..setNavigationDelegate(NavigationDelegate(
-            onProgress: onProgress,
-            onPageStarted: (String url) {
-              print('Page started loading: $url');
-            },
-            onPageFinished: onPageFinished,
-            onHttpError: (HttpResponseError error) {
-              print('HTTP error: $error');
-            },
-            onWebResourceError: (WebResourceError error) {
-              print('Web Resource error: $error');
-            },
-            onNavigationRequest: _onNavigationRequest))
-        ..loadRequest(uri);
-
-      await Get.to(() => WebviewDetailPage(controller));
-      title.value = 'Loading';
-    });
+    // load search engine
+    List<String> searchEngine = await Storage.getStringList('searchEngine');
+    if (searchEngine.isEmpty) {
+      enableSearchEngine.addAll(BrowserEngine.values.map((e) => e.name));
+    } else {
+      enableSearchEngine.addAll(searchEngine);
+    }
+    loadConfig();
+    loadBookmarks();
+    // loadHistory();
+    // initWebview();
+    super.onInit();
   }
 
-  void clearHistory() {
-    historyUrls.clear();
-    if (historyUrls.isEmpty) {
-      Storage.removeString('browserHistory');
-      return;
+  initWebview() async {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
+      final availableVersion = await WebViewEnvironment.getAvailableVersion();
+      assert(availableVersion != null,
+          'Failed to find an installed WebView2 Runtime or non-stable Microsoft Edge installation.');
+      String browserCacheFolder =
+          Get.find<SettingController>().browserCacheFolder;
+      webViewEnvironment = await WebViewEnvironment.create(
+          settings:
+              WebViewEnvironmentSettings(userDataFolder: browserCacheFolder));
+    }
+
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      await InAppWebViewController.setWebContentsDebuggingEnabled(kDebugMode);
+    }
+  }
+
+  removeSearchEngine(String engine) async {
+    enableSearchEngine.remove(engine);
+    Storage.setStringList('searchEngine', enableSearchEngine.toList());
+  }
+
+  Map<String, String> cachedFavicon = {};
+  Future<String?> getFavicon(
+      InAppWebViewController controller, String host) async {
+    if (cachedFavicon.containsKey(host)) {
+      return cachedFavicon[host];
+    }
+    try {
+      List<Favicon> favicons = await controller.getFavicons().timeout(
+        const Duration(seconds: 3),
+        onTimeout: () {
+          debugPrint('Favicon request timed out');
+          return [];
+        },
+      );
+      Favicon? favicon;
+      if (favicons.isNotEmpty) {
+        favicon = favicons.firstWhere(
+          (favicon) => favicon.url.toString().endsWith('.png'),
+          orElse: () => favicons.first,
+        );
+      }
+      cachedFavicon[host] = favicon?.url.toString() ?? '';
+      return favicon?.url.toString();
+    } catch (e) {
+      debugPrint('Error getting favicon: $e');
+      return null;
     }
   }
 }
+
+enum BrowserEngine { google, brave, searXNG, startpage }

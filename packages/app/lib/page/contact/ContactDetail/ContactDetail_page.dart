@@ -17,8 +17,6 @@ import 'package:settings_ui/settings_ui.dart';
 
 import './ContactDetail_controller.dart';
 
-String defaultAvatar = "assets/images/logo.png";
-
 class ContactDetailPage extends StatelessWidget {
   final Contact contact;
   const ContactDetailPage(this.contact, {super.key});
@@ -64,7 +62,7 @@ class ContactDetailPage extends StatelessWidget {
           sigmaY: 20,
         ),
         child: Container(
-          color: Colors.white.withOpacity(0.4),
+          color: Colors.white.withValues(alpha: 0.4),
           alignment: Alignment.center,
           child: child,
         ));
@@ -79,7 +77,7 @@ class ContactDetailPage extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Obx(() => avatarSection2(
-                getRandomAvatar(controller.contact.value.pubkey,
+                Utils.getRandomAvatar(controller.contact.value.pubkey,
                     fit: BoxFit.contain,
                     height: double.infinity,
                     width: double.infinity),
@@ -90,7 +88,7 @@ class ContactDetailPage extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        getRandomAvatar(controller.contact.value.pubkey,
+                        Utils.getRandomAvatar(controller.contact.value.pubkey,
                             height: 60, width: 60),
                         Text(
                           controller.contact.value.displayName,

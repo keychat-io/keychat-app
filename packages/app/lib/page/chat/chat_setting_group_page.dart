@@ -478,7 +478,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                     ));
                   },
                   child: Column(children: [
-                    getRandomAvatar(rm.idPubkey, height: 40, width: 40),
+                    Utils.getRandomAvatar(rm.idPubkey, height: 40, width: 40),
                     Text(rm.name, overflow: TextOverflow.ellipsis),
                     if (rm.status == UserStatusType.inviting)
                       Text('Inviting',

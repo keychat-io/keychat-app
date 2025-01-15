@@ -1,4 +1,5 @@
 import 'package:app/utils.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:get/get.dart';
@@ -7,7 +8,6 @@ import 'package:url_launcher/url_launcher.dart';
 class LongTextPreviewPage extends StatelessWidget {
   final String text;
   const LongTextPreviewPage(this.text, {super.key});
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -17,7 +17,7 @@ class LongTextPreviewPage extends StatelessWidget {
             Get.back();
           },
           icon: const Icon(
-            Icons.close,
+            CupertinoIcons.clear_circled,
             color: Colors.purple,
           ),
         ),

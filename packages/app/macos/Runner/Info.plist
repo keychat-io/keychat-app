@@ -20,6 +20,15 @@
     <string>$(FLUTTER_BUILD_NAME)</string>
     <key>CFBundleVersion</key>
     <string>$(FLUTTER_BUILD_NUMBER)</string>
+    <key>FirebaseMessagingAutoInitEnabled</key>
+    <false/>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.social-networking</string>
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+      <string>lightning</string>
+      <string>nostr</string>
+    </array>
     <key>LSMinimumSystemVersion</key>
     <string>$(MACOSX_DEPLOYMENT_TARGET)</string>
     <key>NSHumanReadableCopyright</key>
@@ -28,13 +37,11 @@
     <string>MainMenu</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
-    <key>LSApplicationCategoryType</key>
-    <string>public.app-category.social-networking</string>
     <key>NSUserNotificationAlertStyle</key>
     <string>banner</string>
     <key>com.apple.security.files.user-selected.read-write</key>
     <true/>
-    <key>FirebaseMessagingAutoInitEnabled</key>
+    <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
   </dict>
 </plist>

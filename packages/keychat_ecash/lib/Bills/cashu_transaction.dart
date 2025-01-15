@@ -50,66 +50,22 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
   Widget build(context) {
     return Scaffold(
         appBar: AppBar(
+          centerTitle: true,
           title: const Text('Ecash Transaction'),
         ),
-        body: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+        bottomNavigationBar: SafeArea(
+            child: Wrap(
+                runAlignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                direction: Axis.vertical,
+                spacing: 16,
                 children: [
-                  CashuStatus.getStatusIcon(tx.status, 40),
-                  const SizedBox(
-                    width: 10,
-                  ),
-                  RichText(
-                      text: TextSpan(
-                    text: tx.amount.toString(),
-                    children: <TextSpan>[
-                      TextSpan(
-                        text: ' ${EcashTokenSymbol.sat.name}',
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          height: 1.0,
-                          fontSize: 40,
-                        ),
-                  )),
-                ],
-              ),
-              if (tx.token.length < 4000)
-                Padding(
-                    padding: const EdgeInsets.only(top: 20),
-                    child: ClipRRect(
-                        borderRadius: BorderRadius.circular(2),
-                        child: genQRImage(tx.token,
-                            size: 370,
-                            embeddedImageSize: 0,
-                            embeddedImage: null))),
-              textSmallGray(context, tx.mint),
-              Text(
-                maxLines: tx.token.length < 4000 ? 1 : 3,
-                tx.token,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(
-                height: 20,
-              ),
-              OutlinedButton.icon(
-                  onPressed: () {
-                    Clipboard.setData(ClipboardData(text: tx.token));
-                    EasyLoading.showToast('Copied');
-                  },
-                  icon: const Icon(Icons.copy),
-                  label: const Text('Copy Token')),
-              const SizedBox(
-                height: 10,
-              ),
               if (tx.status == TransactionStatus.pending)
                 FilledButton.icon(
                     icon: const Icon(CupertinoIcons.arrow_down),
+                    style: ButtonStyle(
+                        minimumSize:
+                            WidgetStateProperty.all(Size(Get.width - 32, 48))),
                     onPressed: () async {
                       try {
                         EasyLoading.show(status: 'Receiving...');
@@ -139,7 +95,58 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                         EasyLoading.showToast(msg);
                       }
                     },
-                    label: const Text('Receive'))
+                    label: const Text('Receive')),
+              OutlinedButton.icon(
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: tx.token));
+                    EasyLoading.showToast('Copied');
+                  },
+                  style: ButtonStyle(
+                      minimumSize:
+                          WidgetStateProperty.all(Size(Get.width - 32, 48))),
+                  icon: const Icon(Icons.copy),
+                  label: const Text('Copy Token')),
+            ])),
+        body: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CashuStatus.getStatusIcon(tx.status, 40),
+                  const SizedBox(width: 10),
+                  RichText(
+                      text: TextSpan(
+                    text: tx.amount.toString(),
+                    children: <TextSpan>[
+                      TextSpan(
+                        text: ' ${EcashTokenSymbol.sat.name}',
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          height: 1.0,
+                          fontSize: 40,
+                        ),
+                  )),
+                ],
+              ),
+              if (tx.token.length < 4000)
+                Padding(
+                    padding: const EdgeInsets.only(top: 8, bottom: 8),
+                    child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: genQRImage(tx.token,
+                            size: Get.width - 32,
+                            embeddedImageSize: 0,
+                            embeddedImage: null))),
+              textSmallGray(context, tx.mint),
+              Text(
+                maxLines: tx.token.length < 4000 ? 1 : 3,
+                tx.token,
+                overflow: TextOverflow.ellipsis,
+              )
             ])));
   }
 }

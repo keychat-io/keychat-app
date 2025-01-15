@@ -56,7 +56,7 @@ textDescription(String title, BuildContext context) {
   return Text(
     title,
     style: TextStyle(
-        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
   );
 }
 
@@ -236,8 +236,8 @@ Future show300hSheetWidget(BuildContext context, String title, Widget body) {
   return showCupertinoModalBottomSheet(
     context: context,
     barrierColor: Get.isDarkMode
-        ? Colors.black.withOpacity(0.65)
-        : Colors.black.withOpacity(0.35),
+        ? Colors.black.withValues(alpha: 0.65)
+        : Colors.black.withValues(alpha: 0.35),
     builder: (context) => Container(
       constraints: BoxConstraints(maxHeight: Get.height / 2, minHeight: 200),
       child: body,
@@ -251,8 +251,8 @@ showFitSheetWidget(BuildContext context, String title, List<Widget> bodys,
   showCupertinoModalBottomSheet(
     context: context,
     barrierColor: Get.isDarkMode
-        ? Colors.black.withOpacity(0.65)
-        : Colors.black.withOpacity(0.35),
+        ? Colors.black.withValues(alpha: 0.65)
+        : Colors.black.withValues(alpha: 0.35),
     builder: (context) => SafeArea(
         top: false,
         child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -346,13 +346,18 @@ Text textSmallGray(BuildContext context, String content,
     {double? opacity = 0.6,
     double fontSize = 12,
     double lineHeight = 1.5,
+    TextAlign textAlign = TextAlign.left,
+    int maxLines = 1,
     overflow = TextOverflow.ellipsis}) {
   return Text(content,
       overflow: overflow,
+      maxLines: maxLines,
+      textAlign: textAlign,
       style: TextStyle(
           fontSize: fontSize,
           height: lineHeight,
-          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)));
+          color:
+              Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)));
 }
 
 void copyAllContacts(List<Contact> contactList) {
@@ -430,7 +435,8 @@ showSearchContactsPage(BuildContext context, List<Contact> contactList) {
           ),
           builder: (contact) => ListTile(
                 onTap: () async {},
-                leading: getRandomAvatar(contact.pubkey, height: 40, width: 40),
+                leading: Utils.getRandomAvatar(contact.pubkey,
+                    height: 40, width: 40),
                 title: Text(
                   contact.displayName.toString(),
                   overflow: TextOverflow.ellipsis,
@@ -511,7 +517,8 @@ showSearchContactsPage2(BuildContext context) async {
           ),
           builder: (contact) => ListTile(
                 onTap: () async {},
-                leading: getRandomAvatar(contact.pubkey, height: 40, width: 40),
+                leading: Utils.getRandomAvatar(contact.pubkey,
+                    height: 40, width: 40),
                 title: Text(
                   contact.displayName.toString(),
                   overflow: TextOverflow.ellipsis,

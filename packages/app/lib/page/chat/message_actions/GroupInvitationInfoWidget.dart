@@ -5,7 +5,6 @@ import 'package:app/models/keychat/group_invitation_model.dart';
 import 'package:app/models/keychat/keychat_message.dart';
 import 'package:app/models/message.dart';
 import 'package:app/models/room.dart';
-import 'package:app/page/common.dart';
 import 'package:app/page/components.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/mls_group.service.dart';
@@ -38,7 +37,7 @@ class GroupInvitationInfoWidget extends StatelessWidget {
 
     return Card(
       child: ListTile(
-        leading: getAvatorByName(map.name,
+        leading: Utils.getAvatorByName(map.name,
             backgroudColors: [const Color(0xffEC6E0E), const Color(0xffDF4D9E)],
             borderRadius: 12),
         title: Text('Group Invitation: ${map.name}',

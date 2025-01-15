@@ -36,7 +36,7 @@ class PayInvoiceController extends GetxController {
     super.onClose();
   }
 
-  void confirm(String mint) async {
+  void confirm(String mint, {bool isPay = false}) async {
     String invoice = textController.text.trim();
     if (invoice.isEmpty) {
       EasyLoading.showToast('Please enter a valid invoice');
@@ -54,8 +54,6 @@ class PayInvoiceController extends GetxController {
         content: Text('''
 
 Expire At: ${DateFormat("yyyy-MM-ddTHH:mm:ss").format(DateTime.fromMillisecondsSinceEpoch(ii.expiryTs.toInt()))}
-
-Hash: ${ii.hash}
 '''),
         actions: [
           CupertinoDialogAction(
@@ -80,6 +78,7 @@ Hash: ${ii.hash}
                 Get.back();
                 textController.clear();
                 cc.requestPageRefresh();
+
                 Get.off(() => LightningTransactionPage(
                     transaction: tx.field0 as LNTransaction));
               } catch (e, s) {

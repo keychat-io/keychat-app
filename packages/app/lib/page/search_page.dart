@@ -4,7 +4,6 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/models/contact.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/models/message.dart';
-import 'package:app/page/common.dart';
 import 'package:app/page/theme.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/message.service.dart';
@@ -177,8 +176,10 @@ class _SearchPageState extends State<SearchPage> {
                   await Get.offAndToNamed('/room/${room.id}', arguments: room);
                 },
                 // leading: const Text("Contact:"),
-                leading: getRandomAvatar(_searchResults[index].data.pubkey,
-                    height: 40, width: 40),
+                leading: Utils.getRandomAvatar(
+                    _searchResults[index].data.pubkey,
+                    height: 40,
+                    width: 40),
                 title: Text(
                   _searchResults[index].data.displayName.toString(),
                   overflow: TextOverflow.ellipsis,
@@ -217,8 +218,10 @@ class _SearchPageState extends State<SearchPage> {
                   });
                 },
                 // leading: const Text("Message:"),
-                leading: getRandomAvatar(_searchResults[index].data.idPubkey,
-                    height: 40, width: 40),
+                leading: Utils.getRandomAvatar(
+                    _searchResults[index].data.idPubkey,
+                    height: 40,
+                    width: 40),
                 title: Text(
                   _searchResults[index].data.isMeSend
                       ? identity.displayName
@@ -232,7 +235,7 @@ class _SearchPageState extends State<SearchPage> {
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
                 ),
-                trailing: Text(getFormatTimeForMessage(
+                trailing: Text(Utils.getFormatTimeForMessage(
                     _searchResults[index].data.createdAt)),
                 dense: true,
                 shape: RoundedRectangleBorder(

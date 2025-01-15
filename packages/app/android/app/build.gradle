@@ -38,12 +38,12 @@ android {
     namespace "com.keychat.io"
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = '1.8'
+        jvmTarget = '17'
     }
 //    kotlin {
 //     jvmToolchain {
@@ -80,7 +80,7 @@ android {
         abi {
             enable true //enables the ABIs split mechanism
             reset()
-            include 'arm64-v8a'
+            include 'arm64-v8a', 'x86_64'
             // include 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'
             universalApk  true
         }

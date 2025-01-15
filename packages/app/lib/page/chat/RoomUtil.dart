@@ -26,6 +26,7 @@ import 'package:app/page/widgets/image_preview_widget.dart';
 import 'package:app/service/signal_chat_util.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:easy_debounce/easy_throttle.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:keychat_ecash/red_pocket.dart';
@@ -301,7 +302,8 @@ Let's start an encrypted chat.''';
       text = '[${room.unReadCount} messages] $text';
     }
     var style = TextStyle(
-        color: Theme.of(Get.context!).colorScheme.onSurface.withOpacity(0.6),
+        color:
+            Theme.of(Get.context!).colorScheme.onSurface.withValues(alpha: 0.6),
         fontSize: 14);
     if (lastMessage.isMeSend && lastMessage.sent == SendStatusType.failed) {
       style = style.copyWith(color: Colors.red);
@@ -338,6 +340,9 @@ Let's start an encrypted chat.''';
 
   static Future showRoomActionSheet(BuildContext context, Room room,
       {Function? onDeleteHistory, Function? onDeletRoom}) async {
+    if (GetPlatform.isMobile) {
+      HapticFeedback.lightImpact();
+    }
     showCupertinoModalPopup<void>(
       context: context,
       builder: (BuildContext context) => CupertinoActionSheet(
@@ -345,11 +350,16 @@ Let's start an encrypted chat.''';
             room.getRoomName(),
             style: const TextStyle(fontSize: 18),
           ),
-          // message: const Text('Message'),
           actions: <CupertinoActionSheetAction>[
             CupertinoActionSheetAction(
-              /// This parameter indicates the action would be a default
-              /// default behavior, turns the action's text to bold text.
+              onPressed: () async {
+                await RoomService.instance
+                    .markAllRead(identityId: room.identityId, roomId: room.id);
+                Get.back();
+              },
+              child: const Text('Mark as Read'),
+            ),
+            CupertinoActionSheetAction(
               onPressed: () async {
                 await RoomService.instance.deleteRoomMessage(room);
                 Get.find<HomeController>()
@@ -359,7 +369,7 @@ Let's start an encrypted chat.''';
                 }
                 Get.back();
               },
-              child: const Text('Clear history'),
+              child: const Text('Clear History'),
             ),
             if (room.type == RoomType.common)
               CupertinoActionSheetAction(
@@ -381,7 +391,7 @@ Let's start an encrypted chat.''';
                   }
                   Get.back();
                 },
-                child: const Text('Delete chat'),
+                child: const Text('Delete Room'),
               ),
             CupertinoActionSheetAction(
               onPressed: () {
@@ -470,7 +480,7 @@ Let's start an encrypted chat.''';
               return FilledButton(
                 onPressed: () async {
                   Identity identity =
-                      Get.find<HomeController>().identities[identityId]!;
+                      Get.find<HomeController>().allIdentities[identityId]!;
                   await RoomService.instance.createRoomAndsendInvite(pubkey,
                       identity: identity, greeting: greeting);
                 },
@@ -638,7 +648,7 @@ Let's start an encrypted chat.''';
         onTapLink: (text, href, title) {
           if (href != null) {
             Utils.hideKeyboard(Get.context!);
-            Get.find<BrowserController>().lanuchWebview(url: href);
+            Get.find<BrowserController>().lanuchWebview(content: href);
           }
         },
         styleSheetTheme: MarkdownStyleSheetBaseTheme.cupertino,
@@ -670,7 +680,7 @@ Let's start an encrypted chat.''';
         link: content,
         onTap: () {
           Utils.hideKeyboard(Get.context!);
-          Get.find<BrowserController>().lanuchWebview(url: content);
+          Get.find<BrowserController>().lanuchWebview(content: content);
         },
         placeholderWidget:
             errorCallback(child: getMarkdownView(content, styleSheet)),

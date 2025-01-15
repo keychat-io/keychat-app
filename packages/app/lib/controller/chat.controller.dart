@@ -11,12 +11,12 @@ import 'package:app/service/file_util.dart' as file_util;
 import 'package:app/service/message.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
-import 'package:file_selector/file_selector.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:haptic_feedback/haptic_feedback.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
@@ -255,7 +255,7 @@ class ChatController extends GetxController {
         }
       }
       if (GetPlatform.isMobile) {
-        await Haptics.vibrate(HapticsType.light);
+        HapticFeedback.lightImpact();
       }
       await RoomService.instance
           .sendTextMessage(roomObs.value, text, reply: reply);
@@ -537,7 +537,8 @@ class ChatController extends GetxController {
     try {
       EasyLoading.showProgress(0.05, status: 'Encrypting and Uploading...');
       await FileUtils.encryptAndSendFile(
-          roomObs.value, xfile, MessageMediaType.video, false,
+          roomObs.value, xfile, MessageMediaType.video,
+          compress: true,
           onSendProgress: (count, total) => FileUtils.onSendProgress(
               'Encrypting and Uploading...', count, total));
       hideAdd.value = true; // close features section
@@ -611,22 +612,16 @@ class ChatController extends GetxController {
   }
 
   _handleFileUpload() async {
-    const XTypeGroup typeGroup = XTypeGroup(
-      label: 'files',
-      // extensions: <String>['jpg', 'png'],
-    );
-    final XFile? xfile =
-        await openFile(acceptedTypeGroups: <XTypeGroup>[typeGroup]);
-    if (xfile == null) {
-      return;
-    }
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+    if (result == null) return;
+    XFile xfile = result.files.first.xFile;
 
     if (file_util.isImageFile(xfile.path)) {
       return _handleSendMediaFile(xfile, MessageMediaType.image, true);
     }
 
     if (file_util.isVideoFile(xfile.path)) {
-      return _handleSendMediaFile(xfile, MessageMediaType.video, false);
+      return _handleSendMediaFile(xfile, MessageMediaType.video, true);
     }
     _handleSendMediaFile(xfile, MessageMediaType.file, false);
   }
@@ -636,11 +631,16 @@ class ChatController extends GetxController {
     EasyThrottle.throttle('sendMediaFile', const Duration(seconds: 1),
         () async {
       try {
-        EasyLoading.showProgress(0.1, status: 'Encrypting and Uploading...');
-        await FileUtils.encryptAndSendFile(
-            roomObs.value, xfile, mediaType, compress,
-            onSendProgress: (count, total) => FileUtils.onSendProgress(
-                'Encrypting and Uploading...', count, total));
+        String statusMessage = mediaType != MessageMediaType.image
+            ? 'Encrypting and Uploading...'
+            : '''1. Remove EXIF info
+2. Encrypting 
+3. Uploading''';
+        EasyLoading.showProgress(0.2, status: statusMessage);
+        await FileUtils.encryptAndSendFile(roomObs.value, xfile, mediaType,
+            compress: compress,
+            onSendProgress: (count, total) =>
+                FileUtils.onSendProgress(statusMessage, count, total));
         hideAdd.value = true; // close features section
         EasyLoading.dismiss();
       } catch (e, s) {

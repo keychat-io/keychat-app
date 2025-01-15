@@ -98,11 +98,6 @@ class LightningBillPage extends GetView<LightningBillController> {
                             children: [
                               textSmallGray(context, transaction.mint),
                               textSmallGray(
-                                Get.context!,
-                                transaction.pr,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              textSmallGray(
                                   Get.context!,
                                   DateTime.fromMillisecondsSinceEpoch(
                                           transaction.time.toInt())

@@ -1,3 +1,4 @@
+import 'dart:convert' show base64Encode, utf8;
 import 'dart:io' show Directory, File, FileSystemEntity;
 import 'package:app/global.dart';
 import 'package:app/models/db_provider.dart';
@@ -12,21 +13,15 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:image_compression_flutter/image_compression_flutter.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:image/image.dart' as img;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:aws/aws.dart';
 import 'package:video_compress/video_compress.dart';
 import '../models/message.dart';
 import '../models/room.dart';
 
-Configuration config = const Configuration(
-  outputType: ImageOutputType.webpThenJpg,
-  // can only be true for Android and iOS while using ImageOutputType.jpg or ImageOutputType.pngÏ
-  useJpgPngNativeCompressor: false,
-  // set quality between 0-100
-  quality: 70,
-);
 AwsS3 s3 = AwsS3(
     accessKey: dotenv.get('AWS_ACCESSKEY'),
     secretKey: dotenv.get('AWS_SECRETKEY'),
@@ -52,16 +47,20 @@ class FileUtils {
 
   static Future<File> getOrCreateThumbForVideo(String videoFilePath) async {
     String thumbnailFilePath = getVideoThumbPath(videoFilePath);
-    if (File(thumbnailFilePath).existsSync()) {
-      return File(thumbnailFilePath);
+    var thumbnailFile = File(thumbnailFilePath);
+    bool exist = await thumbnailFile.exists();
+    if (exist) {
+      if (await thumbnailFile.length() > 0) {
+        return File(thumbnailFilePath);
+      }
     }
+
     File file = File(videoFilePath);
     File thumbnail = await VideoCompress.getFileThumbnail(
       file.path,
       quality: 50,
-      position: -1,
     );
-    await thumbnail.copy(thumbnailFilePath);
+    await thumbnailFile.writeAsBytes(await thumbnail.readAsBytes());
     return File(thumbnailFilePath);
   }
 
@@ -88,6 +87,7 @@ class FileUtils {
           )
         : Image.file(
             file,
+            width: width,
             fit: BoxFit.fitWidth,
           );
   }
@@ -158,21 +158,43 @@ class FileUtils {
   static encryptAndSendFile(
     Room room,
     XFile xfile,
-    MessageMediaType type,
-    bool compress, {
+    MessageMediaType type, {
+    bool compress = false,
     Function(int count, int total)? onSendProgress,
   }) async {
     String appDocPath = await getRoomFolder(
         identityId: room.identityId, roomId: room.id, type: type);
 
     String newPath = await getNewFilePath(appDocPath, xfile.path);
-    ImageFile sourceInput = await xfile.asImageFile;
-
+    List<int> fileBytes = [];
     if (type == MessageMediaType.image) {
-      sourceInput = await compressor
-          .compress(ImageFileConfiguration(input: sourceInput, config: config));
+      img.Image? sourceInput = await img.decodeImageFile(xfile.path);
+      if (sourceInput == null) {
+        throw Exception('Image decode failed');
+      }
+      sourceInput.exif = img.ExifData();
+      fileBytes = img.encodeJpg(sourceInput, quality: 70);
+      // img.Image? processedImage =
+      //     img.decodeImage(Uint8List.fromList(fileBytes));
+      // print('Processed EXIF: ${processedImage?.exif.toString()}');
+    } else if (type == MessageMediaType.video) {
+      if (compress) {
+        MediaInfo? compressedFile = await VideoCompress.compressVideo(
+          xfile.path,
+          quality: VideoQuality.HighestQuality,
+          deleteOrigin: true,
+        );
+
+        // compressed video
+        if (compressedFile?.path != null) {
+          fileBytes = await File(compressedFile!.path!).readAsBytes();
+        }
+      }
     }
-    await File(newPath).writeAsBytes(sourceInput.rawBytes);
+    if (fileBytes.isEmpty) {
+      fileBytes = await xfile.readAsBytes();
+    }
+    await File(newPath).writeAsBytes(fileBytes);
     File localFile = File(newPath);
     FileEncryptInfo fileInfo = await s3.encryptAndUploadByRelay(localFile,
         onSendProgress: onSendProgress);
@@ -284,6 +306,59 @@ class FileUtils {
     if (directory.existsSync()) {
       await directory.delete(recursive: true);
     }
+  }
+
+  static Future<FileEncryptInfo> signEventAndUpload(File input,
+      {void Function(int, int)? onSendProgress}) async {
+    FileEncryptInfo res = await FileService.encryptFile(input);
+    res.size = res.output.length;
+
+    rust_nostr.Secp256k1Account randomId = await rust_nostr.generateSecp256K1();
+
+    String eventString = await rust_nostr.signEvent(
+        senderKeys: randomId.prikey,
+        content: res.hash,
+        createdAt: BigInt.from(DateTime.now().millisecondsSinceEpoch ~/ 1000),
+        kind: 24242,
+        tags: [
+          ["t", "upload"],
+          ["x", res.hash]
+        ]);
+    FormData formData = FormData.fromMap({
+      'file': MultipartFile.fromBytes(res.output, filename: res.hash),
+    });
+
+    try {
+      Dio dio = Dio();
+      Response response = await dio.post(
+        'https://nostrmedia.com/upload',
+        data: formData,
+        onSendProgress: onSendProgress,
+        options: Options(
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'Authorization': 'Nostr ${base64Encode(utf8.encode(eventString))}',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        logger.i('Upload successful ${response.data}');
+        return res;
+      }
+    } on DioException catch (e, s) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx and is also not 304.
+      if (e.response != null) {
+        logger.e(e.response?.data, stackTrace: s);
+      } else {
+        // Something happened in setting up or sending the request that triggered an Error
+        logger.e(e.message, stackTrace: s);
+        throw Exception('File_upload_faild: ${e.message ?? ''}');
+      }
+    }
+
+    throw Exception('File_upload_faild');
   }
 }
 

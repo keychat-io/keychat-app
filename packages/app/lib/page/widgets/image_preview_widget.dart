@@ -5,6 +5,7 @@ import 'package:app/controller/setting.controller.dart';
 import 'package:app/page/chat/message_actions/VideoPlayWidget.dart';
 
 import 'package:app/service/file_util.dart';
+import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -82,7 +83,7 @@ class ImagePreviewWidget extends StatelessWidget {
                   ],
                 )),
             floatingActionButtonLocation:
-                FloatingActionButtonLocation.miniCenterDocked,
+                FloatingActionButtonLocation.miniCenterFloat,
             body: GestureDetector(
                 onVerticalDragUpdate: (DragUpdateDetails details) {
                   double dy = details.delta.dy;
@@ -91,7 +92,7 @@ class ImagePreviewWidget extends StatelessWidget {
                   }
                 },
                 child: child));
-        Get.to(() => w, transition: Transition.zoom, fullscreenDialog: true);
+        Utils.bottomSheedAndHideStatusBar(w);
       },
       child: ClipRRect(
         borderRadius: BorderRadius.circular(4),

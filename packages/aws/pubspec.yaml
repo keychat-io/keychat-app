@@ -10,7 +10,7 @@ environment:
 dependencies:
   amazon_cognito_identity_dart_2: ^3.5.0
   crypto: ^3.0.3
-  encrypt: ^5.0.1
+  encrypt: ^5.0.3
   dio: ^5.2.1+1
   app: 1.0.0
 

@@ -1,8 +1,8 @@
 import 'package:app/controller/home.controller.dart';
 import 'package:app/models/room.dart';
 import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/page/common.dart';
 import 'package:app/page/components.dart';
+import 'package:app/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -62,12 +62,13 @@ class _AnonymousRoomsState extends State<AnonymousRooms> {
           child: ListView.separated(
               separatorBuilder: (context, index) => Divider(
                   height: 1,
-                  color: Theme.of(context).dividerColor.withOpacity(0.05)),
+                  color:
+                      Theme.of(context).dividerColor.withValues(alpha: 0.05)),
               itemCount: list.length,
               itemBuilder: (context, index) {
                 Room room = list[index];
                 return ListTile(
-                  leading: getAvatarDot(room),
+                  leading: Utils.getAvatarDot(room),
                   key: Key('room:${room.id}'),
                   onLongPress: () async {
                     await RoomUtil.showRoomActionSheet(context, room,
@@ -99,7 +100,7 @@ class _AnonymousRoomsState extends State<AnonymousRooms> {
                       homeController.roomLastMessage[room.id]?.createdAt != null
                           ? textSmallGray(
                               Get.context!,
-                              formatTimeMsg(homeController
+                              Utils.formatTimeMsg(homeController
                                   .roomLastMessage[room.id]!.createdAt))
                           : null,
                 );

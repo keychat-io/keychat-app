@@ -6,7 +6,7 @@ import 'package:app/page/login/AccountSetting/AccountSetting_page.dart';
 import 'package:app/page/login/import_key.dart';
 import 'package:app/page/root_page_cupertino.dart';
 import 'package:get/get.dart';
-import 'package:app/page/setting/more_setting.dart';
+import 'package:app/page/setting/more_chat_setting.dart';
 
 import 'chat/create_group_page.dart';
 import 'chat/chat_page.dart';
@@ -30,7 +30,7 @@ class Pages {
         page: () => const Login(),
         transition: Transition.fadeIn),
     GetPage(name: Routes.importKey, page: () => const ImportKey()),
-    GetPage(name: Routes.settingMore, page: () => const MoreSetting()),
+    GetPage(name: Routes.settingMore, page: () => const MoreChatSetting()),
     GetPage(
         name: Routes.settingMe,
         page: () => const AccountSettingPage(),

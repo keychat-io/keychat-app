@@ -45,7 +45,8 @@ class _UploadedPubkeysState extends State<UploadedPubkeys> {
 
   void init() async {
     List<String> idkeys = [];
-    List<Identity> list = Get.find<HomeController>().identities.values.toList();
+    List<Identity> list =
+        Get.find<HomeController>().allIdentities.values.toList();
     idkeys.addAll(list.map((e) => e.secp256k1PKHex));
 
     List<String> shareKeyRooms = [];

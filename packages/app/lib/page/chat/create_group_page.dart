@@ -53,7 +53,7 @@ class _AddGroupPageState extends State<AddGroupPage>
                   child: Row(
                     children: [
                       const Icon(Icons.arrow_back_ios),
-                      getRandomAvatar(identity.secp256k1PKHex,
+                      Utils.getRandomAvatar(identity.secp256k1PKHex,
                           height: 22, width: 22)
                     ],
                   ))),
@@ -139,7 +139,7 @@ class _AddGroupPageState extends State<AddGroupPage>
                         selectedTileColor: Theme.of(context)
                             .colorScheme
                             .primary
-                            .withOpacity(0.1)),
+                            .withValues(alpha: 0.1)),
                     // ListTile(
                     //     title: Text("Medium Group - Signal Protocol",
                     //         style: Theme.of(context).textTheme.titleSmall),
@@ -161,12 +161,12 @@ class _AddGroupPageState extends State<AddGroupPage>
                     //     selectedTileColor: Theme.of(context)
                     //         .colorScheme
                     //         .primary
-                    //         .withOpacity(0.1)),
+                    //         .withValues(alpha: 0.1)),
                     ListTile(
                       selectedTileColor: Theme.of(context)
                           .colorScheme
                           .primary
-                          .withOpacity(0.1),
+                          .withValues(alpha: 0.1),
                       title: Text('Small Group - Signal Protocol',
                           style: Theme.of(context).textTheme.titleSmall),
                       subtitle: Text(

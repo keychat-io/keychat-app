@@ -83,7 +83,7 @@ class _RecommendsState extends State<Recommends> {
                                   itemCount: entry.value.length,
                                   itemBuilder: (context, index) {
                                     final site = entry.value[index];
-                                    String url = site['url2'] ?? site['url1'];
+                                    String url = site['url1'] ?? site['url2'];
                                     return ListTile(
                                       dense: true,
                                       contentPadding: const EdgeInsets.all(0),

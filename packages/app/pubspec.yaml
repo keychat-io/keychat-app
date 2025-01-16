@@ -4,7 +4,7 @@ description: keychat
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.26.1+6314
+version: 1.26.2+6315
  
 environment:
   sdk: ">=3.4.3 <4.0.0"
@@ -38,7 +38,7 @@ dependencies:
   settings_ui: ^2.0.2
   search_page: ^2.3.0
   app_settings: ^5.1.1
-  flutter_native_splash: ^2.4.3
+  flutter_native_splash: ^2.4.4
   package_info_plus: ^8.1.1
   flutter_spinkit: ^5.2.0 # loading
   modal_bottom_sheet: ^3.0.0-pre

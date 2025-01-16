@@ -31,7 +31,6 @@ bool isProdEnv = true;
 
 void main() async {
   SettingController sc = await initServices();
-  Get.put(HomeController(), permanent: true);
 
   bool isLogin = await IdentityService.instance.count() > 0;
   ThemeMode themeMode = await getThemeMode();
@@ -108,8 +107,8 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 Future initServices() async {
-  FlutterNativeSplash.preserve(
-      widgetsBinding: WidgetsFlutterBinding.ensureInitialized());
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   await SystemChrome.setPreferredOrientations(
       [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   await dotenv.load(fileName: ".env");
@@ -141,6 +140,7 @@ Future initServices() async {
   Get.put(BrowserController(), permanent: true);
   Get.putAsync(() => ChatxService().init(dbPath));
   Get.putAsync(() => WebsocketService().init());
+  Get.put(HomeController(), permanent: true);
   return sc;
 }
 

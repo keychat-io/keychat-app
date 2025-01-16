@@ -81,7 +81,7 @@ class Login extends StatelessWidget {
           onPressed: (context) async {
             Identity? res = await Get.to(() => const ImportNsec());
             if (res != null) {
-              Get.offAndToNamed(Routes.root);
+              Get.offAllNamed(Routes.root);
             }
           },
         ),

@@ -24,8 +24,11 @@ class BrowserPage extends GetView<BrowserController> {
               Utils.hideKeyboard(Get.context!);
             },
             child: Obx(() => Padding(
-                padding: const EdgeInsets.only(
-                    left: 16, right: 16, top: 140, bottom: 16),
+                padding: EdgeInsets.only(
+                    left: 16,
+                    right: 16,
+                    top: 240 - controller.enableSearchEngine.length * 30,
+                    bottom: 16),
                 child: ListView(children: [
                   ...controller.enableSearchEngine.toList().reversed.map(
                     (engine) {

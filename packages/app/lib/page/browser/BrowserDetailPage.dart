@@ -238,11 +238,11 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
               FloatingActionButtonLocation.miniStartTop,
           floatingActionButtonAnimator:
               FloatingActionButtonAnimator.noAnimation,
-          floatingActionButton: canGoBack
+          floatingActionButton: GetPlatform.isIOS && canGoBack
               ? Container(
                   margin: EdgeInsets.only(top: Get.height * 0.9),
-                  width: 48,
-                  height: 48,
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.primary.withAlpha(100),
                     borderRadius: BorderRadius.circular(100),

@@ -767,7 +767,7 @@ class _ChatPage2State extends State<ChatPage> {
   }
 
   Widget _requestingInputSection() {
-    return Padding(
+    return _inputSectionContainer(Padding(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
         child: Text('Friend request sent. Waiting for their response.',
             textAlign: TextAlign.center,
@@ -776,7 +776,7 @@ class _ChatPage2State extends State<ChatPage> {
                     .colorScheme
                     .onSurface
                     .withValues(alpha: 0.7),
-                fontSize: 16)));
+                fontSize: 16))));
   }
 
   Room _getRoomAndInit(BuildContext context) {

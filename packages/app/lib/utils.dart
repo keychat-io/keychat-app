@@ -719,7 +719,7 @@ class Utils {
   }
 
   static Widget getNeworkImageOrDefault(String? imageUrl,
-      {double size = 42, double radius = 100}) {
+      {double size = 36, double radius = 100}) {
     if (imageUrl == null) {
       return ClipRRect(
           borderRadius: BorderRadius.circular(radius),
@@ -729,7 +729,7 @@ class Utils {
   }
 
   static Widget? getNetworkImage(String? imageUrl,
-      {double size = 42, double radius = 100}) {
+      {double size = 36, double radius = 100}) {
     if (imageUrl == null) return null;
 
     if (imageUrl.toString().endsWith('svg')) {

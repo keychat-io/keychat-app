@@ -351,7 +351,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
     return Padding(
         padding: const EdgeInsets.only(top: 10),
         child: SizedBox(
-            height: list.length < 5 ? 100 : (list.length <= 10 ? 200 : 300),
+            height: list.length < 5 ? 80 : (list.length <= 10 ? 160 : 240),
             child: GridView.builder(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: gridCount,

@@ -1,13 +1,11 @@
 import 'package:app/controller/home.controller.dart';
-import 'package:app/models/browser/browser_bookmark.dart';
-import 'package:app/models/db_provider.dart';
+import 'package:app/models/browser/browser_favorite.dart';
 import 'package:app/page/browser/Browser_controller.dart';
 import 'package:app/page/components.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:isar/isar.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 class Recommends extends StatefulWidget {
@@ -30,8 +28,8 @@ class _RecommendsState extends State<Recommends> {
   }
 
   init() async {
-    List<BrowserBookmark> bookmarks = await BrowserBookmark.getAll(limit: 100);
-    Set<String> urls = bookmarks.map((e) => e.url).toSet();
+    List<BrowserFavorite> list = Get.find<BrowserController>().favorites;
+    Set<String> urls = list.map((e) => e.url).toSet();
     setState(() {
       exists = urls;
     });
@@ -48,16 +46,15 @@ class _RecommendsState extends State<Recommends> {
     return Scaffold(
         appBar: AppBar(
           centerTitle: true,
-          title: const Text('Apps'),
+          title: const Text('Web Store'),
         ),
         body: homeController.browserRecommend.entries.isEmpty
             ? pageLoadingSpinKit()
             : SmartRefresher(
-                enablePullUp: true,
-                enablePullDown: false,
-                onLoading: () async {
+                enablePullDown: true,
+                onRefresh: () async {
                   Get.find<HomeController>().loadAppRemoteConfig();
-                  refreshController.loadComplete();
+                  refreshController.refreshCompleted();
                 },
                 controller: refreshController,
                 child: Obx(() => ListView.builder(
@@ -94,7 +91,7 @@ class _RecommendsState extends State<Recommends> {
                                           maxLines: 1),
                                       subtitle: textSmallGray(
                                           context, site['description'],
-                                          lineHeight: 1, maxLines: 2),
+                                          maxLines: 1),
                                       onTap: () {
                                         Get.find<BrowserController>()
                                             .lanuchWebview(
@@ -106,44 +103,28 @@ class _RecommendsState extends State<Recommends> {
                                       trailing: exists.contains(url)
                                           ? IconButton(
                                               onPressed: () async {
-                                                await DBProvider.database
-                                                    .writeTxn(() async {
-                                                  await DBProvider
-                                                      .database.browserBookmarks
-                                                      .filter()
-                                                      .urlEqualTo(url)
-                                                      .deleteAll();
-                                                });
+                                                await BrowserFavorite
+                                                    .deleteAll();
                                                 setState(() {
                                                   exists = exists..remove(url);
                                                 });
-                                                Get.find<BrowserController>()
-                                                    .loadBookmarks();
+
                                                 EasyLoading.showSuccess(
-                                                    'Success');
+                                                    'Removed from favorites');
                                               },
                                               icon: const Icon(Icons.check,
                                                   color: Colors.green))
                                           : IconButton(
                                               onPressed: () async {
-                                                await DBProvider.database
-                                                    .writeTxn(() async {
-                                                  BrowserBookmark bookmark =
-                                                      BrowserBookmark(
-                                                          url: url,
-                                                          title: site['title'],
-                                                          favicon: site['img']);
-                                                  await DBProvider
-                                                      .database.browserBookmarks
-                                                      .put(bookmark);
-                                                });
+                                                await BrowserFavorite.add(
+                                                    url: url,
+                                                    title: site['title'],
+                                                    favicon: site['img']);
                                                 setState(() {
                                                   exists = exists..add(url);
                                                 });
-                                                Get.find<BrowserController>()
-                                                    .loadBookmarks();
                                                 EasyLoading.showSuccess(
-                                                    'Success');
+                                                    'Added to favorites');
                                               },
                                               icon: Icon(
                                                 Icons.add,

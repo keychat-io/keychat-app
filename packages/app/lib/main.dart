@@ -31,7 +31,6 @@ bool isProdEnv = true;
 
 void main() async {
   SettingController sc = await initServices();
-  Get.put(HomeController(), permanent: true);
 
   bool isLogin = await IdentityService.instance.count() > 0;
   ThemeMode themeMode = await getThemeMode();
@@ -55,7 +54,12 @@ void main() async {
     darkTheme: AppThemeCustom.dark(),
   );
   if (!kDebugMode) {
-    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+    try {
+      FlutterError.onError =
+          FirebaseCrashlytics.instance.recordFlutterFatalError;
+    } catch (e, s) {
+      logger.e(e.toString(), stackTrace: s);
+    }
   }
   // fix https://github.com/flutter/flutter/issues/119465
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -103,8 +107,8 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 Future initServices() async {
-  FlutterNativeSplash.preserve(
-      widgetsBinding: WidgetsFlutterBinding.ensureInitialized());
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   await SystemChrome.setPreferredOrientations(
       [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   await dotenv.load(fileName: ".env");
@@ -136,6 +140,7 @@ Future initServices() async {
   Get.put(BrowserController(), permanent: true);
   Get.putAsync(() => ChatxService().init(dbPath));
   Get.putAsync(() => WebsocketService().init());
+  Get.put(HomeController(), permanent: true);
   return sc;
 }
 

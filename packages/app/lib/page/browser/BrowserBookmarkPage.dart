@@ -1,8 +1,10 @@
 import 'package:app/models/browser/browser_bookmark.dart';
+import 'package:app/models/browser/browser_favorite.dart';
+import 'package:app/page/browser/BookmarkEdit.dart';
 import 'package:app/page/browser/Browser_controller.dart';
 import 'package:app/utils.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 
@@ -14,13 +16,24 @@ class BrowserBookmarkPage extends StatefulWidget {
 }
 
 class _BrowserBookmarkPageState extends State<BrowserBookmarkPage> {
-  List<BrowserBookmark> urls = [];
+  List<BrowserBookmark> bookmarks = [];
+  Set<String> exists = {};
   late RefreshController refreshController;
   @override
   void initState() {
     refreshController = RefreshController();
-    loadData(limit: 20, offset: 0);
+    init();
     super.initState();
+  }
+
+  init() async {
+    List<BrowserFavorite> list = await BrowserFavorite.getAll();
+    Set<String> urls = list.map((e) => e.url).toSet();
+    setState(() {
+      exists = urls;
+    });
+    bookmarks.clear();
+    loadData(limit: 20, offset: 0);
   }
 
   @override
@@ -37,20 +50,16 @@ class _BrowserBookmarkPageState extends State<BrowserBookmarkPage> {
             enablePullUp: true,
             enablePullDown: false,
             onLoading: () async {
-              await loadData(limit: 20, offset: urls.length);
+              await loadData(limit: 20, offset: bookmarks.length);
               refreshController.loadComplete();
             },
             controller: refreshController,
-            child: ListView.separated(
+            child: ListView.builder(
               shrinkWrap: true,
-              itemCount: urls.length,
-              separatorBuilder: (BuildContext context, int index) =>
-                  const Divider(
-                indent: 16,
-                endIndent: 16,
-              ),
+              itemCount: bookmarks.length,
               itemBuilder: (context, index) {
-                final site = urls[index];
+                final site = bookmarks[index];
+                String url = site.url;
                 return ListTile(
                   dense: true,
                   contentPadding: const EdgeInsets.symmetric(
@@ -65,28 +74,36 @@ class _BrowserBookmarkPageState extends State<BrowserBookmarkPage> {
                       maxLines: 1, overflow: TextOverflow.ellipsis),
                   trailing: Wrap(
                     children: [
+                      exists.contains(url)
+                          ? IconButton(
+                              onPressed: () async {
+                                await BrowserFavorite.deleteAll();
+                                setState(() {
+                                  exists = exists..remove(url);
+                                });
+
+                                EasyLoading.showSuccess(
+                                    'Remved from Favorites');
+                              },
+                              icon:
+                                  const Icon(Icons.check, color: Colors.green))
+                          : IconButton(
+                              onPressed: () async {
+                                await BrowserFavorite.add(
+                                    url: url,
+                                    title: site.title,
+                                    favicon: site.favicon);
+                                setState(() {
+                                  exists = exists..add(url);
+                                });
+                                EasyLoading.showSuccess('Added to Favorites');
+                              },
+                              icon: const Icon(Icons.add)),
                       IconButton(
-                        icon: site.isPin
-                            ? Icon(
-                                CupertinoIcons.pin_fill,
-                                color: Theme.of(context).colorScheme.primary,
-                              )
-                            : const Icon(CupertinoIcons.pin),
+                        icon: const Icon(Icons.more_horiz),
                         onPressed: () async {
-                          site.isPin = !site.isPin;
-                          await BrowserBookmark.update(site);
-                          urls.clear();
-                          loadData(limit: 20, offset: 0);
-                          Get.find<BrowserController>().loadBookmarks();
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () {
-                          BrowserBookmark.delete(site.id);
-                          setState(() {
-                            urls.removeAt(index);
-                          });
+                          await Get.to(() => BookmarkEdit(model: site));
+                          init();
                         },
                       )
                     ],
@@ -102,9 +119,9 @@ class _BrowserBookmarkPageState extends State<BrowserBookmarkPage> {
 
   Future loadData({required int limit, required int offset}) async {
     var list = await BrowserBookmark.getAll(limit: limit, offset: offset);
-    urls.addAll(list);
+    bookmarks.addAll(list);
     setState(() {
-      urls = [...urls];
+      bookmarks = [...bookmarks];
     });
   }
 }

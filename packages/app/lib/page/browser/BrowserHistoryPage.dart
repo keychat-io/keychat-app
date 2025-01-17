@@ -105,32 +105,11 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
                               .lanuchWebview(
                                   content: site.url, defaultTitle: site.title),
                           trailing: IconButton(
-                              onPressed: () {
-                                Get.dialog(CupertinoAlertDialog(
-                                  title: const Text('Delete History'),
-                                  content: const Text(
-                                      'Are you sure you want to delete this history?'),
-                                  actions: [
-                                    CupertinoDialogAction(
-                                      onPressed: () {
-                                        Get.back();
-                                      },
-                                      child: const Text('Cancel'),
-                                    ),
-                                    CupertinoDialogAction(
-                                      isDestructiveAction: true,
-                                      onPressed: () async {
-                                        await BrowserHistory.delete(site.id);
-                                        setState(() {
-                                          groupedHistory[dateKey]!
-                                              .removeAt(index);
-                                        });
-                                        Get.back();
-                                      },
-                                      child: const Text('Delete'),
-                                    )
-                                  ],
-                                ));
+                              onPressed: () async {
+                                await BrowserHistory.delete(site.id);
+                                setState(() {
+                                  groupedHistory[dateKey]!.removeAt(index);
+                                });
                               },
                               icon: const Icon(Icons.close)),
                         );

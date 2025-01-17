@@ -5,7 +5,7 @@ echo "Update keychat_rust_ffi_plugin start..."
 cd packages/keychat_rust_ffi_plugin
 git pull origin 
 git log -n 2 --pretty=format:"%h - %s (%ci)"
-cargo build
+cargo build --target aarch64-apple-ios --release
 cd ../../
 echo "Update keychat_rust_ffi_plugin success"
 

@@ -2,13 +2,13 @@ import 'package:app/models/db_provider.dart';
 import 'package:equatable/equatable.dart';
 import 'package:isar/isar.dart';
 
-part 'browser_bookmark.g.dart';
+part 'browser_favorite.g.dart';
 
 @Collection(ignore: {
   'props',
 })
 // ignore: must_be_immutable
-class BrowserBookmark extends Equatable {
+class BrowserFavorite extends Equatable {
   Id id = Isar.autoIncrement;
 
   @Index(unique: true)
@@ -20,7 +20,7 @@ class BrowserBookmark extends Equatable {
   late DateTime updatedAt;
   bool isPin = false;
 
-  BrowserBookmark({required this.url, this.title, this.favicon}) {
+  BrowserFavorite({required this.url, this.title, this.favicon}) {
     createdAt = DateTime.now();
     updatedAt = DateTime.now();
   }
@@ -28,49 +28,45 @@ class BrowserBookmark extends Equatable {
   @override
   List get props => [id, url, title, favicon];
 
-  static Future<List<BrowserBookmark>> getAll(
-      {int limit = 20, int offset = 0}) async {
-    var pins = [];
-    if (offset == 0) {
-      pins = await DBProvider.database.browserBookmarks
-          .filter()
-          .isPinEqualTo(true)
-          .findAll();
-    }
-    var list = await DBProvider.database.browserBookmarks
+  static Future<List<BrowserFavorite>> getAll() async {
+    return await DBProvider.database.browserFavorites
         .filter()
         .isPinEqualTo(false)
         .sortByCreatedAtDesc()
-        .offset(offset)
-        .limit(limit)
         .findAll();
-    return [...pins, ...list];
   }
 
   static deleteAll() async {
     await DBProvider.database.writeTxn(() async {
-      await DBProvider.database.browserBookmarks.where().deleteAll();
+      await DBProvider.database.browserFavorites.where().deleteAll();
     });
   }
 
   static delete(Id id) async {
     await DBProvider.database.writeTxn(() async {
-      await DBProvider.database.browserBookmarks.delete(id);
+      await DBProvider.database.browserFavorites.delete(id);
     });
   }
 
-  static Future update(BrowserBookmark site) async {
+  static Future update(BrowserFavorite site) async {
     site.updatedAt = DateTime.now();
     await DBProvider.database.writeTxn(() async {
-      DBProvider.database.browserBookmarks.put(site);
+      DBProvider.database.browserFavorites.put(site);
     });
+  }
+
+  static Future<BrowserFavorite?> getByUrl(String string) async {
+    return await DBProvider.database.browserFavorites
+        .filter()
+        .urlEqualTo(string)
+        .findFirst();
   }
 
   static add({required String url, String? title, String? favicon}) async {
     await DBProvider.database.writeTxn(() async {
-      BrowserBookmark model =
-          BrowserBookmark(url: url, title: title, favicon: favicon);
-      await DBProvider.database.browserBookmarks.put(model);
+      BrowserFavorite model =
+          BrowserFavorite(url: url, title: title, favicon: favicon);
+      await DBProvider.database.browserFavorites.put(model);
     });
   }
 }

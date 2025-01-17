@@ -2,10 +2,13 @@ import 'dart:convert' show jsonDecode;
 
 import 'package:app/models/browser/browser_bookmark.dart';
 import 'package:app/models/browser/browser_connect.dart';
+import 'package:app/models/browser/browser_favorite.dart';
 import 'package:app/models/db_provider.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/nostr-core/nostr_event.dart';
+import 'package:app/page/browser/BookmarkEdit.dart';
 import 'package:app/page/browser/Browser_controller.dart';
+import 'package:app/page/browser/FavoriteEdit.dart';
 import 'package:app/page/browser/SelectIdentityForBrowser.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/relay.service.dart';
@@ -18,6 +21,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
@@ -36,7 +40,7 @@ class BrowserDetailPage extends StatefulWidget {
 
 class _BrowserDetailPageState extends State<BrowserDetailPage> {
   final GlobalKey webViewKey = GlobalKey();
-
+  final String defaultTitle = "Loading...";
   InAppWebViewController? webViewController;
   InAppWebViewSettings settings = InAppWebViewSettings(
       isInspectable: kDebugMode,
@@ -161,34 +165,45 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                         child: getPopTools(url),
                       ),
                       PopupMenuItem(
-                        child: FutureBuilder(future: () async {
-                          final url = await webViewController?.getUrl();
-                          if (url == null) return null;
-                          return await DBProvider.database.browserBookmarks
-                              .filter()
-                              .urlEqualTo(url.toString())
-                              .findFirst();
-                        }(), builder: (context, snapshot) {
-                          BrowserBookmark? bb = snapshot.data;
-                          return GestureDetector(
-                              child: Row(
-                                spacing: 16,
-                                children: [
-                                  Icon(
-                                      bb != null
-                                          ? CupertinoIcons.star_fill
-                                          : CupertinoIcons.star,
-                                      size: 22),
-                                  Text('Bookmark',
-                                      style:
-                                          Theme.of(context).textTheme.bodyLarge)
-                                ],
-                              ),
-                              onTap: () {
-                                troggleMarkUrl(bb);
-                                Get.back();
-                              });
-                        }),
+                        value: 'bookmark',
+                        child: Row(spacing: 16, children: [
+                          FutureBuilder(future: () async {
+                            final url = await webViewController?.getUrl();
+                            if (url == null) return null;
+                            return await DBProvider.database.browserBookmarks
+                                .filter()
+                                .urlEqualTo(url.toString())
+                                .findFirst();
+                          }(), builder: (context, snapshot) {
+                            if (snapshot.data != null) {
+                              return const Icon(
+                                CupertinoIcons.bookmark_fill,
+                                color: Colors.orange,
+                              );
+                            }
+                            return const Icon(CupertinoIcons.bookmark);
+                          }),
+                          Text('Bookmark',
+                              style: Theme.of(context).textTheme.bodyLarge)
+                        ]),
+                      ),
+                      PopupMenuItem(
+                        value: 'favorite',
+                        child: Row(spacing: 16, children: [
+                          SvgPicture.asset(
+                            'assets/images/app_add.svg',
+                            height: 24,
+                            width: 24,
+                            colorFilter: ColorFilter.mode(
+                                Theme.of(context)
+                                    .iconTheme
+                                    .color!
+                                    .withAlpha(200),
+                                BlendMode.srcIn),
+                          ),
+                          Text('Add to Favorites',
+                              style: Theme.of(context).textTheme.bodyLarge)
+                        ]),
                       ),
                       PopupMenuItem(
                         value: 'share',
@@ -238,11 +253,11 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
               FloatingActionButtonLocation.miniStartTop,
           floatingActionButtonAnimator:
               FloatingActionButtonAnimator.noAnimation,
-          floatingActionButton: canGoBack
+          floatingActionButton: GetPlatform.isIOS && canGoBack
               ? Container(
                   margin: EdgeInsets.only(top: Get.height * 0.9),
-                  width: 48,
-                  height: 48,
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.primary.withAlpha(100),
                     borderRadius: BorderRadius.circular(100),
@@ -396,29 +411,6 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
     );
   }
 
-  void troggleMarkUrl(BrowserBookmark? bb) async {
-    if (webViewController == null) return;
-
-    if (bb != null) {
-      await BrowserBookmark.delete(bb.id);
-    } else {
-      final url = await webViewController?.getUrl();
-      if (url == null) return;
-      String? favicon =
-          await browserController.getFavicon(webViewController!, url.host);
-      await DBProvider.database.writeTxn(() async {
-        BrowserBookmark bookmark = BrowserBookmark(
-            url: url.toString(),
-            title: await webViewController?.getTitle(),
-            favicon: favicon);
-        await DBProvider.database.browserBookmarks.put(bookmark);
-      });
-    }
-
-    EasyLoading.showSuccess('Success');
-    browserController.loadBookmarks();
-  }
-
   void goBackOrPop() {
     webViewController?.canGoBack().then((canGoBack) {
       if (canGoBack) {
@@ -553,6 +545,42 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
     switch (value) {
       case 'share':
         Share.share(url.toString());
+        break;
+      case 'bookmark':
+        var exist = await DBProvider.database.browserBookmarks
+            .filter()
+            .urlEqualTo(url.toString())
+            .findFirst();
+        if (exist == null) {
+          String? favicon = await browserController
+              .getFavicon(webViewController!, url.host)
+              .timeout(const Duration(seconds: 10));
+          String? siteTitle = title == defaultTitle
+              ? await webViewController?.getTitle()
+              : title;
+          await BrowserBookmark.add(
+              url: url.toString(), favicon: favicon, title: siteTitle);
+          EasyLoading.showSuccess('Added');
+        } else {
+          await Get.to(() => BookmarkEdit(model: exist));
+        }
+        break;
+      case 'favorite':
+        var exist = await BrowserFavorite.getByUrl(url.toString());
+        if (exist == null) {
+          String? favicon = await browserController
+              .getFavicon(webViewController!, url.host)
+              .timeout(const Duration(seconds: 10));
+          String? siteTitle = title == defaultTitle
+              ? await webViewController?.getTitle()
+              : title;
+          await BrowserFavorite.add(
+              url: url.toString(), favicon: favicon, title: siteTitle);
+          EasyLoading.showSuccess('Added');
+        } else {
+          await Get.to(() => FavoriteEdit(favorite: exist));
+        }
+        await browserController.loadFavorite();
         break;
       case 'copy':
         Clipboard.setData(ClipboardData(text: url.toString()));

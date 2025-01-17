@@ -276,8 +276,8 @@ $error ''';
       await rust_mls.initMlsDb(
           dbPath: '$dbPath${KeychatGlobal.mlsDBFile}',
           nostrId: identity.secp256k1PKHex);
-      logger.i('MLS init success: ${identity.secp256k1PKHex}');
-      await _uploadPKMessage(identity);
+      logger.i('MLS init for identity: ${identity.secp256k1PKHex}');
+      _uploadPKMessage(identity);
     }));
   }
 

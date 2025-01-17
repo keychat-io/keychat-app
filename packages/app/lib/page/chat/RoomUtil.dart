@@ -239,8 +239,6 @@ Let's start an encrypted chat.''';
         Icons.notifications_none,
       ),
       title: const Text('Mute Notifications'),
-      description: const Text(
-          'If muted, receiving pubkey will not be uploaded to the notification server.'),
       onToggle: (value) async {
         EasyThrottle.throttle('mute_notification', const Duration(seconds: 3),
             () async {

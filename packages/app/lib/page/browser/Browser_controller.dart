@@ -1,7 +1,7 @@
-import 'dart:convert';
+import 'dart:convert' show jsonEncode, jsonDecode;
 
 import 'package:app/controller/setting.controller.dart';
-import 'package:app/models/browser/browser_bookmark.dart';
+import 'package:app/models/browser/browser_favorite.dart';
 import 'package:app/models/browser/browser_history.dart';
 import 'package:app/models/db_provider.dart';
 import 'package:app/page/browser/BrowserDetailPage.dart';
@@ -21,7 +21,7 @@ class BrowserController extends GetxController {
   RxDouble progress = 0.2.obs;
 
   RxSet<String> enableSearchEngine = <String>{}.obs;
-  RxList<BrowserBookmark> bookmarks = <BrowserBookmark>[].obs;
+  RxList<BrowserFavorite> favorites = <BrowserFavorite>[].obs;
   RxList<BrowserHistory> histories = <BrowserHistory>[].obs;
   RxMap<String, dynamic> config = <String, dynamic>{}.obs;
   static const maxHistoryInHome = 12;
@@ -52,12 +52,10 @@ class BrowserController extends GetxController {
   Future addHistory(String url, String title, [String? favicon]) async {
     if (!config['enableHistory']) return;
 
-    if (histories.isNotEmpty &&
-        histories[0].url == url &&
-        histories[0].title == title) {
+    if (histories.isNotEmpty && histories[0].url == url) {
       DateTime now = DateTime.now();
       DateTime lastVisit = histories[0].createdAt;
-      if (now.difference(lastVisit).inMinutes < 5) {
+      if (now.difference(lastVisit).inMinutes < 1) {
         return;
       }
     }
@@ -129,12 +127,8 @@ class BrowserController extends GetxController {
     });
   }
 
-  loadBookmarks() async {
-    bookmarks.value = await BrowserBookmark.getAll(limit: maxHistoryInHome);
-  }
-
-  loadHistory() async {
-    histories.value = await BrowserHistory.getAll(limit: maxHistoryInHome);
+  loadFavorite() async {
+    favorites.value = await BrowserFavorite.getAll();
   }
 
   @override
@@ -158,9 +152,9 @@ class BrowserController extends GetxController {
       enableSearchEngine.addAll(searchEngine);
     }
     loadConfig();
-    loadBookmarks();
+    loadFavorite();
     // loadHistory();
-    // initWebview();
+    initWebview();
     super.onInit();
   }
 

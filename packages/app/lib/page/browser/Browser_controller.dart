@@ -17,6 +17,7 @@ import 'package:get/get.dart';
 class BrowserController extends GetxController {
   late TextEditingController textController;
   RxString title = 'Loading'.obs;
+  RxString defaultSearchEngineObx = 'google'.obs;
   RxString input = ''.obs;
   RxDouble progress = 0.2.obs;
 
@@ -145,12 +146,9 @@ class BrowserController extends GetxController {
     });
 
     // load search engine
-    List<String> searchEngine = await Storage.getStringList('searchEngine');
-    if (searchEngine.isEmpty) {
-      enableSearchEngine.addAll(BrowserEngine.values.map((e) => e.name));
-    } else {
-      enableSearchEngine.addAll(searchEngine);
-    }
+    defaultSearchEngineObx.value =
+        (await Storage.getString('defaultSearchEngine') ?? defaultSearchEngine);
+
     loadConfig();
     loadFavorite();
     // loadHistory();
@@ -209,5 +207,7 @@ class BrowserController extends GetxController {
     }
   }
 }
+
+const String defaultSearchEngine = 'searXNG';
 
 enum BrowserEngine { google, brave, searXNG, startpage }

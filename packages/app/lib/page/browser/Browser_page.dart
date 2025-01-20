@@ -2,6 +2,7 @@ import 'package:app/models/browser/browser_bookmark.dart';
 import 'package:app/models/browser/browser_favorite.dart';
 import 'package:app/page/browser/BrowserBookmarkPage.dart';
 import 'package:app/page/browser/BrowserHistoryPage.dart';
+import 'package:app/page/browser/BrowserSetting.dart';
 import 'package:app/page/browser/WebStorePage.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
@@ -26,76 +27,87 @@ class BrowserPage extends GetView<BrowserController> {
                 padding: const EdgeInsets.only(left: 16, right: 16),
                 child: Obx(() => ListView(children: [
                       SizedBox(
-                          height:
-                              150 - controller.enableSearchEngine.length * 30),
-                      ...controller.enableSearchEngine.toList().reversed.map(
-                        (engine) {
-                          return Container(
-                            width: Get.width,
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: Form(
-                              key: PageStorageKey('input:$engine'),
-                              child: TextFormField(
-                                textInputAction: TextInputAction.go,
-                                maxLines: 1,
-                                controller: controller.textController,
-                                decoration: InputDecoration(
-                                  labelText:
-                                      Utils.capitalizeFirstLetter(engine),
-                                  border: OutlineInputBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(100.0)),
-                                  prefixIcon: Padding(
-                                    padding: const EdgeInsets.all(12.0),
-                                    child: SvgPicture.asset(
-                                      'assets/images/logo/$engine.svg',
-                                      fit: BoxFit.contain,
-                                      width: 20,
-                                      height: 20,
-                                    ),
-                                  ),
-                                  suffixIcon: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      if (controller.input.isNotEmpty)
-                                        IconButton(
-                                          icon:
-                                              const Icon(CupertinoIcons.clear),
-                                          onPressed: () {
-                                            controller.textController.clear();
-                                          },
-                                        ),
-                                      IconButton(
-                                        icon: const Icon(CupertinoIcons.search),
-                                        onPressed: () async {
-                                          if (controller
-                                              .textController.text.isEmpty) {
-                                            return;
-                                          }
-                                          controller.lanuchWebview(
-                                            content: controller
-                                                .textController.text
-                                                .trim(),
-                                            engine: engine,
-                                          );
-                                        },
-                                      ),
-                                    ],
+                          height: controller.favorites.length < 25
+                              ? (150 -
+                                  (controller.favorites.length / 5).floor() *
+                                      30)
+                              : 30),
+                      Row(children: [
+                        ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxHeight: 40,
+                            maxWidth: Get.width - 72,
+                          ),
+                          child: Form(
+                            key: PageStorageKey(
+                                'input:${controller.defaultSearchEngineObx.value}'),
+                            child: TextFormField(
+                              textInputAction: TextInputAction.go,
+                              maxLines: 1,
+                              controller: controller.textController,
+                              decoration: InputDecoration(
+                                labelText: Utils.capitalizeFirstLetter(
+                                    controller.defaultSearchEngineObx.value),
+                                border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(100.0)),
+                                isDense: true,
+                                contentPadding: const EdgeInsets.all(2),
+                                prefixIcon: Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: SvgPicture.asset(
+                                    'assets/images/logo/${controller.defaultSearchEngineObx.value}.svg',
+                                    fit: BoxFit.contain,
+                                    width: 20,
+                                    height: 20,
                                   ),
                                 ),
-                                onFieldSubmitted: (value) {
-                                  controller.lanuchWebview(
-                                    engine: engine,
-                                    content:
-                                        controller.textController.text.trim(),
-                                  );
-                                },
+                                suffixIcon: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (controller.input.isNotEmpty)
+                                      IconButton(
+                                        icon: const Icon(CupertinoIcons.clear),
+                                        onPressed: () {
+                                          controller.textController.clear();
+                                        },
+                                      ),
+                                    IconButton(
+                                      icon: const Icon(CupertinoIcons.search),
+                                      onPressed: () async {
+                                        if (controller
+                                            .textController.text.isEmpty) {
+                                          return;
+                                        }
+                                        controller.lanuchWebview(
+                                          content: controller
+                                              .textController.text
+                                              .trim(),
+                                          engine: controller
+                                              .defaultSearchEngineObx.value,
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
                               ),
+                              onFieldSubmitted: (value) {
+                                controller.lanuchWebview(
+                                  engine:
+                                      controller.defaultSearchEngineObx.value,
+                                  content:
+                                      controller.textController.text.trim(),
+                                );
+                              },
                             ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 16),
+                          ),
+                        ),
+                        IconButton(
+                            onPressed: () {
+                              Get.to(() => const BrowserSetting());
+                            },
+                            icon: const Icon(Icons.menu))
+                      ]),
+                      const SizedBox(height: 32),
                       quickSection(context),
                       const SizedBox(height: 16),
                       functionSection(context),

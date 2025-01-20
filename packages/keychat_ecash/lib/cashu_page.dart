@@ -121,7 +121,7 @@ class CashuPage extends GetView<EcashController> {
                                   color: Theme.of(context)
                                       .colorScheme
                                       .onSurface
-                                      .withOpacity(0.1),
+                                      .withAlpha(30),
                                 ),
                                 child: IconButton(
                                     icon: const Icon(
@@ -258,7 +258,7 @@ class CashuPage extends GetView<EcashController> {
                                   color: Theme.of(context)
                                       .colorScheme
                                       .onSurface
-                                      .withOpacity(0.1),
+                                      .withAlpha(30),
                                 ),
                                 child: Padding(
                                     padding: const EdgeInsets.all(16),
@@ -295,7 +295,7 @@ class CashuPage extends GetView<EcashController> {
                                                       .textTheme
                                                       .bodySmall!
                                                       .color
-                                                      ?.withOpacity(0.6)),
+                                                      ?.withAlpha(160)),
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                         RichText(
@@ -361,7 +361,7 @@ class CashuPage extends GetView<EcashController> {
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onSurface
-                                            .withOpacity(0.6)),
+                                            .withAlpha(160)),
                                     textSmallGray(context, 'No transactions')
                                   ],
                                 ))
@@ -450,7 +450,7 @@ class CashuPage extends GetView<EcashController> {
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onSurface
-                                            .withOpacity(0.6)),
+                                            .withAlpha(150)),
                                     textSmallGray(context, 'No transactions')
                                   ],
                                 ))
@@ -466,6 +466,10 @@ class CashuPage extends GetView<EcashController> {
                             .map((LNTransaction transaction) {
                             bool isSend =
                                 transaction.io == TransactionDirection.out;
+                            String amount = (isSend ? "-" : "+") +
+                                (transaction.amount +
+                                        (transaction.fee ?? BigInt.from(0)))
+                                    .toString();
                             return ListTile(
                               key: Key(transaction.hash +
                                   transaction.time.toString()),
@@ -481,9 +485,7 @@ class CashuPage extends GetView<EcashController> {
                                         : CupertinoIcons.arrow_down,
                                     size: 18,
                                   )),
-                              title: Text(
-                                  (isSend ? "-" : "+") +
-                                      (transaction.amount).toString(),
+                              title: Text(amount,
                                   style:
                                       Theme.of(context).textTheme.bodyMedium),
                               subtitle: Column(
@@ -611,7 +613,7 @@ class CashuPage extends GetView<EcashController> {
                   color: (Get.isDarkMode
                           ? const Color(0xFF322F32)
                           : const Color(0xFFCDD0CD))
-                      .withOpacity(0.9),
+                      .withAlpha(200),
                   borderRadius: BorderRadius.circular(10.0),
                 ),
                 child: Center(
@@ -628,7 +630,7 @@ class CashuPage extends GetView<EcashController> {
                           child: CircleAvatar(
                             backgroundColor: MaterialTheme.lightScheme()
                                 .primary
-                                .withOpacity(0.7),
+                                .withAlpha(160),
                             radius: 20,
                             child: const Icon(CupertinoIcons.arrow_up,
                                 color: Colors.white),
@@ -652,7 +654,7 @@ class CashuPage extends GetView<EcashController> {
                           child: CircleAvatar(
                             backgroundColor: MaterialTheme.lightScheme()
                                 .tertiary
-                                .withOpacity(0.7),
+                                .withAlpha(160),
                             radius: 20,
                             child: const Icon(CupertinoIcons.arrow_down,
                                 color: Colors.white),

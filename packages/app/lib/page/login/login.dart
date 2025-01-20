@@ -1,3 +1,4 @@
+import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/page/login/CreateAccount.dart';
@@ -6,8 +7,11 @@ import 'package:app/page/login/import_nsec.dart';
 import 'package:app/page/login/import_seed_phrase.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/page/setting/more_chat_setting.dart';
+import 'package:app/service/SignerService.dart';
+import 'package:app/service/identity.service.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app/utils.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
@@ -60,7 +64,62 @@ class Login extends StatelessWidget {
                         onPressed: () async {
                           Get.bottomSheet(getRecoverPage());
                         },
-                        child: const Text("Recover ID"))
+                        child: const Text("Recover ID")),
+                    OutlinedButton(
+                        onPressed: () async {
+                          String? pubkey =
+                              await SignerService.instance.getPublicKey();
+                          if (pubkey == null) {
+                            EasyLoading.showError("not authorized");
+                            return;
+                          }
+
+                          TextEditingController controller =
+                              TextEditingController();
+                          var focusNode = FocusNode();
+                          String? name = await Get.dialog<String>(
+                            CupertinoAlertDialog(
+                              title: const Text('Nickname'),
+                              content: TextField(
+                                controller: controller,
+                                focusNode: focusNode,
+                                autofocus: true,
+                                decoration: const InputDecoration(
+                                  hintText: 'Nickname',
+                                ),
+                                onSubmitted: (value) {
+                                  Get.back(result: controller.text.trim());
+                                },
+                              ),
+                              actions: [
+                                CupertinoDialogAction(
+                                  isDefaultAction: true,
+                                  onPressed: () {
+                                    Get.back(result: controller.text.trim());
+                                  },
+                                  child: const Text('Finish'),
+                                ),
+                              ],
+                            ),
+                          );
+
+                          if (name == null || name.isEmpty) {
+                            EasyLoading.showError("Username is required");
+                            return;
+                          }
+                          EasyLoading.show(status: 'Loading...');
+
+                          // await IdentityService.instance
+                          //     .createIdentityByAmberPubkey(
+                          //   name: name,
+                          //   pubkey: pubkey,
+                          // );
+
+                          EasyLoading.dismiss();
+
+                          Get.offAllNamed(Routes.root, arguments: true);
+                        },
+                        child: const Text("Login with Amber App"))
                   ])
             ])));
   }
@@ -94,7 +153,7 @@ class Login extends StatelessWidget {
             const MoreChatSetting().enableImportDB(context);
           },
         )
-      ])
+      ]),
     ]);
   }
 }

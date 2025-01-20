@@ -130,6 +130,26 @@ class IdentityService {
     return iden;
   }
 
+  Future<Identity> createIdentityByAmberPubkey(
+      {required String name, required String pubkey}) async {
+    Isar database = DBProvider.database;
+    String hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: pubkey);
+    String npub = rust_nostr.getBech32PubkeyByHex(hex: hexPubkey);
+    Identity iden = Identity(name: name, secp256k1PKHex: hexPubkey, npub: npub)
+      ..index = -1
+      ..isFromSigner = true;
+    await database.writeTxn(() async {
+      await database.identitys.put(iden);
+    });
+
+    await Get.find<HomeController>().loadRoomList(init: true);
+    Get.find<WebsocketService>().listenPubkey([hexPubkey]);
+    Get.find<WebsocketService>().listenPubkeyNip17([hexPubkey]);
+    NotifyService.addPubkeys([hexPubkey]);
+    MlsGroupService.instance.initIdentities([iden]);
+    return iden;
+  }
+
   Future delete(Identity identity) async {
     Isar database = DBProvider.database;
 

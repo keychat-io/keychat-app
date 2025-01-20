@@ -62,48 +62,53 @@ const IdentitySchema = CollectionSchema(
       name: r'isDefault',
       type: IsarType.bool,
     ),
-    r'metadata': PropertySchema(
+    r'isFromSigner': PropertySchema(
       id: 9,
+      name: r'isFromSigner',
+      type: IsarType.bool,
+    ),
+    r'metadata': PropertySchema(
+      id: 10,
       name: r'metadata',
       type: IsarType.string,
     ),
     r'mnemonic': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'mnemonic',
       type: IsarType.string,
     ),
     r'name': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'name',
       type: IsarType.string,
     ),
     r'note': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'note',
       type: IsarType.string,
     ),
     r'npub': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'npub',
       type: IsarType.string,
     ),
     r'secp256k1PKHex': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'secp256k1PKHex',
       type: IsarType.string,
     ),
     r'secp256k1SKHex': PropertySchema(
-      id: 15,
+      id: 16,
       name: r'secp256k1SKHex',
       type: IsarType.string,
     ),
     r'stringify': PropertySchema(
-      id: 16,
+      id: 17,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'weight': PropertySchema(
-      id: 17,
+      id: 18,
       name: r'weight',
       type: IsarType.long,
     )
@@ -205,15 +210,16 @@ void _identitySerialize(
   writer.writeLong(offsets[6], object.hashCode);
   writer.writeLong(offsets[7], object.index);
   writer.writeBool(offsets[8], object.isDefault);
-  writer.writeString(offsets[9], object.metadata);
-  writer.writeString(offsets[10], object.mnemonic);
-  writer.writeString(offsets[11], object.name);
-  writer.writeString(offsets[12], object.note);
-  writer.writeString(offsets[13], object.npub);
-  writer.writeString(offsets[14], object.secp256k1PKHex);
-  writer.writeString(offsets[15], object.secp256k1SKHex);
-  writer.writeBool(offsets[16], object.stringify);
-  writer.writeLong(offsets[17], object.weight);
+  writer.writeBool(offsets[9], object.isFromSigner);
+  writer.writeString(offsets[10], object.metadata);
+  writer.writeString(offsets[11], object.mnemonic);
+  writer.writeString(offsets[12], object.name);
+  writer.writeString(offsets[13], object.note);
+  writer.writeString(offsets[14], object.npub);
+  writer.writeString(offsets[15], object.secp256k1PKHex);
+  writer.writeString(offsets[16], object.secp256k1SKHex);
+  writer.writeBool(offsets[17], object.stringify);
+  writer.writeLong(offsets[18], object.weight);
 }
 
 Identity _identityDeserialize(
@@ -223,10 +229,10 @@ Identity _identityDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Identity(
-    name: reader.readString(offsets[11]),
-    note: reader.readStringOrNull(offsets[12]),
-    npub: reader.readString(offsets[13]),
-    secp256k1PKHex: reader.readString(offsets[14]),
+    name: reader.readString(offsets[12]),
+    note: reader.readStringOrNull(offsets[13]),
+    npub: reader.readString(offsets[14]),
+    secp256k1PKHex: reader.readString(offsets[15]),
   );
   object.about = reader.readStringOrNull(offsets[0]);
   object.createdAt = reader.readDateTime(offsets[1]);
@@ -237,10 +243,11 @@ Identity _identityDeserialize(
   object.id = id;
   object.index = reader.readLong(offsets[7]);
   object.isDefault = reader.readBool(offsets[8]);
-  object.metadata = reader.readStringOrNull(offsets[9]);
-  object.mnemonic = reader.readStringOrNull(offsets[10]);
-  object.secp256k1SKHex = reader.readStringOrNull(offsets[15]);
-  object.weight = reader.readLong(offsets[17]);
+  object.isFromSigner = reader.readBool(offsets[9]);
+  object.metadata = reader.readStringOrNull(offsets[10]);
+  object.mnemonic = reader.readStringOrNull(offsets[11]);
+  object.secp256k1SKHex = reader.readStringOrNull(offsets[16]);
+  object.weight = reader.readLong(offsets[18]);
   return object;
 }
 
@@ -270,22 +277,24 @@ P _identityDeserializeProp<P>(
     case 8:
       return (reader.readBool(offset)) as P;
     case 9:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 10:
       return (reader.readStringOrNull(offset)) as P;
     case 11:
-      return (reader.readString(offset)) as P;
-    case 12:
       return (reader.readStringOrNull(offset)) as P;
-    case 13:
+    case 12:
       return (reader.readString(offset)) as P;
+    case 13:
+      return (reader.readStringOrNull(offset)) as P;
     case 14:
       return (reader.readString(offset)) as P;
     case 15:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 16:
-      return (reader.readBoolOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 17:
+      return (reader.readBoolOrNull(offset)) as P;
+    case 18:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1173,6 +1182,16 @@ extension IdentityQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'isDefault',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> isFromSignerEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isFromSigner',
         value: value,
       ));
     });
@@ -2359,6 +2378,18 @@ extension IdentityQuerySortBy on QueryBuilder<Identity, Identity, QSortBy> {
     });
   }
 
+  QueryBuilder<Identity, Identity, QAfterSortBy> sortByIsFromSigner() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFromSigner', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy> sortByIsFromSignerDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFromSigner', Sort.desc);
+    });
+  }
+
   QueryBuilder<Identity, Identity, QAfterSortBy> sortByMetadata() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'metadata', Sort.asc);
@@ -2590,6 +2621,18 @@ extension IdentityQuerySortThenBy
     });
   }
 
+  QueryBuilder<Identity, Identity, QAfterSortBy> thenByIsFromSigner() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFromSigner', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy> thenByIsFromSignerDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isFromSigner', Sort.desc);
+    });
+  }
+
   QueryBuilder<Identity, Identity, QAfterSortBy> thenByMetadata() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'metadata', Sort.asc);
@@ -2760,6 +2803,12 @@ extension IdentityQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Identity, Identity, QDistinct> distinctByIsFromSigner() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isFromSigner');
+    });
+  }
+
   QueryBuilder<Identity, Identity, QDistinct> distinctByMetadata(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -2883,6 +2932,12 @@ extension IdentityQueryProperty
   QueryBuilder<Identity, bool, QQueryOperations> isDefaultProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isDefault');
+    });
+  }
+
+  QueryBuilder<Identity, bool, QQueryOperations> isFromSignerProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isFromSigner');
     });
   }
 

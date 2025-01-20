@@ -4,7 +4,7 @@ description: keychat
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.26.3+6316
+version: 1.26.5+6318
  
 environment:
   sdk: ">=3.4.3 <4.0.0"
@@ -105,8 +105,8 @@ dev_dependencies:
   flutter_launcher_icons: ^0.13.1
   analyzer: ^5.13.0
   test: ^1.25.2
-  dmg:
-    path: ../../../dmg
+  # dmg:
+  #   path: ../../../dmg
   # dmg: ^0.1.2
 
 flutter:

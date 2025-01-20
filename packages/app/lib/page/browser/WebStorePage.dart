@@ -8,14 +8,14 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 
-class Recommends extends StatefulWidget {
-  const Recommends({super.key});
+class WebStorePage extends StatefulWidget {
+  const WebStorePage({super.key});
 
   @override
-  _RecommendsState createState() => _RecommendsState();
+  _WebStorePageState createState() => _WebStorePageState();
 }
 
-class _RecommendsState extends State<Recommends> {
+class _WebStorePageState extends State<WebStorePage> {
   late HomeController homeController;
   Set<String> exists = {};
   late RefreshController refreshController;
@@ -95,8 +95,6 @@ class _RecommendsState extends State<Recommends> {
                                       onTap: () {
                                         Get.find<BrowserController>()
                                             .lanuchWebview(
-                                                engine:
-                                                    BrowserEngine.google.name,
                                                 content: url,
                                                 defaultTitle: site['title']);
                                       },
@@ -104,7 +102,7 @@ class _RecommendsState extends State<Recommends> {
                                           ? IconButton(
                                               onPressed: () async {
                                                 await BrowserFavorite
-                                                    .deleteAll();
+                                                    .deleteByUrl(url);
                                                 setState(() {
                                                   exists = exists..remove(url);
                                                 });

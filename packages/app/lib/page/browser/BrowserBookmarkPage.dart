@@ -77,7 +77,7 @@ class _BrowserBookmarkPageState extends State<BrowserBookmarkPage> {
                       exists.contains(url)
                           ? IconButton(
                               onPressed: () async {
-                                await BrowserFavorite.deleteAll();
+                                await BrowserFavorite.deleteByUrl(url);
                                 setState(() {
                                   exists = exists..remove(url);
                                 });

@@ -30,21 +30,23 @@ class BrowserFavorite extends Equatable {
 
   static Future<List<BrowserFavorite>> getAll() async {
     return await DBProvider.database.browserFavorites
-        .filter()
-        .isPinEqualTo(false)
-        .sortByCreatedAtDesc()
+        .where()
+        .sortByUpdatedAtDesc()
         .findAll();
-  }
-
-  static deleteAll() async {
-    await DBProvider.database.writeTxn(() async {
-      await DBProvider.database.browserFavorites.where().deleteAll();
-    });
   }
 
   static delete(Id id) async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.browserFavorites.delete(id);
+    });
+  }
+
+  static deleteByUrl(String url) async {
+    await DBProvider.database.writeTxn(() async {
+      await DBProvider.database.browserFavorites
+          .filter()
+          .urlEqualTo(url)
+          .deleteFirst();
     });
   }
 
@@ -67,6 +69,14 @@ class BrowserFavorite extends Equatable {
       BrowserFavorite model =
           BrowserFavorite(url: url, title: title, favicon: favicon);
       await DBProvider.database.browserFavorites.put(model);
+    });
+  }
+
+  static setPin(BrowserFavorite bf) async {
+    bf.isPin = true;
+    bf.updatedAt = DateTime.now();
+    await DBProvider.database.writeTxn(() async {
+      await DBProvider.database.browserFavorites.put(bf);
     });
   }
 }

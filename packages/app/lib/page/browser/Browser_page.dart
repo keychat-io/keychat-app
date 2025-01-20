@@ -1,7 +1,8 @@
 import 'package:app/models/browser/browser_bookmark.dart';
+import 'package:app/models/browser/browser_favorite.dart';
 import 'package:app/page/browser/BrowserBookmarkPage.dart';
 import 'package:app/page/browser/BrowserHistoryPage.dart';
-import 'package:app/page/browser/Recommends.dart';
+import 'package:app/page/browser/WebStorePage.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
@@ -21,78 +22,85 @@ class BrowserPage extends GetView<BrowserController> {
             onTap: () {
               Utils.hideKeyboard(Get.context!);
             },
-            child: Obx(() => Padding(
+            child: Padding(
                 padding: const EdgeInsets.only(left: 16, right: 16),
-                child: ListView(children: [
-                  SizedBox(
-                      height: 240 - controller.enableSearchEngine.length * 30),
-                  ...controller.enableSearchEngine.toList().reversed.map(
-                    (engine) {
-                      return Container(
-                        width: Get.width,
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: Form(
-                          key: PageStorageKey('input:$engine'),
-                          child: TextFormField(
-                            textInputAction: TextInputAction.go,
-                            maxLines: 1,
-                            controller: controller.textController,
-                            decoration: InputDecoration(
-                              labelText: Utils.capitalizeFirstLetter(engine),
-                              border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(100.0)),
-                              prefixIcon: Padding(
-                                padding: const EdgeInsets.all(12.0),
-                                child: SvgPicture.asset(
-                                  'assets/images/logo/$engine.svg',
-                                  fit: BoxFit.contain,
-                                  width: 20,
-                                  height: 20,
-                                ),
-                              ),
-                              suffixIcon: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (controller.input.isNotEmpty)
-                                    IconButton(
-                                      icon: const Icon(CupertinoIcons.clear),
-                                      onPressed: () {
-                                        controller.textController.clear();
-                                      },
+                child: Obx(() => ListView(children: [
+                      SizedBox(
+                          height:
+                              150 - controller.enableSearchEngine.length * 30),
+                      ...controller.enableSearchEngine.toList().reversed.map(
+                        (engine) {
+                          return Container(
+                            width: Get.width,
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: Form(
+                              key: PageStorageKey('input:$engine'),
+                              child: TextFormField(
+                                textInputAction: TextInputAction.go,
+                                maxLines: 1,
+                                controller: controller.textController,
+                                decoration: InputDecoration(
+                                  labelText:
+                                      Utils.capitalizeFirstLetter(engine),
+                                  border: OutlineInputBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(100.0)),
+                                  prefixIcon: Padding(
+                                    padding: const EdgeInsets.all(12.0),
+                                    child: SvgPicture.asset(
+                                      'assets/images/logo/$engine.svg',
+                                      fit: BoxFit.contain,
+                                      width: 20,
+                                      height: 20,
                                     ),
-                                  IconButton(
-                                    icon: const Icon(CupertinoIcons.search),
-                                    onPressed: () async {
-                                      if (controller
-                                          .textController.text.isEmpty) {
-                                        return;
-                                      }
-                                      controller.lanuchWebview(
-                                        content: controller.textController.text
-                                            .trim(),
-                                        engine: engine,
-                                      );
-                                    },
                                   ),
-                                ],
+                                  suffixIcon: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (controller.input.isNotEmpty)
+                                        IconButton(
+                                          icon:
+                                              const Icon(CupertinoIcons.clear),
+                                          onPressed: () {
+                                            controller.textController.clear();
+                                          },
+                                        ),
+                                      IconButton(
+                                        icon: const Icon(CupertinoIcons.search),
+                                        onPressed: () async {
+                                          if (controller
+                                              .textController.text.isEmpty) {
+                                            return;
+                                          }
+                                          controller.lanuchWebview(
+                                            content: controller
+                                                .textController.text
+                                                .trim(),
+                                            engine: engine,
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                onFieldSubmitted: (value) {
+                                  controller.lanuchWebview(
+                                    engine: engine,
+                                    content:
+                                        controller.textController.text.trim(),
+                                  );
+                                },
                               ),
                             ),
-                            onFieldSubmitted: (value) {
-                              controller.lanuchWebview(
-                                engine: engine,
-                                content: controller.textController.text.trim(),
-                              );
-                            },
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  quickSection(context),
-                  const SizedBox(height: 16),
-                  functionSection(context),
-                  const SizedBox(height: 48)
-                ])))));
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      quickSection(context),
+                      const SizedBox(height: 16),
+                      functionSection(context),
+                      const SizedBox(height: 48)
+                    ])))));
   }
 
   Widget quickSectionItem(Widget icon, String title, String url,
@@ -156,37 +164,65 @@ class BrowserPage extends GetView<BrowserController> {
                     site.url,
                     onTap: () {
                       controller.lanuchWebview(
-                          engine: BrowserEngine.google.name,
-                          content: site.url,
-                          defaultTitle: site.title);
+                          content: site.url, defaultTitle: site.title);
                     },
                     context: context,
-                    onLongPress: () {
+                    onLongPress: () async {
                       if (GetPlatform.isMobile) {
                         HapticFeedback.lightImpact();
                       }
-                      Get.dialog(CupertinoAlertDialog(
-                        title: const Text('Delete Bookmark'),
-                        content: Text('Are you sure to delete ${site.title}?'),
-                        actions: <Widget>[
-                          CupertinoDialogAction(
+                      BrowserBookmark? bb =
+                          await BrowserBookmark.getByUrl(site.url);
+                      String title = site.title == null
+                          ? site.url
+                          : '${site.title} - ${site.url}';
+                      showCupertinoModalPopup(
+                        context: Get.context!,
+                        builder: (BuildContext context) => CupertinoActionSheet(
+                          title: Text(title),
+                          actions: <CupertinoActionSheetAction>[
+                            if (index != 0)
+                              CupertinoActionSheetAction(
+                                onPressed: () async {
+                                  await BrowserFavorite.setPin(site);
+                                  EasyLoading.showSuccess('Success');
+                                  controller.loadFavorite();
+                                  Get.back();
+                                },
+                                child: const Text('Move to Top'),
+                              ),
+                            if (bb == null)
+                              CupertinoActionSheetAction(
+                                child: const Text('Add to bookmark'),
+                                onPressed: () async {
+                                  await BrowserBookmark.add(
+                                      url: site.url,
+                                      title: site.title,
+                                      favicon: site.favicon);
+                                  EasyLoading.showSuccess('Added');
+                                  controller.loadFavorite();
+                                  Get.back();
+                                },
+                              ),
+                            CupertinoActionSheetAction(
+                              isDestructiveAction: true,
+                              onPressed: () async {
+                                await BrowserFavorite.delete(site.id);
+                                EasyLoading.showSuccess('Removed');
+                                controller.loadFavorite();
+                                Get.back();
+                              },
+                              child: const Text('Remove'),
+                            ),
+                          ],
+                          cancelButton: CupertinoActionSheetAction(
                             child: const Text('Cancel'),
                             onPressed: () {
                               Get.back();
                             },
                           ),
-                          CupertinoDialogAction(
-                            isDestructiveAction: true,
-                            onPressed: () async {
-                              await BrowserBookmark.delete(site.id);
-                              EasyLoading.showSuccess('Deleted');
-                              controller.favorites();
-                              Get.back();
-                            },
-                            child: const Text('Delete'),
-                          ),
-                        ],
-                      ));
+                        ),
+                      );
                     });
               },
             ));
@@ -198,7 +234,7 @@ class BrowserPage extends GetView<BrowserController> {
         'icon': 'assets/images/recommend.png',
         'title': 'Web Store',
         'onTap': () async {
-          await Get.to(() => const Recommends());
+          await Get.to(() => const WebStorePage());
           await Get.find<BrowserController>().loadFavorite();
         }
       },

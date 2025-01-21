@@ -84,8 +84,8 @@ class MessageService {
           backgroundColor: Theme.of(Get.context!).colorScheme.surfaceContainer,
           snackPosition: SnackPosition.TOP,
           isDismissible: true,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          duration: const Duration(seconds: 3),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          duration: const Duration(seconds: 5),
           mainButton: TextButton(
               child: const Text('View'),
               onPressed: () {

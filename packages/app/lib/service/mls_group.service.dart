@@ -1,4 +1,3 @@
-import 'dart:collection' as collection;
 import 'dart:convert' show base64, jsonDecode, jsonEncode;
 
 import 'package:app/constants.dart';
@@ -31,7 +30,6 @@ import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_mls.dart' as rust_mls;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
-import 'package:queue/queue.dart';
 
 class MlsGroupService extends BaseChatService {
   static MlsGroupService? _instance;
@@ -567,28 +565,6 @@ $error ''';
     return smr;
   }
 
-  Future sendPrivateMessageToPubkeys(
-      {required String message,
-      required String realMessage,
-      required List<Room> rooms,
-      required Identity identity,
-      bool save = true,
-      MessageMediaType? mediaType}) async {
-    final queue = Queue(parallel: 5);
-    var todo = collection.Queue.from(rooms);
-    int membersLength = todo.length;
-    for (int i = 0; i < membersLength; i++) {
-      queue.add(() async {
-        if (todo.isEmpty) return;
-        Room room = todo.removeFirst();
-        if (room.toMainPubkey == identity.secp256k1PKHex) return;
-        await RoomService.instance.sendTextMessage(room, message,
-            realMessage: realMessage, save: save, mediaType: mediaType);
-      });
-    }
-    await queue.onComplete;
-  }
-
   Future shareToFriends(
       Room room, List<Room> toUsers, String realMessage) async {
     GroupInvitationModel gim = GroupInvitationModel(
@@ -601,7 +577,7 @@ $error ''';
         c: MessageType.mls, type: KeyChatEventKinds.groupInvitationInfo)
       ..name = gim.toString()
       ..msg = realMessage;
-    await sendPrivateMessageToPubkeys(
+    await RoomService.instance.sendMessageToMultiRooms(
         message: sm.toString(),
         realMessage: sm.msg!,
         rooms: toUsers,

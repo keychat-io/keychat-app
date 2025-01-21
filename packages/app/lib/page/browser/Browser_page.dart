@@ -255,6 +255,7 @@ class BrowserPage extends GetView<BrowserController> {
         'title': 'Bookmark',
         'onTap': () {
           Get.to(() => const BrowserBookmarkPage());
+          Get.find<BrowserController>().loadFavorite();
         }
       },
       {

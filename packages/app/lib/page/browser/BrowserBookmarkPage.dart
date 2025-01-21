@@ -96,6 +96,7 @@ class _BrowserBookmarkPageState extends State<BrowserBookmarkPage> {
                                 setState(() {
                                   exists = exists..add(url);
                                 });
+
                                 EasyLoading.showSuccess('Added to Favorites');
                               },
                               icon: const Icon(Icons.add)),

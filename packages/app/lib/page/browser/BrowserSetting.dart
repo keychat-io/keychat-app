@@ -87,22 +87,39 @@ class _BrowserSettingState extends State<BrowserSetting> {
                         await controller.setConfig('enableHistory', value);
                       },
                     ),
-                    // SettingsTile.switchTile(
-                    //   initialValue: controller.config['enableBookmark'],
-                    //   leading: const Icon(CupertinoIcons.bookmark),
-                    //   title: const Text("Show Bookmark"),
-                    //   onToggle: (value) async {
-                    //     await controller.setConfig('enableBookmark', value);
-                    //   },
-                    // ),
-                    // SettingsTile.switchTile(
-                    //   initialValue: controller.config['enableRecommend'],
-                    //   leading: const Icon(CupertinoIcons.bookmark),
-                    //   title: const Text("Show Recommended"),
-                    //   onToggle: (value) async {
-                    //     await controller.setConfig('enableRecommend', value);
-                    //   },
-                    // ),
+                    if (controller.config['enableHistory'])
+                      SettingsTile.navigation(
+                        title: const Text("Auto-delete"),
+                        value: Text(
+                            "${controller.config['historyRetentionDays'] ?? 30} ${controller.config['historyRetentionDays'] == 1 ? 'day' : 'days'}"),
+                        leading: const Icon(CupertinoIcons.delete),
+                        onPressed: (context) async {
+                          int? selectedDays = await showDialog<int>(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return SimpleDialog(
+                                title: const Text('Select Retention Period'),
+                                children: [1, 7, 30].map((days) {
+                                  return RadioListTile<int>(
+                                    title: Text(
+                                        '$days ${days == 1 ? 'Day' : 'Days'}'),
+                                    value: days,
+                                    groupValue: controller
+                                            .config['historyRetentionDays'] ??
+                                        30,
+                                    onChanged: selectRetentionPeriod,
+                                  );
+                                }).toList(),
+                              );
+                            },
+                          );
+
+                          if (selectedDays != null) {
+                            await controller.setConfig(
+                                'historyRetentionDays', selectedDays);
+                          }
+                        },
+                      ),
                   ],
                 ),
               ],
@@ -114,5 +131,13 @@ class _BrowserSettingState extends State<BrowserSetting> {
     setState(() {
       identities = list;
     });
+  }
+
+  selectRetentionPeriod(int? value) async {
+    if (value == null) return;
+    Get.find<BrowserController>().setConfig('historyRetentionDays', value);
+    EasyLoading.showSuccess('Success');
+    await Get.find<BrowserController>().deleteOldHistories();
+    Get.back();
   }
 }

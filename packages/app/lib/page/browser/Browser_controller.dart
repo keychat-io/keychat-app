@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart'
     hide Storage, WebResourceError;
 import 'package:get/get.dart';
+import 'package:isar/isar.dart';
 
 class BrowserController extends GetxController {
   late TextEditingController textController;
@@ -23,7 +24,6 @@ class BrowserController extends GetxController {
 
   RxSet<String> enableSearchEngine = <String>{}.obs;
   RxList<BrowserFavorite> favorites = <BrowserFavorite>[].obs;
-  RxList<BrowserHistory> histories = <BrowserHistory>[].obs;
   RxMap<String, dynamic> config = <String, dynamic>{}.obs;
   static const maxHistoryInHome = 12;
 
@@ -37,7 +37,8 @@ class BrowserController extends GetxController {
       localConfig = jsonEncode({
         "enableHistory": true,
         "enableBookmark": true,
-        "enableRecommend": true
+        "enableRecommend": true,
+        "historyRetentionDays": 30
       });
       Storage.setString('browserConfig', localConfig);
     }
@@ -50,14 +51,17 @@ class BrowserController extends GetxController {
     config.refresh();
   }
 
+  BrowserHistory? lastHistory;
   Future addHistory(String url, String title, [String? favicon]) async {
     if (!config['enableHistory']) return;
 
-    if (histories.isNotEmpty && histories[0].url == url) {
-      DateTime now = DateTime.now();
-      DateTime lastVisit = histories[0].createdAt;
-      if (now.difference(lastVisit).inMinutes < 1) {
-        return;
+    if (lastHistory != null) {
+      if (lastHistory!.url == url) {
+        DateTime now = DateTime.now();
+        DateTime lastVisit = lastHistory!.createdAt;
+        if (now.difference(lastVisit).inMinutes < 1) {
+          return;
+        }
       }
     }
     BrowserHistory history =
@@ -65,17 +69,6 @@ class BrowserController extends GetxController {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.browserHistorys.put(history);
     });
-    histories.insert(0, history);
-    if (histories.length > maxHistoryInHome) {
-      for (int i = histories.length - 1; i > 1; i--) {
-        if (histories[i].url == url) {
-          histories.removeAt(i);
-        }
-      }
-      if (histories.length > maxHistoryInHome) {
-        histories.removeRange(maxHistoryInHome, histories.length);
-      }
-    }
   }
 
   addSearchEngine(String engine) async {
@@ -149,11 +142,26 @@ class BrowserController extends GetxController {
     defaultSearchEngineObx.value =
         (await Storage.getString('defaultSearchEngine') ?? defaultSearchEngine);
 
-    loadConfig();
+    await loadConfig();
     loadFavorite();
-    // loadHistory();
     initWebview();
+    deleteOldHistories();
     super.onInit();
+  }
+
+  Future<void> deleteOldHistories() async {
+    if (!config['enableHistory']) return;
+
+    int retentionDays = config['historyRetentionDays'] ?? 30;
+    DateTime thresholdDate =
+        DateTime.now().subtract(Duration(days: retentionDays));
+
+    await DBProvider.database.writeTxn(() async {
+      await DBProvider.database.browserHistorys
+          .filter()
+          .createdAtLessThan(thresholdDate)
+          .deleteAll();
+    });
   }
 
   initWebview() async {

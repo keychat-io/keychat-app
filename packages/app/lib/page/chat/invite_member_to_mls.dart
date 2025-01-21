@@ -14,21 +14,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
-class AddMemberToMLS extends StatefulWidget {
+class InviteMemberToMLS extends StatefulWidget {
   final Room room;
   final List<Message> messages;
-  const AddMemberToMLS(this.room, this.messages, {super.key});
+  const InviteMemberToMLS(this.room, this.messages, {super.key});
 
   @override
-  State<StatefulWidget> createState() => _AddMemberToMLSState();
+  State<StatefulWidget> createState() => _InviteMemberToMLSState();
 }
 
-class _AddMemberToMLSState extends State<AddMemberToMLS>
+class _InviteMemberToMLSState extends State<InviteMemberToMLS>
     with TickerProviderStateMixin {
   List<Map<String, dynamic>> users = [];
   Map<String, String> cachePKs = {};
   bool isLoading = false;
-  _AddMemberToMLSState();
+  _InviteMemberToMLSState();
 
   late ScrollController _scrollController;
 
@@ -135,7 +135,7 @@ class _AddMemberToMLSState extends State<AddMemberToMLS>
                 EasyThrottle.throttle('_completeFromContacts',
                     const Duration(seconds: 2), _completeFromContacts);
               },
-              child: Text("Send Invite",
+              child: const Text("Send Invite",
                   style: TextStyle(color: Colors.white, fontSize: 12)),
             )
           ]),

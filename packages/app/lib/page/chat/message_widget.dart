@@ -826,15 +826,21 @@ class MessageWidget extends StatelessWidget {
     String content = message.mediaType == MessageMediaType.text
         ? (message.realMessage ?? message.content)
         : '[${message.mediaType.name}]';
-    Room? forwardRoom = await Get.to(
-        () => ForwardSelectRoom(rooms, content, 'Select a Chat'),
+    List<Room>? forwardRooms = await Get.to(
+        () => ForwardSelectRoom(rooms, content, 'Select to Forward'),
         fullscreenDialog: true,
         transition: Transition.downToUp);
     Get.back();
-    if (forwardRoom == null) return;
+    if (forwardRooms == null || forwardRooms.isEmpty) return;
+
     EasyLoading.show(status: 'Sending...');
     if (message.mediaType == MessageMediaType.text) {
-      await RoomService.instance.sendTextMessage(forwardRoom, content);
+      await RoomService.instance.sendMessageToMultiRooms(
+          message: content,
+          realMessage: content,
+          rooms: forwardRooms,
+          identity: chatController.room.getIdentity(),
+          mediaType: MessageMediaType.text);
       EasyLoading.dismiss();
       EasyLoading.showSuccess('Sent');
       return;
@@ -844,7 +850,7 @@ class MessageWidget extends StatelessWidget {
         message.mediaType == MessageMediaType.file) {
       MsgFileInfo mfi = MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
       await RoomService.instance.forwardFileMessage(
-        room: forwardRoom,
+        rooms: forwardRooms,
         content: message.content,
         mfi: mfi,
         mediaType: message.mediaType,

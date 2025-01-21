@@ -77,19 +77,22 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
                             chatController.roomObs.value.identityId);
                     String realMessage =
                         'Share a Group: ${chatController.roomObs.value.name}';
-                    Room? forwardRoom = await Get.to(
+                    List<Room>? forwardRooms = await Get.to(
                         () => ForwardSelectRoom(
                             rooms, realMessage, 'Share to Friends'),
                         fullscreenDialog: true,
                         transition: Transition.downToUp);
-                    if (forwardRoom == null) return;
+                    if (forwardRooms == null || forwardRooms.isEmpty) return;
                     await MlsGroupService.instance.shareToFriends(
                         chatController.roomObs.value,
-                        [forwardRoom],
+                        forwardRooms,
                         realMessage);
-                    if (forwardRoom.id != chatController.roomObs.value.id) {
-                      await Get.toNamed('/room/${forwardRoom.id}',
-                          arguments: forwardRoom);
+                    if (forwardRooms.length == 1) {
+                      Room forwardRoom = forwardRooms[0];
+                      if (forwardRoom.id != chatController.roomObs.value.id) {
+                        await Get.toNamed('/room/${forwardRoom.id}',
+                            arguments: forwardRoom);
+                      }
                     }
                   }),
             IconButton(

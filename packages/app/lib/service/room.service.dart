@@ -1,3 +1,4 @@
+import 'dart:collection' as collection;
 import 'dart:convert' show jsonDecode, jsonEncode;
 
 import 'package:app/bot/bot_server_message_model.dart';
@@ -24,6 +25,7 @@ import 'package:aws/aws.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
+import 'package:queue/queue.dart';
 
 import '../constants.dart';
 import '../controller/chat.controller.dart';
@@ -550,12 +552,14 @@ class RoomService extends BaseChatService {
   }
 
   Future forwardFileMessage(
-      {required Room room,
+      {required List<Room> rooms,
       required String content,
       required MsgFileInfo mfi,
       required MessageMediaType mediaType}) async {
-    return await RoomService.instance.sendTextMessage(room, content,
-        realMessage: mfi.toString(), mediaType: mediaType);
+    for (Room room in rooms) {
+      await RoomService.instance.sendTextMessage(room, content,
+          realMessage: mfi.toString(), mediaType: mediaType);
+    }
   }
 
   @override
@@ -671,6 +675,28 @@ class RoomService extends BaseChatService {
       identity,
       realMessage: realMessage ?? message,
     );
+  }
+
+  Future sendMessageToMultiRooms(
+      {required String message,
+      required String realMessage,
+      required List<Room> rooms,
+      required Identity identity,
+      bool save = true,
+      MessageMediaType? mediaType}) async {
+    final queue = Queue(parallel: 5);
+    var todo = collection.Queue.from(rooms);
+    int membersLength = todo.length;
+    for (int i = 0; i < membersLength; i++) {
+      queue.add(() async {
+        if (todo.isEmpty) return;
+        Room room = todo.removeFirst();
+        if (room.toMainPubkey == identity.secp256k1PKHex) return;
+        await RoomService.instance.sendTextMessage(room, message,
+            realMessage: realMessage, save: save, mediaType: mediaType);
+      });
+    }
+    await queue.onComplete;
   }
 
   Future<ChatController?> updateChatRoomPage(Room room) async {

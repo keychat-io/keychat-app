@@ -42,7 +42,9 @@ class _HomeDropMenuWidgetState extends State<HomeDropMenuWidget> {
         const MenuItem(text: menuNewGroup, icon: CupertinoIcons.group_solid);
     MenuItem scan =
         const MenuItem(text: menuScan, icon: CupertinoIcons.qrcode_viewfinder);
-    firstItems = [addContact, addGroup, scan];
+    MenuItem qrcode =
+        const MenuItem(text: menuMyQrcode, icon: CupertinoIcons.qrcode);
+    firstItems = [addContact, addGroup, scan, qrcode];
 
     super.initState();
   }
@@ -123,9 +125,7 @@ class _HomeDropMenuWidgetState extends State<HomeDropMenuWidget> {
           offset: const Offset(-120, 8),
         ),
         menuItemStyleData: MenuItemStyleData(
-          customHeights: [
-            ...List<double>.filled(firstItems.length, 48),
-          ],
+          customHeights: List<double>.filled(firstItems.length, 48),
           padding: const EdgeInsets.only(left: 16, right: 16),
         ),
       ),

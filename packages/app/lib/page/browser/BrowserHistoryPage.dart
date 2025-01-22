@@ -52,6 +52,7 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
                             child: const Text('Clear'),
                             onPressed: () async {
                               await BrowserHistory.deleteAll();
+                              Get.find<BrowserController>().lastHistory = null;
                               setState(() {
                                 groupedHistory.clear();
                               });

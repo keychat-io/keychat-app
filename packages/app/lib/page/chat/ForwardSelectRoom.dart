@@ -113,7 +113,7 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
 
                   return ListTile(
                     leading: Utils.getAvatarDot(room, width: 40),
-                    dense: false,
+                    dense: true,
                     key: Key('room:${room.id}'),
                     onTap: () {
                       setState(() {

@@ -66,6 +66,7 @@ class BrowserController extends GetxController {
     }
     BrowserHistory history =
         BrowserHistory(url: url, title: title, favicon: favicon);
+    lastHistory = history;
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.browserHistorys.put(history);
     });

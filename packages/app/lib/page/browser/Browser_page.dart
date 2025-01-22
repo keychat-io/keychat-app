@@ -35,8 +35,8 @@ class BrowserPage extends GetView<BrowserController> {
                       Row(children: [
                         ConstrainedBox(
                           constraints: BoxConstraints(
-                            maxHeight: 40,
-                            maxWidth: Get.width - 72,
+                            maxHeight: 55,
+                            maxWidth: Get.width - 80,
                           ),
                           child: Form(
                             key: PageStorageKey(
@@ -105,7 +105,7 @@ class BrowserPage extends GetView<BrowserController> {
                             onPressed: () {
                               Get.to(() => const BrowserSetting());
                             },
-                            icon: const Icon(Icons.menu))
+                            icon: const Icon(Icons.menu, size: 30))
                       ]),
                       const SizedBox(height: 32),
                       quickSection(context),

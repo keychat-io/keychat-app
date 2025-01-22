@@ -122,9 +122,16 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                     }
 
                     // common private chat
-                    await RoomService.instance.createRoomAndsendInvite(input,
-                        greeting: _helloController.text.trim(),
-                        identity: identity);
+                    try {
+                      await RoomService.instance.createRoomAndsendInvite(input,
+                          greeting: _helloController.text.trim(),
+                          identity: identity);
+                    } catch (e, s) {
+                      String msg = Utils.getErrorMessage(e);
+                      logger.e(msg, stackTrace: s);
+                      EasyLoading.showToast(
+                          'Failed to create room and send invite');
+                    }
                   },
                   style: ButtonStyle(
                       minimumSize: WidgetStateProperty.all(

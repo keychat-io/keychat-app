@@ -436,7 +436,6 @@ class HomeController extends GetxController
 
     // start to create ai identity
     Future.delayed(const Duration(seconds: 1), () async {
-      await createAIIdentity(mys, KeychatGlobal.bot);
       loadAppRemoteConfig();
     });
   }

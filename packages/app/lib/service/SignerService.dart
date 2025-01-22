@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
+
 import 'package:amberflutter/amberflutter.dart';
 import 'package:app/utils.dart';
 
@@ -29,17 +32,65 @@ class SignerService {
     return res['signature'];
   }
 
-  signString({required String content, required String pubkey}) async {
+  Future<String?> signMessage(
+      {required String content, required String pubkey, String? id}) async {
     var available = await checkAvailable();
     if (!available) {
       logger.e("Amber app not installed");
       return null;
     }
-    var res = await amber.signMessage(
-      currentUser: pubkey,
-      content: content,
-    );
+    var res =
+        await amber.signMessage(currentUser: pubkey, content: content, id: id);
     logger.d(res);
     return res['signature'];
+  }
+
+  Future getNip17Event(
+      {required String content,
+      required String from,
+      required String to}) async {
+    String id1 = generate64RandomHexChars();
+    var subEvent = {
+      "id": id1,
+      "pubkey": from,
+      "created_at": DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      "kind": 14,
+      "tags": [
+        ["p", to],
+      ],
+      "content": content,
+    };
+    Map encryptedSubEvent = await amber.nip44Encrypt(
+        plaintext: jsonEncode(subEvent),
+        currentUser: from,
+        pubKey: to,
+        id: id1);
+    int randomTime = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    String id2 = generate64RandomHexChars();
+    var secondEvent = {
+      "id": '',
+      "pubkey": from,
+      "created_at": randomTime,
+      "kind": 13,
+      "tags": [],
+      "content": encryptedSubEvent['signature'],
+      "sig": ""
+    };
+    var res = await amber.signEvent(
+        currentUser: from, eventJson: jsonEncode(secondEvent), id: id2);
+    logger.d("res $res");
+
+    String id3 = generate64RandomHexChars();
+    Map encrypteSecondRes = await amber.nip44Encrypt(
+        plaintext: res['event'], currentUser: from, pubKey: to, id: id3);
+    var randomSecp256k1 = await rust_nostr.generateSecp256K1();
+    return await rust_nostr.signEvent(
+        senderKeys: randomSecp256k1.prikey,
+        tags: [
+          ["p", to]
+        ],
+        createdAt: BigInt.from(randomTime),
+        content: encrypteSecondRes['signature'],
+        kind: 1059);
   }
 }

@@ -1,3 +1,4 @@
+import 'package:app/page/browser/Browser_controller.dart';
 import 'package:app/page/chat/create_contact_page.dart';
 import 'package:barcode_scan2/barcode_scan2.dart';
 import 'package:flutter/services.dart';
@@ -104,7 +105,7 @@ class QrScanService {
   }
 
   handleUrl(String url) {
-    late Uri uri;
+    Uri uri;
     try {
       uri = Uri.parse(url);
     } catch (e) {
@@ -121,10 +122,23 @@ class QrScanService {
           },
         ),
         CupertinoDialogAction(
+          child: const Text("Copy"),
+          onPressed: () {
+            Clipboard.setData(ClipboardData(text: url.toString()));
+            EasyLoading.showSuccess("Copied");
+            Get.back();
+          },
+        ),
+        CupertinoDialogAction(
           child: const Text("View in browser"),
           onPressed: () async {
             Get.back();
-            await launchUrl(uri);
+            if (url.startsWith('https:') || url.startsWith('http:')) {
+              Get.find<BrowserController>()
+                  .lanuchWebview(content: url.toString());
+              return;
+            }
+            launchUrl(uri, mode: LaunchMode.platformDefault);
           },
         ),
       ],

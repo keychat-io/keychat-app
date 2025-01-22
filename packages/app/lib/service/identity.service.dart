@@ -368,6 +368,9 @@ class IdentityService {
         .toList();
     String? prikey;
     if (identities.isNotEmpty) {
+      if (identities[0].isFromSigner) {
+        throw Exception('ExceptionIsFromSigner');
+      }
       prikey = await identities[0].getSecp256k1SKHex();
     } else {
       Mykey? mykey = await IdentityService.instance.getMykeyByPubkey(pubkey);

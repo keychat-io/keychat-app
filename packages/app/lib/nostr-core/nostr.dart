@@ -1,5 +1,6 @@
 import 'package:app/models/nostr_event_status.dart';
 import 'package:app/nostr-core/subscribe_result.dart';
+import 'package:app/service/SignerService.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:async_queue/async_queue.dart';
 import 'dart:convert' show jsonDecode, jsonEncode;
@@ -23,7 +24,6 @@ import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 
 import '../constants.dart';
 import '../controller/home.controller.dart';
@@ -232,7 +232,8 @@ class NostrAPI {
       encryptedEvent = await rust_nostr.getUnencryptEvent(
           senderKeys: prikey,
           receiverPubkeys: receiverPubkeys,
-          content: toEncryptText);
+          content: toEncryptText,
+          kind: EventKinds.encryptedDirectMessage);
     } else {
       encryptedEvent = await rust_nostr.getEncryptEvent(
           senderKeys: prikey, receiverPubkey: toPubkey, content: toEncryptText);
@@ -280,16 +281,24 @@ class NostrAPI {
     bool timestampTweaked = false, // use DateTime.now
     bool save = true,
   }) async {
-    String result = await rust_nostr.createGiftJson(
-        kind: 14,
-        senderKeys: await identity.getSecp256k1SKHex(),
-        receiverPubkey: toPubkey ?? room.toMainPubkey,
-        timestampTweaked: timestampTweaked,
-        content: sourceContent);
+    String? encryptedEvent;
+    if (identity.isFromSigner) {
+      encryptedEvent = await SignerService.instance.getNip17Event(
+          content: sourceContent,
+          from: identity.secp256k1PKHex,
+          to: toPubkey ?? room.toMainPubkey);
+    } else {
+      encryptedEvent = await rust_nostr.createGiftJson(
+          kind: 14,
+          senderKeys: await identity.getSecp256k1SKHex(),
+          receiverPubkey: toPubkey ?? room.toMainPubkey,
+          timestampTweaked: timestampTweaked,
+          content: sourceContent);
+    }
     return await _sendAndSaveGiftMessage(
         toPubkey ?? room.toMainPubkey, sourceContent,
         room: room,
-        encryptedEvent: result,
+        encryptedEvent: encryptedEvent!,
         from: identity.secp256k1PKHex,
         mediaType: mediaType,
         reply: reply,
@@ -343,15 +352,24 @@ class NostrAPI {
 
   Future<String?> decryptNip4Content(NostrEventModel event) async {
     String decodePubkey = event.tags[0][1];
-    String? prikey =
-        await IdentityService.instance.getPrikeyByPubkey(decodePubkey);
-    if (prikey == null) return null;
     try {
+      String? prikey =
+          await IdentityService.instance.getPrikeyByPubkey(decodePubkey);
+      if (prikey == null) return null;
       return await rust_nostr.decrypt(
           senderKeys: prikey,
           receiverPubkey: event.pubkey,
           content: event.content);
     } catch (e) {
+      if (e.toString().contains('ExceptionIsFromSigner')) {
+        var res = await SignerService.instance.amber.nip04Decrypt(
+            ciphertext: event.content,
+            currentUser: event.pubkey,
+            pubKey: event.tags[0][1],
+            id: event.id);
+        logger.d('decryptNip4Content: $res');
+        return res['signature'];
+      }
       logger.e('decryptNip4Content error', error: e);
     }
     return null;
@@ -617,38 +635,8 @@ class NostrAPI {
 
   Future _processNip17Message(NostrEventModel event, Relay relay,
       Function(String) failedCallbackync) async {
-    String to = event.tags[0][1];
-    String? myPrivateKey;
-    Identity? identity =
-        await IdentityService.instance.getIdentityByNostrPubkey(to);
-    if (identity != null) {
-      myPrivateKey = await SecureStorage.instance
-          .readPrikeyOrFail(identity.secp256k1PKHex);
-    } else {
-      Mykey? mykey = await IdentityService.instance.getMykeyByPubkey(to);
-      if (mykey != null) {
-        myPrivateKey = mykey.prikey;
-      }
-    }
-    if (myPrivateKey == null) {
-      logger.e('myPrivateKey is null');
-      failedCallbackync('myPrivateKey is null');
-      return;
-    }
-
-    NostrEvent result = await rust_nostr.decryptGift(
-        senderKeys: myPrivateKey,
-        receiver: event.pubkey,
-        content: event.content);
-    var subEvent = NostrEventModel(
-        result.id,
-        result.pubkey,
-        result.createdAt.toInt(),
-        result.kind.toInt(),
-        result.tags,
-        result.content,
-        result.sig,
-        verify: false);
+    NostrEventModel subEvent =
+        await _getNostrEventByTo(event, failedCallbackync);
 
     dynamic decodedContent;
     try {
@@ -667,5 +655,53 @@ class NostrAPI {
 
     await Nip4ChatService.instance
         .receiveNip4Message(subEvent, subEvent.content, sourceEvent: event);
+  }
+
+  Future<NostrEventModel> _getNostrEventByTo(
+    NostrEventModel event,
+    Function(String) failedCallbackync,
+  ) async {
+    String to = event.tags[0][1];
+    String? myPrivateKey;
+    Identity? identity =
+        await IdentityService.instance.getIdentityByNostrPubkey(to);
+    if (identity != null) {
+      if (identity.isFromSigner) {
+        var res = await SignerService.instance.amber.nip44Decrypt(
+            ciphertext: event.content,
+            currentUser: event.pubkey,
+            pubKey: to,
+            id: event.id);
+        logger.d('res: $res');
+        throw Exception('xxxx');
+      }
+      myPrivateKey = await SecureStorage.instance
+          .readPrikeyOrFail(identity.secp256k1PKHex);
+    } else {
+      Mykey? mykey = await IdentityService.instance.getMykeyByPubkey(to);
+      if (mykey != null) {
+        myPrivateKey = mykey.prikey;
+      }
+    }
+    if (myPrivateKey == null) {
+      logger.e('myPrivateKey is null');
+      failedCallbackync('myPrivateKey is null');
+      throw Exception('myPrivateKey is null');
+    }
+
+    rust_nostr.NostrEvent result = await rust_nostr.decryptGift(
+        senderKeys: myPrivateKey,
+        receiver: event.pubkey,
+        content: event.content);
+    var subEvent = NostrEventModel(
+        result.id,
+        result.pubkey,
+        result.createdAt.toInt(),
+        result.kind.toInt(),
+        result.tags,
+        result.content,
+        result.sig,
+        verify: false);
+    return subEvent;
   }
 }

@@ -126,7 +126,8 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                             value: Text(getPublicKeyDisplay(
                                 controller.identity.value.secp256k1PKHex)),
                           ),
-                        if (controller.identity.value.index == -1)
+                        if (controller.identity.value.index == -1 &&
+                            controller.identity.value.isFromSigner == false)
                           _getNsec(true),
                         if (controller.identity.value.index > -1)
                           SettingsTile.navigation(

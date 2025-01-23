@@ -5,7 +5,7 @@ import 'package:app/models/keychat/group_invitation_request_model.dart';
 import 'package:app/models/keychat/keychat_message.dart';
 import 'package:app/models/message.dart';
 import 'package:app/models/room.dart';
-import 'package:app/page/chat/add_member_to_mls.dart';
+import 'package:app/page/chat/invite_member_to_mls.dart';
 import 'package:app/page/components.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/mls_group.service.dart';
@@ -66,7 +66,7 @@ class GroupInvitationRequestingWidget extends StatelessWidget {
             List<Message> requests =
                 await MessageService.instance.getMessageByRequestId(requestId);
             if (requests.length >= 2) {
-              Get.bottomSheet(AddMemberToMLS(groupRoom, requests),
+              Get.bottomSheet(InviteMemberToMLS(groupRoom, requests),
                   isScrollControlled: true, ignoreSafeArea: false);
               return;
             }

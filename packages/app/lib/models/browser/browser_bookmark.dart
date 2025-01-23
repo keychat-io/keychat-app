@@ -35,6 +35,7 @@ class BrowserBookmark extends Equatable {
       pins = await DBProvider.database.browserBookmarks
           .filter()
           .isPinEqualTo(true)
+          .sortByUpdatedAtDesc()
           .findAll();
     }
     var list = await DBProvider.database.browserBookmarks
@@ -72,5 +73,12 @@ class BrowserBookmark extends Equatable {
           BrowserBookmark(url: url, title: title, favicon: favicon);
       await DBProvider.database.browserBookmarks.put(model);
     });
+  }
+
+  static getByUrl(String url) async {
+    return await DBProvider.database.browserBookmarks
+        .filter()
+        .urlEqualTo(url)
+        .findFirst();
   }
 }

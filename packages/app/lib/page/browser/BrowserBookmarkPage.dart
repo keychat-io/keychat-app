@@ -77,7 +77,7 @@ class _BrowserBookmarkPageState extends State<BrowserBookmarkPage> {
                       exists.contains(url)
                           ? IconButton(
                               onPressed: () async {
-                                await BrowserFavorite.deleteAll();
+                                await BrowserFavorite.deleteByUrl(url);
                                 setState(() {
                                   exists = exists..remove(url);
                                 });
@@ -96,6 +96,7 @@ class _BrowserBookmarkPageState extends State<BrowserBookmarkPage> {
                                 setState(() {
                                   exists = exists..add(url);
                                 });
+
                                 EasyLoading.showSuccess('Added to Favorites');
                               },
                               icon: const Icon(Icons.add)),

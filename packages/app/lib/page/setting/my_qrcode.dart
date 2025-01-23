@@ -50,29 +50,6 @@ class _MyQRCodeState extends State<MyQRCode> {
     super.initState();
   }
 
-  bool _checkboxSelected = true;
-
-  Widget markAsUsed() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text(
-          "Mark as used",
-          style: TextStyle(
-            fontSize: 16,
-          ),
-        ),
-        Switch(
-            value: _checkboxSelected,
-            onChanged: (value) async {
-              setState(() {
-                _checkboxSelected = value;
-              });
-            })
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -87,71 +64,65 @@ class _MyQRCodeState extends State<MyQRCode> {
                   ),
                 ),
                 alignment: Alignment.center,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10.0, vertical: 10),
-                child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10.0, vertical: 10),
-                    child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      Text(
-                          widget.isOneTime
-                              ? 'Expires in ${widget.time != null ? formatTime(widget.time!) : '24 hours'}'
-                              : "",
-                          style: Theme.of(context).textTheme.titleMedium,
-                          overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 20),
-                      Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(5),
-                          ),
-                          child: genQRImage(qrString,
-                              size: 360, embeddedImage: null)),
-                      Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          child: Text(
-                            widget.isOneTime && qrString.length > 200
-                                ? "${qrString.substring(0, 30)}......${qrString.substring(qrString.length - 30)}"
-                                // ? qrString
-                                : widget.identity.npub,
-                            textAlign: TextAlign.center,
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 4,
-                          )),
-                      Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: 10,
-                        children: [
-                          FilledButton(
-                            onPressed: () {
-                              Clipboard.setData(ClipboardData(
-                                  text: widget.isOneTime
-                                      ? qrString
-                                      : widget.identity.npub));
-                              EasyLoading.showSuccess("Copied");
-                            },
-                            child: const Text(
-                              "Copy",
-                            ),
-                          ),
-                          OutlinedButton(
-                            onPressed: () {
-                              final box =
-                                  context.findRenderObject() as RenderBox?;
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Text(
+                      widget.isOneTime
+                          ? 'Expires In: ${widget.time != null ? formatTime(widget.time!, 'MM-dd HH:mm') : '24 hours'}'
+                          : "",
+                      style: Theme.of(context).textTheme.titleMedium,
+                      overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 16),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: genQRImage(qrString, size: 360, embeddedImage: null),
+                  ),
+                  Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Text(
+                        widget.isOneTime && qrString.length > 200
+                            ? "${qrString.substring(0, 30)}......${qrString.substring(qrString.length - 30)}"
+                            // ? qrString
+                            : widget.identity.npub,
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 4,
+                      )),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 10,
+                    children: [
+                      FilledButton(
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(
+                              text: widget.isOneTime
+                                  ? qrString
+                                  : widget.identity.npub));
+                          EasyLoading.showSuccess("Copied");
+                        },
+                        child: const Text("Copy"),
+                      ),
+                      OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.white),
+                        ),
+                        onPressed: () {
+                          final box = context.findRenderObject() as RenderBox?;
 
-                              Share.share(
-                                widget.isOneTime
-                                    ? qrString
-                                    : widget.identity.npub,
-                                sharePositionOrigin:
-                                    box!.localToGlobal(Offset.zero) & box.size,
-                              );
-                            },
-                            child: const Text("Share"),
-                          ),
-                        ],
-                      )
-                    ])))));
+                          Share.share(
+                            widget.isOneTime ? qrString : widget.identity.npub,
+                            sharePositionOrigin:
+                                box!.localToGlobal(Offset.zero) & box.size,
+                          );
+                        },
+                        child: const Text(
+                          "Share",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  )
+                ]))));
   }
 
   Future<String> _initQRCodeData(Identity identity, String onetimekey,

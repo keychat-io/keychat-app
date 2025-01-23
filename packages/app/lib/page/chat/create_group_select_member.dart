@@ -141,7 +141,7 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
           FilledButton(
               onPressed: () => EasyThrottle.throttle('_completeToCreatGroup',
                   const Duration(seconds: 4), _completeToCreatGroup),
-              child: const Text("Create Group"))
+              child: const Text("Done"))
         ],
       ),
       body: pageLoading

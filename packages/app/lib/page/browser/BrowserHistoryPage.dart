@@ -52,7 +52,7 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
                             child: const Text('Clear'),
                             onPressed: () async {
                               await BrowserHistory.deleteAll();
-                              Get.find<BrowserController>().histories.clear();
+                              Get.find<BrowserController>().lastHistory = null;
                               setState(() {
                                 groupedHistory.clear();
                               });
@@ -82,7 +82,7 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.only(left: 16),
+                      padding: const EdgeInsets.only(left: 16, top: 16),
                       child: Text(
                           formatTime(date.millisecondsSinceEpoch, 'yyyy-MM-dd'),
                           style: Theme.of(context).textTheme.titleMedium),
@@ -97,9 +97,13 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
                           contentPadding:
                               const EdgeInsets.symmetric(horizontal: 16),
                           leading: Utils.getNetworkImage(site.favicon),
-                          title: site.title == null ? null : Text(site.title!),
-                          subtitle: Text(site.url,
-                              maxLines: 2, overflow: TextOverflow.ellipsis),
+                          title: (site.title == null || site.title!.isEmpty)
+                              ? Text(site.url)
+                              : Text(site.title!),
+                          subtitle: (site.title == null || site.title!.isEmpty)
+                              ? Text(Uri.parse(site.url).host)
+                              : Text(site.url,
+                                  maxLines: 1, overflow: TextOverflow.ellipsis),
                           dense: true,
                           onTap: () => Get.find<BrowserController>()
                               .lanuchWebview(
@@ -136,17 +140,4 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
     }
     setState(() {});
   }
-
-  // String formatDate(DateTime createdAt) {
-  //   final now = DateTime.now();
-  //   if (now.year == createdAt.year) {
-  //     if (now.day == createdAt.day) {
-  //       return '${createdAt.hour.toString().padLeft(2, '0')}:${createdAt.minute.toString().padLeft(2, '0')}';
-  //     } else {
-  //       return '${createdAt.month.toString().padLeft(2, '0')}-${createdAt.day.toString().padLeft(2, '0')} ${createdAt.hour.toString().padLeft(2, '0')}:${createdAt.minute.toString().padLeft(2, '0')}';
-  //     }
-  //   } else {
-  //     return '${createdAt.year}-${createdAt.month.toString().padLeft(2, '0')}-${createdAt.day.toString().padLeft(2, '0')} ${createdAt.hour.toString().padLeft(2, '0')}:${createdAt.minute.toString().padLeft(2, '0')}';
-  //   }
-  // }
 }

@@ -1,9 +1,7 @@
 import 'package:app/controller/home.controller.dart';
 import 'package:app/models/room.dart';
 import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/page/components.dart';
 import 'package:app/utils.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -22,6 +20,7 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
   Color pinTileBackground =
       Get.isDarkMode ? const Color(0xFF202020) : const Color(0xFFEDEDED);
   late TextEditingController _searchController;
+  Set<Room> selectedRooms = {};
 
   @override
   void initState() {
@@ -55,6 +54,13 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
             child: const Icon(Icons.close),
           ),
           title: Text(widget.title),
+          actions: [
+            TextButton(
+                onPressed: () {
+                  Get.back(result: selectedRooms.toList());
+                },
+                child: const Text('Done'))
+          ],
         ),
         body: Column(children: <Widget>[
           Padding(
@@ -102,31 +108,20 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
                 itemCount: rooms.length,
                 itemBuilder: (context, index) {
                   Room room = rooms[index];
+                  bool isSelected = selectedRooms.contains(room);
+
                   return ListTile(
                     leading: Utils.getAvatarDot(room, width: 40),
-                    dense: false,
+                    dense: true,
                     key: Key('room:${room.id}'),
-                    onTap: () => {
-                      Get.dialog(CupertinoAlertDialog(
-                        title: Text('SendTo: ${room.getRoomName()}'),
-                        content: Text(widget.message, maxLines: 10),
-                        actions: <Widget>[
-                          CupertinoDialogAction(
-                            child: const Text('Cancel'),
-                            onPressed: () {
-                              Get.back();
-                            },
-                          ),
-                          CupertinoDialogAction(
-                            isDefaultAction: true,
-                            child: const Text('Send'),
-                            onPressed: () {
-                              Get.back();
-                              Get.back(result: room);
-                            },
-                          ),
-                        ],
-                      ))
+                    onTap: () {
+                      setState(() {
+                        if (isSelected) {
+                          selectedRooms.remove(room);
+                        } else {
+                          selectedRooms.add(room);
+                        }
+                      });
                     },
                     title: Text(room.getRoomName(),
                         maxLines: 1,
@@ -135,29 +130,9 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
                         room,
                         messageExpired,
                         homeController.roomLastMessage[room.id])),
-                    trailing: homeController.roomLastMessage[room.id] == null
-                        ? null
-                        : Wrap(
-                            direction: Axis.vertical,
-                            alignment: WrapAlignment.center,
-                            crossAxisAlignment: WrapCrossAlignment.end,
-                            children: [
-                              textSmallGray(
-                                  Get.context!,
-                                  Utils.formatTimeMsg(homeController
-                                      .roomLastMessage[room.id]!.createdAt)),
-                              room.isMute
-                                  ? Icon(
-                                      Icons.notifications_off_outlined,
-                                      color: Theme.of(Get.context!)
-                                          .colorScheme
-                                          .onSurface
-                                          .withValues(alpha: 0.6),
-                                      size: 16,
-                                    )
-                                  : Container()
-                            ],
-                          ),
+                    trailing: isSelected
+                        ? const Icon(Icons.check_box)
+                        : const Icon(Icons.check_box_outline_blank),
                   );
                 }),
           )

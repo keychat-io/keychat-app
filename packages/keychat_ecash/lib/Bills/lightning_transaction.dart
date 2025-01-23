@@ -101,6 +101,7 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
                         WidgetStateProperty.all(Size(Get.width - 32, 48))),
                 icon: const Icon(Icons.copy),
                 label: const Text('Copy Invoice')),
+            const SizedBox(height: 8)
           ],
         )),
         body: Container(

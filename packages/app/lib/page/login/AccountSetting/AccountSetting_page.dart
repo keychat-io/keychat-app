@@ -28,8 +28,50 @@ class AccountSettingPage extends GetView<AccountSettingController> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-            centerTitle: true,
-            title: Obx(() => Text(controller.identity.value.displayName))),
+          centerTitle: true,
+          title: Obx(() => Text(controller.identity.value.displayName)),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.more_vert),
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  builder: (context) {
+                    return SafeArea(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.max,
+                        children: <Widget>[
+                          const SizedBox(height: 30),
+                          ListTile(
+                            leading: const Icon(Icons.copy),
+                            title: const Text('Copy Public Key'),
+                            onTap: () {
+                              Clipboard.setData(ClipboardData(
+                                  text: controller
+                                      .identity.value.secp256k1PKHex));
+                              EasyLoading.showSuccess("Public Key Copied");
+                              Navigator.pop(context);
+                            },
+                          ),
+                          ListTile(
+                            leading:
+                                const Icon(Icons.delete, color: Colors.red),
+                            title: const Text('Delete ID',
+                                style: TextStyle(color: Colors.red)),
+                            onTap: () {
+                              Navigator.pop(context);
+                              dialogToDeleteId();
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        ),
         body: Column(
           children: [
             Container(
@@ -194,55 +236,6 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                                   controller.identity.value));
                             },
                           )
-                      ],
-                    ),
-                    SettingsSection(
-                      title: const Text('Danger Zone'),
-                      tiles: [
-                        SettingsTile(
-                          leading: const Icon(CupertinoIcons.trash,
-                              color: Colors.red),
-                          title: const Text("Delete ID",
-                              style: TextStyle(color: Colors.red)),
-                          onPressed: (context) async {
-                            Get.dialog(CupertinoAlertDialog(
-                              title: const Text("Delete ID?"),
-                              content: Column(
-                                children: [
-                                  const Text(
-                                      "Please make sure you have backed up your seed phrase."),
-                                  Text(
-                                      "Input your name ${controller.identity.value.displayName} to confirm"),
-                                  const SizedBox(height: 10),
-                                  TextField(
-                                    controller:
-                                        controller.confirmDeleteController,
-                                    autofocus: true,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Name',
-                                      border: OutlineInputBorder(),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              actions: <Widget>[
-                                CupertinoDialogAction(
-                                  child: const Text("Cancel"),
-                                  onPressed: () {
-                                    Get.back();
-                                  },
-                                ),
-                                CupertinoDialogAction(
-                                  onPressed: deleteIdentity,
-                                  child: const Text(
-                                    "Delete",
-                                    style: TextStyle(color: Colors.red),
-                                  ),
-                                ),
-                              ],
-                            ));
-                          },
-                        ),
                       ],
                     ),
                   ],
@@ -421,5 +414,42 @@ class AccountSettingPage extends GetView<AccountSettingController> {
       logger.e(e.toString(), error: e, stackTrace: s);
       EasyLoading.showError(e.toString());
     }
+  }
+
+  void dialogToDeleteId() {
+    Get.dialog(CupertinoAlertDialog(
+      title: const Text("Delete ID?"),
+      content: Column(
+        children: [
+          const Text("Please make sure you have backed up your seed phrase."),
+          Text(
+              "Input your name ${controller.identity.value.displayName} to confirm"),
+          const SizedBox(height: 10),
+          TextField(
+            controller: controller.confirmDeleteController,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Name',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ],
+      ),
+      actions: <Widget>[
+        CupertinoDialogAction(
+          child: const Text("Cancel"),
+          onPressed: () {
+            Get.back();
+          },
+        ),
+        CupertinoDialogAction(
+          onPressed: deleteIdentity,
+          child: const Text(
+            "Delete",
+            style: TextStyle(color: Colors.red),
+          ),
+        ),
+      ],
+    ));
   }
 }

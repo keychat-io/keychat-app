@@ -200,46 +200,44 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                           ),
                       ],
                     ),
-                    if (!GetPlatform.isAndroid)
-                      SettingsSection(
-                        tiles: [
-                          SettingsTile.switchTile(
-                            initialValue:
-                                controller.identity.value.enableBrowser,
-                            leading: const Icon(CupertinoIcons.compass),
-                            title: const Text("Browser ID"),
-                            onToggle: (value) async {
-                              if (value == false) {
-                                int count = await DBProvider.database.identitys
-                                    .filter()
-                                    .enableBrowserEqualTo(true)
-                                    .count();
-                                if (count == 1) {
-                                  EasyLoading.showError(
-                                      "You cannot disable the last ID");
-                                  return;
-                                }
-
-                                await BrowserConnect.deleteByPubkey(
-                                    controller.identity.value.secp256k1PKHex);
+                    SettingsSection(
+                      tiles: [
+                        SettingsTile.switchTile(
+                          initialValue: controller.identity.value.enableBrowser,
+                          leading: const Icon(CupertinoIcons.compass),
+                          title: const Text("Browser ID"),
+                          onToggle: (value) async {
+                            if (value == false) {
+                              int count = await DBProvider.database.identitys
+                                  .filter()
+                                  .enableBrowserEqualTo(true)
+                                  .count();
+                              if (count == 1) {
+                                EasyLoading.showError(
+                                    "You cannot disable the last ID");
+                                return;
                               }
-                              controller.identity.value.enableBrowser = value;
-                              await IdentityService.instance
-                                  .updateIdentity(controller.identity.value);
-                              controller.identity.refresh();
+
+                              await BrowserConnect.deleteByPubkey(
+                                  controller.identity.value.secp256k1PKHex);
+                            }
+                            controller.identity.value.enableBrowser = value;
+                            await IdentityService.instance
+                                .updateIdentity(controller.identity.value);
+                            controller.identity.refresh();
+                          },
+                        ),
+                        if (controller.identity.value.enableBrowser)
+                          SettingsTile.navigation(
+                            leading: const Icon(Icons.web),
+                            title: const Text("Logged-in Websites"),
+                            onPressed: (context) async {
+                              Get.to(() => BrowserConnectedWebsite(
+                                  controller.identity.value));
                             },
-                          ),
-                          if (controller.identity.value.enableBrowser)
-                            SettingsTile.navigation(
-                              leading: const Icon(Icons.web),
-                              title: const Text("Logged-in Websites"),
-                              onPressed: (context) async {
-                                Get.to(() => BrowserConnectedWebsite(
-                                    controller.identity.value));
-                              },
-                            )
-                        ],
-                      ),
+                          )
+                      ],
+                    ),
                   ],
                 )))
           ],

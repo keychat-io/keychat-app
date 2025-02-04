@@ -37,7 +37,7 @@ class CashuPage extends GetView<EcashController> {
         appBar: AppBar(
           centerTitle: true,
           title: const Text(
-            "Bitcoin Ecash(Cashu)",
+            "Bitcoin Ecash (Cashu)",
           ),
           actions: [
             IconButton(
@@ -218,7 +218,7 @@ class CashuPage extends GetView<EcashController> {
                                                 return;
                                               }
                                               EasyLoading.show(
-                                                  status: 'Proccessing');
+                                                  status: 'Processing');
 
                                               int balance = ec.getBalanceByMint(
                                                   server.mint);

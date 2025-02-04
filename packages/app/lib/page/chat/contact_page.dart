@@ -97,7 +97,7 @@ class ContactPage extends StatelessWidget {
                   // bool roomIsNull = room == null;
                   late Room room0;
                   try {
-                    EasyLoading.show(status: 'Proccessing...');
+                    EasyLoading.show(status: 'Processing...');
                     Identity identity =
                         Get.find<HomeController>().allIdentities[identityId]!;
                     room0 = await RoomService.instance.createPrivateRoom(

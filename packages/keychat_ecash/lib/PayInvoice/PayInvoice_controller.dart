@@ -71,7 +71,7 @@ Expire At: ${DateFormat("yyyy-MM-ddTHH:mm:ss").format(DateTime.fromMillisecondsS
                 return;
               }
               try {
-                EasyLoading.show(status: 'Proccess...');
+                EasyLoading.show(status: 'Process...');
                 var tx =
                     await rust_cashu.melt(invoice: invoice, activeMint: mint);
                 EasyLoading.showSuccess('Success');

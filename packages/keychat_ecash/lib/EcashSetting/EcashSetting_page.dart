@@ -54,7 +54,7 @@ class EcashSettingPage extends GetView<EcashSettingController> {
             title: const Text('Restore From Mint Server'),
             onPressed: (context) async {
               try {
-                EasyLoading.show(status: 'Proccessing');
+                EasyLoading.show(status: 'Processing');
                 var ec = Get.find<EcashController>();
 
                 if (ec.currentIdentity == null) {
@@ -79,7 +79,7 @@ class EcashSettingPage extends GetView<EcashSettingController> {
                 const Text('Click it when you can\'t send cashu token'),
             onPressed: (context) async {
               try {
-                EasyLoading.show(status: 'Proccessing');
+                EasyLoading.show(status: 'Processing');
                 var res = await rust_cashu.checkProofs();
                 EasyLoading.showToast(
                     ''' Deleted: ${res.$1}, Hidden: ${res.$2}, Total: ${res.$3}''');

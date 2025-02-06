@@ -12,10 +12,8 @@
 # create dmg by .app file
 # https://github.com/sindresorhus/create-dmg
 # npm install --global create-dmg
-
+cd packages/app/
 flutter build macos --release -v
-open packages/app/build/macos.xcworkspace
+open macos/Runner.xcworkspace
 # click widown-> Organizer -> Archives -> validate app -> Export  -> keychat.app
 # create-dmg "xx/keychat.app" --identity "Developer ID Application: xx (xx)" --overwrite --dmg-title "keychat" packages/app/build/macos/Build/Products/Release
-
-create-dmg "/Users/liuxing/Desktop/Runner 2025-01-13 11-11-19/keychat.app" --overwrite --dmg-title "keychat" packages/app/build/macos/Build/Products/Release

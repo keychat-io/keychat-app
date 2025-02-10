@@ -215,10 +215,10 @@ class IdentityService {
 
     List<Identity> list =
         Get.find<HomeController>().allIdentities.values.toList();
-    List<int> skipedIdentityId = [];
+    List<int> skipedIdentityIDs = [];
     for (var identity in list) {
       if (!identity.enableChat) {
-        skipedIdentityId.add(identity.id);
+        skipedIdentityIDs.add(identity.id);
         continue;
       }
       pubkeys.add(identity.secp256k1PKHex);
@@ -228,7 +228,7 @@ class IdentityService {
     // sharing group 's mykey
     List<Room> rooms = await RoomService.instance.getGroupsSharedKey();
     for (var room in rooms) {
-      if (skipedIdentityId.contains(room.identityId)) {
+      if (skipedIdentityIDs.contains(room.identityId)) {
         continue;
       }
       if (skipMute && room.isMute) {

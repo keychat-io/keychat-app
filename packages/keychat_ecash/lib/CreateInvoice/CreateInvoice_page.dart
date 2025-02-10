@@ -78,7 +78,7 @@ class CreateInvoicePage extends StatelessWidget {
                           },
                         ),
                       ),
-                      child: const Text('Disabled By Mint Server')))
+                      child: const Text('Disable By Mint Server')))
             ])));
   }
 }

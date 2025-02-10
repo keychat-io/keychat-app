@@ -518,7 +518,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
     // select a identity
     Identity? selected = await Get.bottomSheet(SelectIdentityForBrowser(host));
     if (selected != null) {
-      EasyLoading.show(status: 'Proccessing...');
+      EasyLoading.show(status: 'Processing...');
       try {
         String? favicon =
             await browserController.getFavicon(webViewController!, host);

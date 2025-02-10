@@ -28,6 +28,9 @@ class _WebStorePageState extends State<WebStorePage> {
   }
 
   init() async {
+    if (homeController.recommendWebstore.isEmpty) {
+      await homeController.loadAppRemoteConfig();
+    }
     List<BrowserFavorite> list = Get.find<BrowserController>().favorites;
     Set<String> urls = list.map((e) => e.url).toSet();
     setState(() {
@@ -48,19 +51,20 @@ class _WebStorePageState extends State<WebStorePage> {
           centerTitle: true,
           title: const Text('Web Store'),
         ),
-        body: homeController.browserRecommend.entries.isEmpty
+        body: Obx(() => homeController.recommendWebstore.entries.isEmpty
             ? pageLoadingSpinKit()
             : SmartRefresher(
                 enablePullDown: true,
+                enablePullUp: true,
                 onRefresh: () async {
-                  Get.find<HomeController>().loadAppRemoteConfig();
+                  await Get.find<HomeController>().loadAppRemoteConfig();
                   refreshController.refreshCompleted();
                 },
                 controller: refreshController,
-                child: Obx(() => ListView.builder(
-                    itemCount: homeController.browserRecommend.entries.length,
+                child: ListView.builder(
+                    itemCount: homeController.recommendWebstore.entries.length,
                     itemBuilder: (context, index) {
-                      final entry = homeController.browserRecommend.entries
+                      final entry = homeController.recommendWebstore.entries
                           .elementAt(index);
                       return Padding(
                           padding: const EdgeInsets.only(

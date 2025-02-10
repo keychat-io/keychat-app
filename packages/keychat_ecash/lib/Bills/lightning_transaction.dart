@@ -137,8 +137,7 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
                             size: Get.width - 32,
                             embeddedImageSize: 0,
                             embeddedImage: null))),
-                if (tx.fee != null)
-                  Text('Fee: ${tx.fee} ${EcashTokenSymbol.sat.name}'),
+                if (tx.fee != null) Text('Fee: ${tx.fee!.toInt()} ${tx.unit}'),
                 if (tx.status == TransactionStatus.pending && expiryTs > 0)
                   Text(
                       'Expire At: ${formatTime(expiryTs, 'yyyy-MM-dd HH:mm:ss')}'),

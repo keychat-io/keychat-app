@@ -129,7 +129,7 @@ class MoreChatSetting extends StatelessWidget {
                     }
                     restartAllRelays();
                   },
-                  title: const Text('Disabled sending && receiveing')),
+                  title: const Text('Disable sending && receiving')),
               SettingsTile.navigation(
                   title: const Text('Export data'),
                   description: NoticeTextWidget.warning(
@@ -139,7 +139,7 @@ class MoreChatSetting extends StatelessWidget {
                     // and need to set pwd to encrypt database
                     if (hc.checkRunStatus.value) {
                       EasyLoading.showError(
-                          'Please disabled sending && receiveing');
+                          'Please disabled sending && receiving');
                       return;
                     }
                     _showSetEncryptionPwdDialog(context);
@@ -153,7 +153,7 @@ class MoreChatSetting extends StatelessWidget {
                     // and need to set pwd to decrypt database
                     if (hc.checkRunStatus.value) {
                       EasyLoading.showError(
-                          'Please disabled sending && receiveing');
+                          'Please disabled sending && receiving');
                       return;
                     }
                     enableImportDB(context);
@@ -404,7 +404,7 @@ class MoreChatSetting extends StatelessWidget {
             EasyLoading.show(status: 'Processing');
             try {
               await NotifyService.updateUserSetting(false);
-              EasyLoading.showSuccess('Disabled');
+              EasyLoading.showSuccess('Disable');
             } catch (e, s) {
               logger.e(e.toString(), error: e, stackTrace: s);
               EasyLoading.showError(e.toString());

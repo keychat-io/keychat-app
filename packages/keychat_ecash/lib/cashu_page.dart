@@ -1,6 +1,7 @@
 import 'package:app/app.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/theme.dart';
+import 'package:app/service/qrscan.service.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:keychat_ecash/Bills/cashu_transaction.dart';
@@ -542,7 +543,7 @@ class CashuPage extends GetView<EcashController> {
             child: Wrap(
                 direction: Axis.horizontal,
                 alignment: WrapAlignment.spaceAround,
-                runAlignment: WrapAlignment.spaceAround,
+                spacing: 20,
                 children: [
               GestureDetector(
                 onTap: () {
@@ -551,7 +552,7 @@ class CashuPage extends GetView<EcashController> {
                 child: Container(
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Color(0xFFCE9FFC), Color(0xFF7367F0)],
+                      colors: [Color(0xFFFC9FEB), Color(0xFFD44155)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -559,7 +560,7 @@ class CashuPage extends GetView<EcashController> {
                   ),
                   child: Container(
                     alignment: Alignment.center,
-                    width: 150.0,
+                    width: 120.0,
                     height: 45.0,
                     child: const Text(
                       'Send',
@@ -568,9 +569,11 @@ class CashuPage extends GetView<EcashController> {
                   ),
                 ),
               ),
-              const SizedBox(
-                width: 30.0,
-              ),
+              IconButton.filled(
+                  onPressed: () {
+                    QrScanService.instance.handleQRScan();
+                  },
+                  icon: const Icon(CupertinoIcons.qrcode_viewfinder)),
               GestureDetector(
                 onTap: () {
                   _handleReceive(ecashBillController, lightningBillController);
@@ -578,7 +581,7 @@ class CashuPage extends GetView<EcashController> {
                 child: Container(
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Color(0xFFF3C90C), Color(0xFFFA742B)],
+                      colors: [Color(0xFFBDF30C), Color(0xFF0FCB81)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -586,7 +589,7 @@ class CashuPage extends GetView<EcashController> {
                   ),
                   child: Container(
                     alignment: Alignment.center,
-                    width: 150.0,
+                    width: 120.0,
                     height: 45.0,
                     child: const Text(
                       'Receive',

@@ -15,7 +15,9 @@ import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 class PayInvoicePage extends StatefulWidget {
   final String? invoce;
   final bool isPay;
-  const PayInvoicePage({super.key, this.invoce, this.isPay = false});
+  final bool showScanButton;
+  const PayInvoicePage(
+      {super.key, this.invoce, this.isPay = false, this.showScanButton = true});
 
   @override
   _PayInvoicePageState createState() => _PayInvoicePageState();
@@ -155,11 +157,11 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                             : 'Expires in ${formatTime(invoiceInfo.expiryTs.toInt())}'),
                                   ]);
                             })),
-                        if (widget.isPay == false)
+                        if (widget.showScanButton)
                           OutlinedButton.icon(
                               onPressed: () async {
-                                String? result =
-                                    await QrScanService.instance.handleQRScan();
+                                String? result = await QrScanService.instance
+                                    .handleQRScan(autoProcess: false);
                                 if (result != null) {
                                   controller.textController.text = result;
                                 }
@@ -199,7 +201,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                   },
                                 ),
                               ),
-                              child: const Text('Disabled By Mint Server')))),
+                              child: const Text('Disable By Mint Server')))),
                 ]))));
   }
 }

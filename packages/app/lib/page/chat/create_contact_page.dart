@@ -148,12 +148,8 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                   ListTile(
                     leading: const Icon(CupertinoIcons.qrcode_viewfinder),
                     title: const Text('Scan QR Code'),
-                    onTap: () async {
-                      String? result =
-                          await QrScanService.instance.handleQRScan();
-                      if (result != null) {
-                        QrScanService.instance.processQRResult(result);
-                      }
+                    onTap: () {
+                      QrScanService.instance.handleQRScan();
                     },
                     trailing: const Icon(CupertinoIcons.right_chevron),
                   )

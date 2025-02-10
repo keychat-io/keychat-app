@@ -223,10 +223,19 @@ class RoomService extends BaseChatService {
         .findAll();
   }
 
-  Future<List<Room>> getMlgRooms() async {
+  Future<List<Room>> getMlsRooms() async {
     return await DBProvider.database.rooms
         .filter()
         .groupTypeEqualTo(GroupType.mls)
+        .onetimekeyIsNotEmpty()
+        .findAll();
+  }
+
+  Future<List<Room>> getMlsRoomsSkipMute() async {
+    return await DBProvider.database.rooms
+        .filter()
+        .groupTypeEqualTo(GroupType.mls)
+        .isMuteEqualTo(false)
         .onetimekeyIsNotEmpty()
         .findAll();
   }

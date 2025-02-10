@@ -129,13 +129,14 @@ class ContactService {
     }
   }
 
-  Future<List<String>> getAllReceiveKeys() async {
+  Future<List<String>> getAllReceiveKeys({List<int> skipIDs = const []}) async {
     Set<String> set = {};
     var list = await DBProvider.database.contactReceiveKeys
         .filter()
         .receiveKeysIsNotEmpty()
         .findAll();
     for (ContactReceiveKey crk in list) {
+      if (skipIDs.contains(crk.identityId)) continue;
       for (String address in crk.receiveKeys) {
         if (crk.roomId > -1) {
           receiveKeyRooms[address] = crk.roomId;
@@ -146,7 +147,8 @@ class ContactService {
     return set.toList();
   }
 
-  Future<List<String>> getAllReceiveKeysSkipMute() async {
+  Future<List<String>> getAllReceiveKeysSkipMute(
+      {required List<int> skipIDs}) async {
     Set<String> set = {};
     var list = await DBProvider.database.contactReceiveKeys
         .filter()
@@ -154,6 +156,7 @@ class ContactService {
         .isMuteEqualTo(false)
         .findAll();
     for (ContactReceiveKey crk in list) {
+      if (skipIDs.contains(crk.identityId)) continue;
       set.addAll(crk.receiveKeys);
     }
     return set.toList();

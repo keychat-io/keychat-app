@@ -6,7 +6,6 @@ import 'package:app/service/storage.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
 class MenuItem {
@@ -97,14 +96,7 @@ class _HomeDropMenuWidgetState extends State<HomeDropMenuWidget> {
               Get.toNamed(Routes.addFriend);
               break;
             case menuScan:
-              if (!GetPlatform.isMobile) {
-                EasyLoading.showToast('Not available on this devices');
-                return;
-              }
-              String? result = await QrScanService.instance.handleQRScan();
-              if (result != null) {
-                QrScanService.instance.processQRResult(result);
-              }
+              QrScanService.instance.handleQRScan();
               break;
             case menuNewGroup:
               Get.toNamed(Routes.addGroup);

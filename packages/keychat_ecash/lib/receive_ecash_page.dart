@@ -99,11 +99,7 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
                     const SizedBox(height: 30),
                     OutlinedButton.icon(
                         onPressed: () async {
-                          String? result =
-                              await QrScanService.instance.handleQRScan();
-                          if (result != null) {
-                            QrScanService.instance.processQRResult(result);
-                          }
+                          QrScanService.instance.handleQRScan();
                         },
                         icon: const Icon(Icons.qr_code_scanner),
                         label: const Text('Scan'))

@@ -1,12 +1,9 @@
 import 'package:app/constants.dart';
 import 'package:app/models/relay.dart';
-import 'package:app/models/room.dart';
 import 'package:app/nostr-core/nostr_nip4_req.dart';
-import 'package:app/service/contact.service.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/relay.service.dart';
-import 'package:app/service/room.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:async_queue/async_queue.dart';
@@ -34,19 +31,14 @@ class RelayWebsocket {
   _startListen() async {
     DateTime since =
         await MessageService.instance.getNostrListenStartAt(relay.url);
+
     List<String> pubkeys = await IdentityService.instance.getListenPubkeys();
     listenPubkeys(pubkeys, since);
     listenPubkeys(pubkeys, DateTime.now().subtract(const Duration(days: 2)),
         [EventKinds.nip17]);
 
-    // only listen nip04
-    List<String> signal = await ContactService.instance.getAllReceiveKeys();
-    Set<String> mlsPubkeys = {};
-    // mls room's receive key
-    List<Room> mlsRooms = await RoomService.instance.getMlgRooms();
-    mlsPubkeys.addAll(mlsRooms.map((e) => e.onetimekey!));
-    mlsPubkeys.addAll(signal);
-    listenPubkeys(mlsPubkeys.toList(), since);
+    List<String> roomKyes = await IdentityService.instance.getRoomPubkeys();
+    listenPubkeys(roomKyes, since);
   }
 
   Future listenPubkeys(List<String> pubkeys, DateTime since,

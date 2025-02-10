@@ -1,6 +1,5 @@
 import 'package:app/app.dart';
 import 'package:app/page/components.dart';
-import 'package:app/page/theme.dart';
 import 'package:app/service/qrscan.service.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:carousel_slider/carousel_slider.dart';
@@ -543,6 +542,7 @@ class CashuPage extends GetView<EcashController> {
             child: Wrap(
                 direction: Axis.horizontal,
                 alignment: WrapAlignment.spaceAround,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 spacing: 20,
                 children: [
               GestureDetector(
@@ -551,11 +551,7 @@ class CashuPage extends GetView<EcashController> {
                 },
                 child: Container(
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFFC9FEB), Color(0xFFD44155)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: const Color(0xFFF6475D),
                     borderRadius: BorderRadius.circular(5.0),
                   ),
                   child: Container(
@@ -573,18 +569,14 @@ class CashuPage extends GetView<EcashController> {
                   onPressed: () {
                     QrScanService.instance.handleQRScan();
                   },
-                  icon: const Icon(CupertinoIcons.qrcode_viewfinder)),
+                  icon: const Icon(CupertinoIcons.qrcode_viewfinder, size: 24)),
               GestureDetector(
                 onTap: () {
                   _handleReceive(ecashBillController, lightningBillController);
                 },
                 child: Container(
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFBDF30C), Color(0xFF0FCB81)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: const Color(0xFF2FBD85),
                     borderRadius: BorderRadius.circular(5.0),
                   ),
                   child: Container(
@@ -601,149 +593,6 @@ class CashuPage extends GetView<EcashController> {
             ])));
   }
 
-  Widget bottomBarWidget2(BuildContext context,
-      {required EcashController controller,
-      required EcashBillController ecashBillController,
-      required LightningBillController lightningBillController}) {
-    return Positioned(
-        bottom: 0.0,
-        child: Padding(
-            padding: const EdgeInsets.only(left: 20),
-            child: Container(
-                width: Get.width - 40,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: (Get.isDarkMode
-                          ? const Color(0xFF322F32)
-                          : const Color(0xFFCDD0CD))
-                      .withAlpha(200),
-                  borderRadius: BorderRadius.circular(10.0),
-                ),
-                child: Center(
-                    child: Wrap(spacing: 40, children: [
-                  InkWell(
-                    onTap: () async {
-                      await Get.bottomSheet(const CashuSendPage(false));
-                      ecashBillController.getTransactions();
-                    },
-                    child: Column(
-                      children: [
-                        SizedBox(
-                          width: 36,
-                          child: CircleAvatar(
-                            backgroundColor: MaterialTheme.lightScheme()
-                                .primary
-                                .withAlpha(160),
-                            radius: 20,
-                            child: const Icon(CupertinoIcons.arrow_up,
-                                color: Colors.white),
-                          ),
-                        ),
-                        textSmallGray(context, 'Send'),
-                      ],
-                    ),
-                  ),
-                  InkWell(
-                    onTap: () async {
-                      await showModalBottomSheetWidget(
-                          context, '', const ReceiveEcash(),
-                          showAppBar: false);
-                      ecashBillController.getTransactions();
-                    },
-                    child: Column(
-                      children: [
-                        SizedBox(
-                          width: 36,
-                          child: CircleAvatar(
-                            backgroundColor: MaterialTheme.lightScheme()
-                                .tertiary
-                                .withAlpha(160),
-                            radius: 20,
-                            child: const Icon(CupertinoIcons.arrow_down,
-                                color: Colors.white),
-                          ),
-                        ),
-                        textSmallGray(context, 'Receive'),
-                      ],
-                    ),
-                  ),
-                  InkWell(
-                    onTap: () async {
-                      await showModalBottomSheetWidget(
-                          context, '', const CreateInvoicePage(),
-                          showAppBar: false);
-                      lightningBillController.getTransactions();
-                    },
-                    child: Column(
-                      children: [
-                        SizedBox(
-                          width: 36,
-                          child: CircleAvatar(
-                            backgroundColor: Get.isDarkMode
-                                ? Colors.white10
-                                : Colors.grey.shade300,
-                            radius: 20,
-                            child: Icon(CupertinoIcons.arrow_down,
-                                color: Get.isDarkMode
-                                    ? Colors.white70
-                                    : Colors.black54),
-                          ),
-                        ),
-                        textSmallGray(context, 'Receive from LN'),
-                      ],
-                    ),
-                  ),
-                  InkWell(
-                    onTap: () async {
-                      await showModalBottomSheetWidget(
-                          context, '', const PayInvoicePage(),
-                          showAppBar: false);
-                      lightningBillController.getTransactions();
-                    },
-                    child: Column(
-                      children: [
-                        SizedBox(
-                          width: 36,
-                          child: CircleAvatar(
-                            backgroundColor: Get.isDarkMode
-                                ? Colors.white10
-                                : Colors.grey.shade300,
-                            radius: 20,
-                            child: Icon(CupertinoIcons.arrow_up,
-                                color: Get.isDarkMode
-                                    ? Colors.white70
-                                    : Colors.black54),
-                          ),
-                        ),
-                        textSmallGray(context, 'Send to LN'),
-                      ],
-                    ),
-                  ),
-                ])))));
-  }
-
-  // void selectDefaultMint() async {
-  //   EcashController cashuController = Get.find<EcashController>();
-
-  //   String? mint = await Get.bottomSheet(
-  //       SettingsList(platform: DevicePlatform.iOS, sections: [
-  //     SettingsSection(
-  //         title: Text('Select Default Server'),
-  //         tiles: cashuController.mintBalances
-  //             .map((e) => SettingsTile(
-  //                   title: Text(e.mint),
-  //                   value: Text('${e.balance} sats'),
-  //                   onPressed: (context) {
-  //                     Get.back(result: e.mint);
-  //                   },
-  //                 ))
-  //             .toList())
-  //   ]));
-  //   if (mint != null) {
-  //     await cashuController.setDefaultMint(mint);
-  //     EasyLoading.showSuccess('Updated');
-  //   }
-  // }
   _handleSend(EcashBillController ecashBillController,
       LightningBillController lightningBillController) {
     Get.bottomSheet(SettingsList(platform: DevicePlatform.iOS, sections: [

@@ -295,6 +295,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
             shouldOverrideUrlLoading:
                 (controller, NavigationAction navigationAction) async {
               WebUri? uri = navigationAction.request.url;
+              logger.d('shouldOverrideUrlLoading: ${uri?.toString()}');
               if (uri == null) return NavigationActionPolicy.ALLOW;
               try {
                 var str = uri.toString();

@@ -2,6 +2,7 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/models/nostr_event_status.dart';
+import 'package:app/service/contact.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/secure_storage.dart';
@@ -214,12 +215,22 @@ class IdentityService {
 
     List<Identity> list =
         Get.find<HomeController>().allIdentities.values.toList();
-    pubkeys.addAll(list.map((e) => e.secp256k1PKHex));
+    List<int> skipedIdentityId = [];
+    for (var identity in list) {
+      if (!identity.enableChat) {
+        skipedIdentityId.add(identity.id);
+        continue;
+      }
+      pubkeys.add(identity.secp256k1PKHex);
+    }
     if (pubkeys.isEmpty) return [];
 
     // sharing group 's mykey
     List<Room> rooms = await RoomService.instance.getGroupsSharedKey();
     for (var room in rooms) {
+      if (skipedIdentityId.contains(room.identityId)) {
+        continue;
+      }
       if (skipMute && room.isMute) {
         continue;
       }
@@ -316,6 +327,14 @@ class IdentityService {
         .findAll();
   }
 
+  Future<List<int>> getDisableChatIdentityIDList() async {
+    var list = await DBProvider.database.identitys
+        .filter()
+        .enableChatEqualTo(false)
+        .findAll();
+    return list.map((e) => e.id).toList();
+  }
+
   Future<List<Identity>> getEnableBrowserIdentityList() async {
     return await DBProvider.database.identitys
         .filter()
@@ -356,5 +375,39 @@ class IdentityService {
     }
     prikeys[pubkey] = prikey;
     return prikey;
+  }
+
+  Future<List<String>> getRoomPubkeys() async {
+    List<int> skipedIdentityIds = await getDisableChatIdentityIDList();
+    // only listen nip04
+    List<String> signal = await ContactService.instance
+        .getAllReceiveKeys(skipIDs: skipedIdentityIds);
+    Set<String> mlsPubkeys = {};
+    // mls room's receive key
+    List<Room> mlsRooms = await RoomService.instance.getMlsRooms();
+    for (Room room in mlsRooms) {
+      if (skipedIdentityIds.contains(room.identityId)) {
+        continue;
+      }
+      mlsPubkeys.add(room.onetimekey!);
+    }
+    return <String>{...signal, ...mlsPubkeys}.toList();
+  }
+
+  Future<List<String>> getRoomPubkeysSkipMute() async {
+    List<int> skipedIdentityIds = await getDisableChatIdentityIDList();
+    // only listen nip04
+    List<String> signal = await ContactService.instance
+        .getAllReceiveKeysSkipMute(skipIDs: skipedIdentityIds);
+    Set<String> mlsPubkeys = {};
+    // mls room's receive key
+    List<Room> mlsRooms = await RoomService.instance.getMlsRoomsSkipMute();
+    for (Room room in mlsRooms) {
+      if (skipedIdentityIds.contains(room.identityId)) {
+        continue;
+      }
+      mlsPubkeys.add(room.onetimekey!);
+    }
+    return <String>{...signal, ...mlsPubkeys}.toList();
   }
 }

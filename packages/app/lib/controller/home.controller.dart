@@ -274,7 +274,10 @@ class HomeController extends GetxController
         requesting,
         ...rooms,
       ];
-
+      if (tabBodyDatas[identityId] == null &&
+          chatIdentities[identityId] == null) {
+        return;
+      }
       TabData tabBodyData =
           tabBodyDatas[identityId] ?? TabData(chatIdentities[identityId]!);
       tabBodyData.unReadCount = unReadCount;

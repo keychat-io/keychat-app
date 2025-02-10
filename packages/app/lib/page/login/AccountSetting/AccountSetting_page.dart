@@ -5,8 +5,10 @@ import 'package:app/models/identity.dart';
 import 'package:app/page/browser/BrowserConnectedWebsite.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/routes.dart';
+import 'package:app/service/notify.service.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app/service/identity.service.dart';
+import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
@@ -162,6 +164,8 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                               controller.identity.value.enableChat = value;
                               await IdentityService.instance
                                   .updateIdentity(controller.identity.value);
+                              NotifyService.syncPubkeysToServer();
+                              Get.find<WebsocketService>().start();
                               controller.identity.refresh();
                               Get.find<HomeController>()
                                   .loadRoomList(init: true);

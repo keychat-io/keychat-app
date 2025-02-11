@@ -23,7 +23,7 @@ echo "Update app starting..."
 cd packages/app/
 # dart fix --apply
 
-# flutter build ipa --dart-define=dart.vm.product=true --release --analyze-size # --obfuscate --split-debug-info=./build/obfuscate/ios/
+flutter build ipa --dart-define=dart.vm.product=true --release --analyze-size # --obfuscate --split-debug-info=./build/obfuscate/ios/
 
 # open build/ios/archive/Runner.xcarchive/
 

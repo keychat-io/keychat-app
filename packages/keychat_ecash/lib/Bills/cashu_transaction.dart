@@ -72,7 +72,7 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                         CashuInfoModel cm =
                             await RustAPI.receiveToken(encodedToken: tx.token);
                         if (cm.status == TransactionStatus.success) {
-                          EasyLoading.showSuccess('Successed');
+                          EasyLoading.showSuccess('Success');
                           CashuTransaction tx1 = CashuTransaction(
                               id: tx.id,
                               status: cm.status,

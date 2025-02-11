@@ -60,7 +60,7 @@ class HomeController extends GetxController
   Timer? _checkWebsocketTimer;
 
   RxList recommendBots = [].obs;
-  RxMap browserRecommend = {}.obs;
+  RxMap recommendWebstore = {}.obs;
   RxMap remoteAppConfig = {}.obs;
 
   DateTime? pausedTime;
@@ -155,7 +155,7 @@ class HomeController extends GetxController
     String fileName = 'config/app.json';
     var list = [
       'https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/$fileName',
-      'https://mirror.ghproxy.com/https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/$fileName'
+      'https://gh-proxy.com/https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/$fileName'
     ];
     // load app version
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
@@ -177,7 +177,7 @@ class HomeController extends GetxController
           recommendBots.value = config['bots'];
 
           var recommendUrls = config['browserRecommend'] as List;
-          browserRecommend.value = recommendUrls
+          recommendWebstore.value = recommendUrls
               .fold<Map<String, List<Map<String, dynamic>>>>({}, (acc, item) {
             List<String> categories = List<String>.from(item['categories']);
             for (var type in categories) {
@@ -274,7 +274,10 @@ class HomeController extends GetxController
         requesting,
         ...rooms,
       ];
-
+      if (tabBodyDatas[identityId] == null &&
+          chatIdentities[identityId] == null) {
+        return;
+      }
       TabData tabBodyData =
           tabBodyDatas[identityId] ?? TabData(chatIdentities[identityId]!);
       tabBodyData.unReadCount = unReadCount;

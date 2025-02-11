@@ -66,38 +66,29 @@ class BrowserPage extends GetView<BrowserController> {
                                   children: [
                                     if (controller.input.isNotEmpty)
                                       IconButton(
-                                        icon: const Icon(CupertinoIcons.clear),
+                                        icon: const Icon(CupertinoIcons.clear,
+                                            size: 24),
                                         onPressed: () {
                                           controller.textController.clear();
                                         },
                                       ),
                                     IconButton(
-                                      icon: const Icon(CupertinoIcons.search),
+                                      icon: const Icon(CupertinoIcons.search,
+                                          size: 24),
                                       onPressed: () async {
                                         if (controller
                                             .textController.text.isEmpty) {
                                           return;
                                         }
-                                        controller.lanuchWebview(
-                                          content: controller
-                                              .textController.text
-                                              .trim(),
-                                          engine: controller
-                                              .defaultSearchEngineObx.value,
-                                        );
+                                        submitSearchForm(controller
+                                            .textController.text
+                                            .trim());
                                       },
                                     ),
                                   ],
                                 ),
                               ),
-                              onFieldSubmitted: (value) {
-                                controller.lanuchWebview(
-                                  engine:
-                                      controller.defaultSearchEngineObx.value,
-                                  content:
-                                      controller.textController.text.trim(),
-                                );
-                              },
+                              onFieldSubmitted: submitSearchForm,
                             ),
                           ),
                         ),
@@ -105,7 +96,7 @@ class BrowserPage extends GetView<BrowserController> {
                             onPressed: () {
                               Get.to(() => const BrowserSetting());
                             },
-                            icon: const Icon(Icons.menu, size: 30))
+                            icon: const Icon(Icons.menu))
                       ]),
                       const SizedBox(height: 32),
                       quickSection(context),
@@ -113,6 +104,13 @@ class BrowserPage extends GetView<BrowserController> {
                       functionSection(context),
                       const SizedBox(height: 48)
                     ])))));
+  }
+
+  void submitSearchForm(value) {
+    controller.lanuchWebview(
+      engine: controller.defaultSearchEngineObx.value,
+      content: controller.textController.text.trim(),
+    );
   }
 
   Widget quickSectionItem(Widget icon, String title, String url,

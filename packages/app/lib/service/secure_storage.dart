@@ -8,6 +8,10 @@ class SecureStorage {
   SecureStorage._();
   static SecureStorage get instance => _instance ??= SecureStorage._();
   static const FlutterSecureStorage storage = FlutterSecureStorage(
+      mOptions: MacOsOptions(
+        synchronizable: true,
+        accessibility: KeychainAccessibility.first_unlock,
+      ),
       iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock));
 
   String mnemonicKey = kReleaseMode ? 'mnemonic' : '${Config.env}:mnemonic';

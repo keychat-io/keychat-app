@@ -49,7 +49,11 @@ class QrScanService {
     }
   }
 
-  Future<String?> handleQRScan() async {
+  Future<String?> handleQRScan({bool autoProcess = true}) async {
+    if (!GetPlatform.isMobile) {
+      EasyLoading.showToast('Not available on this devices');
+      return null;
+    }
     bool isGranted = await Permission.camera.request().isGranted;
     if (!isGranted) {
       EasyLoading.showToast('Camera permission not grant');
@@ -64,6 +68,9 @@ class QrScanService {
       return null;
     }
     if (sr.rawContent.isEmpty) return null;
+    if (autoProcess) {
+      processQRResult(sr.rawContent);
+    }
     return sr.rawContent;
   }
 

@@ -4,6 +4,11 @@ https://keepachangelog.com/zh-CN/1.1.0
 
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
+## 1.26.8+6322
+1. Fix: receive cashuB failed when amount is not (1,2,4,8...)
+2. Add scan button for cashuPage
+3. Remove pubkeys from listening when disable chat identity
+4. Fix typo error
 
 ## 1.26.1+6313
 1. Redesign the Browser section, focusing on user bookmarks, and change the recommendation to an AppStore section.

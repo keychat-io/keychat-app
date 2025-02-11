@@ -5,6 +5,7 @@ import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/new_friends_rooms.dart';
 import 'package:app/page/search_page.dart';
 import 'package:app/page/widgets/home_drop_menu.dart';
+import 'package:app/service/SignerService.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
@@ -19,6 +20,7 @@ import 'package:keychat_ecash/ecash_controller.dart';
 import '../controller/home.controller.dart';
 import 'RecommendBots/RecommendBots.dart';
 import 'components.dart';
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class RoomList extends StatelessWidget {
   const RoomList({super.key});
@@ -84,6 +86,33 @@ class RoomList extends StatelessWidget {
                       ],
                     ),
                   )))),
+      floatingActionButton: Wrap(
+          direction: Axis.vertical,
+          alignment: WrapAlignment.end,
+          crossAxisAlignment: WrapCrossAlignment.end,
+          children: [
+            FilledButton(
+                onPressed: () async {
+                  var encrypteSecondRes = await SignerService.instance.getNip17Event(
+                      content: '123',
+                      from:
+                          'dc5d04165bdbebb6d5f1f97ec14d636316d94a4b84a1756adb016f20a1215864',
+                      to: '659f7522523c9b3df8d4eddd318f1c4574198e2b93de7a7f68ca7b6b4ee5f295');
+                  debugPrint(encrypteSecondRes);
+                },
+                child: const Text('en')),
+            OutlinedButton(
+                onPressed: () async {
+                  var encrypteSecondRes = await SignerService.instance.getNip17Event(
+                      content: '123',
+                      from:
+                          'dc5d04165bdbebb6d5f1f97ec14d636316d94a4b84a1756adb016f20a1215864',
+                      to: '659f7522523c9b3df8d4eddd318f1c4574198e2b93de7a7f68ca7b6b4ee5f295');
+                  debugPrint(encrypteSecondRes);
+                },
+                child: const Text('de')),
+            const SizedBox(height: 100)
+          ]),
       body: Obx(() => TabBarView(
           key: const Key('roomlistTabview'),
           controller: homeController.tabController,

@@ -80,17 +80,18 @@ class SignerService {
         currentUser: from, eventJson: jsonEncode(secondEvent), id: id2);
     logger.d("res $res");
 
-    String id3 = generate64RandomHexChars();
-    Map encrypteSecondRes = await amber.nip44Encrypt(
-        plaintext: res['event'], currentUser: from, pubKey: to, id: id3);
     var randomSecp256k1 = await rust_nostr.generateSecp256K1();
+    String encrypteSecondRes = await rust_nostr.encryptNip44(
+        content: res['event'],
+        senderKeys: randomSecp256k1.prikey,
+        receiverPubkey: to);
     return await rust_nostr.signEvent(
         senderKeys: randomSecp256k1.prikey,
         tags: [
           ["p", to]
         ],
         createdAt: BigInt.from(randomTime),
-        content: encrypteSecondRes['signature'],
+        content: encrypteSecondRes,
         kind: 1059);
   }
 }

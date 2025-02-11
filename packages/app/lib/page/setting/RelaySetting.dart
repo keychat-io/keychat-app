@@ -73,31 +73,31 @@ class _RelaySettingState extends State<RelaySetting> {
             ? SettingsList(platform: DevicePlatform.iOS, sections: [
                 SettingsSection(
                   margin: const EdgeInsetsDirectional.symmetric(horizontal: 16),
-                  tiles: [
-                    ...ws.channels.values.map((RelayWebsocket rw) =>
-                        SettingsTile.navigation(
-                          title: Text(rw.relay.url),
-                          value: rw.relay.active
-                              ? (ws.relayMessageFeeModels[rw.relay.url] != null
-                                  ? ws.relayMessageFeeModels[rw.relay.url]!
-                                              .amount ==
-                                          0
-                                      ? const Text('free')
-                                      : Text(
-                                          '${ws.relayMessageFeeModels[rw.relay.url]!.amount} ${ws.relayMessageFeeModels[rw.relay.url]!.unit.name}')
-                                  : const Text('free'))
-                              : null,
-                          leading: Icon(
-                              rw.relay.isDefault ? Icons.star : Icons.circle,
-                              size: rw.relay.isDefault ? 16 : 12,
-                              color: getColorByStatus(rw.channelStatus)),
-                          onPressed: (context) {
-                            Get.to(() => const RelayInfoPage(),
-                                arguments: rw.relay,
-                                binding: RelayInfoBindings());
-                          },
-                        )),
-                  ],
+                  tiles: ws.channels.values
+                      .map((RelayWebsocket rw) => SettingsTile.navigation(
+                            title: Text(rw.relay.url),
+                            value: rw.relay.active
+                                ? (ws.relayMessageFeeModels[rw.relay.url] !=
+                                        null
+                                    ? ws.relayMessageFeeModels[rw.relay.url]!
+                                                .amount ==
+                                            0
+                                        ? const Text('free')
+                                        : Text(
+                                            '${ws.relayMessageFeeModels[rw.relay.url]!.amount} ${ws.relayMessageFeeModels[rw.relay.url]!.unit.name}')
+                                    : const Text('free'))
+                                : null,
+                            leading: Icon(
+                                rw.relay.isDefault ? Icons.star : Icons.circle,
+                                size: rw.relay.isDefault ? 16 : 12,
+                                color: getColorByStatus(rw.channelStatus)),
+                            onPressed: (context) {
+                              Get.to(() => const RelayInfoPage(),
+                                  arguments: rw.relay,
+                                  binding: RelayInfoBindings());
+                            },
+                          ))
+                      .toList(),
                 )
               ])
             : const Center(child: Text("No relay configured yet"))));

@@ -639,6 +639,7 @@ class NostrAPI {
         await _getNostrEventByTo(event, failedCallbackync);
 
     dynamic decodedContent;
+    logger.d('subEvent: ${subEvent.content}');
     try {
       decodedContent = jsonDecode(subEvent.content);
     } catch (e) {

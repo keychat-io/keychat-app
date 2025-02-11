@@ -114,41 +114,47 @@ class Login extends StatelessWidget {
 
     TextEditingController controller = TextEditingController();
     var focusNode = FocusNode();
+    Future submitAmberLogin([String? value]) async {
+      String name = controller.text.trim();
+      if (name.isEmpty) {
+        EasyLoading.showError("Username is required");
+        return;
+      }
+      Get.back();
+      EasyLoading.show(status: 'Loading...');
+
+      await IdentityService.instance.createIdentityByAmberPubkey(
+        name: name,
+        pubkey: pubkey,
+      );
+
+      EasyLoading.dismiss();
+
+      Get.offAllNamed(Routes.root, arguments: true);
+    }
+
     Get.dialog<String>(
       CupertinoAlertDialog(
         title: const Text('Nickname'),
-        content: TextField(
-          controller: controller,
-          focusNode: focusNode,
-          autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'Nickname',
+        content: Form(
+          child: Column(
+            children: [
+              TextFormField(
+                controller: controller,
+                focusNode: focusNode,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: 'Nickname',
+                ),
+                onFieldSubmitted: submitAmberLogin,
+              ),
+            ],
           ),
-          onSubmitted: (value) {
-            Get.back(result: controller.text.trim());
-          },
         ),
         actions: [
           CupertinoDialogAction(
             isDefaultAction: true,
-            onPressed: () async {
-              String name = controller.text.trim();
-              if (name.isEmpty) {
-                EasyLoading.showError("Username is required");
-                return;
-              }
-              Get.back();
-              EasyLoading.show(status: 'Loading...');
-
-              await IdentityService.instance.createIdentityByAmberPubkey(
-                name: name,
-                pubkey: pubkey,
-              );
-
-              EasyLoading.dismiss();
-
-              Get.offAllNamed(Routes.root, arguments: true);
-            },
+            onPressed: submitAmberLogin,
             child: const Text('OK'),
           ),
         ],

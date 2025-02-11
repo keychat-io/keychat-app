@@ -586,7 +586,10 @@ Let's start an encrypted chat.''';
   static MessageEncryptType getEncryptMode(NostrEventModel event,
       [NostrEventModel? sourceEvent]) {
     if (sourceEvent == null) return event.encryptType;
-    if (event.kind == EventKinds.nip17) return MessageEncryptType.nip17;
+    if (event.kind == EventKinds.nip17 ||
+        sourceEvent.kind == EventKinds.nip17) {
+      return MessageEncryptType.nip17;
+    }
     if (event.isNip4) return MessageEncryptType.nip4WrapNip4;
     if (event.isSignal) return MessageEncryptType.nip4WrapSignal;
 

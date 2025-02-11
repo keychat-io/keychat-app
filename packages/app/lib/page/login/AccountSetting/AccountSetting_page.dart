@@ -125,6 +125,10 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                           SettingsTile(
                             leading: const Icon(CupertinoIcons.person),
                             title: const Text("Hex"),
+                            onPressed: (c) {
+                              debugPrint(
+                                  controller.identity.value.secp256k1PKHex);
+                            },
                             value: Text(getPublicKeyDisplay(
                                 controller.identity.value.secp256k1PKHex)),
                           ),

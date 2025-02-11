@@ -4,7 +4,7 @@ description: keychat
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.26.8+6322
+version: 1.26.8+6324
  
 environment:
   sdk: ">=3.4.3 <4.0.0"
@@ -107,7 +107,7 @@ dev_dependencies:
   test: ^1.25.2
   # dmg:
   #   path: ../../../dmg
-  # dmg: ^0.1.2
+  dmg: ^0.1.2
 
 flutter:
   # The following line ensures that the Material Icons font is

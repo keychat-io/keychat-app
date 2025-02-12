@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'dart:convert' show jsonEncode, jsonDecode;
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
@@ -90,9 +90,9 @@ class SignerService {
       "content": encryptedSubEvent['signature'],
       "sig": ""
     };
+
     var res = await amber.signEvent(
         currentUser: from, eventJson: jsonEncode(secondEvent), id: id2);
-
     var randomSecp256k1 = await rust_nostr.generateSecp256K1();
     String encrypteSecondRes = await rust_nostr.encryptNip44(
         content: res['event'],

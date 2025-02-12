@@ -13,6 +13,7 @@ import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:settings_ui/settings_ui.dart';
 
@@ -33,10 +34,7 @@ class Login extends StatelessWidget {
                   ...KeychatGlobal.keychatIntros.map((e) => Padding(
                       padding: const EdgeInsets.only(top: 10),
                       child: Text(e,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyLarge
-                              ?.copyWith(height: 1.2)))),
+                          style: Theme.of(context).textTheme.bodyLarge))),
                   TextButton(
                       onPressed: () =>
                           Get.to(() => const OnboardingPage2Detail()),
@@ -65,9 +63,15 @@ class Login extends StatelessWidget {
                         },
                         child: const Text("Recover ID")),
                     if (GetPlatform.isAndroid)
-                      OutlinedButton(
+                      OutlinedButton.icon(
+                          icon: SvgPicture.asset(
+                            'assets/images/logo/amber.svg',
+                            fit: BoxFit.contain,
+                            width: 20,
+                            height: 20,
+                          ),
                           onPressed: handleAmberLogin,
-                          child: const Text("Login with Amber App"))
+                          label: const Text("Login with Amber App"))
                   ])
             ])));
   }
@@ -135,17 +139,18 @@ class Login extends StatelessWidget {
 
     Get.dialog<String>(
       CupertinoAlertDialog(
-        title: const Text('Nickname'),
+        title: const Text('Login with Amber App'),
         content: Form(
           child: Column(
             children: [
+              Text(pubkey),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: controller,
                 focusNode: focusNode,
                 autofocus: true,
                 decoration: const InputDecoration(
-                  hintText: 'Nickname',
-                ),
+                    hintText: 'Nickname', border: OutlineInputBorder()),
                 onFieldSubmitted: submitAmberLogin,
               ),
             ],
@@ -155,7 +160,7 @@ class Login extends StatelessWidget {
           CupertinoDialogAction(
             isDefaultAction: true,
             onPressed: submitAmberLogin,
-            child: const Text('OK'),
+            child: const Text('Confirm'),
           ),
         ],
       ),

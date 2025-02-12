@@ -104,7 +104,7 @@ class _MyQRCodeState extends State<MyQRCode> {
                       ),
                       OutlinedButton(
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.white),
+                          side: const BorderSide(color: Colors.grey),
                         ),
                         onPressed: () {
                           final box = context.findRenderObject() as RenderBox?;

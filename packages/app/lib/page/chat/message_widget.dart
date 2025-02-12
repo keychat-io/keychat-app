@@ -10,6 +10,7 @@ import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/ForwardSelectRoom.dart';
 import 'package:app/page/chat/LongTextPreviewPage.dart';
 import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app/page/routes.dart';
 import 'package:app/page/theme.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
@@ -493,9 +494,8 @@ class MessageWidget extends StatelessWidget {
                       title: 'Group Member',
                       greeting: 'From Group: ${chatController.room.name}'));
                 } else {
-                  await Get.to(() => ShowContactDetail(
-                      room: chatController.room,
-                      chatController: chatController));
+                  await Get.toNamed(Routes.roomSettingContact
+                      .replaceFirst(':id', chatController.room.id.toString()));
                 }
                 await chatController.openPageAction();
               },

@@ -339,6 +339,7 @@ class SignalChatService extends BaseChatService {
         bobPrekeyPublic: Uint8List.fromList(hex.decode(model.prekeyPubkey)));
     if (res) {
       room.encryptMode = EncryptMode.signal;
+      logger.d('addRoomKPA success, set room encryptMode to signal');
     }
     room.contact = contact;
     room = await RoomService.instance.updateRoomAndRefresh(room);

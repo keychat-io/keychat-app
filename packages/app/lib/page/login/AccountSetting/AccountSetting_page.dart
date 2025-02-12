@@ -5,6 +5,7 @@ import 'package:app/models/identity.dart';
 import 'package:app/page/browser/BrowserConnectedWebsite.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/routes.dart';
+import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app/service/identity.service.dart';
@@ -86,7 +87,34 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                           height: 64,
                           width: 64),
                     ),
-                    const SizedBox(height: 16),
+                    if (controller.identity.value.isFromSigner)
+                      Container(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: GestureDetector(
+                              onTap: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return CupertinoAlertDialog(
+                                      title: const Text("Notice"),
+                                      content: const Text(
+                                          "Keychat app does not store your private key. Signing and encryption operations are handled by the Amber app."),
+                                      actions: <Widget>[
+                                        CupertinoDialogAction(
+                                          isDefaultAction: true,
+                                          onPressed: () {
+                                            Get.back();
+                                          },
+                                          child: const Text("OK"),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                              },
+                              child: NoticeTextWidget.info('Login with Amber',
+                                  fontSize: 12, borderRadius: 15))),
+                    const SizedBox(height: 8),
                     GestureDetector(
                         onTap: () {
                           Clipboard.setData(ClipboardData(

@@ -1,7 +1,7 @@
 import 'package:app/controller/chat.controller.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/page/chat/chat_settings_more.dart.dart';
+import 'package:app/page/chat/chat_settings_security.dart';
 import 'package:app/page/chat/message_bill/pay_to_relay_page.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/routes.dart';
@@ -20,29 +20,32 @@ import '../../utils.dart';
 import '../../service/room.service.dart';
 
 // ignore: must_be_immutable
-class ShowContactDetail extends StatefulWidget {
-  Room room;
-  ChatController chatController;
-
-  ShowContactDetail(
-      {super.key, required this.room, required this.chatController});
+class ChatSettingContactPage extends StatefulWidget {
+  const ChatSettingContactPage({super.key});
 
   @override
-  State<StatefulWidget> createState() => _ShowContactDetailState();
+  State<StatefulWidget> createState() => _ChatSettingContactPageState();
 }
 
-class _ShowContactDetailState extends State<ShowContactDetail> {
+class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
   Relay? relay;
 
-  _ShowContactDetailState();
+  _ChatSettingContactPageState();
 
   final TextEditingController _usernameController =
       TextEditingController(text: "");
-
+  late ChatController chatController;
   void cancelToast() {}
 
   @override
   void initState() {
+    int roomId = int.parse(Get.parameters['id']!);
+    var controller = RoomService.getController(roomId);
+    if (controller == null) {
+      Get.back();
+      return;
+    }
+    chatController = controller;
     super.initState();
     RelayService.instance.getDefault().then((value) {
       setState(() {
@@ -59,11 +62,6 @@ class _ShowContactDetailState extends State<ShowContactDetail> {
 
   @override
   Widget build(BuildContext context) {
-    ChatController? chatController = RoomService.getController(widget.room.id);
-    if (chatController == null) {
-      return const Center(child: Text('Loading...'));
-    }
-
     return Scaffold(
         appBar: AppBar(centerTitle: true, title: const Text('Chat Settings')),
         body: Column(mainAxisAlignment: MainAxisAlignment.start, children: [
@@ -180,8 +178,8 @@ class _ShowContactDetailState extends State<ShowContactDetail> {
                   title: const Text('Security Settings'),
                   leading: const Icon(CupertinoIcons.lock_shield),
                   onPressed: (context) {
-                    Get.to(() =>
-                        ChatSettingsMoreDart(chatController: chatController));
+                    Get.toNamed(Routes.roomSettingContactSecurity.replaceFirst(
+                        ':id', chatController.room.id.toString()));
                   },
                 ),
                 SettingsTile.switchTile(
@@ -207,7 +205,8 @@ class _ShowContactDetailState extends State<ShowContactDetail> {
                   ),
                   title: const Text('Pay to Relay'),
                   onPressed: (context) async {
-                    Get.to(() => PayToRelayPage(roomId: widget.room.id));
+                    Get.to(
+                        () => PayToRelayPage(roomId: chatController.room.id));
                   },
                 ),
               ]),
@@ -220,8 +219,8 @@ class _ShowContactDetailState extends State<ShowContactDetail> {
   dangerZoom() {
     return SettingsSection(
       tiles: [
-        RoomUtil.autoCleanMessage(widget.chatController),
-        RoomUtil.clearHistory(widget.chatController),
+        RoomUtil.autoCleanMessage(chatController),
+        RoomUtil.clearHistory(chatController),
         SettingsTile(
           leading: const Icon(
             CupertinoIcons.trash,
@@ -230,8 +229,7 @@ class _ShowContactDetailState extends State<ShowContactDetail> {
           title: const Text('Delete Chat Room',
               style: TextStyle(color: Colors.red)),
           onPressed: (context) async {
-            deleteChatRoomDialog(
-                Get.context!, widget.chatController.roomObs.value);
+            deleteChatRoomDialog(Get.context!, chatController.roomObs.value);
           },
         ),
       ],

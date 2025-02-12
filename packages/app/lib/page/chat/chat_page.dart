@@ -26,7 +26,6 @@ import '../../controller/chat.controller.dart';
 import '../../service/signal_chat.service.dart';
 import '../routes.dart';
 import '../widgets/error_text.dart';
-import 'chat_setting_contact_page.dart';
 import 'chat_setting_group_page.dart';
 import '../../service/room.service.dart';
 
@@ -503,8 +502,8 @@ class _ChatPage2State extends State<ChatPage> {
       await Get.to(() => GroupChatSettingPage(
           room: controller.roomObs.value, chatController: controller));
     } else {
-      await Get.to(() => ShowContactDetail(
-          room: controller.roomObs.value, chatController: controller));
+      await Get.toNamed(Routes.roomSettingContact
+          .replaceFirst(':id', controller.room.id.toString()));
     }
     await controller.openPageAction();
     return;

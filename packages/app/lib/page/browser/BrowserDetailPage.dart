@@ -1,4 +1,4 @@
-import 'dart:convert' show jsonDecode;
+import 'dart:convert' show jsonDecode, jsonEncode;
 
 import 'package:app/models/browser/browser_bookmark.dart';
 import 'package:app/models/browser/browser_connect.dart';
@@ -10,6 +10,7 @@ import 'package:app/page/browser/BookmarkEdit.dart';
 import 'package:app/page/browser/Browser_controller.dart';
 import 'package:app/page/browser/FavoriteEdit.dart';
 import 'package:app/page/browser/SelectIdentityForBrowser.dart';
+import 'package:app/service/SignerService.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/utils.dart';
@@ -163,6 +164,14 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                       PopupMenuItem(
                         value: 'tools',
                         child: getPopTools(url),
+                      ),
+                      PopupMenuItem(
+                        value: 'refresh',
+                        child: Row(spacing: 16, children: [
+                          const Icon(Icons.refresh),
+                          Text('Refresh',
+                              style: Theme.of(context).textTheme.bodyLarge)
+                        ]),
                       ),
                       PopupMenuItem(
                         value: 'bookmark',
@@ -448,6 +457,10 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
         return identity.secp256k1PKHex;
       case 'signEvent':
         var event = data.args[1];
+        if (identity.isFromSigner) {
+          return await SignerService.instance.signEvent(
+              pubkey: identity.secp256k1PKHex, eventJson: jsonEncode(event));
+        }
         var res = await rust_nostr.signEvent(
             senderKeys: await identity.getSecp256k1SKHex(),
             content: event['content'] as String,
@@ -461,7 +474,13 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
       case 'nip04Encrypt':
         String to = data.args[1];
         String plaintext = data.args[2];
-
+        if (identity.isFromSigner) {
+          var ciphertext = await SignerService.instance.nip04Encrypt(
+              plaintext: plaintext,
+              currentUser: identity.secp256k1PKHex,
+              to: to);
+          return ciphertext;
+        }
         var encryptedEvent = await rust_nostr.getEncryptEvent(
             senderKeys: await identity.getSecp256k1SKHex(),
             receiverPubkey: to,
@@ -469,27 +488,45 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
         var model = NostrEventModel.fromJson(jsonDecode(encryptedEvent));
         return model.content;
       case 'nip04Decrypt':
-        String to = data.args[1];
+        String from = data.args[1];
         String ciphertext = data.args[2];
-
+        if (identity.isFromSigner) {
+          var plaintext = await SignerService.instance.nip04Decrypt(
+              ciphertext: ciphertext,
+              currentUser: identity.secp256k1PKHex,
+              from: from);
+          return plaintext;
+        }
         var content = await rust_nostr.decrypt(
             senderKeys: await identity.getSecp256k1SKHex(),
-            receiverPubkey: to,
+            receiverPubkey: from,
             content: ciphertext);
         return content;
       case 'nip44Encrypt':
         String to = data.args[1];
         String plaintext = data.args[2];
-        var encryptedEvent = await rust_nostr.createGiftJson(
-            senderKeys: await identity.getSecp256k1SKHex(),
-            receiverPubkey: to,
-            kind: 14,
-            content: plaintext);
+        String encryptedEvent;
+        if (identity.isFromSigner) {
+          encryptedEvent = await SignerService.instance.nip44Encrypt(
+              from: identity.secp256k1PKHex, to: to, content: plaintext);
+          logger.d(encryptedEvent);
+        } else {
+          encryptedEvent = await rust_nostr.createGiftJson(
+              senderKeys: await identity.getSecp256k1SKHex(),
+              receiverPubkey: to,
+              kind: 14,
+              content: plaintext);
+        }
         var model = NostrEventModel.fromJson(jsonDecode(encryptedEvent));
         return model.content;
       case 'nip44Decrypt':
         String to = data.args[1];
         String ciphertext = data.args[2];
+        if (identity.isFromSigner) {
+          var subEvent = await SignerService.instance
+              .nip44Decrypt(NostrEventModel.fromJson(jsonDecode(ciphertext)));
+          return subEvent.content;
+        }
         rust_nostr.NostrEvent event = await rust_nostr.decryptGift(
             senderKeys: await identity.getSecp256k1SKHex(),
             receiver: to,
@@ -546,6 +583,9 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
     switch (value) {
       case 'share':
         Share.share(url.toString());
+        break;
+      case 'refresh':
+        webViewController?.reload();
         break;
       case 'bookmark':
         var exist = await DBProvider.database.browserBookmarks

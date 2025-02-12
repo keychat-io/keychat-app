@@ -283,7 +283,7 @@ class NostrAPI {
   }) async {
     String? encryptedEvent;
     if (identity.isFromSigner) {
-      encryptedEvent = await SignerService.instance.getNip17Event(
+      encryptedEvent = await SignerService.instance.nip44Encrypt(
           content: sourceContent,
           from: identity.secp256k1PKHex,
           to: toPubkey ?? room.toMainPubkey);
@@ -298,7 +298,7 @@ class NostrAPI {
     return await _sendAndSaveGiftMessage(
         toPubkey ?? room.toMainPubkey, sourceContent,
         room: room,
-        encryptedEvent: encryptedEvent!,
+        encryptedEvent: encryptedEvent,
         from: identity.secp256k1PKHex,
         mediaType: mediaType,
         reply: reply,
@@ -364,10 +364,9 @@ class NostrAPI {
       if (e.toString().contains('ExceptionIsFromSigner')) {
         var res = await SignerService.instance.amber.nip04Decrypt(
             ciphertext: event.content,
-            currentUser: event.pubkey,
-            pubKey: event.tags[0][1],
+            currentUser: event.tags[0][1],
+            pubKey: event.pubkey,
             id: event.id);
-        logger.d('decryptNip4Content: $res');
         return res['signature'];
       }
       logger.e('decryptNip4Content error', error: e);
@@ -668,13 +667,7 @@ class NostrAPI {
         await IdentityService.instance.getIdentityByNostrPubkey(to);
     if (identity != null) {
       if (identity.isFromSigner) {
-        var res = await SignerService.instance.amber.nip44Decrypt(
-            ciphertext: event.content,
-            currentUser: event.pubkey,
-            pubKey: to,
-            id: event.id);
-        logger.d('res: $res');
-        throw Exception('xxxx');
+        return await SignerService.instance.nip44Decrypt(event);
       }
       myPrivateKey = await SecureStorage.instance
           .readPrikeyOrFail(identity.secp256k1PKHex);

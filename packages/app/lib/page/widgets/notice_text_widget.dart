@@ -9,7 +9,7 @@ class NoticeTextWidget {
           color: color.withValues(alpha: 0.2),
           border: Border.all(color: color),
           borderRadius: BorderRadius.circular(borderRadius)),
-      child: Text(text, style: TextStyle(color: color, fontSize: fontSize)),
+      child: Text(text, style: TextStyle(fontSize: fontSize)),
     );
   }
 

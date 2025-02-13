@@ -22,31 +22,32 @@ import '../routes.dart';
 import '../../service/group.service.dart';
 import 'add_member_to_group.dart';
 
-class GroupChatSettingPage extends StatefulWidget {
-  final ChatController chatController;
-  final Room room;
-  const GroupChatSettingPage({
-    required this.room,
-    required this.chatController,
-    super.key,
-  });
+class ChatSettingGroupPage extends StatefulWidget {
+  const ChatSettingGroupPage({super.key});
 
   @override
-  createState() => _GroupChatSettingPageState();
+  createState() => _ChatSettingGroupPageState();
 }
 
-class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
+class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
   HomeController homeController = Get.find<HomeController>();
   int gridCount = 5;
   late ChatController chatController;
   late Room room;
   late TextEditingController textEditingController;
   late TextEditingController userNameController;
+
   @override
   void initState() {
+    int roomId = int.parse(Get.parameters['id']!);
+    var controller = RoomService.getController(roomId);
+    if (controller == null) {
+      Get.back();
+      return;
+    }
+    chatController = controller;
     super.initState();
-    chatController = widget.chatController;
-    room = widget.room;
+
     textEditingController =
         TextEditingController(text: chatController.roomObs.value.name);
 
@@ -107,7 +108,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
 
                   // contacts
                   List<Contact> contactList = await ContactService.instance
-                      .getListExcludeSelf(widget.room.identityId);
+                      .getListExcludeSelf(chatController.room.identityId);
                   List<Map<String, dynamic>> contacts = [];
                   contactList = contactList.reversed.toList();
                   for (int i = 0; i < contactList.length; i++) {

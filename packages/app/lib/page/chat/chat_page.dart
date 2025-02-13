@@ -2,15 +2,20 @@ import 'dart:async' show Timer;
 import 'dart:convert' show jsonDecode;
 import 'dart:math' show Random;
 
+import 'package:app/controller/chat.controller.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/page/app_theme.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/message_widget.dart';
 import 'package:app/page/components.dart';
+import 'package:app/page/routes.dart';
 import 'package:app/page/theme.dart';
+import 'package:app/page/widgets/error_text.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/message.service.dart';
+import 'package:app/service/room.service.dart';
+import 'package:app/service/signal_chat.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -21,13 +26,6 @@ import 'package:get/get.dart';
 import 'package:app/models/models.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:settings_ui/settings_ui.dart';
-
-import '../../controller/chat.controller.dart';
-import '../../service/signal_chat.service.dart';
-import '../routes.dart';
-import '../widgets/error_text.dart';
-import 'chat_setting_group_page.dart';
-import '../../service/room.service.dart';
 
 // ignore: must_be_immutable
 class ChatPage extends StatefulWidget {
@@ -498,13 +496,11 @@ class _ChatPage2State extends State<ChatPage> {
   }
 
   Future goToSetting() async {
+    String route = Routes.roomSettingContact;
     if (controller.roomObs.value.type == RoomType.group) {
-      await Get.to(() => GroupChatSettingPage(
-          room: controller.roomObs.value, chatController: controller));
-    } else {
-      await Get.toNamed(Routes.roomSettingContact
-          .replaceFirst(':id', controller.room.id.toString()));
+      route = Routes.roomSettingGroup;
     }
+    await Get.toNamed(route.replaceFirst(':id', controller.room.id.toString()));
     await controller.openPageAction();
     return;
   }

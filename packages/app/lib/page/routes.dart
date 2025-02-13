@@ -19,9 +19,9 @@ abstract class Routes {
   static const roomList = '/rooms';
   static const room = '/room/:id';
   static const roomSettingContact = '/room/:id/chat_setting_contact';
+  static const roomSettingGroup = '/room/:id/chat_setting_group';
   static const roomSettingContactSecurity =
       '/room/:id/chat_setting_contact/security';
-  static const roomSettingGroup = '/room/:id/chat_setting_group';
   static const contactList = '/contacts';
   static const contact = '/contact/:id';
 

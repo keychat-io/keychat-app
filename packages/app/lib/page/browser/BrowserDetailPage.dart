@@ -1,5 +1,6 @@
 import 'dart:convert' show jsonDecode, jsonEncode;
 
+import 'package:app/controller/home.controller.dart';
 import 'package:app/models/browser/browser_bookmark.dart';
 import 'package:app/models/browser/browser_connect.dart';
 import 'package:app/models/browser/browser_favorite.dart';
@@ -10,6 +11,7 @@ import 'package:app/page/browser/BookmarkEdit.dart';
 import 'package:app/page/browser/Browser_controller.dart';
 import 'package:app/page/browser/FavoriteEdit.dart';
 import 'package:app/page/browser/SelectIdentityForBrowser.dart';
+import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/SignerService.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/relay.service.dart';
@@ -214,11 +216,24 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                               style: Theme.of(context).textTheme.bodyLarge)
                         ]),
                       ),
+                      const PopupMenuItem(
+                        height: 1,
+                        value: 'divider',
+                        child: Divider(),
+                      ),
+                      PopupMenuItem(
+                        value: 'shareToRooms',
+                        child: Row(spacing: 16, children: [
+                          const Icon(CupertinoIcons.share),
+                          Text('Share to Rooms',
+                              style: Theme.of(context).textTheme.bodyLarge)
+                        ]),
+                      ),
                       PopupMenuItem(
                         value: 'share',
                         child: Row(spacing: 16, children: [
                           const Icon(CupertinoIcons.share),
-                          Text('Share',
+                          Text('Share Native',
                               style: Theme.of(context).textTheme.bodyLarge)
                         ]),
                       ),
@@ -577,12 +592,17 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
   }
 
   Future popupMenuSelected(String value) async {
-    final url = await webViewController?.getUrl();
-    if (url == null) return;
+    final uri = await webViewController?.getUrl();
+    if (uri == null) return;
 
     switch (value) {
       case 'share':
-        Share.share(url.toString());
+        Share.share(uri.toString());
+        break;
+      case 'shareToRooms':
+        Identity? identity = await getOrSelectIdentity(uri.host);
+        identity ??= Get.find<HomeController>().getSelectedIdentity();
+        RoomUtil.forwardTextMessage(identity, uri.toString());
         break;
       case 'refresh':
         webViewController?.reload();
@@ -590,33 +610,33 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
       case 'bookmark':
         var exist = await DBProvider.database.browserBookmarks
             .filter()
-            .urlEqualTo(url.toString())
+            .urlEqualTo(uri.toString())
             .findFirst();
         if (exist == null) {
           String? favicon = await browserController
-              .getFavicon(webViewController!, url.host)
+              .getFavicon(webViewController!, uri.host)
               .timeout(const Duration(seconds: 10));
           String? siteTitle = title == defaultTitle
               ? await webViewController?.getTitle()
               : title;
           await BrowserBookmark.add(
-              url: url.toString(), favicon: favicon, title: siteTitle);
+              url: uri.toString(), favicon: favicon, title: siteTitle);
           EasyLoading.showSuccess('Added');
         } else {
           await Get.to(() => BookmarkEdit(model: exist));
         }
         break;
       case 'favorite':
-        var exist = await BrowserFavorite.getByUrl(url.toString());
+        var exist = await BrowserFavorite.getByUrl(uri.toString());
         if (exist == null) {
           String? favicon = await browserController
-              .getFavicon(webViewController!, url.host)
+              .getFavicon(webViewController!, uri.host)
               .timeout(const Duration(seconds: 10));
           String? siteTitle = title == defaultTitle
               ? await webViewController?.getTitle()
               : title;
           await BrowserFavorite.add(
-              url: url.toString(), favicon: favicon, title: siteTitle);
+              url: uri.toString(), favicon: favicon, title: siteTitle);
           EasyLoading.showSuccess('Added');
         } else {
           await Get.to(() => FavoriteEdit(favorite: exist));
@@ -624,7 +644,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
         await browserController.loadFavorite();
         break;
       case 'copy':
-        Clipboard.setData(ClipboardData(text: url.toString()));
+        Clipboard.setData(ClipboardData(text: uri.toString()));
         EasyLoading.showToast('Copied');
         break;
       case 'clear':
@@ -635,7 +655,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
         webViewController?.reload();
         break;
       case 'disconnect':
-        BrowserConnect.getByHost(url.host).then((value) {
+        BrowserConnect.getByHost(uri.host).then((value) {
           if (value != null) {
             BrowserConnect.delete(value.id);
             webViewController?.webStorage.localStorage.clear();
@@ -651,7 +671,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
         });
         break;
       case 'openInBrowser':
-        await launchUrl(Uri.parse(url.toString()),
+        await launchUrl(Uri.parse(uri.toString()),
             mode: LaunchMode.externalApplication);
         break;
     }

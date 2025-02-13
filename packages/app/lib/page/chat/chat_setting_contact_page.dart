@@ -1,7 +1,6 @@
 import 'package:app/controller/chat.controller.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/page/chat/chat_settings_security.dart';
 import 'package:app/page/chat/message_bill/pay_to_relay_page.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/routes.dart';
@@ -35,7 +34,6 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
   final TextEditingController _usernameController =
       TextEditingController(text: "");
   late ChatController chatController;
-  void cancelToast() {}
 
   @override
   void initState() {

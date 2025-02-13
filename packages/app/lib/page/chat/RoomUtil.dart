@@ -12,6 +12,7 @@ import 'package:app/models/nostr_event_status.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/browser/Browser_controller.dart';
 import 'package:app/page/chat/ChatMediaFilesPage.dart';
+import 'package:app/page/chat/ForwardSelectRoom.dart';
 import 'package:app/page/chat/contact_page.dart';
 import 'package:app/page/chat/message_actions/BotOneTimePaymentRequestWidget.dart';
 import 'package:app/page/chat/message_actions/BotPricePerMessageRequestWidget.dart';
@@ -79,6 +80,55 @@ class RoomUtil {
         toRelays: room.sendingRelays);
     logger.i('_messageReceiveCheck: ${event.id}, maxRetry: $maxRetry');
     return await messageReceiveCheck(room, event, delay, maxRetry);
+  }
+
+  static forwardTextMessage(Identity identity, String content) async {
+    List<Room> rooms =
+        Get.find<HomeController>().getRoomsByIdentity(identity.id);
+
+    List<Room>? forwardRooms = await Get.to(
+        () => ForwardSelectRoom(rooms, content, 'Select to Forward'),
+        fullscreenDialog: true,
+        transition: Transition.downToUp);
+    if (forwardRooms == null || forwardRooms.isEmpty) return;
+
+    EasyLoading.show(status: 'Sending...');
+    await RoomService.instance.sendMessageToMultiRooms(
+        message: content,
+        realMessage: content,
+        rooms: forwardRooms,
+        identity: identity,
+        mediaType: MessageMediaType.text);
+    EasyLoading.dismiss();
+    EasyLoading.showSuccess('Sent');
+    return;
+  }
+
+  static forwardMediaMessage(Identity identity,
+      {required MessageMediaType mediaType,
+      required String content,
+      required String realMessage}) async {
+    List<Room> rooms =
+        Get.find<HomeController>().getRoomsByIdentity(identity.id);
+
+    List<Room>? forwardRooms = await Get.to(
+        () => ForwardSelectRoom(rooms, content, 'Select to Forward'),
+        fullscreenDialog: true,
+        transition: Transition.downToUp);
+    Get.back();
+    if (forwardRooms == null || forwardRooms.isEmpty) return;
+
+    EasyLoading.show(status: 'Sending...');
+
+    MsgFileInfo mfi = MsgFileInfo.fromJson(jsonDecode(realMessage));
+    await RoomService.instance.forwardFileMessage(
+      rooms: forwardRooms,
+      content: content,
+      mfi: mfi,
+      mediaType: mediaType,
+    );
+    EasyLoading.showSuccess('Sent');
+    return;
   }
 
   static GroupMessage getGroupMessage(Room room, String message,

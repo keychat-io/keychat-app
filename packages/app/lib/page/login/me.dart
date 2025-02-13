@@ -1,9 +1,11 @@
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/page/browser/BrowserSetting.dart';
 import 'package:app/page/login/CreateAccount.dart';
+import 'package:app/page/login/import_nsec.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/page/setting/app_general_setting.dart';
 import 'package:app/service/secure_storage.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:app/controller/home.controller.dart';
 
@@ -60,13 +62,56 @@ class MinePage extends GetView<SettingController> {
                                   identities.map((e) => e.npub).toList();
                               String? mnemonic =
                                   await SecureStorage.instance.getPhraseWords();
-                              Get.to(
-                                  () => CreateAccount(
-                                      type: "me",
-                                      showImportNsec: true,
-                                      mnemonic: mnemonic,
-                                      npubs: npubs),
-                                  arguments: 'create');
+                              Get.bottomSheet(SettingsList(
+                                  platform: DevicePlatform.iOS,
+                                  sections: [
+                                    SettingsSection(
+                                        title: const Text('Create ID'),
+                                        tiles: [
+                                          SettingsTile.navigation(
+                                            leading: const Icon(
+                                                Icons.local_activity),
+                                            title:
+                                                const Text("From Seed Phrase"),
+                                            onPressed: (context) async {
+                                              Get.to(
+                                                  () => CreateAccount(
+                                                      type: "me",
+                                                      showImportNsec: false,
+                                                      mnemonic: mnemonic,
+                                                      npubs: npubs),
+                                                  arguments: 'create');
+                                            },
+                                          ),
+                                          SettingsTile.navigation(
+                                            leading: const Icon(Icons.vpn_key),
+                                            title: const Text("From Nesc"),
+                                            onPressed: (context) async {
+                                              Identity? res = await Get.to(
+                                                  () => const ImportNsec());
+                                              if (res != null) {
+                                                Get.offAllNamed(Routes.root);
+                                              }
+                                            },
+                                          ),
+                                          if (GetPlatform.isAndroid)
+                                            SettingsTile.navigation(
+                                              leading: SvgPicture.asset(
+                                                'assets/images/logo/amber.svg',
+                                                fit: BoxFit.contain,
+                                                width: 20,
+                                                height: 20,
+                                              ),
+                                              title: const Text(
+                                                  "Login with Amber App"),
+                                              onPressed: (context) {
+                                                Utils.handleAmberLogin(() {
+                                                  Get.back();
+                                                });
+                                              },
+                                            )
+                                        ]),
+                                  ]));
                             })
                       ]),
                   SettingsSection(

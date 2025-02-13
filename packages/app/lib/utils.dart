@@ -2,6 +2,8 @@ import 'dart:async' show TimeoutException;
 import 'dart:convert' show JsonEncoder, jsonEncode, jsonDecode;
 import 'dart:io' show Directory, File, FileMode, Platform;
 import 'dart:math' show Random;
+import 'package:app/service/SignerService.dart';
+import 'package:app/service/identity.service.dart';
 import 'package:auto_size_text_plus/auto_size_text_plus.dart';
 import 'package:badges/badges.dart' as badges;
 import 'package:app/controller/setting.controller.dart';
@@ -18,6 +20,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart' show DateFormat;
@@ -779,5 +782,72 @@ class Utils {
       return account.split(RegExp(r'(?=[A-Z])|\s+')).first;
     }
     return account.substring(0, nameLength);
+  }
+
+  static Future _submitAmberLogin(TextEditingController controller,
+      [Function? callback]) async {
+    String name = controller.text.trim();
+
+    if (name.isEmpty) {
+      EasyLoading.showError("Username is required");
+      return;
+    }
+    String? pubkey = await SignerService.instance.getPublicKey();
+    if (pubkey == null) {
+      EasyLoading.showError("Amber Not Authorized");
+      return;
+    }
+    Get.back();
+    EasyLoading.show(status: 'Loading...');
+
+    try {
+      await IdentityService.instance.createIdentityByAmberPubkey(
+        name: name,
+        pubkey: pubkey,
+      );
+      EasyLoading.dismiss();
+    } catch (e) {
+      EasyLoading.dismiss();
+      EasyLoading.showError("Failed to create identity: $e");
+      return;
+    }
+
+    if (callback != null) callback();
+  }
+
+  static handleAmberLogin([Function? callback]) async {
+    TextEditingController controller = TextEditingController();
+    var focusNode = FocusNode();
+
+    Get.dialog<String>(
+      CupertinoAlertDialog(
+        title: const Text('Login with Amber App'),
+        content: Form(
+          child: Column(
+            children: [
+              TextFormField(
+                controller: controller,
+                focusNode: focusNode,
+                autofocus: true,
+                decoration: const InputDecoration(
+                    hintText: 'Nickname', border: OutlineInputBorder()),
+                onFieldSubmitted: (c) {
+                  _submitAmberLogin(controller, callback);
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () {
+              _submitAmberLogin(controller, callback);
+            },
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -70,7 +70,11 @@ class Login extends StatelessWidget {
                             width: 20,
                             height: 20,
                           ),
-                          onPressed: handleAmberLogin,
+                          onPressed: () {
+                            Utils.handleAmberLogin(() {
+                              Get.offAllNamed(Routes.root, arguments: true);
+                            });
+                          },
                           label: const Text("Login with Amber App"))
                   ])
             ])));
@@ -107,63 +111,5 @@ class Login extends StatelessWidget {
         )
       ]),
     ]);
-  }
-
-  void handleAmberLogin() async {
-    String? pubkey = await SignerService.instance.getPublicKey();
-    if (pubkey == null) {
-      EasyLoading.showError("Not Authorized");
-      return;
-    }
-
-    TextEditingController controller = TextEditingController();
-    var focusNode = FocusNode();
-    Future submitAmberLogin([String? value]) async {
-      String name = controller.text.trim();
-      if (name.isEmpty) {
-        EasyLoading.showError("Username is required");
-        return;
-      }
-      Get.back();
-      EasyLoading.show(status: 'Loading...');
-
-      await IdentityService.instance.createIdentityByAmberPubkey(
-        name: name,
-        pubkey: pubkey,
-      );
-
-      EasyLoading.dismiss();
-
-      Get.offAllNamed(Routes.root, arguments: true);
-    }
-
-    Get.dialog<String>(
-      CupertinoAlertDialog(
-        title: const Text('Login with Amber App'),
-        content: Form(
-          child: Column(
-            children: [
-              Text(pubkey),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: controller,
-                focusNode: focusNode,
-                autofocus: true,
-                decoration: const InputDecoration(
-                    hintText: 'Nickname', border: OutlineInputBorder()),
-                onFieldSubmitted: submitAmberLogin,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          CupertinoDialogAction(
-            isDefaultAction: true,
-            onPressed: submitAmberLogin,
-            child: const Text('Confirm'),
-          ),
-        ],
-      ),
-    );
   }
 }

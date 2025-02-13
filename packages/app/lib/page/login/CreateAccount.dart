@@ -59,7 +59,6 @@ class _CreateAccountState extends State<CreateAccount> {
     return Scaffold(
         appBar: widget.type != "tab"
             ? AppBar(
-                centerTitle: true,
                 title: Column(children: [
                   const Text('Create ID'),
                   Text('Derived from seed phrase',
@@ -71,7 +70,7 @@ class _CreateAccountState extends State<CreateAccount> {
                             onPressed: () {
                               Get.off(() => const ImportNsec());
                             },
-                            child: const Text('Import Nsec'))
+                            child: const Text('Nsec')),
                       ]
                     : [],
               )

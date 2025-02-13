@@ -135,6 +135,8 @@ class IdentityService {
       {required String name, required String pubkey}) async {
     Isar database = DBProvider.database;
     String hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: pubkey);
+    var exist = await getIdentityByNostrPubkey(hexPubkey);
+    if (exist != null) throw Exception('Identity already exist');
     String npub = rust_nostr.getBech32PubkeyByHex(hex: hexPubkey);
     Identity iden = Identity(name: name, secp256k1PKHex: hexPubkey, npub: npub)
       ..index = -1

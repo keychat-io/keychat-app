@@ -2,6 +2,7 @@ import 'dart:async' show TimeoutException;
 import 'dart:convert' show JsonEncoder, jsonEncode, jsonDecode;
 import 'dart:io' show Directory, File, FileMode, Platform;
 import 'dart:math' show Random;
+import 'package:app/models/identity.dart';
 import 'package:app/service/SignerService.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:auto_size_text_plus/auto_size_text_plus.dart';
@@ -784,42 +785,42 @@ class Utils {
     return account.substring(0, nameLength);
   }
 
-  static Future _submitAmberLogin(TextEditingController controller,
-      [Function? callback]) async {
+  static Future<Identity?> _submitAmberLogin(
+      TextEditingController controller) async {
     String name = controller.text.trim();
 
     if (name.isEmpty) {
       EasyLoading.showError("Username is required");
-      return;
+      return null;
     }
     String? pubkey = await SignerService.instance.getPublicKey();
     if (pubkey == null) {
       EasyLoading.showError("Amber Not Authorized");
-      return;
+      return null;
     }
-    Get.back();
+
     EasyLoading.show(status: 'Loading...');
 
     try {
-      await IdentityService.instance.createIdentityByAmberPubkey(
+      var res = await IdentityService.instance.createIdentityByAmberPubkey(
         name: name,
         pubkey: pubkey,
       );
       EasyLoading.dismiss();
+
+      return res;
     } catch (e) {
       EasyLoading.dismiss();
       EasyLoading.showError("Failed to create identity: $e");
-      return;
     }
-
-    if (callback != null) callback();
+    return null;
   }
 
-  static handleAmberLogin([Function? callback]) async {
+  static Future<Identity?> handleAmberLogin() async {
     TextEditingController controller = TextEditingController();
     var focusNode = FocusNode();
 
-    Get.dialog<String>(
+    return Get.dialog<Identity>(
       CupertinoAlertDialog(
         title: const Text('Login with Amber App'),
         content: Form(
@@ -831,8 +832,9 @@ class Utils {
                 autofocus: true,
                 decoration: const InputDecoration(
                     hintText: 'Nickname', border: OutlineInputBorder()),
-                onFieldSubmitted: (c) {
-                  _submitAmberLogin(controller, callback);
+                onFieldSubmitted: (c) async {
+                  var identity = await _submitAmberLogin(controller);
+                  Get.back(result: identity);
                 },
               ),
             ],
@@ -841,8 +843,9 @@ class Utils {
         actions: [
           CupertinoDialogAction(
             isDefaultAction: true,
-            onPressed: () {
-              _submitAmberLogin(controller, callback);
+            onPressed: () async {
+              var identity = await _submitAmberLogin(controller);
+              Get.back(result: identity);
             },
             child: const Text('Confirm'),
           ),

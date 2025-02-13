@@ -6,11 +6,9 @@ import 'package:app/page/login/import_nsec.dart';
 import 'package:app/page/login/import_seed_phrase.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/page/setting/more_chat_setting.dart';
-import 'package:app/service/SignerService.dart';
-import 'package:app/service/identity.service.dart';
+
 import 'package:app/service/secure_storage.dart';
 import 'package:app/utils.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_svg/svg.dart';
@@ -50,7 +48,10 @@ class Login extends StatelessWidget {
                         onPressed: () async {
                           try {
                             await SecureStorage.instance.clearAll();
-                            Get.to(() => const CreateAccount(type: "init"));
+                            var res = await Get.to(() => const CreateAccount());
+                            if (res != null) {
+                              Get.offAllNamed(Routes.root, arguments: true);
+                            }
                           } catch (e, s) {
                             EasyLoading.showError(e.toString());
                             logger.e(e.toString(), stackTrace: s);
@@ -70,10 +71,12 @@ class Login extends StatelessWidget {
                             width: 20,
                             height: 20,
                           ),
-                          onPressed: () {
-                            Utils.handleAmberLogin(() {
+                          onPressed: () async {
+                            var identity = await Utils.handleAmberLogin();
+                            if (identity != null) {
+                              logger.d('xxxidentity ${identity.id}');
                               Get.offAllNamed(Routes.root, arguments: true);
-                            });
+                            }
                           },
                           label: const Text("Login with Amber App"))
                   ])
@@ -87,7 +90,10 @@ class Login extends StatelessWidget {
           leading: const Icon(Icons.local_activity),
           title: const Text("From Seed Phrase"),
           onPressed: (context) async {
-            await Get.to(() => const ImportSeedPhrase());
+            Identity? res = await Get.to(() => const ImportSeedPhrase());
+            if (res != null) {
+              Get.offAllNamed(Routes.root, arguments: true);
+            }
           },
         ),
         SettingsTile.navigation(
@@ -96,7 +102,7 @@ class Login extends StatelessWidget {
           onPressed: (context) async {
             Identity? res = await Get.to(() => const ImportNsec());
             if (res != null) {
-              Get.offAllNamed(Routes.root);
+              Get.offAllNamed(Routes.root, arguments: true);
             }
           },
         ),

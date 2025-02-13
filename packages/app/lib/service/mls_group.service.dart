@@ -278,7 +278,9 @@ $error ''';
           dbPath: '$dbPath${KeychatGlobal.mlsDBFile}',
           nostrId: identity.secp256k1PKHex);
       logger.i('MLS init for identity: ${identity.secp256k1PKHex}');
-      _uploadPKMessage(identity);
+      Future.delayed(const Duration(seconds: 3)).then((c) {
+        _uploadPKMessage(identity);
+      });
     }));
   }
 

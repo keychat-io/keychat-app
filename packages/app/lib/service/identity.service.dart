@@ -65,6 +65,8 @@ class IdentityService {
     if (account.mnemonic == null) throw Exception('mnemonic is null');
     Isar database = DBProvider.database;
     HomeController homeController = Get.find<HomeController>();
+    var exist = await getIdentityByNostrPubkey(account.pubkey);
+    if (exist != null) throw Exception('Identity already exist');
     Identity iden = Identity(
         name: name, secp256k1PKHex: account.pubkey, npub: account.pubkeyBech32)
       ..curve25519PkHex = account.curve25519PkHex!
@@ -116,6 +118,8 @@ class IdentityService {
       required String prikey}) async {
     Isar database = DBProvider.database;
     String npub = rust_nostr.getBech32PubkeyByHex(hex: hexPubkey);
+    var exist = await getIdentityByNostrPubkey(hexPubkey);
+    if (exist != null) throw Exception('Identity already exist');
     Identity iden = Identity(name: name, secp256k1PKHex: hexPubkey, npub: npub)
       ..index = -1;
     await database.writeTxn(() async {

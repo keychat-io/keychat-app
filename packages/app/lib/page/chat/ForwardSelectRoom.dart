@@ -34,6 +34,7 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
   init(Identity identity) {
     List<Room> res = Get.find<HomeController>().getRoomsByIdentity(identity.id);
     setState(() {
+      selectedIdentity = identity;
       rooms = res;
     });
   }
@@ -70,7 +71,7 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
                   init(selected);
                 },
                 icon: const Icon(Icons.swap_horiz),
-                label: Text(widget.identity.displayName))
+                label: Text(selectedIdentity.displayName))
           ],
         ),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,

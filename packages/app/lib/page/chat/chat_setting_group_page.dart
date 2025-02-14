@@ -73,14 +73,11 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
               IconButton(
                   icon: const Icon(CupertinoIcons.share),
                   onPressed: () async {
-                    List<Room> rooms = Get.find<HomeController>()
-                        .getRoomsByIdentity(
-                            chatController.roomObs.value.identityId);
                     String realMessage =
                         'Share a Group: ${chatController.roomObs.value.name}';
                     List<Room>? forwardRooms = await Get.to(
-                        () => ForwardSelectRoom(
-                            rooms, realMessage, 'Share to Friends'),
+                        () => ForwardSelectRoom(realMessage,
+                            chatController.roomObs.value.getIdentity()),
                         fullscreenDialog: true,
                         transition: Transition.downToUp);
                     if (forwardRooms == null || forwardRooms.isEmpty) return;

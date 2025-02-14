@@ -4,7 +4,7 @@ import 'dart:math' show Random;
 
 import 'package:app/controller/chat.controller.dart';
 import 'package:app/controller/home.controller.dart';
-import 'package:app/page/app_theme.dart';
+import 'package:app/page/browser/Browser_controller.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/message_widget.dart';
 import 'package:app/page/components.dart';
@@ -21,9 +21,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+
 import 'package:get/get.dart';
 import 'package:app/models/models.dart';
+import 'package:markdown_widget/markdown_widget.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:settings_ui/settings_ui.dart';
 
@@ -39,6 +40,49 @@ class _ChatPage2State extends State<ChatPage> {
   late ChatController controller;
   DateTime searchDt = DateTime.now();
   bool isFromSearch = false;
+  HomeController hc = Get.find<HomeController>();
+
+  late Widget myAavtar;
+  bool isGroup = false;
+  late MarkdownConfig markdownDarkConfig;
+  Color meBackgroundColor = const Color(0xff7748FF);
+  late Color toBackgroundColor;
+  late MarkdownConfig markdownLightConfig;
+  late Color fontColor;
+  @override
+  void initState() {
+    super.initState();
+    Room room = _getRoomAndInit(context);
+    myAavtar = Utils.getRandomAvatar(room.getIdentity().secp256k1PKHex,
+        height: 40, width: 40);
+    isGroup = room.type == RoomType.group;
+    toBackgroundColor =
+        Get.isDarkMode ? const Color(0xFF2c2c2c) : const Color(0xFFFFFFFF);
+    fontColor = Get.isDarkMode ? Colors.white : Colors.black87;
+    markdownDarkConfig = MarkdownConfig.darkConfig.copy(configs: [
+      LinkConfig(
+          onTap: (url) {
+            Utils.hideKeyboard(Get.context!);
+            Get.find<BrowserController>().lanuchWebview(content: url);
+          },
+          style: const TextStyle(
+              color: Colors.white,
+              decoration: TextDecoration.underline,
+              decorationColor: Colors.white)),
+      const PConfig(textStyle: TextStyle(color: Colors.white, fontSize: 16)),
+      PreConfig.darkConfig
+          .copy(textStyle: const TextStyle(color: Colors.white, fontSize: 16))
+    ]);
+    markdownLightConfig = MarkdownConfig.defaultConfig.copy(configs: [
+      LinkConfig(
+          onTap: (url) {
+            Utils.hideKeyboard(Get.context!);
+            Get.find<BrowserController>().lanuchWebview(content: url);
+          },
+          style: const TextStyle(
+              color: Colors.blue, decoration: TextDecoration.none)),
+    ]);
+  }
 
   @override
   void dispose() {
@@ -51,45 +95,6 @@ class _ChatPage2State extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
-    Room room = _getRoomAndInit(context);
-    HomeController hc = Get.find<HomeController>();
-    Widget myAavtar = Utils.getRandomAvatar(room.getIdentity().secp256k1PKHex,
-        height: 40, width: 40);
-    bool isGroup = room.type == RoomType.group;
-    double screenWidth = Get.width;
-
-    Color fontColor = Get.isDarkMode ? Colors.white : Colors.black87;
-    Color toBackgroundColor =
-        Get.isDarkMode ? const Color(0xFF2c2c2c) : const Color(0xFFFFFFFF);
-
-    //const Color(0xFFF5E2FF).withValues(alpha: 0.8); // for light mode
-    Color meBackgroundColor = const Color(0xff7748FF);
-
-    // style for text
-    MarkdownStyleSheet myMarkdownStyleSheet =
-        MarkdownStyleSheet.fromTheme(AppThemeCustom.dark()).copyWith(
-            strong: Theme.of(Get.context!).textTheme.titleSmall?.copyWith(
-                fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
-            a: Theme.of(Get.context!)
-                .textTheme
-                .bodyLarge
-                ?.copyWith(color: Colors.white, fontSize: 16),
-            p: Theme.of(Get.context!)
-                .textTheme
-                .bodyLarge
-                ?.copyWith(color: Colors.white, fontSize: 16));
-
-    MarkdownStyleSheet hisMarkdownStyleSheet =
-        MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-            strong: Theme.of(Get.context!)
-                .textTheme
-                .titleSmall
-                ?.copyWith(fontSize: 16, fontWeight: FontWeight.bold),
-            p: Theme.of(Get.context!)
-                .textTheme
-                .bodyLarge
-                ?.copyWith(fontSize: 16));
-
     return Scaffold(
         appBar: AppBar(
           scrolledUnderElevation: 0.0,
@@ -238,7 +243,7 @@ class _ChatPage2State extends State<ChatPage> {
                                           isGroup: isGroup,
                                           roomMember: rm,
                                           chatController: controller,
-                                          screenWidth: screenWidth,
+                                          screenWidth: Get.width,
                                           toDisplayNameColor: Get.isDarkMode
                                               ? Colors.white54
                                               : Colors.black54,
@@ -246,9 +251,10 @@ class _ChatPage2State extends State<ChatPage> {
                                               ? meBackgroundColor
                                               : toBackgroundColor,
                                           fontColor: fontColor,
-                                          markdownStyleSheet: message.isMeSend
-                                              ? myMarkdownStyleSheet
-                                              : hisMarkdownStyleSheet,
+                                          markdownConfig:
+                                              Get.isDarkMode || message.isMeSend
+                                                  ? markdownDarkConfig
+                                                  : markdownLightConfig,
                                         ));
                                   },
                                 ))),

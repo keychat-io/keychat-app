@@ -13,7 +13,7 @@ import 'package:app/page/routes.dart';
 import 'package:app/page/theme.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
-import 'package:flutter_markdown/flutter_markdown.dart';
+
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
@@ -24,6 +24,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart';
+import 'package:markdown_widget/markdown_widget.dart';
 import 'package:settings_ui/settings_ui.dart';
 
 import '../../models/db_provider.dart';
@@ -47,7 +48,8 @@ class MessageWidget extends StatelessWidget {
   late double screenWidth;
   late bool isGroup;
   late Color toDisplayNameColor;
-  late MarkdownStyleSheet markdownStyleSheet;
+  late MarkdownConfig markdownConfig;
+  // late MarkdownStyleSheet markdownStyleSheet;
 
   MessageWidget(
       {super.key,
@@ -60,7 +62,7 @@ class MessageWidget extends StatelessWidget {
       required this.backgroundColor,
       required this.screenWidth,
       required this.toDisplayNameColor,
-      required this.markdownStyleSheet,
+      required this.markdownConfig,
       this.roomMember}) {
     message = chatController.messages[index];
   }
@@ -326,7 +328,7 @@ class MessageWidget extends StatelessWidget {
         onLongPress: _handleTextLongPress,
         child: message.reply == null
             ? RoomUtil.getTextViewWidget(
-                message, chatController, markdownStyleSheet, _textCallback)
+                message, chatController, markdownConfig, _textCallback)
             : _getReplyWidget());
 
     if (message.isMeSend) {
@@ -578,7 +580,7 @@ class MessageWidget extends StatelessWidget {
           ),
         ),
         RoomUtil.getMarkdownView(
-            message.realMessage ?? message.content, markdownStyleSheet)
+            message.realMessage ?? message.content, markdownConfig),
       ],
     ));
   }

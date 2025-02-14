@@ -273,13 +273,15 @@ $error ''';
       throw Exception('MLS dbPath is null');
     }
     identities ??= await IdentityService.instance.getIdentityList();
+    List<String> pubkeys = identities.map((e) => e.secp256k1PKHex).toList();
+    Map mls = await getPKs(pubkeys);
     await Future.wait(identities.map((identity) async {
       await rust_mls.initMlsDb(
           dbPath: '$dbPath${KeychatGlobal.mlsDBFile}',
           nostrId: identity.secp256k1PKHex);
       logger.i('MLS init for identity: ${identity.secp256k1PKHex}');
       Future.delayed(const Duration(seconds: 3)).then((c) {
-        _uploadPKMessage(identity);
+        _uploadPKMessage(identity, mls[identity.secp256k1PKHex]);
       });
     }));
   }
@@ -724,10 +726,11 @@ $error ''';
     // });
   }
 
-  Future _uploadPKMessage(Identity identity) async {
+  Future _uploadPKMessage(Identity identity, String? serverExist) async {
     int exist = await Storage.getIntOrZero('mlspk:${identity.secp256k1PKHex}');
-    if (exist == 0 ||
-        DateTime.now().millisecondsSinceEpoch - exist > 86400000) {
+    if (serverExist == null ||
+        exist == 0 ||
+        DateTime.now().millisecondsSinceEpoch - exist > 86400) {
       String mlkPK = await MlsGroupService.instance
           .createKeyMessages(identity.secp256k1PKHex);
       bool success = await updateMlsPK(identity, mlkPK);

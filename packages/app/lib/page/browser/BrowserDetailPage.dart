@@ -225,7 +225,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                         value: 'shareToRooms',
                         child: Row(spacing: 16, children: [
                           const Icon(CupertinoIcons.share),
-                          Text('Share to Rooms',
+                          Text('Share to Room',
                               style: Theme.of(context).textTheme.bodyLarge)
                         ]),
                       ),
@@ -233,15 +233,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                         value: 'share',
                         child: Row(spacing: 16, children: [
                           const Icon(CupertinoIcons.share),
-                          Text('Share Native',
-                              style: Theme.of(context).textTheme.bodyLarge)
-                        ]),
-                      ),
-                      PopupMenuItem(
-                        value: 'openInBrowser',
-                        child: Row(spacing: 12, children: [
-                          const Icon(CupertinoIcons.globe),
-                          Text('Native Browser',
+                          Text('Share',
                               style: Theme.of(context).textTheme.bodyLarge)
                         ]),
                       ),
@@ -600,8 +592,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
         Share.share(uri.toString());
         break;
       case 'shareToRooms':
-        Identity? identity = await getOrSelectIdentity(uri.host);
-        identity ??= Get.find<HomeController>().getSelectedIdentity();
+        Identity identity = Get.find<HomeController>().getSelectedIdentity();
         RoomUtil.forwardTextMessage(identity, uri.toString());
         break;
       case 'refresh':
@@ -669,10 +660,6 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
             webViewController?.reload();
           }
         });
-        break;
-      case 'openInBrowser':
-        await launchUrl(Uri.parse(uri.toString()),
-            mode: LaunchMode.externalApplication);
         break;
     }
   }

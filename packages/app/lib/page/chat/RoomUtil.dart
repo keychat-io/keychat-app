@@ -28,7 +28,7 @@ import 'package:app/service/signal_chat_util.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:keychat_ecash/red_pocket.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
@@ -56,6 +56,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart' hide Contact;
+import 'package:markdown_widget/markdown_widget.dart';
 import 'package:settings_ui/settings_ui.dart';
 
 class RoomUtil {
@@ -83,11 +84,8 @@ class RoomUtil {
   }
 
   static forwardTextMessage(Identity identity, String content) async {
-    List<Room> rooms =
-        Get.find<HomeController>().getRoomsByIdentity(identity.id);
-
     List<Room>? forwardRooms = await Get.to(
-        () => ForwardSelectRoom(rooms, content, 'Select to Forward'),
+        () => ForwardSelectRoom(content, identity),
         fullscreenDialog: true,
         transition: Transition.downToUp);
     if (forwardRooms == null || forwardRooms.isEmpty) return;
@@ -108,11 +106,8 @@ class RoomUtil {
       {required MessageMediaType mediaType,
       required String content,
       required String realMessage}) async {
-    List<Room> rooms =
-        Get.find<HomeController>().getRoomsByIdentity(identity.id);
-
     List<Room>? forwardRooms = await Get.to(
-        () => ForwardSelectRoom(rooms, content, 'Select to Forward'),
+        () => ForwardSelectRoom(content, identity),
         fullscreenDialog: true,
         transition: Transition.downToUp);
     Get.back();
@@ -691,39 +686,19 @@ Let's start an encrypted chat.''';
     return rooms;
   }
 
-  static Widget getMarkdownView(String text, MarkdownStyleSheet styleSheet) {
-    return MarkdownBody(
+  static Widget getMarkdownView(String text, MarkdownConfig config) {
+    return MarkdownBlock(
         data: text,
         selectable: false,
-        softLineBreak: true,
-        onTapLink: (text, href, title) {
-          if (href != null) {
-            Utils.hideKeyboard(Get.context!);
-            Get.find<BrowserController>().lanuchWebview(content: href);
-          }
-        },
-        styleSheetTheme: MarkdownStyleSheetBaseTheme.cupertino,
-        styleSheet: styleSheet);
-    // return Linkify(
-    //   onOpen: (link) {
-    //     final Uri uri = Uri.parse(link.url);
-    //     Utils.hideKeyboard(Get.context!);
-    //     launchUrl(uri);
-    //     return;
-    //   },
-    //   style: Theme.of(Get.context!)
-    //       .textTheme
-    //       .bodyLarge
-    //       ?.copyWith(color: fontColor, fontSize: 16),
-    //   text: text,
-    //   linkStyle: const TextStyle(decoration: TextDecoration.none, fontSize: 15),
-    // );
+        config: config,
+        generator: MarkdownGenerator(
+            linesMargin: const EdgeInsets.symmetric(vertical: 0)));
   }
 
   static Widget _getLinkPreviewWidget(
       Message message,
-      Widget Function({Widget? child, String? text}) errorCallback,
-      MarkdownStyleSheet styleSheet) {
+      MarkdownConfig markdownConfig,
+      Widget Function({Widget? child, String? text}) errorCallback) {
     String content = message.content;
     return AnyLinkPreview(
         key: Key(content),
@@ -734,37 +709,38 @@ Let's start an encrypted chat.''';
           Get.find<BrowserController>().lanuchWebview(content: content);
         },
         placeholderWidget:
-            errorCallback(child: getMarkdownView(content, styleSheet)),
+            errorCallback(child: getMarkdownView(content, markdownConfig)),
         showMultimedia: false,
         errorBody: '',
         errorWidget:
-            errorCallback(child: getMarkdownView(content, styleSheet)));
+            errorCallback(child: getMarkdownView(content, markdownConfig)));
   }
 
   static Widget _getActionWidget(
       Widget child,
       Message message,
-      MarkdownStyleSheet styleSheet,
+      MarkdownConfig markdownConfig,
       Widget Function({Widget? child, String? text}) errorCallback) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _getTextItemView(message, styleSheet, errorCallback),
+        _getTextItemView(message, markdownConfig, errorCallback),
         const SizedBox(height: 10),
         child
       ],
     );
   }
 
-  static _getTextItemView(Message message, MarkdownStyleSheet styleSheet,
+  static _getTextItemView(Message message, MarkdownConfig markdownConfig,
       Widget Function({Widget? child, String? text}) errorCallback) {
     if (AnyLinkPreview.isValidLink(message.content) &&
         !isEmail(message.content)) {
-      return _getLinkPreviewWidget(message, errorCallback, styleSheet);
+      return _getLinkPreviewWidget(message, markdownConfig, errorCallback);
     }
+
     return errorCallback(
         child: getMarkdownView(
-            message.realMessage ?? message.content, styleSheet));
+            message.realMessage ?? message.content, markdownConfig));
   }
 
   static Widget _imageTextView(Message message, ChatController chatController,
@@ -836,12 +812,12 @@ Let's start an encrypted chat.''';
   static Widget getTextViewWidget(
       Message message,
       ChatController chatController,
-      MarkdownStyleSheet styleSheet,
+      MarkdownConfig markdownConfig,
       Widget Function({Widget? child, String? text}) errorCallback) {
     try {
       switch (message.mediaType) {
         case MessageMediaType.text:
-          return _getTextItemView(message, styleSheet, errorCallback);
+          return _getTextItemView(message, markdownConfig, errorCallback);
         case MessageMediaType.video:
           return VideoMessageWidget(message, errorCallback);
         case MessageMediaType.image:
@@ -855,32 +831,32 @@ Let's start an encrypted chat.''';
           }
         case MessageMediaType.setPostOffice:
           return _getActionWidget(SetRoomRelayAction(chatController, message),
-              message, styleSheet, errorCallback);
+              message, markdownConfig, errorCallback);
         case MessageMediaType.groupInvite:
           return _getActionWidget(
               GroupInviteAction(message, chatController.room.getIdentity()),
               message,
-              styleSheet,
+              markdownConfig,
               errorCallback);
         case MessageMediaType.groupInviteConfirm:
           return _getActionWidget(
               GroupInviteConfirmAction(
                   chatController.room.getRoomName(), message),
               message,
-              styleSheet,
+              markdownConfig,
               errorCallback);
         // bot
         case MessageMediaType.botPricePerMessageRequest:
           return _getActionWidget(
               BotPricePerMessageRequestWidget(chatController, message),
               message,
-              styleSheet,
+              markdownConfig,
               errorCallback);
         case MessageMediaType.botOneTimePaymentRequest:
           return _getActionWidget(
               BotOneTimePaymentRequestWidget(chatController, message),
               message,
-              styleSheet,
+              markdownConfig,
               errorCallback);
         case MessageMediaType.groupInvitationInfo:
           return GroupInvitationInfoWidget(
@@ -894,6 +870,6 @@ Let's start an encrypted chat.''';
       logger.e('sub content: ', error: e, stackTrace: s);
     }
 
-    return _getTextItemView(message, styleSheet, errorCallback);
+    return _getTextItemView(message, markdownConfig, errorCallback);
   }
 }

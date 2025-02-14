@@ -1,9 +1,9 @@
+import 'package:app/page/browser/Browser_controller.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:get/get.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:markdown_widget/markdown_widget.dart';
 
 class LongTextPreviewPage extends StatelessWidget {
   final String text;
@@ -30,24 +30,21 @@ class LongTextPreviewPage extends StatelessWidget {
           Center(
               child: SingleChildScrollView(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 50),
-                  child: MarkdownBody(
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 30),
+                  child: MarkdownBlock(
                       data: text,
                       selectable: true,
-                      softLineBreak: true,
-                      styleSheet: MarkdownStyleSheet(
-                          p: Theme.of(Get.context!)
-                              .textTheme
-                              .bodyLarge
-                              ?.copyWith(fontSize: 18)),
-                      onTapLink: (url, url2, url3) {
-                        if (!url.startsWith('http') && url2 != null) {
-                          url = url2;
-                        }
-                        final Uri uri = Uri.parse(url);
-                        Utils.hideKeyboard(Get.context!);
-                        launchUrl(uri);
-                      })))
+                      config: (Get.isDarkMode
+                              ? MarkdownConfig.darkConfig
+                              : MarkdownConfig.defaultConfig)
+                          .copy(configs: [
+                        const PConfig(textStyle: TextStyle(fontSize: 20)),
+                        LinkConfig(onTap: (url) {
+                          Utils.hideKeyboard(Get.context!);
+                          Get.find<BrowserController>()
+                              .lanuchWebview(content: url);
+                        })
+                      ]))))
         ]));
   }
 }

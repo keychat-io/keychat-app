@@ -119,44 +119,52 @@ class MoreChatSetting extends StatelessWidget {
           () => SettingsList(platform: DevicePlatform.iOS, sections: [
             SettingsSection(title: const Text('Database Setting'), tiles: [
               SettingsTile.switchTile(
-                  initialValue: !hc.checkRunStatus.value,
-                  description: NoticeTextWidget.warning(
-                      'When message sending and receiving are disabled, the data export and import functions can operate without interruption.'),
+                  initialValue: hc.checkRunStatus.value,
+                  description: hc.checkRunStatus.value
+                      ? NoticeTextWidget.warning(
+                          'Pause the chat to enable database actions.')
+                      : NoticeTextWidget.warning(
+                          'Use the latest chat database on your device to avoid message interruptions.'),
                   onToggle: (res) async {
-                    if (res) {
-                      closeAllRelays();
+                    if (!res) {
+                      Get.dialog(CupertinoAlertDialog(
+                        title: const Text("Stop chat?"),
+                        content: const Text(
+                            "You will not be able to receive and send messages while the chat is stopped."),
+                        actions: <Widget>[
+                          CupertinoDialogAction(
+                            child: const Text('Cancel'),
+                            onPressed: () {
+                              Get.back();
+                            },
+                          ),
+                          CupertinoDialogAction(
+                              isDestructiveAction: true,
+                              child: const Text('Stop'),
+                              onPressed: () async {
+                                closeAllRelays();
+                                Get.back();
+                              }),
+                        ],
+                      ));
                       return;
                     }
                     restartAllRelays();
                   },
-                  title: const Text('Disable sending && receiving')),
+                  title: Text(hc.checkRunStatus.value
+                      ? 'Chat is running'
+                      : 'Chat is stopped')),
               SettingsTile.navigation(
                   title: const Text('Export data'),
-                  description: NoticeTextWidget.warning(
-                      'We strongly recommend that you stop sending and receiving messages after exporting the data, unless you import it on another device.'),
                   onPressed: (context) async {
                     // need check if message sending and receiving are disabled
                     // and need to set pwd to encrypt database
                     if (hc.checkRunStatus.value) {
                       EasyLoading.showError(
-                          'Please disabled sending && receiving');
+                          'Pause the chat to export database');
                       return;
                     }
                     _showSetEncryptionPwdDialog(context);
-                  }),
-              SettingsTile.navigation(
-                  title: const Text('Import data'),
-                  description: NoticeTextWidget.warning(
-                      'You must import the latest data. Otherwise, the Signal session may be interrupted, and sending and receiving messages may not function properly.'),
-                  onPressed: (context) async {
-                    // need check if message sending and receiving are disabled
-                    // and need to set pwd to decrypt database
-                    if (hc.checkRunStatus.value) {
-                      EasyLoading.showError(
-                          'Please disabled sending && receiving');
-                      return;
-                    }
-                    enableImportDB(context);
                   }),
             ])
           ]),

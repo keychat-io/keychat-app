@@ -224,7 +224,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                       PopupMenuItem(
                         value: 'shareToRooms',
                         child: Row(spacing: 16, children: [
-                          const Icon(CupertinoIcons.share),
+                          const Icon(CupertinoIcons.chat_bubble),
                           Text('Share to Room',
                               style: Theme.of(context).textTheme.bodyLarge)
                         ]),
@@ -646,20 +646,19 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
         webViewController?.reload();
         break;
       case 'disconnect':
-        BrowserConnect.getByHost(uri.host).then((value) {
-          if (value != null) {
-            BrowserConnect.delete(value.id);
-            webViewController?.webStorage.localStorage.clear();
-            webViewController?.webStorage.sessionStorage.clear();
-            EasyLoading.showToast('Logout Success');
-            setState(() {
-              browserConnect = null;
-              canGoBack = false;
-              canGoForward = false;
-            });
-            webViewController?.reload();
-          }
+        var res = await BrowserConnect.getByHost(uri.host);
+        if (res != null) {
+          await BrowserConnect.delete(res.id);
+        }
+        webViewController?.webStorage.localStorage.clear();
+        webViewController?.webStorage.sessionStorage.clear();
+        EasyLoading.showToast('Logout Success');
+        setState(() {
+          browserConnect = null;
+          canGoBack = false;
+          canGoForward = false;
         });
+        webViewController?.reload();
         break;
     }
   }

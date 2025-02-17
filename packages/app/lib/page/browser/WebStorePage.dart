@@ -55,7 +55,6 @@ class _WebStorePageState extends State<WebStorePage> {
             ? pageLoadingSpinKit()
             : SmartRefresher(
                 enablePullDown: true,
-                enablePullUp: true,
                 onRefresh: () async {
                   await Get.find<HomeController>().loadAppRemoteConfig();
                   refreshController.refreshCompleted();

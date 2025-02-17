@@ -63,22 +63,6 @@ class Login extends StatelessWidget {
                           Get.bottomSheet(getRecoverPage());
                         },
                         child: const Text("Recover ID")),
-                    if (GetPlatform.isAndroid)
-                      OutlinedButton.icon(
-                          icon: SvgPicture.asset(
-                            'assets/images/logo/amber.svg',
-                            fit: BoxFit.contain,
-                            width: 20,
-                            height: 20,
-                          ),
-                          onPressed: () async {
-                            var identity = await Utils.handleAmberLogin();
-                            if (identity != null) {
-                              logger.d('xxxidentity ${identity.id}');
-                              Get.offAllNamed(Routes.root, arguments: true);
-                            }
-                          },
-                          label: const Text("Login with Amber App"))
                   ])
             ])));
   }
@@ -116,6 +100,20 @@ class Login extends StatelessWidget {
           },
         )
       ]),
+      if (GetPlatform.isAndroid)
+        SettingsSection(tiles: [
+          SettingsTile.navigation(
+            leading: SvgPicture.asset('assets/images/logo/amber.svg',
+                fit: BoxFit.contain, width: 20, height: 20),
+            title: const Text("Login with Amber App"),
+            onPressed: (context) async {
+              var identity = await Utils.handleAmberLogin();
+              if (identity != null) {
+                Get.offAllNamed(Routes.root, arguments: true);
+              }
+            },
+          )
+        ]),
     ]);
   }
 }

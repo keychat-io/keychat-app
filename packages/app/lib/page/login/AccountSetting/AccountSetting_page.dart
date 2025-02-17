@@ -147,32 +147,36 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                     child: SettingsList(
                   platform: DevicePlatform.iOS,
                   sections: [
-                    SettingsSection(
-                      tiles: [
-                        if (kDebugMode)
-                          SettingsTile(
-                            leading: const Icon(CupertinoIcons.person),
-                            title: const Text("Hex"),
-                            onPressed: (c) {
-                              debugPrint(
-                                  controller.identity.value.secp256k1PKHex);
-                            },
-                            value: Text(getPublicKeyDisplay(
-                                controller.identity.value.secp256k1PKHex)),
-                          ),
-                        if (controller.identity.value.index == -1 &&
-                            controller.identity.value.isFromSigner == false)
-                          _getNsec(true),
-                        if (controller.identity.value.index > -1)
-                          SettingsTile.navigation(
-                            leading: const Icon(Icons.key),
-                            title: const Text("Seed Phrase"),
-                            onPressed: (context) {
-                              Get.bottomSheet(_idKeysWidget());
-                            },
-                          )
-                      ],
-                    ),
+                    if (kDebugMode ||
+                        (controller.identity.value.index == -1 &&
+                            controller.identity.value.isFromSigner == false) ||
+                        controller.identity.value.index > -1)
+                      SettingsSection(
+                        tiles: [
+                          if (kDebugMode)
+                            SettingsTile(
+                              leading: const Icon(CupertinoIcons.person),
+                              title: const Text("Hex"),
+                              onPressed: (c) {
+                                debugPrint(
+                                    controller.identity.value.secp256k1PKHex);
+                              },
+                              value: Text(getPublicKeyDisplay(
+                                  controller.identity.value.secp256k1PKHex)),
+                            ),
+                          if (controller.identity.value.index == -1 &&
+                              controller.identity.value.isFromSigner == false)
+                            _getNsec(true),
+                          if (controller.identity.value.index > -1)
+                            SettingsTile.navigation(
+                              leading: const Icon(Icons.key),
+                              title: const Text("Seed Phrase"),
+                              onPressed: (context) {
+                                Get.bottomSheet(_idKeysWidget());
+                              },
+                            )
+                        ],
+                      ),
                     SettingsSection(
                       tiles: [
                         SettingsTile.switchTile(

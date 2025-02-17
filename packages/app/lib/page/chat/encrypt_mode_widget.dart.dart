@@ -63,7 +63,7 @@ class EncryptModeWidget extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Obx(() => ListTile(
-                    title: Text('Nostr nip04 Protocol',
+                    title: Text('Nostr nip17 Protocol',
                         style: Theme.of(context).textTheme.titleMedium),
                     subtitle: const Text('Security and Privacy Level: ⭐'),
                     leading: Radio<EncryptMode>(

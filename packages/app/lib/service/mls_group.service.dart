@@ -22,6 +22,7 @@ import 'package:app/service/group_tx.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/room.service.dart';
+import 'package:app/service/signal_chat_util.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
 import 'package:dio/dio.dart';
@@ -252,9 +253,11 @@ $error ''';
 
     String contentToSign =
         jsonEncode([map['pubkey'], map['type'], map['myPubkey'], map['time']]);
-    String signature = await rust_nostr.signSchnorr(
-        senderKeys: await room.getIdentity().getSecp256k1SKHex(),
-        content: contentToSign);
+    String? signature = await SignalChatUtil.signByIdentity(
+        identity: room.getIdentity(), content: contentToSign);
+    if (signature == null) {
+      throw Exception('Sign failed or User denied');
+    }
     map['signature'] = signature;
 
     return jsonEncode(map);
@@ -270,12 +273,16 @@ $error ''';
       throw Exception('MLS dbPath is null');
     }
     identities ??= await IdentityService.instance.getIdentityList();
+    List<String> pubkeys = identities.map((e) => e.secp256k1PKHex).toList();
+    Map mls = await getPKs(pubkeys);
     await Future.wait(identities.map((identity) async {
       await rust_mls.initMlsDb(
           dbPath: '$dbPath${KeychatGlobal.mlsDBFile}',
           nostrId: identity.secp256k1PKHex);
       logger.i('MLS init for identity: ${identity.secp256k1PKHex}');
-      _uploadPKMessage(identity);
+      Future.delayed(const Duration(seconds: 3)).then((c) {
+        _uploadPKMessage(identity, mls[identity.secp256k1PKHex]);
+      });
     }));
   }
 
@@ -587,8 +594,12 @@ $error ''';
 
   Future updateMlsPK(Identity identity, String pk) async {
     try {
-      String sig = await rust_nostr.signSchnorr(
-          senderKeys: await identity.getSecp256k1SKHex(), content: pk);
+      String? sig =
+          await SignalChatUtil.signByIdentity(identity: identity, content: pk);
+      if (sig == null) {
+        logger.d('user denied');
+        return;
+      }
       var res = await Dio().post(KeychatGlobal.mlsPKServer,
           data: {'pubkey': identity.secp256k1PKHex, 'pk': pk, 'sig': sig});
       logger.i('updateMlsPK success: ${res.data}');
@@ -715,10 +726,11 @@ $error ''';
     // });
   }
 
-  Future _uploadPKMessage(Identity identity) async {
+  Future _uploadPKMessage(Identity identity, String? serverExist) async {
     int exist = await Storage.getIntOrZero('mlspk:${identity.secp256k1PKHex}');
-    if (exist == 0 ||
-        DateTime.now().millisecondsSinceEpoch - exist > 86400000) {
+    if (serverExist == null ||
+        exist == 0 ||
+        DateTime.now().millisecondsSinceEpoch - exist > 86400) {
       String mlkPK = await MlsGroupService.instance
           .createKeyMessages(identity.secp256k1PKHex);
       bool success = await updateMlsPK(identity, mlkPK);

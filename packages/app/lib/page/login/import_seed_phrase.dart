@@ -99,7 +99,9 @@ class _ImportSeedPhrase extends State<ImportSeedPhrase> {
                           'Seed phrase must be exactly 24 words');
                       return;
                     }
-                    Get.to(() => CreateAccount(type: "init", mnemonic: input));
+                    var res =
+                        await Get.to(() => CreateAccount(mnemonic: input));
+                    Get.back(result: res);
                   },
                 )
               ])),

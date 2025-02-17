@@ -2,6 +2,7 @@ import 'dart:convert' show jsonDecode, jsonEncode;
 
 import 'package:app/bot/bot_server_message_model.dart';
 import 'package:app/nostr-core/nostr_event.dart';
+import 'package:app/page/routes.dart';
 import 'package:app/rust_api.dart';
 import 'package:app/service/file_util.dart';
 import 'package:app/service/storage.dart';
@@ -76,6 +77,9 @@ class MessageService {
           Get.find<HomeController>().addUnreadCount();
         }
       }
+      bool isCurrentRoomPage = Get.currentRoute
+          .startsWith(Routes.room.replaceFirst(':id', room.id.toString()));
+
       Get.snackbar(room.getRoomName(), contenet,
           titleText: Text(room.getRoomName(),
               style: Theme.of(Get.context!).textTheme.titleMedium),
@@ -86,12 +90,15 @@ class MessageService {
           isDismissible: true,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           duration: const Duration(seconds: 5),
-          mainButton: TextButton(
-              child: const Text('View'),
-              onPressed: () {
-                pressSnackbar(room);
-              }),
+          mainButton: isCurrentRoomPage
+              ? null
+              : TextButton(
+                  child: const Text('View'),
+                  onPressed: () {
+                    pressSnackbar(room);
+                  }),
           icon: Utils.getRandomAvatar(room.toMainPubkey), onTap: (c) {
+        if (isCurrentRoomPage) return;
         pressSnackbar(room);
       });
     }

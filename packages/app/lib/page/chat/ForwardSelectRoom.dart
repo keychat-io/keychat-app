@@ -1,15 +1,16 @@
 import 'package:app/controller/home.controller.dart';
+import 'package:app/models/identity.dart';
 import 'package:app/models/room.dart';
+import 'package:app/page/browser/SelectIdentityForward.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class ForwardSelectRoom extends StatefulWidget {
-  final List<Room> rooms;
   final String message;
-  final String title;
-  const ForwardSelectRoom(this.rooms, this.message, this.title, {super.key});
+  final Identity identity;
+  const ForwardSelectRoom(this.message, this.identity, {super.key});
 
   @override
   _ForwardSelectRoomState createState() => _ForwardSelectRoomState();
@@ -21,14 +22,21 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
       Get.isDarkMode ? const Color(0xFF202020) : const Color(0xFFEDEDED);
   late TextEditingController _searchController;
   Set<Room> selectedRooms = {};
-
+  late Identity selectedIdentity;
   @override
   void initState() {
+    selectedIdentity = widget.identity;
     _searchController = TextEditingController();
-    setState(() {
-      rooms = widget.rooms;
-    });
+    init(selectedIdentity);
     super.initState();
+  }
+
+  init(Identity identity) {
+    List<Room> res = Get.find<HomeController>().getRoomsByIdentity(identity.id);
+    setState(() {
+      selectedIdentity = identity;
+      rooms = res;
+    });
   }
 
   @override
@@ -53,15 +61,25 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
             onPressed: () => Navigator.pop(context),
             child: const Icon(Icons.close),
           ),
-          title: Text(widget.title),
+          title: const Text('Select to Forward'),
           actions: [
-            TextButton(
-                onPressed: () {
-                  Get.back(result: selectedRooms.toList());
+            TextButton.icon(
+                onPressed: () async {
+                  Identity? selected = await Get.bottomSheet(
+                      const SelectIdentityForward('Select a Identity'));
+                  if (selected == null) return;
+                  init(selected);
                 },
-                child: const Text('Done'))
+                icon: const Icon(Icons.swap_horiz),
+                label: Text(selectedIdentity.displayName))
           ],
         ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+        floatingActionButton: FilledButton(
+            onPressed: () {
+              Get.back(result: selectedRooms.toList());
+            },
+            child: const Text('Send')),
         body: Column(children: <Widget>[
           Padding(
               padding: const EdgeInsets.only(left: 16, right: 16, bottom: 10),
@@ -74,9 +92,7 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
                           icon: const Icon(Icons.cancel),
                           onPressed: () {
                             _searchController.clear();
-                            setState(() {
-                              rooms = widget.rooms;
-                            });
+                            init(selectedIdentity);
                           },
                         )
                       : null,
@@ -84,7 +100,7 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
                 onChanged: (value) {
                   if (value.isEmpty) return;
 
-                  List<Room> filters = widget.rooms
+                  List<Room> filters = rooms
                       .where((item) => item
                           .getRoomName()
                           .toLowerCase()

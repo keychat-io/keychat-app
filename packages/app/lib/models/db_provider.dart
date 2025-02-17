@@ -74,8 +74,12 @@ class DBProvider {
   bool isCurrentPage(int roomId) {
     String route = Get.currentRoute;
     if (route.startsWith('/room/')) {
-      int currentRoomId = int.parse(route.split('/room/')[1]);
-      return currentRoomId == roomId;
+      try {
+        int currentRoomId = int.parse(route.split('/room/')[1]);
+        return currentRoomId == roomId;
+      } catch (e) {
+        return false;
+      }
     }
     return false;
   }

@@ -21,7 +21,7 @@ echo "Update app starting..."
 # melos clean
 # melos bs --ignore="*build_tool_runner*"
 cd packages/app/
-dart fix --apply
+# dart fix --apply
 
 flutter build ipa --dart-define=dart.vm.product=true --release --analyze-size # --obfuscate --split-debug-info=./build/obfuscate/ios/
 

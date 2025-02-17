@@ -6,10 +6,12 @@ import 'package:app/page/login/import_nsec.dart';
 import 'package:app/page/login/import_seed_phrase.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/page/setting/more_chat_setting.dart';
+
 import 'package:app/service/secure_storage.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:settings_ui/settings_ui.dart';
 
@@ -30,10 +32,7 @@ class Login extends StatelessWidget {
                   ...KeychatGlobal.keychatIntros.map((e) => Padding(
                       padding: const EdgeInsets.only(top: 10),
                       child: Text(e,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyLarge
-                              ?.copyWith(height: 1.2)))),
+                          style: Theme.of(context).textTheme.bodyLarge))),
                   TextButton(
                       onPressed: () =>
                           Get.to(() => const OnboardingPage2Detail()),
@@ -49,7 +48,10 @@ class Login extends StatelessWidget {
                         onPressed: () async {
                           try {
                             await SecureStorage.instance.clearAll();
-                            Get.to(() => const CreateAccount(type: "init"));
+                            var res = await Get.to(() => const CreateAccount());
+                            if (res != null) {
+                              Get.offAllNamed(Routes.root, arguments: true);
+                            }
                           } catch (e, s) {
                             EasyLoading.showError(e.toString());
                             logger.e(e.toString(), stackTrace: s);
@@ -60,7 +62,7 @@ class Login extends StatelessWidget {
                         onPressed: () async {
                           Get.bottomSheet(getRecoverPage());
                         },
-                        child: const Text("Recover ID"))
+                        child: const Text("Recover ID")),
                   ])
             ])));
   }
@@ -72,7 +74,10 @@ class Login extends StatelessWidget {
           leading: const Icon(Icons.local_activity),
           title: const Text("From Seed Phrase"),
           onPressed: (context) async {
-            await Get.to(() => const ImportSeedPhrase());
+            Identity? res = await Get.to(() => const ImportSeedPhrase());
+            if (res != null) {
+              Get.offAllNamed(Routes.root, arguments: true);
+            }
           },
         ),
         SettingsTile.navigation(
@@ -81,7 +86,7 @@ class Login extends StatelessWidget {
           onPressed: (context) async {
             Identity? res = await Get.to(() => const ImportNsec());
             if (res != null) {
-              Get.offAllNamed(Routes.root);
+              Get.offAllNamed(Routes.root, arguments: true);
             }
           },
         ),
@@ -94,7 +99,21 @@ class Login extends StatelessWidget {
             const MoreChatSetting().enableImportDB(context);
           },
         )
-      ])
+      ]),
+      if (GetPlatform.isAndroid)
+        SettingsSection(tiles: [
+          SettingsTile.navigation(
+            leading: SvgPicture.asset('assets/images/logo/amber.svg',
+                fit: BoxFit.contain, width: 20, height: 20),
+            title: const Text("Login with Amber App"),
+            onPressed: (context) async {
+              var identity = await Utils.handleAmberLogin();
+              if (identity != null) {
+                Get.offAllNamed(Routes.root, arguments: true);
+              }
+            },
+          )
+        ]),
     ]);
   }
 }

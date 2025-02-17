@@ -29,13 +29,11 @@ class _SelectMintState extends State<SelectMint> {
 
   @override
   Widget build(BuildContext context) {
-    EcashController cashuController = Get.find<EcashController>();
-
     return Card(
       elevation: 0.2,
       child: ListTile(
         title: Text(
-            '${cashuController.getBalanceByMint(selected).toString()} ${EcashTokenSymbol.sat.name}'),
+            '${Get.find<EcashController>().getBalanceByMint(selected).toString()} ${EcashTokenSymbol.sat.name}'),
         subtitle: Text(selected),
         trailing: IconButton(
             icon: Icon(

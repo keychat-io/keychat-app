@@ -1,8 +1,6 @@
-import 'package:app/controller/home.controller.dart';
 import 'package:app/models/identity.dart';
-import 'package:app/page/login/CreateAccount.dart';
+import 'package:app/page/login/SelectModeToCreateID.dart';
 import 'package:app/service/identity.service.dart';
-import 'package:app/service/secure_storage.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -61,17 +59,7 @@ class _SelectIdentityForBrowserState extends State<SelectIdentityForBrowser> {
                     ?.withValues(alpha: 0.5),
                 size: 22),
             onPressed: (context) async {
-              List<Identity> identities =
-                  Get.find<HomeController>().allIdentities.values.toList();
-              List<String> npubs = identities.map((e) => e.npub).toList();
-              String? mnemonic = await SecureStorage.instance.getPhraseWords();
-              await Get.to(
-                  () => CreateAccount(
-                      showImportNsec: true,
-                      type: "tab",
-                      mnemonic: mnemonic,
-                      npubs: npubs),
-                  arguments: 'create');
+              await Get.bottomSheet(const SelectModeToCreateId());
               init();
             })
       ])

@@ -1,9 +1,8 @@
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/page/browser/BrowserSetting.dart';
-import 'package:app/page/login/CreateAccount.dart';
+import 'package:app/page/login/SelectModeToCreateID.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/page/setting/app_general_setting.dart';
-import 'package:app/service/secure_storage.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:app/controller/home.controller.dart';
 
@@ -54,19 +53,7 @@ class MinePage extends GetView<SettingController> {
                                     ?.withValues(alpha: 0.5),
                                 size: 22),
                             onPressed: (context) async {
-                              List<Identity> identities =
-                                  homeController.allIdentities.values.toList();
-                              List<String> npubs =
-                                  identities.map((e) => e.npub).toList();
-                              String? mnemonic =
-                                  await SecureStorage.instance.getPhraseWords();
-                              Get.to(
-                                  () => CreateAccount(
-                                      type: "me",
-                                      showImportNsec: true,
-                                      mnemonic: mnemonic,
-                                      npubs: npubs),
-                                  arguments: 'create');
+                              Get.bottomSheet(const SelectModeToCreateId());
                             })
                       ]),
                   SettingsSection(

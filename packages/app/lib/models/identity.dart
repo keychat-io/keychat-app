@@ -38,6 +38,7 @@ class Identity extends Equatable {
 
   bool enableChat = true;
   bool enableBrowser = true;
+  bool isFromSigner = false;
 
   Identity({
     required this.name,

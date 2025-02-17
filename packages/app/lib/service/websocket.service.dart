@@ -237,6 +237,7 @@ class WebsocketService extends GetxService {
       }
     }
     setRelayStatusInt(RelayStatusEnum.connecting.name);
+    channels.refresh();
   }
 
   String? lastRelayStatus;

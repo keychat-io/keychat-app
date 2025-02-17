@@ -1,3 +1,6 @@
+import 'package:app/page/chat/chat_setting_contact_page.dart';
+import 'package:app/page/chat/chat_setting_group_page.dart';
+import 'package:app/page/chat/chat_settings_security.dart';
 import 'package:app/page/login/OnboardingPage2.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:app/page/contact/contact_list_page.dart';
@@ -49,6 +52,16 @@ class Pages {
       page: () => const ContactsPage(),
     ),
     GetPage(name: Routes.room, page: () => const ChatPage()),
+    GetPage(
+        name: Routes.roomSettingContact,
+        page: () => const ChatSettingContactPage()),
+    GetPage(
+        name: Routes.roomSettingGroup,
+        page: () => const ChatSettingGroupPage()),
+    GetPage(
+        name: Routes.roomSettingContactSecurity,
+        page: () => const ChatSettingSecurity()),
+    // GetPage(name: Routes.room, page: () => const ChatPage()),
     GetPage(name: Routes.ecash, page: () => const CashuPage()),
     GetPage(name: Routes.ecashBillCashu, page: () => const CashuBillPage()),
     GetPage(

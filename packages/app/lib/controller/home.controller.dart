@@ -155,7 +155,7 @@ class HomeController extends GetxController
     String fileName = 'config/app.json';
     var list = [
       'https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/$fileName',
-      'https://mirror.ghproxy.com/https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/$fileName'
+      'https://gh-proxy.com/https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/$fileName'
     ];
     // load app version
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
@@ -439,7 +439,6 @@ class HomeController extends GetxController
 
     // start to create ai identity
     Future.delayed(const Duration(seconds: 1), () async {
-      await createAIIdentity(mys, KeychatGlobal.bot);
       loadAppRemoteConfig();
     });
   }

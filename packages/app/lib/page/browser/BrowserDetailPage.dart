@@ -1,5 +1,6 @@
-import 'dart:convert' show jsonDecode;
+import 'dart:convert' show jsonDecode, jsonEncode;
 
+import 'package:app/controller/home.controller.dart';
 import 'package:app/models/browser/browser_bookmark.dart';
 import 'package:app/models/browser/browser_connect.dart';
 import 'package:app/models/browser/browser_favorite.dart';
@@ -10,6 +11,8 @@ import 'package:app/page/browser/BookmarkEdit.dart';
 import 'package:app/page/browser/Browser_controller.dart';
 import 'package:app/page/browser/FavoriteEdit.dart';
 import 'package:app/page/browser/SelectIdentityForBrowser.dart';
+import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app/service/SignerService.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/utils.dart';
@@ -165,6 +168,14 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                         child: getPopTools(url),
                       ),
                       PopupMenuItem(
+                        value: 'refresh',
+                        child: Row(spacing: 16, children: [
+                          const Icon(Icons.refresh),
+                          Text('Refresh',
+                              style: Theme.of(context).textTheme.bodyLarge)
+                        ]),
+                      ),
+                      PopupMenuItem(
                         value: 'bookmark',
                         child: Row(spacing: 16, children: [
                           FutureBuilder(future: () async {
@@ -205,19 +216,24 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                               style: Theme.of(context).textTheme.bodyLarge)
                         ]),
                       ),
+                      const PopupMenuItem(
+                        height: 1,
+                        value: 'divider',
+                        child: Divider(),
+                      ),
+                      PopupMenuItem(
+                        value: 'shareToRooms',
+                        child: Row(spacing: 16, children: [
+                          const Icon(CupertinoIcons.share),
+                          Text('Share to Room',
+                              style: Theme.of(context).textTheme.bodyLarge)
+                        ]),
+                      ),
                       PopupMenuItem(
                         value: 'share',
                         child: Row(spacing: 16, children: [
                           const Icon(CupertinoIcons.share),
                           Text('Share',
-                              style: Theme.of(context).textTheme.bodyLarge)
-                        ]),
-                      ),
-                      PopupMenuItem(
-                        value: 'openInBrowser',
-                        child: Row(spacing: 12, children: [
-                          const Icon(CupertinoIcons.globe),
-                          Text('Native Browser',
                               style: Theme.of(context).textTheme.bodyLarge)
                         ]),
                       ),
@@ -448,6 +464,10 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
         return identity.secp256k1PKHex;
       case 'signEvent':
         var event = data.args[1];
+        if (identity.isFromSigner) {
+          return await SignerService.instance.signEvent(
+              pubkey: identity.secp256k1PKHex, eventJson: jsonEncode(event));
+        }
         var res = await rust_nostr.signEvent(
             senderKeys: await identity.getSecp256k1SKHex(),
             content: event['content'] as String,
@@ -461,7 +481,13 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
       case 'nip04Encrypt':
         String to = data.args[1];
         String plaintext = data.args[2];
-
+        if (identity.isFromSigner) {
+          var ciphertext = await SignerService.instance.nip04Encrypt(
+              plaintext: plaintext,
+              currentUser: identity.secp256k1PKHex,
+              to: to);
+          return ciphertext;
+        }
         var encryptedEvent = await rust_nostr.getEncryptEvent(
             senderKeys: await identity.getSecp256k1SKHex(),
             receiverPubkey: to,
@@ -469,27 +495,45 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
         var model = NostrEventModel.fromJson(jsonDecode(encryptedEvent));
         return model.content;
       case 'nip04Decrypt':
-        String to = data.args[1];
+        String from = data.args[1];
         String ciphertext = data.args[2];
-
+        if (identity.isFromSigner) {
+          var plaintext = await SignerService.instance.nip04Decrypt(
+              ciphertext: ciphertext,
+              currentUser: identity.secp256k1PKHex,
+              from: from);
+          return plaintext;
+        }
         var content = await rust_nostr.decrypt(
             senderKeys: await identity.getSecp256k1SKHex(),
-            receiverPubkey: to,
+            receiverPubkey: from,
             content: ciphertext);
         return content;
       case 'nip44Encrypt':
         String to = data.args[1];
         String plaintext = data.args[2];
-        var encryptedEvent = await rust_nostr.createGiftJson(
-            senderKeys: await identity.getSecp256k1SKHex(),
-            receiverPubkey: to,
-            kind: 14,
-            content: plaintext);
+        String encryptedEvent;
+        if (identity.isFromSigner) {
+          encryptedEvent = await SignerService.instance.nip44Encrypt(
+              from: identity.secp256k1PKHex, to: to, content: plaintext);
+          logger.d(encryptedEvent);
+        } else {
+          encryptedEvent = await rust_nostr.createGiftJson(
+              senderKeys: await identity.getSecp256k1SKHex(),
+              receiverPubkey: to,
+              kind: 14,
+              content: plaintext);
+        }
         var model = NostrEventModel.fromJson(jsonDecode(encryptedEvent));
         return model.content;
       case 'nip44Decrypt':
         String to = data.args[1];
         String ciphertext = data.args[2];
+        if (identity.isFromSigner) {
+          var subEvent = await SignerService.instance
+              .nip44Decrypt(NostrEventModel.fromJson(jsonDecode(ciphertext)));
+          return subEvent.content;
+        }
         rust_nostr.NostrEvent event = await rust_nostr.decryptGift(
             senderKeys: await identity.getSecp256k1SKHex(),
             receiver: to,
@@ -540,43 +584,50 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
   }
 
   Future popupMenuSelected(String value) async {
-    final url = await webViewController?.getUrl();
-    if (url == null) return;
+    final uri = await webViewController?.getUrl();
+    if (uri == null) return;
 
     switch (value) {
       case 'share':
-        Share.share(url.toString());
+        Share.share(uri.toString());
+        break;
+      case 'shareToRooms':
+        Identity identity = Get.find<HomeController>().getSelectedIdentity();
+        RoomUtil.forwardTextMessage(identity, uri.toString());
+        break;
+      case 'refresh':
+        webViewController?.reload();
         break;
       case 'bookmark':
         var exist = await DBProvider.database.browserBookmarks
             .filter()
-            .urlEqualTo(url.toString())
+            .urlEqualTo(uri.toString())
             .findFirst();
         if (exist == null) {
           String? favicon = await browserController
-              .getFavicon(webViewController!, url.host)
+              .getFavicon(webViewController!, uri.host)
               .timeout(const Duration(seconds: 10));
           String? siteTitle = title == defaultTitle
               ? await webViewController?.getTitle()
               : title;
           await BrowserBookmark.add(
-              url: url.toString(), favicon: favicon, title: siteTitle);
+              url: uri.toString(), favicon: favicon, title: siteTitle);
           EasyLoading.showSuccess('Added');
         } else {
           await Get.to(() => BookmarkEdit(model: exist));
         }
         break;
       case 'favorite':
-        var exist = await BrowserFavorite.getByUrl(url.toString());
+        var exist = await BrowserFavorite.getByUrl(uri.toString());
         if (exist == null) {
           String? favicon = await browserController
-              .getFavicon(webViewController!, url.host)
+              .getFavicon(webViewController!, uri.host)
               .timeout(const Duration(seconds: 10));
           String? siteTitle = title == defaultTitle
               ? await webViewController?.getTitle()
               : title;
           await BrowserFavorite.add(
-              url: url.toString(), favicon: favicon, title: siteTitle);
+              url: uri.toString(), favicon: favicon, title: siteTitle);
           EasyLoading.showSuccess('Added');
         } else {
           await Get.to(() => FavoriteEdit(favorite: exist));
@@ -584,7 +635,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
         await browserController.loadFavorite();
         break;
       case 'copy':
-        Clipboard.setData(ClipboardData(text: url.toString()));
+        Clipboard.setData(ClipboardData(text: uri.toString()));
         EasyLoading.showToast('Copied');
         break;
       case 'clear':
@@ -595,7 +646,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
         webViewController?.reload();
         break;
       case 'disconnect':
-        BrowserConnect.getByHost(url.host).then((value) {
+        BrowserConnect.getByHost(uri.host).then((value) {
           if (value != null) {
             BrowserConnect.delete(value.id);
             webViewController?.webStorage.localStorage.clear();
@@ -609,10 +660,6 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
             webViewController?.reload();
           }
         });
-        break;
-      case 'openInBrowser':
-        await launchUrl(Uri.parse(url.toString()),
-            mode: LaunchMode.externalApplication);
         break;
     }
   }

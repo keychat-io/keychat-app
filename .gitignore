@@ -46,3 +46,4 @@ packages/app/macos/Runner/GoogleService-Info.plist
 packages/app/firebase.json
 packages/app/firepit-log.txt
 *.dmg
+packages/app/ios/Flutter/Flutter.podspec

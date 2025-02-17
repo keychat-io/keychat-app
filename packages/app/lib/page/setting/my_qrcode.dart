@@ -104,7 +104,7 @@ class _MyQRCodeState extends State<MyQRCode> {
                       ),
                       OutlinedButton(
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.white),
+                          side: const BorderSide(color: Colors.grey),
                         ),
                         onPressed: () {
                           final box = context.findRenderObject() as RenderBox?;
@@ -125,24 +125,29 @@ class _MyQRCodeState extends State<MyQRCode> {
                 ]))));
   }
 
-  Future<String> _initQRCodeData(Identity identity, String onetimekey,
-      SignalId signalId, int? time) async {
+  Future<String> _initQRCodeData(
+      Identity identity, String onetimekey, SignalId signalId,
+      [int time = -1]) async {
     Map userInfo = signalId.keys == null
         ? await SignalIdService.instance.getQRCodeData(signalId)
         : jsonDecode(signalId.keys!);
-    String sign = await SignalChatUtil.getToSignMessage(
-        nostrPrikey: await identity.getSecp256k1SKHex(),
+
+    String content = SignalChatUtil.getToSignMessage(
         nostrId: identity.secp256k1PKHex,
         signalId: signalId.pubkey,
-        time: time ?? -1);
+        time: time);
+
+    String? sig = await SignalChatUtil.signByIdentity(
+        identity: identity, content: content);
+    if (sig == null) throw Exception('Sign failed or User denied');
     Map<String, dynamic> data = {
       'pubkey': identity.secp256k1PKHex,
       'curve25519PkHex': signalId.pubkey,
       'name': identity.displayName,
-      'time': time ?? -1,
+      'time': time,
       'relay': "",
       "onetimekey": onetimekey,
-      "globalSign": sign,
+      "globalSign": sig,
       ...userInfo
     };
     logger.d('qrcode, $data');
@@ -151,7 +156,7 @@ class _MyQRCodeState extends State<MyQRCode> {
 
   void init() async {
     String res = await _initQRCodeData(
-        widget.identity, widget.oneTimeKey, widget.signalId, widget.time);
+        widget.identity, widget.oneTimeKey, widget.signalId, widget.time ?? -1);
     setState(() {
       qrString = res;
     });

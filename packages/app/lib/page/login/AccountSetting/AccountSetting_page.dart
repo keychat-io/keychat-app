@@ -5,8 +5,11 @@ import 'package:app/models/identity.dart';
 import 'package:app/page/browser/BrowserConnectedWebsite.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/routes.dart';
+import 'package:app/page/widgets/notice_text_widget.dart';
+import 'package:app/service/notify.service.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app/service/identity.service.dart';
+import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
@@ -84,7 +87,34 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                           height: 64,
                           width: 64),
                     ),
-                    const SizedBox(height: 16),
+                    if (controller.identity.value.isFromSigner)
+                      Container(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: GestureDetector(
+                              onTap: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return CupertinoAlertDialog(
+                                      title: const Text("Notice"),
+                                      content: const Text(
+                                          "Keychat app does not store your private key. Signing and encryption operations are handled by the Amber app."),
+                                      actions: <Widget>[
+                                        CupertinoDialogAction(
+                                          isDefaultAction: true,
+                                          onPressed: () {
+                                            Get.back();
+                                          },
+                                          child: const Text("OK"),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                              },
+                              child: NoticeTextWidget.info('Login with Amber',
+                                  fontSize: 12, borderRadius: 15))),
+                    const SizedBox(height: 8),
                     GestureDetector(
                         onTap: () {
                           Clipboard.setData(ClipboardData(
@@ -123,10 +153,15 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                           SettingsTile(
                             leading: const Icon(CupertinoIcons.person),
                             title: const Text("Hex"),
+                            onPressed: (c) {
+                              debugPrint(
+                                  controller.identity.value.secp256k1PKHex);
+                            },
                             value: Text(getPublicKeyDisplay(
                                 controller.identity.value.secp256k1PKHex)),
                           ),
-                        if (controller.identity.value.index == -1)
+                        if (controller.identity.value.index == -1 &&
+                            controller.identity.value.isFromSigner == false)
                           _getNsec(true),
                         if (controller.identity.value.index > -1)
                           SettingsTile.navigation(
@@ -162,6 +197,8 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                               controller.identity.value.enableChat = value;
                               await IdentityService.instance
                                   .updateIdentity(controller.identity.value);
+                              NotifyService.syncPubkeysToServer();
+                              Get.find<WebsocketService>().start();
                               controller.identity.refresh();
                               Get.find<HomeController>()
                                   .loadRoomList(init: true);

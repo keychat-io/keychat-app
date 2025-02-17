@@ -41,7 +41,7 @@ enum MessageMediaType {
 
 enum RequestConfrimEnum { none, request, approved, rejected, expired }
 
-@Collection(ignore: {'props', 'relayStatusMap', 'fromContact'})
+@Collection(ignore: {'props', 'relayStatusMap', 'fromContact', 'isMediaType'})
 // ignore: must_be_immutable
 class Message extends Equatable {
   Id id = Isar.autoIncrement;
@@ -124,6 +124,11 @@ class Message extends Equatable {
         mediaType,
         createdAt,
       ];
+
+  bool get isMediaType =>
+      mediaType == MessageMediaType.image ||
+      mediaType == MessageMediaType.video ||
+      mediaType == MessageMediaType.file;
 
   MsgFileInfo? convertToMsgFileInfo() {
     if (content.startsWith('https://') || content.startsWith('http://')) {

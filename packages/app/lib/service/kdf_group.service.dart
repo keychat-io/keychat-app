@@ -1,8 +1,5 @@
-// KDF group is a shared key group
-// Use signal protocol to encrypt message
-// Every Member in the group has the same signal id key pair, it's a virtual Member in group
-// Every member send message to virtual member
-
+// This file is deprecated and should no longer be used.
+@Deprecated("KDF group service is deprecated, use mls group service instead")
 import 'dart:convert' show base64, base64Decode, jsonDecode, jsonEncode, utf8;
 
 import 'package:app/constants.dart';
@@ -495,7 +492,8 @@ Let's create a new group.''';
     String unEncryptedEvent = await rust_nostr.getUnencryptEvent(
         senderKeys: await identity.getSecp256k1SKHex(),
         receiverPubkeys: [room.toMainPubkey],
-        content: encryptedContent);
+        content: encryptedContent,
+        kind: EventKinds.encryptedDirectMessage);
 
     var randomAccount = await rust_nostr.generateSimple();
 

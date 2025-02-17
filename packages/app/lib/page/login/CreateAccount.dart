@@ -1,27 +1,17 @@
 import 'package:app/page/components.dart';
-import 'package:app/page/login/import_nsec.dart';
 import 'package:flutter/material.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
-import 'package:app/controller/home.controller.dart';
 import 'package:app/utils.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import '../../service/identity.service.dart';
-import '../routes.dart';
 
 class CreateAccount extends StatefulWidget {
-  final String type;
   final String? mnemonic;
-  final bool showImportNsec;
   final List<String> npubs;
-  const CreateAccount(
-      {super.key,
-      required this.type,
-      this.mnemonic,
-      this.npubs = const [],
-      this.showImportNsec = false});
+  const CreateAccount({super.key, this.mnemonic, this.npubs = const []});
 
   @override
   _CreateAccountState createState() => _CreateAccountState();
@@ -56,26 +46,16 @@ class _CreateAccountState extends State<CreateAccount> {
 
   @override
   Widget build(BuildContext context) {
+    print(widget.npubs);
     return Scaffold(
-        appBar: widget.type != "tab"
-            ? AppBar(
-                centerTitle: true,
-                title: Column(children: [
-                  const Text('Create ID'),
-                  Text('Derived from seed phrase',
-                      style: Theme.of(context).textTheme.bodySmall)
-                ]),
-                actions: widget.showImportNsec
-                    ? [
-                        TextButton(
-                            onPressed: () {
-                              Get.off(() => const ImportNsec());
-                            },
-                            child: const Text('Import Nsec'))
-                      ]
-                    : [],
-              )
-            : null,
+        appBar: AppBar(
+          centerTitle: true,
+          title: Column(children: [
+            const Text('Create ID'),
+            Text('Derived from seed phrase',
+                style: Theme.of(context).textTheme.bodySmall)
+          ]),
+        ),
         floatingActionButton: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Column(
@@ -94,24 +74,17 @@ class _CreateAccountState extends State<CreateAccount> {
                         return;
                       }
                       try {
-                        EasyLoading.show(status: 'Loading...');
                         bool isFirstAccount =
                             await IdentityService.instance.count() == 0;
 
-                        await IdentityService.instance.createIdentity(
-                            name: name,
-                            account: accounts[selected],
-                            index: selected,
-                            isFirstAccount: isFirstAccount);
+                        var identity = await IdentityService.instance
+                            .createIdentity(
+                                name: name,
+                                account: accounts[selected],
+                                index: selected,
+                                isFirstAccount: isFirstAccount);
                         textEditingController.clear();
-
-                        EasyLoading.dismiss();
-                        if (Get.arguments == 'create') {
-                          await Get.find<HomeController>().loadIdentity();
-                          Get.back();
-                          return;
-                        }
-                        Get.offAllNamed(Routes.root, arguments: isFirstAccount);
+                        Get.back(result: identity);
                       } catch (e, s) {
                         logger.e(e.toString(), error: e, stackTrace: s);
                         EasyLoading.showToast(e.toString());

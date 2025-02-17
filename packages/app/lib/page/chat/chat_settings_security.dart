@@ -14,12 +14,13 @@ import '../../models/room.dart';
 import '../../service/signal_chat.service.dart';
 import '../components.dart';
 
-class ChatSettingsMoreDart extends StatelessWidget {
-  final ChatController chatController;
-  const ChatSettingsMoreDart({super.key, required this.chatController});
-
+class ChatSettingSecurity extends StatelessWidget {
+  const ChatSettingSecurity({super.key});
   @override
   Widget build(BuildContext context) {
+    int roomId = int.parse(Get.parameters['id']!);
+    ChatController chatController = RoomService.getController(roomId)!;
+
     List<String> receiveKeys = ContactService.instance
             .getMyReceiveKeys(chatController.roomObs.value) ??
         [];
@@ -36,19 +37,20 @@ class ChatSettingsMoreDart extends StatelessWidget {
                         value: chatController.roomObs.value.encryptMode ==
                                 EncryptMode.signal
                             ? textP('Signal procotol', Colors.green)
-                            : textP('Nostr nip04', Colors.red)),
+                            : textP('Nostr nip17', Colors.red)),
                     SettingsTile.navigation(
                       title: const Text('Reset Signal Session'),
                       leading: const Icon(CupertinoIcons.refresh),
                       onPressed: (value) async {
                         Get.dialog(CupertinoAlertDialog(
-                          title: const Text('Request sent successfully'),
+                          title: const Text('Send request '),
                           content: const Text(
                               'Waiting for your friend comes online and approve'),
                           actions: [
                             CupertinoDialogAction(
                               child: const Text('OK'),
                               onPressed: () async {
+                                Get.back();
                                 EasyThrottle.throttle('ResetSessionStatus',
                                     const Duration(seconds: 3), () async {
                                   await Get.find<ChatxService>()
@@ -59,7 +61,6 @@ class ChatSettingsMoreDart extends StatelessWidget {
                                           chatController.room.getIdentity(),
                                           greeting:
                                               'Reset signal session status');
-                                  Get.back();
 
                                   EasyLoading.showInfo(
                                       'Request sent successfully.');

@@ -4,6 +4,17 @@ https://keepachangelog.com/zh-CN/1.1.0
 
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
+## 1.27.2+6326
+1. change lib flutter_markdown to markdown_widget
+2. forward message page: switch identiy to show rooms
+3. add query logic then upload mls keys
+
+## 1.27.1+6325
+1. Support for logging in or importing accounts using amberapp
+2. Support for amber's signMessage, signEvent, nip04, and nip44
+3. Refactored routing for the room settings page
+4. Browser support for sharing URLs to rooms
+
 ## 1.26.8+6322
 1. Fix: receive cashuB failed when amount is not (1,2,4,8...)
 2. Add scan button for cashuPage

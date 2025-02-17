@@ -1,5 +1,3 @@
-library;
-
 class KeychatGlobal {
   static const String bot = 'Bot';
   static const String selfName = 'Note to Self';

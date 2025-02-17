@@ -72,11 +72,15 @@ class KeychatMessage {
     Map userInfo = await SignalIdService.instance.getQRCodeData(signalId);
     int expiredTime = DateTime.now().millisecondsSinceEpoch +
         KeychatGlobal.oneTimePubkeysLifetime * 3600 * 1000;
-    String sign = await SignalChatUtil.getToSignMessage(
-        nostrPrikey: await identity.getSecp256k1SKHex(),
-        nostrId: identity.secp256k1PKHex,
-        signalId: signalId.pubkey,
-        time: expiredTime);
+
+    String content = SignalChatUtil.getToSignMessage(
+      nostrId: identity.secp256k1PKHex,
+      signalId: signalId.pubkey,
+      time: expiredTime,
+    );
+    String? sig = await SignalChatUtil.signByIdentity(
+        identity: identity, content: content, id: expiredTime.toString());
+    if (sig == null) throw Exception('Sign failed or User denied');
     Map<String, dynamic> data = {
       'name': identity.displayName,
       'pubkey': identity.secp256k1PKHex,
@@ -84,7 +88,7 @@ class KeychatMessage {
       'onetimekey': onetimekey,
       'time': expiredTime,
       'relay': "",
-      "globalSign": sign,
+      "globalSign": sig,
       ...userInfo
     };
     name = QRUserModel.fromJson(data).toString();

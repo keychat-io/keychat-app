@@ -1,13 +1,13 @@
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/components.dart';
 import 'package:app/utils.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:markdown_widget/markdown_widget.dart';
+
 import 'package:pull_to_refresh/pull_to_refresh.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../controller/world.controller.dart';
 
@@ -90,43 +90,43 @@ class WorldPage extends StatelessWidget {
                                 textSmallGray(context, ' · $createdAt')
                               ],
                             ),
-                            subtitle: MarkdownBody(
-                              onTapLink: (
-                                url,
-                                url2,
-                                url3,
-                              ) {
-                                final Uri uri = Uri.parse(url);
-                                launchUrl(uri);
-                              },
+                            subtitle: MarkdownBlock(
+                              // onTapLink: (
+                              //   url,
+                              //   url2,
+                              //   url3,
+                              // ) {
+                              //   final Uri uri = Uri.parse(url);
+                              //   launchUrl(uri);
+                              // },
                               data: convertToMarkdown(ne.content),
-                              imageBuilder: (Uri uri, title, alt) {
-                                try {
-                                  return CachedNetworkImage(
-                                      key: ObjectKey(uri.toString()),
-                                      imageUrl: uri.toString(),
-                                      httpHeaders: const {'accept': 'image/*'},
-                                      cacheKey: uri.toString(),
-                                      memCacheWidth: 100,
-                                      imageBuilder: (context, imageProvider) =>
-                                          Container(
-                                            decoration: BoxDecoration(
-                                              image: DecorationImage(
-                                                  image: imageProvider,
-                                                  fit: BoxFit.cover,
-                                                  colorFilter:
-                                                      const ColorFilter.mode(
-                                                          Colors.red,
-                                                          BlendMode.colorBurn)),
-                                            ),
-                                          ),
-                                      placeholder: (context, url) => Text(url),
-                                      errorWidget: (context, url, error) =>
-                                          Text(url));
-                                  // ignore: empty_catches
-                                } catch (e) {}
-                                return Text(uri.toString());
-                              },
+                              // imageBuilder: (Uri uri, title, alt) {
+                              //   try {
+                              //     return CachedNetworkImage(
+                              //         key: ObjectKey(uri.toString()),
+                              //         imageUrl: uri.toString(),
+                              //         httpHeaders: const {'accept': 'image/*'},
+                              //         cacheKey: uri.toString(),
+                              //         memCacheWidth: 100,
+                              //         imageBuilder: (context, imageProvider) =>
+                              //             Container(
+                              //               decoration: BoxDecoration(
+                              //                 image: DecorationImage(
+                              //                     image: imageProvider,
+                              //                     fit: BoxFit.cover,
+                              //                     colorFilter:
+                              //                         const ColorFilter.mode(
+                              //                             Colors.red,
+                              //                             BlendMode.colorBurn)),
+                              //               ),
+                              //             ),
+                              //         placeholder: (context, url) => Text(url),
+                              //         errorWidget: (context, url, error) =>
+                              //             Text(url));
+                              //     // ignore: empty_catches
+                              //   } catch (e) {}
+                              //   return Text(uri.toString());
+                              // },
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 8),

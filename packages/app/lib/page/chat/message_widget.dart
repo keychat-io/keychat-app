@@ -7,13 +7,13 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/models/nostr_event_status.dart';
 import 'package:app/nostr-core/nostr_event.dart';
-import 'package:app/page/chat/ForwardSelectRoom.dart';
 import 'package:app/page/chat/LongTextPreviewPage.dart';
 import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app/page/routes.dart';
 import 'package:app/page/theme.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
-import 'package:flutter_markdown/flutter_markdown.dart';
+
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
@@ -24,6 +24,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart';
+import 'package:markdown_widget/markdown_widget.dart';
 import 'package:settings_ui/settings_ui.dart';
 
 import '../../models/db_provider.dart';
@@ -47,7 +48,8 @@ class MessageWidget extends StatelessWidget {
   late double screenWidth;
   late bool isGroup;
   late Color toDisplayNameColor;
-  late MarkdownStyleSheet markdownStyleSheet;
+  late MarkdownConfig markdownConfig;
+  // late MarkdownStyleSheet markdownStyleSheet;
 
   MessageWidget(
       {super.key,
@@ -60,7 +62,7 @@ class MessageWidget extends StatelessWidget {
       required this.backgroundColor,
       required this.screenWidth,
       required this.toDisplayNameColor,
-      required this.markdownStyleSheet,
+      required this.markdownConfig,
       this.roomMember}) {
     message = chatController.messages[index];
   }
@@ -326,7 +328,7 @@ class MessageWidget extends StatelessWidget {
         onLongPress: _handleTextLongPress,
         child: message.reply == null
             ? RoomUtil.getTextViewWidget(
-                message, chatController, markdownStyleSheet, _textCallback)
+                message, chatController, markdownConfig, _textCallback)
             : _getReplyWidget());
 
     if (message.isMeSend) {
@@ -493,9 +495,8 @@ class MessageWidget extends StatelessWidget {
                       title: 'Group Member',
                       greeting: 'From Group: ${chatController.room.name}'));
                 } else {
-                  await Get.to(() => ShowContactDetail(
-                      room: chatController.room,
-                      chatController: chatController));
+                  await Get.toNamed(Routes.roomSettingContact
+                      .replaceFirst(':id', chatController.room.id.toString()));
                 }
                 await chatController.openPageAction();
               },
@@ -579,7 +580,7 @@ class MessageWidget extends StatelessWidget {
           ),
         ),
         RoomUtil.getMarkdownView(
-            message.realMessage ?? message.content, markdownStyleSheet)
+            message.realMessage ?? message.content, markdownConfig),
       ],
     ));
   }
@@ -819,45 +820,18 @@ class MessageWidget extends StatelessWidget {
             )));
   }
 
-  void _handleForward(BuildContext context) async {
-    List<Room> rooms =
-        Get.find<HomeController>().getRoomsByIdentity(message.identityId);
-
-    String content = message.mediaType == MessageMediaType.text
-        ? (message.realMessage ?? message.content)
-        : '[${message.mediaType.name}]';
-    List<Room>? forwardRooms = await Get.to(
-        () => ForwardSelectRoom(rooms, content, 'Select to Forward'),
-        fullscreenDialog: true,
-        transition: Transition.downToUp);
+  _handleForward(BuildContext context) {
     Get.back();
-    if (forwardRooms == null || forwardRooms.isEmpty) return;
+    var identity = chatController.room.getIdentity();
+    if (message.isMediaType) {
+      RoomUtil.forwardMediaMessage(identity,
+          mediaType: message.mediaType,
+          content: message.content,
+          realMessage: message.realMessage!);
+      return;
+    }
 
-    EasyLoading.show(status: 'Sending...');
-    if (message.mediaType == MessageMediaType.text) {
-      await RoomService.instance.sendMessageToMultiRooms(
-          message: content,
-          realMessage: content,
-          rooms: forwardRooms,
-          identity: chatController.room.getIdentity(),
-          mediaType: MessageMediaType.text);
-      EasyLoading.dismiss();
-      EasyLoading.showSuccess('Sent');
-      return;
-    }
-    if (message.mediaType == MessageMediaType.image ||
-        message.mediaType == MessageMediaType.video ||
-        message.mediaType == MessageMediaType.file) {
-      MsgFileInfo mfi = MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
-      await RoomService.instance.forwardFileMessage(
-        rooms: forwardRooms,
-        content: message.content,
-        mfi: mfi,
-        mediaType: message.mediaType,
-      );
-      EasyLoading.showSuccess('Sent');
-      return;
-    }
+    RoomUtil.forwardTextMessage(identity, message.content);
   }
 
   void _handleReply(BuildContext context) {

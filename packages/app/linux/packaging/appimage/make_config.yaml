@@ -1,0 +1,30 @@
+display_name: Keychat
+
+icon: linux/assets/logo.png
+
+keywords:
+  - Keychat
+  - Nostr
+  - Ecash
+  - cashu
+
+generic_name: Keychat
+
+actions:
+  - name: Say Hi
+    label: say-hi
+    arguments:
+      - --say
+      - hi
+  - name: Say Bye
+    label: say-bye
+    arguments:
+      - --say
+      - bye
+
+categories:
+  - Network
+
+startup_notify: true
+
+# include: []

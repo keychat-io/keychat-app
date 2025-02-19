@@ -57,3 +57,17 @@ open build/ios/archive/Runner.xcarchive/
 flutter test test/test_test.dart
 
 The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.
+
+
+## Linux
+
+install protoc 29.0
+https://github.com/protocolbuffers/protobuf/releases/
+
+```sh
+sudo apt-get install -y libsecret-1-dev libjsoncpp-dev libsecret-1-0
+sudo apt install libstdc++-13-dev cmake ninja-build
+
+cargo install flutter_rust_bridge_codegen
+cargo build --target x86_64-unknown-linux-gnu --release --target-dir target
+```

@@ -71,3 +71,27 @@ sudo apt install libstdc++-13-dev cmake ninja-build
 cargo install flutter_rust_bridge_codegen
 cargo build --target x86_64-unknown-linux-gnu --release --target-dir target
 ```
+
+## deb
+
+https://medium.com/@fluttergems/packaging-and-distributing-flutter-desktop-apps-the-missing-guide-part-3-linux-24ef8d30a5b4
+
+```sh
+sudo apt install -y rpm patchelf locate
+dart pub global activate flutter_distributor
+
+chmod +x ./app-1.27.2+6327-linux.deb
+sudo dpkg -i ./app-1.27.2+6327-linux.deb
+```
+
+### appimage
+
+```sh
+wget -O appimagetool "https://ghfast.top/https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
+
+chmod +x appimagetool 
+sudo mv appimagetool /usr/local/bin/
+
+flutter_distributor package --platform linux --targets appimage
+
+```

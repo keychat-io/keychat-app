@@ -14,6 +14,7 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart'
     hide Storage, WebResourceError;
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class BrowserController extends GetxController {
   late TextEditingController textController;
@@ -85,8 +86,17 @@ class BrowserController extends GetxController {
   lanuchWebview(
       {required String content,
       String engine = 'google',
-      String? defaultTitle}) {
+      String? defaultTitle}) async {
     if (content.isEmpty) return;
+
+    if (GetPlatform.isLinux || GetPlatform.isWindows) {
+      logger.d('Notification not working on windows and linux');
+      if (!await launchUrl(Uri.parse(content))) {
+        throw Exception('Could not launch $content');
+      }
+      return;
+    }
+
     EasyThrottle.throttle('browserOnComplete', const Duration(seconds: 2),
         () async {
       Uri? uri;

@@ -1,6 +1,6 @@
 # Keychat APP
 
-[![Downloads](https://img.shields.io/github/downloads/keychat-io/keychat-app/total?style=flat-square&logo=github)](https://github.com/keychat-io/keychat-apph/releases/)[![Last Version](https://img.shields.io/github/release/keychat-io/keychat-app/all.svg?style=flat-square)](https://github.com/keychat-io/keychat-app/releases/)[![License](https://img.shields.io/github/license/keychat-io/keychat-app?style=flat-square)](LICENSE)
+[![Downloads](https://img.shields.io/github/downloads/keychat-io/keychat-app/total?style=flat-square&logo=github)](https://github.com/keychat-io/keychat-apph/releases/)[![Last Version](https://img.shields.io/github/release/keychat-io/keychat-app/all.svg?style=flat-square)](https://github.com/keychat-io/keychat-app/releases/)[![License](https://img.shields.io/github/license/keychat-io/keychat-app)](LICENSE)
 
 
 

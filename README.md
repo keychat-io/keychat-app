@@ -7,10 +7,10 @@
 Keychat is a chat app, built on [Bitcoin Ecash](https://cashu.space/), [Nostr Protocol](https://github.com/nostr-protocol/nips), [Signal Protocol](https://github.com/signalapp/libsignal) and [MLS Protocol](https://messaginglayersecurity.rocks/).
 
 <p>
-<img src="./docs/images/app_home.png" width="45%" height="auto" />
-<img src="./docs/images/chat.jpeg" width="45%" height="auto"/>
-<img src="./docs/images/browser.png" width="45%" height="auto"/>
-<img src="./docs/images/settings.png" width="45%" height="auto"/>
+<img src="./docs/images/app_home.png" width="24%" height="auto" />
+<img src="./docs/images/browser.png" width="24%" height="auto"/>
+<img src="./docs/images/settings.png" width="24%" height="auto"/>
+<img src="./docs/images/chat.jpeg" width="24%" height="auto"/>
 </p>
 
 ## Download
@@ -90,12 +90,6 @@ melos run build:android # build apk to release
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=keychat-io/keychat-app&type=Date)](https://star-history.com/#keychat-io/keychat-app&Date)
-
-## Contributors
-
-<a align="center" href="https://github.com/keychat-io/keychat-app/contributors">
-  <img src="https://contrib.rocks/image?repo=keychat-io/keychat-app" />
-</a>
 
 
 ## License

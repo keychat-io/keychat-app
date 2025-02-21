@@ -141,16 +141,5 @@ flutter_launcher_icons:
   macos: 
     generate: true
     image_path: "assets/images/logo-bg.png"
-  linux: true
 
-parts:
-  uet-lms:
-    source: .
-    plugin: flutter
-    flutter-target: lib/main.dart
-    build-packages:
-      - libsecret-1-dev
-      - libjsoncpp-dev
-    stage-packages:
-      - libsecret-1-0
-      - libjsoncpp-dev
+

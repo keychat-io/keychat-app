@@ -22,6 +22,10 @@ actions:
       - --say
       - bye
 
+requires:
+  - libsecret-1-dev
+  - libjsoncpp-dev
+
 categories:
   - Network
 

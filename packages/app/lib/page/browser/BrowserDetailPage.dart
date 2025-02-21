@@ -71,11 +71,9 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
   void initState() {
     browserController = Get.find<BrowserController>();
     ecashController = Get.find<EcashController>();
+    title = widget.title;
+    url = widget.initUrl;
     super.initState();
-    setState(() {
-      title = widget.title;
-      url = widget.initUrl;
-    });
     initBrowserConnect(WebUri(url));
     pullToRefreshController = kIsWeb ||
             ![TargetPlatform.iOS, TargetPlatform.android]
@@ -121,14 +119,14 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, d) {
-        if (didPop) {
-          return;
-        }
-        goBackOrPop();
-      },
-      child: Scaffold(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, d) {
+          if (didPop) {
+            return;
+          }
+          goBackOrPop();
+        },
+        child: Scaffold(
           appBar: AppBar(
               toolbarHeight: 40,
               titleSpacing: 0,
@@ -285,115 +283,125 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                         Icons.arrow_back,
                         color: Colors.white,
                       )))
-              : null,
-          body: InAppWebView(
-            key: webViewKey,
-            // keepAlive: keepAlive,
-            // webViewEnvironment: browserController.webViewEnvironment,
-            initialUrlRequest: URLRequest(url: WebUri(widget.initUrl)),
-            initialSettings: settings,
-            pullToRefreshController: pullToRefreshController,
-            onWebViewCreated: (controller) {
-              webViewController = controller;
-              controller.addJavaScriptHandler(
-                  handlerName: 'keychat', callback: javascriptHandler);
-            },
-            onLoadStart: (controller, url) async {
-              setState(() {
-                this.url = url.toString();
-              });
-            },
-            onPermissionRequest: (controller, request) async {
-              return PermissionResponse(
-                  resources: request.resources,
-                  action: PermissionResponseAction.GRANT);
-            },
-            shouldOverrideUrlLoading:
-                (controller, NavigationAction navigationAction) async {
-              WebUri? uri = navigationAction.request.url;
-              logger.d('shouldOverrideUrlLoading: ${uri?.toString()}');
-              if (uri == null) return NavigationActionPolicy.ALLOW;
-              try {
-                var str = uri.toString();
-                if (str.startsWith('cashu')) {
-                  ecashController.proccessCashuAString(str);
-                  return NavigationActionPolicy.CANCEL;
-                }
-                // lightning invoice
-                if (str.startsWith('lightning:')) {
-                  str = str.replaceFirst('lightning:', '');
-                  ecashController.proccessPayLightningBill(str, pay: true);
-                  return NavigationActionPolicy.CANCEL;
-                }
-                if (str.startsWith('lnbc')) {
-                  ecashController.proccessPayLightningBill(str, pay: true);
-                  return NavigationActionPolicy.CANCEL;
-                }
+              : (kDebugMode
+                  ? FilledButton(
+                      onPressed: () {
+                        webViewController?.evaluateJavascript(
+                            source: "window.nostr.getPublicKey()");
+                      },
+                      child: const Text('debug'))
+                  : null),
 
-                if (![
-                  "http",
-                  "https",
-                  "file",
-                  "chrome",
-                  "data",
-                  "javascript",
-                  "about"
-                ].contains(uri.scheme)) {
-                  if (await canLaunchUrl(uri)) {
-                    // Launch the App
-                    await launchUrl(uri);
-                    // and cancel the request
-                    return NavigationActionPolicy.CANCEL;
+          body: SafeArea(
+              bottom: GetPlatform.isAndroid,
+              child: InAppWebView(
+                key: webViewKey,
+                // keepAlive: keepAlive,
+                // webViewEnvironment: browserController.webViewEnvironment,
+                initialUrlRequest: URLRequest(url: WebUri(widget.initUrl)),
+                initialSettings: settings,
+                pullToRefreshController: pullToRefreshController,
+                onWebViewCreated: (controller) {
+                  webViewController = controller;
+                  controller.addJavaScriptHandler(
+                      handlerName: 'keychat', callback: javascriptHandler);
+                },
+                onLoadStart: (controller, url) async {
+                  setState(() {
+                    this.url = url.toString();
+                  });
+                },
+                onPermissionRequest: (controller, request) async {
+                  return PermissionResponse(
+                      resources: request.resources,
+                      action: PermissionResponseAction.GRANT);
+                },
+                shouldOverrideUrlLoading:
+                    (controller, NavigationAction navigationAction) async {
+                  WebUri? uri = navigationAction.request.url;
+                  logger.d('shouldOverrideUrlLoading: ${uri?.toString()}');
+                  if (uri == null) return NavigationActionPolicy.ALLOW;
+                  try {
+                    var str = uri.toString();
+                    if (str.startsWith('cashu')) {
+                      ecashController.proccessCashuAString(str);
+                      return NavigationActionPolicy.CANCEL;
+                    }
+                    // lightning invoice
+                    if (str.startsWith('lightning:')) {
+                      str = str.replaceFirst('lightning:', '');
+                      ecashController.proccessPayLightningBill(str, pay: true);
+                      return NavigationActionPolicy.CANCEL;
+                    }
+                    if (str.startsWith('lnbc')) {
+                      ecashController.proccessPayLightningBill(str, pay: true);
+                      return NavigationActionPolicy.CANCEL;
+                    }
+
+                    if (![
+                      "http",
+                      "https",
+                      "file",
+                      "chrome",
+                      "data",
+                      "javascript",
+                      "about"
+                    ].contains(uri.scheme)) {
+                      if (await canLaunchUrl(uri)) {
+                        // Launch the App
+                        await launchUrl(uri);
+                        // and cancel the request
+                        return NavigationActionPolicy.CANCEL;
+                      }
+                    }
+                    onUpdateVisitedHistory(uri);
+                    return NavigationActionPolicy.ALLOW;
+                  } catch (e) {
+                    logger.d(e.toString(), error: e);
                   }
-                }
-                onUpdateVisitedHistory(uri);
-                return NavigationActionPolicy.ALLOW;
-              } catch (e) {
-                logger.d(e.toString(), error: e);
-              }
-              return NavigationActionPolicy.ALLOW;
-            },
-            onLoadStop: (controller, url) async {
-              onUpdateVisitedHistory(url);
-              await controller.injectJavascriptFileFromAsset(
-                  assetFilePath: "assets/js/nostr.js");
-              pullToRefreshController?.endRefreshing();
-              setState(() {
-                this.url = url.toString();
-              });
-            },
-            onReceivedServerTrustAuthRequest: (_, challenge) async {
-              return ServerTrustAuthResponse(
-                  action: ServerTrustAuthResponseAction.PROCEED);
-            },
-            onReceivedError: (controller, request, error) {
-              pullToRefreshController?.endRefreshing();
-            },
-            onProgressChanged: (controller, progress) {
-              if (progress == 100) {
-                pullToRefreshController?.endRefreshing();
-              }
-              setState(() {
-                this.progress = progress / 100;
-              });
-            },
-            onConsoleMessage: (controller, consoleMessage) {
-              if (kDebugMode) {
-                print('console: $consoleMessage');
-              }
-            },
-            onTitleChanged: (controller, title) async {
-              if (title != null) {
-                setState(() {
-                  this.title = title;
-                });
-              }
-            },
-            onUpdateVisitedHistory: (controller, url, androidIsReload) {
-              onUpdateVisitedHistory(url);
-            },
-          )),
-    );
+                  return NavigationActionPolicy.ALLOW;
+                },
+                onLoadStop: (controller, url) async {
+                  onUpdateVisitedHistory(url);
+                  await controller.injectJavascriptFileFromAsset(
+                      assetFilePath: "assets/js/nostr.js");
+                  pullToRefreshController?.endRefreshing();
+                  setState(() {
+                    this.url = url.toString();
+                  });
+                },
+                onReceivedServerTrustAuthRequest: (_, challenge) async {
+                  return ServerTrustAuthResponse(
+                      action: ServerTrustAuthResponseAction.PROCEED);
+                },
+                onReceivedError: (controller, request, error) {
+                  pullToRefreshController?.endRefreshing();
+                },
+                onProgressChanged: (controller, progress) {
+                  if (progress == 100) {
+                    pullToRefreshController?.endRefreshing();
+                  }
+                  setState(() {
+                    this.progress = progress / 100;
+                  });
+                },
+                onConsoleMessage: (controller, consoleMessage) {
+                  if (kDebugMode) {
+                    print('console: ${consoleMessage.message}');
+                  }
+                },
+                onTitleChanged: (controller, title) async {
+                  if (title != null) {
+                    setState(() {
+                      this.title = title;
+                    });
+                  }
+                },
+                onUpdateVisitedHistory: (controller, url, androidIsReload) {
+                  onUpdateVisitedHistory(url);
+                },
+              )),
+        ));
   }
 
   Widget getPopTools(String url) {

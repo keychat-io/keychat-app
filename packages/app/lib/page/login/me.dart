@@ -84,12 +84,15 @@ class MinePage extends GetView<SettingController> {
                           Get.toNamed(Routes.settingMore);
                         },
                       ),
-                      SettingsTile.navigation(
-                          title: const Text("Browser Settings"),
-                          leading: const Icon(CupertinoIcons.compass),
-                          onPressed: (context) async {
-                            Get.to(() => const BrowserSetting());
-                          }),
+                      if (GetPlatform.isIOS ||
+                          GetPlatform.isAndroid ||
+                          GetPlatform.isMacOS)
+                        SettingsTile.navigation(
+                            title: const Text("Browser Settings"),
+                            leading: const Icon(CupertinoIcons.compass),
+                            onPressed: (context) async {
+                              Get.to(() => const BrowserSetting());
+                            }),
                       SettingsTile.navigation(
                         leading: const Icon(CupertinoIcons.settings),
                         title: const Text("App Settings"),

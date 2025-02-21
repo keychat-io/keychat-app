@@ -76,7 +76,7 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
           children: [
             if (tx.io == TransactionDirection.in_ &&
                 tx.status == TransactionStatus.pending)
-              FilledButton(
+              OutlinedButton(
                   style: ButtonStyle(
                       minimumSize:
                           WidgetStateProperty.all(Size(Get.width - 32, 48))),
@@ -91,7 +91,7 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
                     await launchUrl(uri);
                   },
                   child: const Text('Pay with Lightning wallet')),
-            OutlinedButton.icon(
+            FilledButton.icon(
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: 'lightning:${tx.pr}'));
                   EasyLoading.showToast('Copied');

@@ -1,13 +1,16 @@
-[![melos](https://img.shields.io/badge/maintained%20with-melos-f700ff.svg?style=flat-square)](https://github.com/invertase/melos)
-
 # Keychat APP
 
-> Keychat is a chat app, built on [Bitcoin Ecash](https://cashu.space/), [Nostr Protocol](https://github.com/nostr-protocol/nips), [Signal Protocol](https://github.com/signalapp/libsignal) and [MLS Protocol](https://messaginglayersecurity.rocks/).
+[![Downloads](https://img.shields.io/github/downloads/keychat-io/keychat-app/total?style=flat-square&logo=github)](https://github.com/keychat-io/keychat-apph/releases/)[![Last Version](https://img.shields.io/github/release/keychat-io/keychat-app/all.svg?style=flat-square)](https://github.com/keychat-io/keychat-app/releases/)[![License](https://img.shields.io/github/license/keychat-io/keychat-app?style=flat-square)](LICENSE)
+
+
+
+Keychat is a chat app, built on [Bitcoin Ecash](https://cashu.space/), [Nostr Protocol](https://github.com/nostr-protocol/nips), [Signal Protocol](https://github.com/signalapp/libsignal) and [MLS Protocol](https://messaginglayersecurity.rocks/).
 
 <p>
-<img src="./docs/images/app_home.jpg" width="30%" height="auto" />
-<img src="./docs/images/chat.jpeg" width="30%" height="auto"/>
-<img src="./docs/images/settings.jpeg" width="30%" height="auto"/>
+<img src="./docs/images/app_home.png" width="45%" height="auto" />
+<img src="./docs/images/chat.jpeg" width="45%" height="auto"/>
+<img src="./docs/images/browser.png" width="45%" height="auto"/>
+<img src="./docs/images/settings.png" width="45%" height="auto"/>
 </p>
 
 ## Download
@@ -15,12 +18,6 @@
 - [Android APK](https://github.com/keychat-io/keychat-app/releases)
 - iOS: Comming
 
-## Inspiration
-
-Keychat is inspired by the postal system — stamps, post offices, letters.
-Keychat uses Bitcoin ecash as stamps and Nostr relays as post offices.
-
-<img src="./docs/images/inspiration.png" width="90%" height="auto"/>
 
 ## About Keychat
 
@@ -36,6 +33,8 @@ Keychat uses Bitcoin ecash as stamps and Nostr relays as post offices.
 - Android
 - iOS
 - macOS
+- Linux
+- Windows
 
 ## Spec Compliance
 
@@ -46,6 +45,8 @@ Keychat implements the following nips:
 - [NIP-06: Basic key derivation from mnemonic seed phrase][nip06]
 - [NIP-07: window.nostr capability for web browsers][nip07]
 - [NIP-19: Bech32-encoded entities][NIP19]
+- [NIP-44: Encrypted Payloads][NIP44]
+- [NIP-55: Android Signer Application][nip55]
 - [NIP-59: Gift Wrap][NIP19]
  
 [nips]: https://github.com/nostr-protocol/nips
@@ -54,7 +55,9 @@ Keychat implements the following nips:
 [nip06]: https://github.com/nostr-protocol/nips/blob/master/06.md
 [nip07]: https://github.com/nostr-protocol/nips/blob/master/07.md
 [nip19]: https://github.com/nostr-protocol/nips/blob/master/19.md
-[nip59]: https://github.com/nostr-protocol/nips/blob/master/44.md
+[nip44]: https://github.com/nostr-protocol/nips/blob/master/44.md
+[nip55]: https://github.com/nostr-protocol/nips/blob/master/55.md
+[nip59]: https://github.com/nostr-protocol/nips/blob/master/59.md
 
 ## Getting Started
 
@@ -82,6 +85,18 @@ melos run build:android # build apk to release
 - [flutter_rust_bridge](https://github.com/fzyzcjy/flutter_rust_bridge/): Flutter/Dart <-> Rust binding generator, feature-rich, but seamless and simple.
 - [melos](https://melos.invertase.dev/): Melos is a CLI tool used to help manage Dart projects with multiple packages
 - [rust-nostr](https://github.com/rust-nostr/nostr): Nostr protocol implementation, SDK and FFI
+
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=keychat-io/keychat-app&type=Date)](https://star-history.com/#keychat-io/keychat-app&Date)
+
+## Contributors
+
+<a align="center" href="https://github.com/keychat-io/keychat-app/contributors">
+  <img src="https://contrib.rocks/image?repo=keychat-io/keychat-app" />
+</a>
+
 
 ## License
 

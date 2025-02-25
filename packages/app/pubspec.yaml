@@ -14,6 +14,8 @@ platforms:
   android:
   ios:
   macos:
+  linux:
+  windows:
   # chrome:
 
 dependencies:
@@ -105,7 +107,7 @@ dev_dependencies:
   json_serializable: ^6.8.0
   freezed: ^2.5.2
   lints: ^5.0.0
-  flutter_launcher_icons: ^0.13.1
+  flutter_launcher_icons: ^0.14.3
   analyzer: ^5.13.0
   test: ^1.25.2
   dmg: 0.1.3-rc
@@ -130,9 +132,12 @@ flutter_native_splash:
   image_dark: assets/images/logo.png
 # dart run flutter_launcher_icons
 flutter_launcher_icons:
+  image_path: "assets/images/logo.png"
   android: "launcher_icon"
-  ios: true
+  ios:
+    remove_alpha_ios: true
   macos: 
     generate: true
     image_path: "assets/images/logo-bg.png"
-  image_path: "assets/images/logo.png"
+
+

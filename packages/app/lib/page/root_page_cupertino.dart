@@ -17,11 +17,48 @@ class CupertinoRootPage extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
-    List<Widget> pages = [
-      const RoomList(),
-      const BrowserPage(),
-      const MinePage(),
+    List configs = [
+      {
+        "page": const RoomList(),
+        "barItem": BottomNavigationBarItem(
+            label: 'Chats',
+            icon: Obx(() => Badge(
+                backgroundColor: Colors.red,
+                textColor: Colors.white,
+                label: Text('${controller.allUnReadCount.value}'),
+                isLabelVisible: controller.allUnReadCount.value > 0,
+                child: const Icon(CupertinoIcons.chat_bubble_fill, size: 22)))),
+        "linux": true,
+        "windows": true,
+      },
+      {
+        "page": const BrowserPage(),
+        "barItem": const BottomNavigationBarItem(
+            label: 'Browser', icon: Icon(Icons.explore, size: 22)),
+        "linux": false,
+        "windows": false,
+      },
+      {
+        "page": const MinePage(),
+        "barItem": const BottomNavigationBarItem(
+            label: 'Me', icon: Icon(CupertinoIcons.person_fill, size: 22)),
+        "linux": true,
+        "windows": true,
+      }
     ];
+    List<Widget> pages = [];
+    List<BottomNavigationBarItem> barItems = [];
+    for (var item in configs) {
+      if (item["linux"] == false && GetPlatform.isLinux) {
+        continue;
+      }
+      if (item["windows"] == false && GetPlatform.isWindows) {
+        continue;
+      }
+      pages.add(item["page"]);
+      barItems.add(item["barItem"]);
+    }
+
     return CupertinoTabScaffold(
       restorationId: 'cupertino_tab_scaffold',
       resizeToAvoidBottomInset: true,
@@ -40,21 +77,7 @@ class CupertinoRootPage extends GetView<HomeController> {
             });
           }
         },
-        items: [
-          BottomNavigationBarItem(
-              label: 'Chats',
-              icon: Obx(() => Badge(
-                  backgroundColor: Colors.red,
-                  textColor: Colors.white,
-                  label: Text('${controller.allUnReadCount.value}'),
-                  isLabelVisible: controller.allUnReadCount.value > 0,
-                  child:
-                      const Icon(CupertinoIcons.chat_bubble_fill, size: 22)))),
-          const BottomNavigationBarItem(
-              label: 'Browser', icon: Icon(Icons.explore, size: 22)),
-          const BottomNavigationBarItem(
-              label: 'Me', icon: Icon(CupertinoIcons.person_fill, size: 22))
-        ],
+        items: barItems,
       ),
       tabBuilder: (context, index) {
         return pages[index];

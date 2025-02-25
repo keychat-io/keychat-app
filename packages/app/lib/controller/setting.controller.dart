@@ -1,9 +1,9 @@
 import 'dart:io' show Directory;
 
 import 'package:app/global.dart';
+import 'package:app/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:path_provider/path_provider.dart';
 import '../service/storage.dart';
 
 class SettingController extends GetxController with StateMixin<Type> {
@@ -24,7 +24,8 @@ class SettingController extends GetxController with StateMixin<Type> {
   @override
   void onInit() async {
     super.onInit();
-    appFolder = await getApplicationDocumentsDirectory();
+    appFolder = await Utils.getAppFolder();
+
     viewKeychatFutures.value = await getViewKeychatFutures();
     autoCleanMessageDays.value =
         await Storage.getIntOrZero(StorageKeyString.autoDeleteMessageDays);

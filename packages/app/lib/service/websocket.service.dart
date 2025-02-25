@@ -11,11 +11,13 @@ import 'package:app/nostr-core/nostr_nip4_req.dart';
 import 'package:app/nostr-core/subscribe_event_status.dart';
 import 'package:app/nostr-core/relay_websocket.dart';
 import 'package:app/nostr-core/subscribe_result.dart';
+import 'package:app/page/setting/RelaySetting.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_debounce.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:queue/queue.dart';
 import 'package:web_socket_channel/io.dart';
@@ -237,7 +239,6 @@ class WebsocketService extends GetxService {
       }
     }
     setRelayStatusInt(RelayStatusEnum.connecting.name);
-    channels.refresh();
   }
 
   String? lastRelayStatus;
@@ -246,6 +247,7 @@ class WebsocketService extends GetxService {
     EasyDebounce.debounce(
         'setRelayStatusInt', const Duration(milliseconds: 100), () {
       relayStatusInt.value = lastRelayStatus ?? name;
+      channels.refresh();
     });
   }
 
@@ -369,8 +371,28 @@ class WebsocketService extends GetxService {
                 '${item.relay}: ${item.error ?? item.sendStatus.name}')
             .toList()
             .join('\n');
-        Get.snackbar('Message Send Failed', messages,
-            icon: const Icon(Icons.error));
+        if (Get.isDialogOpen != null && Get.isDialogOpen == false) {
+          Get.dialog(CupertinoAlertDialog(
+            title: const Text('Message Sent Failed'),
+            content: Text(messages, textAlign: TextAlign.left),
+            actions: <Widget>[
+              CupertinoDialogAction(
+                child: const Text('OK'),
+                onPressed: () {
+                  Get.back();
+                },
+              ),
+              CupertinoDialogAction(
+                isDefaultAction: true,
+                child: const Text('Relay Server >'),
+                onPressed: () {
+                  Get.back();
+                  Get.to(() => const RelaySetting());
+                },
+              ),
+            ],
+          ));
+        }
       }
       // save send status to db
       await DBProvider.database.writeTxn(() async {

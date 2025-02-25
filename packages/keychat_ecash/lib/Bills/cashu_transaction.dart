@@ -60,8 +60,18 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                 direction: Axis.vertical,
                 spacing: 16,
                 children: [
+              FilledButton.icon(
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: tx.token));
+                    EasyLoading.showToast('Copied');
+                  },
+                  style: ButtonStyle(
+                      minimumSize:
+                          WidgetStateProperty.all(Size(Get.width - 32, 48))),
+                  icon: const Icon(Icons.copy),
+                  label: const Text('Copy Token')),
               if (tx.status == TransactionStatus.pending)
-                FilledButton.icon(
+                OutlinedButton.icon(
                     icon: const Icon(CupertinoIcons.arrow_down),
                     style: ButtonStyle(
                         minimumSize:
@@ -96,16 +106,6 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                       }
                     },
                     label: const Text('Receive')),
-              OutlinedButton.icon(
-                  onPressed: () {
-                    Clipboard.setData(ClipboardData(text: tx.token));
-                    EasyLoading.showToast('Copied');
-                  },
-                  style: ButtonStyle(
-                      minimumSize:
-                          WidgetStateProperty.all(Size(Get.width - 32, 48))),
-                  icon: const Icon(Icons.copy),
-                  label: const Text('Copy Token')),
             ])),
         body: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),

@@ -6,6 +6,6 @@ export './cashu_send.dart';
 export './utils.dart';
 export './red_pocket.dart';
 export './cashu_receive.dart';
-export './EcashSetting/EcashSetting_Page.dart';
+export './EcashSetting/EcashSetting_page.dart';
 export './Bills/cashu_bill_page.dart';
 export './Bills/lightning_bill_page.dart';

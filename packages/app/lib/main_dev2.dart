@@ -16,7 +16,6 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/index.dart';
-import 'package:path_provider/path_provider.dart';
 import 'controller/home.controller.dart';
 import 'controller/setting.controller.dart';
 import 'models/db_provider.dart';
@@ -109,8 +108,7 @@ Future initServices() async {
       'dev2'; //const String.fromEnvironment("MYENV", defaultValue: "prod");  env_config.Config.instance.init(env);
   isProdEnv = env_config.Config.isProd();
 
-  var appFolder = await getApplicationDocumentsDirectory();
-  // init log file
+  Directory appFolder = await Utils.getAppFolder(); // init log file
   await Utils.initLoggger(appFolder);
   String dbPath = '${appFolder.path}/$env/database/';
   Directory dbDirectory = Directory(dbPath);

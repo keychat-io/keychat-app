@@ -28,6 +28,7 @@ import 'package:intl/intl.dart' show DateFormat;
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/index.dart';
 import 'package:logger/logger.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 Logger logger = Logger(
@@ -852,5 +853,16 @@ class Utils {
         ],
       ),
     );
+  }
+
+  static Future<Directory> getAppFolder() async {
+    var appFolder = await getApplicationDocumentsDirectory();
+    if (GetPlatform.isLinux || GetPlatform.isWindows) {
+      var dir = Directory('${appFolder.path}/keychat_app_data');
+      var exist = await dir.exists();
+      if (!exist) await dir.create();
+      return dir;
+    }
+    return appFolder;
   }
 }

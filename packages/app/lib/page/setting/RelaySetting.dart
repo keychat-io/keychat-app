@@ -50,6 +50,7 @@ class _RelaySettingState extends State<RelaySetting> {
                           child: const Text("Cancel"),
                         ),
                         CupertinoDialogAction(
+                          isDefaultAction: true,
                           onPressed: () async {
                             Navigator.of(context).pop();
                             Get.find<WebsocketService>().start();

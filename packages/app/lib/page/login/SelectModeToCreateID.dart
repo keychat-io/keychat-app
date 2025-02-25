@@ -38,7 +38,7 @@ class _SelectModeToCreateIdState extends State<SelectModeToCreateId> {
         ),
         SettingsTile.navigation(
           leading: const Icon(Icons.vpn_key),
-          title: const Text("From Nesc"),
+          title: const Text("From Nsec"),
           onPressed: (context) async {
             Identity? res = await Get.to(() => const ImportNsec());
             if (res != null) {

@@ -81,6 +81,10 @@ class NotifyService {
   }
 
   static Future<bool> hasNotifyPermission() async {
+    if (GetPlatform.isLinux || GetPlatform.isWindows) {
+      logger.d('Notification not working on windows and linux');
+      return false;
+    }
     var s = await FirebaseMessaging.instance.getNotificationSettings();
     if (s.authorizationStatus == AuthorizationStatus.authorized) return true;
     return false;
@@ -150,6 +154,10 @@ class NotifyService {
   }
 
   static Future init() async {
+    if (GetPlatform.isLinux || GetPlatform.isWindows) {
+      logger.d('Notification not working on windows and linux');
+      return;
+    }
     var settings = await FirebaseMessaging.instance.getNotificationSettings();
     logger.i('Notification Status: ${settings.authorizationStatus.name}');
     // app setting

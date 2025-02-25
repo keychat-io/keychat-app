@@ -6,7 +6,6 @@ import 'package:app/utils.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -71,7 +70,7 @@ class DbSetting {
   void exportDB(BuildContext context, encryptionKey) async {
     final fileName =
         'Keychat_db_${formatTime(DateTime.now().millisecondsSinceEpoch, 'yyyy-MM-dd')}';
-    var appFolder = await getApplicationDocumentsDirectory();
+    var appFolder = await Utils.getAppFolder();
     String sourcePath = '${appFolder.path}/prod/database/';
     String outputPath = '$sourcePath/$fileName';
     // need export shared_preferences file to sourcePath
@@ -234,8 +233,8 @@ class DbSetting {
 
   Future<bool> importDB(
       BuildContext context, String decryptionKey, File file) async {
-    var appFolder = await getApplicationDocumentsDirectory();
-    String sourcePath = '${appFolder.path}/prod/database/';
+    var appFolder = await Utils.getAppFolder();
+    String sourcePath = '$appFolder/prod/database/';
 
     deleteAllFilesInDirectory(sourcePath);
     return await importAndDecryptPackage(file.path, decryptionKey, sourcePath);

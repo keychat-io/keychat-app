@@ -71,6 +71,13 @@ class Login extends StatelessWidget {
     return SettingsList(platform: DevicePlatform.iOS, sections: [
       SettingsSection(title: const Text('Recover ID'), tiles: [
         SettingsTile.navigation(
+          leading: const Icon(Icons.file_open),
+          title: const Text("From Backup File"),
+          onPressed: (context) {
+            const MoreChatSetting().enableImportDB(context);
+          },
+        ),
+        SettingsTile.navigation(
           leading: const Icon(Icons.local_activity),
           title: const Text("From Seed Phrase"),
           onPressed: (context) async {
@@ -82,7 +89,7 @@ class Login extends StatelessWidget {
         ),
         SettingsTile.navigation(
           leading: const Icon(Icons.vpn_key),
-          title: const Text("From Nesc"),
+          title: const Text("From Nsec"),
           onPressed: (context) async {
             Identity? res = await Get.to(() => const ImportNsec());
             if (res != null) {
@@ -90,15 +97,6 @@ class Login extends StatelessWidget {
             }
           },
         ),
-      ]),
-      SettingsSection(tiles: [
-        SettingsTile.navigation(
-          leading: const Icon(Icons.file_open),
-          title: const Text("From Backup File"),
-          onPressed: (context) {
-            const MoreChatSetting().enableImportDB(context);
-          },
-        )
       ]),
       if (GetPlatform.isAndroid)
         SettingsSection(tiles: [

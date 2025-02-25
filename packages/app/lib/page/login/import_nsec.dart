@@ -40,7 +40,7 @@ class _ImportNsec extends State<ImportNsec> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar:
-            AppBar(centerTitle: true, title: const Text("Import from Nesc")),
+            AppBar(centerTitle: true, title: const Text("Import from Nsec")),
         body: SafeArea(
           child: Padding(
               padding:

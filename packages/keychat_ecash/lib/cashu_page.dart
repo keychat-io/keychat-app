@@ -600,6 +600,7 @@ class CashuPage extends GetView<EcashController> {
         SettingsTile.navigation(
           title: const Text('Send Ecash'),
           onPressed: (context) async {
+            Get.back();
             await Get.bottomSheet(const CashuSendPage(false));
             ecashBillController.getTransactions();
           },
@@ -607,6 +608,8 @@ class CashuPage extends GetView<EcashController> {
         SettingsTile.navigation(
           title: const Text('Send to Lightning Network'),
           onPressed: (context) async {
+            Get.back();
+
             await showModalBottomSheetWidget(
                 context, '', const PayInvoicePage(),
                 showAppBar: false);
@@ -624,6 +627,7 @@ class CashuPage extends GetView<EcashController> {
         SettingsTile.navigation(
           title: const Text('Receive Ecash'),
           onPressed: (context) async {
+            Get.back();
             await showModalBottomSheetWidget(context, '', const ReceiveEcash(),
                 showAppBar: false);
             ecashBillController.getTransactions();
@@ -632,6 +636,7 @@ class CashuPage extends GetView<EcashController> {
         SettingsTile.navigation(
           title: const Text('Receive from Lightning Network'),
           onPressed: (context) async {
+            Get.back();
             await showModalBottomSheetWidget(
                 context, '', const CreateInvoicePage(),
                 showAppBar: false);

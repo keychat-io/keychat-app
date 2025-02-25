@@ -46,18 +46,6 @@ class CupertinoRootPage extends GetView<HomeController> {
         "windows": true,
       }
     ];
-    List<Widget> pages = [];
-    List<BottomNavigationBarItem> barItems = [];
-    for (var item in configs) {
-      if (item["linux"] == false && GetPlatform.isLinux) {
-        continue;
-      }
-      if (item["windows"] == false && GetPlatform.isWindows) {
-        continue;
-      }
-      pages.add(item["page"]);
-      barItems.add(item["barItem"]);
-    }
 
     return CupertinoTabScaffold(
       restorationId: 'cupertino_tab_scaffold',
@@ -70,17 +58,19 @@ class CupertinoRootPage extends GetView<HomeController> {
           if (GetPlatform.isMobile) {
             HapticFeedback.lightImpact();
           }
-          if (value == pages.length - 1) {
+          if (value == configs.length - 1) {
             EasyThrottle.throttle(
                 'loadCashuABalance', const Duration(seconds: 3), () {
               getGetxController<EcashController>()?.getBalance();
             });
           }
         },
-        items: barItems,
+        items: configs
+            .map((e) => e["barItem"] as BottomNavigationBarItem)
+            .toList(),
       ),
       tabBuilder: (context, index) {
-        return pages[index];
+        return configs.elementAt(index)["page"] as Widget;
       },
     );
   }

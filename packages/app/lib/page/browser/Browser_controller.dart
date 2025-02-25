@@ -89,8 +89,8 @@ class BrowserController extends GetxController {
       String? defaultTitle}) async {
     if (content.isEmpty) return;
 
-    if (GetPlatform.isLinux || GetPlatform.isWindows) {
-      logger.d('Notification not working on windows and linux');
+    if (GetPlatform.isLinux) {
+      logger.d('webview not working on linux');
       if (!await launchUrl(Uri.parse(content))) {
         throw Exception('Could not launch $content');
       }

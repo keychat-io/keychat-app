@@ -89,7 +89,13 @@ class _CashuSendPageState extends State<CashuSendPage> {
                         EasyLoading.showToast('Please input amount');
                         return;
                       }
-                      int amount = int.parse(amountString);
+                      int amount = 0;
+                      try {
+                        amount = int.parse(amountString);
+                      } catch (e) {
+                        EasyLoading.showToast('Invalid amount');
+                        return;
+                      }
                       if (amount == 0) {
                         EasyLoading.showToast('Amount should > 0');
                         return;

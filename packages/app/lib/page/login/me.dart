@@ -84,9 +84,7 @@ class MinePage extends GetView<SettingController> {
                           Get.toNamed(Routes.settingMore);
                         },
                       ),
-                      if (GetPlatform.isIOS ||
-                          GetPlatform.isAndroid ||
-                          GetPlatform.isMacOS)
+                      if (!GetPlatform.isLinux)
                         SettingsTile.navigation(
                             title: const Text("Browser Settings"),
                             leading: const Icon(CupertinoIcons.compass),

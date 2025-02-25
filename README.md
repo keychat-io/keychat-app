@@ -63,14 +63,19 @@ Keychat implements the following nips:
 
 ```
 git submodule update --init --recursive
-
+dart pub global activate melos 6.2.0
 melos bootstrap
 
+# build rust lib: packages\keychat_rust_ffi_plugin\README.md
+
 cd packages/app
+flutter devices
+flutter run -d xxx
 
-flutter run
-
-melos run build:android # build apk to release
+# release
+melos run build:ios 
+melos run build:android
+melos run build:macos
 ```
 
 

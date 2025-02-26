@@ -94,8 +94,13 @@ melos run build:macos
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=keychat-io/keychat-app&type=Date)](https://star-history.com/#keychat-io/keychat-app&Date)
+The easiest way to support developers is to click on the star (⭐) at the top of the page.
 
+<p style="text-align: center;">
+    <a href="https://api.star-history.com/svg?repos=keychat-io/keychat-app&Date">
+        <img alt="start" width=80% src="https://api.star-history.com/svg?repos=keychat-io/keychat-app"/>
+    </a>
+</p>
 
 ## License
 

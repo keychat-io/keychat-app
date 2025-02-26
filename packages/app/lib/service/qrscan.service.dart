@@ -1,9 +1,11 @@
 import 'package:app/page/browser/Browser_controller.dart';
 import 'package:app/page/chat/create_contact_page.dart';
+import 'package:app/page/components.dart';
 import 'package:barcode_scan2/barcode_scan2.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:app/models/models.dart';
 import 'package:app/page/chat/RoomUtil.dart';
@@ -90,6 +92,12 @@ class QrScanService {
     }
     if (str.startsWith('lnbc')) {
       return ecashController.proccessPayLightningBill(str);
+    }
+    if (str.toUpperCase().startsWith('LNURL') || isEmail(str)) {
+      await showModalBottomSheetWidget(
+          Get.context!, '', PayInvoicePage(invoce: str),
+          showAppBar: false);
+      return;
     }
     if (str.startsWith('npub') || str.length == 64) {
       Get.to(() => AddtoContactsPage(str));

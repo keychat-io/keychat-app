@@ -130,14 +130,4 @@ flutter_native_splash:
   image: assets/images/logo.png
   color_dark: "#121212"
   image_dark: assets/images/logo.png
-# dart run flutter_launcher_icons
-flutter_launcher_icons:
-  image_path: "assets/images/logo.png"
-  android: "launcher_icon"
-  ios:
-    remove_alpha_ios: true
-  macos: 
-    generate: true
-    image_path: "assets/images/logo-bg.png"
-
 

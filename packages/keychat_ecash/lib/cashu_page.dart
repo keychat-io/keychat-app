@@ -36,9 +36,7 @@ class CashuPage extends GetView<EcashController> {
     return Scaffold(
         appBar: AppBar(
           centerTitle: true,
-          title: const Text(
-            "Bitcoin Ecash(Cashu)",
-          ),
+          title: const Text("Bitcoin Ecash"),
           actions: [
             IconButton(
                 onPressed: () {
@@ -380,17 +378,7 @@ class CashuPage extends GetView<EcashController> {
                               key: Key(
                                   transaction.id + transaction.time.toString()),
                               dense: true,
-                              leading: CircleAvatar(
-                                  radius: 18,
-                                  backgroundColor: Get.isDarkMode
-                                      ? Colors.white10
-                                      : Colors.grey,
-                                  child: Icon(
-                                    isSend
-                                        ? CupertinoIcons.arrow_up
-                                        : CupertinoIcons.arrow_down,
-                                    size: 18,
-                                  )),
+                              leading: CashuUtil.getTransactionIcon(isSend),
                               title: Text(
                                   (isSend ? "-" : "+") +
                                       (transaction.amount).toString(),
@@ -474,17 +462,7 @@ class CashuPage extends GetView<EcashController> {
                               key: Key(transaction.hash +
                                   transaction.time.toString()),
                               dense: true,
-                              leading: CircleAvatar(
-                                  radius: 18,
-                                  backgroundColor: Get.isDarkMode
-                                      ? Colors.white10
-                                      : Colors.grey,
-                                  child: Icon(
-                                    isSend
-                                        ? CupertinoIcons.arrow_up
-                                        : CupertinoIcons.arrow_down,
-                                    size: 18,
-                                  )),
+                              leading: CashuUtil.getTransactionIcon(isSend),
                               title: Text(amount,
                                   style:
                                       Theme.of(context).textTheme.bodyMedium),
@@ -600,6 +578,7 @@ class CashuPage extends GetView<EcashController> {
         SettingsTile.navigation(
           title: const Text('Send Ecash'),
           onPressed: (context) async {
+            Get.back();
             await Get.bottomSheet(const CashuSendPage(false));
             ecashBillController.getTransactions();
           },
@@ -607,6 +586,8 @@ class CashuPage extends GetView<EcashController> {
         SettingsTile.navigation(
           title: const Text('Send to Lightning Network'),
           onPressed: (context) async {
+            Get.back();
+
             await showModalBottomSheetWidget(
                 context, '', const PayInvoicePage(),
                 showAppBar: false);
@@ -624,6 +605,7 @@ class CashuPage extends GetView<EcashController> {
         SettingsTile.navigation(
           title: const Text('Receive Ecash'),
           onPressed: (context) async {
+            Get.back();
             await showModalBottomSheetWidget(context, '', const ReceiveEcash(),
                 showAppBar: false);
             ecashBillController.getTransactions();
@@ -632,6 +614,7 @@ class CashuPage extends GetView<EcashController> {
         SettingsTile.navigation(
           title: const Text('Receive from Lightning Network'),
           onPressed: (context) async {
+            Get.back();
             await showModalBottomSheetWidget(
                 context, '', const CreateInvoicePage(),
                 showAppBar: false);

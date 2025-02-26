@@ -55,7 +55,7 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
           title: const Text('Receive Ecash'),
         ),
         body: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 10),
+            padding: const EdgeInsets.all(16),
             child: Column(children: [
               Form(
                 autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -112,6 +112,9 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
                         const Size(double.infinity, 44))),
                 child: const Text('Receive'),
                 onPressed: () async {
+                  if (GetPlatform.isMobile) {
+                    HapticFeedback.lightImpact();
+                  }
                   String encodedToken = receiveTextController.text.trim();
                   if (encodedToken.isEmpty) {
                     EasyLoading.showToast('Please input token');

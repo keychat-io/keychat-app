@@ -56,12 +56,15 @@ class MoreChatSetting extends StatelessWidget {
                   Get.to(() => const FileStorageSetting());
                 },
               ),
-              SettingsTile.navigation(
-                  leading: const Icon(Icons.notifications_outlined),
-                  onPressed: (x) {
-                    handleNotificationSettting();
-                  },
-                  title: const Text('Notifications'))
+              if (GetPlatform.isIOS ||
+                  GetPlatform.isAndroid ||
+                  GetPlatform.isMacOS)
+                SettingsTile.navigation(
+                    leading: const Icon(Icons.notifications_outlined),
+                    onPressed: (x) {
+                      handleNotificationSettting();
+                    },
+                    title: const Text('Notifications'))
             ]),
             SettingsSection(title: const Text('Backup'), tiles: [
               SettingsTile.navigation(

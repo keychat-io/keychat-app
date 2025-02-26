@@ -1,0 +1,36 @@
+display_name: Keychat
+package_name: keychat
+
+maintainer:
+  name: Keychat
+  email: btc001@tuta.io
+
+priority: optional
+
+section: x11
+
+installed_size: 15700
+
+dependencies:
+  - libsecret-1-dev
+  - libjsoncpp-dev
+
+essential: false
+
+icon: linux/assets/logo.png
+
+postuninstall_scripts:
+  - echo "Sorry to see you go."
+
+keywords:
+  - Keychat
+  - Nostr
+  - Ecash
+  - cashu
+
+generic_name: Keychat
+
+categories:
+  - Chat
+
+startup_notify: true

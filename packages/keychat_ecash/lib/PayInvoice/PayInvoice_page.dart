@@ -71,23 +71,22 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                               controller: controller.textController,
                               textInputAction: TextInputAction.done,
                               maxLines: 3,
-                              style: const TextStyle(fontSize: 10),
+                              style: const TextStyle(fontSize: 14),
                               decoration: InputDecoration(
-                                  labelText: 'Input Invoice',
-                                  hintText: 'Paste Lightning invoice',
+                                  labelText: 'Lightning Invoice or address',
+                                  hintText: 'Lightning invoice or address',
                                   border: const OutlineInputBorder(),
                                   suffixIcon: IconButton(
                                     icon: const Icon(Icons.paste),
                                     onPressed: () async {
                                       final clipboardData =
                                           await Clipboard.getData('text/plain');
-                                      if (clipboardData != null) {
-                                        final pastedText = clipboardData.text;
-                                        if (pastedText != null &&
-                                            pastedText != '') {
-                                          controller.textController.text =
-                                              pastedText;
-                                        }
+                                      if (clipboardData == null) return;
+                                      final pastedText =
+                                          clipboardData.text?.trim() ?? '';
+                                      if (pastedText.isNotEmpty) {
+                                        controller.textController.text =
+                                            pastedText;
                                       }
                                     },
                                   )),
@@ -180,8 +179,21 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                   minimumSize: WidgetStateProperty.all(
                                       const Size(double.infinity, 44))),
                               onPressed: () {
-                                controller.confirm(
-                                    controller.selectedMint.value,
+                                if (GetPlatform.isMobile) {
+                                  HapticFeedback.lightImpact();
+                                }
+                                if (isEmail(controller.textController.text) ||
+                                    controller.textController.text
+                                        .toLowerCase()
+                                        .startsWith('LNURL')) {
+                                  controller.lnurlPayFirst(
+                                      controller.textController.text);
+                                  return;
+                                }
+                                controller.confirmToPayInvoice(
+                                    invoice:
+                                        controller.textController.text.trim(),
+                                    mint: controller.selectedMint.value,
                                     isPay: widget.isPay);
                               },
                               child: const Text('Pay Invoice'),

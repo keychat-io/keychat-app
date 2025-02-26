@@ -204,4 +204,15 @@ class CashuUtil {
         );
     }
   }
+
+  static Widget getTransactionIcon(bool isSend) {
+    return CircleAvatar(
+        radius: 18,
+        backgroundColor: Get.isDarkMode ? Colors.white10 : Colors.grey.shade300,
+        child: Icon(
+          isSend ? CupertinoIcons.arrow_up : CupertinoIcons.arrow_down,
+          color: Get.isDarkMode ? Colors.white : Colors.black,
+          size: 20,
+        ));
+  }
 }

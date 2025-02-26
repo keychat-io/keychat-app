@@ -96,7 +96,7 @@ class FileUtils {
       {required int identityId,
       required int roomId,
       MessageMediaType? type}) async {
-    Directory appFolder = await getApplicationDocumentsDirectory();
+    Directory appFolder = await Utils.getAppFolder();
     String outputPath =
         '${appFolder.path}/${KeychatGlobal.baseFilePath}/$identityId/$roomId/';
 
@@ -199,8 +199,7 @@ class FileUtils {
     FileEncryptInfo fileInfo = await s3.encryptAndUploadByRelay(localFile,
         onSendProgress: onSendProgress);
 
-    Directory appFolder = await getApplicationDocumentsDirectory();
-
+    Directory appFolder = await Utils.getAppFolder();
     String relativePath = localFile.path.replaceAll(appFolder.path, '');
     await RoomService.instance.sendFileMessage(
         relativePath: relativePath, fileInfo: fileInfo, room: room, type: type);
@@ -239,7 +238,7 @@ class FileUtils {
             onReceiveProgress: onReceiveProgress);
       }
 
-      Directory appFolder = await getApplicationDocumentsDirectory();
+      Directory appFolder = await Utils.getAppFolder();
       mfi.status = FileStatus.decryptSuccess;
       mfi.updateAt = DateTime.now();
       mfi.localPath = newFile.path.replaceAll(appFolder.path, '');
@@ -435,7 +434,7 @@ Future<File> downloadAndDecrypt(
 }
 
 Future deleteAllByIdentity(int identity) async {
-  Directory appFolder = await getApplicationDocumentsDirectory();
+  Directory appFolder = await Utils.getAppFolder();
   Directory dir =
       Directory('${appFolder.path}/${KeychatGlobal.baseFilePath}/$identity');
   if (dir.existsSync()) {
@@ -444,7 +443,7 @@ Future deleteAllByIdentity(int identity) async {
 }
 
 Future deleteAllFolder() async {
-  Directory appFolder = await getApplicationDocumentsDirectory();
+  Directory appFolder = await Utils.getAppFolder();
   Directory dir = Directory('${appFolder.path}/${Config.env}/');
   if (dir.existsSync()) {
     await dir.delete(recursive: true);

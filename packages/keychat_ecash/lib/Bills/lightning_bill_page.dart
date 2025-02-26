@@ -84,16 +84,7 @@ class LightningBillPage extends GetView<LightningBillController> {
                             Get.to(() => LightningTransactionPage(
                                 transaction: transaction));
                           },
-                          leading: CircleAvatar(
-                              radius: 18,
-                              backgroundColor:
-                                  Get.isDarkMode ? Colors.white10 : Colors.grey,
-                              child: Icon(
-                                isSend
-                                    ? CupertinoIcons.arrow_up
-                                    : CupertinoIcons.arrow_down,
-                                size: 18,
-                              )),
+                          leading: CashuUtil.getTransactionIcon(isSend),
                           title: Text(amount,
                               style: Theme.of(context).textTheme.bodyLarge),
                           subtitle: Column(

@@ -1,0 +1,23 @@
+icon: linux/assets/logo.png
+summary: Keychat is a chat app, built on Bitcoin Ecash, Nostr Protocol and Signal/MLS Protocol.
+group: Application/Chat
+vendor: Keychat
+packager: Keychat
+packagerEmail: btc001@tuta.io
+license: GPLv3
+url: https://github.com/keychat-io/keychat-app
+
+display_name: Keychat
+
+keywords:
+  - Keychat
+  - Nostr
+  - Ecash
+  - cashu
+
+generic_name: Keychat
+
+categories:
+  - Chat
+
+startup_notify: true

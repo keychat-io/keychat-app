@@ -179,7 +179,13 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                   minimumSize: WidgetStateProperty.all(
                                       const Size(double.infinity, 44))),
                               onPressed: () {
-                                if (isEmail(controller.textController.text)) {
+                                if (GetPlatform.isMobile) {
+                                  HapticFeedback.lightImpact();
+                                }
+                                if (isEmail(controller.textController.text) ||
+                                    controller.textController.text
+                                        .toLowerCase()
+                                        .startsWith('LNURL')) {
                                   controller.lnurlPayFirst(
                                       controller.textController.text);
                                   return;

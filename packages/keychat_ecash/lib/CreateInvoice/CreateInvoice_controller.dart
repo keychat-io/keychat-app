@@ -1,4 +1,5 @@
 import 'package:app/utils.dart';
+import 'package:flutter/services.dart';
 import 'package:keychat_ecash/Bills/lightning_bill_controller.dart';
 import 'package:keychat_ecash/Bills/lightning_transaction.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
@@ -27,7 +28,10 @@ class CreateInvoiceController extends GetxController {
     super.onClose();
   }
 
-  void confirm() async {
+  void handleReceiveInvoice() async {
+    if (GetPlatform.isMobile) {
+      HapticFeedback.lightImpact();
+    }
     String amountString = textController.text.trim();
     if (amountString.isEmpty) {
       EasyLoading.showToast('Please input amount');

@@ -1,21 +1,23 @@
+import 'dart:async';
+
 import 'package:app/app.dart';
-import 'package:flutter/material.dart';
 import 'package:keychat_ecash/Bills/lightning_transaction.dart';
+import 'package:keychat_ecash/PayInvoice/PayToLnurl.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
+import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:intl/intl.dart' show DateFormat;
-import 'package:dio/dio.dart' show Dio, DioException;
+import 'package:dio/dio.dart' show Dio;
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 
 class PayInvoiceController extends GetxController {
   final String? invoice;
-  final InvoiceInfo? invoiceInfo;
+  final rust_cashu.InvoiceInfo? invoiceInfo;
   PayInvoiceController({this.invoice, this.invoiceInfo});
   late TextEditingController textController;
   RxString selectedMint = ''.obs;
@@ -42,13 +44,13 @@ class PayInvoiceController extends GetxController {
     super.onClose();
   }
 
-  Future confirmToPayInvoice(
+  FutureOr<bool?> confirmToPayInvoice(
       {required String invoice,
       required String mint,
       bool isPay = false}) async {
     if (invoice.isEmpty) {
       EasyLoading.showToast('Please enter a valid invoice');
-      return;
+      return false;
     }
 
     if (invoice.startsWith('lightning:')) {
@@ -56,11 +58,12 @@ class PayInvoiceController extends GetxController {
     }
     try {
       EcashController cc = Get.find<EcashController>();
-      InvoiceInfo ii = await rust_cashu.decodeInvoice(encodedInvoice: invoice);
+      rust_cashu.InvoiceInfo ii =
+          await rust_cashu.decodeInvoice(encodedInvoice: invoice);
       Future confirmPayment() async {
         if (cc.getBalanceByMint(mint) < ii.amount.toInt()) {
           EasyLoading.showToast('Not Enough Funds');
-          return;
+          return false;
         }
         try {
           EasyLoading.show(status: 'Proccess...');
@@ -85,8 +88,7 @@ class PayInvoiceController extends GetxController {
       }
 
       if (isPay == true) {
-        await confirmPayment();
-        return;
+        return await confirmPayment();
       }
       await Get.dialog(CupertinoAlertDialog(
         title: Text('Pay ${ii.amount} ${EcashTokenSymbol.sat.name}'),
@@ -113,15 +115,17 @@ Expire At: ${DateFormat("yyyy-MM-ddTHH:mm:ss").format(DateTime.fromMillisecondsS
       EasyLoading.showError('Error: $msg');
       logger.e('error: $msg', error: e, stackTrace: s);
     }
+    return null;
   }
 
-  Future<Map<String, dynamic>?> lnurlPayFirst(String input) async {
+  Future lnurlPayFirst(String input) async {
     if (input.isEmpty) {
-      return null;
+      return;
     }
     String? host;
     Map<String, dynamic>? data;
 
+    //demo: npub1g4gxqje4cgrlnjzyz4xk69c2zszaujjjkpwjwq84fh2aeax0avhszurc9m@npub.cash
     if (isEmail(input)) {
       final parts = input.split('@');
       if (parts.length == 2) {
@@ -136,124 +140,30 @@ Expire At: ${DateFormat("yyyy-MM-ddTHH:mm:ss").format(DateTime.fromMillisecondsS
         }
       }
     } else if (input.toLowerCase().startsWith('lnurl1')) {
-      // final decoded = Bech32Decoder().convert(input);
-      // host = utf8.decode(decoded);
-      // final resp = await http.get(Uri.parse(host));
-      // if (resp.statusCode == 200) {
-      //   data = jsonDecode(resp.body);
-      // }
+      //demo: LNURL1DP68GURN8GHJ7UM9WFMXJCM99E3K7MF0V9CXJ0M385EKVCENXC6R2C35XVUKXEFCV5MKVV34X5EKZD3EV56NYD3HXQURZEPEXEJXXEPNXSCRVWFNV9NXZCN9XQ6XYEFHVGCXXCMYXYMNSERXFQ5FNS
+      String url = rust_nostr.decodeBech32(content: input);
+      try {
+        var res = await Dio().get(url);
+        data = res.data;
+        data!['domain'] = Uri.parse(url).host;
+      } catch (e, s) {
+        logger.e('error: $e', error: e, stackTrace: s);
+        return;
+      }
     }
 
     if (host == null || data == null) {
-      return null;
+      return;
     }
 
     if (data['tag'] == 'payRequest') {
       if (data['maxSendable'] == null) return null;
       logger.d('LNURL pay request received from: $host , $data');
-      if (data['maxSendable'] == data['minSendable']) {
-        final defaultAmount = data['maxSendable'] / 1000;
-        data['defaultAmount'] = defaultAmount;
-      }
       if (Get.isBottomSheetOpen ?? false) {
-        return null;
+        return;
       }
-      bool isLoading = false;
-      final TextEditingController amountController = TextEditingController();
-      Get.bottomSheet(
-        StatefulBuilder(
-          builder: (context, setState) {
-            return Scaffold(
-                body: SafeArea(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                        '${data!['domain']} is requesting ${(data['minSendable'] / 1000).round()} and ${(data['maxSendable'] / 1000).round()} sat',
-                        style: const TextStyle(fontSize: 18)),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: amountController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Input Amount(Sats)'),
-                    ),
-                    Expanded(child: Container()),
-                    FilledButton(
-                        onPressed: () async {
-                          if (isLoading) return;
-                          setState(() => isLoading = true);
-                          String? pr;
-                          try {
-                            if (amountController.text.trim().isEmpty) {
-                              EasyLoading.showToast(
-                                  'Amount must be greater than ${(data!['minSendable'] / 1000).round()}');
-                              return;
-                            }
-                            var amount =
-                                int.parse(amountController.text.trim());
-                            if (amount == 0) {
-                              EasyLoading.showToast(
-                                  'Amount must be greater than ${(data!['minSendable'] / 1000).round()}');
-                              return;
-                            }
-                            if (data!['callback'] == null) return;
-                            String url =
-                                data['callback'] + '?amount=${amount * 1000}';
-                            logger.d(url);
-                            var res = await Dio().get(url);
-                            pr = res.data['pr'];
-                            if (pr == null) {
-                              EasyLoading.showToast(
-                                  'Error: get invoice failed');
-                              return;
-                            }
-                            await confirmToPayInvoice(
-                                invoice: pr,
-                                mint: selectedMint.value,
-                                isPay: true);
-                            Get.back();
-                          } on DioException catch (e, s) {
-                            EasyLoading.showError(
-                                e.response?.toString() ?? e.toString());
-                            logger.e(
-                                'initNofityConfig ${e.response?.toString()}',
-                                error: e,
-                                stackTrace: s);
-                          } catch (e, s) {
-                            logger.e('error: ${e.toString()}',
-                                error: e, stackTrace: s);
-                            EasyLoading.showError('Error: ${e.toString()}');
-                            return;
-                          } finally {
-                            setState(() => isLoading = false);
-                          }
-                        },
-                        style: ButtonStyle(
-                            minimumSize: WidgetStateProperty.all(
-                                Size(Get.width - 32, 48))),
-                        child: isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text('Pay')),
-                  ],
-                ),
-              ),
-            ));
-          },
-        ),
-      );
-      return data;
+      Get.bottomSheet(PayToLnurl(data));
+      return;
     }
-    return null;
   }
 }

@@ -133,16 +133,7 @@ class CashuBillPage extends GetView<EcashBillController> {
                             Get.to(() =>
                                 CashuTransactionPage(transaction: transaction));
                           },
-                          leading: CircleAvatar(
-                              radius: 18,
-                              backgroundColor:
-                                  Get.isDarkMode ? Colors.white10 : Colors.grey,
-                              child: Icon(
-                                isSend
-                                    ? CupertinoIcons.arrow_up
-                                    : CupertinoIcons.arrow_down,
-                                size: 18,
-                              )),
+                          leading: CashuUtil.getTransactionIcon(isSend),
                           title: Text(
                               (isSend ? "-" : "+") +
                                   (transaction.amount).toString(),

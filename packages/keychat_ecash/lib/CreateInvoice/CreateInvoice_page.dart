@@ -60,10 +60,8 @@ class CreateInvoicePage extends StatelessWidget {
                       style: ButtonStyle(
                           minimumSize: WidgetStateProperty.all(
                               const Size(double.infinity, 44))),
-                      onPressed: controller.confirm,
-                      child: const Text(
-                        'Create Invoice',
-                      ))
+                      onPressed: controller.handleReceiveInvoice,
+                      child: const Text('Create Invoice'))
                   : FilledButton(
                       onPressed: null,
                       style: ButtonStyle(

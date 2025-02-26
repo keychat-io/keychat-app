@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_ecash/Bills/ecash_bill_controller.dart';
 import 'package:keychat_ecash/components/SelectMint.dart';
@@ -79,10 +80,11 @@ class _CashuSendPageState extends State<CashuSendPage> {
                     style: ButtonStyle(
                         minimumSize: WidgetStateProperty.all(
                             const Size(double.infinity, 44))),
-                    child: const Text(
-                      'Send',
-                    ),
+                    child: const Text('Send'),
                     onPressed: () async {
+                      if (GetPlatform.isMobile) {
+                        HapticFeedback.lightImpact();
+                      }
                       String amountString =
                           cashuController.nameController.text.trim();
                       if (amountString.isEmpty) {

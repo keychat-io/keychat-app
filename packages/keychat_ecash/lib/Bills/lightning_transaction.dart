@@ -64,7 +64,7 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
             title: Text(
               tx.io == TransactionDirection.in_
                   ? 'Receive from Lightning Network'
-                  : 'Send to Lightning Network',
+                  : 'Send to Lightning Wallet',
               style: Theme.of(context).textTheme.bodyMedium,
             )),
         bottomNavigationBar: SafeArea(

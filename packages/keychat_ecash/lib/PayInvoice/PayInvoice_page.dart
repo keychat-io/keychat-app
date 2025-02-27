@@ -1,5 +1,4 @@
 // ignore_for_file: depend_on_referenced_packages
-import 'package:app/page/components.dart';
 import 'package:app/page/theme.dart';
 import 'package:app/service/qrscan.service.dart';
 import 'package:app/utils.dart';
@@ -46,7 +45,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
         appBar: AppBar(
             leading: Container(),
             centerTitle: true,
-            title: Text('Send to Lightning Network',
+            title: Text('Send to Lightning Wallet',
                 style: Theme.of(context).textTheme.bodyMedium)),
         body: SafeArea(
             child: Padding(
@@ -92,6 +91,17 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                   )),
                             ),
                           ),
+                        if (widget.showScanButton)
+                          OutlinedButton.icon(
+                              onPressed: () async {
+                                String? result = await QrScanService.instance
+                                    .handleQRScan(autoProcess: false);
+                                if (result != null) {
+                                  controller.textController.text = result;
+                                }
+                              },
+                              icon: const Icon(Icons.qr_code_scanner),
+                              label: const Text('Scan')),
                         Obx(() => FutureBuilder(future: () async {
                               if (controller.selectedInvoice.value.isEmpty) {
                                 return null;
@@ -141,32 +151,8 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                         ],
                                       ),
                                     ),
-                                    if (invoiceInfo.memo != null)
-                                      Text('${invoiceInfo.memo}',
-                                          textAlign: TextAlign.center,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodyMedium),
-                                    textSmallGray(
-                                        context,
-                                        invoiceInfo.expiryTs.toInt() <
-                                                DateTime.now()
-                                                    .millisecondsSinceEpoch
-                                            ? 'Expired'
-                                            : 'Expires in ${formatTime(invoiceInfo.expiryTs.toInt())}'),
                                   ]);
                             })),
-                        if (widget.showScanButton)
-                          OutlinedButton.icon(
-                              onPressed: () async {
-                                String? result = await QrScanService.instance
-                                    .handleQRScan(autoProcess: false);
-                                if (result != null) {
-                                  controller.textController.text = result;
-                                }
-                              },
-                              icon: const Icon(Icons.qr_code_scanner),
-                              label: const Text('Scan')),
                       ],
                     )),
                   ),

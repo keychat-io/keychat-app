@@ -46,9 +46,7 @@ class CashuPage extends GetView<EcashController> {
                 icon: const Icon(CupertinoIcons.settings))
           ],
         ),
-        floatingActionButtonLocation:
-            FloatingActionButtonLocation.miniCenterDocked,
-        floatingActionButton: bottomBarWidget(context,
+        bottomNavigationBar: bottomBarWidget(context,
             controller: controller,
             ecashBillController: ecashBillController,
             lightningBillController: lightningBillController),
@@ -513,33 +511,34 @@ class CashuPage extends GetView<EcashController> {
       {required EcashController controller,
       required EcashBillController ecashBillController,
       required LightningBillController lightningBillController}) {
-    return SizedBox(
+    return Container(
         width: Get.width,
-        height: 50,
-        child: Center(
-            child: Wrap(
-                direction: Axis.horizontal,
-                alignment: WrapAlignment.spaceAround,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 20,
-                children: [
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+        ),
+        padding:
+            const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 32),
+        child: Wrap(
+            direction: Axis.horizontal,
+            alignment: WrapAlignment.spaceAround,
+            crossAxisAlignment: WrapCrossAlignment.end,
+            children: [
               GestureDetector(
                 onTap: () {
                   _handleSend(ecashBillController, lightningBillController);
                 },
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFF333333),
+                    color: Get.isDarkMode
+                        ? const Color(0xFF333333)
+                        : Colors.grey.shade300,
                     borderRadius: BorderRadius.circular(5.0),
                   ),
                   child: Container(
                     alignment: Alignment.center,
-                    width: 100.0,
-                    height: 45.0,
-                    child: const Text(
-                      'Send',
-                      style: TextStyle(color: Colors.white),
-                    ),
+                    width: 130.0,
+                    height: 44.0,
+                    child: const Text('Send'),
                   ),
                 ),
               ),
@@ -554,21 +553,20 @@ class CashuPage extends GetView<EcashController> {
                 },
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFF333333),
+                    color: Get.isDarkMode
+                        ? const Color(0xFF333333)
+                        : Colors.grey.shade300,
                     borderRadius: BorderRadius.circular(5.0),
                   ),
                   child: Container(
                     alignment: Alignment.center,
-                    width: 100.0,
-                    height: 45.0,
-                    child: const Text(
-                      'Receive',
-                      style: TextStyle(color: Colors.white),
-                    ),
+                    width: 130.0,
+                    height: 44.0,
+                    child: const Text('Receive'),
                   ),
                 ),
               ),
-            ])));
+            ]));
   }
 
   _handleSend(EcashBillController ecashBillController,
@@ -584,10 +582,9 @@ class CashuPage extends GetView<EcashController> {
           },
         ),
         SettingsTile.navigation(
-          title: const Text('Send to Lightning Network'),
+          title: const Text('Send to Lightning Wallet'),
           onPressed: (context) async {
             Get.back();
-
             await showModalBottomSheetWidget(
                 context, '', const PayInvoicePage(),
                 showAppBar: false);

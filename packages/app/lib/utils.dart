@@ -10,7 +10,7 @@ import 'package:badges/badges.dart' as badges;
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/room.dart';
-
+import 'package:path/path.dart' as path;
 import 'package:app/service/storage.dart';
 import 'package:app/utils/config.dart';
 import 'package:app/utils/log_file.dart';
@@ -856,13 +856,35 @@ class Utils {
   }
 
   static Future<Directory> getAppFolder() async {
-    var appFolder = await getApplicationDocumentsDirectory();
-    if (GetPlatform.isLinux || GetPlatform.isWindows) {
-      var dir = Directory('${appFolder.path}/keychat_app_data');
-      var exist = await dir.exists();
-      if (!exist) await dir.create();
-      return dir;
+    Directory? directory;
+
+    switch (Platform.operatingSystem) {
+      case 'macos':
+        // macOS: ~/Library/Application Support/<appName>
+        directory = await getApplicationSupportDirectory();
+        break;
+      case 'windows':
+        // Windows: %APPDATA%\<appName>
+        String appData = Platform.environment['APPDATA']!;
+        directory = Directory(path.join(appData, KeychatGlobal.appName));
+        if (!directory.existsSync()) {
+          directory.createSync(recursive: true);
+        }
+        break;
+      case 'linux':
+        // Linux: ~/.config/<appName>
+        String home = Platform.environment['HOME']!;
+        directory =
+            Directory(path.join(home, '.config', KeychatGlobal.appName));
+        if (!directory.existsSync()) {
+          directory.createSync(recursive: true);
+        }
+        break;
+      default:
+        // For iOS, Android and other platforms
+        directory = await getApplicationDocumentsDirectory();
+        break;
     }
-    return appFolder;
+    return directory;
   }
 }

@@ -1,4 +1,5 @@
 class KeychatGlobal {
+  static const String appName = 'Keychat';
   static const String bot = 'Bot';
   static const String selfName = 'Note to Self';
   static const String search = 'SEARCH';

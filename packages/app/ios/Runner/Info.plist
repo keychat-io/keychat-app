@@ -67,5 +67,19 @@
     <false/>
     <key>io.flutter.embedded_views_preview</key>
     <true/>
+    <!-- share Extension -->
+    <key>AppGroupId</key>
+    <string>$(CUSTOM_GROUP_ID)</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+      <dict>
+        <key>CFBundleTypeRole</key>
+        <string>Editor</string>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>ShareMedia-$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+        </array>
+      </dict>
+    </array>
   </dict>
 </plist>

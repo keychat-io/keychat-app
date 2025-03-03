@@ -105,3 +105,6 @@ The easiest way to support developers is to click on the star (⭐) at the top o
 ## License
 
 Licensed under the GNU AGPLv3: [https://www.gnu.org/licenses/agpl-3.0.html](https://www.gnu.org/licenses/agpl-3.0.html)
+
+
+

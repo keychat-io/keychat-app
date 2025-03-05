@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
-import 'package:app/app.dart' show getGetxController, logger;
+import 'package:app/app.dart' show Utils, logger;
 import 'package:keychat_ecash/ecash_controller.dart';
 
 import 'package:amazon_cognito_identity_dart_2/sig_v4.dart';
@@ -141,7 +141,7 @@ class AwsS3 {
       {void Function(int, int)? onSendProgress}) async {
     FileEncryptInfo res = await FileService.encryptFile(input);
     int length = res.output.length;
-    String? ecashToken = await getGetxController<EcashController>()
+    String? ecashToken = await Utils.getGetxController<EcashController>()
         ?.getFileUploadEcashToken(length);
 
     Map<dynamic, dynamic> uploadParams = await FileService.getUploadParams(

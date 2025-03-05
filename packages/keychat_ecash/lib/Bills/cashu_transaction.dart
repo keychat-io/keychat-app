@@ -92,7 +92,7 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                               mint: tx.mint,
                               token: tx.token);
                           Get.find<EcashController>().getBalance();
-                          getGetxController<EcashBillController>()
+                          Utils.getGetxController<EcashBillController>()
                               ?.getTransactions();
                           setState(() {
                             tx = tx1;

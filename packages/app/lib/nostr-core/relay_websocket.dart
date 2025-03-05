@@ -10,7 +10,6 @@ import 'package:async_queue/async_queue.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-import '../utils.dart' as utils;
 
 const _maxReqCount = 20; // max pool size is 32. be setting by relay server
 
@@ -43,10 +42,10 @@ class RelayWebsocket {
 
   Future listenPubkeys(List<String> pubkeys, DateTime since,
       [List<int> kinds = const [EventKinds.encryptedDirectMessage]]) async {
-    List<List<String>> groups = utils.listToGroupList(pubkeys, 120);
+    List<List<String>> groups = listToGroupList(pubkeys, 120);
 
     for (List<String> group in groups) {
-      String subId = utils.generate64RandomHexChars(16);
+      String subId = generate64RandomHexChars(16);
 
       NostrNip4Req req = NostrNip4Req(
           reqId: subId, kinds: kinds, pubkeys: group, since: since);

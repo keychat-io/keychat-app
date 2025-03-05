@@ -17,7 +17,7 @@ class SignalChatUtil {
       {required Identity identity, required String content, String? id}) async {
     if (identity.isFromSigner == false) {
       return await rust_nostr.signSchnorr(
-          senderKeys: await identity.getSecp256k1SKHex(), content: content);
+          privateKey: await identity.getSecp256k1SKHex(), content: content);
     }
 
     return await SignerService.instance

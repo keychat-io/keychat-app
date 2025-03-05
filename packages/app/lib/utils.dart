@@ -108,15 +108,6 @@ String generateRandomAESKey() {
   return hex.encode(randomBytes);
 }
 
-T? getGetxController<T>() {
-  try {
-    T t = Get.find<T>();
-    return t;
-  } catch (e) {
-    return null;
-  }
-}
-
 getPublicKeyDisplay(String publicKey, [int size = 6]) {
   int length = publicKey.length;
   if (length < 4) return publicKey;
@@ -270,6 +261,15 @@ Please check ecash balance and mint.''';
 }
 
 class Utils {
+  static T? getGetxController<T>() {
+    try {
+      T t = Get.find<T>();
+      return t;
+    } catch (e) {
+      return null;
+    }
+  }
+
   static String generateRandomString(int length) {
     final random = Random();
     const availableChars =

@@ -119,7 +119,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-        canPop: GetPlatform.isIOS,
+        canPop: false,
         onPopInvokedWithResult: (didPop, d) {
           if (didPop) {
             return;

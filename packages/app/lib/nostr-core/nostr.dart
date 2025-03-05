@@ -1,5 +1,6 @@
 import 'package:app/models/nostr_event_status.dart';
 import 'package:app/nostr-core/subscribe_result.dart';
+import 'package:app/page/NostrWalletConnect/NostrWalletConnect_controller.dart';
 import 'package:app/service/SignerService.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:async_queue/async_queue.dart';
@@ -152,6 +153,10 @@ class NostrAPI {
         break;
       case EventKinds.textNote:
         await Get.find<WorldController>().processEvent(event);
+        break;
+      case EventKinds.nip47:
+        Utils.getGetxController<NostrWalletConnectController>()
+            ?.processEvent(relay.url, event);
         break;
       default:
         logger.i('revived: $eventList');

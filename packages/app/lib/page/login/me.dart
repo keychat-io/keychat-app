@@ -1,8 +1,11 @@
 import 'package:app/controller/setting.controller.dart';
+import 'package:app/page/NostrWalletConnect/NostrWalletConnect_bindings.dart';
+import 'package:app/page/NostrWalletConnect/NostrWalletConnect_page.dart';
 import 'package:app/page/browser/BrowserSetting.dart';
 import 'package:app/page/login/SelectModeToCreateID.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/page/setting/app_general_setting.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:app/controller/home.controller.dart';
 
@@ -66,11 +69,24 @@ class MinePage extends GetView<SettingController> {
                             color: Color(0xfff2a900),
                           ),
                           value: Text(
-                              '${getGetxController<EcashController>()?.totalSats.value.toString() ?? '-'} ${EcashTokenSymbol.sat.name}'),
+                              '${Utils.getGetxController<EcashController>()?.totalSats.value.toString() ?? '-'} ${EcashTokenSymbol.sat.name}'),
                           onPressed: (context) async {
                             Get.toNamed(Routes.ecash);
                           },
                           title: const Text("Bitcoin Ecash"),
+                        ),
+                        SettingsTile.navigation(
+                          leading: SvgPicture.asset(
+                            'assets/images/logo/nwc.svg',
+                            fit: BoxFit.contain,
+                            width: 20,
+                            height: 20,
+                          ),
+                          title: const Text("Nostr Wallet Connect"),
+                          onPressed: (context) {
+                            Get.to(() => const NostrWalletConnectPage(),
+                                binding: NostrWalletConnectBindings());
+                          },
                         ),
                       ]),
                   SettingsSection(

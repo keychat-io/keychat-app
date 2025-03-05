@@ -61,6 +61,9 @@ class DBProvider {
       case 31:
         await _migrateToVersion32();
         await Storage.setInt(StorageKeyString.dbVersion, 32);
+      case 32:
+        await _migrateToVersion33();
+        await Storage.setInt(StorageKeyString.dbVersion, 33);
       default:
         break;
       //throw Exception('Unknown version: $currentVersion');
@@ -156,5 +159,19 @@ class DBProvider {
         await DBProvider.database.identitys.put(identities[i]);
       }
     });
+  }
+
+  // delete all shareKey and kdf group
+  static _migrateToVersion33() async {
+    List<Room> list = await DBProvider.database.rooms
+        .filter()
+        .typeEqualTo(RoomType.group)
+        .group((q) => q
+            .groupTypeEqualTo(GroupType.shareKey)
+            .or()
+            .groupTypeEqualTo(GroupType.kdf))
+        .findAll();
+    await Future.wait(
+        list.map((room) => RoomService.instance.deleteRoom(room)));
   }
 }

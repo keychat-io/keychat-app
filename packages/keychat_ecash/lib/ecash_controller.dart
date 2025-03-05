@@ -1,9 +1,9 @@
+import 'dart:async' show FutureOr;
 import 'dart:convert' show jsonDecode;
 
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/models/embedded/relay_file_fee.dart';
 import 'package:app/models/models.dart';
-import 'package:app/page/components.dart';
 import 'package:app/rust_api.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/websocket.service.dart';
@@ -16,6 +16,7 @@ import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:pull_to_refresh/pull_to_refresh.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 import 'package:app/global.dart';
 
@@ -367,14 +368,15 @@ class EcashController extends GetxController {
   }
 
   Future requestPageRefresh() async {
-    var lightningBillController = Get.find<LightningBillController>();
     await rust_cashu.checkPending();
     await getBalance();
     await Utils.getGetxController<EcashBillController>()?.getTransactions();
     try {
-      await lightningBillController.getTransactions();
+      await Utils.getGetxController<LightningBillController>()
+          ?.getTransactions();
       var pendings = await rust_cashu.getLnPendingTransactions();
-      lightningBillController.checkPendings(pendings);
+      Utils.getGetxController<LightningBillController>()
+          ?.checkPendings(pendings);
     } catch (e) {}
     refreshController.refreshCompleted();
   }
@@ -392,23 +394,15 @@ class EcashController extends GetxController {
     }
   }
 
-  Future proccessPayLightningBill(String invoce,
-      {bool pay = false, Function(String str)? callback}) async {
+  FutureOr<Transaction?> proccessPayLightningBill(String invoice,
+      {bool isPay = false}) async {
     try {
-      await rust_cashu.decodeInvoice(encodedInvoice: invoce);
+      await rust_cashu.decodeInvoice(encodedInvoice: invoice);
     } catch (e) {
-      if (callback == null) {
-        rethrow;
-      }
-      return callback(invoce);
+      EasyLoading.showError('Invalid lightning invoice');
+      return null;
     }
-    if (pay == true) {
-      Get.bottomSheet(
-          PayInvoicePage(invoce: invoce, isPay: pay, showScanButton: false));
-      return;
-    }
-    await showModalBottomSheetWidget(Get.context!, '',
-        PayInvoicePage(invoce: invoce, isPay: pay, showScanButton: false),
-        showAppBar: false);
+    return Get.bottomSheet<Transaction>(
+        PayInvoicePage(invoce: invoice, isPay: isPay, showScanButton: !isPay));
   }
 }

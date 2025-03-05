@@ -1,4 +1,5 @@
 import 'dart:convert' show jsonDecode, jsonEncode;
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 import 'package:app/models/relay.dart';
 import 'package:app/nostr-core/nostr.dart';
@@ -7,10 +8,10 @@ import 'package:app/nostr-core/nostr_nip4_req.dart';
 import 'package:app/utils.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 import 'package:web_socket_client/web_socket_client.dart';
 
-//  ["REQ","sub:1",{"kinds":[13194],"limit":1,"authors":["049019177ce49b08c283bfd5ec9eeccbcca7cf08f67058c8064829d3a4dcb5cf"]}]
 class NostrWalletConnectController extends GetxController {
   late Secp256k1SimpleAccount client;
   late Secp256k1SimpleAccount service;
@@ -19,9 +20,11 @@ class NostrWalletConnectController extends GetxController {
   List<int> kinds = [23194, 23196];
   RxString socketStatus = 'init'.obs;
   WebSocket? socket;
+  late EcashController ecashController;
 
   @override
   void onInit() {
+    ecashController = Get.find<EcashController>();
     initWallet();
     super.onInit();
   }
@@ -161,36 +164,80 @@ class NostrWalletConnectController extends GetxController {
             ], // list of supported notifications for this connection, optional.
           }
         };
-        sendMessage(relay, jsonEncode(data), id: event.id);
+        _sendMessage(relay, jsonEncode(data), id: event.id);
         break;
       case 'pay_invoice':
         //  {"method":"pay_invoice","params":{"invoice":"lnbc100u1pnu0jprdq8tfshqggnp4q0jpupgrckssvvec508psl9wum6r9psxv4q9cqx7mc8u9sy92sx26pp5vvs2wg2kn45e2kndhvzqvvfpwzcm0ghdyp9xylnlff9frsem2dgqsp5jj2zwws50mwsz4ngmm92huvxuezn0g5cj468syzl4vteskuqexqs9qyysgqcqpcxqyz5vqrzjqw9fu4j39mycmg440ztkraa03u5qhtuc5zfgydsv6ml38qd4azymlapyqqqqqqq2zgqqqqlgqqqq86qqjq89mjun9paqc5jvucz2arnehpqm53qxzasrwu094ex9dsuehjjuzxf8w3g33n2gt3pzndh9uqz30ly0hdmg9n0djzjncpvqy2tkaw3ygq2uhmhe"}
         var params = data['params'];
         if (params == null) return;
-        var invoice = params['invoice'];
+        String? invoice = params['invoice'];
         if (invoice == null) return;
-        EcashController ecashController = Get.find<EcashController>();
 
-        if (invoice.startsWith('cashu')) {
-          ecashController.proccessCashuAString(invoice);
-          return;
-        }
         // lightning invoice
         if (invoice.startsWith('lightning:')) {
           invoice = invoice.replaceFirst('lightning:', '');
-          ecashController.proccessPayLightningBill(invoice, pay: true);
-          return;
         }
-        if (invoice.startsWith('lnbc')) {
-          ecashController.proccessPayLightningBill(invoice, pay: true);
-          return;
+        if (!invoice.startsWith('lnbc')) return;
+        Transaction? tx = await ecashController
+            .proccessPayLightningBill(invoice, isPay: true);
+        late Map toSendMessage;
+        if (tx == null) {
+          try {
+            rust_cashu.InvoiceInfo ii =
+                await rust_cashu.decodeInvoice(encodedInvoice: invoice);
+
+            // Print all fields of the invoice
+            loggerNoLine.d('paymentHash: ${ii.hash}');
+            loggerNoLine.d('description: ${ii.memo}');
+            loggerNoLine.d('expiry: ${ii.expiryTs}');
+            loggerNoLine.d('amount: ${ii.amount}');
+            loggerNoLine.d('mint: ${ii.mint}');
+            toSendMessage = {
+              "result_type": "pay_invoice",
+              "error": {"code": "PAYMENT_FAILED", "message": "User Cancel"},
+            };
+          } catch (e) {
+            toSendMessage = {
+              "result_type": "pay_invoice",
+              "error": {
+                "code": "PAYMENT_FAILED",
+                "message": "Invoice decoded failed"
+              },
+            };
+          }
+        } else {
+          var lnTx = tx.field0 as LNTransaction;
+
+          if (lnTx.status != TransactionStatus.success) {
+            toSendMessage = {
+              "result_type": "pay_invoice",
+              "error": {"code": "PAYMENT_FAILED", "message": "PAYMENT FAILED"},
+            };
+          } else {
+            toSendMessage = {
+              "result_type": "pay_invoice",
+              "result": {
+                "preimage": lnTx.hash,
+                "fees_paid": lnTx.fee?.toInt() ?? 0,
+              }
+            };
+          }
         }
+        _sendMessage(relay, jsonEncode(toSendMessage), id: event.id);
+        break;
+      case 'get_balance':
+        var data = {
+          "result_type": "get_balance",
+          "result": {"balance": ecashController.totalSats.value * 1000}
+        };
+        _sendMessage(relay, jsonEncode(data), id: event.id);
         break;
       default:
     }
   }
 
-  Future sendMessage(String relay, String message, {String? id}) async {
+  Future _sendMessage(String relay, String message, {String? id}) async {
+    loggerNoLine.d('send message: $message');
     var encrypted = await encrypt(
         senderKeys: service.prikey,
         receiverPubkey: client.pubkey,

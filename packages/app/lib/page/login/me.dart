@@ -79,8 +79,8 @@ class MinePage extends GetView<SettingController> {
                           leading: SvgPicture.asset(
                             'assets/images/logo/nwc.svg',
                             fit: BoxFit.contain,
-                            width: 20,
-                            height: 20,
+                            width: 24,
+                            height: 24,
                           ),
                           title: const Text("Nostr Wallet Connect"),
                           onPressed: (context) {

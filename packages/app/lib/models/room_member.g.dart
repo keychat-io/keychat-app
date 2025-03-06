@@ -104,7 +104,7 @@ const RoomMemberSchema = CollectionSchema(
   getId: _roomMemberGetId,
   getLinks: _roomMemberGetLinks,
   attach: _roomMemberAttach,
-  version: '3.1.0+1',
+  version: '3.1.8',
 );
 
 int _roomMemberEstimateSize(
@@ -1860,25 +1860,18 @@ RoomMember _$RoomMemberFromJson(Map<String, dynamic> json) => RoomMember(
       ..isAdmin = json['isAdmin'] as bool
       ..status = $enumDecode(_$UserStatusTypeEnumMap, json['status']);
 
-Map<String, dynamic> _$RoomMemberToJson(RoomMember instance) {
-  final val = <String, dynamic>{
-    'idPubkey': instance.idPubkey,
-    'roomId': instance.roomId,
-    'name': instance.name,
-  };
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('createdAt', instance.createdAt?.toIso8601String());
-  writeNotNull('updatedAt', instance.updatedAt?.toIso8601String());
-  val['isAdmin'] = instance.isAdmin;
-  val['status'] = _$UserStatusTypeEnumMap[instance.status]!;
-  return val;
-}
+Map<String, dynamic> _$RoomMemberToJson(RoomMember instance) =>
+    <String, dynamic>{
+      'idPubkey': instance.idPubkey,
+      'roomId': instance.roomId,
+      'name': instance.name,
+      if (instance.createdAt?.toIso8601String() case final value?)
+        'createdAt': value,
+      if (instance.updatedAt?.toIso8601String() case final value?)
+        'updatedAt': value,
+      'isAdmin': instance.isAdmin,
+      'status': _$UserStatusTypeEnumMap[instance.status]!,
+    };
 
 const _$UserStatusTypeEnumMap = {
   UserStatusType.inviting: 'inviting',

@@ -133,14 +133,7 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                 ],
               ),
               if (tx.token.length < 4000)
-                Padding(
-                    padding: const EdgeInsets.only(top: 8, bottom: 8),
-                    child: ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: genQRImage(tx.token,
-                            size: Get.width - 32,
-                            embeddedImageSize: 0,
-                            embeddedImage: null))),
+                Utils.genQRImage(tx.token, size: Get.width - 32),
               textSmallGray(context, tx.mint),
               Text(
                 maxLines: tx.token.length < 4000 ? 1 : 3,

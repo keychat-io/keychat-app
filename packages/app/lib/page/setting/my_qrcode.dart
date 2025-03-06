@@ -3,7 +3,6 @@ import 'dart:convert' show jsonDecode;
 
 import 'package:app/models/models.dart';
 import 'package:app/models/signal_id.dart';
-import 'package:app/page/components.dart';
 import 'package:app/service/signalId.service.dart';
 import 'package:app/service/signal_chat_util.dart';
 
@@ -73,10 +72,7 @@ class _MyQRCodeState extends State<MyQRCode> {
                       style: Theme.of(context).textTheme.titleMedium,
                       overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 16),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: genQRImage(qrString, size: 360, embeddedImage: null),
-                  ),
+                  Utils.genQRImage(qrString, size: 360),
                   Container(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       child: Text(

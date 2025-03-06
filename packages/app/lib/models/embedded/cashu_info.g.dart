@@ -1022,20 +1022,11 @@ CashuInfoModel _$CashuInfoModelFromJson(Map<String, dynamic> json) =>
       ..unit = json['unit'] as String?
       ..memo = json['memo'] as String?;
 
-Map<String, dynamic> _$CashuInfoModelToJson(CashuInfoModel instance) {
-  final val = <String, dynamic>{
-    'mint': instance.mint,
-    'token': instance.token,
-    'amount': instance.amount,
-  };
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('unit', instance.unit);
-  writeNotNull('memo', instance.memo);
-  return val;
-}
+Map<String, dynamic> _$CashuInfoModelToJson(CashuInfoModel instance) =>
+    <String, dynamic>{
+      'mint': instance.mint,
+      'token': instance.token,
+      'amount': instance.amount,
+      if (instance.unit case final value?) 'unit': value,
+      if (instance.memo case final value?) 'memo': value,
+    };

@@ -1605,27 +1605,20 @@ MsgFileInfo _$MsgFileInfoFromJson(Map<String, dynamic> json) => MsgFileInfo()
   ..key = json['key'] as String?
   ..ecashToken = json['ecashToken'] as String?;
 
-Map<String, dynamic> _$MsgFileInfoToJson(MsgFileInfo instance) {
-  final val = <String, dynamic>{};
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('localPath', instance.localPath);
-  writeNotNull('url', instance.url);
-  val['status'] = _$FileStatusEnumMap[instance.status]!;
-  writeNotNull('type', instance.type);
-  writeNotNull('suffix', instance.suffix);
-  val['size'] = instance.size;
-  writeNotNull('updateAt', instance.updateAt?.toIso8601String());
-  writeNotNull('iv', instance.iv);
-  writeNotNull('key', instance.key);
-  writeNotNull('ecashToken', instance.ecashToken);
-  return val;
-}
+Map<String, dynamic> _$MsgFileInfoToJson(MsgFileInfo instance) =>
+    <String, dynamic>{
+      if (instance.localPath case final value?) 'localPath': value,
+      if (instance.url case final value?) 'url': value,
+      'status': _$FileStatusEnumMap[instance.status]!,
+      if (instance.type case final value?) 'type': value,
+      if (instance.suffix case final value?) 'suffix': value,
+      'size': instance.size,
+      if (instance.updateAt?.toIso8601String() case final value?)
+        'updateAt': value,
+      if (instance.iv case final value?) 'iv': value,
+      if (instance.key case final value?) 'key': value,
+      if (instance.ecashToken case final value?) 'ecashToken': value,
+    };
 
 const _$FileStatusEnumMap = {
   FileStatus.init: 'init',

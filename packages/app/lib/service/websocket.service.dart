@@ -142,7 +142,7 @@ class WebsocketService extends GetxService {
     NostrNip4Req req = NostrNip4Req(
         reqId: subId, pubkeys: pubkeys, since: since, limit: limit);
     try {
-      Get.find<WebsocketService>().sendReq(req, relay);
+      Get.find<WebsocketService>().sendReq(req, relay: relay);
     } catch (e) {
       if (e.toString().contains('RelayDisconnected')) {
         EasyLoading.showToast('Disconnected, Please check your relay server');
@@ -164,7 +164,7 @@ class WebsocketService extends GetxService {
         limit: limit,
         kinds: [EventKinds.nip17]);
 
-    Get.find<WebsocketService>().sendReq(req, relay);
+    Get.find<WebsocketService>().sendReq(req, relay: relay);
   }
 
   sendRawReq(String msg) {
@@ -187,7 +187,8 @@ class WebsocketService extends GetxService {
         .registerSubscripton(subId, list.length, const Duration(seconds: 2));
   }
 
-  sendReq(NostrNip4Req nostrReq, [String? relay]) {
+  sendReq(NostrNip4Req nostrReq,
+      {String? relay, Function(String relay)? callback}) {
     if (relay != null && channels[relay] != null) {
       return channels[relay]!.sendREQ(nostrReq);
     }
@@ -198,14 +199,27 @@ class WebsocketService extends GetxService {
       }
       sent++;
       rw.sendREQ(nostrReq);
+      if (callback != null) {
+        callback(rw.relay.url);
+      }
     }
     if (sent == 0) throw Exception('RelayDisconnected');
   }
 
-  sendMessage(String content, [String? relay]) {
-    if (relay != null && channels[relay] != null) {
-      return channels[relay]!.sendRawREQ(content);
+  sendMessage(String content, [List<String>? relays]) {
+    if (relays != null && relays.isNotEmpty) {
+      int sent = 0;
+      for (String relay in relays) {
+        if (channels[relay] != null &&
+            channels[relay]!.channelStatus == RelayStatusEnum.success &&
+            channels[relay]!.channel != null) {
+          channels[relay]!.sendRawREQ(content);
+          sent++;
+        }
+      }
+      if (sent > 0) return;
     }
+
     int sent = 0;
     for (RelayWebsocket rw in channels.values) {
       if (rw.channelStatus != RelayStatusEnum.success || rw.channel == null) {

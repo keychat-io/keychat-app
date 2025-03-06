@@ -30,6 +30,7 @@ import 'package:keychat_rust_ffi_plugin/index.dart';
 import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 Logger logger = Logger(
     filter: kReleaseMode ? MyLogFilter() : null,
@@ -261,6 +262,26 @@ Please check ecash balance and mint.''';
 }
 
 class Utils {
+  static Widget genQRImage(String content,
+      {double size = 300,
+      double embeddedImageSize = 0,
+      double padding = 8.0,
+      Color backgroundColor = Colors.white,
+      ImageProvider<Object>? embeddedImage}) {
+    return ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: QrImageView(
+          data: content,
+          gapless: false,
+          backgroundColor: backgroundColor,
+          padding: EdgeInsets.all(padding),
+          embeddedImage: embeddedImage,
+          embeddedImageStyle: QrEmbeddedImageStyle(
+              size: Size(embeddedImageSize, embeddedImageSize)),
+          size: size,
+        ));
+  }
+
   static T? getGetxController<T>() {
     try {
       T t = Get.find<T>();

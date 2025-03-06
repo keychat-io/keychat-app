@@ -104,7 +104,7 @@ class NostrWalletConnectPage extends GetView<NostrWalletConnectController> {
                         children: controller.subscribeSuccessRelays
                             .map((value) => textSmallGray(context, value))
                             .toList())
-                    : const Text('None'),
+                    : const Text('None of nip47 relay'),
                 trailing: IconButton(
                     onPressed: () {
                       controller.startListening();

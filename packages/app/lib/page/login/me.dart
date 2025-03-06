@@ -4,6 +4,7 @@ import 'package:app/page/NostrWalletConnect/NostrWalletConnect_page.dart';
 import 'package:app/page/browser/BrowserSetting.dart';
 import 'package:app/page/login/SelectModeToCreateID.dart';
 import 'package:app/page/routes.dart';
+import 'package:app/page/setting/RelaySetting.dart';
 import 'package:app/page/setting/app_general_setting.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
@@ -107,6 +108,12 @@ class MinePage extends GetView<SettingController> {
                             onPressed: (context) async {
                               Get.to(() => const BrowserSetting());
                             }),
+                      SettingsTile.navigation(
+                          leading: const Icon(CupertinoIcons.globe),
+                          onPressed: (c) {
+                            Get.to(() => const RelaySetting());
+                          },
+                          title: const Text('Network')),
                       SettingsTile.navigation(
                         leading: const Icon(CupertinoIcons.settings),
                         title: const Text("App Settings"),

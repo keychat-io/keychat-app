@@ -44,12 +44,6 @@ class MoreChatSetting extends StatelessWidget {
           sections: [
             SettingsSection(tiles: [
               SettingsTile.navigation(
-                  leading: const Icon(CupertinoIcons.globe),
-                  onPressed: (c) {
-                    Get.to(() => const RelaySetting());
-                  },
-                  title: const Text('Relay Server')),
-              SettingsTile.navigation(
                 leading: const Icon(Icons.folder_open_outlined),
                 title: const Text("Media Server"),
                 onPressed: (context) {

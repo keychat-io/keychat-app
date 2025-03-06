@@ -13,7 +13,7 @@ import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 
-enum NWCLogMethod { subscribe, receiveEvent, send, eose, notice }
+enum NWCLogMethod { subscribe, receiveEvent, send, eose, notice, ok }
 
 class NWCLog {
   late DateTime time;
@@ -281,6 +281,10 @@ class NostrWalletConnectController extends GetxController {
         required bool status,
         String? errorMessage}) {
       logger.d('setOKCallback: $relay - $status - $errorMessage');
+      logs.add(NWCLog(
+          method: NWCLogMethod.ok,
+          data: '$status - $errorMessage',
+          relay: relay));
       if (status) {
         subscribeSuccessRelays.add(relay);
       } else {

@@ -26,6 +26,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import 'NostrWalletConnect/NostrWalletConnect_controller.dart';
+
 class EcashController extends GetxController {
   final String dbPath;
   EcashController(this.dbPath);
@@ -49,6 +51,7 @@ class EcashController extends GetxController {
     nameController = TextEditingController();
     refreshController = RefreshController();
     super.onInit();
+    Get.lazyPut(() => NostrWalletConnectController(), fenix: true);
   }
 
   Future<String?> getFileUploadEcashToken(int fileSize) async {

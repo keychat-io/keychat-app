@@ -1,12 +1,12 @@
-import 'package:app/page/NostrWalletConnect/NostrWalletConnect_controller.dart';
 import 'package:app/page/components.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/state_manager.dart';
+import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.dart';
 
-class NostrWalletConnectLog extends GetView<NostrWalletConnectController> {
-  const NostrWalletConnectLog({super.key});
+class NostrWalletConnectLogPage extends GetView<NostrWalletConnectController> {
+  const NostrWalletConnectLogPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -19,12 +19,14 @@ class NostrWalletConnectLog extends GetView<NostrWalletConnectController> {
               itemBuilder: (context, index) {
                 NWCLog log =
                     controller.logs[controller.logs.length - 1 - index];
-                bool isSend = [NWCLogMethod.send, NWCLogMethod.subscribe]
+                bool isSend = [NWCLogMethod.writeEvent, NWCLogMethod.subscribe]
                     .contains(log.method);
                 return ListTile(
                     dense: true,
                     leading: Icon(
-                        isSend ? Icons.arrow_upward : Icons.arrow_downward),
+                      isSend ? Icons.arrow_upward : Icons.arrow_downward,
+                      color: isSend ? Colors.green : Colors.red,
+                    ),
                     title: Text(log.relay),
                     onTap: () {
                       Clipboard.setData(ClipboardData(text: log.data));

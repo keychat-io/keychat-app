@@ -1,7 +1,9 @@
 // implement of https://github.com/nostr-protocol/nips/blob/master/47.md
 import 'dart:convert' show jsonDecode, jsonEncode;
+import 'package:app/app.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/service/websocket.service.dart';
+import 'package:easy_debounce/easy_debounce.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 import 'package:app/models/relay.dart';
@@ -13,7 +15,7 @@ import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 
-enum NWCLogMethod { subscribe, receiveEvent, send, eose, notice, ok }
+enum NWCLogMethod { subscribe, receiveEvent, writeEvent, eose, notice, ok }
 
 class NWCLog {
   late DateTime time;
@@ -27,14 +29,17 @@ class NWCLog {
 
 class NostrWalletConnectController extends GetxController {
   List<int> kinds = [23194, 23196];
+  String localStorageKey = 'nwc:config';
   Rx<Secp256k1SimpleAccount> client =
       Secp256k1SimpleAccount(pubkey: '', prikey: '').obs;
   Rx<Secp256k1SimpleAccount> service =
       Secp256k1SimpleAccount(pubkey: '', prikey: '').obs;
   RxString nwcUri = ''.obs;
-  RxSet subscribeSuccessRelays = <String>{}.obs;
+  Set<String> subscribeSuccessRelays = {};
+  RxSet subscribeAndOnlineRelays = <String>{}.obs;
   RxList<NWCLog> logs = <NWCLog>[].obs;
   String subId13194 = '';
+  RxBool featureStatus = false.obs;
 
   late EcashController ecashController;
   late WebsocketService websocketService;
@@ -53,47 +58,83 @@ class NostrWalletConnectController extends GetxController {
     super.dispose();
   }
 
-  void initWallet() async {
-    client.value = const Secp256k1SimpleAccount(
-        pubkey:
-            'a2e152d65801377bfb7f7fa70f8d4a0ea7217c9b026bff575a9a22cad38e9ad8',
-        prikey:
-            '853c5acb0ad42d3fb9393133dbfff4454f93d24882de0c8a54cb07088e333158'); //await generateSimple();
-    service.value = const Secp256k1SimpleAccount(
-        pubkey:
-            '049019177ce49b08c283bfd5ec9eeccbcca7cf08f67058c8064829d3a4dcb5cf',
-        prikey:
-            '11656bf7381eb113d63b170aae63f00095c349f738f637ba37bb3106c93df34b');
+  Future initWallet({bool loadFromCache = true}) async {
+    Map map = await Storage.getLocalStorageMap(localStorageKey);
+    logger.d('initWallet: $map');
+    if (loadFromCache && map.keys.isNotEmpty) {
+      client.value = Secp256k1SimpleAccount(
+          pubkey: map['client']['pubkey'], prikey: map['client']['prikey']);
+      service.value = Secp256k1SimpleAccount(
+          pubkey: map['service']['pubkey'], prikey: map['service']['prikey']);
+      featureStatus.value = map['status'] == 1;
+      subscribeSuccessRelays.clear();
+      subscribeSuccessRelays.addAll(
+          (map['enabledRelays'] as List).map((e) => e.toString()).toList());
+    } else {
+      client.value = await generateSimple();
+      service.value = await generateSimple();
+      updateLocalStorage();
+    }
+    initConnectUri();
+  }
 
-    startListening();
+  initConnectUri() {
+    List<String> relays = subscribeSuccessRelays.toList();
+    List<String> onlineRelays = websocketService.getOnlineRelayString();
+    // Find the intersection of relays and onlineRelays
+    List<String> intersectionRelays =
+        relays.where((relay) => onlineRelays.contains(relay)).toList();
+
+    subscribeAndOnlineRelays.clear();
+    subscribeAndOnlineRelays.addAll(intersectionRelays);
+    if (subscribeAndOnlineRelays.isEmpty) {
+      nwcUri.value = '';
+      return;
+    }
+    nwcUri.value = nip47EncodeUri(
+        pubkey: service.value.pubkey,
+        relays: Set.from(subscribeAndOnlineRelays),
+        secret: client.value.prikey);
   }
 
   stopNwc() {
     NostrAPI.instance.okCallback.clear();
     subscribeSuccessRelays.clear();
+    proccessedEvents.clear();
     nwcUri.value = '';
     subId13194 = '';
     logs.clear();
   }
 
-  startListening() async {
-    stopNwc();
-    loggerNoLine.i('start listening');
-    String subId = 'nwc:${generate64RandomHexChars(16)}';
-    var req = NostrNip4Req(
-        reqId: subId,
-        kinds: kinds,
-        pubkeys: [service.value.pubkey],
-        since: DateTime.now());
-    websocketService.sendReq(req, callback: (String relay) {
-      logs.add(NWCLog(
-          method: NWCLogMethod.subscribe, data: req.toString(), relay: relay));
+  startListening([String? relay]) {
+    if (!featureStatus.value) {
+      logger.i('Feature:nwc is not enabled');
+      return;
+    }
+    if (service.value.pubkey.isEmpty) return;
+    EasyDebounce.debounce('nwc-startListening:$relay', Duration(seconds: 1),
+        () {
+      loggerNoLine.i('start listening');
+      String subId = 'nwc:${generate64RandomHexChars(16)}';
+      var req = NostrNip4Req(
+          reqId: subId,
+          kinds: kinds,
+          pubkeys: [service.value.pubkey],
+          since: DateTime.now());
+      websocketService.sendReq(req, relay: relay, callback: (String relay) {
+        if (logs.length > 40) {
+          logs.removeRange(0, 30);
+        }
+        logs.add(NWCLog(
+            method: NWCLogMethod.subscribe,
+            data: req.toString(),
+            relay: relay));
+      });
     });
   }
 
   Future<String> get13194Info() async {
-    String content =
-        'pay_invoice pay_keysend get_balance get_info make_invoice lookup_invoice list_transactions multi_pay_invoice multi_pay_keysend sign_message notifications';
+    String content = 'pay_invoice get_balance get_info';
     return await signEvent(
         senderKeys: service.value.prikey,
         content: content,
@@ -104,6 +145,10 @@ class NostrWalletConnectController extends GetxController {
 
   Set<String> proccessedEvents = {};
   Future processEvent(Relay relay, NostrEventModel event) async {
+    if (!featureStatus.value) {
+      logger.i('Feature:nwc is not enabled');
+      return;
+    }
     if (proccessedEvents.contains(event.id)) {
       return;
     }
@@ -124,24 +169,24 @@ class NostrWalletConnectController extends GetxController {
         var data = {
           "result_type": "get_info",
           "result": {
-            "alias": "keychat",
+            "alias": "keychat.io",
             "color": "333333",
             "pubkey": service.value.pubkey,
-            "network": "mainnet", // mainnet, testnet, signet, or regtest
+            "network": "mainnet",
             "block_height": 1,
             "block_hash": "",
             "methods": [
               "pay_invoice",
               "get_balance",
-              "make_invoice",
-              "lookup_invoice",
-              "list_transactions",
+              // "make_invoice",
+              // "lookup_invoice",
+              // "list_transactions",
               "get_info"
             ], // list of supported methods for this connection
-            "notifications": [
-              "payment_received",
-              "payment_sent"
-            ], // list of supported notifications for this connection, optional.
+            // "notifications": [
+            //   "payment_received",
+            //   "payment_sent"
+            // ],
           }
         };
         _sendMessage(relay.url, jsonEncode(data), id: event.id);
@@ -236,7 +281,8 @@ class NostrWalletConnectController extends GetxController {
         tags: tags);
     String data = "[\"EVENT\",$res]";
     websocketService.sendMessage(data);
-    logs.add(NWCLog(method: NWCLogMethod.send, data: message, relay: relay));
+    logs.add(
+        NWCLog(method: NWCLogMethod.writeEvent, data: message, relay: relay));
   }
 
   String nip47EncodeUri({
@@ -272,6 +318,28 @@ class NostrWalletConnectController extends GetxController {
     loggerNoLine.d('proccessEOSE: ${relay.url} : $res');
     logs.add(NWCLog(
         method: NWCLogMethod.eose, data: jsonEncode(res), relay: relay.url));
+  }
+
+  void proccessNotice(Relay relay, List message) {
+    loggerNoLine.d('proccessNotice: ${relay.url} : $message');
+    logs.add(NWCLog(
+        method: NWCLogMethod.notice,
+        data: jsonEncode(message),
+        relay: relay.url));
+  }
+
+  Future setFeatureStatus(bool value) async {
+    featureStatus.value = value;
+    await updateLocalStorage();
+    if (value) {
+      await startListening();
+      sendMyInfoToRelay();
+      return;
+    }
+    stopNwc();
+  }
+
+  Future sendMyInfoToRelay() async {
     String info = await get13194Info();
     String subId = jsonDecode(info)['id'];
     // success callback
@@ -290,24 +358,29 @@ class NostrWalletConnectController extends GetxController {
       } else {
         subscribeSuccessRelays.remove(relay);
       }
-      if (subscribeSuccessRelays.isNotEmpty) {
-        nwcUri.value = nip47EncodeUri(
-            pubkey: service.value.pubkey,
-            relays: subscribeSuccessRelays as Set<String>,
-            secret: client.value.prikey);
-      } else {
-        nwcUri.value = '';
-      }
-      loggerNoLine.d('nwcUri: ${nwcUri.value}');
+      initConnectUri();
+      updateLocalStorage();
     });
+    // sync my info
+    logs.add(NWCLog(
+        method: NWCLogMethod.writeEvent, data: 'info - $info', relay: ''));
     websocketService.sendMessage("[\"EVENT\",$info]");
   }
 
-  void proccessNotice(Relay relay, List message) {
-    loggerNoLine.d('proccessNotice: ${relay.url} : $message');
-    logs.add(NWCLog(
-        method: NWCLogMethod.notice,
-        data: jsonEncode(message),
-        relay: relay.url));
+  Future updateLocalStorage() async {
+    await Storage.setString(
+        localStorageKey,
+        jsonEncode({
+          'client': {
+            'pubkey': client.value.pubkey,
+            'prikey': client.value.prikey
+          },
+          'service': {
+            'pubkey': service.value.pubkey,
+            'prikey': service.value.prikey
+          },
+          'status': featureStatus.value ? 1 : 0,
+          'enabledRelays': subscribeSuccessRelays.toList()
+        }));
   }
 }

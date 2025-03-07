@@ -152,54 +152,49 @@ class HomeController extends GetxController
   }
 
   Future loadAppRemoteConfig() async {
-    String fileName = 'config/app.json';
-    var list = [
-      'https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/$fileName',
-      'https://gh-proxy.com/https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/$fileName'
-    ];
+    String url =
+        'https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/config/app.json';
     // load app version
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
     remoteAppConfig['appVersion'] =
         "${packageInfo.version}+${packageInfo.buildNumber}";
     logger.d('remoteAppConfig: $remoteAppConfig');
 
-    for (var url in list) {
-      try {
-        var response = await Dio().get(
-          url,
-          options: Options(
-            sendTimeout: const Duration(seconds: 5),
-            receiveTimeout: const Duration(seconds: 5),
-          ),
-        );
-        if (response.statusCode == 200) {
-          Map config = jsonDecode(response.data);
-          recommendBots.value = config['bots'];
+    try {
+      var response = await Dio().get(
+        url,
+        options: Options(
+          sendTimeout: const Duration(seconds: 5),
+          receiveTimeout: const Duration(seconds: 5),
+        ),
+      );
+      if (response.statusCode == 200) {
+        Map config = jsonDecode(response.data);
+        recommendBots.value = config['bots'];
 
-          var recommendUrls = config['browserRecommend'] as List;
-          recommendWebstore.value = recommendUrls
-              .fold<Map<String, List<Map<String, dynamic>>>>({}, (acc, item) {
-            List<String> categories = List<String>.from(item['categories']);
-            for (var type in categories) {
-              if (acc[type] == null) {
-                acc[type] = [];
-              }
-              acc[type]!.add(item);
+        var recommendUrls = config['browserRecommend'] as List;
+        recommendWebstore.value = recommendUrls
+            .fold<Map<String, List<Map<String, dynamic>>>>({}, (acc, item) {
+          List<String> categories = List<String>.from(item['categories']);
+          for (var type in categories) {
+            if (acc[type] == null) {
+              acc[type] = [];
             }
-            return acc;
-          });
-
-          // app version
-          for (var key in config.keys) {
-            if (key != 'bots' && key != 'browserRecommend') {
-              remoteAppConfig[key] = config[key];
-            }
+            acc[type]!.add(item);
           }
-          return;
+          return acc;
+        });
+
+        // app version
+        for (var key in config.keys) {
+          if (key != 'bots' && key != 'browserRecommend') {
+            remoteAppConfig[key] = config[key];
+          }
         }
-      } catch (e, s) {
-        logger.e('Failed to config $url: $e', stackTrace: s);
+        return;
       }
+    } catch (e, s) {
+      logger.e('Failed to config $url: $e', stackTrace: s);
     }
   }
 

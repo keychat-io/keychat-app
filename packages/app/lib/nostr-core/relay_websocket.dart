@@ -8,6 +8,7 @@ import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:async_queue/async_queue.dart';
 import 'package:easy_debounce/easy_throttle.dart';
+import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -78,7 +79,7 @@ class RelayWebsocket {
 
   _statusCheck() {
     if (channel == null || channelStatus != RelayStatusEnum.success) {
-      throw Exception('disconnected_${relay.url}');
+      throw Exception('disconnected: ${relay.url}');
     }
   }
 
@@ -143,6 +144,9 @@ class RelayWebsocket {
     _startListen();
     await Future.delayed(const Duration(seconds: 1));
     _proccessFailedEvents();
+    // nwc reconnect
+    Utils.getGetxController<NostrWalletConnectController>()
+        ?.startListening(relay.url);
   }
 
   void connecting() {

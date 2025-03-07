@@ -22,11 +22,8 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:queue/queue.dart';
 import 'package:web_socket_channel/io.dart';
 
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
-
-import '../utils.dart' as utils;
 
 const int failedTimesLimit = 3;
 
@@ -137,7 +134,7 @@ class WebsocketService extends GetxService {
     if (pubkeys.isEmpty) return;
 
     since ??= DateTime.now().subtract(const Duration(days: 7));
-    String subId = utils.generate64RandomHexChars(16);
+    String subId = generate64RandomHexChars(16);
 
     NostrNip4Req req = NostrNip4Req(
         reqId: subId, pubkeys: pubkeys, since: since, limit: limit);
@@ -155,7 +152,7 @@ class WebsocketService extends GetxService {
     if (pubkeys.isEmpty) return;
 
     since ??= DateTime.now().subtract(const Duration(days: 2));
-    String subId = utils.generate64RandomHexChars(16);
+    String subId = generate64RandomHexChars(16);
 
     NostrNip4Req req = NostrNip4Req(
         reqId: subId,

@@ -5,7 +5,6 @@ import 'dart:io' show File, exit;
 import 'package:app/controller/home.controller.dart';
 import 'package:app/page/dbSetup/db_setting.dart';
 import 'package:app/page/setting/QueryReceivedEvent.dart';
-import 'package:app/page/setting/RelaySetting.dart';
 import 'package:app/page/setting/UnreadMessages.dart';
 import 'package:app/page/setting/UploadedPubkeys.dart';
 import 'package:app/page/setting/file_storage_server.dart';

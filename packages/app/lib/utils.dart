@@ -282,9 +282,9 @@ class Utils {
         ));
   }
 
-  static T? getGetxController<T>() {
+  static T? getGetxController<T>({String? tag}) {
     try {
-      T t = Get.find<T>();
+      T t = Get.find<T>(tag: tag);
       return t;
     } catch (e) {
       return null;
@@ -887,7 +887,7 @@ class Utils {
       case 'windows':
         // Windows: %APPDATA%\<appName>
         String appData = Platform.environment['APPDATA']!;
-        directory = Directory(path.join(appData, KeychatGlobal.appName));
+        directory = Directory(path.join(appData, KeychatGlobal.appPackageName));
         if (!directory.existsSync()) {
           directory.createSync(recursive: true);
         }
@@ -896,7 +896,7 @@ class Utils {
         // Linux: ~/.config/<appName>
         String home = Platform.environment['HOME']!;
         directory =
-            Directory(path.join(home, '.config', KeychatGlobal.appName));
+            Directory(path.join(home, '.config', KeychatGlobal.appPackageName));
         if (!directory.existsSync()) {
           directory.createSync(recursive: true);
         }

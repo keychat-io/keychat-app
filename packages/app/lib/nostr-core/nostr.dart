@@ -1,6 +1,5 @@
 import 'package:app/models/nostr_event_status.dart';
 import 'package:app/nostr-core/subscribe_result.dart';
-import 'package:app/page/NostrWalletConnect/NostrWalletConnect_controller.dart';
 import 'package:app/service/SignerService.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:async_queue/async_queue.dart';
@@ -24,6 +23,7 @@ import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:get/get.dart';
+import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import '../constants.dart';

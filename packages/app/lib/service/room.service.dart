@@ -47,7 +47,6 @@ class RoomService extends BaseChatService {
   static final DBProvider dbProvider = DBProvider.instance;
   static final GroupService groupService = GroupService.instance;
   static final ContactService contactService = ContactService.instance;
-  HomeController homeController = Get.find<HomeController>();
   Future checkRoomStatus(Room room) async {
     if (room.status == RoomStatus.dissolved) {
       throw Exception('Room had been dissolved');
@@ -111,8 +110,8 @@ class RoomService extends BaseChatService {
           .getContact(identityId, room.toMainPubkey);
       room.contact = contact;
     }
-    homeController.loadIdentityRoomList(room.identityId);
-
+    Utils.getGetxController<HomeController>()
+        ?.loadIdentityRoomList(room.identityId);
     return room;
   }
 
@@ -125,7 +124,7 @@ class RoomService extends BaseChatService {
     }
   }
 
-  Future deleteRoom(Room room) async {
+  Future deleteRoom(Room room, {bool websocketInited = true}) async {
     Isar database = DBProvider.database;
     int? roomMykeyId = room.mykey.value?.id;
     String? listenPubkey = room.mykey.value?.pubkey;
@@ -133,7 +132,6 @@ class RoomService extends BaseChatService {
     var roomType = room.type;
     int roomId = room.id;
     String toMainPubkey = room.toMainPubkey;
-    String myIdPubkey = room.myIdPubkey;
     String? mlsListenPubkey = room.onetimekey;
     // delete room's signalId
     String? signalIdPubkey = room.signalIdPubkey;
@@ -188,16 +186,26 @@ class RoomService extends BaseChatService {
       if (roomType == RoomType.group &&
           (groupType == GroupType.shareKey || groupType == GroupType.kdf)) {
         NotifyService.removePubkeys([listenPubkey]);
-        Get.find<WebsocketService>().removePubkeyFromSubscription(listenPubkey);
+        if (websocketInited) {
+          Get.find<WebsocketService>()
+              .removePubkeyFromSubscription(listenPubkey);
+        }
       }
     }
     if (groupType == GroupType.mls) {
       if (mlsListenPubkey != null) {
-        Get.find<WebsocketService>()
-            .removePubkeyFromSubscription(mlsListenPubkey);
+        if (websocketInited) {
+          Get.find<WebsocketService>()
+              .removePubkeyFromSubscription(mlsListenPubkey);
+        }
         NotifyService.removePubkeys([mlsListenPubkey]);
       }
-      await rust_mls.deleteGroup(nostrId: myIdPubkey, groupId: toMainPubkey);
+      Identity? identity =
+          await IdentityService.instance.getIdentityById(room.identityId);
+      String? myIdPubkey = identity?.secp256k1PKHex;
+      if (myIdPubkey != null) {
+        await rust_mls.deleteGroup(nostrId: myIdPubkey, groupId: toMainPubkey);
+      }
     }
   }
 
@@ -285,8 +293,9 @@ class RoomService extends BaseChatService {
         await database.rooms.filter().toMainPubkeyEqualTo(from).findAll();
 
     for (var room in nip4Rooms) {
-      identity ??= homeController.allIdentities[room.identityId]!;
-      if (identity.secp256k1PKHex == to) {
+      identity ??=
+          await IdentityService.instance.getIdentityById(room.identityId);
+      if (identity != null && identity.secp256k1PKHex == to) {
         return room;
       }
     }
@@ -391,7 +400,8 @@ class RoomService extends BaseChatService {
         if (lastMessageModel.content.length > 50) {
           lastMessageModel.content = lastMessageModel.content.substring(0, 50);
         }
-        homeController.roomLastMessage[room.id] = lastMessageModel;
+        Utils.getGetxController<HomeController>()?.roomLastMessage[room.id] =
+            lastMessageModel;
       }
       if (room.type != RoomType.common) {
         friendsRoom.add(room);
@@ -439,7 +449,9 @@ class RoomService extends BaseChatService {
     if (room == null) {
       Identity? identity;
       Mykey? mykey;
-      List<Identity> identities = homeController.allIdentities.values
+      List<Identity> identities = Utils.getGetxController<HomeController>()!
+          .allIdentities
+          .values
           .where((element) => element.secp256k1PKHex == toAddress)
           .toList();
       if (identities.isNotEmpty) {
@@ -448,7 +460,8 @@ class RoomService extends BaseChatService {
         // onetime-key is receive address
         mykey = await IdentityService.instance.getMykeyByPubkey(toAddress);
         if (mykey != null) {
-          identity = homeController.allIdentities[mykey.identityId];
+          identity = Utils.getGetxController<HomeController>()
+              ?.allIdentities[mykey.identityId];
         }
       }
       if (identity == null) throw Exception('My receive address is null');
@@ -739,7 +752,8 @@ class RoomService extends BaseChatService {
   }
 
   Future _checkWebsocketConnect() async {
-    bool netStatus = homeController.isConnectedNetwork.value;
+    bool netStatus =
+        Utils.getGetxController<HomeController>()!.isConnectedNetwork.value;
     if (!netStatus) {
       throw Exception('Lost Network');
     }
@@ -811,7 +825,11 @@ class RoomService extends BaseChatService {
 
   Future<Room?> createRoomAndsendInvite(String input,
       {bool autoJump = true, Identity? identity, String? greeting}) async {
-    identity ??= homeController.getSelectedIdentity();
+    HomeController? hc = Utils.getGetxController<HomeController>();
+    if (hc == null) {
+      throw Exception('home controller is null');
+    }
+    identity ??= hc.getSelectedIdentity();
     // input is a hex string, decode in json
     if (!(input.length == 64 || input.length == 63)) return null;
     String hexPubkey = input;
@@ -826,7 +844,7 @@ class RoomService extends BaseChatService {
         room = await RoomService.instance
             .getOrCreateRoomByIdentity(hexPubkey, identity, RoomStatus.enabled);
       } else {
-        for (var iden in homeController.allIdentities.values) {
+        for (var iden in hc.allIdentities.values) {
           if (iden.secp256k1PKHex == hexPubkey) {
             throw Exception('Can not add other identity\' pubkey');
           }
@@ -844,7 +862,8 @@ class RoomService extends BaseChatService {
 
       if (autoJump) {
         await Get.offAndToNamed('/room/${room.id}', arguments: room);
-        await homeController.loadIdentityRoomList(identity.id);
+        Utils.getGetxController<HomeController>()
+            ?.loadIdentityRoomList(identity.id);
       }
       return room;
     } catch (e, s) {
@@ -863,7 +882,9 @@ class RoomService extends BaseChatService {
 
   Future markAllRead({required int identityId, required int roomId}) async {
     var refresh = await MessageService.instance.setViewedMessage(roomId);
-    if (refresh) homeController.loadIdentityRoomList(identityId);
+    if (refresh)
+      Utils.getGetxController<HomeController>()
+          ?.loadIdentityRoomList(identityId);
   }
 }
 

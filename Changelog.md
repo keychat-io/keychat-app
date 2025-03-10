@@ -5,10 +5,10 @@ https://keepachangelog.com/zh-CN/1.1.0
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
 ## 1.29.1+6331
-1. Add: nip47
-2. Optimize startup speed
-3. Upgrade rust-nostr lib to 0.39
-4. 
+1. Delete the kdf and shared-key group rooms.
+2. Integrated with NIP-47(Nostr wallet connect).
+3. Optimize app startup speed.
+4. Upgrade `rust-nostr` library to version 0.39.
 
 ## 1.27.2+6328
 1. Add a SafeArea to the browser page to prevent the bottom input area from being hidden.

@@ -4,7 +4,7 @@ description: keychat
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.29.1+6331
+version: 1.29.1+6332
 
 isar_version: &isar_version 3.1.8
 
@@ -32,7 +32,7 @@ dependencies:
   badges: ^3.1.2
   equatable: ^2.0.6
   json_annotation: ^4.9.0
-  isar: 
+  isar:
     version: *isar_version
     hosted: https://pub.isar-community.dev/
   isar_flutter_libs: # contains Isar Core
@@ -106,9 +106,9 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   integration_test:
-    sdk: flutter    
+    sdk: flutter
   build_runner: ^2.4.15
-  isar_generator: 
+  isar_generator:
     version: *isar_version
     hosted: https://pub.isar-community.dev/
   json_serializable: ^6.9.0
@@ -138,4 +138,3 @@ flutter_native_splash:
   image: assets/images/logo.png
   color_dark: "#121212"
   image_dark: assets/images/logo.png
-

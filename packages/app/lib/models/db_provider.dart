@@ -171,7 +171,7 @@ class DBProvider {
             .or()
             .groupTypeEqualTo(GroupType.kdf))
         .findAll();
-    await Future.wait(
-        list.map((room) => RoomService.instance.deleteRoom(room)));
+    await Future.wait(list.map((room) =>
+        RoomService.instance.deleteRoom(room, websocketInited: false)));
   }
 }

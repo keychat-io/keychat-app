@@ -23,6 +23,7 @@ import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:get/get.dart';
+import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import '../constants.dart';
@@ -66,13 +67,19 @@ class NostrAPI {
           await _proccessEvent01(res, relay, message);
           break;
         case NostrResKinds.eose:
+          if (res[1].toString().startsWith('nwc')) {
+            Utils.getGetxController<NostrWalletConnectController>()
+                ?.proccessEOSE(relay, res);
+            return;
+          }
           loggerNoLine.i('EOSE: ${relay.url} ${res[1]}');
           await _proccessEOSE(relay, res);
           break;
         case NostrResKinds.notice:
-          String message = res[1];
-          if (message == 'could not parse command') {
-            message = 'ping respose';
+          if (res[1].toString().startsWith('nwc')) {
+            Utils.getGetxController<NostrWalletConnectController>()
+                ?.proccessNotice(relay, res);
+            return;
           }
           loggerNoLine.i("Nostr notice: ${relay.url} $res");
           _proccessNotice(relay, res[1]);
@@ -153,6 +160,10 @@ class NostrAPI {
       case EventKinds.textNote:
         await Get.find<WorldController>().processEvent(event);
         break;
+      case EventKinds.nip47:
+        Utils.getGetxController<NostrWalletConnectController>()
+            ?.processEvent(relay, event);
+        break;
       default:
         logger.i('revived: $eventList');
     }
@@ -162,6 +173,14 @@ class NostrAPI {
     String eventId = msg[1];
     bool status = msg[2];
     String? errorMessage = msg[3];
+    if (NostrAPI.instance.okCallback[eventId] != null) {
+      NostrAPI.instance.okCallback[eventId]!(
+          relay: relay.url,
+          eventId: eventId,
+          status: status,
+          errorMessage: errorMessage);
+      return;
+    }
     SubscribeEventStatus.fillSubscripton(
         eventId, relay.url, status, errorMessage);
   }
@@ -697,5 +716,17 @@ class NostrAPI {
         result.sig,
         verify: false);
     return subEvent;
+  }
+
+  Map<String, Function> okCallback = {};
+  void setOKCallback(
+      String eventID,
+      Function({
+        required String relay,
+        required String eventId,
+        required bool status,
+        String? errorMessage,
+      }) callback) {
+    NostrAPI.instance.okCallback[eventID] = callback;
   }
 }

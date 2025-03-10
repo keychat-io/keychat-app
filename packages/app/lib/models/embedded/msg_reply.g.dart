@@ -515,17 +515,8 @@ MsgReply _$MsgReplyFromJson(Map<String, dynamic> json) => MsgReply()
   ..user = json['user'] as String
   ..content = json['content'] as String;
 
-Map<String, dynamic> _$MsgReplyToJson(MsgReply instance) {
-  final val = <String, dynamic>{};
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('id', instance.id);
-  val['user'] = instance.user;
-  val['content'] = instance.content;
-  return val;
-}
+Map<String, dynamic> _$MsgReplyToJson(MsgReply instance) => <String, dynamic>{
+      if (instance.id case final value?) 'id': value,
+      'user': instance.user,
+      'content': instance.content,
+    };

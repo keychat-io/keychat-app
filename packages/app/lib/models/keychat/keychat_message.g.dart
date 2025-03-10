@@ -15,23 +15,14 @@ KeychatMessage _$KeychatMessageFromJson(Map<String, dynamic> json) =>
       data: json['data'] as String?,
     );
 
-Map<String, dynamic> _$KeychatMessageToJson(KeychatMessage instance) {
-  final val = <String, dynamic>{
-    'c': _$MessageTypeEnumMap[instance.c]!,
-    'type': instance.type,
-  };
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('msg', instance.msg);
-  writeNotNull('name', instance.name);
-  writeNotNull('data', instance.data);
-  return val;
-}
+Map<String, dynamic> _$KeychatMessageToJson(KeychatMessage instance) =>
+    <String, dynamic>{
+      'c': _$MessageTypeEnumMap[instance.c]!,
+      'type': instance.type,
+      if (instance.msg case final value?) 'msg': value,
+      if (instance.name case final value?) 'name': value,
+      if (instance.data case final value?) 'data': value,
+    };
 
 const _$MessageTypeEnumMap = {
   MessageType.nip04: 'nip04',

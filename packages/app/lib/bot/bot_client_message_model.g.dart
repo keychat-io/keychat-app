@@ -17,23 +17,14 @@ _$BotClientMessageModelImpl _$$BotClientMessageModelImplFromJson(
     );
 
 Map<String, dynamic> _$$BotClientMessageModelImplToJson(
-    _$BotClientMessageModelImpl instance) {
-  final val = <String, dynamic>{
-    'type': _$MessageMediaTypeEnumMap[instance.type]!,
-    'message': instance.message,
-  };
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('id', instance.id);
-  writeNotNull('priceModel', instance.priceModel);
-  writeNotNull('payToken', instance.payToken);
-  return val;
-}
+        _$BotClientMessageModelImpl instance) =>
+    <String, dynamic>{
+      'type': _$MessageMediaTypeEnumMap[instance.type]!,
+      'message': instance.message,
+      if (instance.id case final value?) 'id': value,
+      if (instance.priceModel case final value?) 'priceModel': value,
+      if (instance.payToken case final value?) 'payToken': value,
+    };
 
 const _$MessageMediaTypeEnumMap = {
   MessageMediaType.text: 'text',

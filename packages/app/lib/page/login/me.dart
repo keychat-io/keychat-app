@@ -2,6 +2,7 @@ import 'package:app/controller/setting.controller.dart';
 import 'package:app/page/browser/BrowserSetting.dart';
 import 'package:app/page/login/SelectModeToCreateID.dart';
 import 'package:app/page/routes.dart';
+import 'package:app/page/setting/RelaySetting.dart';
 import 'package:app/page/setting/app_general_setting.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:app/controller/home.controller.dart';
@@ -66,7 +67,7 @@ class MinePage extends GetView<SettingController> {
                             color: Color(0xfff2a900),
                           ),
                           value: Text(
-                              '${getGetxController<EcashController>()?.totalSats.value.toString() ?? '-'} ${EcashTokenSymbol.sat.name}'),
+                              '${Utils.getGetxController<EcashController>()?.totalSats.value.toString() ?? '-'} ${EcashTokenSymbol.sat.name}'),
                           onPressed: (context) async {
                             Get.toNamed(Routes.ecash);
                           },
@@ -91,6 +92,12 @@ class MinePage extends GetView<SettingController> {
                             onPressed: (context) async {
                               Get.to(() => const BrowserSetting());
                             }),
+                      SettingsTile.navigation(
+                          leading: const Icon(CupertinoIcons.globe),
+                          onPressed: (c) {
+                            Get.to(() => const RelaySetting());
+                          },
+                          title: const Text('Network')),
                       SettingsTile.navigation(
                         leading: const Icon(CupertinoIcons.settings),
                         title: const Text("App Settings"),

@@ -59,10 +59,8 @@ class CreateInvoiceSucessPageState extends State<CreateInvoiceSucessPage> {
                       fontSize: 34,
                     ),
               )),
-              Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: genQRImage(widget.transaction.pr,
-                      size: 240, embeddedImageSize: 60, embeddedImage: null)),
+              Utils.genQRImage(widget.transaction.pr,
+                  size: 240, embeddedImageSize: 60, embeddedImage: null),
               Expanded(
                   child: Text(
                 maxLines: 3,

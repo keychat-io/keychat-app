@@ -74,7 +74,7 @@ const RelaySchema = CollectionSchema(
   getId: _relayGetId,
   getLinks: _relayGetLinks,
   attach: _relayAttach,
-  version: '3.1.0+1',
+  version: '3.1.8',
 );
 
 int _relayEstimateSize(

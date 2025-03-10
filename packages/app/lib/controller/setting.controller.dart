@@ -2,7 +2,6 @@ import 'dart:io' show Directory;
 
 import 'package:app/global.dart';
 import 'package:app/utils.dart';
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../service/storage.dart';
 
@@ -18,15 +17,12 @@ class SettingController extends GetxController with StateMixin<Type> {
   late String avatarsFolder;
   late String browserCacheFolder;
 
-  final TextEditingController relayTextController =
-      TextEditingController(text: "wss://");
-
   @override
   void onInit() async {
     super.onInit();
     appFolder = await Utils.getAppFolder();
 
-    viewKeychatFutures.value = await getViewKeychatFutures();
+    // viewKeychatFutures.value = await getViewKeychatFutures();
     autoCleanMessageDays.value =
         await Storage.getIntOrZero(StorageKeyString.autoDeleteMessageDays);
 
@@ -40,14 +36,8 @@ class SettingController extends GetxController with StateMixin<Type> {
         Directory(folder).createSync(recursive: true);
       });
     }
-
-    await initDefaultFileServerConfig();
-  }
-
-  @override
-  void onClose() {
-    relayTextController.dispose();
-    super.onClose();
+    // file server
+    initDefaultFileServerConfig();
   }
 
   getViewKeychatFutures() async {
@@ -61,16 +51,15 @@ class SettingController extends GetxController with StateMixin<Type> {
     viewKeychatFutures.value = true;
   }
 
-  Future initDefaultFileServerConfig() async {
+  Future<void> initDefaultFileServerConfig() async {
     String? res = await Storage.getString(StorageKeyString.defaultFileServer);
     if (res != null) {
       defaultFileServer.value = res;
-    } else {
-      await Storage.setString(
-          StorageKeyString.defaultFileServer, KeychatGlobal.defaultFileServer);
-      defaultFileServer.value = KeychatGlobal.defaultFileServer;
+      return;
     }
-    return defaultFileServer.value;
+    await Storage.setString(
+        StorageKeyString.defaultFileServer, KeychatGlobal.defaultFileServer);
+    defaultFileServer.value = KeychatGlobal.defaultFileServer;
   }
 
   Future setDefaultFileServer(String value) async {

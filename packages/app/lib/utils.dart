@@ -10,7 +10,7 @@ import 'package:badges/badges.dart' as badges;
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/room.dart';
-
+import 'package:path/path.dart' as path;
 import 'package:app/service/storage.dart';
 import 'package:app/utils/config.dart';
 import 'package:app/utils/log_file.dart';
@@ -30,6 +30,7 @@ import 'package:keychat_rust_ffi_plugin/index.dart';
 import 'package:logger/logger.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 Logger logger = Logger(
     filter: kReleaseMode ? MyLogFilter() : null,
@@ -106,15 +107,6 @@ String generateRandomAESKey() {
   final random = Random.secure();
   final randomBytes = List<int>.generate(32, (i) => random.nextInt(256));
   return hex.encode(randomBytes);
-}
-
-T? getGetxController<T>() {
-  try {
-    T t = Get.find<T>();
-    return t;
-  } catch (e) {
-    return null;
-  }
 }
 
 getPublicKeyDisplay(String publicKey, [int size = 6]) {
@@ -270,6 +262,35 @@ Please check ecash balance and mint.''';
 }
 
 class Utils {
+  static Widget genQRImage(String content,
+      {double size = 300,
+      double embeddedImageSize = 0,
+      double padding = 8.0,
+      Color backgroundColor = Colors.white,
+      ImageProvider<Object>? embeddedImage}) {
+    return ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: QrImageView(
+          data: content,
+          gapless: false,
+          backgroundColor: backgroundColor,
+          padding: EdgeInsets.all(padding),
+          embeddedImage: embeddedImage,
+          embeddedImageStyle: QrEmbeddedImageStyle(
+              size: Size(embeddedImageSize, embeddedImageSize)),
+          size: size,
+        ));
+  }
+
+  static T? getGetxController<T>({String? tag}) {
+    try {
+      T t = Get.find<T>(tag: tag);
+      return t;
+    } catch (e) {
+      return null;
+    }
+  }
+
   static String generateRandomString(int length) {
     final random = Random();
     const availableChars =
@@ -551,7 +572,7 @@ class Utils {
     }
   }
 
-  static initLoggger(Directory directory) async {
+  static Future initLoggger(Directory directory) async {
     setLogger(Logger(
         filter: kReleaseMode ? MyLogFilter() : null,
         printer: PrettyPrinter(
@@ -559,7 +580,7 @@ class Utils {
                 ? DateTimeFormat.onlyTime
                 : DateTimeFormat.dateAndTime,
             colors: false,
-            methodCount: kReleaseMode ? 1 : 10),
+            methodCount: kReleaseMode ? 1 : 5),
         output: kReleaseMode
             ? LogFileOutputs(await Utils.createLogFile(directory.path))
             : null));
@@ -856,13 +877,35 @@ class Utils {
   }
 
   static Future<Directory> getAppFolder() async {
-    var appFolder = await getApplicationDocumentsDirectory();
-    if (GetPlatform.isLinux || GetPlatform.isWindows) {
-      var dir = Directory('${appFolder.path}/keychat_app_data');
-      var exist = await dir.exists();
-      if (!exist) await dir.create();
-      return dir;
+    Directory? directory;
+
+    switch (Platform.operatingSystem) {
+      case 'macos':
+        // macOS: ~/Library/Application Support/<appName>
+        directory = await getApplicationSupportDirectory();
+        break;
+      case 'windows':
+        // Windows: %APPDATA%\<appName>
+        String appData = Platform.environment['APPDATA']!;
+        directory = Directory(path.join(appData, KeychatGlobal.appPackageName));
+        if (!directory.existsSync()) {
+          directory.createSync(recursive: true);
+        }
+        break;
+      case 'linux':
+        // Linux: ~/.config/<appName>
+        String home = Platform.environment['HOME']!;
+        directory =
+            Directory(path.join(home, '.config', KeychatGlobal.appPackageName));
+        if (!directory.existsSync()) {
+          directory.createSync(recursive: true);
+        }
+        break;
+      default:
+        // For iOS, Android and other platforms
+        directory = await getApplicationDocumentsDirectory();
+        break;
     }
-    return appFolder;
+    return directory;
   }
 }

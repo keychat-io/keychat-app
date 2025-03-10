@@ -19,7 +19,6 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:search_page/search_page.dart';
 import 'package:settings_ui/settings_ui.dart';
 
@@ -64,23 +63,6 @@ errorText(String title) {
   return Text(
     title,
     style: TextStyle(color: Colors.red.shade400),
-  );
-}
-
-Widget genQRImage(String content,
-    {double size = 300,
-    double embeddedImageSize = 60,
-    Color backgroundColor = Colors.white,
-    ImageProvider<Object>? embeddedImage}) {
-  return QrImageView(
-    data: content,
-    gapless: false,
-    backgroundColor: backgroundColor,
-    // padding: const EdgeInsets.all(5.0),
-    embeddedImage: embeddedImage,
-    embeddedImageStyle:
-        QrEmbeddedImageStyle(size: Size(embeddedImageSize, embeddedImageSize)),
-    size: size,
   );
 }
 

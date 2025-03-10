@@ -1,4 +1,6 @@
 class KeychatGlobal {
+  static const String appName = 'Keychat';
+  static const String appPackageName = 'com.Keychat.io';
   static const String bot = 'Bot';
   static const String selfName = 'Note to Self';
   static const String search = 'SEARCH';
@@ -15,11 +17,8 @@ class KeychatGlobal {
   static const String defaultCashuMintURL = 'https://8333.space:3338/';
   // token: /api/v1/object, fee: /api/v1/info
   static const String defaultFileServer = 'wss://relay.keychat.io';
-  static const Set<String> skipFileServers = {
-    'wss://relay.damus.io',
-    'wss://nos.lol',
-    'wss://relay.primal.net',
-    'wss://relay.nostr.band'
+  static const Set<String> feeFileServers = {
+    'wss://relay.keychat.io',
   };
 
   static const String defaultRelay = 'wss://relay.keychat.io';

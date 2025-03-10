@@ -386,7 +386,7 @@ class RelayService {
   }
 
   Future<RelayFileFee?> initRelayFileFeeModel(String url) async {
-    if (KeychatGlobal.skipFileServers.contains(url)) return null;
+    if (!KeychatGlobal.feeFileServers.contains(url)) return null;
     try {
       Map? map = await _fetchFileUploadConfig(url);
       logger.d('fetchAndSetFileUploadConfig, $url: $map');

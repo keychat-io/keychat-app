@@ -28,6 +28,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
@@ -330,11 +331,23 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                     // lightning invoice
                     if (str.startsWith('lightning:')) {
                       str = str.replaceFirst('lightning:', '');
-                      ecashController.proccessPayLightningBill(str, pay: true);
+                      var tx = await ecashController
+                          .proccessPayLightningBill(str, isPay: true);
+                      if (tx != null) {
+                        var lnTx = tx.field0 as LNTransaction;
+                        logger.d('LN Transaction:   Amount=${lnTx.amount}, '
+                            'INfo=${lnTx.info}, Description=${lnTx.fee}, '
+                            'Hash=${lnTx.hash}, NodeId=${lnTx.status.name}');
+                      }
                       return NavigationActionPolicy.CANCEL;
                     }
                     if (str.startsWith('lnbc')) {
-                      ecashController.proccessPayLightningBill(str, pay: true);
+                      var tx = await ecashController
+                          .proccessPayLightningBill(str, isPay: true);
+                      if (tx != null) {
+                        logger.d((tx.field0 as LNTransaction).pr);
+                      }
+
                       return NavigationActionPolicy.CANCEL;
                     }
 

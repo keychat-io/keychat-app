@@ -24,8 +24,15 @@
     <string>????</string>
     <key>CFBundleVersion</key>
     <string>$(FLUTTER_BUILD_NUMBER)</string>
+    <key>FirebaseAppDelegateProxyEnabled</key>
+    <false/>
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+      <string>lightning</string>
+      <string>nostr</string>
+    </array>
     <key>LSRequiresIPhoneOS</key>
     <true/>
     <key>NSCameraUsageDescription</key>
@@ -60,12 +67,5 @@
     <false/>
     <key>io.flutter.embedded_views_preview</key>
     <true/>
-    <key>FirebaseAppDelegateProxyEnabled</key>
-    <false/>
-    <key>LSApplicationQueriesSchemes</key>
-    <array>
-      <string>lightning</string>
-      <string>nostr</string>
-    </array>
   </dict>
 </plist>

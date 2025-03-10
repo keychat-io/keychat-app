@@ -117,7 +117,7 @@ class _CashuSendPageState extends State<CashuSendPage> {
                         EasyLoading.showToast('Success',
                             duration: const Duration(seconds: 2));
                         cashuController.getBalance();
-                        getGetxController<EcashBillController>()
+                        Utils.getGetxController<EcashBillController>()
                             ?.getTransactions();
                         EasyLoading.dismiss();
                         if (widget.isRoom) {

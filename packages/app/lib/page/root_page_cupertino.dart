@@ -61,7 +61,7 @@ class CupertinoRootPage extends GetView<HomeController> {
           if (value == configs.length - 1) {
             EasyThrottle.throttle(
                 'loadCashuABalance', const Duration(seconds: 3), () {
-              getGetxController<EcashController>()?.getBalance();
+              Utils.getGetxController<EcashController>()?.getBalance();
             });
           }
         },

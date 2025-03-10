@@ -44,53 +44,54 @@ class PayInvoiceController extends GetxController {
     super.onClose();
   }
 
-  FutureOr<bool?> confirmToPayInvoice(
+  FutureOr<Transaction?> _confirmPayment(String mint, String invoice,
+      rust_cashu.InvoiceInfo ii, bool isPay) async {
+    EcashController cc = Get.find<EcashController>();
+
+    if (cc.getBalanceByMint(mint) < ii.amount.toInt()) {
+      EasyLoading.showToast('Not Enough Funds');
+      return null;
+    }
+    try {
+      EasyLoading.show(status: 'Proccess...');
+      Transaction tx =
+          await rust_cashu.melt(invoice: invoice, activeMint: mint);
+      EasyLoading.showSuccess('Success');
+
+      textController.clear();
+      cc.requestPageRefresh();
+
+      await Get.to(() =>
+          LightningTransactionPage(transaction: tx.field0 as LNTransaction));
+      return tx;
+    } catch (e, s) {
+      String msg = Utils.getErrorMessage(e);
+      EasyLoading.showError('Error: $msg');
+      logger.e('error: $msg', error: e, stackTrace: s);
+    }
+    return null;
+  }
+
+  FutureOr<Transaction?> confirmToPayInvoice(
       {required String invoice,
       required String mint,
       bool isPay = false}) async {
     if (invoice.isEmpty) {
       EasyLoading.showToast('Please enter a valid invoice');
-      return false;
+      return null;
     }
 
     if (invoice.startsWith('lightning:')) {
       invoice = invoice.replaceFirst('lightning:', '');
     }
     try {
-      EcashController cc = Get.find<EcashController>();
       rust_cashu.InvoiceInfo ii =
           await rust_cashu.decodeInvoice(encodedInvoice: invoice);
-      Future confirmPayment() async {
-        if (cc.getBalanceByMint(mint) < ii.amount.toInt()) {
-          EasyLoading.showToast('Not Enough Funds');
-          return false;
-        }
-        try {
-          EasyLoading.show(status: 'Proccess...');
-          var tx = await rust_cashu.melt(invoice: invoice, activeMint: mint);
-          EasyLoading.showSuccess('Success');
-          if (isPay == false) {
-            Get.back(); // close dialog
-          }
-          textController.clear();
-          cc.requestPageRefresh();
-
-          await Get.off(() => LightningTransactionPage(
-              transaction: tx.field0 as LNTransaction));
-          if (Get.isBottomSheetOpen ?? false) {
-            Get.back();
-          }
-        } catch (e, s) {
-          String msg = Utils.getErrorMessage(e);
-          EasyLoading.showError('Error: $msg');
-          logger.e('error: $msg', error: e, stackTrace: s);
-        }
-      }
 
       if (isPay == true) {
-        return await confirmPayment();
+        return await _confirmPayment(mint, invoice, ii, isPay);
       }
-      await Get.dialog(CupertinoAlertDialog(
+      return await Get.dialog(CupertinoAlertDialog(
         title: Text('Pay ${ii.amount} ${EcashTokenSymbol.sat.name}'),
         content: Text('''
 
@@ -105,7 +106,9 @@ Expire At: ${DateFormat("yyyy-MM-ddTHH:mm:ss").format(DateTime.fromMillisecondsS
           ),
           CupertinoDialogAction(
             isDefaultAction: true,
-            onPressed: confirmPayment,
+            onPressed: () async {
+              Get.back(result: await _confirmPayment(mint, invoice, ii, isPay));
+            },
             child: const Text('Confirm'),
           ),
         ],
@@ -118,9 +121,9 @@ Expire At: ${DateFormat("yyyy-MM-ddTHH:mm:ss").format(DateTime.fromMillisecondsS
     return null;
   }
 
-  Future lnurlPayFirst(String input) async {
+  FutureOr<Transaction?> lnurlPayFirst(String input) async {
     if (input.isEmpty) {
-      return;
+      return null;
     }
     String? host;
     Map<String, dynamic>? data;
@@ -148,22 +151,22 @@ Expire At: ${DateFormat("yyyy-MM-ddTHH:mm:ss").format(DateTime.fromMillisecondsS
         data!['domain'] = Uri.parse(url).host;
       } catch (e, s) {
         logger.e('error: $e', error: e, stackTrace: s);
-        return;
+        return null;
       }
     }
 
     if (host == null || data == null) {
-      return;
+      return null;
     }
 
     if (data['tag'] == 'payRequest') {
       if (data['maxSendable'] == null) return null;
       logger.d('LNURL pay request received from: $host , $data');
       if (Get.isBottomSheetOpen ?? false) {
-        return;
+        return null;
       }
-      Get.bottomSheet(PayToLnurl(data));
-      return;
+      return await Get.bottomSheet<Transaction>(PayToLnurl(data));
     }
+    return null;
   }
 }

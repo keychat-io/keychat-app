@@ -88,7 +88,7 @@ const BrowserBookmarkSchema = CollectionSchema(
   getId: _browserBookmarkGetId,
   getLinks: _browserBookmarkGetLinks,
   attach: _browserBookmarkAttach,
-  version: '3.1.0+1',
+  version: '3.1.8',
 );
 
 int _browserBookmarkEstimateSize(

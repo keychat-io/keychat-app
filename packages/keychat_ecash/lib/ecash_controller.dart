@@ -1,9 +1,9 @@
+import 'dart:async' show FutureOr;
 import 'dart:convert' show jsonDecode;
 
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/models/embedded/relay_file_fee.dart';
 import 'package:app/models/models.dart';
-import 'package:app/page/components.dart';
 import 'package:app/rust_api.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/websocket.service.dart';
@@ -16,6 +16,7 @@ import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:pull_to_refresh/pull_to_refresh.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 import 'package:app/global.dart';
 
@@ -24,6 +25,8 @@ import 'package:app/utils.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
+import 'NostrWalletConnect/NostrWalletConnect_controller.dart';
 
 class EcashController extends GetxController {
   final String dbPath;
@@ -48,6 +51,7 @@ class EcashController extends GetxController {
     nameController = TextEditingController();
     refreshController = RefreshController();
     super.onInit();
+    Get.lazyPut(() => NostrWalletConnectController(), fenix: true);
   }
 
   Future<String?> getFileUploadEcashToken(int fileSize) async {
@@ -98,8 +102,6 @@ class EcashController extends GetxController {
   }
 
   Future<void> _initCashu() async {
-    await Future.delayed(const Duration(seconds: 1));
-    // init ecash , try 3 times
     const maxAttempts = 3;
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
       try {
@@ -116,7 +118,7 @@ class EcashController extends GetxController {
         break;
       } catch (e, s) {
         logger.d(e.toString(), error: e, stackTrace: s);
-        await Future.delayed(const Duration(seconds: 1));
+        await Future.delayed(const Duration(milliseconds: 100));
         if (attempt == maxAttempts - 1) {
           cashuInitFailed.value = true;
           cashuInitFailed.refresh();
@@ -132,11 +134,13 @@ class EcashController extends GetxController {
     currentIdentity = identity;
 
     try {
+      final stopwatch = Stopwatch()..start();
       await rust_cashu.initDb(
           dbpath: '$dbPath${KeychatGlobal.ecashDBFile}',
           dev: kDebugMode,
           words: await identity.getMnemonic());
-      logger.i('rust api init success');
+      stopwatch.stop();
+      logger.i('ecash init completed in ${stopwatch.elapsedMilliseconds}ms');
     } catch (e, s) {
       logger.e(e.toString(), error: e, stackTrace: s);
     }
@@ -367,14 +371,15 @@ class EcashController extends GetxController {
   }
 
   Future requestPageRefresh() async {
-    var lightningBillController = Get.find<LightningBillController>();
     await rust_cashu.checkPending();
     await getBalance();
-    await getGetxController<EcashBillController>()?.getTransactions();
+    await Utils.getGetxController<EcashBillController>()?.getTransactions();
     try {
-      await lightningBillController.getTransactions();
+      await Utils.getGetxController<LightningBillController>()
+          ?.getTransactions();
       var pendings = await rust_cashu.getLnPendingTransactions();
-      lightningBillController.checkPendings(pendings);
+      Utils.getGetxController<LightningBillController>()
+          ?.checkPendings(pendings);
     } catch (e) {}
     refreshController.refreshCompleted();
   }
@@ -392,23 +397,15 @@ class EcashController extends GetxController {
     }
   }
 
-  Future proccessPayLightningBill(String invoce,
-      {bool pay = false, Function(String str)? callback}) async {
+  FutureOr<Transaction?> proccessPayLightningBill(String invoice,
+      {bool isPay = false}) async {
     try {
-      await rust_cashu.decodeInvoice(encodedInvoice: invoce);
+      await rust_cashu.decodeInvoice(encodedInvoice: invoice);
     } catch (e) {
-      if (callback == null) {
-        rethrow;
-      }
-      return callback(invoce);
+      EasyLoading.showError('Invalid lightning invoice');
+      return null;
     }
-    if (pay == true) {
-      Get.bottomSheet(
-          PayInvoicePage(invoce: invoce, isPay: pay, showScanButton: false));
-      return;
-    }
-    await showModalBottomSheetWidget(Get.context!, '',
-        PayInvoicePage(invoce: invoce, isPay: pay, showScanButton: false),
-        showAppBar: false);
+    return Get.bottomSheet<Transaction>(
+        PayInvoicePage(invoce: invoice, isPay: isPay, showScanButton: !isPay));
   }
 }

@@ -46,7 +46,6 @@ class _CreateAccountState extends State<CreateAccount> {
 
   @override
   Widget build(BuildContext context) {
-    print(widget.npubs);
     return Scaffold(
         appBar: AppBar(
           centerTitle: true,

@@ -129,14 +129,8 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
                             ?.copyWith(height: 1.0, fontSize: 34),
                       ))
                     ]),
-                Padding(
-                    padding: const EdgeInsets.only(top: 16, bottom: 16),
-                    child: ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: genQRImage('lightning:${tx.pr}',
-                            size: Get.width - 32,
-                            embeddedImageSize: 0,
-                            embeddedImage: null))),
+                Utils.genQRImage('lightning:${tx.pr}',
+                    size: Get.width - 32, padding: 16),
                 if (tx.fee != null) Text('Fee: ${tx.fee!.toInt()} ${tx.unit}'),
                 if (tx.status == TransactionStatus.pending && expiryTs > 0)
                   Text(

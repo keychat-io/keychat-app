@@ -11,9 +11,7 @@ class OnboardingPage2 extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: const Text(
-            'About Keychat',
-          ),
+          title: const Text('About Keychat'),
         ),
         body: SafeArea(
             child: Padding(

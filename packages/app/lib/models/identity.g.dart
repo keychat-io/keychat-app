@@ -138,7 +138,7 @@ const IdentitySchema = CollectionSchema(
   getId: _identityGetId,
   getLinks: _identityGetLinks,
   attach: _identityAttach,
-  version: '3.1.0+1',
+  version: '3.1.8',
 );
 
 int _identityEstimateSize(

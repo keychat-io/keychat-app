@@ -4,6 +4,7 @@ import 'package:app/models/models.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/new_friends_rooms.dart';
 import 'package:app/page/search_page.dart';
+import 'package:app/page/setting/RelaySetting.dart';
 import 'package:app/page/widgets/home_drop_menu.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/websocket.service.dart';
@@ -20,12 +21,11 @@ import '../controller/home.controller.dart';
 import 'RecommendBots/RecommendBots.dart';
 import 'components.dart';
 
-class RoomList extends StatelessWidget {
+class RoomList extends GetView<HomeController> {
   const RoomList({super.key});
 
   @override
   Widget build(BuildContext context) {
-    HomeController homeController = Get.find<HomeController>();
     Color pinTileBackground =
         Get.isDarkMode ? const Color(0xFF202020) : const Color(0xFFEDEDED);
 
@@ -39,14 +39,14 @@ class RoomList extends StatelessWidget {
           titleSpacing: 0,
           centerTitle: true,
           leadingWidth: 0,
-          actions: [Obx(() => getRelaysStatus(homeController))],
+          actions: [Obx(() => getRelaysStatus())],
           title: PreferredSize(
               preferredSize: const Size.fromHeight(0),
               child: SizedBox(
                   height: kToolbarHeight,
                   child: Obx(
                     () => Stack(
-                      alignment: homeController.tabBodyDatas.length == 1
+                      alignment: controller.tabBodyDatas.length == 1
                           ? Alignment.center
                           : Alignment.bottomCenter,
                       children: <Widget>[
@@ -55,13 +55,13 @@ class RoomList extends StatelessWidget {
                                 Theme.of(context).colorScheme.primary,
                             indicatorWeight: 1,
                             isScrollable: true,
-                            controller: homeController.tabController,
+                            controller: controller.tabController,
                             tabAlignment: TabAlignment.start,
                             labelStyle: const TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.w600),
                             dividerColor: Colors.transparent,
-                            tabs: homeController.tabBodyDatas.values
-                                .map((TabData e) {
+                            tabs:
+                                controller.tabBodyDatas.values.map((TabData e) {
                               Identity identity = e.identity;
                               var title = identity.displayName.length > 15
                                   ? "${identity.displayName.substring(0, 15)}..."
@@ -86,9 +86,9 @@ class RoomList extends StatelessWidget {
                   )))),
       body: Obx(() => TabBarView(
           key: const Key('roomlistTabview'),
-          controller: homeController.tabController,
-          children: homeController.tabBodyDatas.keys.map((identityId) {
-            TabData data = homeController.tabBodyDatas[identityId]!;
+          controller: controller.tabController,
+          children: controller.tabBodyDatas.keys.map((identityId) {
+            TabData data = controller.tabBodyDatas[identityId]!;
             int friendsCount = data.rooms.length;
             List rooms = data.rooms;
             DateTime messageExpired =
@@ -134,7 +134,7 @@ class RoomList extends StatelessWidget {
 
                         RoomService.instance.markAllRead(
                             identityId: room.identityId, roomId: room.id);
-                        homeController.resortRoomList(room.identityId);
+                        controller.resortRoomList(room.identityId);
                       },
                       onLongPress: () =>
                           RoomUtil.showRoomActionSheet(context, room),
@@ -150,8 +150,8 @@ class RoomList extends StatelessWidget {
                             subtitle: Obx(() => RoomUtil.getSubtitleDisplay(
                                 room,
                                 messageExpired,
-                                homeController.roomLastMessage[room.id])),
-                            trailing: homeController.roomLastMessage[room.id] ==
+                                controller.roomLastMessage[room.id])),
+                            trailing: controller.roomLastMessage[room.id] ==
                                     null
                                 ? null
                                 : Wrap(
@@ -161,7 +161,7 @@ class RoomList extends StatelessWidget {
                                     children: [
                                       textSmallGray(
                                           Get.context!,
-                                          Utils.formatTimeMsg(homeController
+                                          Utils.formatTimeMsg(controller
                                               .roomLastMessage[room.id]!
                                               .createdAt)),
                                       room.isMute
@@ -251,7 +251,7 @@ class RoomList extends StatelessWidget {
           ),
           onTap: () async {
             await Get.to(() => AnonymousRooms(rooms));
-            await Get.find<HomeController>().loadRoomList();
+            controller.loadRoomList();
           },
           subtitle: Text('Rooms: ${rooms.length}'),
           trailing: Icon(CupertinoIcons.right_chevron,
@@ -288,7 +288,7 @@ class RoomList extends StatelessWidget {
           ),
           onTap: () async {
             await Get.to(() => AnonymousRooms(rooms));
-            await Get.find<HomeController>().loadRoomList();
+            controller.loadRoomList();
           },
           subtitle: Text('Rooms: ${rooms.length}'),
           trailing: Icon(CupertinoIcons.right_chevron,
@@ -300,10 +300,10 @@ class RoomList extends StatelessWidget {
         ));
   }
 
-  Widget getRelaysStatus(HomeController homeController) {
+  Widget getRelaysStatus() {
     WebsocketService webSocketService = Get.find<WebsocketService>();
     String status = webSocketService.relayStatusInt.value;
-    if (!homeController.isConnectedNetwork.value) {
+    if (!controller.isConnectedNetwork.value) {
       status = RelayStatusEnum.noNetwork.name;
     }
 
@@ -352,10 +352,14 @@ class RoomList extends StatelessWidget {
             ));
       default:
     }
-    return badges.Badge(
-        showBadge: homeController.addFriendTips.value,
-        position: badges.BadgePosition.topEnd(top: 5, end: 5),
-        child: HomeDropMenuWidget(homeController.addFriendTips.value));
+    return GestureDetector(
+        onLongPress: () {
+          Get.to(() => const RelaySetting());
+        },
+        child: badges.Badge(
+            showBadge: controller.addFriendTips.value,
+            position: badges.BadgePosition.topEnd(top: 5, end: 5),
+            child: HomeDropMenuWidget(controller.addFriendTips.value)));
   }
 
   _showDialogForReconnect(bool status, String message) {

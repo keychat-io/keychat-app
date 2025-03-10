@@ -120,10 +120,10 @@ class NostrWalletConnectController extends GetxController {
           reqId: subId,
           kinds: kinds,
           pubkeys: [service.value.pubkey],
-          since: DateTime.now());
+          since: DateTime.now().subtract(Duration(minutes: 1)));
       websocketService.sendReq(req, relay: relay, callback: (String relay) {
-        if (logs.length > 40) {
-          logs.removeRange(0, 30);
+        if (logs.length > 30) {
+          logs.removeRange(0, 20);
         }
         logs.add(NWCLog(
             method: NWCLogMethod.subscribe,

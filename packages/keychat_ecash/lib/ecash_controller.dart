@@ -102,8 +102,6 @@ class EcashController extends GetxController {
   }
 
   Future<void> _initCashu() async {
-    await Future.delayed(const Duration(seconds: 1));
-    // init ecash , try 3 times
     const maxAttempts = 3;
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
       try {
@@ -120,7 +118,7 @@ class EcashController extends GetxController {
         break;
       } catch (e, s) {
         logger.d(e.toString(), error: e, stackTrace: s);
-        await Future.delayed(const Duration(seconds: 1));
+        await Future.delayed(const Duration(milliseconds: 100));
         if (attempt == maxAttempts - 1) {
           cashuInitFailed.value = true;
           cashuInitFailed.refresh();
@@ -136,11 +134,13 @@ class EcashController extends GetxController {
     currentIdentity = identity;
 
     try {
+      final stopwatch = Stopwatch()..start();
       await rust_cashu.initDb(
           dbpath: '$dbPath${KeychatGlobal.ecashDBFile}',
           dev: kDebugMode,
           words: await identity.getMnemonic());
-      logger.i('rust api init success');
+      stopwatch.stop();
+      logger.i('ecash init completed in ${stopwatch.elapsedMilliseconds}ms');
     } catch (e, s) {
       logger.e(e.toString(), error: e, stackTrace: s);
     }

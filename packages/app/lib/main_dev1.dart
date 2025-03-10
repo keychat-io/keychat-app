@@ -1,10 +1,10 @@
 import 'dart:io' show Directory;
 
 import 'package:app/service/chatx.service.dart';
-import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -29,7 +29,6 @@ bool isProdEnv = true;
 
 void main() async {
   SettingController sc = await initServices();
-  Get.put(HomeController(), permanent: true);
 
   bool isLogin = await IdentityService.instance.count() > 0;
   ThemeMode themeMode = await getThemeMode();
@@ -52,7 +51,23 @@ void main() async {
     theme: AppThemeCustom.light(),
     darkTheme: AppThemeCustom.dark(),
   );
-  if (kDebugMode) return runApp(getMaterialApp);
+  if (!kDebugMode) {
+    try {
+      FlutterError.onError =
+          FirebaseCrashlytics.instance.recordFlutterFatalError;
+    } catch (e, s) {
+      logger.e(e.toString(), stackTrace: s);
+    }
+  }
+  // fix https://github.com/flutter/flutter/issues/119465
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarBrightness: Brightness.light,
+    statusBarIconBrightness: Brightness.dark,
+    statusBarColor: Colors.transparent,
+    systemNavigationBarColor: Colors.transparent,
+  ));
+  runApp(getMaterialApp);
 }
 
 Future<String> getInitRoute(bool isLogin) async {
@@ -80,48 +95,53 @@ void initEasyLoading() {
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // If you're going to use other Firebase services in the background, such as Firestore,
   // make sure you call `initializeApp` before using other Firebase services.
-  if (Firebase.apps.isEmpty) {
-    await Firebase.initializeApp(
-        name: GetPlatform.isAndroid ? 'keychat-bg' : null,
-        options: DefaultFirebaseOptions.currentPlatform);
+  if (dotenv.get('FCMapiKey', fallback: '') != '') {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+          name: GetPlatform.isAndroid ? 'keychat-bg' : null,
+          options: DefaultFirebaseOptions.currentPlatform);
+    }
+    debugPrint("Handling a background message: ${message.messageId}");
   }
-
-  debugPrint("Handling a background message: ${message.messageId}");
 }
 
-Future initServices() async {
-  FlutterNativeSplash.preserve(
-      widgetsBinding: WidgetsFlutterBinding.ensureInitialized());
+Future<SettingController> initServices() async {
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   await SystemChrome.setPreferredOrientations(
       [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   await dotenv.load(fileName: ".env");
   if (dotenv.get('FCMapiKey', fallback: '') != '') {
-    await Firebase.initializeApp(
-        name: GetPlatform.isAndroid ? 'keychat' : null,
-        options: DefaultFirebaseOptions.currentPlatform);
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-    logger.i('Firebase initialized');
+    Firebase.initializeApp(
+            name: GetPlatform.isAndroid ? 'keychat' : null,
+            options: DefaultFirebaseOptions.currentPlatform)
+        .then((_) {
+      FirebaseMessaging.onBackgroundMessage(
+          _firebaseMessagingBackgroundHandler);
+      logger.i('Firebase initialized');
+    });
   }
 
   await RustLib.init();
   String env =
-      'dev1'; //const String.fromEnvironment("MYENV", defaultValue: "prod");  env_config.Config.instance.init(env);
+      'dev1'; //const String.fromEnvironment("MYENV", defaultValue: "prod");
+  env_config.Config.instance.init(env);
   isProdEnv = env_config.Config.isProd();
 
-  Directory appFolder = await Utils.getAppFolder(); // init log file
+  Directory appFolder = await Utils.getAppFolder();
+  // init log file
   await Utils.initLoggger(appFolder);
   String dbPath = '${appFolder.path}/$env/database/';
   Directory dbDirectory = Directory(dbPath);
   dbDirectory.createSync(recursive: true);
   logger.i('APP Folder: $dbPath');
-
   await DBProvider.initDB(dbPath);
   SettingController sc = Get.put(SettingController(), permanent: true);
-  await MlsGroupService.instance.initDB(dbPath);
   Get.put(EcashController(dbPath), permanent: true);
   Get.put(BrowserController(), permanent: true);
   Get.putAsync(() => ChatxService().init(dbPath));
   Get.putAsync(() => WebsocketService().init());
+  Get.put(HomeController(), permanent: true);
   return sc;
 }
 

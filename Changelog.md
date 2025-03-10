@@ -4,6 +4,18 @@ https://keepachangelog.com/zh-CN/1.1.0
 
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
+## 1.29.1+6331
+1. Add: nip47
+2. Optimize startup speed
+3. Upgrade rust-nostr lib to 0.39
+4. 
+
+## 1.27.2+6328
+1. Add a SafeArea to the browser page to prevent the bottom input area from being hidden.
+2. Display a dialog showing the relay status when a message fails to send.
+3. Change the color of Cashu's buttons.
+
+
 ## 1.27.2+6326
 1. change lib flutter_markdown to markdown_widget
 2. forward message page: switch identiy to show rooms

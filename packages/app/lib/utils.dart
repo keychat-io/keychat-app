@@ -572,7 +572,7 @@ class Utils {
     }
   }
 
-  static initLoggger(Directory directory) async {
+  static Future initLoggger(Directory directory) async {
     setLogger(Logger(
         filter: kReleaseMode ? MyLogFilter() : null,
         printer: PrettyPrinter(
@@ -580,7 +580,7 @@ class Utils {
                 ? DateTimeFormat.onlyTime
                 : DateTimeFormat.dateAndTime,
             colors: false,
-            methodCount: kReleaseMode ? 1 : 10),
+            methodCount: kReleaseMode ? 1 : 5),
         output: kReleaseMode
             ? LogFileOutputs(await Utils.createLogFile(directory.path))
             : null));

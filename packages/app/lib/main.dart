@@ -1,7 +1,6 @@
 import 'dart:io' show Directory;
 
 import 'package:app/service/chatx.service.dart';
-import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -29,6 +28,7 @@ import 'firebase_options.dart';
 bool isProdEnv = true;
 
 void main() async {
+  final Stopwatch stopwatch = Stopwatch()..start();
   SettingController sc = await initServices();
 
   bool isLogin = await IdentityService.instance.count() > 0;
@@ -52,7 +52,7 @@ void main() async {
     theme: AppThemeCustom.light(),
     darkTheme: AppThemeCustom.dark(),
   );
-  if (!kDebugMode) {
+  if (!kDebugMode && dotenv.get('FCMapiKey', fallback: '') != '') {
     try {
       FlutterError.onError =
           FirebaseCrashlytics.instance.recordFlutterFatalError;
@@ -69,6 +69,11 @@ void main() async {
     systemNavigationBarColor: Colors.transparent,
   ));
   runApp(getMaterialApp);
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    await WidgetsBinding.instance.endOfFrame;
+    stopwatch.stop();
+    logger.i("app launched: ${stopwatch.elapsedMilliseconds} ms");
+  });
 }
 
 Future<String> getInitRoute(bool isLogin) async {
@@ -96,27 +101,31 @@ void initEasyLoading() {
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // If you're going to use other Firebase services in the background, such as Firestore,
   // make sure you call `initializeApp` before using other Firebase services.
-  if (Firebase.apps.isEmpty) {
-    await Firebase.initializeApp(
-        name: GetPlatform.isAndroid ? 'keychat-bg' : null,
-        options: DefaultFirebaseOptions.currentPlatform);
+  if (dotenv.get('FCMapiKey', fallback: '') != '') {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+          name: GetPlatform.isAndroid ? 'keychat-bg' : null,
+          options: DefaultFirebaseOptions.currentPlatform);
+    }
+    debugPrint("Handling a background message: ${message.messageId}");
   }
-
-  debugPrint("Handling a background message: ${message.messageId}");
 }
 
-Future initServices() async {
+Future<SettingController> initServices() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   await SystemChrome.setPreferredOrientations(
       [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   await dotenv.load(fileName: ".env");
   if (dotenv.get('FCMapiKey', fallback: '') != '') {
-    await Firebase.initializeApp(
-        name: GetPlatform.isAndroid ? 'keychat' : null,
-        options: DefaultFirebaseOptions.currentPlatform);
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-    logger.i('Firebase initialized');
+    Firebase.initializeApp(
+            name: GetPlatform.isAndroid ? 'keychat' : null,
+            options: DefaultFirebaseOptions.currentPlatform)
+        .then((_) {
+      FirebaseMessaging.onBackgroundMessage(
+          _firebaseMessagingBackgroundHandler);
+      logger.i('Firebase initialized');
+    });
   }
 
   await RustLib.init();
@@ -131,10 +140,8 @@ Future initServices() async {
   Directory dbDirectory = Directory(dbPath);
   dbDirectory.createSync(recursive: true);
   logger.i('APP Folder: $dbPath');
-
   await DBProvider.initDB(dbPath);
   SettingController sc = Get.put(SettingController(), permanent: true);
-  await MlsGroupService.instance.initDB(dbPath);
   Get.put(EcashController(dbPath), permanent: true);
   Get.put(BrowserController(), permanent: true);
   Get.putAsync(() => ChatxService().init(dbPath));

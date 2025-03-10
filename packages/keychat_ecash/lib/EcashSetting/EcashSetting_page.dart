@@ -5,9 +5,11 @@ import 'package:app/utils.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:settings_ui/settings_ui.dart';
+import '../NostrWalletConnect/NostrWalletConnect_page.dart';
 import './EcashSetting_controller.dart';
 
 class EcashSettingPage extends GetView<EcashSettingController> {
@@ -16,7 +18,7 @@ class EcashSettingPage extends GetView<EcashSettingController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Setting')),
+      appBar: AppBar(title: const Text('Ecash Setting')),
       body: SettingsList(platform: DevicePlatform.iOS, sections: [
         SettingsSection(tiles: [
           SettingsTile.navigation(
@@ -70,13 +72,11 @@ class EcashSettingPage extends GetView<EcashSettingController> {
               }
             },
           ),
-        ]),
-        SettingsSection(tiles: [
           SettingsTile(
             leading: const Icon(Icons.auto_fix_high_sharp),
             title: const Text('Check Proofs'),
             description:
-                const Text('Click it when you can\'t send cashu token'),
+                const Text('「Check Proofs」 when you can\'t send cashu token'),
             onPressed: (context) async {
               try {
                 EasyLoading.show(status: 'Proccessing');
@@ -88,6 +88,20 @@ class EcashSettingPage extends GetView<EcashSettingController> {
                 String msg = Utils.getErrorMessage(e);
                 EasyLoading.showError(msg);
               }
+            },
+          ),
+        ]),
+        SettingsSection(tiles: [
+          SettingsTile.navigation(
+            leading: SvgPicture.asset(
+              'assets/images/logo/nwc.svg',
+              fit: BoxFit.contain,
+              width: 24,
+              height: 24,
+            ),
+            title: const Text("Nostr Wallet Connect"),
+            onPressed: (context) {
+              Get.to(() => const NostrWalletConnectPage());
             },
           ),
         ])

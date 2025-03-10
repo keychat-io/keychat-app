@@ -1,5 +1,4 @@
 import 'dart:async' show TimeoutException;
-import 'dart:convert' show utf8;
 
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
@@ -9,11 +8,11 @@ import 'package:app/service/relay.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
-import 'package:crypto/crypto.dart' show sha256;
 import 'package:dio/dio.dart' show Dio, DioException;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class NotifyService {
   static String? fcmToken;
@@ -40,12 +39,10 @@ class NotifyService {
     return false;
   }
 
-  static String calculateHash(List<String> array) {
+  static Future<String> calculateHash(List<String> array) async {
     List<String> sortedStrings = List.from(array)..sort();
     String joinedArray = sortedStrings.join('');
-    var bytes = utf8.encode(joinedArray); // data being hashed
-    var digest = sha256.convert(bytes);
-    return digest.toString();
+    return await rust_nostr.sha256Hash(data: joinedArray);
   }
 
   static Future<bool> checkAllNotifyPermission() async {
@@ -115,8 +112,8 @@ class NotifyService {
     }
     if (checkUpload) {
       // OneSignal.Notifications.clearAll();
-      String hashcode =
-          NotifyService.calculateHash([...idPubkeys, ...pubkeys2, ...relays]);
+      String hashcode = await NotifyService.calculateHash(
+          [...idPubkeys, ...pubkeys2, ...relays]);
       bool hasUploaded = await NotifyService.checkHashcode(fcmToken!, hashcode);
 
       if (hasUploaded) return;

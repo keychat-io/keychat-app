@@ -69,7 +69,7 @@ const EcashBillSchema = CollectionSchema(
   getId: _ecashBillGetId,
   getLinks: _ecashBillGetLinks,
   attach: _ecashBillAttach,
-  version: '3.1.0+1',
+  version: '3.1.8',
 );
 
 int _ecashBillEstimateSize(

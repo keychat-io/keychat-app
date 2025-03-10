@@ -1,4 +1,3 @@
-import 'package:app/controller/setting.controller.dart';
 import 'package:app/models/relay.dart';
 import 'package:app/nostr-core/relay_websocket.dart';
 import 'package:app/page/setting/relay_info/relay_info_bindings.dart';
@@ -20,11 +19,19 @@ class RelaySetting extends StatefulWidget {
 
 class _RelaySettingState extends State<RelaySetting> {
   late WebsocketService ws;
+  late TextEditingController relayTextController;
 
   @override
   void initState() {
-    ws = Get.find<WebsocketService>();
     super.initState();
+    relayTextController = TextEditingController(text: "wss://");
+    ws = Get.find<WebsocketService>();
+  }
+
+  @override
+  void dispose() {
+    relayTextController.dispose();
+    super.dispose();
   }
 
   @override
@@ -118,14 +125,13 @@ class _RelaySettingState extends State<RelaySetting> {
   }
 
   void addRelay() {
-    SettingController settingController = Get.find<SettingController>();
     Get.dialog(CupertinoAlertDialog(
       title: const Text("Add Nostr Relay"),
       content: Container(
         color: Colors.transparent,
         padding: const EdgeInsets.only(top: 15),
         child: TextField(
-          controller: settingController.relayTextController,
+          controller: relayTextController,
           textInputAction: TextInputAction.done,
           autofocus: true,
           decoration: const InputDecoration(
@@ -145,14 +151,14 @@ class _RelaySettingState extends State<RelaySetting> {
           isDefaultAction: true,
           onPressed: () async {
             Get.back();
-            var url = settingController.relayTextController.text.trim();
+            var url = relayTextController.text.trim();
             if (url.startsWith("ws://") || url.startsWith("wss://")) {
               await RelayService.instance.addAndConnect(url);
-              settingController.relayTextController.clear();
+              relayTextController.clear();
               return;
             } else {
               EasyLoading.showError("Please input right format relay");
-              settingController.relayTextController.clear();
+              relayTextController.clear();
             }
           },
           child: const Text("Confirm"),

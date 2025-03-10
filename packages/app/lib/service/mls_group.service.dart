@@ -273,17 +273,25 @@ $error ''';
       throw Exception('MLS dbPath is null');
     }
     identities ??= await IdentityService.instance.getIdentityList();
-    List<String> pubkeys = identities.map((e) => e.secp256k1PKHex).toList();
-    Map mls = await getPKs(pubkeys);
-    await Future.wait(identities.map((identity) async {
+    List<String> pubkeys;
+    Map mls = {};
+    for (Identity identity in identities) {
       await rust_mls.initMlsDb(
           dbPath: '$dbPath${KeychatGlobal.mlsDBFile}',
           nostrId: identity.secp256k1PKHex);
       logger.i('MLS init for identity: ${identity.secp256k1PKHex}');
-      Future.delayed(const Duration(seconds: 3)).then((c) {
-        _uploadPKMessage(identity, mls[identity.secp256k1PKHex]);
-      });
-    }));
+    }
+    if (identities.isEmpty) return;
+    Future.delayed(Duration(seconds: 3), () async {
+      for (Identity identity in identities ?? []) {
+        if (mls.isEmpty) {
+          pubkeys = identities!.map((e) => e.secp256k1PKHex).toList();
+          mls = await getPKs(pubkeys);
+        }
+
+        await _uploadPKMessage(identity, mls[identity.secp256k1PKHex]);
+      }
+    });
   }
 
   Future inviteToJoinGroup(Room room, List<Map<String, dynamic>> toUsers,

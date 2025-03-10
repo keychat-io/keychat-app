@@ -14,20 +14,11 @@ GroupMessage _$GroupMessageFromJson(Map<String, dynamic> json) => GroupMessage(
       ..subtype = (json['subtype'] as num?)?.toInt()
       ..ext = json['ext'] as String?;
 
-Map<String, dynamic> _$GroupMessageToJson(GroupMessage instance) {
-  final val = <String, dynamic>{
-    'message': instance.message,
-    'pubkey': instance.pubkey,
-  };
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('sig', instance.sig);
-  writeNotNull('subtype', instance.subtype);
-  writeNotNull('ext', instance.ext);
-  return val;
-}
+Map<String, dynamic> _$GroupMessageToJson(GroupMessage instance) =>
+    <String, dynamic>{
+      'message': instance.message,
+      'pubkey': instance.pubkey,
+      if (instance.sig case final value?) 'sig': value,
+      if (instance.subtype case final value?) 'subtype': value,
+      if (instance.ext case final value?) 'ext': value,
+    };

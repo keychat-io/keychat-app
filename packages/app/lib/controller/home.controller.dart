@@ -7,7 +7,6 @@ import 'package:app/models/models.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/notify.service.dart';
-import 'package:app/service/relay.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app/service/storage.dart';
@@ -121,7 +120,7 @@ class HomeController extends GetxController
           }
         }
         appstates.clear();
-        await removeBadge();
+        removeBadge();
         EasyThrottle.throttle(
             'AppLifecycleState.resumed', const Duration(seconds: 2), () {
           if (isPaused) {
@@ -152,54 +151,49 @@ class HomeController extends GetxController
   }
 
   Future loadAppRemoteConfig() async {
-    String fileName = 'config/app.json';
-    var list = [
-      'https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/$fileName',
-      'https://gh-proxy.com/https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/$fileName'
-    ];
+    String url =
+        'https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/config/app.json';
     // load app version
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
     remoteAppConfig['appVersion'] =
         "${packageInfo.version}+${packageInfo.buildNumber}";
     logger.d('remoteAppConfig: $remoteAppConfig');
 
-    for (var url in list) {
-      try {
-        var response = await Dio().get(
-          url,
-          options: Options(
-            sendTimeout: const Duration(seconds: 5),
-            receiveTimeout: const Duration(seconds: 5),
-          ),
-        );
-        if (response.statusCode == 200) {
-          Map config = jsonDecode(response.data);
-          recommendBots.value = config['bots'];
+    try {
+      var response = await Dio().get(
+        url,
+        options: Options(
+          sendTimeout: const Duration(seconds: 5),
+          receiveTimeout: const Duration(seconds: 5),
+        ),
+      );
+      if (response.statusCode == 200) {
+        Map config = jsonDecode(response.data);
+        recommendBots.value = config['bots'];
 
-          var recommendUrls = config['browserRecommend'] as List;
-          recommendWebstore.value = recommendUrls
-              .fold<Map<String, List<Map<String, dynamic>>>>({}, (acc, item) {
-            List<String> categories = List<String>.from(item['categories']);
-            for (var type in categories) {
-              if (acc[type] == null) {
-                acc[type] = [];
-              }
-              acc[type]!.add(item);
+        var recommendUrls = config['browserRecommend'] as List;
+        recommendWebstore.value = recommendUrls
+            .fold<Map<String, List<Map<String, dynamic>>>>({}, (acc, item) {
+          List<String> categories = List<String>.from(item['categories']);
+          for (var type in categories) {
+            if (acc[type] == null) {
+              acc[type] = [];
             }
-            return acc;
-          });
-
-          // app version
-          for (var key in config.keys) {
-            if (key != 'bots' && key != 'browserRecommend') {
-              remoteAppConfig[key] = config[key];
-            }
+            acc[type]!.add(item);
           }
-          return;
+          return acc;
+        });
+
+        // app version
+        for (var key in config.keys) {
+          if (key != 'bots' && key != 'browserRecommend') {
+            remoteAppConfig[key] = config[key];
+          }
         }
-      } catch (e, s) {
-        logger.e('Failed to config $url: $e', stackTrace: s);
+        return;
       }
+    } catch (e, s) {
+      logger.e('Failed to config $url: $e', stackTrace: s);
     }
   }
 
@@ -378,11 +372,7 @@ class HomeController extends GetxController
       if (!isConnectedNetwork.value) {
         EasyDebounce.debounce('isConnectedNetwork', const Duration(seconds: 1),
             () {
-          WebsocketService ws = Get.find<WebsocketService>();
-          ws.start();
-          if (ws.relayFileFeeModels.entries.isEmpty) {
-            RelayService.instance.initRelayFeeInfo();
-          }
+          Get.find<WebsocketService>().start();
         });
       }
       isConnectedNetwork.value = true;
@@ -429,10 +419,10 @@ class HomeController extends GetxController
     // listen network status https://pub.dev/packages/connectivity_plus
     subscription =
         Connectivity().onConnectivityChanged.listen(networkListenHandle);
-    await removeBadge();
+    removeBadge();
     try {
       _startConnectHeartbeat();
-      await RoomUtil.executeAutoDelete();
+      RoomUtil.executeAutoDelete();
     } catch (e, s) {
       logger.e(e.toString(), stackTrace: s);
     }
@@ -515,7 +505,7 @@ class HomeController extends GetxController
 
   void _startConnectHeartbeat() async {
     _stopConnectHeartbeat();
-    EasyDebounce.debounce('checkOnlineAndConnect', const Duration(seconds: 10),
+    EasyDebounce.debounce('checkOnlineAndConnect', const Duration(seconds: 30),
         () async {
       if (!resumed) return;
       _checkWebsocketTimer =
@@ -536,10 +526,6 @@ class HomeController extends GetxController
     if (item == null) return;
     List<Room> friendsRooms =
         List.castFrom(item.rooms.whereType<Room>().toList());
-    // // is the first room. nothing changed
-    // if (friendsRooms.isNotEmpty) {
-    //   if (friendsRooms[0].id == model.roomId) return;
-    // }
     List<dynamic> nonRoomItems =
         item.rooms.where((element) => element is! Room).toList();
     item.rooms = [...nonRoomItems, ...RoomUtil.sortRoomList(friendsRooms)];

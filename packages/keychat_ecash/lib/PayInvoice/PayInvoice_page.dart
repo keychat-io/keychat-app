@@ -164,7 +164,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                               style: ButtonStyle(
                                   minimumSize: WidgetStateProperty.all(
                                       const Size(double.infinity, 44))),
-                              onPressed: () {
+                              onPressed: () async {
                                 if (GetPlatform.isMobile) {
                                   HapticFeedback.lightImpact();
                                 }
@@ -172,15 +172,21 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                     controller.textController.text
                                         .toLowerCase()
                                         .startsWith('LNURL')) {
-                                  controller.lnurlPayFirst(
+                                  var tx = controller.lnurlPayFirst(
                                       controller.textController.text);
+                                  if (tx != null) {
+                                    Get.back(result: tx);
+                                  }
                                   return;
                                 }
-                                controller.confirmToPayInvoice(
+                                var tx = await controller.confirmToPayInvoice(
                                     invoice:
                                         controller.textController.text.trim(),
                                     mint: controller.selectedMint.value,
                                     isPay: widget.isPay);
+                                if (tx != null) {
+                                  Get.back(result: tx);
+                                }
                               },
                               child: const Text('Pay Invoice'),
                             )

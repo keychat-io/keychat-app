@@ -7,6 +7,7 @@ import 'package:app/models/identity.dart';
 import 'package:app/models/mykey.dart';
 import 'package:app/models/room.dart';
 import 'package:app/models/signal_id.dart';
+import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/notify.service.dart';
@@ -218,12 +219,17 @@ class ChatxService extends GetxService {
     return remoteAddress;
   }
 
-  Future<ChatxService> init(String dbpath) async {
+  Future<ChatxService> init(String dbPath) async {
     var startTime = DateTime.now();
-    await _initSignalDB(dbpath);
-    var endTime = DateTime.now();
+    await _initSignalDB(dbPath);
+    var endTimeSignal = DateTime.now();
     logger.d(
-        "Signal DB initialization took: ${endTime.difference(startTime).inMilliseconds} ms");
+        "Init SignalDB: ${endTimeSignal.difference(startTime).inMilliseconds} ms");
+
+    await MlsGroupService.instance.initDB(dbPath);
+    var endTimeMLS = DateTime.now();
+    logger.d(
+        "Init MLSGroupDB: ${endTimeMLS.difference(endTimeSignal).inMilliseconds} ms");
     return this;
   }
 
@@ -231,12 +237,11 @@ class ChatxService extends GetxService {
     try {
       String signalPath = '$dbpath${KeychatGlobal.signalProcotolDBFile}';
       await rust_signal.initSignalDb(dbPath: signalPath);
-      await Future.delayed(const Duration(milliseconds: 100));
       var identities = await IdentityService.instance.getIdentityList();
       for (var identity in identities) {
         if (identity.curve25519PkHex != null) {
           if (identity.curve25519PkHex!.isNotEmpty) {
-            await setupSignalStoreByIdentity(identity);
+            await getKeyPairByIdentity(identity);
           }
         }
       }
@@ -282,12 +287,6 @@ class ChatxService extends GetxService {
   Future<KeychatIdentityKeyPair> setupSignalStoreBySignalId(String pubkey,
       [SignalId? signalId]) async {
     var keyPair = await getKeyPairBySignalIdPubkey(pubkey, signalId);
-    return keyPair;
-  }
-
-  Future<KeychatIdentityKeyPair> setupSignalStoreByIdentity(
-      Identity identity) async {
-    KeychatIdentityKeyPair keyPair = await getKeyPairByIdentity(identity);
     return keyPair;
   }
 

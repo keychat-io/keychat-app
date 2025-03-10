@@ -95,13 +95,11 @@ class _PayToLnurlState extends State<PayToLnurl> {
                       }
                       PayInvoiceController pic =
                           Get.find<PayInvoiceController>();
-                      var isError = await pic.confirmToPayInvoice(
+                      var tx = await pic.confirmToPayInvoice(
                           invoice: pr,
                           mint: pic.selectedMint.value,
                           isPay: true);
-                      if (isError != false) {
-                        Get.back();
-                      }
+                      Get.back(result: tx);
                     } on DioException catch (e, s) {
                       EasyLoading.showError(
                           e.response?.toString() ?? e.toString());

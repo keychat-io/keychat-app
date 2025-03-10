@@ -46,6 +46,7 @@ Keychat implements the following nips:
 - [NIP-07: window.nostr capability for web browsers][nip07]
 - [NIP-19: Bech32-encoded entities][NIP19]
 - [NIP-44: Encrypted Payloads][NIP44]
+- [NIP-47: Nostr Wallet Connect][NIP47]
 - [NIP-55: Android Signer Application][nip55]
 - [NIP-59: Gift Wrap][NIP19]
  
@@ -56,6 +57,7 @@ Keychat implements the following nips:
 [nip07]: https://github.com/nostr-protocol/nips/blob/master/07.md
 [nip19]: https://github.com/nostr-protocol/nips/blob/master/19.md
 [nip44]: https://github.com/nostr-protocol/nips/blob/master/44.md
+[nip47]: https://github.com/nostr-protocol/nips/blob/master/47.md
 [nip55]: https://github.com/nostr-protocol/nips/blob/master/55.md
 [nip59]: https://github.com/nostr-protocol/nips/blob/master/59.md
 

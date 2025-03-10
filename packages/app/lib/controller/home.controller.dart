@@ -4,6 +4,7 @@ import 'dart:convert' show jsonDecode;
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
+import 'package:app/nostr-core/nostr.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/notify.service.dart';
@@ -131,6 +132,7 @@ class HomeController extends GetxController
             NotifyService.syncPubkeysToServer(true);
             return;
           }
+          NostrAPI.instance.okCallback.clear();
           Get.find<WebsocketService>().checkOnlineAndConnect();
         });
 

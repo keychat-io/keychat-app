@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:app/constants.dart';
 import 'package:app/models/db_provider.dart';
 import 'package:app/models/embedded/cashu_info.dart';
@@ -136,7 +138,7 @@ class WebsocketService extends GetxService {
     since ??= DateTime.now().subtract(const Duration(days: 7));
     String subId = generate64RandomHexChars(16);
 
-    NostrNip4Req req = NostrNip4Req(
+    NostrReqModel req = NostrReqModel(
         reqId: subId, pubkeys: pubkeys, since: since, limit: limit);
     try {
       Get.find<WebsocketService>().sendReq(req, relay: relay);
@@ -154,7 +156,7 @@ class WebsocketService extends GetxService {
     since ??= DateTime.now().subtract(const Duration(days: 2));
     String subId = generate64RandomHexChars(16);
 
-    NostrNip4Req req = NostrNip4Req(
+    NostrReqModel req = NostrReqModel(
         reqId: subId,
         pubkeys: pubkeys,
         since: since,
@@ -184,7 +186,7 @@ class WebsocketService extends GetxService {
         .registerSubscripton(subId, list.length, const Duration(seconds: 2));
   }
 
-  sendReq(NostrNip4Req nostrReq,
+  sendReq(NostrReqModel nostrReq,
       {String? relay, Function(String relay)? callback}) {
     if (relay != null && channels[relay] != null) {
       return channels[relay]!.sendREQ(nostrReq);
@@ -225,7 +227,54 @@ class WebsocketService extends GetxService {
       sent++;
       rw.sendRawREQ(content);
     }
-    if (sent == 0) throw Exception('Not connected with relay server');
+    if (sent == 0) {
+      throw Exception(
+          'Not connected any relay server, please check your network');
+    }
+  }
+
+  /// * content: nostr event model json string
+  sendMessageWithCallback(String content,
+      {List<String>? relays,
+      Function(
+              {required String relay,
+              required String eventId,
+              required bool status,
+              String? errorMessage})?
+          callback}) {
+    if (callback != null) {
+      try {
+        var map = jsonDecode(content);
+        if (map['id'] != null) {
+          NostrAPI.instance.setOKCallback(map['id'], callback);
+        }
+      } catch (e) {}
+    }
+    if (relays != null && relays.isNotEmpty) {
+      int sent = 0;
+      for (String relay in relays) {
+        if (channels[relay] != null &&
+            channels[relay]!.channelStatus == RelayStatusEnum.success &&
+            channels[relay]!.channel != null) {
+          channels[relay]!.sendRawREQ("[\"EVENT\",$content]");
+          sent++;
+        }
+      }
+      if (sent > 0) return;
+    }
+
+    int sent = 0;
+    for (RelayWebsocket rw in channels.values) {
+      if (rw.channelStatus != RelayStatusEnum.success || rw.channel == null) {
+        continue;
+      }
+      sent++;
+      rw.sendRawREQ("[\"EVENT\",$content]");
+    }
+    if (sent == 0) {
+      throw Exception(
+          'Not connected any relay server, please check your network');
+    }
   }
 
   setChannelStatus(String relay, RelayStatusEnum status,

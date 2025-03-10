@@ -98,7 +98,6 @@ class NostrWalletConnectController extends GetxController {
   }
 
   stopNwc() {
-    NostrAPI.instance.okCallback.clear();
     subscribeSuccessRelays.clear();
     proccessedEvents.clear();
     nwcUri.value = '';
@@ -116,7 +115,7 @@ class NostrWalletConnectController extends GetxController {
         () {
       loggerNoLine.i('start listening');
       String subId = 'nwc:${generate64RandomHexChars(16)}';
-      var req = NostrNip4Req(
+      var req = NostrReqModel(
           reqId: subId,
           kinds: kinds,
           pubkeys: [service.value.pubkey],
@@ -339,10 +338,13 @@ class NostrWalletConnectController extends GetxController {
     stopNwc();
   }
 
+  String subId = '';
   Future sendMyInfoToRelay() async {
+    if (subId.isNotEmpty) {
+      NostrAPI.instance.okCallback.remove(subId);
+    }
     String info = await get13194Info();
-    String subId = jsonDecode(info)['id'];
-    // success callback
+    subId = jsonDecode(info)['id'];
     NostrAPI.instance.setOKCallback(subId, (
         {required String relay,
         required String eventId,

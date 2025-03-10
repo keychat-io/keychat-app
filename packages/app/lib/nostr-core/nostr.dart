@@ -154,6 +154,7 @@ class NostrAPI {
       case EventKinds.nip17:
         await _proccessNip4Message(event, eventList, relay, raw);
         break;
+      case EventKinds.nip104KP:
       case EventKinds.setMetadata:
         SubscribeResult.instance.fill(subscribeId, event);
         break;
@@ -728,5 +729,12 @@ class NostrAPI {
         String? errorMessage,
       }) callback) {
     NostrAPI.instance.okCallback[eventID] = callback;
+  }
+
+  void removeOKCallback(String eventID) {
+    EasyDebounce.debounce(
+        '_removeOKCallback$eventID', const Duration(seconds: 2), () {
+      NostrAPI.instance.okCallback.remove(eventID);
+    });
   }
 }

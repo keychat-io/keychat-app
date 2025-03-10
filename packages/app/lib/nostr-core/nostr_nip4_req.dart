@@ -3,25 +3,29 @@ import 'package:app/nostr-core/filter.dart';
 import 'package:app/nostr-core/request.dart';
 
 /// Used to request events and subscribe to new updates.
-class NostrNip4Req {
+class NostrReqModel {
   late String reqId;
-  List<String> pubkeys = [];
+  List<String>? pubkeys;
+  List<String>? authors;
   late DateTime since;
   int? limit;
   List<int> kinds = [EventKinds.encryptedDirectMessage];
 
-  NostrNip4Req(
+  NostrReqModel(
       {required this.reqId,
-      required this.pubkeys,
+      this.pubkeys,
+      this.authors,
       required this.since,
       this.kinds = const [EventKinds.encryptedDirectMessage],
       this.limit});
+
   @override
   String toString() {
     return Request(reqId, [
       Filter(
         kinds: kinds,
         p: pubkeys,
+        authors: authors,
         limit: limit,
         since: since.millisecondsSinceEpoch ~/ 1000,
       )

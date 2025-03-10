@@ -150,7 +150,8 @@ class GroupInviteAction extends StatelessWidget {
           if (msg.contains('Error creating StagedWelcome from Welcome')) {
             msg =
                 'PackageMessage is invalid, Contact the group admin, resend the invitation';
-            await MlsGroupService.instance.uploadPKByIdentity(identity);
+            // TODO add new pk
+            // await MlsGroupService.instance.uploadPKByIdentity(identity);
             message.requestConfrim = RequestConfrimEnum.expired;
             await MessageService.instance.updateMessageAndRefresh(message);
           }

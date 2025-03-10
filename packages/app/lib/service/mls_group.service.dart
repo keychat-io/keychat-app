@@ -15,6 +15,7 @@ import 'package:app/models/room.dart';
 import 'package:app/models/room_member.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/nostr-core/nostr_event.dart';
+import 'package:app/nostr-core/nostr_nip4_req.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/chat.service.dart';
 import 'package:app/service/group.service.dart';
@@ -24,6 +25,7 @@ import 'package:app/service/message.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/signal_chat_util.dart';
 import 'package:app/service/storage.dart';
+import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show Uint8List;
@@ -53,7 +55,7 @@ class MlsGroupService extends BaseChatService {
     room = await replaceListenPubkey(room, identity.secp256k1PKHex);
 
     // update a new mls pk
-    await MlsGroupService.instance.uploadPKByIdentity(room.getIdentity());
+    // TODO upload new pk
     KeychatMessage sm = KeychatMessage(
         c: MessageType.mls, type: KeyChatEventKinds.groupHelloMessage)
       ..name = identity.displayName
@@ -273,25 +275,58 @@ $error ''';
       throw Exception('MLS dbPath is null');
     }
     identities ??= await IdentityService.instance.getIdentityList();
-    List<String> pubkeys;
-    Map mls = {};
+
     for (Identity identity in identities) {
       await rust_mls.initMlsDb(
           dbPath: '$dbPath${KeychatGlobal.mlsDBFile}',
           nostrId: identity.secp256k1PKHex);
       logger.i('MLS init for identity: ${identity.secp256k1PKHex}');
     }
-    if (identities.isEmpty) return;
-    Future.delayed(Duration(seconds: 3), () async {
-      for (Identity identity in identities ?? []) {
-        if (mls.isEmpty) {
-          pubkeys = identities!.map((e) => e.secp256k1PKHex).toList();
-          mls = await getPKs(pubkeys);
-        }
+  }
 
-        await _uploadPKMessage(identity, mls[identity.secp256k1PKHex]);
-      }
-    });
+  Future getKeyPackagesFromRelay(List<String> pubkeys) async {
+    var ws = Get.find<WebsocketService>();
+    if (pubkeys.isEmpty) return;
+
+    NostrReqModel req = NostrReqModel(
+        reqId: generate64RandomHexChars(16),
+        authors: pubkeys,
+        kinds: [EventKinds.nip104KP],
+        limit: 1,
+        since: DateTime.now().subtract(Duration(days: 365)));
+
+    var res = await ws.fetchInfoFromRelay(req.reqId, req.toString());
+    logger.d('res $res');
+  }
+
+  Future uploadKeyPackages([List<Identity>? identities]) async {
+    var ws = Get.find<WebsocketService>();
+    var relys = ws.getOnlineRelayString();
+    identities ??= await IdentityService.instance.getIdentityList();
+    for (Identity identity in identities) {
+      String mlkPK = await MlsGroupService.instance
+          .createKeyMessages(identity.secp256k1PKHex);
+
+      String event = await rust_nostr.signEvent(
+          senderKeys: await identity.getSecp256k1SKHex(),
+          content: mlkPK,
+          createdAt: BigInt.from(DateTime.now().millisecondsSinceEpoch ~/ 1000),
+          kind: EventKinds.nip104KP,
+          tags: [
+            ["mls_protocol_version", "1.0"],
+            ["relay", ...relys]
+          ]);
+      ws.sendMessageWithCallback(event, callback: (
+          {required String relay,
+          required String eventId,
+          required bool status,
+          String? errorMessage}) {
+        logger.d(
+            'uploadKeyPackages callback:$relay, $eventId, $status , $errorMessage');
+
+        NostrAPI.instance.removeOKCallback(eventId);
+      });
+    }
   }
 
   Future inviteToJoinGroup(Room room, List<Map<String, dynamic>> toUsers,
@@ -600,33 +635,6 @@ $error ''';
         mediaType: MessageMediaType.groupInvitationInfo);
   }
 
-  Future updateMlsPK(Identity identity, String pk) async {
-    try {
-      String? sig =
-          await SignalChatUtil.signByIdentity(identity: identity, content: pk);
-      if (sig == null) {
-        logger.d('user denied');
-        return;
-      }
-      var res = await Dio().post(KeychatGlobal.mlsPKServer,
-          data: {'pubkey': identity.secp256k1PKHex, 'pk': pk, 'sig': sig});
-      logger.i('updateMlsPK success: ${res.data}');
-      return true;
-    } catch (e, s) {
-      logger.e('updateMlsPK failed', error: e, stackTrace: s);
-    }
-    return false;
-  }
-
-  Future uploadPKByIdentity(Identity identity) async {
-    String mlkPK = await createKeyMessages(identity.secp256k1PKHex);
-    bool success = await updateMlsPK(identity, mlkPK);
-    if (success) {
-      await Storage.setInt('mlspk:${identity.secp256k1PKHex}',
-          DateTime.now().millisecondsSinceEpoch);
-    }
-  }
-
   // If the deleted person includes himself, mark the room as kicked.
   // If it is not included, it will not be processed and the message will be displayed directly.
   Future _proccessAdminRemoveMembers(
@@ -732,21 +740,6 @@ $error ''';
     //     RoomService.getController(room.id)?.resetMembers();
     //   }
     // });
-  }
-
-  Future _uploadPKMessage(Identity identity, String? serverExist) async {
-    int exist = await Storage.getIntOrZero('mlspk:${identity.secp256k1PKHex}');
-    if (serverExist == null ||
-        exist == 0 ||
-        DateTime.now().millisecondsSinceEpoch - exist > 86400) {
-      String mlkPK = await MlsGroupService.instance
-          .createKeyMessages(identity.secp256k1PKHex);
-      bool success = await updateMlsPK(identity, mlkPK);
-      if (success) {
-        await Storage.setInt('mlspk:${identity.secp256k1PKHex}',
-            DateTime.now().millisecondsSinceEpoch);
-      }
-    }
   }
 
   Future sendJoinGroupRequest(

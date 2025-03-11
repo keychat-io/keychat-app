@@ -134,10 +134,13 @@ scripts:
   build:macos:
     name: build_ios
     description: "build ios"
-    run: bash scripts/build_macos.sh    
-
+    run: bash scripts/build_macos.sh
+  build:aab:
+    name: build_aab
+    description: "build aab to google play"
+    run: bash scripts/build_aab.sh
   build:android:
-    name: build_ios
+    name: build_android
     description: "build android"
     run: bash scripts/build_android.sh
   rust:ios:

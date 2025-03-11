@@ -15,7 +15,6 @@ import 'package:app/utils.dart';
 import 'package:app_settings/app_settings.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -359,19 +358,19 @@ class MoreChatSetting extends StatelessWidget {
                     res ? enableNotification() : disableNotification();
                   },
                   title: const Text('Notification status')),
-              if (homeController.debugModel.value || kDebugMode)
-                SettingsTile.navigation(
-                  title: const Text("FCMToken"),
-                  onPressed: (context) {
-                    Clipboard.setData(
-                        ClipboardData(text: NotifyService.fcmToken ?? ''));
-                    EasyLoading.showSuccess('Copied');
-                  },
-                  value: Text(
-                      '${(NotifyService.fcmToken ?? '').substring(0, NotifyService.fcmToken != null ? 5 : 0)}...',
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1),
-                ),
+              SettingsTile.navigation(
+                title: const Text("FCMToken"),
+                onPressed: (context) {
+                  Clipboard.setData(
+                      ClipboardData(text: NotifyService.fcmToken ?? ''));
+                  logger.d('FCMToken: ${NotifyService.fcmToken}');
+                  EasyLoading.showSuccess('Copied');
+                },
+                value: Text(
+                    '${(NotifyService.fcmToken ?? '').substring(0, NotifyService.fcmToken != null ? 5 : 0)}...',
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1),
+              ),
               SettingsTile.navigation(
                   title: const Text('Open System Settings'),
                   onPressed: (context) async {

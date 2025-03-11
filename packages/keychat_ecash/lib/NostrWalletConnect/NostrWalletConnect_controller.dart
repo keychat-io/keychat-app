@@ -60,7 +60,7 @@ class NostrWalletConnectController extends GetxController {
 
   Future initWallet({bool loadFromCache = true}) async {
     Map map = await Storage.getLocalStorageMap(localStorageKey);
-    logger.d('initWallet: $map');
+    loggerNoLine.d('initWallet: $map');
     if (loadFromCache && map.keys.isNotEmpty) {
       client.value = Secp256k1SimpleAccount(
           pubkey: map['client']['pubkey'], prikey: map['client']['prikey']);
@@ -108,7 +108,7 @@ class NostrWalletConnectController extends GetxController {
 
   startListening([String? relay]) {
     if (!featureStatus.value) {
-      logger.i('Feature:nwc is not enabled');
+      loggerNoLine.i('Feature:nwc is not enabled');
       return;
     }
     if (service.value.pubkey.isEmpty) return;

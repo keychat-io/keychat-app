@@ -21,6 +21,7 @@
       <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/provider_paths" />
     </provider>
   </application>
+
   <uses-feature android:name="android.hardware.camera" />
   <uses-feature android:name="android.hardware.camera.autofocus" />
   <uses-permission android:name="android.permission.RECORD_AUDIO" />
@@ -40,9 +41,6 @@
   <uses-permission android:name="android.permission.CAMERA"/>
   <!-- Permissions options for the `manage external storage` group -->
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-  <!-- https://firebase.google.com/docs/cloud-messaging/flutter/client -->
-  <meta-data android:name="firebase_messaging_auto_init_enabled" android:value="false" />
-  <meta-data android:name="firebase_analytics_collection_enabled" android:value="false" />
 
   <queries>
     <intent>

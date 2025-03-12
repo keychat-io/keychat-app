@@ -82,10 +82,9 @@ dependencies:
   freezed_annotation: ^3.0.0
   barcode_scan2: ^4.5.0
   intl: ^0.19.0
-  firebase_core: ^3.10.0
+  firebase_core: ^3.12.1
   firebase_messaging: ^15.2.4
-  firebase_crashlytics: ^4.3.0
-  firebase_analytics: ^11.4.0
+  firebase_crashlytics: ^4.3.4
   async_queue: ^2.0.2
   url_launcher: ^6.3.1
   flutter_inappwebview: ^6.2.0-beta.2

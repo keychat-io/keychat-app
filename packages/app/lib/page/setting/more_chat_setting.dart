@@ -355,7 +355,13 @@ class MoreChatSetting extends StatelessWidget {
                   description: NoticeTextWidget.warning(
                       'When the notification function is turned on, receiving addresses will be uploaded to the notification server.'),
                   onToggle: (res) async {
-                    res ? enableNotification() : disableNotification();
+                    bool? result = await (res
+                        ? enableNotification()
+                        : disableNotification());
+                    if (result != null && result) {
+                      // close bottomsheet
+                      Get.back();
+                    }
                   },
                   title: const Text('Notification status')),
               SettingsTile.navigation(
@@ -387,7 +393,7 @@ class MoreChatSetting extends StatelessWidget {
   }
 
   disableNotification() {
-    Get.dialog(CupertinoAlertDialog(
+    return Get.dialog(CupertinoAlertDialog(
       title: const Text("Alert"),
       content: Container(
           color: Colors.transparent,
@@ -398,7 +404,7 @@ class MoreChatSetting extends StatelessWidget {
         CupertinoDialogAction(
           child: const Text("Cancel"),
           onPressed: () {
-            Get.back();
+            Get.back(result: true);
           },
         ),
         CupertinoDialogAction(
@@ -408,19 +414,19 @@ class MoreChatSetting extends StatelessWidget {
             try {
               await NotifyService.updateUserSetting(false);
               EasyLoading.showSuccess('Disable');
+              Get.back(result: true);
             } catch (e, s) {
               logger.e(e.toString(), error: e, stackTrace: s);
               EasyLoading.showError(e.toString());
             }
-            Get.back();
           },
         ),
       ],
     ));
   }
 
-  enableNotification() {
-    Get.dialog(CupertinoAlertDialog(
+  Future<bool> enableNotification() async {
+    return await Get.dialog(CupertinoAlertDialog(
       title: const Text("Alert"),
       content: Container(
           color: Colors.transparent,
@@ -431,7 +437,7 @@ class MoreChatSetting extends StatelessWidget {
         CupertinoDialogAction(
           child: const Text("Cancel"),
           onPressed: () {
-            Get.back();
+            Get.back(result: true);
           },
         ),
         CupertinoDialogAction(
@@ -457,11 +463,11 @@ class MoreChatSetting extends StatelessWidget {
 
               await NotifyService.updateUserSetting(true);
               EasyLoading.showSuccess('Enabled');
+              Get.back(result: true);
             } catch (e, s) {
               logger.e(e.toString(), error: e, stackTrace: s);
               EasyLoading.showError(e.toString());
             }
-            Get.back();
           },
         ),
       ],

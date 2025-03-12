@@ -122,7 +122,7 @@ class HomeController extends GetxController
         appstates.clear();
         removeBadge();
         EasyThrottle.throttle(
-            'AppLifecycleState.resumed', const Duration(seconds: 2), () {
+            'AppLifecycleState.resumed', const Duration(seconds: 3), () {
           if (isPaused) {
             Get.find<WebsocketService>().start().then((c) async {
               _startConnectHeartbeat();

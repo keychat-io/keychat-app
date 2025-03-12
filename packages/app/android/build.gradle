@@ -1,48 +1,16 @@
 allprojects {
     repositories {
-      google()
-      mavenCentral()      
-      maven { url 'https://maven.aliyun.com/nexus/content/groups/public/' }
+        google()
+        mavenCentral()
     }
 }
 
-rootProject.buildDir = '../build/'
+rootProject.buildDir = "../build"
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
-    afterEvaluate {
-        if (project.hasProperty('android')) {
-                   if (project.android.namespace == null) {
-                def manifest = new XmlSlurper().parse(file(project.android.sourceSets.main.manifest.srcFile))
-                def packageName = manifest.@package.text()
-                println("Setting ${packageName} as android namespace")
-                android.namespace = packageName
-            }
-
-            def javaVersion = JavaVersion.VERSION_17
-            android {
-                def androidApiVersion = 34
-                compileSdkVersion androidApiVersion
-                defaultConfig {
-                    targetSdkVersion androidApiVersion
-                }
-                compileOptions {
-                    sourceCompatibility javaVersion
-                    targetCompatibility javaVersion
-                }
-                tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-                     kotlinOptions {
-                         jvmTarget = javaVersion.toString()
-                     }
-                 }
-                println("Setting java version to ${javaVersion.toString()} which is $javaVersion")
-                println("Setting compileSdkVersion and targetSdkVersion to $androidApiVersion")
-            }
-        }
-    }
 }
-
 subprojects {
-    project.evaluationDependsOn(':app')
+    project.evaluationDependsOn(":app")
 }
 
 tasks.register("clean", Delete) {

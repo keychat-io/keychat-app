@@ -1,5 +1,3 @@
-import 'dart:io' show exit;
-
 import 'package:app/models/models.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/new_friends_rooms.dart';

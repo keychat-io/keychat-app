@@ -178,19 +178,6 @@ class NotifyService {
     }
     if (settings.authorizationStatus == AuthorizationStatus.authorized ||
         settings.authorizationStatus == AuthorizationStatus.provisional) {
-      // onMessage listen
-      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        logger.d('notification: ${message.data}');
-
-        if (message.notification != null) {
-          debugPrint('notification: ${message.notification?.body}');
-        }
-      }, onError: (e) {
-        logger.e('onMessage', error: e);
-      }, onDone: () {
-        logger.d('onMessage done');
-      });
-
       homeController.notificationStatus.value = true;
       Storage.setInt(
           StorageKeyString.settingNotifyStatus, NotifySettingStatus.enable);
@@ -199,6 +186,7 @@ class NotifyService {
           .timeout(const Duration(seconds: 8), onTimeout: () async {
         fcmToken =
             await Storage.getString(StorageKeyString.notificationFCMToken);
+        loggerNoLine.d('Load FCMToken from local: $fcmToken');
         if (fcmToken != null) return fcmToken;
         Get.showSnackbar(
           GetSnackBar(
@@ -217,11 +205,27 @@ Fix:
         );
         throw TimeoutException('FCMTokenTimeout');
       });
+      // end get fcm timeout
       if (fcmToken != null) {
         Storage.setString(StorageKeyString.notificationFCMToken, fcmToken);
       }
+
+      // fcm onMessage listen
+      loggerNoLine.d('fcm onMessage listen');
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        logger.d('notification: ${message.data}');
+
+        if (message.notification != null) {
+          debugPrint('notification: ${message.notification?.body}');
+        }
+      }, onError: (e) {
+        logger.e('onMessage', error: e);
+      }, onDone: () {
+        logger.d('onMessage done');
+      });
+
       logger.i('fcmToken: $fcmToken');
-      // onTokenRefresh listen
+      // fcm onTokenRefresh listen
       FirebaseMessaging.instance.onTokenRefresh.listen((fcmToken) {
         logger.i('onTokenRefresh: $fcmToken');
         NotifyService.fcmToken = fcmToken;

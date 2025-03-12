@@ -49,3 +49,5 @@ packages/app/firepit-log.txt
 packages/app/ios/Flutter/Flutter.podspec
 .vs
 packages/app/android/app/.cxx/
+.fvmrc
+*/.fvmrc

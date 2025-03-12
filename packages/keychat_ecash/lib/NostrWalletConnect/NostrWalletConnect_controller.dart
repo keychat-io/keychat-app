@@ -108,7 +108,7 @@ class NostrWalletConnectController extends GetxController {
 
   startListening([String? relay]) {
     if (!featureStatus.value) {
-      loggerNoLine.i('Feature:nwc is not enabled');
+      // loggerNoLine.i('Feature:nwc is not enabled');
       return;
     }
     if (service.value.pubkey.isEmpty) return;

@@ -88,7 +88,7 @@ class NotifyService {
   }
 
   // Listening Keys: identity pubkey, mls group pubkey, signal chat receive key, onetime key
-  static syncPubkeysToServer([bool checkUpload = false]) async {
+  static syncPubkeysToServer({bool checkUpload = false}) async {
     bool isGrant = await NotifyService.checkAllNotifyPermission();
     if (!isGrant) return;
     List<String> toRemovePubkeys =
@@ -180,11 +180,15 @@ class NotifyService {
         settings.authorizationStatus == AuthorizationStatus.provisional) {
       // onMessage listen
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        debugPrint('Message data: ${message.data}');
+        logger.d('notification: ${message.data}');
 
         if (message.notification != null) {
           debugPrint('notification: ${message.notification?.body}');
         }
+      }, onError: (e) {
+        logger.e('onMessage', error: e);
+      }, onDone: () {
+        logger.d('onMessage done');
       });
 
       homeController.notificationStatus.value = true;
@@ -217,7 +221,16 @@ Fix:
         Storage.setString(StorageKeyString.notificationFCMToken, fcmToken);
       }
       logger.i('fcmToken: $fcmToken');
-      await syncPubkeysToServer(true);
+      // onTokenRefresh listen
+      FirebaseMessaging.instance.onTokenRefresh.listen((fcmToken) {
+        logger.i('onTokenRefresh: $fcmToken');
+        NotifyService.fcmToken = fcmToken;
+        NotifyService.syncPubkeysToServer(checkUpload: false);
+      }).onError((err) {
+        logger.e('onTokenRefresh', error: err);
+      });
+
+      await syncPubkeysToServer(checkUpload: true);
     }
   }
 

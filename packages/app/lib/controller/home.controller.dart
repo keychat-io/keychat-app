@@ -128,7 +128,7 @@ class HomeController extends GetxController
               _startConnectHeartbeat();
             });
             Utils.initLoggger(Get.find<SettingController>().appFolder);
-            NotifyService.syncPubkeysToServer(true);
+            NotifyService.syncPubkeysToServer(checkUpload: true);
             return;
           }
           Get.find<WebsocketService>().checkOnlineAndConnect();

@@ -15,7 +15,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
-import 'package:keychat_ecash/ecash_controller.dart';
 
 import '../controller/home.controller.dart';
 import 'RecommendBots/RecommendBots.dart';
@@ -328,11 +327,6 @@ class RoomList extends GetView<HomeController> {
       case 'noAcitveRelay':
       case 'allFailed':
       case 'noNetwork':
-        EcashController ecashController = Get.find<EcashController>();
-        if (ecashController.cashuInitFailed.value == true &&
-            ecashController.totalSats.value == 0) {
-          return _getEcashFailedStatusWidget();
-        }
         return SizedBox(
             width: 48,
             height: 48,
@@ -394,46 +388,5 @@ class RoomList extends GetView<HomeController> {
         ),
       ],
     ));
-  }
-
-  Widget _getEcashFailedStatusWidget() {
-    return SizedBox(
-        width: 48,
-        height: 48,
-        child: IconButton(
-          icon: Icon(
-            Icons.error,
-            color: Colors.red.shade400,
-          ),
-          onPressed: () {
-            Get.dialog(CupertinoAlertDialog(
-              title: const Icon(
-                Icons.error,
-                color: Colors.red,
-                size: 34,
-              ),
-              content: const Text(
-                  'The Ecash start-up failed, Please restart the app'),
-              actions: [
-                CupertinoDialogAction(
-                  child: const Text("Cancel"),
-                  onPressed: () async {
-                    Get.back();
-                  },
-                ),
-                CupertinoDialogAction(
-                  isDefaultAction: true,
-                  onPressed: () async {
-                    exit(0);
-                  },
-                  child: const Text(
-                    "Exit APP",
-                    style: TextStyle(color: Colors.red),
-                  ),
-                ),
-              ],
-            ));
-          },
-        ));
   }
 }

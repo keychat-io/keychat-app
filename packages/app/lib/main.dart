@@ -125,6 +125,8 @@ Future<SettingController> initServices() async {
       FirebaseMessaging.onBackgroundMessage(
           _firebaseMessagingBackgroundHandler);
       logger.i('Firebase initialized');
+    }, onError: (error) {
+      logger.e('Firebase initialize failed: $error');
     });
   }
 

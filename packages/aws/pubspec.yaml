@@ -4,7 +4,8 @@ version: 1.0.0
 # repository: https://github.com/my_org/my_repo
 
 environment:
-  sdk: ">=3.0.5 <4.0.0"
+  sdk: ">=3.5.0 <4.0.0"
+resolution: workspace
 
 # Add regular dependencies here.
 dependencies:
@@ -12,7 +13,6 @@ dependencies:
   crypto: ^3.0.6
   encrypt: ^5.0.3
   dio: ^5.7.0
-  app: 1.0.0
 
 dev_dependencies:
   test: ^1.21.0

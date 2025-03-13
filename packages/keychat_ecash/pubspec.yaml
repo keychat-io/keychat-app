@@ -4,15 +4,14 @@ version: 1.0.0
 # repository: https://github.com/my_org/my_repo
 
 environment:
-  sdk: ">=3.0.5 <4.0.0"
+  sdk: ">=3.5.0 <4.0.0"
   flutter: ">=3.0.0"
+resolution: workspace
 
 # Add regular dependencies here.
 dependencies:
   flutter:
     sdk: flutter
-  keychat_rust_ffi_plugin: 1.0.0
-  app: 1.0.0
   timer_builder: ^2.0.0
 
 dev_dependencies:

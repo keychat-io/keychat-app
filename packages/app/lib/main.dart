@@ -103,9 +103,10 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // make sure you call `initializeApp` before using other Firebase services.
   if (dotenv.get('FCMapiKey', fallback: '') != '') {
     if (Firebase.apps.isEmpty) {
-      await Firebase.initializeApp(
+      var app = await Firebase.initializeApp(
           name: GetPlatform.isAndroid ? 'keychat-bg' : null,
           options: DefaultFirebaseOptions.currentPlatform);
+      logger.d('Firebase initialized in background: ${app.name}');
     }
     debugPrint("Handling a background message: ${message.messageId}");
   }
@@ -118,13 +119,15 @@ Future<SettingController> initServices() async {
       [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   await dotenv.load(fileName: ".env");
   if (dotenv.get('FCMapiKey', fallback: '') != '') {
-    Firebase.initializeApp(
+    await Firebase.initializeApp(
             name: GetPlatform.isAndroid ? 'keychat' : null,
             options: DefaultFirebaseOptions.currentPlatform)
         .then((_) {
       FirebaseMessaging.onBackgroundMessage(
           _firebaseMessagingBackgroundHandler);
-      logger.i('Firebase initialized');
+      logger.i('Firebase initialized in main');
+    }, onError: (error) {
+      logger.e('Firebase initialize failed: $error');
     });
   }
 

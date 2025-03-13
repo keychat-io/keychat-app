@@ -2,15 +2,12 @@ import 'dart:convert';
 
 import 'package:app/bot/bot_server_message_model.dart';
 import 'package:app/controller/home.controller.dart';
-import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 
 import 'package:app/models/signal_id.dart';
 import 'package:app/service/chatx.service.dart';
-import 'package:app/service/message.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/room.service.dart';
-import 'package:app/service/signalId.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:equatable/equatable.dart';
@@ -555,35 +552,6 @@ class Room extends Equatable {
     if (changeMember) {
       RoomService.getController(id)?.resetMembers();
     }
-  }
-
-  // clear keys. if receive all member's prekey message
-  // clear keys. if reach the expired time
-  Future checkAndCleanSignalKeys() async {
-    if (groupType != GroupType.kdf) return;
-    int count = await DBProvider.database.roomMembers
-        .filter()
-        .roomIdEqualTo(id)
-        .messageCountLessThan(KeychatGlobal.kdfGroupPrekeyMessageCount + 1)
-        .group((q) => q
-            .statusEqualTo(UserStatusType.invited)
-            .or()
-            .statusEqualTo(UserStatusType.inviting))
-        .count();
-    SignalId? signalId =
-        await SignalIdService.instance.getSignalIdByPubkey(sharedSignalID);
-    if (signalId == null) return;
-    if (count > 0) {
-      DateTime expiredAt = signalId.updatedAt
-          .add(Duration(days: KeychatGlobal.kdfGroupKeysExpired));
-      if (expiredAt.isAfter(DateTime.now())) return; // not need to delete keys
-    }
-    if (signalId.keys == null || (signalId.keys?.isEmpty ?? true)) return;
-    logger.i('clean signal keys: $toMainPubkey');
-    signalId.keys = "";
-    await SignalIdService.instance.updateSignalId(signalId);
-    MessageService.instance
-        .saveSystemMessage(this, 'Clear shared signal-id-keys successfully');
   }
 
   String getDebugInfo(String error) {

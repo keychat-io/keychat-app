@@ -20,6 +20,7 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
+import 'package:keychat_rust_ffi_plugin/api_mls.dart' as rust_mls;
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
@@ -29,8 +30,8 @@ import '../service/contact.service.dart';
 import '../service/file_util.dart';
 import '../service/room.service.dart';
 
-const int messageLimitPerPage = 30;
 const int maxMessageId = 999999999999;
+const int messageLimitPerPage = 30;
 
 String newlineChar = String.fromCharCode(13);
 
@@ -562,6 +563,22 @@ class ChatController extends GetxController {
   }
 
   Future resetMembers() async {
+    if (roomObs.value.isMLSGroup) {
+      Identity identity = roomObs.value.getIdentity();
+      List<String> pubkeys = await rust_mls.getGroupMembers(
+          nostrId: identity.secp256k1PKHex, groupId: room.toMainPubkey);
+      List<RoomMember> roomMembers = [];
+      for (var element in pubkeys) {
+        roomMembers.add(RoomMember(
+            idPubkey: element,
+            // TODO add real name
+            name: element,
+            roomId: roomObs.value.id));
+      }
+      members.value = roomMembers;
+      enableMembers.value = roomMembers;
+      return;
+    }
     members.value = await room.getMembers();
     enableMembers.value = members
         .toList()
@@ -685,26 +702,6 @@ class ChatController extends GetxController {
     }
   }
 
-  _initRoom(Room room) async {
-    if (room.type == RoomType.group) {
-      return await _initGroupInfo();
-    }
-    // private chat
-    if (room.type == RoomType.common) {
-      if (room.contact == null) {
-        Contact contact = await ContactService.instance.getOrCreateContact(
-            roomObs.value.identityId, roomObs.value.toMainPubkey);
-        roomObs.value.contact = contact;
-        roomContact.value = contact;
-      } else {
-        roomContact.value = room.contact!;
-      }
-    }
-
-    // bot info
-    _initBotInfo();
-  }
-
   _initBotInfo() async {
     if (roomObs.value.type == RoomType.group) return;
     if (roomObs.value.encryptMode == EncryptMode.signal) return;
@@ -748,18 +745,23 @@ class ChatController extends GetxController {
     await RoomService.instance.updateRoomAndRefresh(room);
   }
 
-  Future<void> _initGroupInfo() async {
-    await resetMembers();
-    Identity identity = room.getIdentity();
-    RoomMember? rm = await room.getMemberByIdPubkey(identity.secp256k1PKHex);
-    meMember.value = rm ??
-        RoomMember(
-            idPubkey: identity.secp256k1PKHex,
-            name: identity.displayName,
-            roomId: room.id)
-      ..curve25519PkHex = identity.curve25519PkHex;
+  _initRoom(Room room) async {
+    if (room.type == RoomType.group) {
+      return await resetMembers();
+    }
+    // private chat
+    if (room.type == RoomType.common) {
+      if (room.contact == null) {
+        Contact contact = await ContactService.instance.getOrCreateContact(
+            roomObs.value.identityId, roomObs.value.toMainPubkey);
+        roomObs.value.contact = contact;
+        roomContact.value = contact;
+      } else {
+        roomContact.value = room.contact!;
+      }
+    }
 
-    // for kdf group
-    room.checkAndCleanSignalKeys();
+    // bot info
+    _initBotInfo();
   }
 }

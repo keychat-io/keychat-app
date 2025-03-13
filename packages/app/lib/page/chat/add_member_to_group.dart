@@ -1,6 +1,5 @@
 import 'package:app/models/models.dart';
 import 'package:app/page/components.dart';
-import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:flutter/cupertino.dart';
@@ -106,10 +105,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
       if (widget.room.isMLSGroup) {
         await MlsGroupService.instance
             .sendWelcomeMessage(groupRoom, selectUsers, sender);
-      } else if (widget.room.isKDFGroup) {
-        await KdfGroupService.instance
-            .inviteToJoinGroup(groupRoom, selectAccounts, sender);
-      } else {
+      } else if (widget.room.isSendAllGroup) {
         await GroupService.instance
             .inviteToJoinGroup(groupRoom, selectAccounts);
       }

@@ -254,7 +254,7 @@ getGroupInfoBottomSheetWidget(BuildContext context) {
       ListView(
         children: [
           ListTile(
-            title: Text('Large Group - MLS',
+            title: Text('Large Group - MLS Protocol',
                 style: Theme.of(context).textTheme.titleMedium),
             subtitle: Text(RoomUtil.getGroupModeDescription(GroupType.mls)),
           ),

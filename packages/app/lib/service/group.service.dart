@@ -588,7 +588,6 @@ class GroupService extends BaseChatService {
 
     RoomProfile roomProfile = await getRoomProfile(groupRoom,
         signalId: signalId, mykey: mykey, mlsWelcome: mlsWelcome);
-
     List<String> addUsersName = toMembers.map((e) => e.name).toList();
     String names = addUsersName.join(',');
     String realMessage = 'Invite [$names] to join group ${groupRoom.name}';
@@ -601,7 +600,8 @@ class GroupService extends BaseChatService {
 
     switch (groupRoom.groupType) {
       case GroupType.mls:
-        await sendPrivateMessageToMembers(realMessage, toMembers, identity,
+        List<String> pubkeys = toMembers.map((e) => e.idPubkey).toList();
+        await sendPrivateMessageToMembers(realMessage, pubkeys, identity,
             groupRoom: groupRoom, content: km.toString());
         break;
       case GroupType.sendAll:
@@ -901,7 +901,7 @@ class GroupService extends BaseChatService {
 
   // send message to users, but skip meMember
   Future sendPrivateMessageToMembers(
-      String realMessage, List<RoomMember> toUsers, Identity identity,
+      String realMessage, List<String> toUsers, Identity identity,
       {required Room groupRoom,
       required String content,
       bool nip17 = false,
@@ -914,8 +914,8 @@ class GroupService extends BaseChatService {
     for (int i = 0; i < membersLength; i++) {
       queue.add(() async {
         if (todo.isEmpty) return;
-        RoomMember rm = todo.removeFirst();
-        String hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: rm.idPubkey);
+        String idPubkey = todo.removeFirst();
+        String hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: idPubkey);
         if (identity.secp256k1PKHex == hexPubkey) return;
         Room? room =
             await roomService.getRoomByIdentity(hexPubkey, identity.id);
@@ -927,7 +927,7 @@ class GroupService extends BaseChatService {
         // send message with nip17
         if (nip17 || room == null) {
           await NostrAPI.instance.sendNip17Message(groupRoom, content, identity,
-              toPubkey: rm.idPubkey,
+              toPubkey: idPubkey,
               realMessage: realMessage,
               nip17Kind: nip17Kind,
               additionalTags: additionalTags);

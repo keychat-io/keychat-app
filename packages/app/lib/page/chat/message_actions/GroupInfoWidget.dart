@@ -9,7 +9,9 @@ import 'package:settings_ui/settings_ui.dart';
 class GroupInfoWidget extends StatelessWidget {
   final NostrEventModel subEvent;
   final String idPubkey;
-  const GroupInfoWidget(this.subEvent, this.idPubkey, {super.key});
+  final String groupId;
+  const GroupInfoWidget(this.subEvent, this.idPubkey, this.groupId,
+      {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +29,7 @@ class GroupInfoWidget extends StatelessWidget {
               SettingsSection(tiles: [
                 SettingsTile(
                   title: const Text("ID"),
-                  value: textP('mls group id'),
+                  value: textP(getPublicKeyDisplay(groupId)),
                 ),
                 SettingsTile(
                     title: const Text('Mode'), value: Text('MLS Large Group')),

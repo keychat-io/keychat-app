@@ -290,6 +290,7 @@ class NostrAPI {
     return SendMessageResponse(events: [event], message: model);
   }
 
+  /// timestampTweaked: true-random timestamp in 0~2days ago
   Future<SendMessageResponse> sendNip17Message(
     Room room,
     String sourceContent,
@@ -298,7 +299,7 @@ class NostrAPI {
     String? realMessage,
     MessageMediaType? mediaType,
     MsgReply? reply,
-    bool timestampTweaked = false, // use DateTime.now
+    bool timestampTweaked = false,
     bool save = true,
     int nip17Kind = EventKinds.nip17,
     List<List<String>>? additionalTags,

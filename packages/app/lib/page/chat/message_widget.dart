@@ -729,6 +729,7 @@ class MessageWidget extends StatelessWidget {
                               // tableRow('Encrypt',
                               //     encryptText[message.encryptType.name]),
                               tableRow("ID", event.id),
+                              tableRow("Kind", event.kind.toString()),
                               tableRow("From", event.pubkey),
                               tableRow("To", event.tags[0][1]),
                               tableRow(

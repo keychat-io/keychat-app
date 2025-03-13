@@ -24,7 +24,6 @@ class GroupInviteAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    logger.d('GroupInviteAction: ${message.content} ${message.requestConfrim}');
     switch (message.requestConfrim) {
       case RequestConfrimEnum.request:
         return FilledButton(
@@ -44,11 +43,13 @@ class GroupInviteAction extends StatelessWidget {
     EasyThrottle.throttle('joingroup', const Duration(seconds: 2), () async {
       NostrEventModel subEvent =
           NostrEventModel.fromJson(jsonDecode(message.content));
-
+      String? groupId = subEvent.getTagByKey(EventKindTags.nip104Group);
+      if (groupId == null) {
+        EasyLoading.showError('Group ID is missing');
+        return;
+      }
       bool? accept = await Get.bottomSheet(
-          ignoreSafeArea: false,
-          isScrollControlled: true,
-          GroupInfoWidget(subEvent, identity.secp256k1PKHex));
+          GroupInfoWidget(subEvent, identity.secp256k1PKHex, groupId));
       if (accept == null) return;
       message.requestConfrim = accept == true
           ? RequestConfrimEnum.approved
@@ -60,18 +61,12 @@ class GroupInviteAction extends StatelessWidget {
         return;
       }
       Room? groupRoom;
-      String? groupId = subEvent.getTagByKey(EventKindTags.nip104Group);
-      if (groupId == null) {
-        EasyLoading.showError('Group ID is missing');
-        return;
-      }
       try {
         EasyLoading.show(status: 'Loading...');
         Isar database = DBProvider.database;
         Room? exist = await database.rooms
             .filter()
             .toMainPubkeyEqualTo(groupId)
-            .identityIdEqualTo(identity.id)
             .findFirst();
         if (exist != null) {
           if (exist.identityId != identity.id) {
@@ -104,9 +99,7 @@ class GroupInviteAction extends StatelessWidget {
         groupRoom = await MlsGroupService.instance.createRoomFromInvitation(
             subEvent, identity, message,
             groupId: groupId);
-
-        await Get.offAndToNamed('/room/${groupRoom.id}', arguments: groupRoom);
-        Get.find<HomeController>().loadIdentityRoomList(groupRoom.identityId);
+        EasyLoading.dismiss();
       } catch (e, s) {
         message.requestConfrim = RequestConfrimEnum.request;
         await MessageService.instance.updateMessageAndRefresh(message);
@@ -123,6 +116,8 @@ class GroupInviteAction extends StatelessWidget {
             duration: const Duration(seconds: 3));
         return;
       }
+      await Get.offAndToNamed('/room/${groupRoom.id}', arguments: groupRoom);
+      Get.find<HomeController>().loadIdentityRoomList(groupRoom.identityId);
     });
   }
 }

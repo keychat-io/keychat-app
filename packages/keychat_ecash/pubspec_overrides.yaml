@@ -1,8 +1,0 @@
-# melos_managed_dependency_overrides: app,aws,keychat_rust_ffi_plugin
-dependency_overrides:
-  app:
-    path: ../app
-  aws:
-    path: ../aws
-  keychat_rust_ffi_plugin:
-    path: ../keychat_rust_ffi_plugin

@@ -1,3 +1,13 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+    id "com.google.gms.google-services"
+    id "com.google.firebase.crashlytics"
+}
+
+apply from: "../../../keychat_rust_ffi_plugin/cargokit/gradle/plugin.gradle"
+
 def keystoreProperties = new Properties()
 def localProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')
@@ -9,22 +19,9 @@ if (localPropertiesFile.exists()) {
     localProperties.load(new FileInputStream(localPropertiesFile))
 }
 
-def flutterRoot = localProperties.getProperty('flutter.sdk')
-if (flutterRoot == null) {
-    throw new FileNotFoundException("Flutter SDK not found. Define location with flutter.sdk in the local.properties file.")
-}
-
 def flutterVersionCode = localProperties.getProperty('flutter.versionCode','1')
 def flutterVersionName = localProperties.getProperty('flutter.versionName','1.0')
 
-apply plugin: 'com.android.application'
-// START: FlutterFire Configuration
-apply plugin: 'com.google.gms.google-services'
-apply plugin: 'com.google.firebase.crashlytics'
-// END: FlutterFire Configuration
-apply plugin: 'kotlin-android'
-apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
-apply from: "../../../keychat_rust_ffi_plugin/cargokit/gradle/plugin.gradle"
 
 cargokit {
     manifestDir = "../../../keychat_rust_ffi_plugin/rust"
@@ -34,7 +31,7 @@ cargokit {
 android {
     compileSdkVersion localProperties.getProperty('flutter.compileSdkVersion').toInteger()
     namespace "com.keychat.io"
-
+    ndkVersion flutter.ndkVersion
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
@@ -64,7 +61,7 @@ android {
         multiDexEnabled true
         ndk {
             // abiFilters 'x86','armeabi-v7a','arm64-v8a','x86_64'
-            abiFilters 'arm64-v8a'
+            abiFilters 'x86','x86_64','arm64-v8a'
             // abiFilters 'ARCH_X86','ARCH_ARM32','ARCH_ARM64'
         }
 
@@ -78,7 +75,7 @@ android {
         abi {
             enable true //enables the ABIs split mechanism
             reset()
-            include 'arm64-v8a', 'x86_64'
+            include 'arm64-v8a', 'x86_64', 'x86'
             // include 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'
             universalApk  true
         }
@@ -97,14 +94,4 @@ android {
             signingConfig signingConfigs.release
         }
     }
-}
-
-flutter {
-    source '../..'
-}
-
-dependencies {
-    implementation 'com.android.support:multidex:1.0.3'
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    implementation 'com.google.android.material:material:1.9.0'
 }

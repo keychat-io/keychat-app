@@ -88,7 +88,7 @@ class NotifyService {
   }
 
   // Listening Keys: identity pubkey, mls group pubkey, signal chat receive key, onetime key
-  static syncPubkeysToServer([bool checkUpload = false]) async {
+  static syncPubkeysToServer({bool checkUpload = false}) async {
     bool isGrant = await NotifyService.checkAllNotifyPermission();
     if (!isGrant) return;
     List<String> toRemovePubkeys =
@@ -178,15 +178,6 @@ class NotifyService {
     }
     if (settings.authorizationStatus == AuthorizationStatus.authorized ||
         settings.authorizationStatus == AuthorizationStatus.provisional) {
-      // onMessage listen
-      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        debugPrint('Message data: ${message.data}');
-
-        if (message.notification != null) {
-          debugPrint('notification: ${message.notification?.body}');
-        }
-      });
-
       homeController.notificationStatus.value = true;
       Storage.setInt(
           StorageKeyString.settingNotifyStatus, NotifySettingStatus.enable);
@@ -195,6 +186,7 @@ class NotifyService {
           .timeout(const Duration(seconds: 8), onTimeout: () async {
         fcmToken =
             await Storage.getString(StorageKeyString.notificationFCMToken);
+        loggerNoLine.d('Load FCMToken from local: $fcmToken');
         if (fcmToken != null) return fcmToken;
         Get.showSnackbar(
           GetSnackBar(
@@ -213,11 +205,36 @@ Fix:
         );
         throw TimeoutException('FCMTokenTimeout');
       });
+      // end get fcm timeout
       if (fcmToken != null) {
         Storage.setString(StorageKeyString.notificationFCMToken, fcmToken);
       }
+
+      // fcm onMessage listen
+      loggerNoLine.d('fcm onMessage listen');
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        logger.d('notification: ${message.data}');
+
+        if (message.notification != null) {
+          debugPrint('notification: ${message.notification?.body}');
+        }
+      }, onError: (e) {
+        logger.e('onMessage', error: e);
+      }, onDone: () {
+        logger.d('onMessage done');
+      });
+
       logger.i('fcmToken: $fcmToken');
-      await syncPubkeysToServer(true);
+      // fcm onTokenRefresh listen
+      FirebaseMessaging.instance.onTokenRefresh.listen((fcmToken) {
+        logger.i('onTokenRefresh: $fcmToken');
+        NotifyService.fcmToken = fcmToken;
+        NotifyService.syncPubkeysToServer(checkUpload: false);
+      }).onError((err) {
+        logger.e('onTokenRefresh', error: err);
+      });
+
+      await syncPubkeysToServer(checkUpload: true);
     }
   }
 

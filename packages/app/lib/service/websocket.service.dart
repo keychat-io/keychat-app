@@ -70,13 +70,14 @@ class WebsocketService extends GetxService {
   }
 
   Future checkOnlineAndConnect() async {
+    loggerNoLine.d('checkOnlineAndConnect all relays');
     // fix ConcurrentModificationError
     for (RelayWebsocket rw in List.from(channels.values)) {
       if (rw.relay.active == false) continue;
       rw.checkOnlineStatus().then((relayStatus) {
         if (!relayStatus) {
           rw.channel?.sink.close();
-          _startConnectRelay(rw);
+          _startConnectRelay(rw, true);
         }
       });
     }
@@ -469,12 +470,13 @@ class WebsocketService extends GetxService {
     }));
   }
 
-  Future<RelayWebsocket> _startConnectRelay(RelayWebsocket rw) async {
+  Future<RelayWebsocket> _startConnectRelay(RelayWebsocket rw,
+      [bool ignoreFailedTime = false]) async {
     if (rw.relay.active == false) {
       return rw;
     }
 
-    if (rw.failedTimes > failedTimesLimit) {
+    if (rw.failedTimes > failedTimesLimit && !ignoreFailedTime) {
       rw.channelStatus = RelayStatusEnum.failed;
       rw.channel?.sink.close();
       clearFailedEvents(rw.relay.url);

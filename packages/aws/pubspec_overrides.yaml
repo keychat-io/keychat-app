@@ -1,2 +1,0 @@
-# melos_managed_dependency_overrides: nostr_procotol,libsignal_protocol_dart,aws,keychat_native,webrtc,keychat_ecash,keychat_rust_ffi_plugin
-{ dependency_overrides: { app: { path: ../app } , keychat_ecash: {path: ../keychat_ecash}, keychat_rust_ffi_plugin: {path: ../keychat_rust_ffi_plugin}} }

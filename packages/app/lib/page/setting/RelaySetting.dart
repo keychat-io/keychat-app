@@ -26,6 +26,7 @@ class _RelaySettingState extends State<RelaySetting> {
     super.initState();
     relayTextController = TextEditingController(text: "wss://");
     ws = Get.find<WebsocketService>();
+    ws.channels.refresh();
   }
 
   @override

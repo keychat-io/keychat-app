@@ -812,7 +812,7 @@ class MessageWidget extends StatelessWidget {
                         children: <Widget>[
                           relayStatusList(context, eventSendStatus),
                           if (eventModel != null)
-                            ListTile(title: Text(eventModel.toJsonString())),
+                            ListTile(title: Text(eventModel.toString())),
                         ],
                       );
                     })

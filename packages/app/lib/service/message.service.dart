@@ -51,9 +51,8 @@ class MessageService {
     } else {
       await DBProvider.database.messages.put(model);
     }
-
     logger.i(
-        'new_message:room:${model.roomId} ${model.isMeSend ? 'Send' : 'Receive'}: ${model.content} ');
+        '[new_message]:room:${model.roomId} ${model.isMeSend ? 'Send' : 'Receive'}: ${model.content} ');
     await RoomService.getController(model.roomId)?.addMessage(model);
     var hc = Get.find<HomeController>();
     hc.roomLastMessage[model.roomId] = model;

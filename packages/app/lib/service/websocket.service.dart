@@ -176,15 +176,18 @@ class WebsocketService extends GetxService {
   }
 
   // fetch info and wait for response data
-  Future<NostrEventModel?> fetchInfoFromRelay(
-      String subId, String eventString) async {
+  Future<List<NostrEventModel>> fetchInfoFromRelay(
+      String subId, String eventString,
+      {Duration wait = const Duration(seconds: 2),
+      bool waitTimeToFill = false}) async {
     List<RelayWebsocket> list = getConnectedRelay();
     if (list.isEmpty) throw Exception('Not connected with relay server');
     for (RelayWebsocket rw in list) {
       rw.sendRawREQ(eventString);
     }
-    return await SubscribeResult.instance
-        .registerSubscripton(subId, list.length, const Duration(seconds: 2));
+    return await SubscribeResult.instance.registerSubscripton(
+        subId, list.length,
+        wait: wait, waitTimeToFill: waitTimeToFill);
   }
 
   sendReq(NostrReqModel nostrReq,
@@ -636,5 +639,20 @@ class WebsocketService extends GetxService {
 
   clearFailedEvents(String relay) {
     failedEventsMap.remove(relay);
+  }
+
+  Future<List<String>> waitRelayOnline({int maxAttempts = 10}) async {
+    var onlineRelays = getOnlineRelayString();
+    int activeRelays = getActiveRelayString().length;
+    int attempts = 0;
+    while (onlineRelays.isEmpty && attempts < maxAttempts ||
+        (onlineRelays.isNotEmpty && onlineRelays.length / activeRelays < 0.5)) {
+      logger.d(
+          'Waiting for relays to be available... (${attempts + 1}/$maxAttempts)');
+      await Future.delayed(const Duration(seconds: 1));
+      attempts++;
+      onlineRelays = getOnlineRelayString();
+    }
+    return onlineRelays;
   }
 }

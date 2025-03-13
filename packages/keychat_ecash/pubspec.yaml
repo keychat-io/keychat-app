@@ -13,6 +13,8 @@ dependencies:
   flutter:
     sdk: flutter
   timer_builder: ^2.0.0
+  app: ^1.29.2
+  keychat_rust_ffi_plugin: 1.0.0
 
 dev_dependencies:
   test: ^1.21.0

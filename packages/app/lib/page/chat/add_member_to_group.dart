@@ -105,7 +105,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
       String sender = meMember == null ? myPubkey : meMember.name;
       if (widget.room.isMLSGroup) {
         await MlsGroupService.instance
-            .inviteToJoinGroup(groupRoom, selectUsers, sender);
+            .sendWelcomeMessage(groupRoom, selectUsers, sender);
       } else if (widget.room.isKDFGroup) {
         await KdfGroupService.instance
             .inviteToJoinGroup(groupRoom, selectAccounts, sender);
@@ -134,7 +134,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
       for (var u in news) {
         pubkeys.add(u['pubkey']);
       }
-      Map res = await MlsGroupService.instance.getPKs(pubkeys);
+      Map res = await MlsGroupService.instance.getKeyPackagesFromRelay(pubkeys);
 
       for (var u in news) {
         String pubkey = u['pubkey'];

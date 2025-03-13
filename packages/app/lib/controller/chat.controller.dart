@@ -708,9 +708,9 @@ class ChatController extends GetxController {
   _initBotInfo() async {
     if (roomObs.value.type == RoomType.group) return;
     if (roomObs.value.encryptMode == EncryptMode.signal) return;
-    NostrEventModel? res =
-        await NostrAPI.instance.fetchMetadata([room.toMainPubkey]);
-    if (res == null) return;
+    List list = await NostrAPI.instance.fetchMetadata([room.toMainPubkey]);
+    if (list.isNotEmpty) return;
+    NostrEventModel res = list.last;
     Map<String, dynamic> metadata =
         Map<String, dynamic>.from(jsonDecode(res.content));
     if (room.botInfoUpdatedAt >= res.createdAt) {

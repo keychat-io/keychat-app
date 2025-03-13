@@ -96,19 +96,12 @@ class GroupService extends BaseChatService {
   Future<Room> createGroup(
       String groupName, Identity identity, GroupType groupType,
       [String? groupRelay]) async {
-    Mykey? sharedKey;
-    late String toMainPubkey;
-    if (groupType == GroupType.shareKey || groupType == GroupType.kdf) {
-      sharedKey = await GroupTx.instance.createMykey(identity.id);
-      toMainPubkey = sharedKey.pubkey;
-    } else {
-      var key = await rust_nostr.generateSimple();
-      toMainPubkey = key.pubkey;
-    }
+    var randomKey = await rust_nostr.generateSimple();
+    String toMainPubkey = randomKey.pubkey;
+
     DateTime now = DateTime.now();
     Room room = await _createGroupToDB(toMainPubkey, groupName,
         members: [],
-        sharedKey: sharedKey,
         identity: identity,
         groupType: groupType,
         groupRelay: groupRelay,
@@ -253,7 +246,7 @@ class GroupService extends BaseChatService {
         content: groupMessage.message,
         msgKeyHash: msgKeyHash,
         createdAt: timestampToDateTime(event.createdAt),
-        rawEvents: [(sourceEvent ?? event).toJsonString()])
+        rawEvents: [(sourceEvent ?? event).toString()])
       ..isRead = signPubkey == room.myIdPubkey;
 
     if (subType != null) {
@@ -490,7 +483,7 @@ class GroupService extends BaseChatService {
         isMeSend: false,
         content: groupInviteMsg[0],
         createdAt: timestampToDateTime(event.createdAt),
-        rawEvents: [event.toJsonString()]);
+        rawEvents: [event.toString()]);
     await MessageService.instance.saveMessageModel(message, room: groupRoom);
   }
 
@@ -505,7 +498,6 @@ class GroupService extends BaseChatService {
       String? msgKeyHash}) async {
     switch (km.type) {
       case KeyChatEventKinds.groupInvite:
-        RoomService.instance.checkMessageValid(room, sourceEvent ?? event);
         RoomProfile roomProfile = RoomProfile.fromJson(jsonDecode(km.msg!));
         String realMessage = km.name ?? "[]";
 
@@ -608,25 +600,15 @@ class GroupService extends BaseChatService {
       ..name = jsonEncode([realMessage, groupRoom.myIdPubkey]);
 
     switch (groupRoom.groupType) {
-      case GroupType.shareKey:
-        await sendPrivateMessageToMembers(realMessage, toMembers, identity,
-            groupRoom: groupRoom, km: km);
-        Mykey roomMykey = groupRoom.mykey.value!;
-        await nostrAPI.sendNip4Message(roomMykey.pubkey, km.toString(),
-            room: groupRoom,
-            prikey: roomMykey.prikey,
-            from: roomMykey.pubkey,
-            encryptType: MessageEncryptType.nip4,
-            realMessage: realMessage);
-
-        break;
-      case GroupType.kdf:
       case GroupType.mls:
         await sendPrivateMessageToMembers(realMessage, toMembers, identity,
-            groupRoom: groupRoom, km: km);
+            groupRoom: groupRoom, content: km.toString());
         break;
       case GroupType.sendAll:
         await _invitePairwiseGroup(realMessage, identity, groupRoom, km);
+        break;
+      case GroupType.shareKey:
+      case GroupType.kdf:
         break;
     }
 
@@ -831,13 +813,8 @@ class GroupService extends BaseChatService {
       required GroupType groupType,
       required Identity identity,
       required int version,
-      Mykey? sharedKey,
       String? groupRelay,
       SignalId? signalId}) async {
-    if (groupType == GroupType.shareKey && sharedKey == null) {
-      throw Exception('sharedKey is required');
-    }
-
     Room room = Room(
         toMainPubkey: toMainPubkey,
         npub: rust_nostr.getBech32PubkeyByHex(hex: toMainPubkey),
@@ -847,29 +824,19 @@ class GroupService extends BaseChatService {
       ..name = groupName
       ..groupType = groupType
       ..version = version;
-    if (sharedKey != null) {
-      room.mykey.value = sharedKey;
-    }
+
     if (groupType == GroupType.sendAll) {
       signalId ??= await SignalIdService.instance.createSignalId(identity.id);
       room.signalIdPubkey = signalId!.pubkey;
     }
 
-    room = await roomService.updateRoom(room, updateMykey: sharedKey != null);
+    room = await roomService.updateRoom(room);
     await room.updateAllMember(members);
     RoomMember? me = await room.getMember(identity.secp256k1PKHex);
 
     if (me != null && me.status != UserStatusType.invited) {
       me.status = UserStatusType.invited;
       await room.updateMember(me);
-    }
-    // listen pubkey
-    if (room.isShareKeyGroup || room.isKDFGroup) {
-      await Get.find<WebsocketService>()
-          .listenPubkey([toMainPubkey], limit: 300);
-      await Get.find<WebsocketService>()
-          .listenPubkeyNip17([toMainPubkey], limit: 300);
-      NotifyService.addPubkeys([toMainPubkey]);
     }
     return room;
   }
@@ -935,7 +902,11 @@ class GroupService extends BaseChatService {
   // send message to users, but skip meMember
   Future sendPrivateMessageToMembers(
       String realMessage, List<RoomMember> toUsers, Identity identity,
-      {required Room groupRoom, required KeychatMessage km}) async {
+      {required Room groupRoom,
+      required String content,
+      bool nip17 = false,
+      int nip17Kind = EventKinds.nip17,
+      List<List<String>>? additionalTags}) async {
     final queue = Queue(parallel: 5);
     var todo = collection.Queue.from(toUsers);
     int membersLength = todo.length;
@@ -951,15 +922,18 @@ class GroupService extends BaseChatService {
         if (room == null) {
           room = await RoomService.instance.createRoomAndsendInvite(hexPubkey,
               identity: identity, autoJump: false);
-          await Future.delayed(const Duration(seconds: 1));
+          await Future.delayed(const Duration(milliseconds: 300));
         }
-        if (room == null) {
-          await NostrAPI.instance.sendNip17Message(
-              groupRoom, km.toString(), identity,
-              toPubkey: rm.idPubkey, realMessage: realMessage);
+        // send message with nip17
+        if (nip17 || room == null) {
+          await NostrAPI.instance.sendNip17Message(groupRoom, content, identity,
+              toPubkey: rm.idPubkey,
+              realMessage: realMessage,
+              nip17Kind: nip17Kind,
+              additionalTags: additionalTags);
           return;
         }
-        await RoomService.instance.sendTextMessage(room, km.toString(),
+        await RoomService.instance.sendTextMessage(room, content,
             realMessage: realMessage, save: true);
       });
     }

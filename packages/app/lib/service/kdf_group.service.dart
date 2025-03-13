@@ -524,7 +524,7 @@ Let's create a new group.''';
     List<RoomMember> members = await room.getActiveMembers();
     await GroupService.instance.sendPrivateMessageToMembers(
         km.msg!, members, room.getIdentity(),
-        groupRoom: room, km: km);
+        groupRoom: room, content: km.toString());
     await Future.delayed(const Duration(seconds: 1));
     // myself update keys
     await proccessUpdateKeys(room, roomProfile);

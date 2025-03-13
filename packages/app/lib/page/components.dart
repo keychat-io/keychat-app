@@ -554,13 +554,19 @@ Future showMyQrCode(
       ));
 }
 
-Widget pageLoadingSpinKit() {
-  return const Center(
-      child: SizedBox(
-          width: 100,
-          height: 100,
-          child: SpinKitWave(
-            color: Color.fromARGB(255, 141, 123, 243),
-            size: 40.0,
-          )));
+Widget pageLoadingSpinKit({String title = 'Loading...'}) {
+  return Center(
+      child: Wrap(
+          direction: Axis.vertical,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+        SizedBox(
+            width: 100,
+            height: 100,
+            child: SpinKitWave(
+              color: Color.fromARGB(255, 141, 123, 243),
+              size: 40.0,
+            )),
+        Text(title)
+      ]));
 }

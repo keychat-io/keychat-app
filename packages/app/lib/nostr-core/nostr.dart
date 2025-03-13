@@ -300,20 +300,24 @@ class NostrAPI {
     MsgReply? reply,
     bool timestampTweaked = false, // use DateTime.now
     bool save = true,
+    int nip17Kind = EventKinds.nip17,
+    List<List<String>>? additionalTags,
   }) async {
     String? encryptedEvent;
     if (identity.isFromSigner) {
-      encryptedEvent = await SignerService.instance.nip44Encrypt(
+      encryptedEvent = await SignerService.instance.getNip59EventString(
           content: sourceContent,
           from: identity.secp256k1PKHex,
+          additionalTags: additionalTags,
           to: toPubkey ?? room.toMainPubkey);
     } else {
       encryptedEvent = await rust_nostr.createGiftJson(
-          kind: 14,
+          kind: nip17Kind,
           senderKeys: await identity.getSecp256k1SKHex(),
           receiverPubkey: toPubkey ?? room.toMainPubkey,
           timestampTweaked: timestampTweaked,
-          content: sourceContent);
+          content: sourceContent,
+          additionalTags: additionalTags);
     }
     return await _sendAndSaveGiftMessage(
         toPubkey ?? room.toMainPubkey, sourceContent,
@@ -457,15 +461,6 @@ class NostrAPI {
           if (room != null) {
             await SignalChatService.instance.decryptMessage(room, event, relay,
                 failedCallback: failedCallback);
-            return;
-          }
-
-          // shared key room
-          Room? sharedKeyRoom =
-              await RoomService.instance.getGroupByReceivePubkey(to);
-          if (sharedKeyRoom != null) {
-            await _groupMessageHandle(
-                sharedKeyRoom, event, relay, failedCallback, to);
             return;
           }
 
@@ -633,10 +628,10 @@ class NostrAPI {
           .sendRawReq(closeSerialize(nip05SubscriptionId));
     }
 
-    nip05SubscriptionId = await fetchMetadata(pubkeys);
+    // nip05SubscriptionId = await fetchMetadata(pubkeys);
   }
 
-  Future<dynamic> fetchMetadata(List<String> pubkeys) async {
+  Future<List<NostrEventModel>> fetchMetadata(List<String> pubkeys) async {
     String id = utils.generate64RandomHexChars(16);
     Request requestWithFilter = Request(id, [
       Filter(kinds: [EventKinds.setMetadata], authors: pubkeys, limit: 2)
@@ -656,9 +651,13 @@ class NostrAPI {
       Function(String) failedCallbackync) async {
     NostrEventModel subEvent =
         await _getNostrEventByTo(event, failedCallbackync);
-
+    if (subEvent.kind == EventKinds.nip104Welcome) {
+      await MlsGroupService.instance.handleWelcomeEvent(
+          subEvent: subEvent, sourceEvent: event, relay: relay);
+      return;
+    }
     dynamic decodedContent;
-    logger.d('subEvent: ${subEvent.content}');
+    logger.d('subEvent: $subEvent');
     try {
       decodedContent = jsonDecode(subEvent.content);
     } catch (e) {

@@ -153,7 +153,7 @@ class NostrWalletConnectController extends GetxController {
     }
     proccessedEvents.add(event.id);
     String decrypted = await decryptEvent(
-        senderKeys: client.value.prikey, json: event.toJsonString());
+        senderKeys: client.value.prikey, json: event.toString());
     logger.d('${event.id}: $decrypted');
     logs.add(NWCLog(
         method: NWCLogMethod.receiveEvent, data: decrypted, relay: relay.url));

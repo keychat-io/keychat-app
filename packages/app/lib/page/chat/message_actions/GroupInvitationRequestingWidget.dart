@@ -96,7 +96,7 @@ class GroupInvitationRequestingWidget extends StatelessWidget {
                         }
                       ];
 
-                      await MlsGroupService.instance.inviteToJoinGroup(
+                      await MlsGroupService.instance.sendWelcomeMessage(
                           groupRoom,
                           users,
                           chatController.room.getIdentity().displayName);

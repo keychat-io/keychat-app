@@ -535,7 +535,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
         String plaintext = data.args[2];
         String encryptedEvent;
         if (identity.isFromSigner) {
-          encryptedEvent = await SignerService.instance.nip44Encrypt(
+          encryptedEvent = await SignerService.instance.getNip59EventString(
               from: identity.secp256k1PKHex, to: to, content: plaintext);
           logger.d(encryptedEvent);
         } else {

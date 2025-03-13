@@ -1,6 +1,5 @@
-import 'package:app/models/keychat/room_profile.dart';
 import 'package:app/models/room_member.dart';
-import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/components.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/material.dart';
@@ -8,29 +7,19 @@ import 'package:get/get.dart';
 import 'package:settings_ui/settings_ui.dart';
 
 class GroupInfoWidget extends StatelessWidget {
-  final RoomProfile roomProfile;
+  final NostrEventModel subEvent;
   final String idPubkey;
-  const GroupInfoWidget(this.roomProfile, this.idPubkey, {super.key});
+  const GroupInfoWidget(this.subEvent, this.idPubkey, {super.key});
 
   @override
   Widget build(BuildContext context) {
-    List<RoomMember> members = [];
-    for (var user in roomProfile.users) {
-      user['roomId'] = 0;
-      RoomMember rm = RoomMember.fromJson(user);
-      if (rm.status == UserStatusType.invited ||
-          rm.status == UserStatusType.inviting) {
-        members.add(rm);
-      }
-    }
     return Scaffold(
       appBar: AppBar(
           leading:
               IconButton(icon: const Icon(Icons.close), onPressed: Get.back),
-          title: Text('Group: ${roomProfile.name}')),
+          title: Text('New Group Invitation')),
       body: Column(
         children: [
-          getImageGridView(members),
           Expanded(
               child: SettingsList(
             platform: DevicePlatform.iOS,
@@ -38,15 +27,13 @@ class GroupInfoWidget extends StatelessWidget {
               SettingsSection(tiles: [
                 SettingsTile(
                   title: const Text("ID"),
-                  value: textP(getPublicKeyDisplay(roomProfile.pubkey)),
+                  value: textP('mls group id'),
                 ),
                 SettingsTile(
-                    title: const Text('Mode'),
-                    value:
-                        Text(RoomUtil.getGroupModeName(roomProfile.groupType))),
+                    title: const Text('Mode'), value: Text('MLS Large Group')),
                 SettingsTile(
                     title: const Text("Members Count"),
-                    value: Text(members.length.toString())),
+                    value: Text(2.toString())),
               ])
             ],
           )),

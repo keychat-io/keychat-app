@@ -40,12 +40,6 @@ android {
     kotlinOptions {
         jvmTarget = '17'
     }
-//    kotlin {
-//     jvmToolchain {
-//         languageVersion.set(JavaLanguageVersion.of(18))
-//     }
-//     jvmToolchain(8)
-// }
 
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'

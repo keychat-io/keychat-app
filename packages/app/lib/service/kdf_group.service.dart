@@ -522,9 +522,10 @@ Let's create a new group.''';
       ..msg = 'Let\'s reset the status of group [${room.name}]';
 
     List<RoomMember> members = await room.getActiveMembers();
+    List<String> pubkeys = members.map((e) => e.idPubkey).toList();
     await GroupService.instance.sendPrivateMessageToMembers(
-        km.msg!, members, room.getIdentity(),
-        groupRoom: room, km: km);
+        km.msg!, pubkeys, room.getIdentity(),
+        groupRoom: room, content: km.toString());
     await Future.delayed(const Duration(seconds: 1));
     // myself update keys
     await proccessUpdateKeys(room, roomProfile);

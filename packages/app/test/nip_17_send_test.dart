@@ -39,7 +39,7 @@ void main() {
 
   test('NIP17-receive', () async {
     Future task(WebSocketChannel textSocketHandler) async {
-      NostrNip4Req req = NostrNip4Req(
+      NostrReqModel req = NostrReqModel(
           reqId: 'a${Random().nextInt(900000).toString()}',
           pubkeys: [
             '918e2da906df4ccd12c8ac672d8335add131a4cf9d27ce42b3bb3625755f0788'

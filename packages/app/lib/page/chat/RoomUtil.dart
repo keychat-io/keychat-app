@@ -76,7 +76,7 @@ class RoomUtil {
     }
     Get.find<WebsocketService>().writeNostrEvent(
         event: event,
-        eventString: event.toJsonString(),
+        eventString: event.toString(),
         roomId: room.id,
         toRelays: room.sendingRelays);
     logger.i('_messageReceiveCheck: ${event.id}, maxRetry: $maxRetry');

@@ -249,7 +249,7 @@ class RoomService extends BaseChatService {
   }
 
   // get room by send_pubkey and bob_pubkey
-  Future<Room> getOrCreateRoom(String from, String to, RoomStatus status,
+  Future<Room> getOrCreateRoom(String from, String to, RoomStatus initStatus,
       {String? contactName, Identity? identity, RoomType? type}) async {
     Room? room = await getRoom(from, to, identity);
     if (room != null && room.type == RoomType.common && contactName != null) {
@@ -264,7 +264,7 @@ class RoomService extends BaseChatService {
     return await createPrivateRoom(
         toMainPubkey: from,
         identity: identity,
-        status: status,
+        status: initStatus,
         encryptMode: EncryptMode.nip04,
         type: type,
         name: contactName);
@@ -873,18 +873,12 @@ class RoomService extends BaseChatService {
     return null;
   }
 
-  void checkMessageValid(Room room, NostrEventModel nostrEventModel) {
-    int createdAt = room.getIdentity().createdAt.millisecondsSinceEpoch ~/ 1000;
-    if (nostrEventModel.createdAt < createdAt) {
-      throw Exception('ignore_old_message');
-    }
-  }
-
   Future markAllRead({required int identityId, required int roomId}) async {
     var refresh = await MessageService.instance.setViewedMessage(roomId);
-    if (refresh)
+    if (refresh) {
       Utils.getGetxController<HomeController>()
           ?.loadIdentityRoomList(identityId);
+    }
   }
 }
 

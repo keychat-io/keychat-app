@@ -173,7 +173,8 @@ class NostrEventModel {
         'content': content,
         'sig': sig
       };
-  String toJsonString() => jsonEncode(toJson());
+  @override
+  String toString() => jsonEncode(toJson());
 
   /// Serialize to nostr event message
   /// - ["EVENT", event JSON as defined above]
@@ -236,5 +237,21 @@ class NostrEventModel {
       subscriptionId: subscriptionId,
       verify: verify,
     );
+  }
+
+  List<String>? getTagsByKey(String key) {
+    Map<String, List<String>> tagsMap = {};
+    for (var tag in tags) {
+      tagsMap[tag[0]] = tag.sublist(1);
+    }
+    return tagsMap[key];
+  }
+
+  String? getTagByKey(String key) {
+    Map<String, List<String>> tagsMap = {};
+    for (var tag in tags) {
+      tagsMap[tag[0]] = tag.sublist(1);
+    }
+    return tagsMap[key]?[0];
   }
 }

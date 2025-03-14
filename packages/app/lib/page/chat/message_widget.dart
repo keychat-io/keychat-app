@@ -729,6 +729,7 @@ class MessageWidget extends StatelessWidget {
                               // tableRow('Encrypt',
                               //     encryptText[message.encryptType.name]),
                               tableRow("ID", event.id),
+                              tableRow("Kind", event.kind.toString()),
                               tableRow("From", event.pubkey),
                               tableRow("To", event.tags[0][1]),
                               tableRow(
@@ -812,7 +813,7 @@ class MessageWidget extends StatelessWidget {
                         children: <Widget>[
                           relayStatusList(context, eventSendStatus),
                           if (eventModel != null)
-                            ListTile(title: Text(eventModel.toJsonString())),
+                            ListTile(title: Text(eventModel.toString())),
                         ],
                       );
                     })

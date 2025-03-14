@@ -33,7 +33,6 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
   HomeController homeController = Get.find<HomeController>();
   int gridCount = 5;
   late ChatController chatController;
-  late Room room;
   late TextEditingController textEditingController;
   late TextEditingController userNameController;
 
@@ -328,7 +327,8 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
           ),
           title: const Text('Pay to Relay'),
           onPressed: (context) async {
-            Get.to(() => PayToRelayPage(roomId: room.id));
+            Get.to(
+                () => PayToRelayPage(roomId: chatController.roomObs.value.id));
           },
         ),
         // if (chatController.roomObs.value.type == RoomType.bot)
@@ -585,8 +585,8 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                 EasyLoading.showError(msg);
                 return;
               }
-              await Get.find<HomeController>()
-                  .loadIdentityRoomList(room.identityId);
+              await Get.find<HomeController>().loadIdentityRoomList(
+                  chatController.roomObs.value.identityId);
               Get.offAllNamed(Routes.root);
             }),
       ],

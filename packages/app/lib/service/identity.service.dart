@@ -27,7 +27,6 @@ class IdentityService {
   static IdentityService get instance => _instance ??= IdentityService._();
   // Avoid self instance
   IdentityService._();
-  static final DBProvider dbProvider = DBProvider.instance;
 
   Future<bool> checkPrikeyExist(String prikey) async {
     var res = await DBProvider.database.mykeys

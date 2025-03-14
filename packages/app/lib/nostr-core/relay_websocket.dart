@@ -48,7 +48,7 @@ class RelayWebsocket {
     for (List<String> group in groups) {
       String subId = generate64RandomHexChars(16);
 
-      NostrNip4Req req = NostrNip4Req(
+      NostrReqModel req = NostrReqModel(
           reqId: subId, kinds: kinds, pubkeys: group, since: since);
       try {
         sendRawREQ(req.toString());
@@ -60,15 +60,19 @@ class RelayWebsocket {
     }
   }
 
-  sendREQ(NostrNip4Req nq) {
+  sendREQ(NostrReqModel nq) {
     _statusCheck();
     if (subscriptions.keys.length < maxReqCount) {
-      subscriptions[nq.reqId] = Set.from(nq.pubkeys);
+      if (nq.pubkeys != null && nq.pubkeys!.isNotEmpty) {
+        subscriptions[nq.reqId] = Set.from(nq.pubkeys!);
+      }
       return sendRawREQ(nq.toString());
     }
     int index = sentReqCount % maxReqCount;
     String key = subscriptions.keys.elementAt(index);
-    subscriptions[key]!.addAll(nq.pubkeys);
+    if (nq.pubkeys != null && nq.pubkeys!.isNotEmpty) {
+      subscriptions[key]!.addAll(nq.pubkeys!);
+    }
     // Reuse the reqId of the previous request and overwrite the server's configuration
     nq.reqId = key;
     nq.pubkeys = subscriptions[key]!.toList();

@@ -72,8 +72,9 @@ class GroupInviteConfirmAction extends StatelessWidget {
                               List<String> pkIsNull = [];
 
                               for (var entry in toJoinUserMap.entries) {
-                                String? pk = await MlsGroupService.instance
-                                    .getPK(entry.key);
+                                var res = await MlsGroupService.instance
+                                    .getKeyPackagesFromRelay([entry.key]);
+                                String? pk = res[entry.key];
                                 if (pk == null) {
                                   pkIsNull.add(entry.value);
                                 } else {
@@ -106,7 +107,7 @@ class GroupInviteConfirmAction extends StatelessWidget {
                                 ));
                                 return;
                               }
-                              await MlsGroupService.instance.inviteToJoinGroup(
+                              await MlsGroupService.instance.sendWelcomeMessage(
                                   groupRoom, users, senderName);
                               Get.dialog(CupertinoAlertDialog(
                                 title: const Text('Success'),

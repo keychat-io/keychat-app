@@ -92,7 +92,7 @@ class Nip4ChatService extends BaseChatService {
         isSystem: isSystem,
         content: message,
         createdAt: timestampToDateTime(event.createdAt),
-        rawEvents: [event.toJsonString()]);
+        rawEvents: [event.toString()]);
     await MessageService.instance.saveMessageModel(toSaveMsg, room: room);
   }
 

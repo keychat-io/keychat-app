@@ -13,7 +13,6 @@ import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:app/models/models.dart';
 
-import '../models/db_provider.dart';
 import 'identity.service.dart';
 
 class RelayService {
@@ -154,6 +153,17 @@ class RelayService {
     } catch (e) {
       logger.i('updateStatus error: $e');
     }
+  }
+
+  Future<Relay> updateP104(String relayUrl, bool isEnableNip104) async {
+    Relay relay = await getOrPutRelay(relayUrl);
+    relay.isEnableNip104 = isEnableNip104;
+    await update(relay);
+    Utils.getGetxController<WebsocketService>()
+        ?.channels[relayUrl]
+        ?.relay
+        .isEnableNip104 = isEnableNip104;
+    return relay;
   }
 
   Future update(Relay relay) async {

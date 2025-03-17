@@ -71,7 +71,7 @@ class _InviteMemberToMLSState extends State<InviteMemberToMLS>
       String sender = meMember == null ? myPubkey : meMember.name;
 
       await MlsGroupService.instance
-          .sendWelcomeMessage(groupRoom, selectUsers, sender);
+          .addMemeberToGroup(groupRoom, selectUsers, sender);
 
       // update message status
       for (int i = 0; i < selectedMessages.length; i++) {

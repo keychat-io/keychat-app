@@ -204,7 +204,12 @@ class RoomService extends BaseChatService {
           await IdentityService.instance.getIdentityById(room.identityId);
       String? myIdPubkey = identity?.secp256k1PKHex;
       if (myIdPubkey != null) {
-        await rust_mls.deleteGroup(nostrId: myIdPubkey, groupId: toMainPubkey);
+        try {
+          await rust_mls.deleteGroup(
+              nostrId: myIdPubkey, groupId: toMainPubkey);
+        } catch (e) {
+          logger.d('delete mls group error', error: e);
+        }
       }
     }
   }

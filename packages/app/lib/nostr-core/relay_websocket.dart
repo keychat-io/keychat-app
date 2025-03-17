@@ -27,22 +27,28 @@ class RelayWebsocket {
   late WebsocketService ws;
   RelayWebsocket(this.relay, this.ws);
 
-  // listen identity key will take position.
   _startListen() async {
     DateTime since =
         await MessageService.instance.getNostrListenStartAt(relay.url);
-
+    // id keys
     List<String> pubkeys = await IdentityService.instance.getListenPubkeys();
     listenPubkeys(pubkeys, since);
     listenPubkeys(pubkeys, DateTime.now().subtract(const Duration(days: 2)),
         [EventKinds.nip17]);
 
-    List<String> roomKyes = await IdentityService.instance.getRoomPubkeys();
-    listenPubkeys(roomKyes, since);
+    // signal room keys
+    List<String> signalRoomKeys =
+        await IdentityService.instance.getSignalRoomPubkeys();
+    listenPubkeys(signalRoomKeys, since);
+
+    // mls room keys
+    List<String> mlsRoomKeys =
+        await IdentityService.instance.getMlsRoomPubkeys();
+    listenPubkeys(mlsRoomKeys, since, [EventKinds.nip104GroupEvent]);
   }
 
   Future listenPubkeys(List<String> pubkeys, DateTime since,
-      [List<int> kinds = const [EventKinds.encryptedDirectMessage]]) async {
+      [List<int> kinds = const [EventKinds.nip04]]) async {
     List<List<String>> groups = listToGroupList(pubkeys, 120);
 
     for (List<String> group in groups) {

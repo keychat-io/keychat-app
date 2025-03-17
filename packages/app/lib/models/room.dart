@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:app/bot/bot_server_message_model.dart';
+import 'package:app/constants.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/models/models.dart';
 
@@ -14,8 +15,6 @@ import 'package:equatable/equatable.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_signal.dart';
-
-import 'db_provider.dart';
 
 part 'room.g.dart';
 
@@ -574,7 +573,8 @@ Please reset room's session: Chat Setting-> Security Settings -> Reset Session''
   }
 
   Future<Room> replaceListenPubkey(String newPubkey, int startAt,
-      [String? toDeletePubkey]) async {
+      {String? toDeletePubkey,
+      List<int> kinds = const [EventKinds.nip04]}) async {
     onetimekey = newPubkey;
     await RoomService.instance.updateRoomAndRefresh(this);
 
@@ -586,7 +586,7 @@ Please reset room's session: Chat Setting-> Security Settings -> Reset Session''
       }
     }
     await ws.listenPubkey([newPubkey],
-        since: DateTime.fromMillisecondsSinceEpoch(startAt));
+        since: DateTime.fromMillisecondsSinceEpoch(startAt), kinds: kinds);
     if (isMute == false) {
       NotifyService.addPubkeys([newPubkey]);
     }

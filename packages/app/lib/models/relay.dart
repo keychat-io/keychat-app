@@ -25,6 +25,7 @@ class Relay extends Equatable {
   bool active = true;
   DateTime updatedAt = DateTime.now();
   String? errorMessage;
+  bool isEnableNip104 = false;
 
   Relay(this.url);
 

@@ -78,8 +78,9 @@ class WebsocketService extends GetxService {
       if (rw.relay.active == false) continue;
       rw.checkOnlineStatus().then((relayStatus) {
         if (!relayStatus) {
+          rw.failedTimes = 0;
           rw.channel?.sink.close();
-          _startConnectRelay(rw, true);
+          _startConnectRelay(rw);
         }
       });
     }
@@ -98,6 +99,16 @@ class WebsocketService extends GetxService {
             element.channelStatus == RelayStatusEnum.success &&
             element.channel != null)
         .toList();
+  }
+
+  List<RelayWebsocket> getConnectedNip104Relay() {
+    var list = channels.values
+        .where((element) =>
+            element.channelStatus == RelayStatusEnum.success &&
+            element.channel != null)
+        .toList();
+    var nip104Enable = list.where((element) => element.relay.isEnableNip104);
+    return nip104Enable.isEmpty ? list : nip104Enable.toList();
   }
 
   List<String> getActiveRelayString() {
@@ -133,14 +144,21 @@ class WebsocketService extends GetxService {
   }
 
   listenPubkey(List<String> pubkeys,
-      {DateTime? since, String? relay, int? limit}) {
+      {DateTime? since,
+      String? relay,
+      int? limit,
+      List<int> kinds = const [EventKinds.nip04]}) {
     if (pubkeys.isEmpty) return;
 
     since ??= DateTime.now().subtract(const Duration(days: 7));
     String subId = generate64RandomHexChars(16);
 
     NostrReqModel req = NostrReqModel(
-        reqId: subId, pubkeys: pubkeys, since: since, limit: limit);
+        reqId: subId,
+        pubkeys: pubkeys,
+        since: since,
+        limit: limit,
+        kinds: kinds);
     try {
       Get.find<WebsocketService>().sendReq(req, relay: relay);
     } catch (e) {
@@ -179,14 +197,17 @@ class WebsocketService extends GetxService {
   Future<List<NostrEventModel>> fetchInfoFromRelay(
       String subId, String eventString,
       {Duration wait = const Duration(seconds: 2),
-      bool waitTimeToFill = false}) async {
-    List<RelayWebsocket> list = getConnectedRelay();
-    if (list.isEmpty) throw Exception('Not connected with relay server');
-    for (RelayWebsocket rw in list) {
+      bool waitTimeToFill = false,
+      List<RelayWebsocket>? sockets}) async {
+    sockets ??= getConnectedRelay();
+    if (sockets.isEmpty) {
+      throw Exception('Not connected, or the relay not support nips');
+    }
+    for (RelayWebsocket rw in sockets) {
       rw.sendRawREQ(eventString);
     }
     return await SubscribeResult.instance.registerSubscripton(
-        subId, list.length,
+        subId, sockets.length,
         wait: wait, waitTimeToFill: waitTimeToFill);
   }
 
@@ -522,13 +543,12 @@ class WebsocketService extends GetxService {
     }));
   }
 
-  Future<RelayWebsocket> _startConnectRelay(RelayWebsocket rw,
-      [bool ignoreFailedTime = false]) async {
+  Future<RelayWebsocket> _startConnectRelay(RelayWebsocket rw) async {
     if (rw.relay.active == false) {
       return rw;
     }
 
-    if (rw.failedTimes > failedTimesLimit && !ignoreFailedTime) {
+    if (rw.failedTimes > failedTimesLimit) {
       rw.channelStatus = RelayStatusEnum.failed;
       rw.channel?.sink.close();
       clearFailedEvents(rw.relay.url);
@@ -639,20 +659,5 @@ class WebsocketService extends GetxService {
 
   clearFailedEvents(String relay) {
     failedEventsMap.remove(relay);
-  }
-
-  Future<List<String>> waitRelayOnline({int maxAttempts = 10}) async {
-    var onlineRelays = getOnlineRelayString();
-    int activeRelays = getActiveRelayString().length;
-    int attempts = 0;
-    while (onlineRelays.isEmpty && attempts < maxAttempts ||
-        (onlineRelays.isNotEmpty && onlineRelays.length / activeRelays < 0.5)) {
-      logger.d(
-          'Waiting for relays to be available... (${attempts + 1}/$maxAttempts)');
-      await Future.delayed(const Duration(seconds: 1));
-      attempts++;
-      onlineRelays = getOnlineRelayString();
-    }
-    return onlineRelays;
   }
 }

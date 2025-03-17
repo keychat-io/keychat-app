@@ -2,7 +2,6 @@ import 'dart:convert' show jsonDecode;
 
 import 'package:app/constants.dart';
 import 'package:app/controller/home.controller.dart';
-import 'package:app/models/db_provider.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 
@@ -12,6 +11,7 @@ import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
@@ -43,7 +43,7 @@ class GroupInviteAction extends StatelessWidget {
     EasyThrottle.throttle('joingroup', const Duration(seconds: 2), () async {
       NostrEventModel subEvent =
           NostrEventModel.fromJson(jsonDecode(message.content));
-      String? groupId = subEvent.getTagByKey(EventKindTags.nip104Group);
+      String? groupId = subEvent.getTagByKey(EventKindTags.pubkey);
       if (groupId == null) {
         EasyLoading.showError('Group ID is missing');
         return;
@@ -104,18 +104,31 @@ class GroupInviteAction extends StatelessWidget {
         message.requestConfrim = RequestConfrimEnum.request;
         await MessageService.instance.updateMessageAndRefresh(message);
         String msg = Utils.getErrorMessage(e);
+        EasyLoading.dismiss();
         if (msg.contains('Error creating StagedWelcome from Welcome')) {
           msg =
-              'PackageMessage is invalid, Contact the group admin, resend the invitation';
+              'Your KeyPackage is invalid, Please contact the group admin, resend the invitation';
           await MlsGroupService.instance.uploadKeyPackages([identity]);
           message.requestConfrim = RequestConfrimEnum.expired;
           await MessageService.instance.updateMessageAndRefresh(message);
         }
         logger.e(msg, error: e, stackTrace: s);
-        EasyLoading.showError('Join Group Error: $msg',
-            duration: const Duration(seconds: 3));
+        Get.dialog(CupertinoAlertDialog(
+            title: const Text('Join Group Error'),
+            content: Text(msg),
+            actions: <Widget>[
+              CupertinoDialogAction(
+                  child: const Text('OK'),
+                  onPressed: () async {
+                    Get.back();
+                    await MlsGroupService.instance
+                        .uploadKeyPackages([identity]);
+                  })
+            ]));
         return;
       }
+      // update my group keyPackage
+      await MlsGroupService.instance.uploadKeyPackages([identity]);
       await Get.offAndToNamed('/room/${groupRoom.id}', arguments: groupRoom);
       Get.find<HomeController>().loadIdentityRoomList(groupRoom.identityId);
     });

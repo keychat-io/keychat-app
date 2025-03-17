@@ -5,6 +5,7 @@ import 'dart:math' show Random;
 import 'package:app/models/identity.dart';
 import 'package:app/service/SignerService.dart';
 import 'package:app/service/identity.service.dart';
+import 'package:app/service/websocket.service.dart';
 import 'package:auto_size_text_plus/auto_size_text_plus.dart';
 import 'package:badges/badges.dart' as badges;
 import 'package:app/controller/setting.controller.dart';
@@ -524,14 +525,17 @@ class Utils {
                   [const Color(0xff713CD0), const Color(0xff945BF3)]),
         ),
         child: Center(
+            child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 6),
           child: AutoSizeText(_getDisplayName(account, nameLength),
               minFontSize: 10,
               stepGranularity: 2,
               maxFontSize: fontSize,
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.clip,
-              style: TextStyle(fontSize: fontSize, color: Colors.white)),
-        ));
+              style: TextStyle(
+                  fontSize: fontSize, color: Colors.white, height: 1.1)),
+        )));
   }
 
   static Widget getRandomAvatar(String id,
@@ -907,5 +911,41 @@ class Utils {
         break;
     }
     return directory;
+  }
+
+  static Future<List<String>> waitRelayOnline({int maxAttempts = 10}) async {
+    WebsocketService? ws;
+    int initAttempts = 0;
+    const maxInitAttempts = 5;
+
+    while (ws == null && initAttempts < maxInitAttempts) {
+      ws = getGetxController<WebsocketService>();
+      if (ws == null) {
+        initAttempts++;
+        logger.d(
+            'Waiting for WebsocketService to initialize... ($initAttempts/$maxInitAttempts)');
+        await Future.delayed(const Duration(seconds: 1));
+      }
+    }
+
+    if (ws == null) {
+      logger.e(
+          'Failed to initialize WebsocketService after $maxInitAttempts attempts');
+      return [];
+    }
+    var onlineRelays = ws.getOnlineRelayString();
+    int activeRelays = ws.getActiveRelayString().length;
+    int attempts = 0;
+    while ((onlineRelays.isEmpty && attempts < maxAttempts) ||
+        (onlineRelays.isNotEmpty &&
+            onlineRelays.length / activeRelays < 0.5 &&
+            attempts < maxAttempts)) {
+      logger.d(
+          'Waiting for relays to be available... (${attempts + 1}/$maxAttempts)');
+      await Future.delayed(const Duration(seconds: 1));
+      attempts++;
+      onlineRelays = ws.getOnlineRelayString();
+    }
+    return onlineRelays;
   }
 }

@@ -5,6 +5,7 @@ import 'package:app/page/chat/message_bill/pay_to_relay_page.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
+import 'package:keychat_rust_ffi_plugin/api_mls.dart' as rust_mls;
 
 import 'package:app/service/contact.service.dart';
 
@@ -94,14 +95,14 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                   }),
             IconButton(
                 onPressed: () async {
-                  List<RoomMember> members =
-                      await chatController.room.getActiveMembers();
-                  RoomMember? admin = await chatController.room.getAdmin();
-                  Set<String> memberPubkeys = {};
-                  for (RoomMember rm in members) {
-                    memberPubkeys.add(rm.idPubkey);
-                  }
-
+                  List<String> existedPubkeys = await rust_mls.getGroupMembers(
+                      nostrId: chatController.roomObs.value
+                          .getIdentity()
+                          .secp256k1PKHex,
+                      groupId: chatController.roomObs.value.toMainPubkey);
+                  Set<String> memberPubkeys = Set.from(existedPubkeys);
+                  String admin = await MlsGroupService.instance
+                      .getAdmin(chatController.roomObs.value);
                   // contacts
                   List<Contact> contactList = await ContactService.instance
                       .getListExcludeSelf(chatController.room.identityId);
@@ -119,8 +120,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                       "exist": exist,
                       "isCheck": false,
                       "mlsPK": null,
-                      "isAdmin":
-                          (admin?.idPubkey ?? '') == contactList[i].pubkey
+                      "isAdmin": admin == contactList[i].pubkey
                     });
                   }
                   Get.to(() => AddMemberToGroup(

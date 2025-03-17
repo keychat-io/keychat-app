@@ -16,7 +16,6 @@ import 'package:app/nostr-core/request.dart';
 import 'package:app/service/secure_storage.dart';
 
 import 'package:app/service/identity.service.dart';
-import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/nip4_chat.service.dart';
 import 'package:app/service/signal_chat.service.dart';
 import 'package:app/service/websocket.service.dart';
@@ -150,8 +149,9 @@ class NostrAPI {
       case EventKinds.contactList:
         await _proccessNip2(event);
         break;
-      case EventKinds.encryptedDirectMessage:
+      case EventKinds.nip04:
       case EventKinds.nip17:
+      case EventKinds.nip104GroupEvent:
         await _proccessNip4Message(event, eventList, relay, raw);
         break;
       case EventKinds.nip104KP:
@@ -235,16 +235,18 @@ class NostrAPI {
       required String from,
       required Room room,
       required MessageEncryptType encryptType,
+      int kind = EventKinds.nip04,
+      List<List<String>>? additionalTags,
       MessageMediaType? mediaType,
       MsgReply? reply,
       bool? isSystem,
       String? realMessage,
       String? sourceContent,
-      bool isSignalMessage = false,
+      bool isEncryptedMessage = false,
       String? signalReceiveAddress,
       String? msgKeyHash}) async {
     late String encryptedEvent;
-    if (isSignalMessage) {
+    if (isEncryptedMessage) {
       var receiverPubkeys = [toPubkey];
       if (signalReceiveAddress != null) {
         receiverPubkeys.add(signalReceiveAddress);
@@ -253,7 +255,8 @@ class NostrAPI {
           senderKeys: prikey,
           receiverPubkeys: receiverPubkeys,
           content: toEncryptText,
-          kind: EventKinds.encryptedDirectMessage);
+          kind: kind,
+          additionalTags: additionalTags);
     } else {
       encryptedEvent = await rust_nostr.getEncryptEvent(
           senderKeys: prikey, receiverPubkey: toPubkey, content: toEncryptText);
@@ -451,10 +454,9 @@ class NostrAPI {
       ess?.setError('proccess error: $error $stackTrace');
     }
 
+    String to = event.tags[0][1];
     switch (event.kind) {
-      case EventKinds.encryptedDirectMessage:
-        String to = event.tags[0][1];
-
+      case EventKinds.nip04:
         try {
           // signal chat room
           Room? room =
@@ -462,14 +464,6 @@ class NostrAPI {
           if (room != null) {
             await SignalChatService.instance.decryptMessage(room, event, relay,
                 failedCallback: failedCallback);
-            return;
-          }
-
-          // mls group room. receive address is one-time-key field
-          Room? mlsRoom = await RoomService.instance.getRoomByOnetimeKey(to);
-          if (mlsRoom != null && mlsRoom.isMLSGroup) {
-            await _groupMessageHandle(
-                mlsRoom, event, relay, failedCallback, to);
             return;
           }
 
@@ -503,34 +497,23 @@ class NostrAPI {
           logger.e('nip17 decrypt error: $msg', error: e, stackTrace: s);
         }
         break;
+      case EventKinds.nip104GroupEvent:
+        // mls group room. receive address is one-time-key field
+        Room? mlsRoom = await RoomService.instance.getRoomByOnetimeKey(to);
+        if (mlsRoom != null && mlsRoom.isMLSGroup) {
+          await _mlsGroupMessageHandle(
+              mlsRoom, event, relay, failedCallback, to);
+          return;
+        }
       default:
     }
   }
 
-  Future<void> _groupMessageHandle(Room groupRoom, NostrEventModel event,
+  Future<void> _mlsGroupMessageHandle(Room groupRoom, NostrEventModel event,
       Relay relay, Function(String error) failedCallback, String to) async {
-    if (groupRoom.groupType == GroupType.kdf) {
-      await _proccessByKDFRoom(groupRoom, event, relay, failedCallback);
-      return;
-    }
-    if (groupRoom.groupType == GroupType.mls) {
-      await MlsGroupService.instance
-          .decryptMessage(groupRoom, event, failedCallback: failedCallback);
-      return;
-    }
-    await dmNip4Proccess(event, relay, failedCallback, room: groupRoom);
-  }
-
-  Future _proccessByKDFRoom(Room kdfRoom, NostrEventModel event, Relay relay,
-      Function(String error) failedCallback) async {
-    String? content = await decryptNip4Content(event);
-    if (content == null) {
-      logger.e('decrypt error: ${event.toString()}');
-      failedCallback('Nip04 decrypt error');
-      return;
-    }
-    await KdfGroupService.instance.decryptMessage(kdfRoom, event,
-        nip4DecodedContent: content, failedCallback: failedCallback);
+    if (groupRoom.groupType != GroupType.mls) return;
+    await MlsGroupService.instance
+        .decryptMessage(groupRoom, event, failedCallback: failedCallback);
   }
 
   Future dmNip4Proccess(NostrEventModel sourceEvent, Relay relay,

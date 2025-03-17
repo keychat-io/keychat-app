@@ -104,7 +104,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
       String sender = meMember == null ? myPubkey : meMember.name;
       if (widget.room.isMLSGroup) {
         await MlsGroupService.instance
-            .sendWelcomeMessage(groupRoom, selectUsers, sender);
+            .addMemeberToGroup(groupRoom, selectUsers, sender);
       } else if (widget.room.isSendAllGroup) {
         await GroupService.instance
             .inviteToJoinGroup(groupRoom, selectAccounts);

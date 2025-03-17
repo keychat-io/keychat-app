@@ -83,7 +83,7 @@ class EventKinds {
   static const int textNote = 1;
   static const int recommendServer = 2;
   static const int contactList = 3;
-  static const int encryptedDirectMessage = 4;
+  static const int nip04 = 4;
   static const int delete = 5;
   static const int reaction = 7;
   static const int nip42 = 22242;

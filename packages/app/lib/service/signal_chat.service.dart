@@ -104,7 +104,7 @@ class SignalChatService extends BaseChatService {
       sourceContent: message0,
       reply: reply,
       mediaType: mediaType,
-      isSignalMessage: true,
+      isEncryptedMessage: true,
       msgKeyHash: msgKeyHash,
       signalReceiveAddress: room.type == RoomType.bot ? to : null,
     );

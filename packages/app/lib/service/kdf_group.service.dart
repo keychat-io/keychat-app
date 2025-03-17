@@ -493,7 +493,7 @@ Let's create a new group.''';
         senderKeys: await identity.getSecp256k1SKHex(),
         receiverPubkeys: [room.toMainPubkey],
         content: encryptedContent,
-        kind: EventKinds.encryptedDirectMessage);
+        kind: EventKinds.nip04);
 
     var randomAccount = await rust_nostr.generateSimple();
 

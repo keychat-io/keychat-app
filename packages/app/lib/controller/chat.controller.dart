@@ -25,7 +25,6 @@ import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 
-import '../models/db_provider.dart';
 import '../service/contact.service.dart';
 import '../service/file_util.dart';
 import '../service/room.service.dart';

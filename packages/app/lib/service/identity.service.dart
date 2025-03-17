@@ -405,11 +405,16 @@ class IdentityService {
     return prikey;
   }
 
-  Future<List<String>> getRoomPubkeys() async {
+  Future<List<String>> getSignalRoomPubkeys() async {
     List<int> skipedIdentityIds = await getDisableChatIdentityIDList();
     // only listen nip04
     List<String> signal = await ContactService.instance
         .getAllReceiveKeys(skipIDs: skipedIdentityIds);
+    return signal;
+  }
+
+  Future<List<String>> getMlsRoomPubkeys() async {
+    List<int> skipedIdentityIds = await getDisableChatIdentityIDList();
     Set<String> mlsPubkeys = {};
     // mls room's receive key
     List<Room> mlsRooms = await RoomService.instance.getMlsRooms();
@@ -419,7 +424,7 @@ class IdentityService {
       }
       mlsPubkeys.add(room.onetimekey!);
     }
-    return <String>{...signal, ...mlsPubkeys}.toList();
+    return mlsPubkeys.toList();
   }
 
   Future<List<String>> getRoomPubkeysSkipMute() async {

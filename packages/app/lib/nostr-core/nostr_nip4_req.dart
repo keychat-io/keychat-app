@@ -9,14 +9,14 @@ class NostrReqModel {
   List<String>? authors;
   late DateTime since;
   int? limit;
-  List<int> kinds = [EventKinds.encryptedDirectMessage];
+  List<int> kinds = [EventKinds.nip04];
 
   NostrReqModel(
       {required this.reqId,
       this.pubkeys,
       this.authors,
       required this.since,
-      this.kinds = const [EventKinds.encryptedDirectMessage],
+      this.kinds = const [EventKinds.nip04],
       this.limit});
 
   @override

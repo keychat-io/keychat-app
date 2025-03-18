@@ -120,7 +120,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-        canPop: GetPlatform.isIOS,
+        canPop: false,
         onPopInvokedWithResult: (didPop, d) {
           if (didPop) {
             return;
@@ -259,40 +259,6 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                   icon: const Icon(Icons.more_horiz),
                 ),
               ]),
-          // bottomNavigationBar: SafeArea(
-          //     child: SizedBox(
-          //   height: 40,
-          //   child: appBar,
-          // )),
-          floatingActionButtonLocation:
-              FloatingActionButtonLocation.miniStartTop,
-          floatingActionButtonAnimator:
-              FloatingActionButtonAnimator.noAnimation,
-          floatingActionButton: GetPlatform.isIOS && canGoBack
-              ? Container(
-                  margin: EdgeInsets.only(top: Get.height * 0.9),
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withAlpha(100),
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                  child: IconButton(
-                      onPressed: goBackOrPop,
-                      padding: const EdgeInsets.all(0),
-                      icon: const Icon(
-                        Icons.arrow_back,
-                        color: Colors.white,
-                      )))
-              : (kDebugMode
-                  ? FilledButton(
-                      onPressed: () {
-                        webViewController?.evaluateJavascript(
-                            source: "window.nostr.getPublicKey()");
-                      },
-                      child: const Text('debug'))
-                  : null),
-
           body: SafeArea(
               bottom: GetPlatform.isAndroid,
               child: InAppWebView(

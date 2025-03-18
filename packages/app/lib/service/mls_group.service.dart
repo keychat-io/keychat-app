@@ -68,7 +68,7 @@ class MlsGroupService extends BaseChatService {
 
     // send invitation message
     await _sendInviteMessage(
-        groupRoom: groupRoom, toUsers: userNameMap, mlsWelcome: welcomeMsg);
+        groupRoom: groupRoom, users: userNameMap, mlsWelcome: welcomeMsg);
   }
 
   bool adminOnlyMiddleware(RoomMember from, int type) {
@@ -107,11 +107,11 @@ $error ''';
   }
 
   Future<Room> createGroup(String groupName, Identity identity,
-      List<Map<String, dynamic>> toUsers) async {
+      {required List<Map<String, dynamic>> toUsers,
+      required List<String> groupRelays}) async {
     Room room = await GroupService.instance
         .createGroup(groupName, identity, GroupType.mls);
-    List<String> groupRelays =
-        Get.find<WebsocketService>().getOnlineRelayString();
+
     await rust_mls.createMlsGroup(
         nostrId: identity.secp256k1PKHex,
         groupId: room.toMainPubkey,
@@ -137,13 +137,13 @@ $error ''';
     String welcomeMsg = base64.encode(welcome.$2);
     // String mlsGroupInfo = base64.encode(groupJoinConfig);
 
-    Map<String, String> users = {};
+    Map<String, String> result = {};
     for (var user in toUsers) {
-      users[user['pubkey']] = user['name'];
+      result[user['pubkey']] = user['name'];
     }
 
     await _sendInviteMessage(
-        groupRoom: room, toUsers: users, mlsWelcome: welcomeMsg);
+        groupRoom: room, users: result, mlsWelcome: welcomeMsg);
 
     return room;
   }
@@ -863,26 +863,30 @@ $error ''';
 
   Future _sendInviteMessage(
       {required Room groupRoom,
-      required Map<String, String> toUsers,
+      required Map<String, String> users,
       required String mlsWelcome}) async {
-    if (toUsers.isEmpty) return;
+    if (users.isEmpty) return;
     Identity identity = groupRoom.getIdentity();
     await RoomService.instance.checkRoomStatus(groupRoom);
     String realMessage =
-        'Invite ${toUsers.values.join(',')} to join group ${groupRoom.name}';
+        'Invite ${users.values.join(',')} to join group ${groupRoom.name}';
 
     await GroupService.instance.sendPrivateMessageToMembers(
-        realMessage, toUsers.keys.toList(), identity,
+        realMessage, users.keys.toList(), identity,
         content: mlsWelcome,
         groupRoom: groupRoom,
         nip17: true,
-        nip17Kind: EventKinds.nip104Welcome);
+        nip17Kind: EventKinds.nip104Welcome,
+        additionalTags: [
+          // group id
+          [EventKindTags.pubkey, groupRoom.toMainPubkey],
+        ]);
 
     RoomService.getController(groupRoom.id)?.resetMembers();
   }
 
   Future<String> getAdmin(Room room) async {
-    var group = await rust_mls.getGroupExtension(
+    await rust_mls.getGroupExtension(
         nostrId: room.getIdentity().secp256k1PKHex, groupId: room.toMainPubkey);
     return '';
   }

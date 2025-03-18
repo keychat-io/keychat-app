@@ -71,7 +71,7 @@ class SignerService {
       ["p", to]
     ];
     if (additionalTags != null) {
-      tags.addAll(additionalTags);
+      tags = additionalTags;
     }
     var subEvent = {
       "id": id1,

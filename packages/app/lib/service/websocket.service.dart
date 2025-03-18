@@ -108,7 +108,7 @@ class WebsocketService extends GetxService {
             element.channel != null)
         .toList();
     var nip104Enable = list.where((element) => element.relay.isEnableNip104);
-    return nip104Enable.isEmpty ? list : nip104Enable.toList();
+    return nip104Enable.toList();
   }
 
   List<String> getActiveRelayString() {

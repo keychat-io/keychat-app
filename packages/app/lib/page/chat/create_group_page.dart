@@ -1,8 +1,10 @@
 import 'package:app/controller/home.controller.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/create_group_select_member.dart';
+import 'package:app/page/setting/RelaySetting.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
@@ -92,9 +94,40 @@ class _AddGroupPageState extends State<AddGroupPage>
                       "isAdmin": false
                     });
                   }
+                  List<String> relays = [];
+                  if (groupType == GroupType.mls) {
+                    var list =
+                        Get.find<WebsocketService>().getConnectedNip104Relay();
+                    if (list.isEmpty) {
+                      Get.dialog(
+                        CupertinoAlertDialog(
+                          title: const Text('No relay available'),
+                          content: const Text(
+                              'Please connect to a relay server which support nip104 protocol, like wss://relay.keychat.io'),
+                          actions: <Widget>[
+                            CupertinoDialogAction(
+                              child: const Text('Cancel'),
+                              onPressed: () {
+                                Get.back();
+                              },
+                            ),
+                            CupertinoDialogAction(
+                              child: const Text('Network'),
+                              onPressed: () {
+                                Get.back();
+                                Get.to(() => RelaySetting());
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                      return;
+                    }
+                    relays = list.map((e) => e.relay.url).toList();
+                  }
 
-                  Get.to(() =>
-                      CreateGroupSelectMember(groupName, groupType, list));
+                  Get.to(() => CreateGroupSelectMember(
+                      groupName, relays, groupType, list));
                 },
                 child: const Text('Next'))),
         body: SafeArea(

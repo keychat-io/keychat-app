@@ -12,10 +12,12 @@ import 'package:app/models/models.dart';
 
 class CreateGroupSelectMember extends StatefulWidget {
   final List<Map<String, dynamic>> contacts;
+  final List<String> relays;
   final String groupName;
   final GroupType groupType;
 
-  const CreateGroupSelectMember(this.groupName, this.groupType, this.contacts,
+  const CreateGroupSelectMember(
+      this.groupName, this.relays, this.groupType, this.contacts,
       {super.key});
 
   @override
@@ -25,8 +27,6 @@ class CreateGroupSelectMember extends StatefulWidget {
 
 class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
     with TickerProviderStateMixin {
-  HomeController hc = Get.find<HomeController>();
-
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _userNameController =
       TextEditingController(text: "");
@@ -85,11 +85,7 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
       Map contact = users[i];
       if (contact['isCheck']) {
         String selectAccount = "";
-        if (hc.getSelectedIdentity().secp256k1PKHex == contact['pubkey']) {
-          selectAccount = hc.getSelectedIdentity().secp256k1PKHex;
-        } else {
-          selectAccount = contact['pubkey'];
-        }
+        selectAccount = contact['pubkey'];
         selectAccounts[selectAccount] = contact['name'];
         selectedContact.add({
           'pubkey': contact['pubkey'],
@@ -103,15 +99,16 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
       return;
     }
     late Room room;
-    Identity identity = hc.getSelectedIdentity();
+    Identity identity = Get.find<HomeController>().getSelectedIdentity();
     try {
       if (widget.groupType == GroupType.sendAll) {
         room = await GroupService.instance
             .createGroup(widget.groupName, identity, widget.groupType);
         await GroupService.instance.inviteToJoinGroup(room, selectAccounts);
       } else if (widget.groupType == GroupType.mls) {
-        room = await MlsGroupService.instance
-            .createGroup(widget.groupName, identity, selectedContact);
+        room = await MlsGroupService.instance.createGroup(
+            widget.groupName, identity,
+            toUsers: selectedContact, groupRelays: widget.relays);
       }
       Get.back();
     } catch (e, s) {

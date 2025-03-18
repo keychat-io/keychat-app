@@ -9,7 +9,7 @@ class KeychatGlobal {
   static const String baseFilePath = 'file';
   static const String signalProcotolDBFile = 'signal_procotol.db';
   static const String ecashDBFile = 'ecash.db';
-  static const String mlsDBFile = 'mls_v2.db';
+  static const String mlsDBFile = 'mls.db3';
   static const String notifycationServer = 'https://notify.keychat.io/v2';
   static const int cashuPrepareAmount = 32;
   static const int messageFailedAfterSeconds = 4;

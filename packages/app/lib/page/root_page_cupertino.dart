@@ -12,45 +12,30 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-class CupertinoRootPage extends GetView<HomeController> {
+class CupertinoRootPage extends StatefulWidget {
   const CupertinoRootPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    List configs = [
-      {
-        "page": const RoomList(),
-        "barItem": BottomNavigationBarItem(
-            label: 'Chats',
-            icon: Obx(() => Badge(
-                backgroundColor: Colors.red,
-                textColor: Colors.white,
-                label: Text('${controller.allUnReadCount.value}'),
-                isLabelVisible: controller.allUnReadCount.value > 0,
-                child: const Icon(CupertinoIcons.chat_bubble_fill, size: 22)))),
-        "linux": true,
-        "windows": true,
-      },
-      {
-        "page": const BrowserPage(),
-        "barItem": const BottomNavigationBarItem(
-            label: 'Browser', icon: Icon(Icons.explore, size: 22)),
-        "linux": false,
-        "windows": false,
-      },
-      {
-        "page": const MinePage(),
-        "barItem": const BottomNavigationBarItem(
-            label: 'Me', icon: Icon(CupertinoIcons.person_fill, size: 22)),
-        "linux": true,
-        "windows": true,
-      }
-    ];
+  State<CupertinoRootPage> createState() => _CupertinoRootPageState();
+}
 
+class _CupertinoRootPageState extends State<CupertinoRootPage> {
+  int _selectedIndex = 0;
+  List configs = [];
+
+  @override
+  void initState() {
+    configs = [const RoomList(), const BrowserPage(), const MinePage()];
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return CupertinoTabScaffold(
       restorationId: 'cupertino_tab_scaffold',
       resizeToAvoidBottomInset: true,
       tabBar: CupertinoTabBar(
+        currentIndex: _selectedIndex,
         onTap: (value) async {
           if (EasyLoading.isShow) {
             EasyLoading.dismiss();
@@ -64,13 +49,30 @@ class CupertinoRootPage extends GetView<HomeController> {
               Utils.getGetxController<EcashController>()?.getBalance();
             });
           }
+          setState(() {
+            _selectedIndex = value;
+          });
         },
-        items: configs
-            .map((e) => e["barItem"] as BottomNavigationBarItem)
-            .toList(),
+        iconSize: 24,
+        items: [
+          BottomNavigationBarItem(
+              label: 'Chats',
+              icon: Obx(() => Badge(
+                  backgroundColor: Colors.red,
+                  textColor: Colors.white,
+                  label: Text(
+                      '${Get.find<HomeController>().allUnReadCount.value}'),
+                  isLabelVisible:
+                      Get.find<HomeController>().allUnReadCount.value > 0,
+                  child: const Icon(CupertinoIcons.chat_bubble_fill)))),
+          const BottomNavigationBarItem(
+              label: 'Browser', icon: Icon(Icons.explore)),
+          const BottomNavigationBarItem(
+              label: 'Me', icon: Icon(CupertinoIcons.person_fill))
+        ],
       ),
       tabBuilder: (context, index) {
-        return configs.elementAt(index)["page"] as Widget;
+        return configs[index];
       },
     );
   }

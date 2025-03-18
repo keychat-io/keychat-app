@@ -4,7 +4,7 @@ description: keychat
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.29.2+6335
+version: 1.29.2+6336
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
@@ -23,7 +23,7 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.2
-  get: ^4.6.6
+  get: ^4.7.2
   flutter_easyloading: ^3.0.5
   path_provider: ^2.1.5
   convert: ^3.1.2

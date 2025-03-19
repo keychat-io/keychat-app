@@ -1,4 +1,4 @@
-import 'dart:async' show StreamSubscription, Timer;
+import 'dart:async' show StreamSubscription;
 import 'dart:convert' show jsonDecode;
 
 import 'package:app/controller/setting.controller.dart';
@@ -56,8 +56,6 @@ class HomeController extends GetxController
   RxBool debugModel = false.obs;
   RxBool debugSendMessageRunning = false.obs;
   int debugModelClickCount = 0;
-  // final Map<int, ScrollController> scrollControllers = {};
-  Timer? _checkWebsocketTimer;
 
   RxList recommendBots = [].obs;
   RxMap recommendWebstore = {}.obs;
@@ -125,24 +123,18 @@ class HomeController extends GetxController
         EasyThrottle.throttle(
             'AppLifecycleState.resumed', const Duration(seconds: 3), () {
           if (isPaused) {
-            Get.find<WebsocketService>().start().then((c) async {
-              _startConnectHeartbeat();
-            });
+            Get.find<WebsocketService>().checkOnlineAndConnect();
+            NostrAPI.instance.okCallback.clear();
             Utils.initLoggger(Get.find<SettingController>().appFolder);
             NotifyService.syncPubkeysToServer(checkUpload: true);
             return;
           }
-          NostrAPI.instance.okCallback.clear();
-          Get.find<WebsocketService>().checkOnlineAndConnect();
         });
 
         return;
       case AppLifecycleState.paused:
         resumed = false;
         pausedTime = DateTime.now();
-        if (GetPlatform.isMobile) {
-          _stopConnectHeartbeat();
-        }
         break;
       case AppLifecycleState.detached:
         // app been killed
@@ -423,7 +415,6 @@ class HomeController extends GetxController
         Connectivity().onConnectivityChanged.listen(networkListenHandle);
     removeBadge();
     try {
-      _startConnectHeartbeat();
       RoomUtil.executeAutoDelete();
     } catch (e, s) {
       logger.e(e.toString(), stackTrace: s);
@@ -503,24 +494,6 @@ class HomeController extends GetxController
     item.identity = identity;
     tabBodyDatas[identity.id] = item;
     tabBodyDatas.refresh();
-  }
-
-  void _startConnectHeartbeat() async {
-    _stopConnectHeartbeat();
-    EasyDebounce.debounce('checkOnlineAndConnect', const Duration(seconds: 30),
-        () async {
-      if (!resumed) return;
-      _checkWebsocketTimer =
-          Timer.periodic(const Duration(minutes: 1), (timer) {
-        loggerNoLine.i('checkOnlineAndConnect');
-        Get.find<WebsocketService>().checkOnlineAndConnect();
-      });
-    });
-  }
-
-  void _stopConnectHeartbeat() {
-    _checkWebsocketTimer?.cancel();
-    _checkWebsocketTimer = null;
   }
 
   void resortRoomList(int identityId) {

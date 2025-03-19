@@ -3,12 +3,14 @@
 import 'dart:io' show File, exit;
 
 import 'package:app/controller/home.controller.dart';
+import 'package:app/nostr-core/relay_websocket.dart';
 import 'package:app/page/dbSetup/db_setting.dart';
 import 'package:app/page/setting/QueryReceivedEvent.dart';
 import 'package:app/page/setting/UnreadMessages.dart';
 import 'package:app/page/setting/UploadedPubkeys.dart';
 import 'package:app/page/setting/file_storage_server.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
+import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
@@ -32,6 +34,8 @@ class MoreChatSetting extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    List<RelayWebsocket> nip104Relays =
+        Get.find<WebsocketService>().getConnectedNip104Relay();
     return Scaffold(
         appBar: AppBar(
           centerTitle: true,
@@ -57,6 +61,32 @@ class MoreChatSetting extends StatelessWidget {
                       handleNotificationSettting();
                     },
                     title: const Text('Notifications'))
+            ]),
+            SettingsSection(title: const Text('MLS Group Settings'), tiles: [
+              SettingsTile(
+                  leading: const Icon(CupertinoIcons.cloud_upload),
+                  title: const Text("Upload KeyPackages"),
+                  onPressed: (context) async {
+                    try {
+                      await MlsGroupService.instance.uploadKeyPackages();
+                      EasyLoading.showSuccess('Upload KeyPackages Success');
+                    } catch (e) {
+                      logger.e('Failed to upload KeyPackages: $e');
+                      EasyLoading.showError(
+                          'Failed to upload KeyPackages: ${e.toString()}');
+                    }
+                  }),
+              SettingsTile(
+                  leading: const Icon(CupertinoIcons.globe),
+                  title: const Text("Relays"),
+                  description: const Text("Connected NIP104 Relays"),
+                  value: nip104Relays.isEmpty
+                      ? Text('None')
+                      : textSmallGray(
+                          context,
+                          maxLines: 10,
+                          nip104Relays.map((e) => e.relay.url).join('\n')),
+                  onPressed: (context) {}),
             ]),
             SettingsSection(title: const Text('Backup'), tiles: [
               SettingsTile.navigation(

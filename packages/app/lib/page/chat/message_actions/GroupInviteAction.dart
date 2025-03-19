@@ -96,7 +96,7 @@ class GroupInviteAction extends StatelessWidget {
           await RoomService.instance.deleteRoom(exist);
         }
 
-        groupRoom = await MlsGroupService.instance.createRoomFromInvitation(
+        groupRoom = await MlsGroupService.instance.createGroupFromInvitation(
             subEvent, identity, message,
             groupId: groupId);
         EasyLoading.dismiss();

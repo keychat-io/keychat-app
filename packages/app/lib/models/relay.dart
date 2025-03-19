@@ -9,7 +9,7 @@ enum RelayStatusEnum {
   connecting,
   failed,
   allFailed,
-  success,
+  connected,
   noNetwork
 }
 

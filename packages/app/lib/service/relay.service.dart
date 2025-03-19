@@ -26,7 +26,16 @@ class RelayService {
 
   Future addAndConnect(String url) async {
     WebsocketService ws = Get.find<WebsocketService>();
-    if (ws.channels[url] != null) return;
+    RelayWebsocket? channel = ws.channels[url];
+    if (channel != null) {
+      if (!channel.relay.active) {
+        channel.relay.active = true;
+        channel.relay.errorMessage = null;
+        await update(channel.relay);
+        ws.checkOnlineAndConnect([channel]);
+      }
+      return;
+    }
 
     Relay relay = await RelayService.instance.getOrPutRelay(url);
     ws.addChannel(relay);
@@ -413,5 +422,11 @@ class RelayService {
       loggerNoLine.e(e.toString());
     }
     return null;
+  }
+
+  Future addOrActiveRelay(List<String> relays) async {
+    for (String url in relays) {
+      await addAndConnect(url);
+    }
   }
 }

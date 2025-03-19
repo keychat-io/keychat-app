@@ -1,5 +1,5 @@
 import 'dart:async' show TimeoutException;
-import 'dart:convert' show JsonEncoder, jsonEncode, jsonDecode;
+import 'dart:convert' show JsonEncoder, jsonDecode, jsonEncode, utf8;
 import 'dart:io' show Directory, File, FileMode, Platform;
 import 'dart:math' show Random;
 import 'package:app/models/identity.dart';
@@ -913,7 +913,8 @@ class Utils {
     return directory;
   }
 
-  static Future<List<String>> waitRelayOnline({int maxAttempts = 10}) async {
+  static Future<List<String>> waitRelayOnline(
+      {int maxAttempts = 10, List<String>? defaultRelays}) async {
     WebsocketService? ws;
     int initAttempts = 0;
     const maxInitAttempts = 5;
@@ -934,18 +935,27 @@ class Utils {
       return [];
     }
     var onlineRelays = ws.getOnlineRelayString();
-    int activeRelays = ws.getActiveRelayString().length;
+    var activeRelays = defaultRelays ?? ws.getActiveRelayString();
     int attempts = 0;
-    while ((onlineRelays.isEmpty && attempts < maxAttempts) ||
-        (onlineRelays.isNotEmpty &&
-            onlineRelays.length / activeRelays < 0.5 &&
-            attempts < maxAttempts)) {
+
+    while ((getIntersection(onlineRelays, activeRelays).isEmpty &&
+        attempts < maxAttempts)) {
       logger.d(
           'Waiting for relays to be available... (${attempts + 1}/$maxAttempts)');
       await Future.delayed(const Duration(seconds: 1));
       attempts++;
       onlineRelays = ws.getOnlineRelayString();
     }
-    return onlineRelays;
+    return getIntersection(onlineRelays, activeRelays);
+  }
+
+  static getStringFromUtf8List(List<int> list) {
+    return utf8.decode(list);
+  }
+
+  static List<String> getIntersection(List<String> list1, List<String> list2) {
+    final set = Set<String>.from(list1);
+
+    return list2.where((element) => set.contains(element)).toList();
   }
 }

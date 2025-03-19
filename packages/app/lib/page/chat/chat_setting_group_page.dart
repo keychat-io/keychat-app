@@ -264,7 +264,16 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                           ],
                         ));
                       },
-                    )
+                    ),
+                    SettingsTile(
+                        title: const Text("Relay"),
+                        leading: const Icon(CupertinoIcons.globe),
+                        value: textSmallGray(
+                            context,
+                            maxLines: 10,
+                            chatController.roomObs.value.sendingRelays
+                                .join('\n')),
+                        onPressed: (context) {}),
                   ]),
                   SettingsSection(tiles: [
                     RoomUtil.pinRoomSection(chatController),

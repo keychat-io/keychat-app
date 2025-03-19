@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:app/constants.dart';
 import 'package:app/models/relay.dart';
 import 'package:app/nostr-core/nostr_nip4_req.dart';
@@ -7,10 +9,11 @@ import 'package:app/service/relay.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:async_queue/async_queue.dart';
+import 'package:easy_debounce/easy_debounce.dart';
 import 'package:easy_debounce/easy_throttle.dart';
+import 'package:get/get.dart';
 import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.dart';
-import 'package:web_socket_channel/io.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:web_socket_client/web_socket_client.dart';
 
 const _maxReqCount = 20; // max pool size is 32. be setting by relay server
 
@@ -18,11 +21,10 @@ class RelayWebsocket {
   RelayService rs = RelayService.instance;
   late Relay relay;
   RelayStatusEnum channelStatus = RelayStatusEnum.init;
-  WebSocketChannel? channel;
+  WebSocket? channel;
   List<String> notices = [];
   int maxReqCount = _maxReqCount;
   int sentReqCount = 0;
-  int failedTimes = 0;
   Map<String, Set<String>> subscriptions = {};
   late WebsocketService ws;
   RelayWebsocket(this.relay, this.ws);
@@ -88,7 +90,7 @@ class RelayWebsocket {
   }
 
   _statusCheck() {
-    if (channel == null || channelStatus != RelayStatusEnum.success) {
+    if (channel == null || channelStatus != RelayStatusEnum.connected) {
       throw Exception('disconnected: ${relay.url}');
     }
   }
@@ -108,7 +110,7 @@ class RelayWebsocket {
   sendRawREQ(String message, {bool retry = false}) {
     try {
       _statusCheck();
-      channel!.sink.add(message);
+      channel!.send(message);
       logger.i('TO [${relay.url}]: $message');
     } catch (e) {
       logger.e('${e.toString()} TO [${relay.url}]: $message');
@@ -126,7 +128,7 @@ class RelayWebsocket {
     }
     notices.clear();
     try {
-      channel!.sink.add('ping');
+      channel!.send('ping');
     } catch (e) {
       // logger.e(e.toString());
       return false;
@@ -141,30 +143,42 @@ class RelayWebsocket {
     return false;
   }
 
-  void connectSuccess(IOWebSocketChannel socket) async {
-    failedTimes = 0;
+  void connectSuccess(WebSocket socket) async {
     subscriptions.clear();
     notices.clear();
     maxReqCount = _maxReqCount;
     sentReqCount = 0;
     channel = socket;
-    channelStatus = RelayStatusEnum.success;
 
-    await ws.setChannelStatus(relay.url, RelayStatusEnum.success);
     _startListen();
-    await Future.delayed(const Duration(seconds: 1));
-    _proccessFailedEvents();
-    // nwc reconnect
-    Utils.getGetxController<NostrWalletConnectController>()
-        ?.startListening(relay.url);
+    Future.delayed(const Duration(seconds: 1)).then((value) {
+      _proccessFailedEvents();
+      // nwc reconnect
+      Utils.getGetxController<NostrWalletConnectController>()
+          ?.startListening(relay.url);
+      // _startConnectHeartbeat();
+    });
   }
 
-  void connecting() {
-    ws.setChannelStatus(relay.url, RelayStatusEnum.connecting);
+  Timer? _checkWebsocketTimer;
+  void _startConnectHeartbeat() async {
+    _stopConnectHeartbeat();
+    EasyDebounce.debounce('checkOnlineAndConnect', const Duration(seconds: 30),
+        () async {
+      _checkWebsocketTimer =
+          Timer.periodic(const Duration(minutes: 1), (timer) {
+        loggerNoLine.i('checkOnlineAndConnect');
+        Get.find<WebsocketService>().checkOnlineAndConnect();
+      });
+    });
   }
 
-  void disconnected(String? errorMessage) {
-    failedTimes++;
-    ws.setChannelStatus(relay.url, RelayStatusEnum.failed, errorMessage);
+  disconnected() {
+    _stopConnectHeartbeat();
+  }
+
+  void _stopConnectHeartbeat() {
+    _checkWebsocketTimer?.cancel();
+    _checkWebsocketTimer = null;
   }
 }

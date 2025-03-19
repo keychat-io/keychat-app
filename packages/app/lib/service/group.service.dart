@@ -183,9 +183,9 @@ class GroupService extends BaseChatService {
     Room? room =
         await roomService.getRoomByIdentity(oldToRoomPubKey, idRoom.identityId);
     if (room == null) return;
-    RoomMember? roomMemberAdmin = await room.getAdmin();
+    String? roomMemberAdmin = await room.getAdmin();
     if (roomMemberAdmin == null) throw Exception('not found admin');
-    if (roomMemberAdmin.idPubkey != event.pubkey) {
+    if (roomMemberAdmin != event.pubkey) {
       throw Exception('not admin');
     }
 
@@ -1101,7 +1101,7 @@ ${rm.idPubkey}
 
   Future sendInviteToAdmin(
       Room room, Map<String, String> selectAccounts) async {
-    RoomMember? roomMember = await room.getAdmin();
+    String? roomMember = await room.getAdmin();
     if (roomMember == null) {
       throw Exception('No admin in group');
     }
@@ -1113,8 +1113,8 @@ ${rm.idPubkey}
       ..msg =
           'Invite [${names.isEmpty ? selectAccounts.keys.join(',') : names}] to join group ${room.name}, Please confirm';
 
-    Room adminRoom = await RoomService.instance.getOrCreateRoom(
-        roomMember.idPubkey, identity.secp256k1PKHex, RoomStatus.init);
+    Room adminRoom = await RoomService.instance
+        .getOrCreateRoom(roomMember, identity.secp256k1PKHex, RoomStatus.init);
     Get.find<HomeController>().loadIdentityRoomList(adminRoom.identityId);
     await RoomService.instance
         .sendTextMessage(adminRoom, sm.toString(), realMessage: sm.msg);

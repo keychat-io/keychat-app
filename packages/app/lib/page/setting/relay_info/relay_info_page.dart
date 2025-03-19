@@ -51,11 +51,7 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                       if (rw != null) {
                         if (ws.channels[controller.relay.value.url]
                                 ?.channelStatus ==
-                            RelayStatusEnum.failed) {
-                          rw.failedTimes = 1;
-                          EasyLoading.showToast('Reconnecting');
-                          ws.onErrorProcess(controller.relay.value.url);
-                        }
+                            RelayStatusEnum.failed) {}
                       }
                     },
                   ),
@@ -81,7 +77,7 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                       if (value &&
                           websocketService.channels[controller.relay.value.url]
                                   ?.channelStatus !=
-                              RelayStatusEnum.success) {
+                              RelayStatusEnum.connected) {
                         websocketService.addChannel(controller.relay.value);
                         RelayService.instance
                             .initRelayFeeInfo([controller.relay.value]);

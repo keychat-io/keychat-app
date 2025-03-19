@@ -4,8 +4,6 @@ import 'package:app/page/login/SelectModeToCreateID.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/page/setting/RelaySetting.dart';
 import 'package:app/page/setting/app_general_setting.dart';
-import 'package:app/service/identity.service.dart';
-import 'package:app/service/mls_group.service.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:app/controller/home.controller.dart';
 
@@ -118,27 +116,7 @@ class MinePage extends GetView<SettingController> {
                         title: const Text("App Version"),
                         value: getVersionCode(homeController),
                         onPressed: (context) {},
-                      ),
-                      SettingsTile(
-                        leading: const Icon(Icons.verified_outlined),
-                        title: const Text("fetch pk"),
-                        onPressed: (context) async {
-                          var identities =
-                              await IdentityService.instance.getIdentityList();
-
-                          var pubkeys =
-                              identities.map((e) => e.secp256k1PKHex).toList();
-                          MlsGroupService.instance
-                              .getKeyPackagesFromRelay(pubkeys);
-                        },
-                      ),
-                      SettingsTile(
-                        leading: const Icon(Icons.verified_outlined),
-                        title: const Text("Upload pk"),
-                        onPressed: (context) {
-                          MlsGroupService.instance.uploadKeyPackages();
-                        },
-                      ),
+                      )
                     ],
                   ),
                 ],

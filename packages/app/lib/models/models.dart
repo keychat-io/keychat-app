@@ -13,6 +13,7 @@ export 'package:app/models/keychat/group_message.dart';
 export 'package:app/models/keychat/keychat_message.dart';
 export 'package:app/models/keychat/qrcode_user_model.dart';
 export 'package:app/models/keychat/room_profile.dart';
+export 'package:app/models/keychat/group_extension_model.dart';
 export 'package:app/models/message.dart';
 export 'package:app/models/mykey.dart';
 export 'package:app/models/relay.dart';

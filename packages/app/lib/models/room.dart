@@ -7,6 +7,7 @@ import 'package:app/models/models.dart';
 
 import 'package:app/models/signal_id.dart';
 import 'package:app/service/chatx.service.dart';
+import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/websocket.service.dart';
@@ -291,14 +292,22 @@ class Room extends Equatable {
     return count > 0;
   }
 
-  Future<RoomMember?> getAdmin() async {
+  Future<String?> getAdmin() async {
     Isar database = DBProvider.database;
-
-    return await database.roomMembers
+    if (isMLSGroup) {
+      var info = await MlsGroupService.instance.getGroupExtension(this);
+      if (info.admins.isEmpty) {
+        return null;
+      } else {
+        return info.admins[0];
+      }
+    }
+    RoomMember? rm = await database.roomMembers
         .filter()
         .roomIdEqualTo(id)
         .isAdminEqualTo(true)
         .findFirst();
+    return rm?.idPubkey;
   }
 
   // metadata

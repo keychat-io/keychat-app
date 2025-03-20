@@ -76,7 +76,7 @@ class RoomUtil {
     }
     Get.find<WebsocketService>().writeNostrEvent(
         event: event,
-        eventString: event.toJsonString(),
+        eventString: event.toString(),
         roomId: room.id,
         toRelays: room.sendingRelays);
     logger.i('_messageReceiveCheck: ${event.id}, maxRetry: $maxRetry');
@@ -687,6 +687,9 @@ Let's start an encrypted chat.''';
   }
 
   static Widget getMarkdownView(String text, MarkdownConfig config) {
+    // Replace empty lines with \n
+    // String processedText = text.replaceAll(RegExp(r'(\n\s*\n)'), '\n');
+
     return MarkdownBlock(
         data: text,
         selectable: false,

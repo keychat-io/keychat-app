@@ -1,4 +1,5 @@
 import 'dart:convert' show jsonEncode, jsonDecode;
+import 'package:app/constants.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
@@ -59,19 +60,25 @@ class SignerService {
     return res['event'];
   }
 
-  Future<String> nip44Encrypt(
+  Future<String> getNip59EventString(
       {required String content,
       required String from,
-      required String to}) async {
+      required String to,
+      int nip17Kind = EventKinds.nip17,
+      List<List<String>>? additionalTags}) async {
     String id1 = generate64RandomHexChars();
+    List tags = [
+      ["p", to]
+    ];
+    if (additionalTags != null) {
+      tags = additionalTags;
+    }
     var subEvent = {
       "id": id1,
       "pubkey": from,
       "created_at": DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      "kind": 14,
-      "tags": [
-        ["p", to],
-      ],
+      "kind": nip17Kind,
+      "tags": tags,
       "content": content,
     };
     Map encryptedSubEvent = await amber.nip44Encrypt(

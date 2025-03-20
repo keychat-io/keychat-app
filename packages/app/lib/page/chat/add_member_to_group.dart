@@ -1,6 +1,5 @@
 import 'package:app/models/models.dart';
 import 'package:app/page/components.dart';
-import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:flutter/cupertino.dart';
@@ -70,7 +69,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
       return;
     }
     String myPubkey = widget.room.getIdentity().secp256k1PKHex;
-    RoomMember? meMember = await widget.room.getMember(myPubkey);
+    RoomMember? meMember = await widget.room.getMemberByIdPubkey(myPubkey);
 
     // only isSendAllGroup
     if (meMember != null && widget.room.isSendAllGroup) {
@@ -105,11 +104,8 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
       String sender = meMember == null ? myPubkey : meMember.name;
       if (widget.room.isMLSGroup) {
         await MlsGroupService.instance
-            .inviteToJoinGroup(groupRoom, selectUsers, sender);
-      } else if (widget.room.isKDFGroup) {
-        await KdfGroupService.instance
-            .inviteToJoinGroup(groupRoom, selectAccounts, sender);
-      } else {
+            .addMemeberToGroup(groupRoom, selectUsers, sender);
+      } else if (widget.room.isSendAllGroup) {
         await GroupService.instance
             .inviteToJoinGroup(groupRoom, selectAccounts);
       }
@@ -132,9 +128,11 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
     if (news.isNotEmpty) {
       List<String> pubkeys = [];
       for (var u in news) {
-        pubkeys.add(u['pubkey']);
+        if (!u['exist']) {
+          pubkeys.add(u['pubkey']);
+        }
       }
-      Map res = await MlsGroupService.instance.getPKs(pubkeys);
+      Map res = await MlsGroupService.instance.getKeyPackagesFromRelay(pubkeys);
 
       for (var u in news) {
         String pubkey = u['pubkey'];

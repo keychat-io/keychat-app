@@ -268,7 +268,7 @@ Let's create a new group.''';
             sourceEvent: sourceEvent,
             realMessage: km.msg,
             isSystem: true,
-            fromIdPubkey: fromIdPubkey);
+            senderPubkey: fromIdPubkey);
         return;
       case KeyChatEventKinds.groupDissolve:
         room.status = RoomStatus.dissolved;
@@ -277,7 +277,7 @@ Let's create a new group.''';
             sourceEvent: sourceEvent,
             decodedContent: km.msg!,
             isSystem: true,
-            fromIdPubkey: fromIdPubkey);
+            senderPubkey: fromIdPubkey);
       case KeyChatEventKinds.groupAdminRemoveMembers:
         await _proccessAdminRemoveMembers(room, event, km, sourceEvent);
         return;
@@ -292,12 +292,12 @@ Let's create a new group.''';
             sourceEvent: sourceEvent,
             decodedContent: km.msg!,
             isSystem: true,
-            fromIdPubkey: fromIdPubkey);
+            senderPubkey: fromIdPubkey);
         await proccessUpdateKeys(groupRoom, roomProfile);
         return;
       default:
         await RoomService.instance.receiveDM(room, event,
-            sourceEvent: sourceEvent, km: km, fromIdPubkey: fromIdPubkey);
+            sourceEvent: sourceEvent, km: km, senderPubkey: fromIdPubkey);
     }
   }
 
@@ -314,7 +314,7 @@ Let's create a new group.''';
     SignalId? toDeleteMySignalId = await SignalIdService.instance
         .getSignalIdByPubkey(groupRoom.signalIdPubkey);
 
-    List<RoomMember> members = await groupRoom.getMembers();
+    List<RoomMember> members = (await groupRoom.getMembers()).values.toList();
     Mykey toDeleteMykey = groupRoom.mykey.value!;
     Identity identity = groupRoom.getIdentity();
     KeychatIdentityKeyPair myKeyPair = await groupRoom.getKeyPair();
@@ -493,7 +493,7 @@ Let's create a new group.''';
         senderKeys: await identity.getSecp256k1SKHex(),
         receiverPubkeys: [room.toMainPubkey],
         content: encryptedContent,
-        kind: EventKinds.encryptedDirectMessage);
+        kind: EventKinds.nip04);
 
     var randomAccount = await rust_nostr.generateSimple();
 
@@ -522,9 +522,10 @@ Let's create a new group.''';
       ..msg = 'Let\'s reset the status of group [${room.name}]';
 
     List<RoomMember> members = await room.getActiveMembers();
+    List<String> pubkeys = members.map((e) => e.idPubkey).toList();
     await GroupService.instance.sendPrivateMessageToMembers(
-        km.msg!, members, room.getIdentity(),
-        groupRoom: room, km: km);
+        km.msg!, pubkeys, room.getIdentity(),
+        groupRoom: room, content: km.toString());
     await Future.delayed(const Duration(seconds: 1));
     // myself update keys
     await proccessUpdateKeys(room, roomProfile);

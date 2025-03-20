@@ -1,3 +1,4 @@
+import 'package:app/global.dart';
 import 'package:app/page/browser/Browser_page.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
@@ -12,66 +13,80 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-class CupertinoRootPage extends GetView<HomeController> {
+class CupertinoRootPage extends StatefulWidget {
   const CupertinoRootPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    List configs = [
-      {
-        "page": const RoomList(),
-        "barItem": BottomNavigationBarItem(
-            label: 'Chats',
-            icon: Obx(() => Badge(
-                backgroundColor: Colors.red,
-                textColor: Colors.white,
-                label: Text('${controller.allUnReadCount.value}'),
-                isLabelVisible: controller.allUnReadCount.value > 0,
-                child: const Icon(CupertinoIcons.chat_bubble_fill, size: 22)))),
-        "linux": true,
-        "windows": true,
-      },
-      {
-        "page": const BrowserPage(),
-        "barItem": const BottomNavigationBarItem(
-            label: 'Browser', icon: Icon(Icons.explore, size: 22)),
-        "linux": false,
-        "windows": false,
-      },
-      {
-        "page": const MinePage(),
-        "barItem": const BottomNavigationBarItem(
-            label: 'Me', icon: Icon(CupertinoIcons.person_fill, size: 22)),
-        "linux": true,
-        "windows": true,
-      }
-    ];
+  State<CupertinoRootPage> createState() => _CupertinoRootPageState();
+}
 
+class _CupertinoRootPageState extends State<CupertinoRootPage> {
+  int _selectedIndex = 0;
+  List pages = [];
+  late HomeController homeController;
+  @override
+  void initState() {
+    pages = [RoomList(), BrowserPage(), MinePage()];
+    homeController = Get.find<HomeController>();
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return CupertinoTabScaffold(
-      restorationId: 'cupertino_tab_scaffold',
-      resizeToAvoidBottomInset: true,
-      tabBar: CupertinoTabBar(
-        onTap: (value) async {
-          if (EasyLoading.isShow) {
-            EasyLoading.dismiss();
-          }
-          if (GetPlatform.isMobile) {
-            HapticFeedback.lightImpact();
-          }
-          if (value == configs.length - 1) {
-            EasyThrottle.throttle(
-                'loadCashuABalance', const Duration(seconds: 3), () {
-              Utils.getGetxController<EcashController>()?.getBalance();
+        resizeToAvoidBottomInset: true,
+        tabBar: CupertinoTabBar(
+          onTap: (int index) {
+            setState(() {
+              _selectedIndex = index;
             });
-          }
-        },
-        items: configs
-            .map((e) => e["barItem"] as BottomNavigationBarItem)
-            .toList(),
-      ),
-      tabBuilder: (context, index) {
-        return configs.elementAt(index)["page"] as Widget;
-      },
-    );
+            if (EasyLoading.isShow) {
+              EasyLoading.dismiss();
+            }
+            if (GetPlatform.isMobile) {
+              HapticFeedback.lightImpact();
+            }
+            if (index == pages.length - 1) {
+              EasyThrottle.throttle(
+                  'loadCashuABalance', const Duration(seconds: 3), () {
+                Utils.getGetxController<EcashController>()?.getBalance();
+              });
+            }
+          },
+          iconSize: 26,
+          currentIndex: _selectedIndex,
+          items: [
+            BottomNavigationBarItem(
+                label: 'Chats',
+                activeIcon: Obx(() => Badge(
+                    backgroundColor: Colors.red,
+                    textColor: Colors.white,
+                    label: Text('${homeController.allUnReadCount.value}'),
+                    isLabelVisible: homeController.allUnReadCount.value > 0,
+                    child: const Icon(CupertinoIcons.chat_bubble_fill,
+                        color: KeychatGlobal.primaryColor, size: 26))),
+                icon: Obx(() => Badge(
+                    backgroundColor: Colors.red,
+                    textColor: Colors.white,
+                    label: Text('${homeController.allUnReadCount.value}'),
+                    isLabelVisible: homeController.allUnReadCount.value > 0,
+                    child: const Icon(CupertinoIcons.chat_bubble, size: 26)))),
+            const BottomNavigationBarItem(
+                label: 'Browser',
+                icon: Icon(CupertinoIcons.compass),
+                activeIcon: Icon(CupertinoIcons.compass_fill,
+                    color: KeychatGlobal.primaryColor)),
+            const BottomNavigationBarItem(
+                label: 'Me',
+                activeIcon: Icon(CupertinoIcons.person_fill,
+                    color: KeychatGlobal.primaryColor),
+                icon: Icon(CupertinoIcons.person))
+          ],
+        ),
+        tabBuilder: (BuildContext context, int index) {
+          return CupertinoTabView(builder: (BuildContext context) {
+            return pages[index];
+          });
+        });
   }
 }

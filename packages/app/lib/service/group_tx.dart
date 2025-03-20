@@ -84,7 +84,7 @@ class GroupTx {
 
     room = await updateRoom(room, updateMykey: true);
     await room.updateAllMemberTx(members);
-    RoomMember? me = await room.getMember(identity.secp256k1PKHex);
+    RoomMember? me = await room.getMemberByIdPubkey(identity.secp256k1PKHex);
 
     if (me != null && me.status != UserStatusType.invited) {
       me.status = UserStatusType.invited;

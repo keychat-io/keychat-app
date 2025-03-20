@@ -51,9 +51,8 @@ class MessageService {
     } else {
       await DBProvider.database.messages.put(model);
     }
-
     logger.i(
-        'new_message:room:${model.roomId} ${model.isMeSend ? 'Send' : 'Receive'}: ${model.content} ');
+        '[new_message]:room:${model.roomId} ${model.isMeSend ? 'Send' : 'Receive'}: ${model.content} ');
     await RoomService.getController(model.roomId)?.addMessage(model);
     var hc = Get.find<HomeController>();
     hc.roomLastMessage[model.roomId] = model;
@@ -168,10 +167,11 @@ $content'''
       required bool isMeSend,
       required Room room,
       required List<NostrEventModel> events,
-      required String idPubkey,
+      required String senderPubkey,
       required MessageEncryptType encryptType,
       bool persist = true,
       String? realMessage,
+      String? senderName,
       String? subEvent,
       MsgReply? reply,
       SendStatusType sent = SendStatusType.sending,
@@ -186,7 +186,7 @@ $content'''
         msgid: events[0].id,
         eventIds: events.map((e) => e.id).toList(),
         identityId: room.identityId,
-        idPubkey: idPubkey,
+        idPubkey: senderPubkey,
         roomId: room.id,
         from: from,
         to: to,
@@ -206,7 +206,8 @@ $content'''
         }).toList())
       ..subEvent = subEvent
       ..requestConfrim = requestConfrim
-      ..requestId = requestId;
+      ..requestId = requestId
+      ..senderName = senderName;
 
     if (isRead != null) model.isRead = isRead;
     if (isSystem != null) model.isSystem = isSystem;

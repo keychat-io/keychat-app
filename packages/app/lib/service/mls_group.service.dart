@@ -1,35 +1,29 @@
-import 'dart:convert' show base64, jsonDecode, jsonEncode;
+import 'dart:convert' show base64, jsonDecode, jsonEncode, utf8;
 
 import 'package:app/constants.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
-import 'package:app/models/db_provider.dart';
-import 'package:app/models/embedded/msg_reply.dart';
-import 'package:app/models/identity.dart';
-import 'package:app/models/keychat/group_invitation_model.dart';
-import 'package:app/models/keychat/group_invitation_request_model.dart';
-import 'package:app/models/keychat/keychat_message.dart';
-import 'package:app/models/keychat/room_profile.dart';
-import 'package:app/models/message.dart';
-import 'package:app/models/room.dart';
-import 'package:app/models/room_member.dart';
+import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/nostr-core/nostr_event.dart';
+import 'package:app/nostr-core/nostr_nip4_req.dart';
+import 'package:app/nostr-core/relay_websocket.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/chat.service.dart';
 import 'package:app/service/group.service.dart';
-import 'package:app/service/group_tx.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/message.service.dart';
+import 'package:app/service/relay.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/signal_chat_util.dart';
-import 'package:app/service/storage.dart';
+import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show Uint8List;
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_mls.dart' as rust_mls;
+import 'package:keychat_rust_ffi_plugin/api_mls/types.dart'
+    show DecryptedMessage, GroupExtensionResult, MessageResult;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class MlsGroupService extends BaseChatService {
@@ -39,28 +33,43 @@ class MlsGroupService extends BaseChatService {
   // Avoid self instance
   MlsGroupService._();
 
-  Future<Room> acceptJoinGroup(
-      Identity identity, Room room, String mlsInfo) async {
-    logger.d('sendHelloMessage, version: ${room.version}');
-    List<dynamic> info = jsonDecode(mlsInfo);
-    List<int> groupJoinConfig = base64.decode(info[0]).toList();
-    List<int> welcome = base64.decode(info[1]).toList();
-    await rust_mls.joinMlsGroup(
+  Future addMemeberToGroup(Room groupRoom, List<Map<String, dynamic>> toUsers,
+      [String? sender]) async {
+    Identity identity = groupRoom.getIdentity();
+    Map<String, String> userNameMap = {};
+    List<Uint8List> keyPackages = [];
+    for (var user in toUsers) {
+      userNameMap[user['pubkey']] = user['name'];
+      String? pk = user['mlsPK'];
+      if (pk != null) {
+        keyPackages.add(base64.decode(pk));
+      }
+    }
+    if (keyPackages.isEmpty) {
+      throw Exception('keyPackages is empty');
+    }
+
+    var data = await rust_mls.addMembers(
         nostrId: identity.secp256k1PKHex,
-        groupId: room.toMainPubkey,
-        welcome: welcome,
-        groupJoinConfig: groupJoinConfig);
-    room = await replaceListenPubkey(room, identity.secp256k1PKHex);
+        groupId: groupRoom.toMainPubkey,
+        keyPackages: keyPackages);
+    String welcomePrososal = base64.encode(data.queuedMsg);
+    String welcomeMsg = base64.encode(data.welcome);
+    // send sync message to other member
+    groupRoom = await RoomService.instance.getRoomByIdOrFail(groupRoom.id);
+    await sendEncryptedMessage(groupRoom, welcomePrososal,
+        additionalTags: [
+          [EventKindTags.pubkey, groupRoom.onetimekey!],
+          [EventKindTags.customMessage, MLSPrososalType.add.name]
+        ],
+        realMessage: 'Invite ${userNameMap.values.join(', ')} to join group');
+    await rust_mls.selfCommit(
+        nostrId: identity.secp256k1PKHex, groupId: groupRoom.toMainPubkey);
+    groupRoom = await proccessUpdateKeys(groupRoom);
 
-    // update a new mls pk
-    await MlsGroupService.instance.uploadPKByIdentity(room.getIdentity());
-    KeychatMessage sm = KeychatMessage(
-        c: MessageType.mls, type: KeyChatEventKinds.groupHelloMessage)
-      ..name = identity.displayName
-      ..msg = '${identity.displayName} joined group';
-
-    await sendMessage(room, sm.toString(), realMessage: sm.msg);
-    return room;
+    // send invitation message
+    await _sendInviteMessage(
+        groupRoom: groupRoom, users: userNameMap, mlsWelcome: welcomeMsg);
   }
 
   bool adminOnlyMiddleware(RoomMember from, int type) {
@@ -89,7 +98,7 @@ class MlsGroupService extends BaseChatService {
 $error
 
 track: $content''',
-          fromIdPubkey: fromIdPubkey);
+          senderPubkey: fromIdPubkey);
       return;
     }
     message.content = '''${message.content}
@@ -99,11 +108,23 @@ $error ''';
   }
 
   Future<Room> createGroup(String groupName, Identity identity,
-      List<Map<String, dynamic>> toUsers) async {
-    Room room = await GroupService.instance
-        .createGroup(groupName, identity, GroupType.mls);
-    var groupJoinConfig = await rust_mls.createMlsGroup(
+      {required List<Map<String, dynamic>> toUsers,
+      required List<String> groupRelays}) async {
+    Room room = await GroupService.instance.createGroup(
+        groupName, identity, GroupType.mls,
+        groupRelays: groupRelays);
+
+    await rust_mls.createMlsGroup(
+        nostrId: identity.secp256k1PKHex,
+        groupId: room.toMainPubkey,
+        groupName: groupName,
+        adminPubkeysHex: [identity.secp256k1PKHex],
+        description: '',
+        groupRelays: groupRelays);
+    await _selfUpdateKeyLocal(room);
+    await rust_mls.selfCommit(
         nostrId: identity.secp256k1PKHex, groupId: room.toMainPubkey);
+
     List<Uint8List> keyPackages = [];
     for (var user in toUsers) {
       String pk = user['mlsPK'];
@@ -118,18 +139,67 @@ $error ''';
         keyPackages: keyPackages);
     await rust_mls.selfCommit(
         nostrId: identity.secp256k1PKHex, groupId: room.toMainPubkey);
-    room = await replaceListenPubkey(room, identity.secp256k1PKHex);
-    String welcomeMsg = base64.encode(welcome.$2);
-    String mlsGroupInfo = base64.encode(groupJoinConfig);
+    room = await replaceListenPubkey(room);
 
-    Map<String, String> users = {};
+    String welcomeMsg = base64.encode(welcome.welcome);
+    // String mlsGroupInfo = base64.encode(groupJoinConfig);
+
+    Map<String, String> result = {};
     for (var user in toUsers) {
-      users[user['pubkey']] = user['name'];
+      result[user['pubkey']] = user['name'];
     }
 
-    await GroupService.instance.inviteToJoinGroup(room, users,
-        mlsWelcome: jsonEncode([mlsGroupInfo, welcomeMsg]));
+    await _sendInviteMessage(
+        groupRoom: room, users: result, mlsWelcome: welcomeMsg);
 
+    return room;
+  }
+
+  Future<Room> createGroupFromInvitation(
+      NostrEventModel event, Identity identity, Message message,
+      {required String groupId}) async {
+    Room room = Room(
+        toMainPubkey: groupId,
+        npub: rust_nostr.getBech32PubkeyByHex(hex: groupId),
+        identityId: identity.id,
+        status: RoomStatus.enabled,
+        type: RoomType.group)
+      ..name = groupId.substring(0, 8)
+      ..groupType = GroupType.mls
+      ..version = event.createdAt;
+    await DBProvider.database.writeTxn(() async {
+      await DBProvider.database.messages.put(message);
+      room.id = await DBProvider.database.rooms.put(room);
+    });
+    List<int> welcome = base64.decode(event.content).toList();
+    await rust_mls.joinMlsGroup(
+        nostrId: identity.secp256k1PKHex,
+        groupId: room.toMainPubkey,
+        welcome: welcome);
+    GroupExtension info = await getGroupExtension(room);
+    logger.d('GroupExtension: ${info.toMap()}');
+    room.name = info.name;
+    room.description = info.description;
+    room.sendingRelays = info.relays;
+    room.receivingRelays = info.relays;
+    if (info.relays.isNotEmpty) {
+      await RelayService.instance.addOrActiveRelay(info.relays);
+    }
+    await Utils.waitRelayOnline();
+    room = await replaceListenPubkey(room);
+    // Wait for the NostrAPI queue to be processed
+    while (NostrAPI.instance.nostrEventQueue.size > 0) {
+      logger.d(
+          'Waiting for NostrAPI queue to be empty (${NostrAPI.instance.nostrEventQueue.size} events left)');
+      await Future.delayed(const Duration(seconds: 1));
+    }
+    // waiting for the last task
+    await Future.delayed(const Duration(seconds: 1));
+
+    //sync my name to group
+    await selfUpdateKey(room,
+        extension: {'name': identity.displayName},
+        type: MLSPrososalType.updateName);
     return room;
   }
 
@@ -138,20 +208,28 @@ $error ''';
     return base64.encode(pk);
   }
 
-  Future decryptMessage(Room room, NostrEventModel nostrEvent,
+  // kind 445
+  Future decryptMessage(Room room, NostrEventModel event,
       {required Function(String) failedCallback}) async {
     Identity identity = room.getIdentity();
-    List<int> decoded = base64.decode(nostrEvent.content).toList();
-    var exist =
-        await MessageService.instance.getMessageByEventId(nostrEvent.id);
+    List<int> decoded = base64.decode(event.content).toList();
+    var exist = await MessageService.instance.getMessageByEventId(event.id);
     if (exist != null) {
-      logger.d('Event may sent by me: ${nostrEvent.id}');
+      logger.d('Event may sent by me: ${event.id}');
       return;
     }
-
-    (String, String, Uint8List?)? decryptedMsg;
+    String? method = event.getTagByKey(EventKindTags.customMessage);
+    if (method != null) {
+      MLSPrososalType type = MLSPrososalType.values.firstWhere(
+          (e) => e.name == method,
+          orElse: () => MLSPrososalType.custom);
+      await proccessMLSProsoalMessage(room, event,
+          type: type, failedCallback: failedCallback);
+      return;
+    }
+    DecryptedMessage? decryptedMsg;
     try {
-      decryptedMsg = await rust_mls.decryptMsg(
+      decryptedMsg = await rust_mls.decryptMessage(
           nostrId: identity.secp256k1PKHex,
           groupId: room.toMainPubkey,
           msg: decoded);
@@ -159,50 +237,35 @@ $error ''';
       String msg = Utils.getErrorMessage(e);
       failedCallback(msg);
       logger.e(msg, error: e, stackTrace: s);
-      await appendMessageOrCreate(msg, room, 'mls decrypt failed', nostrEvent);
+      await appendMessageOrCreate(msg, room, 'mls decrypt failed', event);
       return;
     }
-    String fromIdPubkey = decryptedMsg.$2;
-    String decodeString = decryptedMsg.$1;
-    String? msgKeyHash =
-        decryptedMsg.$3 != null ? base64.encode(decryptedMsg.$3!) : null;
-    // try km message
-    KeychatMessage? km;
-    try {
-      Map<String, dynamic>? decodedContentMap = jsonDecode(decodeString);
-      km = KeychatMessage.fromJson(decodedContentMap!);
-      // ignore: empty_catches
-    } catch (e) {}
-    if (km == null) {
-      await RoomService.instance.receiveDM(room, nostrEvent,
-          decodedContent: decodeString,
-          fromIdPubkey: fromIdPubkey,
-          encryptType: MessageEncryptType.mls,
-          msgKeyHash: msgKeyHash);
-      return;
-    }
-    try {
-      RoomMember? fromMember = await room.getMemberByNostrPubkey(fromIdPubkey);
 
-      if (fromMember == null) {
-        String msg = 'roomMember is null';
-        failedCallback(room.getDebugInfo(msg));
-        throw Exception('roomMember is null');
-      }
-      adminOnlyMiddleware(fromMember, km.type);
-      await km.service.proccessMessage(
-          room: room,
-          km: km,
-          event: nostrEvent,
-          fromIdPubkey: fromIdPubkey,
-          msgKeyHash: msgKeyHash);
-    } catch (e, s) {
-      String msg = Utils.getErrorMessage(e);
-      logger.e('decryptPreKeyMessage error: $msg', error: e, stackTrace: s);
-      await appendMessageOrCreate(
-          msg, room, 'mls km processMessage', nostrEvent,
-          fromIdPubkey: fromIdPubkey);
-    }
+    String? msgKeyHash = decryptedMsg.ratchetKey != null
+        ? base64.encode(decryptedMsg.ratchetKey!)
+        : null;
+
+    String senderName =
+        await room.getMemberNameByIdPubkey(room, decryptedMsg.sender);
+
+    await RoomService.instance.receiveDM(room, event,
+        decodedContent: decryptedMsg.decryptMsg,
+        senderPubkey: decryptedMsg.sender,
+        encryptType: MessageEncryptType.mls,
+        msgKeyHash: msgKeyHash,
+        senderName: senderName);
+  }
+
+  Future<GroupExtension> getGroupExtension(Room room) async {
+    GroupExtensionResult ger = await rust_mls.getGroupExtension(
+        nostrId: room.getIdentity().secp256k1PKHex, groupId: room.toMainPubkey);
+
+    return GroupExtension(
+      name: utf8.decode(ger.name),
+      description: utf8.decode(ger.description),
+      admins: ger.adminPubkeys.map((e) => utf8.decode(e)).toList(),
+      relays: ger.relays.map((e) => utf8.decode(e)).toList(),
+    );
   }
 
   Future<Room> getGroupRoomByIdRoom(
@@ -219,27 +282,43 @@ $error ''';
     return group;
   }
 
-  Future<String?> getPK(String pubkey) async {
-    try {
-      var res = await Dio().get('${KeychatGlobal.mlsPKServer}?pubkey=$pubkey');
-      logger.d(res);
-      if (res.data['data'].length == 0) return null;
-      return res.data['data'];
-    } catch (e, s) {
-      logger.e('getPK failed', error: e, stackTrace: s);
-    }
-    return null;
-  }
+  Future<Map<String, String>> getKeyPackagesFromRelay(
+      List<String> pubkeys) async {
+    var ws = Get.find<WebsocketService>();
+    if (pubkeys.isEmpty) return {};
 
-  Future<Map> getPKs(List<String> pubkeys) async {
-    try {
-      var res = await Dio().post('${KeychatGlobal.mlsPKServer}batch',
-          data: {'pubkeys': pubkeys});
-      return res.data['data'] ?? {};
-    } catch (e, s) {
-      logger.e('getPK failed', error: e, stackTrace: s);
+    NostrReqModel req = NostrReqModel(
+        reqId: generate64RandomHexChars(16),
+        authors: pubkeys,
+        kinds: [EventKinds.nip104KP],
+        limit:
+            10, // Increased limit to get multiple results per pubkey if available
+        since: DateTime.now().subtract(Duration(days: 365)));
+    List<RelayWebsocket> relays = ws.getConnectedNip104Relay();
+    List<NostrEventModel> list = await ws.fetchInfoFromRelay(
+        req.reqId, req.toString(),
+        waitTimeToFill: true, sockets: relays);
+
+    // Process results to get latest content per pubkey
+    Map<String, NostrEventModel> result = {};
+
+    for (var event in list) {
+      if (!result.containsKey(event.pubkey)) {
+        result[event.pubkey] = event;
+      } else {
+        if (result[event.pubkey]!.createdAt < event.createdAt) {
+          result[event.pubkey] = event;
+        }
+      }
     }
-    return {};
+
+    Map<String, String> result2 = {};
+    for (var event in result.entries) {
+      result2[event.key] = event.value.content;
+    }
+
+    logger.d('PKs: $result2');
+    return result2;
   }
 
   Future<String> getShareInfo(Room room) async {
@@ -263,6 +342,42 @@ $error ''';
     return jsonEncode(map);
   }
 
+  // kind 444
+  Future handleWelcomeEvent(
+      {required NostrEventModel subEvent,
+      required NostrEventModel sourceEvent,
+      required Relay relay}) async {
+    logger.d('subEvent $subEvent');
+    String senderIdPubkey = subEvent.pubkey;
+    String myIdPubkey = sourceEvent.getTagByKey(EventKindTags.pubkey)!;
+    Room idRoom = await RoomService.instance
+        .getOrCreateRoom(subEvent.pubkey, myIdPubkey, RoomStatus.enabled);
+    Identity identity = idRoom.getIdentity();
+    if (senderIdPubkey == identity.secp256k1PKHex) {
+      logger.d('Event sent by me: ${subEvent.id}');
+      return;
+    }
+    String? pubkey = subEvent.getTagByKey(EventKindTags.pubkey);
+    if (pubkey == null) {
+      throw Exception('Tag p is null');
+    }
+    await MessageService.instance.saveMessageToDB(
+        from: sourceEvent.pubkey,
+        to: sourceEvent.tags[0][1],
+        senderPubkey: idRoom.toMainPubkey,
+        events: [sourceEvent],
+        subEvent: subEvent.toString(),
+        room: idRoom,
+        isMeSend: false,
+        isSystem: true,
+        encryptType: RoomUtil.getEncryptMode(sourceEvent),
+        sent: SendStatusType.success,
+        mediaType: MessageMediaType.groupInvite,
+        requestConfrim: RequestConfrimEnum.request,
+        content: subEvent.toString(),
+        realMessage: 'Invite you to join group');
+  }
+
   Future initDB(String path) async {
     dbPath = path;
     await initIdentities();
@@ -273,85 +388,24 @@ $error ''';
       throw Exception('MLS dbPath is null');
     }
     identities ??= await IdentityService.instance.getIdentityList();
-    List<String> pubkeys;
-    Map mls = {};
+
     for (Identity identity in identities) {
-      await rust_mls.initMlsDb(
-          dbPath: '$dbPath${KeychatGlobal.mlsDBFile}',
-          nostrId: identity.secp256k1PKHex);
-      logger.i('MLS init for identity: ${identity.secp256k1PKHex}');
-    }
-    if (identities.isEmpty) return;
-    Future.delayed(Duration(seconds: 3), () async {
-      for (Identity identity in identities ?? []) {
-        if (mls.isEmpty) {
-          pubkeys = identities!.map((e) => e.secp256k1PKHex).toList();
-          mls = await getPKs(pubkeys);
-        }
-
-        await _uploadPKMessage(identity, mls[identity.secp256k1PKHex]);
-      }
-    });
-  }
-
-  Future inviteToJoinGroup(Room room, List<Map<String, dynamic>> toUsers,
-      [String? sender]) async {
-    Identity identity = room.getIdentity();
-    Map<String, String> users = {};
-    List<Uint8List> keyPackages = [];
-    for (var user in toUsers) {
-      users[user['pubkey']] = user['name'];
-      String? pk = user['mlsPK'];
-      if (pk != null) {
-        keyPackages.add(base64.decode(pk));
+      try {
+        await rust_mls.initMlsDb(
+            dbPath: '$dbPath${KeychatGlobal.mlsDBFile}',
+            nostrId: identity.secp256k1PKHex);
+        logger.i('MLS init for identity: ${identity.secp256k1PKHex}');
+      } catch (e, s) {
+        logger.e(
+            'Failed to initialize MLS for identity: ${identity.secp256k1PKHex} ${e.toString()}',
+            error: e,
+            stackTrace: s);
       }
     }
-    if (keyPackages.isEmpty) {
-      throw Exception('keyPackages is empty');
-    }
-
-    var welcome = await rust_mls.addMembers(
-        nostrId: identity.secp256k1PKHex,
-        groupId: room.toMainPubkey,
-        keyPackages: keyPackages);
-
-    String welcomeMsg = base64.encode(welcome.$2);
-    Uint8List groupJoinConfig = await rust_mls.getGroupConfig(
-        nostrId: identity.secp256k1PKHex, groupId: room.toMainPubkey);
-    String mlsGroupInfo = base64.encode(groupJoinConfig);
-    RoomProfile roomProfile = await GroupService.instance.inviteToJoinGroup(
-        room, users,
-        mlsWelcome: jsonEncode([mlsGroupInfo, welcomeMsg]));
-
-    // send message to group
-    roomProfile.ext = base64.encode(welcome.$1);
-    String names = users.values.toList().join(',');
-
-    KeychatMessage sm = KeychatMessage(
-        c: MessageType.mls, type: KeyChatEventKinds.inviteNewMember)
-      ..name = roomProfile.toString()
-      ..msg =
-          '''${sender == null ? 'Invite' : '[$sender] invite'} [${names.isNotEmpty ? names : users.keys.join(',').toString()}] to join group.''';
-    await sendMessage(room, sm.toString(), realMessage: sm.msg);
-    await rust_mls.selfCommit(
-        nostrId: identity.secp256k1PKHex, groupId: room.toMainPubkey);
-    // self update keys
-    await proccessUpdateKeys(room, roomProfile);
+    uploadKeyPackages(identities);
   }
 
-  Future memberProccessUpdateKey(Room room, KeychatMessage km) async {
-    Uint8List welcome = base64.decode(km.name!);
-    await rust_mls.othersCommitNormal(
-        nostrId: room.myIdPubkey,
-        groupId: room.toMainPubkey,
-        queuedMsg: welcome);
-    try {
-      await replaceListenPubkey(room, room.myIdPubkey);
-    } catch (e) {
-      logger.e(e.toString(), error: e);
-    }
-  }
-
+  @Deprecated('use proccessMLSPrososalMessage instead')
   @override
   Future proccessMessage(
       {required Room room,
@@ -364,10 +418,6 @@ $error ''';
     MessageMediaType? mediaType;
     String? requestId;
     switch (km.type) {
-      case KeyChatEventKinds.groupHelloMessage:
-        await _proccessHelloMessage(room, event, km,
-            msgKeyHash: msgKeyHash, fromIdPubkey: fromIdPubkey!);
-        return;
       case KeyChatEventKinds.groupSelfLeave:
         await _processGroupSelfExit(room, event, km, fromIdPubkey!,
             msgKeyHash: msgKeyHash);
@@ -383,28 +433,6 @@ $error ''';
         room.status = RoomStatus.dissolved;
         await RoomService.instance.updateRoom(room);
         break;
-      case KeyChatEventKinds.groupAdminRemoveMembers:
-        await _proccessAdminRemoveMembers(room, event, km, fromIdPubkey!,
-            msgKeyHash: msgKeyHash);
-        return;
-      case KeyChatEventKinds.inviteNewMember:
-        RoomProfile roomProfile = RoomProfile.fromJson(jsonDecode(km.name!));
-        Room groupRoom = await getGroupRoomByIdRoom(room, roomProfile);
-        if (roomProfile.updatedAt < groupRoom.version) {
-          throw Exception('The invitation has expired');
-        }
-        if (roomProfile.ext == null) {
-          throw Exception('roomProfile is null');
-        }
-        if (groupRoom.status == RoomStatus.removedFromGroup) {}
-        Identity identity = groupRoom.getIdentity();
-        await rust_mls.othersCommitNormal(
-            nostrId: identity.secp256k1PKHex,
-            groupId: groupRoom.toMainPubkey,
-            queuedMsg: base64.decode(roomProfile.ext!));
-        await proccessUpdateKeys(groupRoom, roomProfile);
-
-        break;
       case KeyChatEventKinds.groupChangeRoomName:
         if (km.name != null) {
           room.name = km.name;
@@ -417,9 +445,6 @@ $error ''';
           await room.updateMemberName(fromIdPubkey, km.name!);
           RoomService.getController(room.id)?.resetMembers();
         }
-        break;
-      case KeyChatEventKinds.groupUpdateKeys:
-        await memberProccessUpdateKey(room, km);
         break;
       case KeyChatEventKinds.groupInvitationInfo:
         mediaType = MessageMediaType.groupInvitationInfo;
@@ -435,7 +460,7 @@ $error ''';
         return await RoomService.instance.receiveDM(room, event,
             sourceEvent: sourceEvent,
             km: km,
-            fromIdPubkey: fromIdPubkey,
+            senderPubkey: fromIdPubkey,
             encryptType: MessageEncryptType.mls,
             msgKeyHash: msgKeyHash);
     }
@@ -443,28 +468,128 @@ $error ''';
         decodedContent: km.toString(),
         realMessage: km.msg,
         isSystem: true,
-        fromIdPubkey: fromIdPubkey,
+        senderPubkey: fromIdPubkey,
         encryptType: MessageEncryptType.mls,
         msgKeyHash: msgKeyHash,
         mediaType: mediaType,
         requestId: requestId);
   }
 
-  Future<Room> proccessUpdateKeys(
-      Room groupRoom, RoomProfile roomProfile) async {
-    Identity identity = groupRoom.getIdentity();
+  Future proccessMLSProsoalMessage(Room room, NostrEventModel event,
+      {required MLSPrososalType type,
+      Function(String p1)? failedCallback}) async {
+    Identity identity = room.getIdentity();
+    late String senderPubkey;
+    late String senderName;
+    try {
+      Uint8List queuedMsg = base64.decode(event.content);
+      var res = await rust_mls.getSender(
+          nostrId: identity.secp256k1PKHex,
+          groupId: room.toMainPubkey,
+          queuedMsg: queuedMsg);
+      if (res == null) {
+        if (failedCallback != null) failedCallback('[MLS] Sender not found');
+        throw Exception('Sender not found');
+      }
+      senderPubkey = res;
+      senderName = await room.getMemberNameByIdPubkey(room, senderPubkey);
 
-    // clear signalid session and config
-    await DBProvider.database.writeTxn(() async {
-      // update room members
-      await groupRoom.updateAllMemberTx(roomProfile.users);
+      String? realMessage;
+      switch (type) {
+        case MLSPrososalType.add:
+          var before = await getMembers(room);
+          await rust_mls.othersCommitNormal(
+              nostrId: identity.secp256k1PKHex,
+              groupId: room.toMainPubkey,
+              queuedMsg: queuedMsg);
+          room = await proccessUpdateKeys(room, event.createdAt);
+          var after = await getMembers(room);
+          var addedMemberNames = getAddedMemberNames(after, before);
+          realMessage =
+              '[System] $senderName added [${addedMemberNames.join(",")}] to the group';
+          break;
+        case MLSPrososalType.update:
+          await rust_mls.othersCommitNormal(
+              nostrId: room.myIdPubkey,
+              groupId: room.toMainPubkey,
+              queuedMsg: queuedMsg);
 
-      groupRoom.status = RoomStatus.enabled;
-      groupRoom.version = roomProfile.updatedAt;
-      groupRoom = await GroupTx.instance.updateRoom(groupRoom);
-    });
-    groupRoom = await replaceListenPubkey(groupRoom, identity.secp256k1PKHex);
+          room = await replaceListenPubkey(room);
+          realMessage = '[System] $senderName: Self Update';
+          await RoomService.getController(room.id)?.resetMembers();
+          break;
+        case MLSPrososalType.updateName:
+          await rust_mls.othersCommitNormal(
+              nostrId: room.myIdPubkey,
+              groupId: room.toMainPubkey,
+              queuedMsg: queuedMsg);
 
+          room = await replaceListenPubkey(room);
+          await RoomService.getController(room.id)?.resetMembers();
+          senderName = await room.getMemberNameByIdPubkey(room, senderPubkey);
+          realMessage = 'Hi everyone, I\'m $senderName!';
+
+          break;
+        case MLSPrososalType.remove:
+          var before = await getMembers(room);
+          await rust_mls.othersCommitNormal(
+              nostrId: identity.secp256k1PKHex,
+              groupId: room.toMainPubkey,
+              queuedMsg: queuedMsg);
+          room = await replaceListenPubkey(room);
+          var after = await getMembers(room);
+          var diffMembers = getAddedMemberNames(before, after);
+          await RoomService.getController(room.id)
+              ?.setRoom(room)
+              .resetMembers();
+          realMessage =
+              '[System] $senderName added [${diffMembers.join(",")}] to the group';
+          // if (toRemoveIdPubkeys.contains(identity.secp256k1PKHex)) {
+          //   room.status = RoomStatus.removedFromGroup;
+          //   realMessage = '[System] You have been removed by admin.';
+          //   await RoomService.instance.updateRoomAndRefresh(room);
+          // }
+
+          break;
+        case MLSPrososalType.preSharedKey:
+          break;
+        case MLSPrososalType.reInit:
+          break;
+        case MLSPrososalType.externalInit:
+          break;
+        case MLSPrososalType.groupContextExtensions:
+          break;
+        case MLSPrososalType.appAck:
+          break;
+        case MLSPrososalType.selfRemove:
+          break;
+        case MLSPrososalType.custom:
+          // Handle custom proposal type (might need to implement this based on your requirements)
+          logger.w('Custom MLS proposal type not implemented');
+          break;
+      }
+
+      await RoomService.instance.receiveDM(room, event,
+          senderPubkey: senderPubkey,
+          encryptType: MessageEncryptType.mls,
+          realMessage: realMessage,
+          senderName: senderName);
+    } catch (e, s) {
+      String msg = Utils.getErrorMessage(e);
+      if (failedCallback != null) {
+        failedCallback(msg);
+      }
+      logger.e('Error processing MLS proposal: $msg', error: e, stackTrace: s);
+      await appendMessageOrCreate(
+          msg, room, 'MLS proposal processing failed', event);
+    }
+  }
+
+  Future<Room> proccessUpdateKeys(Room groupRoom, [int? version]) async {
+    if (version != null) {
+      groupRoom.version = version;
+    }
+    groupRoom = await replaceListenPubkey(groupRoom);
     await RoomService.getController(groupRoom.id)
         ?.setRoom(groupRoom)
         .resetMembers();
@@ -477,7 +602,6 @@ $error ''';
     List<String> names = [];
     List<Uint8List> bLeafNodes = [];
     for (RoomMember rm in list) {
-      await room.setMemberDisable(rm);
       idPubkeys.add(rm.idPubkey);
       names.add(rm.name);
       var bLeafNode = await rust_mls.getLeadNodeIndex(
@@ -490,86 +614,99 @@ $error ''';
         nostrId: identity.secp256k1PKHex,
         groupId: room.toMainPubkey,
         members: bLeafNodes);
-    KeychatMessage sm = KeychatMessage(
-        c: MessageType.mls, type: KeyChatEventKinds.groupAdminRemoveMembers)
-      ..name = jsonEncode([idPubkeys, base64.encode(queuedMsg)])
-      ..msg =
-          '[System] Admin remove ${names.length > 1 ? 'members' : 'member'}: ${names.join(',')}';
 
-    await sendMessage(room, sm.toString(), realMessage: sm.msg);
+    String realMessage =
+        '[System] Admin remove ${names.length > 1 ? 'members' : 'member'}: ${names.join(',')}';
+
+    room = await RoomService.instance.getRoomByIdOrFail(room.id);
+    await sendEncryptedMessage(room, base64.encode(queuedMsg),
+        realMessage: realMessage,
+        additionalTags: [
+          [EventKindTags.pubkey, room.onetimekey!],
+          [EventKindTags.customMessage, MLSPrososalType.remove.name]
+        ]);
     await rust_mls.selfCommit(
         nostrId: identity.secp256k1PKHex, groupId: room.toMainPubkey);
-    room = await replaceListenPubkey(room, identity.secp256k1PKHex);
+    room = await replaceListenPubkey(room);
     RoomService.getController(room.id)?.setRoom(room).resetMembers();
   }
 
-  Future<Room> replaceListenPubkey(Room room, String secp256k1PKHex) async {
+  Future<Room> replaceListenPubkey(Room room) async {
     Uint8List secret = await rust_mls.getExportSecret(
-        nostrId: secp256k1PKHex, groupId: room.toMainPubkey);
+        nostrId: room.myIdPubkey, groupId: room.toMainPubkey);
     String newPubkey =
         await rust_nostr.generateSeedFromKey(seedKey: List<int>.from(secret));
     if (newPubkey == room.onetimekey) return room;
-    return await room.replaceListenPubkey(
-        newPubkey, room.version, room.onetimekey);
+    return await room.replaceListenPubkey(newPubkey, room.version,
+        toDeletePubkey: room.onetimekey, kinds: [EventKinds.nip104GroupEvent]);
   }
 
-  Future selfUpdateKey(Room room) async {
-    String key = 'mlsUpdate:${room.toMainPubkey}';
-    int lastUpdate = await Storage.getIntOrZero(key);
-    if (DateTime.now().millisecondsSinceEpoch - lastUpdate < 86400000) {
-      throw Exception('You can only update your key once per day.');
-    }
-    await Storage.setInt(key, DateTime.now().millisecondsSinceEpoch);
-    Identity identity = room.getIdentity();
-    var queuedMsg = await rust_mls.selfUpdate(
-        nostrId: identity.secp256k1PKHex, groupId: room.toMainPubkey);
-    KeychatMessage sm = KeychatMessage(
-        c: MessageType.mls, type: KeyChatEventKinds.groupUpdateKeys)
-      ..name = base64.encode(queuedMsg)
-      ..msg = '[System] Update my mls-group-key.';
+  Future<Uint8List> _selfUpdateKeyLocal(Room room,
+      [Map<String, dynamic>? extension]) async {
+    Map map = extension ?? {'name': room.getIdentity().displayName};
+    return await rust_mls.selfUpdate(
+        nostrId: room.getIdentity().secp256k1PKHex,
+        groupId: room.toMainPubkey,
+        extensions: utf8.encode(jsonEncode(map)));
+  }
 
-    await sendMessage(room, sm.toString(), realMessage: sm.msg);
+  Future selfUpdateKey(Room room,
+      {Map<String, dynamic>? extension, MLSPrososalType? type}) async {
+    // String key = 'mlsUpdate:${room.toMainPubkey}';
+    // int lastUpdate = await Storage.getIntOrZero(key);
+    // if (DateTime.now().millisecondsSinceEpoch - lastUpdate < 86400000) {
+    //   throw Exception('You can only update your key once per day.');
+    // }
+    // await Storage.setInt(key, DateTime.now().millisecondsSinceEpoch);
+    var queuedMsg = await _selfUpdateKeyLocal(room, extension);
+    Identity identity = room.getIdentity();
+    String realMessage = type != null && type == MLSPrososalType.updateName
+        ? 'Hi everyone, I\'m ${extension?['name'] ?? identity.displayName}!'
+        : '[System] Self Update';
+    room = await RoomService.instance.getRoomByIdOrFail(room.id);
+    await sendEncryptedMessage(
+      room,
+      base64.encode(queuedMsg),
+      realMessage: realMessage,
+      additionalTags: [
+        [EventKindTags.pubkey, room.onetimekey!],
+        [EventKindTags.customMessage, type?.name ?? MLSPrososalType.update.name]
+      ],
+    );
     await rust_mls.selfCommit(
         nostrId: identity.secp256k1PKHex, groupId: room.toMainPubkey);
-    room = await replaceListenPubkey(room, identity.secp256k1PKHex);
+    room = await replaceListenPubkey(room);
   }
 
-  @override
-  Future<SendMessageResponse> sendMessage(Room room, String message,
-      {MessageMediaType? mediaType,
-      bool save = true,
-      MsgReply? reply,
-      String? realMessage}) async {
-    if (reply != null) {
-      message = KeychatMessage.getTextMessage(MessageType.mls, message, reply);
-    }
+  Future updateGroupExtensionName(Room room, String newName) async {
+    await rust_mls.getGroupExtension(
+        nostrId: room.getIdentity().secp256k1PKHex, groupId: room.toMainPubkey);
+    room.name = newName;
+    await RoomService.instance.updateRoomAndRefresh(room);
+  }
+
+  Future<SendMessageResponse> sendEncryptedMessage(Room room, String message,
+      {bool save = true,
+      MessageMediaType? mediaType,
+      String? realMessage,
+      List<List<String>>? additionalTags}) async {
     if (room.onetimekey == null) {
       throw Exception('Receiving pubkey is null');
     }
-    Identity identity = room.getIdentity();
-    var enctypted = await rust_mls.sendMsg(
-        nostrId: identity.secp256k1PKHex,
-        groupId: room.toMainPubkey,
-        msg: message);
 
-    // refresh onetime key
-    if (realMessage != null) {
-      room = await RoomService.instance.getRoomByIdOrFail(room.id);
-    }
     var randomAccount = await rust_nostr.generateSimple();
-    var smr = await NostrAPI.instance.sendNip4Message(
-        room.onetimekey!, base64.encode(enctypted.$1),
+    var smr = await NostrAPI.instance.sendNip4Message(room.onetimekey!, message,
         prikey: randomAccount.prikey,
         from: randomAccount.pubkey,
         room: room,
-        encryptType: MessageEncryptType.mls,
-        msgKeyHash: enctypted.$2 == null ? null : base64.encode(enctypted.$2!),
-        save: save,
         mediaType: mediaType,
+        encryptType: MessageEncryptType.mls,
+        kind: EventKinds.nip104GroupEvent,
+        save: save,
         sourceContent: message,
         realMessage: realMessage,
-        reply: reply,
-        isSignalMessage: true);
+        isEncryptedMessage: true,
+        additionalTags: additionalTags);
     RoomUtil.messageReceiveCheck(
             room, smr.events[0], const Duration(milliseconds: 500), 3)
         .then((res) {
@@ -578,175 +715,6 @@ $error ''';
       }
     });
     return smr;
-  }
-
-  Future shareToFriends(
-      Room room, List<Room> toUsers, String realMessage) async {
-    GroupInvitationModel gim = GroupInvitationModel(
-        name: room.name ?? room.toMainPubkey,
-        pubkey: room.toMainPubkey,
-        sender: room.myIdPubkey,
-        time: DateTime.now().millisecondsSinceEpoch,
-        sig: '');
-    KeychatMessage sm = KeychatMessage(
-        c: MessageType.mls, type: KeyChatEventKinds.groupInvitationInfo)
-      ..name = gim.toString()
-      ..msg = realMessage;
-    await RoomService.instance.sendMessageToMultiRooms(
-        message: sm.toString(),
-        realMessage: sm.msg!,
-        rooms: toUsers,
-        identity: room.getIdentity(),
-        mediaType: MessageMediaType.groupInvitationInfo);
-  }
-
-  Future updateMlsPK(Identity identity, String pk) async {
-    try {
-      String? sig =
-          await SignalChatUtil.signByIdentity(identity: identity, content: pk);
-      if (sig == null) {
-        logger.d('user denied');
-        return;
-      }
-      var res = await Dio().post(KeychatGlobal.mlsPKServer,
-          data: {'pubkey': identity.secp256k1PKHex, 'pk': pk, 'sig': sig});
-      logger.i('updateMlsPK success: ${res.data}');
-      return true;
-    } catch (e, s) {
-      logger.e('updateMlsPK failed', error: e, stackTrace: s);
-    }
-    return false;
-  }
-
-  Future uploadPKByIdentity(Identity identity) async {
-    String mlkPK = await createKeyMessages(identity.secp256k1PKHex);
-    bool success = await updateMlsPK(identity, mlkPK);
-    if (success) {
-      await Storage.setInt('mlspk:${identity.secp256k1PKHex}',
-          DateTime.now().millisecondsSinceEpoch);
-    }
-  }
-
-  // If the deleted person includes himself, mark the room as kicked.
-  // If it is not included, it will not be processed and the message will be displayed directly.
-  Future _proccessAdminRemoveMembers(
-      Room room, NostrEventModel event, KeychatMessage km, String fromIdPubkey,
-      {String? msgKeyHash}) async {
-    Identity identity = room.getIdentity();
-    List list = jsonDecode(km.name!);
-    List toRemoveIdPubkeys = list[0];
-    Uint8List welcome = base64.decode(list[1]);
-
-    if (toRemoveIdPubkeys.contains(identity.secp256k1PKHex)) {
-      room.status = RoomStatus.removedFromGroup;
-      await RoomService.instance.receiveDM(room, event,
-          decodedContent: '[System] You have been removed by admin.',
-          isSystem: true,
-          fromIdPubkey: fromIdPubkey,
-          encryptType: MessageEncryptType.mls,
-          msgKeyHash: msgKeyHash);
-      await RoomService.instance.updateRoomAndRefresh(room);
-      return;
-    }
-    for (String memberIdPubkey in toRemoveIdPubkeys) {
-      await room.setMemberDisableByPubkey(memberIdPubkey);
-    }
-
-    await rust_mls.othersCommitNormal(
-        nostrId: identity.secp256k1PKHex,
-        groupId: room.toMainPubkey,
-        queuedMsg: welcome);
-    room = await replaceListenPubkey(room, identity.secp256k1PKHex);
-    await RoomService.instance.receiveDM(room, event,
-        decodedContent: km.toString(),
-        realMessage: km.msg,
-        encryptType: MessageEncryptType.mls,
-        fromIdPubkey: fromIdPubkey,
-        msgKeyHash: msgKeyHash);
-    await RoomService.getController(room.id)?.setRoom(room).resetMembers();
-  }
-
-  _proccessHelloMessage(Room room, NostrEventModel event, KeychatMessage km,
-      {String? msgKeyHash, required String fromIdPubkey}) async {
-    if (km.name == null) {
-      throw Exception('_proccessHelloMessage: km.name is null');
-    }
-    // update room member
-    RoomMember? rm = await room.getMemberByIdPubkey(fromIdPubkey);
-    rm ??=
-        await room.createMember(fromIdPubkey, km.name!, UserStatusType.invited);
-
-    await room.setMemberInvited(rm!, km.name!);
-
-    // receive message
-    await RoomService.instance.receiveDM(room, event,
-        km: km,
-        msgKeyHash: msgKeyHash,
-        isSystem: true,
-        decodedContent: km.toString(),
-        fromIdPubkey: fromIdPubkey,
-        realMessage: km.msg,
-        encryptType: MessageEncryptType.mls);
-  }
-
-  Future _processGroupSelfExit(
-      Room room, NostrEventModel event, KeychatMessage km, String fromIdPubkey,
-      {String? msgKeyHash}) async {
-    // self exit group
-    if (fromIdPubkey == room.myIdPubkey) {
-      return;
-    }
-
-    await RoomService.instance.receiveDM(room, event,
-        decodedContent: km.toString(),
-        realMessage: km.msg,
-        isSystem: true,
-        fromIdPubkey: fromIdPubkey,
-        encryptType: MessageEncryptType.mls,
-        msgKeyHash: msgKeyHash);
-    RoomMember? adminMember = await room.getAdmin();
-    if (room.myIdPubkey != adminMember?.idPubkey) return;
-    // admin task
-    RoomMember? rm = await room.getMemberByIdPubkey(fromIdPubkey);
-    if (rm == null) return;
-    await removeMembers(room, [rm]);
-
-    // var commitData = await rust_mls.adminProposalLeave(
-    //     nostrId: room.myIdPubkey, groupId: room.toMainPubkey);
-
-    // String toSendMessage = KeychatMessage.getFeatureMessageString(
-    //     MessageType.mls,
-    //     room,
-    //     '[Commit]: ${km.msg}',
-    //     KeyChatEventKinds.groupSelfLeaveConfirm,
-    //     data: base64.encode(commitData));
-    // var smr = await MlsGroupService.instance
-    //     .sendMessage(room, toSendMessage, realMessage: '[Commit]: ${km.msg}');
-    // await RoomUtil.messageReceiveCheck(
-    //         room, smr.events[0], const Duration(milliseconds: 300), 3)
-    //     .then((res) async {
-    //   if (res) {
-    //     await rust_mls.adminCommitLeave(
-    //         nostrId: room.myIdPubkey, groupId: room.toMainPubkey);
-    //     await room.removeMember(fromIdPubkey);
-    //     RoomService.getController(room.id)?.resetMembers();
-    //   }
-    // });
-  }
-
-  Future _uploadPKMessage(Identity identity, String? serverExist) async {
-    int exist = await Storage.getIntOrZero('mlspk:${identity.secp256k1PKHex}');
-    if (serverExist == null ||
-        exist == 0 ||
-        DateTime.now().millisecondsSinceEpoch - exist > 86400) {
-      String mlkPK = await MlsGroupService.instance
-          .createKeyMessages(identity.secp256k1PKHex);
-      bool success = await updateMlsPK(identity, mlkPK);
-      if (success) {
-        await Storage.setInt('mlspk:${identity.secp256k1PKHex}',
-            DateTime.now().millisecondsSinceEpoch);
-      }
-    }
   }
 
   Future sendJoinGroupRequest(
@@ -778,6 +746,271 @@ $error ''';
       ..name = girm.toString()
       ..msg = 'Request to join group: ${gim.name}';
     await RoomService.instance
-        .sendTextMessage(room, sm.toString(), realMessage: sm.msg);
+        .sendMessage(room, sm.toString(), realMessage: sm.msg);
   }
+
+  @override
+  Future<SendMessageResponse> sendMessage(Room room, String message,
+      {MessageMediaType? mediaType,
+      bool save = true,
+      MsgReply? reply,
+      String? realMessage}) async {
+    if (reply != null) {
+      message = KeychatMessage.getTextMessage(MessageType.mls, message, reply);
+    }
+    if (room.onetimekey == null) {
+      throw Exception('Receiving pubkey is null');
+    }
+    Identity identity = room.getIdentity();
+    MessageResult enctypted = await rust_mls.createMessage(
+        nostrId: identity.secp256k1PKHex,
+        groupId: room.toMainPubkey,
+        msg: message);
+
+    // refresh onetime key
+    if (realMessage != null) {
+      room = await RoomService.instance.getRoomByIdOrFail(room.id);
+    }
+    var randomAccount = await rust_nostr.generateSimple();
+    var smr = await NostrAPI.instance.sendNip4Message(
+        room.onetimekey!, base64.encode(enctypted.encryptMsg),
+        prikey: randomAccount.prikey,
+        from: randomAccount.pubkey,
+        room: room,
+        encryptType: MessageEncryptType.mls,
+        kind: EventKinds.nip104GroupEvent,
+        msgKeyHash: enctypted.ratchetKey == null
+            ? null
+            : base64.encode(enctypted.ratchetKey!),
+        save: save,
+        mediaType: mediaType,
+        sourceContent: message,
+        realMessage: realMessage,
+        reply: reply,
+        isEncryptedMessage: true);
+    RoomUtil.messageReceiveCheck(
+            room, smr.events[0], const Duration(milliseconds: 500), 3)
+        .then((res) {
+      if (res == false) {
+        logger.e('MLS Message Send failed: $message');
+      }
+    });
+    return smr;
+  }
+
+  Future shareToFriends(
+      Room room, List<Room> toUsers, String realMessage) async {
+    GroupInvitationModel gim = GroupInvitationModel(
+        name: room.name ?? room.toMainPubkey,
+        pubkey: room.toMainPubkey,
+        sender: room.myIdPubkey,
+        time: DateTime.now().millisecondsSinceEpoch,
+        sig: '');
+    KeychatMessage sm = KeychatMessage(
+        c: MessageType.mls, type: KeyChatEventKinds.groupInvitationInfo)
+      ..name = gim.toString()
+      ..msg = realMessage;
+    await RoomService.instance.sendMessageToMultiRooms(
+        message: sm.toString(),
+        realMessage: sm.msg!,
+        rooms: toUsers,
+        identity: room.getIdentity(),
+        mediaType: MessageMediaType.groupInvitationInfo);
+  }
+
+  fetchOldKeypackageAndDelete(List<Identity> identities) async {
+    if (identities.isEmpty) return;
+    var ws = Get.find<WebsocketService>();
+    await Future.forEach(identities, (identity) async {
+      NostrReqModel req = NostrReqModel(
+          reqId: generate64RandomHexChars(16),
+          authors: [identity.secp256k1PKHex],
+          kinds: [EventKinds.nip104KP],
+          limit: 10,
+          since: DateTime.now().subtract(Duration(days: 365)));
+      List<RelayWebsocket> relays = ws.getConnectedNip104Relay();
+      List<NostrEventModel> list = await ws.fetchInfoFromRelay(
+          req.reqId, req.toString(),
+          waitTimeToFill: true, sockets: relays);
+      if (list.isEmpty) return;
+      var ess = list.map((e) => ['e', e.id]);
+      var event = await NostrAPI.instance.signEventByIdentity(
+          identity: identity,
+          content: "delete",
+          createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+          kind: EventKinds.delete,
+          tags: [
+            ...ess,
+            ["k", EventKinds.nip104KP.toString()]
+          ]);
+      Get.find<WebsocketService>().sendMessageWithCallback(event, callback: (
+          {required String relay,
+          required String eventId,
+          required bool status,
+          String? errorMessage}) async {
+        NostrAPI.instance.removeOKCallback(eventId);
+        var map = {
+          'relay': relay,
+          'status': status,
+          'errorMessage': errorMessage,
+        };
+        logger.d('fetchOldKeypackageAndDelete callback: $map');
+      });
+    });
+  }
+
+  Future uploadKeyPackages([List<Identity>? identities]) async {
+    List<String> relys = await Utils.waitRelayOnline();
+
+    if (relys.isEmpty) {
+      logger.e('No relays available');
+      throw Exception('No relays available');
+    }
+    identities ??= await IdentityService.instance.getIdentityList();
+    await fetchOldKeypackageAndDelete(identities);
+    // TODO delete old key packages
+    for (Identity identity in identities) {
+      String mlkPK = await MlsGroupService.instance
+          .createKeyMessages(identity.secp256k1PKHex);
+
+      String event = await NostrAPI.instance.signEventByIdentity(
+          identity: identity,
+          content: mlkPK,
+          createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+          kind: EventKinds.nip104KP,
+          tags: [
+            ["mls_protocol_version", "1.0"],
+            ["relay", ...relys]
+          ]);
+      Get.find<WebsocketService>().sendMessageWithCallback(event, callback: (
+          {required String relay,
+          required String eventId,
+          required bool status,
+          String? errorMessage}) async {
+        NostrAPI.instance.removeOKCallback(eventId);
+        await RelayService.instance.updateP104(relay, status);
+        var map = {
+          'relay': relay,
+          'status': status,
+          'errorMessage': errorMessage,
+        };
+        logger.d('uploadKeyPackages callback: $map');
+      });
+    }
+  }
+
+  Future _processGroupSelfExit(
+      Room room, NostrEventModel event, KeychatMessage km, String fromIdPubkey,
+      {String? msgKeyHash}) async {
+    // self exit group
+    if (fromIdPubkey == room.myIdPubkey) {
+      return;
+    }
+
+    await RoomService.instance.receiveDM(room, event,
+        decodedContent: km.toString(),
+        realMessage: km.msg,
+        isSystem: true,
+        senderPubkey: fromIdPubkey,
+        encryptType: MessageEncryptType.mls,
+        msgKeyHash: msgKeyHash);
+    String? adminMember = await room.getAdmin();
+    if (room.myIdPubkey != adminMember) return;
+    // admin task
+    RoomMember? rm = await room.getMemberByIdPubkey(fromIdPubkey);
+    if (rm == null) return;
+    await removeMembers(room, [rm]);
+
+    // var commitData = await rust_mls.adminProposalLeave(
+    //     nostrId: room.myIdPubkey, groupId: room.toMainPubkey);
+
+    // String toSendMessage = KeychatMessage.getFeatureMessageString(
+    //     MessageType.mls,
+    //     room,
+    //     '[Commit]: ${km.msg}',
+    //     KeyChatEventKinds.groupSelfLeaveConfirm,
+    //     data: base64.encode(commitData));
+    // var smr = await MlsGroupService.instance
+    //     .sendMessage(room, toSendMessage, realMessage: '[Commit]: ${km.msg}');
+    // await RoomUtil.messageReceiveCheck(
+    //         room, smr.events[0], const Duration(milliseconds: 300), 3)
+    //     .then((res) async {
+    //   if (res) {
+    //     await rust_mls.adminCommitLeave(
+    //         nostrId: room.myIdPubkey, groupId: room.toMainPubkey);
+    //     await room.removeMember(fromIdPubkey);
+    //     RoomService.getController(room.id)?.resetMembers();
+    //   }
+    // });
+  }
+
+  Future _sendInviteMessage(
+      {required Room groupRoom,
+      required Map<String, String> users,
+      required String mlsWelcome}) async {
+    if (users.isEmpty) return;
+    Identity identity = groupRoom.getIdentity();
+    await RoomService.instance.checkRoomStatus(groupRoom);
+    String realMessage =
+        'Invite ${users.values.join(',')} to join group ${groupRoom.name}';
+
+    await GroupService.instance.sendPrivateMessageToMembers(
+        realMessage, users.keys.toList(), identity,
+        content: mlsWelcome,
+        groupRoom: groupRoom,
+        nip17: true,
+        nip17Kind: EventKinds.nip104Welcome,
+        additionalTags: [
+          // group id
+          [EventKindTags.pubkey, groupRoom.toMainPubkey],
+        ]);
+
+    RoomService.getController(groupRoom.id)?.resetMembers();
+  }
+
+  Future<Map<String, RoomMember>> getMembers(Room room) async {
+    Map<String, RoomMember> roomMembers = {};
+    Map<String, List<Uint8List>> extensions = await rust_mls.getMemberExtension(
+        nostrId: room.myIdPubkey, groupId: room.toMainPubkey);
+    for (var element in extensions.entries) {
+      String name = element.key;
+      if (element.value.isNotEmpty) {
+        try {
+          String res = utf8.decode(element.value[0]);
+          Map extension = jsonDecode(res);
+          name = extension['name'];
+        } catch (e) {
+          logger.e('getMembers: ${e.toString()}');
+        }
+      }
+      roomMembers[element.key] =
+          RoomMember(idPubkey: element.key, name: name, roomId: room.id);
+    }
+    return roomMembers;
+  }
+
+  List<String> getAddedMemberNames(
+      Map<String, RoomMember> after, Map<String, RoomMember> before) {
+    List<String> addedMemberNames = [];
+    for (var entry in after.entries) {
+      if (!before.containsKey(entry.key)) {
+        addedMemberNames.add(entry.value.name);
+      }
+    }
+    return addedMemberNames;
+  }
+}
+
+enum MLSPrososalType {
+  add,
+  update,
+  updateName, // custom
+  remove,
+  preSharedKey,
+  reInit,
+  externalInit,
+  groupContextExtensions,
+  appAck,
+  selfRemove,
+  custom,
 }

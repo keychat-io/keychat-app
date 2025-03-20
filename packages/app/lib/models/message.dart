@@ -55,7 +55,8 @@ class Message extends Equatable {
   late DateTime createdAt; // event's createdAt
 
   late int identityId;
-  late String idPubkey; // the sender id pubkey
+  late String idPubkey; // the sender's id pubkey
+  String? senderName; // the sender's name
   List<String> eventIds = []; // for pairwise group
   late int roomId;
 

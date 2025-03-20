@@ -116,7 +116,7 @@ class MinePage extends GetView<SettingController> {
                         title: const Text("App Version"),
                         value: getVersionCode(homeController),
                         onPressed: (context) {},
-                      ),
+                      )
                     ],
                   ),
                 ],

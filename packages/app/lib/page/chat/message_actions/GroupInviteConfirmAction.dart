@@ -2,7 +2,6 @@ import 'dart:convert' show jsonDecode;
 
 import 'package:app/models/models.dart';
 import 'package:app/service/group.service.dart';
-import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/room.service.dart';
@@ -63,17 +62,15 @@ class GroupInviteConfirmAction extends StatelessWidget {
                         onPressed: () async {
                           Get.back();
                           try {
-                            if (groupRoom.isKDFGroup) {
-                              await KdfGroupService.instance.inviteToJoinGroup(
-                                  groupRoom, toJoinUserMap, senderName);
-                            } else if (groupRoom.isMLSGroup) {
+                            if (groupRoom.isMLSGroup) {
                               List<Map<String, dynamic>> users = [];
                               List<String> invited = [];
                               List<String> pkIsNull = [];
 
                               for (var entry in toJoinUserMap.entries) {
-                                String? pk = await MlsGroupService.instance
-                                    .getPK(entry.key);
+                                var res = await MlsGroupService.instance
+                                    .getKeyPackagesFromRelay([entry.key]);
+                                String? pk = res[entry.key];
                                 if (pk == null) {
                                   pkIsNull.add(entry.value);
                                 } else {
@@ -106,7 +103,7 @@ class GroupInviteConfirmAction extends StatelessWidget {
                                 ));
                                 return;
                               }
-                              await MlsGroupService.instance.inviteToJoinGroup(
+                              await MlsGroupService.instance.addMemeberToGroup(
                                   groupRoom, users, senderName);
                               Get.dialog(CupertinoAlertDialog(
                                 title: const Text('Success'),

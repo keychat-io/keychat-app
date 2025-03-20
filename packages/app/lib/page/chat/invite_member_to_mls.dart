@@ -63,7 +63,7 @@ class _InviteMemberToMLSState extends State<InviteMemberToMLS>
       return;
     }
     String myPubkey = widget.room.getIdentity().secp256k1PKHex;
-    RoomMember? meMember = await widget.room.getMember(myPubkey);
+    RoomMember? meMember = await widget.room.getMemberByIdPubkey(myPubkey);
 
     try {
       Room groupRoom =
@@ -71,7 +71,7 @@ class _InviteMemberToMLSState extends State<InviteMemberToMLS>
       String sender = meMember == null ? myPubkey : meMember.name;
 
       await MlsGroupService.instance
-          .inviteToJoinGroup(groupRoom, selectUsers, sender);
+          .addMemeberToGroup(groupRoom, selectUsers, sender);
 
       // update message status
       for (int i = 0; i < selectedMessages.length; i++) {

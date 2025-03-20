@@ -39,7 +39,7 @@ class _RelaySettingState extends State<RelaySetting> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: const Text('Relay Server'),
+          title: const Text('Network'),
           actions: [
             IconButton(
               onPressed: () {
@@ -116,7 +116,7 @@ class _RelaySettingState extends State<RelaySetting> {
     switch (status) {
       case RelayStatusEnum.connecting:
         return Colors.yellow;
-      case RelayStatusEnum.success:
+      case RelayStatusEnum.connected:
         return Colors.green;
       case RelayStatusEnum.failed:
         return Colors.red;

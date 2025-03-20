@@ -37,28 +37,33 @@ const RelaySchema = CollectionSchema(
       name: r'isDefault',
       type: IsarType.bool,
     ),
-    r'read': PropertySchema(
+    r'isEnableNip104': PropertySchema(
       id: 4,
+      name: r'isEnableNip104',
+      type: IsarType.bool,
+    ),
+    r'read': PropertySchema(
+      id: 5,
       name: r'read',
       type: IsarType.bool,
     ),
     r'stringify': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'updatedAt': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'url': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'url',
       type: IsarType.string,
     ),
     r'write': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'write',
       type: IsarType.bool,
     )
@@ -103,11 +108,12 @@ void _relaySerialize(
   writer.writeString(offsets[1], object.errorMessage);
   writer.writeLong(offsets[2], object.hashCode);
   writer.writeBool(offsets[3], object.isDefault);
-  writer.writeBool(offsets[4], object.read);
-  writer.writeBool(offsets[5], object.stringify);
-  writer.writeDateTime(offsets[6], object.updatedAt);
-  writer.writeString(offsets[7], object.url);
-  writer.writeBool(offsets[8], object.write);
+  writer.writeBool(offsets[4], object.isEnableNip104);
+  writer.writeBool(offsets[5], object.read);
+  writer.writeBool(offsets[6], object.stringify);
+  writer.writeDateTime(offsets[7], object.updatedAt);
+  writer.writeString(offsets[8], object.url);
+  writer.writeBool(offsets[9], object.write);
 }
 
 Relay _relayDeserialize(
@@ -117,15 +123,16 @@ Relay _relayDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Relay(
-    reader.readString(offsets[7]),
+    reader.readString(offsets[8]),
   );
   object.active = reader.readBool(offsets[0]);
   object.errorMessage = reader.readStringOrNull(offsets[1]);
   object.id = id;
   object.isDefault = reader.readBool(offsets[3]);
-  object.read = reader.readBool(offsets[4]);
-  object.updatedAt = reader.readDateTime(offsets[6]);
-  object.write = reader.readBool(offsets[8]);
+  object.isEnableNip104 = reader.readBool(offsets[4]);
+  object.read = reader.readBool(offsets[5]);
+  object.updatedAt = reader.readDateTime(offsets[7]);
+  object.write = reader.readBool(offsets[9]);
   return object;
 }
 
@@ -147,12 +154,14 @@ P _relayDeserializeProp<P>(
     case 4:
       return (reader.readBool(offset)) as P;
     case 5:
-      return (reader.readBoolOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 6:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readBoolOrNull(offset)) as P;
     case 7:
-      return (reader.readString(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 8:
+      return (reader.readString(offset)) as P;
+    case 9:
       return (reader.readBool(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -516,6 +525,16 @@ extension RelayQueryFilter on QueryBuilder<Relay, Relay, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Relay, Relay, QAfterFilterCondition> isEnableNip104EqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isEnableNip104',
+        value: value,
+      ));
+    });
+  }
+
   QueryBuilder<Relay, Relay, QAfterFilterCondition> readEqualTo(bool value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -795,6 +814,18 @@ extension RelayQuerySortBy on QueryBuilder<Relay, Relay, QSortBy> {
     });
   }
 
+  QueryBuilder<Relay, Relay, QAfterSortBy> sortByIsEnableNip104() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isEnableNip104', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Relay, Relay, QAfterSortBy> sortByIsEnableNip104Desc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isEnableNip104', Sort.desc);
+    });
+  }
+
   QueryBuilder<Relay, Relay, QAfterSortBy> sortByRead() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'read', Sort.asc);
@@ -917,6 +948,18 @@ extension RelayQuerySortThenBy on QueryBuilder<Relay, Relay, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Relay, Relay, QAfterSortBy> thenByIsEnableNip104() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isEnableNip104', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Relay, Relay, QAfterSortBy> thenByIsEnableNip104Desc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isEnableNip104', Sort.desc);
+    });
+  }
+
   QueryBuilder<Relay, Relay, QAfterSortBy> thenByRead() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'read', Sort.asc);
@@ -1004,6 +1047,12 @@ extension RelayQueryWhereDistinct on QueryBuilder<Relay, Relay, QDistinct> {
     });
   }
 
+  QueryBuilder<Relay, Relay, QDistinct> distinctByIsEnableNip104() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isEnableNip104');
+    });
+  }
+
   QueryBuilder<Relay, Relay, QDistinct> distinctByRead() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'read');
@@ -1064,6 +1113,12 @@ extension RelayQueryProperty on QueryBuilder<Relay, Relay, QQueryProperty> {
   QueryBuilder<Relay, bool, QQueryOperations> isDefaultProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isDefault');
+    });
+  }
+
+  QueryBuilder<Relay, bool, QQueryOperations> isEnableNip104Property() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isEnableNip104');
     });
   }
 

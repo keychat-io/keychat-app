@@ -9,7 +9,7 @@ enum RelayStatusEnum {
   connecting,
   failed,
   allFailed,
-  success,
+  connected,
   noNetwork
 }
 
@@ -25,6 +25,7 @@ class Relay extends Equatable {
   bool active = true;
   DateTime updatedAt = DateTime.now();
   String? errorMessage;
+  bool isEnableNip104 = false;
 
   Relay(this.url);
 

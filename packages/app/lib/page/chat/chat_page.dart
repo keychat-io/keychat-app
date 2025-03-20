@@ -218,13 +218,16 @@ class _ChatPage2State extends State<ChatPage> {
                                       (BuildContext context, int index) {
                                     Message message =
                                         controller.messages[index];
-                                    Contact contact =
-                                        controller.getContactByMessage(message);
+
                                     RoomMember? rm;
-                                    if (controller.room.type ==
-                                        RoomType.group) {
-                                      rm = controller
-                                          .getRoomMemberByMessage(message);
+                                    if (!message.isMeSend &&
+                                        controller.room.type ==
+                                            RoomType.group) {
+                                      rm = controller.getMemberByIdPubkey(
+                                          message.idPubkey);
+                                      if (rm != null) {
+                                        message.senderName = rm.name;
+                                      }
                                     }
 
                                     return AutoScrollTag(
@@ -238,7 +241,6 @@ class _ChatPage2State extends State<ChatPage> {
                                         child: MessageWidget(
                                           key: ObjectKey('msg:${message.id}'),
                                           myAavtar: myAavtar,
-                                          contact: contact,
                                           index: index,
                                           isGroup: isGroup,
                                           roomMember: rm,
@@ -421,7 +423,7 @@ class _ChatPage2State extends State<ChatPage> {
                                       context, element['description'],
                                       overflow: TextOverflow.clip)),
                               onPressed: (context) async {
-                                RoomService.instance.sendTextMessage(
+                                RoomService.instance.sendMessage(
                                     controller.roomObs.value, element['name']);
                                 Get.back();
                               }),
@@ -549,7 +551,7 @@ class _ChatPage2State extends State<ChatPage> {
                             Timer(Duration(seconds: seconds), () {
                               count++;
                               controller.getRoomStats();
-                              RoomService.instance.sendTextMessage(
+                              RoomService.instance.sendMessage(
                                   controller.room, count.toString());
                               randomTimer();
                             });
@@ -627,6 +629,7 @@ class _ChatPage2State extends State<ChatPage> {
     if (controller.room.type == RoomType.group) {
       String lastChar = value.substring(value.length - 1, value.length);
       if (lastChar == '@' && controller.inputTextIsAdd.value) {
+        var members = controller.enableMembers.values.toList();
         RoomMember? roomMember = await Get.bottomSheet(Scaffold(
             appBar: AppBar(
               leading: Container(),
@@ -639,12 +642,12 @@ class _ChatPage2State extends State<ChatPage> {
                         .dividerTheme
                         .color
                         ?.withValues(alpha: 0.05)),
-                itemCount: controller.enableMembers.length,
+                itemCount: members.length,
                 itemBuilder: (context, index) {
-                  RoomMember rm = controller.enableMembers[index];
+                  RoomMember rm = members[index];
                   return ListTile(
                       onTap: () {
-                        Get.back(result: controller.enableMembers[index]);
+                        Get.back(result: members[index]);
                       },
                       leading: Utils.getRandomAvatar(rm.idPubkey,
                           height: 36, width: 36),
@@ -800,8 +803,8 @@ class _ChatPage2State extends State<ChatPage> {
     controller = Get.put(ChatController(room!), tag: roomId.toString());
     controller.context = context;
     if (isFromSearch) {
-      controller.searchMsgIndex.value = 1;
-      controller.searchDt.value = searchDt;
+      controller.searchMsgIndex = 1;
+      controller.searchDt = searchDt;
     }
     return room;
   }

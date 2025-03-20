@@ -9,6 +9,7 @@ import 'package:app/page/chat/RoomDraft.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/file_util.dart' as file_util;
 import 'package:app/service/message.service.dart';
+import 'package:app/service/mls_group.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:file_picker/file_picker.dart';
@@ -24,13 +25,12 @@ import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 
-import '../models/db_provider.dart';
 import '../service/contact.service.dart';
 import '../service/file_util.dart';
 import '../service/room.service.dart';
 
-const int messageLimitPerPage = 30;
 const int maxMessageId = 999999999999;
+const int messageLimitPerPage = 30;
 
 String newlineChar = String.fromCharCode(13);
 
@@ -38,9 +38,6 @@ class ChatController extends GetxController {
   RxList<Message> messages = <Message>[].obs;
   List<Message> messagesMore = <Message>[];
   RxList<Message> inputReplys = <Message>[].obs;
-
-  Rx<RoomMember> meMember =
-      RoomMember(idPubkey: '', name: '', roomId: -1).obs; // it's me
   RxString inputText = ''.obs;
   RxBool inputTextIsAdd = true.obs;
   RxInt messageLimit = 0.obs;
@@ -57,8 +54,8 @@ class ChatController extends GetxController {
   RxInt statsReceive = 0.obs;
   RxInt unreadIndex = (-1).obs;
   RxList<Room> kpaIsNullRooms = <Room>[].obs; // for signal group chat
-  RxInt searchMsgIndex = (-1).obs;
-  Rx<DateTime> searchDt = DateTime.now().obs;
+  int searchMsgIndex = -1;
+  DateTime searchDt = DateTime.now();
 
   // hide add button
   RxBool hideAdd = true.obs;
@@ -78,8 +75,9 @@ class ChatController extends GetxController {
   Rx<Contact> roomContact = Contact(pubkey: '', npubkey: '', identityId: 0).obs;
 
   // group chat
-  RxList<RoomMember> members = <RoomMember>[].obs;
-  RxList<RoomMember> enableMembers = <RoomMember>[].obs;
+  RxMap<String, RoomMember> members = <String, RoomMember>{}.obs;
+  RxMap<String, RoomMember> enableMembers = <String, RoomMember>{}.obs;
+
   Map<String, Room> memberRooms = {}; // sendToAllGroup: rooms for each member
 
   // bot commands
@@ -171,23 +169,12 @@ class ChatController extends GetxController {
     textEditingController.text = name;
   }
 
-  Contact getContactByMessage(Message message) {
-    if (room.type == RoomType.common) {
-      return roomContact.value;
-    }
-    if (room.type == RoomType.bot) {
-      return Contact(
-          pubkey: room.toMainPubkey, npubkey: '', identityId: room.identityId)
-        ..name = room.getRoomName();
-    }
-    var roomMember = members
-        .firstWhereOrNull((element) => element.idPubkey == message.idPubkey);
-    roomMember ??= RoomMember(
-        idPubkey: message.from, name: 'Deleted', roomId: roomObs.value.id);
+  RoomMember? getMemberByIdPubkey(String idPubkey) {
+    return members[idPubkey];
+  }
 
-    return Contact(
-        pubkey: roomMember.idPubkey, npubkey: '', identityId: room.identityId)
-      ..petname = roomMember.name;
+  RoomMember? getMyRoomMember() {
+    return getMemberByIdPubkey(room.myIdPubkey);
   }
 
   Future<List<File>> getImageList(Directory directory) async {
@@ -216,11 +203,6 @@ class ChatController extends GetxController {
       }
     }
     return rooms;
-  }
-
-  RoomMember? getRoomMemberByMessage(Message message) {
-    return members
-        .firstWhereOrNull((element) => element.idPubkey == message.idPubkey);
   }
 
   getRoomStats() async {
@@ -257,8 +239,7 @@ class ChatController extends GetxController {
       if (GetPlatform.isMobile) {
         HapticFeedback.lightImpact();
       }
-      await RoomService.instance
-          .sendTextMessage(roomObs.value, text, reply: reply);
+      await RoomService.instance.sendMessage(roomObs.value, text, reply: reply);
       inputReplys.clear();
       hideAddIcon.value = false;
       // hideSend.value = true;
@@ -340,7 +321,7 @@ class ChatController extends GetxController {
 
   loadAllChatFromSearchScroll() {
     messages.clear();
-    DateTime from = searchDt.value;
+    DateTime from = searchDt;
     var list = MessageService.instance.listMessageBySearchSroll(
         roomId: roomObs.value.id, from: from, limit: 7);
     messages.addAll(sortMessageById(list));
@@ -429,7 +410,7 @@ class ChatController extends GetxController {
       bool isCurrent = DBProvider.instance.isCurrentPage(room.id);
       if (!isCurrent) {
         messagesMore.clear();
-        searchMsgIndex.value = -1;
+        searchMsgIndex = -1;
       }
       if (messagesMore.isNotEmpty &&
           autoScrollController.position.pixels <= 100) {
@@ -460,7 +441,7 @@ class ChatController extends GetxController {
     await _initRoom(room);
     await loadAllChat();
 
-    if (searchMsgIndex.value > 0) {
+    if (searchMsgIndex > 0) {
       loadAllChatFromSearchScroll();
     }
     initChatPageFeatures();
@@ -562,21 +543,23 @@ class ChatController extends GetxController {
   }
 
   Future resetMembers() async {
-    members.value = await room.getMembers();
-    enableMembers.value = members
-        .toList()
-        .where((element) => element.status == UserStatusType.invited)
-        .toList();
+    if (roomObs.value.isMLSGroup) {
+      var list = await MlsGroupService.instance.getMembers(roomObs.value);
+      enableMembers.value = list;
+      members.value = list;
+      String? admin = await roomObs.value.getAdmin();
+      if (admin != null) {
+        members[admin]!.isAdmin = true;
+        enableMembers[admin]!.isAdmin = true;
+      }
+      return;
+    }
     if (room.isSendAllGroup) {
+      members.value = await room.getMembers();
+      enableMembers.value = await room.getEnableMembers();
       memberRooms = await room.getEnableMemberRooms();
       kpaIsNullRooms.value = await getKpaIsNullRooms(); // get null list
     }
-  }
-
-  setMeMember(String name) async {
-    var me = meMember.value;
-    me.name = name;
-    meMember.value = me;
   }
 
   ChatController setRoom(Room newRoom) {
@@ -659,7 +642,7 @@ class ChatController extends GetxController {
         await Get.bottomSheet(const CashuSendPage(true));
     if (cashuInfo == null) return;
     try {
-      await RoomService.instance.sendTextMessage(room, cashuInfo.token,
+      await RoomService.instance.sendMessage(room, cashuInfo.token,
           realMessage: cashuInfo.toString(),
           mediaType: MessageMediaType.cashuA);
       hideAdd.value = true; // close features section
@@ -685,32 +668,12 @@ class ChatController extends GetxController {
     }
   }
 
-  _initRoom(Room room) async {
-    if (room.type == RoomType.group) {
-      return await _initGroupInfo();
-    }
-    // private chat
-    if (room.type == RoomType.common) {
-      if (room.contact == null) {
-        Contact contact = await ContactService.instance.getOrCreateContact(
-            roomObs.value.identityId, roomObs.value.toMainPubkey);
-        roomObs.value.contact = contact;
-        roomContact.value = contact;
-      } else {
-        roomContact.value = room.contact!;
-      }
-    }
-
-    // bot info
-    _initBotInfo();
-  }
-
   _initBotInfo() async {
     if (roomObs.value.type == RoomType.group) return;
     if (roomObs.value.encryptMode == EncryptMode.signal) return;
-    NostrEventModel? res =
-        await NostrAPI.instance.fetchMetadata([room.toMainPubkey]);
-    if (res == null) return;
+    List list = await NostrAPI.instance.fetchMetadata([room.toMainPubkey]);
+    if (list.isNotEmpty) return;
+    NostrEventModel res = list.last;
     Map<String, dynamic> metadata =
         Map<String, dynamic>.from(jsonDecode(res.content));
     if (room.botInfoUpdatedAt >= res.createdAt) {
@@ -748,18 +711,23 @@ class ChatController extends GetxController {
     await RoomService.instance.updateRoomAndRefresh(room);
   }
 
-  Future<void> _initGroupInfo() async {
-    await resetMembers();
-    Identity identity = room.getIdentity();
-    RoomMember? rm = await room.getMemberByIdPubkey(identity.secp256k1PKHex);
-    meMember.value = rm ??
-        RoomMember(
-            idPubkey: identity.secp256k1PKHex,
-            name: identity.displayName,
-            roomId: room.id)
-      ..curve25519PkHex = identity.curve25519PkHex;
+  _initRoom(Room room) async {
+    if (room.type == RoomType.group) {
+      return await resetMembers();
+    }
+    // private chat
+    if (room.type == RoomType.common) {
+      if (room.contact == null) {
+        Contact contact = await ContactService.instance.getOrCreateContact(
+            roomObs.value.identityId, roomObs.value.toMainPubkey);
+        roomObs.value.contact = contact;
+        roomContact.value = contact;
+      } else {
+        roomContact.value = room.contact!;
+      }
+    }
 
-    // for kdf group
-    room.checkAndCleanSignalKeys();
+    // bot info
+    _initBotInfo();
   }
 }

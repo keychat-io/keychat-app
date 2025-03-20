@@ -57,7 +57,7 @@ class Nip4ChatService extends BaseChatService {
     return await MessageService.instance.saveMessageToDB(
         room: room,
         events: [sourceEvent ?? event],
-        idPubkey: room.toMainPubkey,
+        senderPubkey: room.toMainPubkey,
         from: event.pubkey,
         encryptType: (sourceEvent ?? event).encryptType,
         to: event.tags[0][1],

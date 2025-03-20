@@ -1,4 +1,4 @@
-import 'dart:convert' show jsonDecode, jsonEncode;
+import 'dart:convert' show jsonDecode;
 
 import 'package:app/controller/home.controller.dart';
 import 'package:app/models/browser/browser_bookmark.dart';
@@ -6,6 +6,7 @@ import 'package:app/models/browser/browser_connect.dart';
 import 'package:app/models/browser/browser_favorite.dart';
 import 'package:app/models/db_provider.dart';
 import 'package:app/models/identity.dart';
+import 'package:app/nostr-core/nostr.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/browser/BookmarkEdit.dart';
 import 'package:app/page/browser/Browser_controller.dart';
@@ -451,19 +452,16 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
         return identity.secp256k1PKHex;
       case 'signEvent':
         var event = data.args[1];
-        if (identity.isFromSigner) {
-          return await SignerService.instance.signEvent(
-              pubkey: identity.secp256k1PKHex, eventJson: jsonEncode(event));
-        }
-        var res = await rust_nostr.signEvent(
-            senderKeys: await identity.getSecp256k1SKHex(),
+
+        var res = await NostrAPI.instance.signEventByIdentity(
+            identity: identity,
             content: event['content'] as String,
-            createdAt: BigInt.from(event['created_at']),
+            createdAt: event['created_at'],
             kind: event['kind'] as int,
             tags: (event['tags'] as List)
                 .map((e) => List<String>.from(e))
                 .toList());
-        logger.d('signEvent: $res');
+
         return res;
       case 'nip04Encrypt':
         String to = data.args[1];

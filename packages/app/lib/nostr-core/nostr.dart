@@ -281,7 +281,7 @@ class NostrAPI {
         from: from,
         to: toPubkey,
         isSystem: isSystem ?? false,
-        idPubkey: room.myIdPubkey,
+        senderPubkey: room.myIdPubkey,
         content: sourceContent ?? toEncryptText,
         realMessage: realMessage,
         isRead: true,
@@ -365,7 +365,7 @@ class NostrAPI {
         from: from,
         to: to,
         isSystem: isSystem ?? false,
-        idPubkey: room.myIdPubkey,
+        senderPubkey: room.myIdPubkey,
         content: sourceContent,
         realMessage: realMessage,
         isRead: true,
@@ -719,5 +719,39 @@ class NostrAPI {
         '_removeOKCallback$eventID', const Duration(seconds: 2), () {
       NostrAPI.instance.okCallback.remove(eventID);
     });
+  }
+
+  Future<String> signEventByIdentity(
+      {required Identity identity,
+      String? id,
+      required String content,
+      required int createdAt,
+      required int kind,
+      required List<List<String>> tags}) async {
+    if (!identity.isFromSigner) {
+      return await rust_nostr.signEvent(
+          senderKeys: await identity.getSecp256k1SKHex(),
+          tags: tags,
+          createdAt: BigInt.from(createdAt),
+          content: content,
+          kind: kind);
+    }
+
+    var event = {
+      'id': id ?? utils.generate64RandomHexChars(16),
+      'pubkey': identity.secp256k1PKHex,
+      'created_at': createdAt,
+      'kind': kind,
+      'tags': tags,
+      'content': content,
+      'sig': '',
+    };
+    var res = await SignerService.instance.signEvent(
+        pubkey: identity.secp256k1PKHex, eventJson: jsonEncode(event));
+    if (res == null) {
+      throw Exception('amber sign event error');
+    }
+
+    return res;
   }
 }

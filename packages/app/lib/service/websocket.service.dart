@@ -580,7 +580,6 @@ class WebsocketService extends GetxService {
 
       if (state is Disconnecting || state is Disconnected) {
         rw.channelStatus = RelayStatusEnum.failed;
-        rw.disconnected();
       }
       // update the main page status
       refreshMainRelayStatus();

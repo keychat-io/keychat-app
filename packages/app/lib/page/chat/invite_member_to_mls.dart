@@ -63,7 +63,7 @@ class _InviteMemberToMLSState extends State<InviteMemberToMLS>
       return;
     }
     String myPubkey = widget.room.getIdentity().secp256k1PKHex;
-    RoomMember? meMember = await widget.room.getMember(myPubkey);
+    RoomMember? meMember = await widget.room.getMemberByIdPubkey(myPubkey);
 
     try {
       Room groupRoom =

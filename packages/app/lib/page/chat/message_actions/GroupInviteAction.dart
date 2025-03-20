@@ -62,7 +62,7 @@ class GroupInviteAction extends StatelessWidget {
       }
       Room? groupRoom;
       try {
-        EasyLoading.show(status: 'Loading...');
+        EasyLoading.show(status: 'Proccessing...');
         Isar database = DBProvider.database;
         Room? exist = await database.rooms
             .filter()
@@ -128,7 +128,7 @@ class GroupInviteAction extends StatelessWidget {
         return;
       }
       // update my group keyPackage
-      await MlsGroupService.instance.uploadKeyPackages([identity]);
+      MlsGroupService.instance.uploadKeyPackages([identity]);
       await Get.offAndToNamed('/room/${groupRoom.id}', arguments: groupRoom);
       Get.find<HomeController>().loadIdentityRoomList(groupRoom.identityId);
     });

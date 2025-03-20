@@ -69,7 +69,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
       return;
     }
     String myPubkey = widget.room.getIdentity().secp256k1PKHex;
-    RoomMember? meMember = await widget.room.getMember(myPubkey);
+    RoomMember? meMember = await widget.room.getMemberByIdPubkey(myPubkey);
 
     // only isSendAllGroup
     if (meMember != null && widget.room.isSendAllGroup) {
@@ -128,7 +128,9 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
     if (news.isNotEmpty) {
       List<String> pubkeys = [];
       for (var u in news) {
-        pubkeys.add(u['pubkey']);
+        if (!u['exist']) {
+          pubkeys.add(u['pubkey']);
+        }
       }
       Map res = await MlsGroupService.instance.getKeyPackagesFromRelay(pubkeys);
 

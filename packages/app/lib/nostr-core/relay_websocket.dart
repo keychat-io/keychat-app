@@ -9,9 +9,7 @@ import 'package:app/service/relay.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:async_queue/async_queue.dart';
-import 'package:easy_debounce/easy_debounce.dart';
 import 'package:easy_debounce/easy_throttle.dart';
-import 'package:get/get.dart';
 import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.dart';
 import 'package:web_socket_client/web_socket_client.dart';
 
@@ -156,29 +154,6 @@ class RelayWebsocket {
       // nwc reconnect
       Utils.getGetxController<NostrWalletConnectController>()
           ?.startListening(relay.url);
-      // _startConnectHeartbeat();
     });
-  }
-
-  Timer? _checkWebsocketTimer;
-  void _startConnectHeartbeat() async {
-    _stopConnectHeartbeat();
-    EasyDebounce.debounce('checkOnlineAndConnect', const Duration(seconds: 30),
-        () async {
-      _checkWebsocketTimer =
-          Timer.periodic(const Duration(minutes: 1), (timer) {
-        loggerNoLine.i('checkOnlineAndConnect');
-        Get.find<WebsocketService>().checkOnlineAndConnect();
-      });
-    });
-  }
-
-  disconnected() {
-    _stopConnectHeartbeat();
-  }
-
-  void _stopConnectHeartbeat() {
-    _checkWebsocketTimer?.cancel();
-    _checkWebsocketTimer = null;
   }
 }

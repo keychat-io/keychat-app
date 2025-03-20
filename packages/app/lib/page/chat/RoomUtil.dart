@@ -687,6 +687,9 @@ Let's start an encrypted chat.''';
   }
 
   static Widget getMarkdownView(String text, MarkdownConfig config) {
+    // Replace empty lines with \n
+    // String processedText = text.replaceAll(RegExp(r'(\n\s*\n)'), '\n');
+
     return MarkdownBlock(
         data: text,
         selectable: false,

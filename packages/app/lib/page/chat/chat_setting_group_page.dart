@@ -1,5 +1,5 @@
 import 'package:app/app.dart';
-import 'package:app/page/chat/ForwardSelectRoom.dart';
+// import 'package:app/page/chat/ForwardSelectRoom.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/message_bill/pay_to_relay_page.dart';
 import 'package:app/service/mls_group.service.dart';
@@ -36,7 +36,8 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
   late ChatController chatController;
   late TextEditingController textEditingController;
   late TextEditingController userNameController;
-
+  late String myAlias = '';
+  bool isAdmin = false;
   @override
   void initState() {
     int roomId = int.parse(Get.parameters['id']!);
@@ -46,13 +47,15 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
       return;
     }
     chatController = controller;
+    myAlias = chatController.getMyRoomMember()?.name ?? '';
+    isAdmin = chatController.getMyRoomMember()?.isAdmin ?? false;
     super.initState();
 
     textEditingController =
         TextEditingController(text: chatController.roomObs.value.name);
 
     userNameController =
-        TextEditingController(text: chatController.meMember.value.name);
+        TextEditingController(text: chatController.getMyRoomMember()?.name);
   }
 
   @override
@@ -69,40 +72,51 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
           title: Obx(() => Text(
               "${chatController.roomObs.value.name ?? ""}(${chatController.enableMembers.length})")),
           actions: [
-            if (chatController.roomObs.value.isMLSGroup)
-              IconButton(
-                  icon: const Icon(CupertinoIcons.share),
-                  onPressed: () async {
-                    String realMessage =
-                        'Share a Group: ${chatController.roomObs.value.name}';
-                    List<Room>? forwardRooms = await Get.to(
-                        () => ForwardSelectRoom(realMessage,
-                            chatController.roomObs.value.getIdentity()),
-                        fullscreenDialog: true,
-                        transition: Transition.downToUp);
-                    if (forwardRooms == null || forwardRooms.isEmpty) return;
-                    await MlsGroupService.instance.shareToFriends(
-                        chatController.roomObs.value,
-                        forwardRooms,
-                        realMessage);
-                    if (forwardRooms.length == 1) {
-                      Room forwardRoom = forwardRooms[0];
-                      if (forwardRoom.id != chatController.roomObs.value.id) {
-                        await Get.toNamed('/room/${forwardRoom.id}',
-                            arguments: forwardRoom);
-                      }
-                    }
-                  }),
+            // if (chatController.roomObs.value.isMLSGroup)
+            //   IconButton(
+            //       icon: const Icon(CupertinoIcons.share),
+            //       onPressed: () async {
+            //         String realMessage =
+            //             'Share a Group: ${chatController.roomObs.value.name}';
+            //         List<Room>? forwardRooms = await Get.to(
+            //             () => ForwardSelectRoom(realMessage,
+            //                 chatController.roomObs.value.getIdentity()),
+            //             fullscreenDialog: true,
+            //             transition: Transition.downToUp);
+            //         if (forwardRooms == null || forwardRooms.isEmpty) return;
+            //         await MlsGroupService.instance.shareToFriends(
+            //             chatController.roomObs.value,
+            //             forwardRooms,
+            //             realMessage);
+            //         if (forwardRooms.length == 1) {
+            //           Room forwardRoom = forwardRooms[0];
+            //           if (forwardRoom.id != chatController.roomObs.value.id) {
+            //             await Get.toNamed('/room/${forwardRoom.id}',
+            //                 arguments: forwardRoom);
+            //           }
+            //         }
+            //       }),
             IconButton(
                 onPressed: () async {
-                  List<String> existedPubkeys = await rust_mls.getGroupMembers(
-                      nostrId: chatController.roomObs.value
-                          .getIdentity()
-                          .secp256k1PKHex,
-                      groupId: chatController.roomObs.value.toMainPubkey);
-                  Set<String> memberPubkeys = Set.from(existedPubkeys);
-                  String admin = await MlsGroupService.instance
-                      .getAdmin(chatController.roomObs.value);
+                  String? admin;
+                  Set<String> memberPubkeys = {};
+                  if (chatController.roomObs.value.isMLSGroup) {
+                    List<String> existedPubkeys =
+                        await rust_mls.getGroupMembers(
+                            nostrId: chatController.roomObs.value
+                                .getIdentity()
+                                .secp256k1PKHex,
+                            groupId: chatController.roomObs.value.toMainPubkey);
+                    memberPubkeys = Set.from(existedPubkeys);
+                    admin = await chatController.roomObs.value.getAdmin();
+                  } else {
+                    List<RoomMember> members =
+                        await chatController.room.getActiveMembers();
+                    admin = await chatController.room.getAdmin();
+                    for (RoomMember rm in members) {
+                      memberPubkeys.add(rm.idPubkey);
+                    }
+                  }
                   // contacts
                   List<Contact> contactList = await ContactService.instance
                       .getListExcludeSelf(chatController.room.identityId);
@@ -124,9 +138,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                     });
                   }
                   Get.to(() => AddMemberToGroup(
-                        room: chatController.roomObs.value,
-                        contacts: contacts,
-                      ));
+                      room: chatController.roomObs.value, contacts: contacts));
                 },
                 icon: const Icon(CupertinoIcons.plus_circle_fill))
           ],
@@ -134,7 +146,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
         body: Obx(
           () => Column(
             children: [
-              getImageGridView(chatController.members),
+              getImageGridView(chatController.members.values.toList()),
               Expanded(
                   child: SettingsList(
                 platform: DevicePlatform.iOS,
@@ -159,7 +171,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                         value: Text(RoomUtil.getGroupModeName(
                             chatController.roomObs.value.groupType)),
                         onPressed: getGroupInfoBottomSheetWidget),
-                    chatController.meMember.value.isAdmin
+                    isAdmin
                         ? SettingsTile.navigation(
                             title: const Text("Group Name"),
                             leading: const Icon(CupertinoIcons.flag),
@@ -217,7 +229,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                     SettingsTile.navigation(
                       title: const Text("My Alias in Group"),
                       leading: const Icon(CupertinoIcons.person),
-                      value: textP(chatController.meMember.value.name),
+                      value: textP(myAlias),
                       onPressed: (context) async {
                         if (chatController.room.isKDFGroup ||
                             chatController.room.isShareKeyGroup) {
@@ -246,18 +258,35 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                             CupertinoDialogAction(
                               isDefaultAction: true,
                               onPressed: () async {
-                                String name = userNameController.text.trim();
-                                if (name.isNotEmpty) {
-                                  await GroupService.instance.changeMyNickname(
-                                      chatController.roomObs.value, name);
-                                  await chatController.setMeMember(name);
-                                  chatController.meMember.refresh();
+                                try {
+                                  String name = userNameController.text.trim();
+                                  if (name.isEmpty) return;
+                                  if (chatController
+                                      .roomObs.value.isSendAllGroup) {
+                                    await GroupService.instance
+                                        .changeMyNickname(
+                                            chatController.roomObs.value, name);
+                                  } else if (chatController
+                                      .roomObs.value.isMLSGroup) {
+                                    await MlsGroupService.instance
+                                        .selfUpdateKey(
+                                            chatController.roomObs.value,
+                                            extension: {'name': name},
+                                            type: MLSPrososalType.updateName);
+                                  }
+                                  setState(() {
+                                    myAlias = name;
+                                  });
                                   userNameController.clear();
                                   chatController.resetMembers();
                                   EasyLoading.showSuccess('Success');
+                                  Get.back();
+                                } catch (e, s) {
+                                  logger.e("Failed to update nickname",
+                                      error: e, stackTrace: s);
+                                  EasyLoading.showError(
+                                      'Failed to update nickname: ${e.toString()}');
                                 }
-
-                                Get.back();
                               },
                               child: const Text("Confirm"),
                             ),
@@ -265,15 +294,16 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                         ));
                       },
                     ),
-                    SettingsTile(
-                        title: const Text("Relay"),
-                        leading: const Icon(CupertinoIcons.globe),
-                        value: textSmallGray(
-                            context,
-                            maxLines: 10,
-                            chatController.roomObs.value.sendingRelays
-                                .join('\n')),
-                        onPressed: (context) {}),
+                    if (chatController.roomObs.value.isMLSGroup)
+                      SettingsTile(
+                          title: const Text("Relay"),
+                          leading: const Icon(CupertinoIcons.globe),
+                          value: textSmallGray(
+                              context,
+                              maxLines: 10,
+                              chatController.roomObs.value.sendingRelays
+                                  .join('\n')),
+                          onPressed: (context) {}),
                   ]),
                   SettingsSection(tiles: [
                     RoomUtil.pinRoomSection(chatController),
@@ -432,7 +462,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                             Get.back();
                           },
                         ),
-                        if (chatController.meMember.value.isAdmin)
+                        if (isAdmin)
                           CupertinoDialogAction(
                             isDestructiveAction: true,
                             onPressed: () {
@@ -511,10 +541,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
             CupertinoIcons.trash,
             color: Colors.pink,
           ),
-          title: Text(
-              chatController.meMember.value.isAdmin
-                  ? "Disband Group"
-                  : "Leave Group",
+          title: Text(isAdmin ? "Disband Group" : "Leave Group",
               style: const TextStyle(color: Colors.pink)),
           onPressed: (context) {
             Get.dialog(_selfExitGroup(context));
@@ -564,10 +591,9 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
 
   Widget _selfExitGroup(BuildContext context) {
     return CupertinoAlertDialog(
-      title:
-          Text(chatController.meMember.value.isAdmin ? "Disband?" : "Leave?"),
-      content: Text(
-          'Are you sure to ${chatController.meMember.value.isAdmin ? 'disband' : 'leave'} this group?'),
+      title: Text(isAdmin ? "Disband?" : "Leave?"),
+      content:
+          Text('Are you sure to ${isAdmin ? 'disband' : 'leave'} this group?'),
       actions: <Widget>[
         CupertinoDialogAction(
           child: const Text('Cancel'),
@@ -577,12 +603,11 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
         ),
         CupertinoDialogAction(
             isDestructiveAction: true,
-            child: Text(
-                chatController.meMember.value.isAdmin ? "Disband" : "Leave"),
+            child: Text(isAdmin ? "Disband" : "Leave"),
             onPressed: () async {
               EasyLoading.show(status: 'Loading...');
               try {
-                chatController.meMember.value.isAdmin
+                isAdmin
                     ? await GroupService.instance
                         .dissolveGroup(chatController.roomObs.value)
                     : await GroupService.instance

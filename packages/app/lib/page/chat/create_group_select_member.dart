@@ -49,12 +49,15 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
       for (var u in news) {
         pubkeys.add(u['pubkey']);
       }
-      Map res = await MlsGroupService.instance.getKeyPackagesFromRelay(pubkeys);
+      if (widget.groupType == GroupType.mls) {
+        Map res =
+            await MlsGroupService.instance.getKeyPackagesFromRelay(pubkeys);
 
-      for (var u in news) {
-        String pubkey = u['pubkey'];
-        if (res[pubkey] != null && res[pubkey].length > 0) {
-          u['mlsPK'] = res[pubkey];
+        for (var u in news) {
+          String pubkey = u['pubkey'];
+          if (res[pubkey] != null && res[pubkey].length > 0) {
+            u['mlsPK'] = res[pubkey];
+          }
         }
       }
       users.addAll(news);

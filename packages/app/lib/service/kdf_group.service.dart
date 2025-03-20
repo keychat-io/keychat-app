@@ -268,7 +268,7 @@ Let's create a new group.''';
             sourceEvent: sourceEvent,
             realMessage: km.msg,
             isSystem: true,
-            fromIdPubkey: fromIdPubkey);
+            senderPubkey: fromIdPubkey);
         return;
       case KeyChatEventKinds.groupDissolve:
         room.status = RoomStatus.dissolved;
@@ -277,7 +277,7 @@ Let's create a new group.''';
             sourceEvent: sourceEvent,
             decodedContent: km.msg!,
             isSystem: true,
-            fromIdPubkey: fromIdPubkey);
+            senderPubkey: fromIdPubkey);
       case KeyChatEventKinds.groupAdminRemoveMembers:
         await _proccessAdminRemoveMembers(room, event, km, sourceEvent);
         return;
@@ -292,12 +292,12 @@ Let's create a new group.''';
             sourceEvent: sourceEvent,
             decodedContent: km.msg!,
             isSystem: true,
-            fromIdPubkey: fromIdPubkey);
+            senderPubkey: fromIdPubkey);
         await proccessUpdateKeys(groupRoom, roomProfile);
         return;
       default:
         await RoomService.instance.receiveDM(room, event,
-            sourceEvent: sourceEvent, km: km, fromIdPubkey: fromIdPubkey);
+            sourceEvent: sourceEvent, km: km, senderPubkey: fromIdPubkey);
     }
   }
 
@@ -314,7 +314,7 @@ Let's create a new group.''';
     SignalId? toDeleteMySignalId = await SignalIdService.instance
         .getSignalIdByPubkey(groupRoom.signalIdPubkey);
 
-    List<RoomMember> members = await groupRoom.getMembers();
+    List<RoomMember> members = (await groupRoom.getMembers()).values.toList();
     Mykey toDeleteMykey = groupRoom.mykey.value!;
     Identity identity = groupRoom.getIdentity();
     KeychatIdentityKeyPair myKeyPair = await groupRoom.getKeyPair();

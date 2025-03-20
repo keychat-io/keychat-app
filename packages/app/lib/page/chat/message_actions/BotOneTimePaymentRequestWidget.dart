@@ -114,7 +114,7 @@ class _BotOneTimePaymentRequestWidgetState
                           message: confirmResult,
                           payToken: cashuTokenString);
 
-                      await RoomService.instance.sendTextMessage(
+                      await RoomService.instance.sendMessage(
                           widget.chatController.roomObs.value,
                           jsonEncode(bcm.toJson()),
                           realMessage:

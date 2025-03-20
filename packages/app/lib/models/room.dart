@@ -210,18 +210,7 @@ class Room extends Equatable {
   }
 
   Future<RoomMember?> getMemberByIdPubkey(String pubkey) async {
-    Isar database = DBProvider.database;
-
-    return await database.roomMembers
-        .filter()
-        .roomIdEqualTo(id)
-        .idPubkeyEqualTo(pubkey)
-        .findFirst();
-  }
-
-  Future<RoomMember?> getMember(String pubkey) async {
-    Isar database = DBProvider.database;
-    return await database.roomMembers
+    return await DBProvider.database.roomMembers
         .filter()
         .roomIdEqualTo(id)
         .idPubkeyEqualTo(pubkey)
@@ -238,19 +227,30 @@ class Room extends Equatable {
         .findFirst();
   }
 
-  Future<List<RoomMember>> getMembers() async {
-    return await DBProvider.database.roomMembers
+  Future<Map<String, RoomMember>> getMembers() async {
+    Map<String, RoomMember> map = {};
+    var list = await DBProvider.database.roomMembers
         .filter()
         .roomIdEqualTo(id)
         .findAll();
+    for (var rm in list) {
+      map[rm.idPubkey] = rm;
+    }
+    return map;
   }
 
-  Future<List<RoomMember>> getEnableMembers() async {
-    return await DBProvider.database.roomMembers
+  Future<Map<String, RoomMember>> getEnableMembers() async {
+    Map<String, RoomMember> map = {};
+
+    var list = await DBProvider.database.roomMembers
         .filter()
         .roomIdEqualTo(id)
         .statusEqualTo(UserStatusType.invited)
         .findAll();
+    for (var rm in list) {
+      map[rm.idPubkey] = rm;
+    }
+    return map;
   }
 
   Future<List<RoomMember>> getNotEnableMembers() async {
@@ -498,8 +498,8 @@ class Room extends Equatable {
 
   Future<Map<String, Room>> getEnableMemberRooms() async {
     Map<String, Room> memberRooms = {};
-    List<RoomMember> rms = await getEnableMembers();
-    for (RoomMember rm in rms) {
+    var rms = await getEnableMembers();
+    for (RoomMember rm in rms.values) {
       if (rm.idPubkey == myIdPubkey) continue;
 
       Room idRoom = await RoomService.instance.getOrCreateRoom(
@@ -510,9 +510,31 @@ class Room extends Equatable {
     return memberRooms;
   }
 
+  Future<String> getMemberNameByIdPubkey(Room room, String pubkey) async {
+    RoomMember? member =
+        RoomService.getController(room.id)?.getMemberByIdPubkey(pubkey);
+    if (member != null) {
+      return member.name;
+    }
+    if (isMLSGroup) {
+      Map<String, RoomMember> map =
+          await MlsGroupService.instance.getMembers(this);
+      return map[pubkey]?.name ?? pubkey;
+    }
+
+    if (isSendAllGroup) {
+      RoomMember? rm = await getMemberByIdPubkey(pubkey);
+      if (rm != null) {
+        return rm.name;
+      }
+    }
+
+    return pubkey;
+  }
+
   Future<Map<String, Room>> getActiveMemberRooms(Mykey mainMykey) async {
     Map<String, Room> memberRooms = {};
-    List<RoomMember> rms = await getMembers();
+    List<RoomMember> rms = (await getMembers()).values.toList();
     for (RoomMember rm in rms) {
       if (rm.idPubkey == mainMykey.pubkey) continue;
 

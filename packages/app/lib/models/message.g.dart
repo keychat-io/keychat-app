@@ -137,24 +137,29 @@ const MessageSchema = CollectionSchema(
       name: r'roomId',
       type: IsarType.long,
     ),
-    r'sent': PropertySchema(
+    r'senderName': PropertySchema(
       id: 23,
+      name: r'senderName',
+      type: IsarType.string,
+    ),
+    r'sent': PropertySchema(
+      id: 24,
       name: r'sent',
       type: IsarType.int,
       enumMap: _MessagesentEnumValueMap,
     ),
     r'stringify': PropertySchema(
-      id: 24,
+      id: 25,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'subEvent': PropertySchema(
-      id: 25,
+      id: 26,
       name: r'subEvent',
       type: IsarType.string,
     ),
     r'to': PropertySchema(
-      id: 26,
+      id: 27,
       name: r'to',
       type: IsarType.string,
     )
@@ -259,6 +264,12 @@ int _messageEstimateSize(
     }
   }
   {
+    final value = object.senderName;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.subEvent;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -307,10 +318,11 @@ void _messageSerialize(
   writer.writeInt(offsets[20], object.requestConfrim?.index);
   writer.writeString(offsets[21], object.requestId);
   writer.writeLong(offsets[22], object.roomId);
-  writer.writeInt(offsets[23], object.sent.index);
-  writer.writeBool(offsets[24], object.stringify);
-  writer.writeString(offsets[25], object.subEvent);
-  writer.writeString(offsets[26], object.to);
+  writer.writeString(offsets[23], object.senderName);
+  writer.writeInt(offsets[24], object.sent.index);
+  writer.writeBool(offsets[25], object.stringify);
+  writer.writeString(offsets[26], object.subEvent);
+  writer.writeString(offsets[27], object.to);
 }
 
 Message _messageDeserialize(
@@ -341,9 +353,9 @@ Message _messageDeserialize(
       allOffsets,
     ),
     roomId: reader.readLong(offsets[22]),
-    sent: _MessagesentValueEnumMap[reader.readIntOrNull(offsets[23])] ??
+    sent: _MessagesentValueEnumMap[reader.readIntOrNull(offsets[24])] ??
         SendStatusType.sending,
-    to: reader.readString(offsets[26]),
+    to: reader.readString(offsets[27]),
   );
   object.cashuInfo = reader.readObjectOrNull<CashuInfoModel>(
     offsets[0],
@@ -360,7 +372,8 @@ Message _messageDeserialize(
   object.requestConfrim =
       _MessagerequestConfrimValueEnumMap[reader.readIntOrNull(offsets[20])];
   object.requestId = reader.readStringOrNull(offsets[21]);
-  object.subEvent = reader.readStringOrNull(offsets[25]);
+  object.senderName = reader.readStringOrNull(offsets[23]);
+  object.subEvent = reader.readStringOrNull(offsets[26]);
   return object;
 }
 
@@ -429,13 +442,15 @@ P _messageDeserializeProp<P>(
     case 22:
       return (reader.readLong(offset)) as P;
     case 23:
+      return (reader.readStringOrNull(offset)) as P;
+    case 24:
       return (_MessagesentValueEnumMap[reader.readIntOrNull(offset)] ??
           SendStatusType.sending) as P;
-    case 24:
-      return (reader.readBoolOrNull(offset)) as P;
     case 25:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBoolOrNull(offset)) as P;
     case 26:
+      return (reader.readStringOrNull(offset)) as P;
+    case 27:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -2960,6 +2975,152 @@ extension MessageQueryFilter
     });
   }
 
+  QueryBuilder<Message, Message, QAfterFilterCondition> senderNameIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'senderName',
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> senderNameIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'senderName',
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> senderNameEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'senderName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> senderNameGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'senderName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> senderNameLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'senderName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> senderNameBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'senderName',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> senderNameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'senderName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> senderNameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'senderName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> senderNameContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'senderName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> senderNameMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'senderName',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> senderNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'senderName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> senderNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'senderName',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<Message, Message, QAfterFilterCondition> sentEqualTo(
       SendStatusType value) {
     return QueryBuilder.apply(this, (query) {
@@ -3564,6 +3725,18 @@ extension MessageQuerySortBy on QueryBuilder<Message, Message, QSortBy> {
     });
   }
 
+  QueryBuilder<Message, Message, QAfterSortBy> sortBySenderName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'senderName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterSortBy> sortBySenderNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'senderName', Sort.desc);
+    });
+  }
+
   QueryBuilder<Message, Message, QAfterSortBy> sortBySent() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'sent', Sort.asc);
@@ -3855,6 +4028,18 @@ extension MessageQuerySortThenBy
     });
   }
 
+  QueryBuilder<Message, Message, QAfterSortBy> thenBySenderName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'senderName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterSortBy> thenBySenderNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'senderName', Sort.desc);
+    });
+  }
+
   QueryBuilder<Message, Message, QAfterSortBy> thenBySent() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'sent', Sort.asc);
@@ -4041,6 +4226,13 @@ extension MessageQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Message, Message, QDistinct> distinctBySenderName(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'senderName', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<Message, Message, QDistinct> distinctBySent() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'sent');
@@ -4214,6 +4406,12 @@ extension MessageQueryProperty
   QueryBuilder<Message, int, QQueryOperations> roomIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'roomId');
+    });
+  }
+
+  QueryBuilder<Message, String?, QQueryOperations> senderNameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'senderName');
     });
   }
 

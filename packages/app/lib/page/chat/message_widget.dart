@@ -24,6 +24,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart';
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:settings_ui/settings_ui.dart';
 
@@ -44,7 +45,7 @@ class MessageWidget extends StatelessWidget {
   late ChatController chatController;
   List<String> addTimeList = [];
   RoomMember? roomMember;
-  late Contact contact;
+  // late Contact contact;
   late double screenWidth;
   late bool isGroup;
   late Color toDisplayNameColor;
@@ -55,7 +56,6 @@ class MessageWidget extends StatelessWidget {
       {super.key,
       required this.myAavtar,
       required this.index,
-      required this.contact,
       required this.isGroup,
       required this.chatController,
       required this.fontColor,
@@ -234,7 +234,7 @@ class MessageWidget extends StatelessWidget {
                           overflow: TextOverflow.ellipsis, style: style),
                     if (message.receiveAt != null)
                       Text(
-                          'ReceiveAt: ${formatTime(message.receiveAt!.millisecondsSinceEpoch, 'yyyy-MM-dd HH:mm:ss:SSS')}',
+                          'Received: ${formatTime(message.receiveAt!.millisecondsSinceEpoch, 'yyyy-MM-dd HH:mm:ss:SSS')}',
                           overflow: TextOverflow.ellipsis,
                           style: style),
                   ]),
@@ -361,7 +361,7 @@ class MessageWidget extends StatelessWidget {
           children: <Widget>[
             Padding(
                 padding: const EdgeInsets.only(left: 5),
-                child: Text(contact.displayName,
+                child: Text(message.senderName ?? message.idPubkey,
                     maxLines: 1,
                     style: TextStyle(fontSize: 14, color: toDisplayNameColor))),
             child
@@ -418,7 +418,7 @@ class MessageWidget extends StatelessWidget {
       result2.add(event);
     }
 
-    List<RoomMember> members = chatController.members;
+    List<RoomMember> members = chatController.members.values.toList();
     _showRawDatas(message, result1, members, result2);
   }
 
@@ -487,11 +487,14 @@ class MessageWidget extends StatelessWidget {
                     .requestFocus(chatController.chatContentFocus);
               },
               onTap: () async {
-                if (contact.pubkey.isEmpty) return;
                 if (isGroup) {
                   await Get.to(() => ContactPage(
                       identityId: message.identityId,
-                      contact: contact,
+                      contact: Contact(
+                          identityId: message.identityId,
+                          npubkey: getBech32PubkeyByHex(hex: message.idPubkey),
+                          pubkey: message.idPubkey)
+                        ..name = message.senderName,
                       title: 'Group Member',
                       greeting: 'From Group: ${chatController.room.name}'));
                 } else {
@@ -500,8 +503,12 @@ class MessageWidget extends StatelessWidget {
                 }
                 await chatController.openPageAction();
               },
-              child:
-                  Utils.getRandomAvatar(contact.pubkey, height: 40, width: 40),
+              child: Utils.getRandomAvatar(
+                  message.idPubkey.isNotEmpty
+                      ? message.idPubkey
+                      : chatController.roomObs.value.toMainPubkey,
+                  height: 40,
+                  width: 40),
             ),
           ),
           Expanded(
@@ -843,7 +850,8 @@ class MessageWidget extends StatelessWidget {
       message.fromContact =
           FromContact(identity.secp256k1PKHex, identity.displayName);
     } else {
-      message.fromContact = FromContact(contact.pubkey, contact.displayName);
+      message.fromContact =
+          FromContact(message.idPubkey, message.senderName ?? message.idPubkey);
     }
     chatController.inputReplys.value = [message];
     chatController.hideAdd.value = true;

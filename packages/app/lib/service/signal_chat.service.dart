@@ -215,7 +215,7 @@ class SignalChatService extends BaseChatService {
     await RoomService.instance.receiveDM(room, event,
         decodedContent: decodeString,
         sourceEvent: sourceEvent,
-        fromIdPubkey: room.toMainPubkey,
+        senderPubkey: room.toMainPubkey,
         msgKeyHash: msgKeyHash);
     return decodeString;
   }
@@ -381,7 +381,7 @@ ${relays.join('\n')}
 ''');
 
     await RoomService.instance
-        .sendTextMessage(room, sm.toString(), realMessage: sm.msg);
+        .sendMessage(room, sm.toString(), realMessage: sm.msg);
   }
 
   Future sendHelloMessage(Room room, Identity identity,

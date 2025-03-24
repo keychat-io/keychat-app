@@ -7,7 +7,6 @@ import 'package:app/models/models.dart';
 import 'package:app/models/signal_id.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/group.service.dart';
-import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/signalId.service.dart';
 import 'package:app/service/signal_chat_util.dart';
@@ -42,10 +41,10 @@ class KeychatMessage {
         return SignalChatService.instance;
       case MessageType.group:
         return GroupService.instance;
-      case MessageType.kdfGroup:
-        return KdfGroupService.instance;
       case MessageType.mls:
         return MlsGroupService.instance;
+      case MessageType.kdfGroup:
+        throw Exception('kdfGroup not support');
     }
   }
 

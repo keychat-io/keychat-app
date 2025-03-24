@@ -283,13 +283,9 @@ class Room extends Equatable {
   }
 
   Future<bool> checkAdminByIdPubkey(String pubkey) async {
-    int count = await DBProvider.database.roomMembers
-        .filter()
-        .roomIdEqualTo(id)
-        .idPubkeyEqualTo(pubkey)
-        .isAdminEqualTo(true)
-        .count();
-    return count > 0;
+    String? admin = await getAdmin();
+    if (admin == null) return false;
+    return admin == pubkey;
   }
 
   Future<String?> getAdmin() async {
@@ -510,9 +506,9 @@ class Room extends Equatable {
     return memberRooms;
   }
 
-  Future<String> getMemberNameByIdPubkey(Room room, String pubkey) async {
+  Future<String> getMemberNameByIdPubkey(String pubkey) async {
     RoomMember? member =
-        RoomService.getController(room.id)?.getMemberByIdPubkey(pubkey);
+        RoomService.getController(id)?.getMemberByIdPubkey(pubkey);
     if (member != null) {
       return member.name;
     }

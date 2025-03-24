@@ -271,8 +271,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                                     await MlsGroupService.instance
                                         .selfUpdateKey(
                                             chatController.roomObs.value,
-                                            extension: {'name': name},
-                                            type: MLSPrososalType.updateName);
+                                            extension: {'name': name});
                                   }
                                   setState(() {
                                     myAlias = name;
@@ -383,7 +382,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
   }
 
   Widget getImageGridView(List<RoomMember> list) {
-    list = list
+    list = list.reversed
         .where((e) =>
             e.status == UserStatusType.invited ||
             e.status == UserStatusType.inviting)

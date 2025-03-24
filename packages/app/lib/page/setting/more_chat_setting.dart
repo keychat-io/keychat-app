@@ -65,15 +65,17 @@ class MoreChatSetting extends StatelessWidget {
             SettingsSection(title: const Text('MLS Group Settings'), tiles: [
               SettingsTile(
                   leading: const Icon(CupertinoIcons.cloud_upload),
-                  title: const Text("Upload KeyPackages"),
+                  title: const Text("Upload KeyPackage"),
                   onPressed: (context) async {
                     try {
                       await MlsGroupService.instance.uploadKeyPackages();
-                      EasyLoading.showSuccess('Upload KeyPackages Success');
-                    } catch (e) {
-                      logger.e('Failed to upload KeyPackages: $e');
+                      EasyLoading.showSuccess('Upload Success');
+                    } catch (e, s) {
+                      String msg = Utils.getErrorMessage(e);
+                      logger.e('Failed to upload KeyPackages: $msg',
+                          stackTrace: s);
                       EasyLoading.showError(
-                          'Failed to upload KeyPackages: ${e.toString()}');
+                          'Failed to upload KeyPackages: $msg');
                     }
                   }),
               SettingsTile(

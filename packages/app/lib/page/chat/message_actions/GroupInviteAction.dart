@@ -100,6 +100,7 @@ class GroupInviteAction extends StatelessWidget {
             subEvent, identity, message,
             groupId: groupId);
         EasyLoading.dismiss();
+        MlsGroupService.instance.uploadKeyPackages([identity]);
       } catch (e, s) {
         message.requestConfrim = RequestConfrimEnum.request;
         await MessageService.instance.updateMessageAndRefresh(message);
@@ -113,7 +114,7 @@ class GroupInviteAction extends StatelessWidget {
           await MessageService.instance.updateMessageAndRefresh(message);
         }
         logger.e(msg, error: e, stackTrace: s);
-        Get.dialog(CupertinoAlertDialog(
+        await Get.dialog(CupertinoAlertDialog(
             title: const Text('Join Group Error'),
             content: Text(msg),
             actions: <Widget>[
@@ -125,10 +126,10 @@ class GroupInviteAction extends StatelessWidget {
                         .uploadKeyPackages([identity]);
                   })
             ]));
+        // update my group keyPackage
+        MlsGroupService.instance.uploadKeyPackages([identity]);
         return;
       }
-      // update my group keyPackage
-      MlsGroupService.instance.uploadKeyPackages([identity]);
       await Get.offAndToNamed('/room/${groupRoom.id}', arguments: groupRoom);
       Get.find<HomeController>().loadIdentityRoomList(groupRoom.identityId);
     });

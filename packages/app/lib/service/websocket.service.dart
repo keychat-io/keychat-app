@@ -270,6 +270,7 @@ class WebsocketService extends GetxService {
         if (map['id'] != null) {
           NostrAPI.instance.setOKCallback(map['id'], callback);
         }
+        // ignore: empty_catches
       } catch (e) {}
     }
     if (relays != null && relays.isNotEmpty) {
@@ -400,7 +401,12 @@ class WebsocketService extends GetxService {
       required int roomId,
       List<String> toRelays = const []}) async {
     List<String> activeRelays = _getTargetRelays(toRelays);
-
+    if (activeRelays.isEmpty) {
+      if (toRelays.isNotEmpty) {
+        throw Exception('${toRelays.join(',')} not connected');
+      }
+      throw Exception('No active relay');
+    }
     SubscribeEventStatus.addSubscripton(event.id, activeRelays.length);
 
     String rawEvent = "[\"EVENT\",$eventString]";
@@ -497,14 +503,8 @@ class WebsocketService extends GetxService {
     if (activeRelays.isEmpty) {
       throw Exception('No active relay');
     }
-    if (toRelays.isNotEmpty) {
-      List<String> activeTargetRelays =
-          activeRelays.where((element) => toRelays.contains(element)).toList();
-      if (activeTargetRelays.isNotEmpty) {
-        activeRelays = activeTargetRelays;
-      }
-    }
-    return activeRelays;
+    if (toRelays.isEmpty) return activeRelays;
+    return activeRelays.where((element) => toRelays.contains(element)).toList();
   }
 
   Future<NostrEventStatus> addCashuToMessage(

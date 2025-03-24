@@ -1,5 +1,6 @@
 import 'package:app/models/models.dart';
 import 'package:app/page/components.dart';
+import 'package:app/service/group.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:flutter/cupertino.dart';
@@ -10,8 +11,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
-
-import '../../service/group.service.dart';
 
 class AddMemberToGroup extends StatefulWidget {
   final Room room;
@@ -69,39 +68,36 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
       return;
     }
     String myPubkey = widget.room.getIdentity().secp256k1PKHex;
-    RoomMember? meMember = await widget.room.getMemberByIdPubkey(myPubkey);
-
+    bool isAdmin = await widget.room.checkAdminByIdPubkey(myPubkey);
     // only isSendAllGroup
-    if (meMember != null && widget.room.isSendAllGroup) {
-      if (!meMember.isAdmin) {
-        try {
-          await GroupService.instance
-              .sendInviteToAdmin(widget.room, selectAccounts);
+    if (!isAdmin && widget.room.isSendAllGroup) {
+      try {
+        await GroupService.instance
+            .sendInviteToAdmin(widget.room, selectAccounts);
 
-          EasyLoading.dismiss();
-          Get.dialog(CupertinoAlertDialog(
-              title: const Text('Success'),
-              content: const Text('The invitation has been sent to the admin'),
-              actions: <Widget>[
-                CupertinoDialogAction(
-                    child: const Text('OK'),
-                    onPressed: () {
-                      Get.back();
-                      Get.back();
-                    })
-              ]));
-        } catch (e, s) {
-          logger.e(e.toString(), error: e, stackTrace: s);
-          EasyLoading.showError(e.toString());
-        }
-        return;
+        EasyLoading.dismiss();
+        Get.dialog(CupertinoAlertDialog(
+            title: const Text('Success'),
+            content: const Text('The invitation has been sent to the admin'),
+            actions: <Widget>[
+              CupertinoDialogAction(
+                  child: const Text('OK'),
+                  onPressed: () {
+                    Get.back();
+                    Get.back();
+                  })
+            ]));
+      } catch (e, s) {
+        logger.e(e.toString(), error: e, stackTrace: s);
+        EasyLoading.showError(e.toString());
       }
+      return;
     }
 
     try {
       Room groupRoom =
           await RoomService.instance.getRoomByIdOrFail(widget.room.id);
-      String sender = meMember == null ? myPubkey : meMember.name;
+      String sender = widget.room.getIdentity().displayName;
       if (widget.room.isMLSGroup) {
         await MlsGroupService.instance
             .addMemeberToGroup(groupRoom, selectUsers, sender);
@@ -125,23 +121,26 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
     }
     List<Map<String, dynamic>> news =
         widget.contacts.getRange(currentLength, nextLength).toList();
-    if (news.isNotEmpty) {
-      List<String> pubkeys = [];
-      for (var u in news) {
-        if (!u['exist']) {
-          pubkeys.add(u['pubkey']);
+    if (widget.room.isMLSGroup) {
+      if (news.isNotEmpty) {
+        List<String> pubkeys = [];
+        for (var u in news) {
+          if (!u['exist']) {
+            pubkeys.add(u['pubkey']);
+          }
         }
-      }
-      Map res = await MlsGroupService.instance.getKeyPackagesFromRelay(pubkeys);
+        Map res =
+            await MlsGroupService.instance.getKeyPackagesFromRelay(pubkeys);
 
-      for (var u in news) {
-        String pubkey = u['pubkey'];
-        if (res[pubkey] != null && res[pubkey].length > 0) {
-          u['mlsPK'] = res[pubkey];
+        for (var u in news) {
+          String pubkey = u['pubkey'];
+          if (res[pubkey] != null && res[pubkey].length > 0) {
+            u['mlsPK'] = res[pubkey];
+          }
         }
       }
-      users.addAll(news);
     }
+    users.addAll(news);
     pageLoading = false;
     setState(() {});
     _refreshController.loadComplete();
@@ -185,6 +184,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
                                   Text(user['npubkey'],
                                       overflow: TextOverflow.ellipsis),
                                   widget.room.groupType == GroupType.mls &&
+                                          user['exist'] == false &&
                                           user['mlsPK'] == null
                                       ? Text('Not upload MLS keys',
                                           style: Theme.of(context)

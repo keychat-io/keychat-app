@@ -1,6 +1,5 @@
 import 'package:app/models/models.dart';
 import 'package:app/service/group.service.dart';
-import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/material.dart';
@@ -35,14 +34,9 @@ class GroupInviteConfirmPage extends StatelessWidget {
                   FilledButton(
                     onPressed: () async {
                       try {
-                        if (groupRoom.isKDFGroup) {
-                          Identity identity = groupRoom.getIdentity();
-                          await KdfGroupService.instance.inviteToJoinGroup(
-                              groupRoom, toJoinUserMap, identity.displayName);
-                        } else {
-                          await GroupService.instance
-                              .inviteToJoinGroup(groupRoom, toJoinUserMap);
-                        }
+                        await GroupService.instance
+                            .inviteToJoinGroup(groupRoom, toJoinUserMap);
+
                         EasyLoading.showSuccess('Success');
                         message.requestConfrim = RequestConfrimEnum.approved;
                         MessageService.instance

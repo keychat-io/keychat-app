@@ -1,6 +1,9 @@
+import 'package:app/models/room.dart';
+
 class GroupExtension {
   final String name;
   final String description;
+  final String status;
   final List<String> admins;
   final List<String> relays;
 
@@ -9,6 +12,7 @@ class GroupExtension {
     required this.description,
     required this.admins,
     required this.relays,
+    required this.status,
   });
 
   factory GroupExtension.fromMap(Map<String, dynamic> map) {
@@ -17,6 +21,7 @@ class GroupExtension {
       description: map['description'] ?? '',
       admins: List<String>.from(map['admins'] ?? []),
       relays: List<String>.from(map['relays'] ?? []),
+      status: map['status'] ?? RoomStatus.enabled,
     );
   }
 
@@ -26,6 +31,7 @@ class GroupExtension {
       'description': description,
       'admins': admins,
       'relays': relays,
+      'status': status,
     };
   }
 }

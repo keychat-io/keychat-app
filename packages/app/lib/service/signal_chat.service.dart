@@ -342,7 +342,7 @@ class SignalChatService extends BaseChatService {
       logger.d('addRoomKPA success, set room encryptMode to signal');
     }
     room.contact = contact;
-    room = await RoomService.instance.updateRoomAndRefresh(room);
+    await RoomService.instance.updateRoomAndRefresh(room);
 
     await RoomService.instance.receiveDM(room, event,
         sourceEvent: sourceEvent,

@@ -67,9 +67,8 @@ class MessageService {
       if (Get.isSnackbarOpen) {
         try {
           Get.closeAllSnackbars();
-        } catch (e) {
-          logger.e('Error closing snackbars: $e');
-        }
+          // ignore: empty_catches
+        } catch (e) {}
       }
       if (GetPlatform.isDesktop) {
         if (Get.find<HomeController>().resumed == false) {

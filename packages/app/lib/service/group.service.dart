@@ -10,7 +10,6 @@ import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/group_tx.dart';
 import 'package:app/service/chat.service.dart';
 import 'package:app/service/chatx.service.dart';
-import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/nip4_chat.service.dart';
 import 'package:app/service/notify.service.dart';
@@ -25,8 +24,6 @@ import 'package:keychat_rust_ffi_plugin/api_signal.dart';
 import 'package:queue/queue.dart';
 
 import '../constants.dart';
-import '../models/db_provider.dart';
-import '../models/keychat/room_profile.dart';
 import '../nostr-core/nostr.dart';
 import '../utils.dart';
 import 'contact.service.dart';
@@ -73,10 +70,13 @@ class GroupService extends BaseChatService {
       throw Exception('only admin can change name');
     }
     room.name = newName;
-
-    await sendMessageToGroup(room, '[System] New room name: $newName',
-        subtype: KeyChatEventKinds.groupChangeRoomName, ext: newName);
-    await roomService.updateRoomAndRefresh(room);
+    if (room.isSendAllGroup) {
+      await sendMessageToGroup(room, '[System] New room name: $newName',
+          subtype: KeyChatEventKinds.groupChangeRoomName, ext: newName);
+      await roomService.updateRoomAndRefresh(room);
+    } else if (room.isMLSGroup) {
+      await MlsGroupService.instance.updateGroupName(room, newName);
+    }
   }
 
   bool checkUserInList(List<dynamic> list, String pubkey) {
@@ -123,6 +123,10 @@ class GroupService extends BaseChatService {
       throw Exception('Only admin can exit group');
     }
     String message = '[System] The admin closed the group chat';
+    if (room.isMLSGroup) {
+      await MlsGroupService.instance.dissolve(room);
+      return;
+    }
     int subtype = KeyChatEventKinds.groupDissolve;
 
     List list = await room.getActiveMembers();
@@ -149,10 +153,6 @@ class GroupService extends BaseChatService {
           name: room.myIdPubkey);
       await MlsGroupService.instance
           .sendMessage(room, toSendMessage, realMessage: message);
-    } else if (room.isKDFGroup) {
-      String toSendMessage = KeychatMessage.getFeatureMessageString(
-          MessageType.kdfGroup, room, message, subtype);
-      await KdfGroupService.instance.sendMessage(room, toSendMessage);
     } else {
       await sendMessageToGroup(room, message, subtype: subtype);
     }
@@ -914,7 +914,8 @@ class GroupService extends BaseChatService {
       required String content,
       bool nip17 = false,
       int nip17Kind = EventKinds.nip17,
-      List<List<String>>? additionalTags}) async {
+      List<List<String>>? additionalTags,
+      bool save = true}) async {
     final queue = Queue(parallel: 5);
     var todo = collection.Queue.from(toUsers);
     int membersLength = todo.length;
@@ -938,7 +939,8 @@ class GroupService extends BaseChatService {
               toPubkey: idPubkey,
               realMessage: realMessage,
               nip17Kind: nip17Kind,
-              additionalTags: additionalTags);
+              additionalTags: additionalTags,
+              save: save);
           return;
         }
         await RoomService.instance

@@ -32,14 +32,13 @@ class RelayWebsocket {
         await MessageService.instance.getNostrListenStartAt(relay.url);
     // id keys
     List<String> pubkeys = await IdentityService.instance.getListenPubkeys();
-    listenPubkeys(pubkeys, since);
     listenPubkeys(pubkeys, DateTime.now().subtract(const Duration(days: 2)),
         [EventKinds.nip17]);
 
     // signal room keys
     List<String> signalRoomKeys =
         await IdentityService.instance.getSignalRoomPubkeys();
-    listenPubkeys(signalRoomKeys, since);
+    listenPubkeys([...pubkeys, ...signalRoomKeys], since);
 
     // mls room keys
     List<String> mlsRoomKeys =
@@ -128,7 +127,6 @@ class RelayWebsocket {
     try {
       channel!.send('ping');
     } catch (e) {
-      // logger.e(e.toString());
       return false;
     }
     final deadline = DateTime.now().add(const Duration(seconds: 1));

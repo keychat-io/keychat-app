@@ -738,12 +738,11 @@ class RoomService extends BaseChatService {
     return room;
   }
 
-  Future<Room> updateRoomAndRefresh(Room room) async {
+  Future<void> updateRoomAndRefresh(Room room) async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.rooms.put(room);
     });
     updateChatRoomPage(room);
-    return room;
   }
 
   Future _checkWebsocketConnect() async {

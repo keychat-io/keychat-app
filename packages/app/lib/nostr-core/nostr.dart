@@ -1,4 +1,5 @@
 import 'package:app/models/nostr_event_status.dart';
+import 'package:app/nostr-core/close.dart';
 import 'package:app/nostr-core/subscribe_result.dart';
 import 'package:app/service/SignerService.dart';
 import 'package:app/service/mls_group.service.dart';
@@ -434,10 +435,10 @@ class NostrAPI {
 
     NostrEventStatus? ess = await NostrEventStatus.getReceiveEvent(event.id);
     if (ess != null) {
-      logger.d('duplicate_db: ${event.id}');
+      loggerNoLine.i('Duplicate event: ${event.id}');
       return;
     }
-    logger.d('start proccess: ${event.id}');
+    loggerNoLine.i('Start proccess event: ${event.id}');
 
     _updateRelayLastMessageAt(relay.url, event.createdAt);
     ess = await NostrEventStatus.createReceiveEvent(relay.url, event.id, raw);
@@ -513,7 +514,7 @@ class NostrAPI {
       Relay relay, Function(String error) failedCallback, String to) async {
     if (groupRoom.groupType != GroupType.mls) return;
     await MlsGroupService.instance
-        .decryptMessage(groupRoom, event, failedCallback: failedCallback);
+        .decryptMessage(groupRoom, event, failedCallback);
   }
 
   Future dmNip4Proccess(NostrEventModel sourceEvent, Relay relay,
@@ -622,7 +623,9 @@ class NostrAPI {
     ]);
 
     var req = requestWithFilter.serialize();
-    return await Get.find<WebsocketService>().fetchInfoFromRelay(id, req);
+    var res = await Get.find<WebsocketService>().fetchInfoFromRelay(id, req);
+    Get.find<WebsocketService>().sendMessage(Close(id).serialize());
+    return res;
   }
 
   void _proccessNotice(Relay relay, String msg1) {

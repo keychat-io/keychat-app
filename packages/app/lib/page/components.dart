@@ -550,6 +550,7 @@ Future showMyQrCode(
           time: expiredTime,
           isOneTime: true,
           onTap: Get.back),
+      ignoreSafeArea: false,
       isScrollControlled: true);
 }
 

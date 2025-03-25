@@ -69,18 +69,12 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                       await RelayService.instance
                           .update(controller.relay.value);
                       controller.relay.refresh();
-                      WebsocketService websocketService =
-                          Get.find<WebsocketService>();
-
-                      websocketService
-                          .updateRelayWidget(controller.relay.value);
-                      if (value &&
-                          websocketService.channels[controller.relay.value.url]
-                                  ?.channelStatus !=
-                              RelayStatusEnum.connected) {
-                        websocketService.addChannel(controller.relay.value);
-                        RelayService.instance
-                            .initRelayFeeInfo([controller.relay.value]);
+                      WebsocketService ws = Get.find<WebsocketService>();
+                      if (value) {
+                        await RelayService.instance
+                            .addAndConnect(controller.relay.value.url);
+                      } else {
+                        await ws.disableRelay(controller.relay.value);
                       }
                       EasyLoading.showToast('Setting saved');
                     },

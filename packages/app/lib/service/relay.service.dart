@@ -2,6 +2,7 @@ import 'package:app/global.dart';
 import 'package:app/models/embedded/relay_file_fee.dart';
 import 'package:app/models/embedded/relay_message_fee.dart';
 import 'package:app/nostr-core/relay_websocket.dart';
+import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/storage.dart';
 
@@ -26,21 +27,20 @@ class RelayService {
 
   Future addAndConnect(String url) async {
     WebsocketService ws = Get.find<WebsocketService>();
+    Relay relay = await RelayService.instance.getOrPutRelay(url);
+
     RelayWebsocket? channel = ws.channels[url];
     if (channel != null) {
-      if (!channel.relay.active) {
-        channel.relay.active = true;
-        channel.relay.errorMessage = null;
-        await update(channel.relay);
-        ws.checkOnlineAndConnect([channel]);
-      }
-      return;
+      ws.channels.remove(channel.relay.url);
     }
-
-    Relay relay = await RelayService.instance.getOrPutRelay(url);
-    ws.addChannel(relay);
-    NotifyService.syncPubkeysToServer(); // sub new relay
-    RelayService.instance.initRelayFeeInfo([relay]);
+    relay.active = true;
+    relay.errorMessage = null;
+    await update(relay);
+    await ws.addChannel(relay, connectedCallback: () {
+      NotifyService.syncPubkeysToServer(); // sub new relay
+      RelayService.instance.initRelayFeeInfo([relay]);
+      MlsGroupService.instance.uploadKeyPackages();
+    });
   }
 
   Future<Relay> add(String url, [bool isDefault = false]) async {

@@ -3,11 +3,9 @@
 import 'dart:io' show exit;
 
 import 'package:app/controller/home.controller.dart';
-import 'package:app/models/relay.dart';
 import 'package:app/page/FileExplore.dart';
 import 'package:app/page/login/OnboardingPage2.dart';
 import 'package:app/service/notify.service.dart';
-import 'package:app/service/relay.service.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
@@ -133,18 +131,6 @@ class AppGeneralSetting extends GetView<SettingController> {
     HomeController hc = Get.find<HomeController>();
     await Get.find<WebsocketService>().stopListening();
     hc.checkRunStatus.value = false;
-  }
-
-  void restartAllRelays() async {
-    HomeController hc = Get.find<HomeController>();
-    WebsocketService websocketService = Get.find<WebsocketService>();
-    List<Relay> relays = await RelayService.instance.list();
-    for (Relay relay in relays) {
-      relay.active = true;
-      await RelayService.instance.update(relay);
-      websocketService.updateRelayWidget(relay);
-    }
-    hc.checkRunStatus.value = true;
   }
 
   dangerZone() {

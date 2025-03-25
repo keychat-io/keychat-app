@@ -122,7 +122,7 @@ class HomeController extends GetxController
         removeBadge();
         EasyThrottle.throttle(
             'AppLifecycleState.resumed', const Duration(seconds: 3), () {
-          // Get.find<WebsocketService>().checkOnlineAndConnect();
+          Get.find<WebsocketService>().checkOnlineAndConnect();
           if (isPaused) {
             NostrAPI.instance.okCallback.clear();
             Utils.initLoggger(Get.find<SettingController>().appFolder);

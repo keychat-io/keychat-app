@@ -53,7 +53,8 @@ class WebsocketService extends GetxService {
   }
 
   // new a websocket channel for this relay
-  Future addChannel(Relay relay, [List<String> pubkeys = const []]) async {
+  Future addChannel(Relay relay,
+      {List<String> pubkeys = const [], Function? connectedCallback}) async {
     WebsocketService ws = this;
     RelayWebsocket rw = RelayWebsocket(relay, ws);
     channels[relay.url] = rw;
@@ -61,12 +62,17 @@ class WebsocketService extends GetxService {
       return;
     }
 
-    rw = await _startConnectRelay(rw);
-    if (pubkeys.isNotEmpty) {
-      DateTime since =
-          await MessageService.instance.getNostrListenStartAt(relay.url);
-      rw.listenPubkeys(pubkeys, since);
-    }
+    await _startConnectRelay(rw, connectedCallback: () async {
+      logger.d('relay: ${relay.url} connected, callback');
+      if (pubkeys.isNotEmpty) {
+        DateTime since =
+            await MessageService.instance.getNostrListenStartAt(relay.url);
+        rw.listenPubkeys(pubkeys, since);
+      }
+      if (connectedCallback != null) {
+        connectedCallback();
+      }
+    });
   }
 
   Future checkOnlineAndConnect([List<RelayWebsocket>? list]) async {
@@ -77,7 +83,7 @@ class WebsocketService extends GetxService {
       rw.checkOnlineStatus().then((relayStatus) {
         if (!relayStatus) {
           rw.channel?.close();
-          _startConnectRelay(rw, true);
+          _startConnectRelay(rw);
         }
       });
     }
@@ -384,15 +390,16 @@ class WebsocketService extends GetxService {
     }
   }
 
-  void updateRelayWidget(Relay value) {
-    if (channels[value.url] != null) {
-      if (!value.active) {
-        channels[value.url]!.channelStatus = RelayStatusEnum.noAcitveRelay;
-      }
-      channels[value.url]!.relay = value;
+  Future disableRelay(Relay relay) async {
+    relay.active = false;
+    relay.errorMessage = null;
+    await RelayService.instance.update(relay);
+    if (channels[relay.url] != null) {
+      channels[relay.url]!.channel?.close();
+      channels[relay.url]!.channel = null;
+      channels[relay.url]!.channelStatus = RelayStatusEnum.noAcitveRelay;
+      channels[relay.url]!.relay = relay;
       channels.refresh();
-    } else {
-      addChannel(value);
     }
   }
 
@@ -548,7 +555,7 @@ class WebsocketService extends GetxService {
   }
 
   Future<RelayWebsocket> _startConnectRelay(RelayWebsocket rw,
-      [bool ignoreFailedTime = false]) async {
+      {Function? connectedCallback}) async {
     if (rw.relay.active == false) {
       return rw;
     }
@@ -577,6 +584,9 @@ class WebsocketService extends GetxService {
       if (state is Connected || state is Reconnected) {
         rw.channelStatus = RelayStatusEnum.connected;
         rw.connectSuccess(channel);
+        if (connectedCallback != null) {
+          connectedCallback();
+        }
       }
 
       if (state is Disconnecting || state is Disconnected) {

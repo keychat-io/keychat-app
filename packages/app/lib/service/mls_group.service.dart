@@ -751,11 +751,12 @@ $error ''';
     return room;
   }
 
-  Future uploadKeyPackages(List<Identity> identities) async {
+  Future uploadKeyPackages([List<Identity>? identities]) async {
     List<String> relys = await Utils.waitRelayOnline();
     if (relys.isEmpty) {
       throw Exception('No relays available');
     }
+    identities ??= await IdentityService.instance.getIdentityList();
     await deleteOldKeypackage(identities);
     for (Identity identity in identities) {
       String mlkPK = await MlsGroupService.instance

@@ -10,7 +10,6 @@ import 'package:app/page/setting/UnreadMessages.dart';
 import 'package:app/page/setting/UploadedPubkeys.dart';
 import 'package:app/page/setting/file_storage_server.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
-import 'package:app/service/identity.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/websocket.service.dart';
@@ -69,9 +68,7 @@ class MoreChatSetting extends StatelessWidget {
                   title: const Text("Upload KeyPackage"),
                   onPressed: (context) async {
                     try {
-                      var list =
-                          await IdentityService.instance.getIdentityList();
-                      await MlsGroupService.instance.uploadKeyPackages(list);
+                      await MlsGroupService.instance.uploadKeyPackages();
                       EasyLoading.showSuccess('Upload Success');
                     } catch (e, s) {
                       String msg = Utils.getErrorMessage(e);

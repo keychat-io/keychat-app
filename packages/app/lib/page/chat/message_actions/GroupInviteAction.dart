@@ -126,8 +126,6 @@ class GroupInviteAction extends StatelessWidget {
                         .uploadKeyPackages([identity]);
                   })
             ]));
-        // update my group keyPackage
-        MlsGroupService.instance.uploadKeyPackages([identity]);
         return;
       }
       await Get.offAndToNamed('/room/${groupRoom.id}', arguments: groupRoom);

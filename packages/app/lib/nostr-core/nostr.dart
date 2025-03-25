@@ -163,7 +163,7 @@ class NostrAPI {
         await Get.find<WorldController>().processEvent(event);
         break;
       case EventKinds.nip47:
-        Utils.getGetxController<NostrWalletConnectController>()
+        await Utils.getGetxController<NostrWalletConnectController>()
             ?.processEvent(relay, event);
         break;
       default:
@@ -502,19 +502,12 @@ class NostrAPI {
         // mls group room. receive address is one-time-key field
         Room? mlsRoom = await RoomService.instance.getRoomByOnetimeKey(to);
         if (mlsRoom != null && mlsRoom.isMLSGroup) {
-          await _mlsGroupMessageHandle(
-              mlsRoom, event, relay, failedCallback, to);
+          await MlsGroupService.instance
+              .decryptMessage(mlsRoom, event, failedCallback);
           return;
         }
       default:
     }
-  }
-
-  Future<void> _mlsGroupMessageHandle(Room groupRoom, NostrEventModel event,
-      Relay relay, Function(String error) failedCallback, String to) async {
-    if (groupRoom.groupType != GroupType.mls) return;
-    await MlsGroupService.instance
-        .decryptMessage(groupRoom, event, failedCallback);
   }
 
   Future dmNip4Proccess(NostrEventModel sourceEvent, Relay relay,

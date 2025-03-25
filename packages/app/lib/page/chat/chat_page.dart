@@ -14,9 +14,11 @@ import 'package:app/page/widgets/error_text.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/message.service.dart';
+import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/signal_chat.service.dart';
 import 'package:app/utils.dart';
+import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -267,7 +269,35 @@ class _ChatPage2State extends State<ChatPage> {
             )));
   }
 
-  getSendMessageInput(BuildContext context, ChatController controller) {
+  Widget getSendMessageInput(BuildContext context, ChatController controller) {
+    if (controller.roomObs.value.isMLSGroup &&
+        !controller.roomObs.value.sentHelloToMLS) {
+      return Container(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: FilledButton(
+              onPressed: () async {
+                EasyThrottle.throttle('sendGreeting', Duration(seconds: 3),
+                    () async {
+                  try {
+                    EasyLoading.show(status: 'Sending...');
+                    while (DateTime.now()
+                            .difference(controller.lastMessageAddedAt)
+                            .inMilliseconds <
+                        1500) {
+                      logger.d('wait for 300ms');
+                      await Future.delayed(const Duration(milliseconds: 300));
+                    }
+                    await MlsGroupService.instance
+                        .sendGreeting(controller.roomObs.value);
+                    EasyLoading.dismiss();
+                  } catch (e) {
+                    String msg = Utils.getErrorMessage(e);
+                    EasyLoading.showError(msg);
+                  }
+                });
+              },
+              child: Text('Send Greeting')));
+    }
     switch (controller.roomObs.value.status) {
       case RoomStatus.requesting:
         return _requestingInputSection();

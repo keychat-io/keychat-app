@@ -4,6 +4,7 @@ import 'package:app/service/group.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
@@ -161,11 +162,26 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
                                 overflow: TextOverflow.ellipsis),
                             widget.groupType == GroupType.mls &&
                                     user['mlsPK'] == null
-                                ? Text('Not upload MLS keys',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.copyWith(color: Colors.pink))
+                                ? GestureDetector(
+                                    onTap: () {
+                                      Get.dialog(CupertinoAlertDialog(
+                                          title:
+                                              const Text('Not upload MLS keys'),
+                                          content: const Text(
+                                              '''1. Add a relay with support nip104.\n2. Restart app to upload KeyPackage'''),
+                                          actions: <Widget>[
+                                            CupertinoDialogAction(
+                                                child: const Text('OK'),
+                                                onPressed: () {
+                                                  Get.back();
+                                                })
+                                          ]));
+                                    },
+                                    child: Text('Not upload MLS keys',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.copyWith(color: Colors.pink)))
                                 : Container()
                           ]),
                       trailing: widget.groupType == GroupType.mls &&

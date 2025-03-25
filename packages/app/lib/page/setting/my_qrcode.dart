@@ -11,6 +11,7 @@ import 'package:app/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
 
 class MyQRCode extends StatefulWidget {
@@ -22,6 +23,7 @@ class MyQRCode extends StatefulWidget {
   final SignalId signalId;
   int? time;
   final void Function()? onTap;
+  String? title;
   MyQRCode(
       {super.key,
       required this.oneTimeKey,
@@ -29,6 +31,7 @@ class MyQRCode extends StatefulWidget {
       required this.signalId,
       this.onTap,
       this.time,
+      this.title,
       this.isOneTime = false,
       this.showMore = false,
       this.showAppBar = false});
@@ -52,6 +55,14 @@ class _MyQRCodeState extends State<MyQRCode> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        appBar: widget.title != null
+            ? AppBar(
+                leading: Container(),
+                title: Text(widget.title!),
+                actions: [
+                    IconButton(onPressed: Get.back, icon: Icon(Icons.close))
+                  ])
+            : null,
         body: GestureDetector(
             onTap: widget.onTap,
             child: Container(

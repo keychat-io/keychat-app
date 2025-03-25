@@ -198,7 +198,8 @@ class WebsocketService extends GetxService {
       List<RelayWebsocket>? sockets}) async {
     sockets ??= getConnectedRelay();
     if (sockets.isEmpty) {
-      throw Exception('Not connected, or the relay not support nips');
+      logger.d('Not connected, or the relay not support nips');
+      return [];
     }
     for (RelayWebsocket rw in sockets) {
       rw.sendRawREQ(eventString);

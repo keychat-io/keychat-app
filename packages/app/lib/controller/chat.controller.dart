@@ -91,6 +91,7 @@ class ChatController extends GetxController {
   late ScrollController textFieldScrollController;
   Room room;
   BuildContext? context;
+  DateTime lastMessageAddedAt = DateTime.now();
 
   final List<IconData> featuresIcons = [
     Icons.image,
@@ -130,6 +131,7 @@ class ChatController extends GetxController {
     } else {
       messagesMore.add(message);
     }
+    lastMessageAddedAt = DateTime.now();
   }
 
   void addMetionName(String name) {

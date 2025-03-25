@@ -296,7 +296,6 @@ class IdentityService {
 
   Future updateIdentity(Identity identity) async {
     Isar database = DBProvider.database;
-
     await database.writeTxn(() async {
       return await database.identitys.put(identity);
     });

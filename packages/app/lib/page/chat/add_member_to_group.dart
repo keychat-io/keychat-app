@@ -186,11 +186,27 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
                                   widget.room.groupType == GroupType.mls &&
                                           user['exist'] == false &&
                                           user['mlsPK'] == null
-                                      ? Text('Not upload MLS keys',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall
-                                              ?.copyWith(color: Colors.pink))
+                                      ? GestureDetector(
+                                          onTap: () {
+                                            Get.dialog(CupertinoAlertDialog(
+                                                title: const Text(
+                                                    'Not upload MLS keys'),
+                                                content: const Text(
+                                                    '''1. Add a relay with support nip104.\n2. Restart app to upload KeyPackage'''),
+                                                actions: <Widget>[
+                                                  CupertinoDialogAction(
+                                                      child: const Text('OK'),
+                                                      onPressed: () {
+                                                        Get.back();
+                                                      })
+                                                ]));
+                                          },
+                                          child: Text('Not upload MLS keys',
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodySmall
+                                                  ?.copyWith(
+                                                      color: Colors.pink)))
                                       : Container()
                                 ]),
                             trailing: (user['isAdmin'] || user['exist']

@@ -540,18 +540,17 @@ Future showMyQrCode(
   int expiredTime = DateTime.now().millisecondsSinceEpoch +
       KeychatGlobal.oneTimePubkeysLifetime * 3600 * 1000;
 
-  showModalBottomSheetWidget(
-      context,
-      identity.displayName,
+  Get.bottomSheet(
       MyQRCode(
-        identity: identity,
-        oneTimeKey: oneTimeKeys.first.pubkey,
-        signalId: signalId,
-        showMore: showMore,
-        time: expiredTime,
-        isOneTime: true,
-        onTap: Get.back,
-      ));
+          title: identity.displayName,
+          identity: identity,
+          oneTimeKey: oneTimeKeys.first.pubkey,
+          signalId: signalId,
+          showMore: showMore,
+          time: expiredTime,
+          isOneTime: true,
+          onTap: Get.back),
+      isScrollControlled: true);
 }
 
 Widget pageLoadingSpinKit({String title = 'Loading...'}) {

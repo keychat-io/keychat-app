@@ -124,45 +124,50 @@ const RoomSchema = CollectionSchema(
       name: r'sendingRelays',
       type: IsarType.stringList,
     ),
-    r'sharedSignalID': PropertySchema(
+    r'sentHelloToMLS': PropertySchema(
       id: 21,
+      name: r'sentHelloToMLS',
+      type: IsarType.bool,
+    ),
+    r'sharedSignalID': PropertySchema(
+      id: 22,
       name: r'sharedSignalID',
       type: IsarType.string,
     ),
     r'signalDecodeError': PropertySchema(
-      id: 22,
+      id: 23,
       name: r'signalDecodeError',
       type: IsarType.bool,
     ),
     r'signalIdPubkey': PropertySchema(
-      id: 23,
+      id: 24,
       name: r'signalIdPubkey',
       type: IsarType.string,
     ),
     r'status': PropertySchema(
-      id: 24,
+      id: 25,
       name: r'status',
       type: IsarType.int,
       enumMap: _RoomstatusEnumValueMap,
     ),
     r'stringify': PropertySchema(
-      id: 25,
+      id: 26,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'toMainPubkey': PropertySchema(
-      id: 26,
+      id: 27,
       name: r'toMainPubkey',
       type: IsarType.string,
     ),
     r'type': PropertySchema(
-      id: 27,
+      id: 28,
       name: r'type',
       type: IsarType.int,
       enumMap: _RoomtypeEnumValueMap,
     ),
     r'version': PropertySchema(
-      id: 28,
+      id: 29,
       name: r'version',
       type: IsarType.long,
     )
@@ -314,14 +319,15 @@ void _roomSerialize(
   writer.writeDateTime(offsets[18], object.pinAt);
   writer.writeStringList(offsets[19], object.receivingRelays);
   writer.writeStringList(offsets[20], object.sendingRelays);
-  writer.writeString(offsets[21], object.sharedSignalID);
-  writer.writeBool(offsets[22], object.signalDecodeError);
-  writer.writeString(offsets[23], object.signalIdPubkey);
-  writer.writeInt(offsets[24], object.status.index);
-  writer.writeBool(offsets[25], object.stringify);
-  writer.writeString(offsets[26], object.toMainPubkey);
-  writer.writeInt(offsets[27], object.type.index);
-  writer.writeLong(offsets[28], object.version);
+  writer.writeBool(offsets[21], object.sentHelloToMLS);
+  writer.writeString(offsets[22], object.sharedSignalID);
+  writer.writeBool(offsets[23], object.signalDecodeError);
+  writer.writeString(offsets[24], object.signalIdPubkey);
+  writer.writeInt(offsets[25], object.status.index);
+  writer.writeBool(offsets[26], object.stringify);
+  writer.writeString(offsets[27], object.toMainPubkey);
+  writer.writeInt(offsets[28], object.type.index);
+  writer.writeLong(offsets[29], object.version);
 }
 
 Room _roomDeserialize(
@@ -333,10 +339,10 @@ Room _roomDeserialize(
   final object = Room(
     identityId: reader.readLong(offsets[11]),
     npub: reader.readString(offsets[15]),
-    status: _RoomstatusValueEnumMap[reader.readIntOrNull(offsets[24])] ??
+    status: _RoomstatusValueEnumMap[reader.readIntOrNull(offsets[25])] ??
         RoomStatus.init,
-    toMainPubkey: reader.readString(offsets[26]),
-    type: _RoomtypeValueEnumMap[reader.readIntOrNull(offsets[27])] ??
+    toMainPubkey: reader.readString(offsets[27]),
+    type: _RoomtypeValueEnumMap[reader.readIntOrNull(offsets[28])] ??
         RoomType.common,
   );
   object.autoDeleteDays = reader.readLong(offsets[0]);
@@ -361,10 +367,11 @@ Room _roomDeserialize(
   object.pinAt = reader.readDateTimeOrNull(offsets[18]);
   object.receivingRelays = reader.readStringList(offsets[19]) ?? [];
   object.sendingRelays = reader.readStringList(offsets[20]) ?? [];
-  object.sharedSignalID = reader.readStringOrNull(offsets[21]);
-  object.signalDecodeError = reader.readBool(offsets[22]);
-  object.signalIdPubkey = reader.readStringOrNull(offsets[23]);
-  object.version = reader.readLong(offsets[28]);
+  object.sentHelloToMLS = reader.readBool(offsets[21]);
+  object.sharedSignalID = reader.readStringOrNull(offsets[22]);
+  object.signalDecodeError = reader.readBool(offsets[23]);
+  object.signalIdPubkey = reader.readStringOrNull(offsets[24]);
+  object.version = reader.readLong(offsets[29]);
   return object;
 }
 
@@ -420,22 +427,24 @@ P _roomDeserializeProp<P>(
     case 20:
       return (reader.readStringList(offset) ?? []) as P;
     case 21:
-      return (reader.readStringOrNull(offset)) as P;
-    case 22:
       return (reader.readBool(offset)) as P;
-    case 23:
+    case 22:
       return (reader.readStringOrNull(offset)) as P;
+    case 23:
+      return (reader.readBool(offset)) as P;
     case 24:
+      return (reader.readStringOrNull(offset)) as P;
+    case 25:
       return (_RoomstatusValueEnumMap[reader.readIntOrNull(offset)] ??
           RoomStatus.init) as P;
-    case 25:
-      return (reader.readBoolOrNull(offset)) as P;
     case 26:
-      return (reader.readString(offset)) as P;
+      return (reader.readBoolOrNull(offset)) as P;
     case 27:
+      return (reader.readString(offset)) as P;
+    case 28:
       return (_RoomtypeValueEnumMap[reader.readIntOrNull(offset)] ??
           RoomType.common) as P;
-    case 28:
+    case 29:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -3046,6 +3055,16 @@ extension RoomQueryFilter on QueryBuilder<Room, Room, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Room, Room, QAfterFilterCondition> sentHelloToMLSEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'sentHelloToMLS',
+        value: value,
+      ));
+    });
+  }
+
   QueryBuilder<Room, Room, QAfterFilterCondition> sharedSignalIDIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -3907,6 +3926,18 @@ extension RoomQuerySortBy on QueryBuilder<Room, Room, QSortBy> {
     });
   }
 
+  QueryBuilder<Room, Room, QAfterSortBy> sortBySentHelloToMLS() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sentHelloToMLS', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> sortBySentHelloToMLSDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sentHelloToMLS', Sort.desc);
+    });
+  }
+
   QueryBuilder<Room, Room, QAfterSortBy> sortBySharedSignalID() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'sharedSignalID', Sort.asc);
@@ -4245,6 +4276,18 @@ extension RoomQuerySortThenBy on QueryBuilder<Room, Room, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Room, Room, QAfterSortBy> thenBySentHelloToMLS() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sentHelloToMLS', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Room, Room, QAfterSortBy> thenBySentHelloToMLSDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sentHelloToMLS', Sort.desc);
+    });
+  }
+
   QueryBuilder<Room, Room, QAfterSortBy> thenBySharedSignalID() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'sharedSignalID', Sort.asc);
@@ -4480,6 +4523,12 @@ extension RoomQueryWhereDistinct on QueryBuilder<Room, Room, QDistinct> {
     });
   }
 
+  QueryBuilder<Room, Room, QDistinct> distinctBySentHelloToMLS() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'sentHelloToMLS');
+    });
+  }
+
   QueryBuilder<Room, Room, QDistinct> distinctBySharedSignalID(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -4664,6 +4713,12 @@ extension RoomQueryProperty on QueryBuilder<Room, Room, QQueryProperty> {
   QueryBuilder<Room, List<String>, QQueryOperations> sendingRelaysProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'sendingRelays');
+    });
+  }
+
+  QueryBuilder<Room, bool, QQueryOperations> sentHelloToMLSProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'sentHelloToMLS');
     });
   }
 

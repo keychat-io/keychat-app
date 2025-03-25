@@ -127,6 +127,7 @@ class Room extends Equatable {
   // relays
   List<String> receivingRelays = [];
   List<String> sendingRelays = [];
+  bool sentHelloToMLS = false; // for mls group
 
   Room(
       {required this.toMainPubkey,

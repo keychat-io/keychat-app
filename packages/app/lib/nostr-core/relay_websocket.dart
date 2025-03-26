@@ -10,6 +10,7 @@ import 'package:app/service/relay.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:async_queue/async_queue.dart';
+import 'package:easy_debounce/easy_debounce.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.dart';
 import 'package:web_socket_client/web_socket_client.dart';
@@ -164,7 +165,7 @@ class RelayWebsocket {
     _startListen();
     Future.delayed(const Duration(seconds: 1)).then((value) {
       // init mls keypackages
-      EasyThrottle.throttle('connectSuccess', const Duration(seconds: 3),
+      EasyDebounce.debounce('connectSuccess', const Duration(seconds: 3),
           MlsGroupService.instance.initKeyPackages);
       _proccessFailedEvents();
       // nwc reconnect

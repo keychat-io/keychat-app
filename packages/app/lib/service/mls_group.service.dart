@@ -23,14 +23,7 @@ import 'package:flutter/foundation.dart' show Uint8List;
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_mls.dart' as rust_mls;
-import 'package:keychat_rust_ffi_plugin/api_mls/types.dart'
-    show
-        CommitResult,
-        CommitTypeResult,
-        DecryptedMessage,
-        GroupExtensionResult,
-        MessageInType,
-        MessageResult;
+import 'package:keychat_rust_ffi_plugin/api_mls/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class MlsGroupService extends BaseChatService {
@@ -79,19 +72,6 @@ class MlsGroupService extends BaseChatService {
         users: userNameMap,
         mlsWelcome: welcomeMsg,
         save: false);
-  }
-
-  bool adminOnlyMiddleware(RoomMember from, int type) {
-    const Set<int> adminTypes = {
-      KeyChatEventKinds.groupAdminRemoveMembers,
-      KeyChatEventKinds.groupDissolve,
-      KeyChatEventKinds.groupChangeRoomName
-    };
-    if (adminTypes.contains(type)) {
-      if (from.isAdmin) return true;
-      throw Exception('Permission denied');
-    }
-    return true;
   }
 
   Future appendMessageOrCreate(
@@ -313,17 +293,6 @@ $error ''';
     await RoomService.instance.deleteRoom(room);
   }
 
-  List<String> getAddedMemberNames(
-      Map<String, RoomMember> after, Map<String, RoomMember> before) {
-    List<String> addedMemberNames = [];
-    for (var entry in after.entries) {
-      if (!before.containsKey(entry.key)) {
-        addedMemberNames.add(entry.value.name);
-      }
-    }
-    return addedMemberNames;
-  }
-
   Future<GroupExtension> getGroupExtension(Room room) async {
     GroupExtensionResult ger = await rust_mls.getGroupExtension(
         nostrId: room.myIdPubkey, groupId: room.toMainPubkey);
@@ -337,20 +306,6 @@ $error ''';
     );
   }
 
-  Future<Room> getGroupRoomByIdRoom(
-      Room idRoom, RoomProfile roomProfile) async {
-    if (idRoom.type == RoomType.group) return idRoom;
-
-    String pubkey = roomProfile.oldToRoomPubKey ?? roomProfile.pubkey;
-    var group = await DBProvider.database.rooms
-        .filter()
-        .toMainPubkeyEqualTo(pubkey)
-        .identityIdEqualTo(idRoom.identityId)
-        .findFirst();
-    if (group == null) throw Exception('GroupRoom not found');
-    return group;
-  }
-
   Future<Map<String, String>> getKeyPackagesFromRelay(
       List<String> pubkeys) async {
     var ws = Get.find<WebsocketService>();
@@ -360,8 +315,7 @@ $error ''';
         reqId: generate64RandomHexChars(16),
         authors: pubkeys,
         kinds: [EventKinds.nip104KP],
-        limit:
-            10, // Increased limit to get multiple results per pubkey if available
+        limit: pubkeys.length,
         since: DateTime.now().subtract(Duration(days: 365)));
     List<RelayWebsocket> relays = ws.getConnectedNip104Relay();
     List<NostrEventModel> list = await ws.fetchInfoFromRelay(
@@ -501,6 +455,8 @@ $error ''';
       throw Exception('No relays available');
     }
     identities ??= Get.find<HomeController>().allIdentities.values.toList();
+    List<RelayWebsocket> relays = ws.getConnectedNip104Relay();
+
     await Future.forEach(identities, (item) async {
       Identity identity =
           Get.find<HomeController>().allIdentities[item.id] ?? item;
@@ -515,7 +471,6 @@ $error ''';
           kinds: [EventKinds.nip104KP],
           limit: 1,
           since: DateTime.now().subtract(Duration(days: 365)));
-      List<RelayWebsocket> relays = ws.getConnectedNip104Relay();
       if (relay != null) {
         relays =
             relays.where((element) => element.relay.url == relay.url).toList();
@@ -525,7 +480,26 @@ $error ''';
           waitTimeToFill: true, sockets: relays);
       identity.mlsInit = true;
       if (list.isNotEmpty) return;
-      await uploadKeyPackages([identity]);
+      List<String> relaysStrings = relays.map((e) => e.relay.url).toList();
+
+      // 10051
+      List<List<String>> tags =
+          relays.map((e) => ["relay", e.relay.url]).toList();
+      String event = await NostrAPI.instance.signEventByIdentity(
+          identity: identity,
+          content: "",
+          createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+          kind: EventKinds.nip104RelaysListEvent,
+          tags: tags);
+      Get.find<WebsocketService>().sendMessageWithCallback(event, callback: (
+          {required String relay,
+          required String eventId,
+          required bool status,
+          String? errorMessage}) async {
+        NostrAPI.instance.removeOKCallback(eventId);
+        logger.d('initKeyPackages callback: $eventId, $relay, $status');
+        await uploadKeyPackages([identity], relaysStrings);
+      });
     });
   }
 
@@ -785,8 +759,9 @@ $error ''';
     return room;
   }
 
-  Future uploadKeyPackages(List<Identity> identities) async {
-    List<String> relys = await Utils.waitRelayOnline();
+  Future uploadKeyPackages(List<Identity> identities,
+      [List<String>? relys]) async {
+    relys ??= await Utils.waitRelayOnline();
     if (relys.isEmpty) {
       throw Exception('No relays available');
     }

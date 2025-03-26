@@ -508,7 +508,7 @@ class ChatController extends GetxController {
 
     if (xfile == null) return;
     try {
-      EasyLoading.showProgress(0.05, status: 'Encrypting and Uploading...');
+      EasyLoading.showProgress(0.2, status: 'Encrypting and Uploading...');
       await file_util.FileUtils.encryptAndSendFile(
           roomObs.value, xfile, MessageMediaType.video,
           compress: true,

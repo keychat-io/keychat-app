@@ -7,9 +7,11 @@ import 'package:app/nostr-core/nostr.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/RoomDraft.dart';
 import 'package:app/service/chatx.service.dart';
+import 'package:app/service/contact.service.dart';
 import 'package:app/service/file_util.dart' as file_util;
 import 'package:app/service/message.service.dart';
 import 'package:app/service/mls_group.service.dart';
+import 'package:app/service/room.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:file_picker/file_picker.dart';
@@ -21,13 +23,8 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
-import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
-
-import '../service/contact.service.dart';
-import '../service/file_util.dart';
-import '../service/room.service.dart';
 
 const int maxMessageId = 999999999999;
 const int messageLimitPerPage = 30;
@@ -42,13 +39,7 @@ class ChatController extends GetxController {
   RxBool inputTextIsAdd = true.obs;
   RxInt messageLimit = 0.obs;
 
-  Rx<Room> roomObs = Room(
-          identityId: 0,
-          toMainPubkey: '',
-          npub: '',
-          type: RoomType.common,
-          status: RoomStatus.init)
-      .obs;
+  final roomObs = Room(identityId: 0, toMainPubkey: '', npub: '').obs;
 
   RxInt statsSend = 0.obs;
   RxInt statsReceive = 0.obs;
@@ -89,7 +80,6 @@ class ChatController extends GetxController {
   late FocusNode keyboardFocus;
   late AutoScrollController autoScrollController;
   late ScrollController textFieldScrollController;
-  Room room;
   BuildContext? context;
   DateTime lastMessageAddedAt = DateTime.now();
 
@@ -112,7 +102,7 @@ class ChatController extends GetxController {
 
   List<Function> featuresOnTaps = [];
 
-  ChatController(this.room) {
+  ChatController(Room room) {
     roomObs.value = room;
   }
 
@@ -176,7 +166,7 @@ class ChatController extends GetxController {
   }
 
   RoomMember? getMyRoomMember() {
-    return getMemberByIdPubkey(room.myIdPubkey);
+    return getMemberByIdPubkey(roomObs.value.myIdPubkey);
   }
 
   Future<List<File>> getImageList(Directory directory) async {
@@ -195,11 +185,11 @@ class ChatController extends GetxController {
 
   Future<List<Room>> getKpaIsNullRooms() async {
     List<Room> rooms = [];
-    if (!room.isSendAllGroup) return rooms;
+    if (!roomObs.value.isSendAllGroup) return rooms;
     ChatxService cs = Get.find<ChatxService>();
 
     for (var element in memberRooms.values) {
-      rust_signal.KeychatProtocolAddress? kpa = await cs.getRoomKPA(element);
+      var kpa = await cs.getRoomKPA(element);
       if (kpa == null) {
         rooms.add(element);
       }
@@ -210,12 +200,12 @@ class ChatController extends GetxController {
   getRoomStats() async {
     statsSend.value = await DBProvider.database.messages
         .filter()
-        .roomIdEqualTo(room.id)
+        .roomIdEqualTo(roomObs.value.id)
         .isMeSendEqualTo(true)
         .count();
     statsReceive.value = await DBProvider.database.messages
         .filter()
-        .roomIdEqualTo(room.id)
+        .roomIdEqualTo(roomObs.value.id)
         .isMeSendEqualTo(false)
         .count();
   }
@@ -312,8 +302,8 @@ class ChatController extends GetxController {
       if (unreads.length > 12) {
         unreadIndex.value = unreads.length - 1;
       }
-      RoomService.instance
-          .markAllRead(identityId: room.identityId, roomId: room.id);
+      RoomService.instance.markAllRead(
+          identityId: roomObs.value.identityId, roomId: roomObs.value.id);
     }
     unreads.addAll(list);
     messages.value = sortMessageById(unreads.toList());
@@ -409,7 +399,7 @@ class ChatController extends GetxController {
     );
 
     autoScrollController.addListener(() {
-      bool isCurrent = DBProvider.instance.isCurrentPage(room.id);
+      bool isCurrent = DBProvider.instance.isCurrentPage(roomObs.value.id);
       if (!isCurrent) {
         messagesMore.clear();
         searchMsgIndex = -1;
@@ -424,7 +414,7 @@ class ChatController extends GetxController {
     });
 
     // load draft
-    String? textFiledDraft = RoomDraft.instance.getDraft(room.id);
+    String? textFiledDraft = RoomDraft.instance.getDraft(roomObs.value.id);
     if (textEditingController.text.isEmpty && textFiledDraft != null) {
       textEditingController.text = textFiledDraft;
     }
@@ -438,9 +428,9 @@ class ChatController extends GetxController {
 
       inputTextIsAdd.value = newText.length >= inputText.value.length;
       inputText.value = newText;
-      RoomDraft.instance.setDraft(room.id, newText);
+      RoomDraft.instance.setDraft(roomObs.value.id, newText);
     });
-    await _initRoom(room);
+    await _initRoom();
     await loadAllChat();
 
     if (searchMsgIndex > 0) {
@@ -459,8 +449,8 @@ class ChatController extends GetxController {
 
   openPageAction() async {
     await loadLatestMessage();
-    RoomService.instance
-        .markAllRead(identityId: room.identityId, roomId: room.id);
+    RoomService.instance.markAllRead(
+        identityId: roomObs.value.identityId, roomId: roomObs.value.id);
   }
 
   pickAndUploadImage(ImageSource imageSource) async {
@@ -483,7 +473,7 @@ class ChatController extends GetxController {
     Get.dialog(CupertinoAlertDialog(
       content: SizedBox(
         width: 300,
-        child: FileUtils.getImageView(File(xfile.path)),
+        child: file_util.FileUtils.getImageView(File(xfile.path)),
       ),
       actions: [
         CupertinoDialogAction(
@@ -519,10 +509,10 @@ class ChatController extends GetxController {
     if (xfile == null) return;
     try {
       EasyLoading.showProgress(0.05, status: 'Encrypting and Uploading...');
-      await FileUtils.encryptAndSendFile(
+      await file_util.FileUtils.encryptAndSendFile(
           roomObs.value, xfile, MessageMediaType.video,
           compress: true,
-          onSendProgress: (count, total) => FileUtils.onSendProgress(
+          onSendProgress: (count, total) => file_util.FileUtils.onSendProgress(
               'Encrypting and Uploading...', count, total));
       hideAdd.value = true; // close features section
       EasyLoading.dismiss();
@@ -556,16 +546,15 @@ class ChatController extends GetxController {
       }
       return;
     }
-    if (room.isSendAllGroup) {
-      members.value = await room.getMembers();
-      enableMembers.value = await room.getEnableMembers();
-      memberRooms = await room.getEnableMemberRooms();
+    if (roomObs.value.isSendAllGroup) {
+      members.value = await roomObs.value.getMembers();
+      enableMembers.value = await roomObs.value.getEnableMembers();
+      memberRooms = await roomObs.value.getEnableMemberRooms();
       kpaIsNullRooms.value = await getKpaIsNullRooms(); // get null list
     }
   }
 
   ChatController setRoom(Room newRoom) {
-    room = newRoom;
     roomObs.value = newRoom;
     if (newRoom.contact != null) {
       roomContact.value = newRoom.contact!;
@@ -622,10 +611,12 @@ class ChatController extends GetxController {
 2. Encrypting 
 3. Uploading''';
         EasyLoading.showProgress(0.2, status: statusMessage);
-        await FileUtils.encryptAndSendFile(roomObs.value, xfile, mediaType,
+        await file_util.FileUtils.encryptAndSendFile(
+            roomObs.value, xfile, mediaType,
             compress: compress,
             onSendProgress: (count, total) =>
-                FileUtils.onSendProgress(statusMessage, count, total));
+                file_util.FileUtils.onSendProgress(
+                    statusMessage, count, total));
         hideAdd.value = true; // close features section
         EasyLoading.dismiss();
       } catch (e, s) {
@@ -644,7 +635,7 @@ class ChatController extends GetxController {
         await Get.bottomSheet(const CashuSendPage(true));
     if (cashuInfo == null) return;
     try {
-      await RoomService.instance.sendMessage(room, cashuInfo.token,
+      await RoomService.instance.sendMessage(roomObs.value, cashuInfo.token,
           realMessage: cashuInfo.toString(),
           mediaType: MessageMediaType.cashuA);
       hideAdd.value = true; // close features section
@@ -673,12 +664,13 @@ class ChatController extends GetxController {
   _initBotInfo() async {
     if (roomObs.value.type == RoomType.group) return;
     if (roomObs.value.encryptMode == EncryptMode.signal) return;
-    List list = await NostrAPI.instance.fetchMetadata([room.toMainPubkey]);
+    List list =
+        await NostrAPI.instance.fetchMetadata([roomObs.value.toMainPubkey]);
     if (list.isNotEmpty) return;
     NostrEventModel res = list.last;
     Map<String, dynamic> metadata =
         Map<String, dynamic>.from(jsonDecode(res.content));
-    if (room.botInfoUpdatedAt >= res.createdAt) {
+    if (roomObs.value.botInfoUpdatedAt >= res.createdAt) {
       botCommands.value =
           List<Map<String, dynamic>>.from(metadata['commands'] ?? []);
       return;
@@ -688,44 +680,45 @@ class ChatController extends GetxController {
     if (!metadata['type'].toString().toLowerCase().endsWith('bot')) {
       return;
     }
-    room.type = RoomType.bot;
-    room.status = RoomStatus.enabled;
+    roomObs.value.type = RoomType.bot;
+    roomObs.value.status = RoomStatus.enabled;
 
-    room.botInfoUpdatedAt = res.createdAt;
+    roomObs.value.botInfoUpdatedAt = res.createdAt;
     botCommands.value =
         List<Map<String, dynamic>>.from(metadata['commands'] ?? []);
 
     var metadataString = jsonEncode(metadata);
-    room.botInfo = metadataString;
-    room.name = metadata['name'] ?? room.name;
-    room.description = metadata['description'];
+    roomObs.value.botInfo = metadataString;
+    roomObs.value.name = metadata['name'] ?? roomObs.value.name;
+    roomObs.value.description = metadata['description'];
 
     // save config for botPricePerMessageRequest
     if (metadata['botPricePerMessageRequest'] != null) {
       try {
         var config = jsonEncode(metadata['botPricePerMessageRequest']);
-        await MessageService.instance
-            .saveSystemMessage(room, config, suffix: '', isMeSend: false);
+        await MessageService.instance.saveSystemMessage(roomObs.value, config,
+            suffix: '', isMeSend: false);
       } catch (e) {
         logger.e(e.toString(), error: e, stackTrace: StackTrace.current);
       }
     }
-    await RoomService.instance.updateRoomAndRefresh(room);
+    await RoomService.instance.updateRoomAndRefresh(roomObs.value);
   }
 
-  _initRoom(Room room) async {
-    if (room.type == RoomType.group) {
+  _initRoom() async {
+    // group
+    if (roomObs.value.type == RoomType.group) {
       return await resetMembers();
     }
     // private chat
-    if (room.type == RoomType.common) {
-      if (room.contact == null) {
+    if (roomObs.value.type == RoomType.common) {
+      if (roomObs.value.contact == null) {
         Contact contact = await ContactService.instance.getOrCreateContact(
             roomObs.value.identityId, roomObs.value.toMainPubkey);
         roomObs.value.contact = contact;
         roomContact.value = contact;
       } else {
-        roomContact.value = room.contact!;
+        roomContact.value = roomObs.value.contact!;
       }
     }
 

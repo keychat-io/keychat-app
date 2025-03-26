@@ -145,7 +145,7 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
                             RoomService.getController(widget.message.roomId);
                         if (cc == null || videoPath == null) return;
                         List<File> files = await FileUtils.getRoomImageAndVideo(
-                            cc.room.identityId, cc.room.id);
+                            cc.roomObs.value.identityId, cc.roomObs.value.id);
                         Get.to(
                             () => SlidesImageViewWidget(
                                 files: files.reversed.toList(),

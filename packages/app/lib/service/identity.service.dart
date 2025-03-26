@@ -19,7 +19,6 @@ import 'package:keychat_rust_ffi_plugin/api_signal.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
 
-import '../models/db_provider.dart';
 import 'file_util.dart';
 
 class IdentityService {

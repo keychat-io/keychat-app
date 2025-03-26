@@ -1,6 +1,7 @@
 import 'dart:convert' show base64, jsonDecode, jsonEncode, utf8;
 
 import 'package:app/constants.dart';
+import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/close.dart';
@@ -490,8 +491,41 @@ $error ''';
             error: e, stackTrace: s);
       }
     }
-    Future.delayed(Duration(seconds: 2)).then((_) {
-      uploadKeyPackages(identities ?? []);
+  }
+
+  Future initKeyPackages({List<Identity>? identities, Relay? relay}) async {
+    WebsocketService? ws = Utils.getGetxController<WebsocketService>();
+    List<String>? onlines = ws?.getOnlineRelayString();
+    logger.d('initKeyPackages: $onlines');
+    if (ws == null || onlines == null || onlines.isEmpty) {
+      throw Exception('No relays available');
+    }
+    identities ??= Get.find<HomeController>().allIdentities.values.toList();
+    await Future.forEach(identities, (item) async {
+      Identity identity =
+          Get.find<HomeController>().allIdentities[item.id] ?? item;
+
+      if (identity.mlsInit) {
+        logger.d('MLS kp for identity: ${identity.secp256k1PKHex} already');
+        return;
+      }
+      NostrReqModel req = NostrReqModel(
+          reqId: generate64RandomHexChars(16),
+          authors: [identity.secp256k1PKHex],
+          kinds: [EventKinds.nip104KP],
+          limit: 1,
+          since: DateTime.now().subtract(Duration(days: 365)));
+      List<RelayWebsocket> relays = ws.getConnectedNip104Relay();
+      if (relay != null) {
+        relays =
+            relays.where((element) => element.relay.url == relay.url).toList();
+      }
+      List<NostrEventModel> list = await ws.fetchInfoFromRelay(
+          req.reqId, req.toString(),
+          waitTimeToFill: true, sockets: relays);
+      identity.mlsInit = true;
+      if (list.isNotEmpty) return;
+      await uploadKeyPackages([identity]);
     });
   }
 
@@ -751,12 +785,11 @@ $error ''';
     return room;
   }
 
-  Future uploadKeyPackages([List<Identity>? identities]) async {
+  Future uploadKeyPackages(List<Identity> identities) async {
     List<String> relys = await Utils.waitRelayOnline();
     if (relys.isEmpty) {
       throw Exception('No relays available');
     }
-    identities ??= await IdentityService.instance.getIdentityList();
     await deleteOldKeypackage(identities);
     for (Identity identity in identities) {
       String mlkPK = await MlsGroupService.instance
@@ -776,10 +809,6 @@ $error ''';
           required String eventId,
           required bool status,
           String? errorMessage}) async {
-        if (status && identity.mlsInit == false) {
-          identity.mlsInit = true;
-          await IdentityService.instance.updateIdentity(identity);
-        }
         NostrAPI.instance.removeOKCallback(eventId);
         await RelayService.instance.updateP104(relay, status);
         var map = {
@@ -787,7 +816,7 @@ $error ''';
           'status': status,
           'errorMessage': errorMessage,
         };
-        logger.d('uploadKeyPackages callback: $map');
+        logger.d('callback: $map');
       });
     }
   }

@@ -12,8 +12,8 @@ import 'package:get/get.dart';
 
 class SetRoomRelayAction extends StatelessWidget {
   final Message message;
-  final ChatController chatController;
-  const SetRoomRelayAction(this.chatController, this.message, {super.key});
+  final ChatController cc;
+  const SetRoomRelayAction(this.cc, this.message, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -52,9 +52,9 @@ class SetRoomRelayAction extends StatelessWidget {
                     }
                   }
 
-                  chatController.roomObs.value.sendingRelays = relays;
+                  cc.roomObs.value.sendingRelays = relays;
                   await RoomService.instance
-                      .updateRoomAndRefresh(chatController.roomObs.value);
+                      .updateRoomAndRefresh(cc.roomObs.value);
 
                   message.requestConfrim = RequestConfrimEnum.approved;
                   await MessageService.instance

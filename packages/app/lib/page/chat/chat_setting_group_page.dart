@@ -33,7 +33,7 @@ class ChatSettingGroupPage extends StatefulWidget {
 class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
   HomeController homeController = Get.find<HomeController>();
   int gridCount = 5;
-  late ChatController chatController;
+  late ChatController cc;
   late TextEditingController textEditingController;
   late TextEditingController userNameController;
   late String myAlias = '';
@@ -46,16 +46,20 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
       Get.back();
       return;
     }
-    chatController = controller;
-    myAlias = chatController.getMyRoomMember()?.name ?? '';
-    isAdmin = chatController.getMyRoomMember()?.isAdmin ?? false;
+    cc = controller;
+    String displayName = cc.roomObs.value.getIdentity().displayName;
+    String name = cc.getMyRoomMember()?.name ?? displayName;
+    if (name == cc.roomObs.value.myIdPubkey) {
+      myAlias = displayName;
+    }
+
+    isAdmin = cc.getMyRoomMember()?.isAdmin ?? false;
     super.initState();
 
-    textEditingController =
-        TextEditingController(text: chatController.roomObs.value.name);
+    textEditingController = TextEditingController(text: cc.roomObs.value.name);
 
     userNameController =
-        TextEditingController(text: chatController.getMyRoomMember()?.name);
+        TextEditingController(text: cc.getMyRoomMember()?.name);
   }
 
   @override
@@ -70,27 +74,27 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
     return Scaffold(
         appBar: AppBar(
           title: Obx(() => Text(
-              "${chatController.roomObs.value.name ?? ""}(${chatController.enableMembers.length})")),
+              "${cc.roomObs.value.name ?? ""}(${cc.enableMembers.length})")),
           actions: [
-            // if (chatController.roomObs.value.isMLSGroup)
+            // if (cc.roomObs.value.isMLSGroup)
             //   IconButton(
             //       icon: const Icon(CupertinoIcons.share),
             //       onPressed: () async {
             //         String realMessage =
-            //             'Share a Group: ${chatController.roomObs.value.name}';
+            //             'Share a Group: ${cc.roomObs.value.name}';
             //         List<Room>? forwardRooms = await Get.to(
             //             () => ForwardSelectRoom(realMessage,
-            //                 chatController.roomObs.value.getIdentity()),
+            //                 cc.roomObs.value.getIdentity()),
             //             fullscreenDialog: true,
             //             transition: Transition.downToUp);
             //         if (forwardRooms == null || forwardRooms.isEmpty) return;
             //         await MlsGroupService.instance.shareToFriends(
-            //             chatController.roomObs.value,
+            //             cc.roomObs.value,
             //             forwardRooms,
             //             realMessage);
             //         if (forwardRooms.length == 1) {
             //           Room forwardRoom = forwardRooms[0];
-            //           if (forwardRoom.id != chatController.roomObs.value.id) {
+            //           if (forwardRoom.id != cc.roomObs.value.id) {
             //             await Get.toNamed('/room/${forwardRoom.id}',
             //                 arguments: forwardRoom);
             //           }
@@ -100,26 +104,25 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                 onPressed: () async {
                   String? admin;
                   Set<String> memberPubkeys = {};
-                  if (chatController.roomObs.value.isMLSGroup) {
+                  if (cc.roomObs.value.isMLSGroup) {
                     List<String> existedPubkeys =
                         await rust_mls.getGroupMembers(
-                            nostrId: chatController.roomObs.value
-                                .getIdentity()
-                                .secp256k1PKHex,
-                            groupId: chatController.roomObs.value.toMainPubkey);
+                            nostrId:
+                                cc.roomObs.value.getIdentity().secp256k1PKHex,
+                            groupId: cc.roomObs.value.toMainPubkey);
                     memberPubkeys = Set.from(existedPubkeys);
-                    admin = await chatController.roomObs.value.getAdmin();
+                    admin = await cc.roomObs.value.getAdmin();
                   } else {
                     List<RoomMember> members =
-                        await chatController.room.getActiveMembers();
-                    admin = await chatController.room.getAdmin();
+                        await cc.roomObs.value.getActiveMembers();
+                    admin = await cc.roomObs.value.getAdmin();
                     for (RoomMember rm in members) {
                       memberPubkeys.add(rm.idPubkey);
                     }
                   }
                   // contacts
                   List<Contact> contactList = await ContactService.instance
-                      .getListExcludeSelf(chatController.room.identityId);
+                      .getListExcludeSelf(cc.roomObs.value.identityId);
                   List<Map<String, dynamic>> contacts = [];
                   contactList = contactList.reversed.toList();
                   for (int i = 0; i < contactList.length; i++) {
@@ -138,7 +141,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                     });
                   }
                   Get.to(() => AddMemberToGroup(
-                      room: chatController.roomObs.value, contacts: contacts));
+                      room: cc.roomObs.value, contacts: contacts));
                 },
                 icon: const Icon(CupertinoIcons.plus_circle_fill))
           ],
@@ -146,7 +149,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
         body: Obx(
           () => Column(
             children: [
-              getImageGridView(chatController.members.values.toList()),
+              getImageGridView(cc.members.values.toList()),
               Expanded(
                   child: SettingsList(
                 platform: DevicePlatform.iOS,
@@ -158,34 +161,36 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                         value: textSmallGray(
                             context,
                             getPublicKeyDisplay(
-                                chatController.roomObs.value.toMainPubkey, 4),
+                                cc.roomObs.value.toMainPubkey, 4),
                             fontSize: 16),
                         onPressed: (context) {
                           Clipboard.setData(ClipboardData(
-                              text: chatController.roomObs.value.toMainPubkey));
+                              text: cc.roomObs.value.toMainPubkey));
                           EasyLoading.showToast('Copied');
                         }),
                     SettingsTile.navigation(
                         leading: const Icon(CupertinoIcons.chart_bar),
                         title: const Text('Mode'),
-                        value: Text(RoomUtil.getGroupModeName(
-                            chatController.roomObs.value.groupType)),
+                        value: textP(RoomUtil.getGroupModeName(
+                            cc.roomObs.value.groupType)),
                         onPressed: getGroupInfoBottomSheetWidget),
                     isAdmin
                         ? SettingsTile.navigation(
                             title: const Text("Group Name"),
                             leading: const Icon(CupertinoIcons.flag),
-                            value: Text("${chatController.roomObs.value.name}"),
+                            value: textP(
+                                cc.roomObs.value.name ??
+                                    cc.roomObs.value.toMainPubkey,
+                                maxLength: 15),
                             onPressed: (context) async {
                               _showGroupNameDialog();
                             })
                         : SettingsTile(
                             title: const Text("Group Name"),
                             leading: const Icon(CupertinoIcons.flag),
-                            value: textSmallGray(
-                                context, "${chatController.roomObs.value.name}",
-                                fontSize: 16)),
-                    if (chatController.room.isMLSGroup)
+                            value: textP(cc.roomObs.value.name ??
+                                cc.roomObs.value.toMainPubkey)),
+                    if (cc.roomObs.value.isMLSGroup)
                       SettingsTile.navigation(
                           title: const Text("Update My Group Key"),
                           leading: const Icon(Icons.refresh),
@@ -210,8 +215,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                                         const Duration(seconds: 3), () async {
                                       try {
                                         await MlsGroupService.instance
-                                            .selfUpdateKey(
-                                                chatController.roomObs.value);
+                                            .selfUpdateKey(cc.roomObs.value);
                                         EasyLoading.showSuccess('Success');
                                       } catch (e, s) {
                                         EasyLoading.showError(e.toString(),
@@ -227,12 +231,12 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                             ));
                           }),
                     SettingsTile.navigation(
-                      title: const Text("My Alias in Group"),
+                      title: const Text("My Alias"),
                       leading: const Icon(CupertinoIcons.person),
-                      value: textP(myAlias),
+                      value: textP(myAlias, maxLength: 15),
                       onPressed: (context) async {
-                        if (chatController.room.isKDFGroup ||
-                            chatController.room.isShareKeyGroup) {
+                        if (cc.roomObs.value.isKDFGroup ||
+                            cc.roomObs.value.isShareKeyGroup) {
                           return;
                         }
 
@@ -261,23 +265,20 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                                 try {
                                   String name = userNameController.text.trim();
                                   if (name.isEmpty) return;
-                                  if (chatController
-                                      .roomObs.value.isSendAllGroup) {
+                                  if (cc.roomObs.value.isSendAllGroup) {
                                     await GroupService.instance
                                         .changeMyNickname(
-                                            chatController.roomObs.value, name);
-                                  } else if (chatController
-                                      .roomObs.value.isMLSGroup) {
+                                            cc.roomObs.value, name);
+                                  } else if (cc.roomObs.value.isMLSGroup) {
                                     await MlsGroupService.instance
-                                        .selfUpdateKey(
-                                            chatController.roomObs.value,
+                                        .selfUpdateKey(cc.roomObs.value,
                                             extension: {'name': name});
                                   }
                                   setState(() {
                                     myAlias = name;
                                   });
                                   userNameController.clear();
-                                  chatController.resetMembers();
+                                  cc.resetMembers();
                                   EasyLoading.showSuccess('Success');
                                   Get.back();
                                 } catch (e, s) {
@@ -293,33 +294,32 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                         ));
                       },
                     ),
-                    if (chatController.roomObs.value.isMLSGroup)
+                    if (cc.roomObs.value.isMLSGroup)
                       SettingsTile(
                           title: const Text("Relay"),
                           leading: const Icon(CupertinoIcons.globe),
                           value: textSmallGray(
                               context,
                               maxLines: 10,
-                              chatController.roomObs.value.sendingRelays
-                                  .join('\n')),
+                              cc.roomObs.value.sendingRelays.join('\n')),
                           onPressed: (context) {}),
                   ]),
                   SettingsSection(tiles: [
-                    RoomUtil.pinRoomSection(chatController),
-                    if (!chatController.room.isSendAllGroup)
+                    RoomUtil.pinRoomSection(cc),
+                    if (!cc.roomObs.value.isSendAllGroup)
                       SettingsTile.switchTile(
                         title: const Text('Show Addresses'),
-                        initialValue: chatController.showFromAndTo.value,
+                        initialValue: cc.showFromAndTo.value,
                         onToggle: (value) async {
-                          chatController.showFromAndTo.toggle();
+                          cc.showFromAndTo.toggle();
                           Get.back();
                         },
                         leading: const Icon(CupertinoIcons.mail),
                       ),
-                    if (chatController.room.isShareKeyGroup ||
-                        chatController.room.isKDFGroup ||
-                        chatController.room.isMLSGroup)
-                      RoomUtil.muteSection(chatController),
+                    if (cc.roomObs.value.isShareKeyGroup ||
+                        cc.roomObs.value.isKDFGroup ||
+                        cc.roomObs.value.isMLSGroup)
+                      RoomUtil.muteSection(cc),
                   ]),
                   payToRelaySection(),
                   // receiveInPostOffice(),
@@ -339,18 +339,16 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
             leading: const Icon(CupertinoIcons.up_arrow),
             title: const Text('SendTo'),
             value: Flexible(
-                child: Text(
-                    chatController.roomObs.value.sendingRelays.isNotEmpty
-                        ? chatController.roomObs.value.sendingRelays.join(',')
-                        : 'All'))),
+                child: Text(cc.roomObs.value.sendingRelays.isNotEmpty
+                    ? cc.roomObs.value.sendingRelays.join(',')
+                    : 'All'))),
         SettingsTile(
             leading: const Icon(CupertinoIcons.down_arrow),
             title: const Text('ReceiveFrom'),
             value: Flexible(
-                child: Text(
-                    chatController.roomObs.value.receivingRelays.isNotEmpty
-                        ? chatController.roomObs.value.receivingRelays.join(',')
-                        : 'All'))),
+                child: Text(cc.roomObs.value.receivingRelays.isNotEmpty
+                    ? cc.roomObs.value.receivingRelays.join(',')
+                    : 'All'))),
       ],
     );
   }
@@ -358,18 +356,17 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
   payToRelaySection() {
     return SettingsSection(
       tiles: [
-        RoomUtil.mediaSection(chatController),
+        RoomUtil.mediaSection(cc),
         SettingsTile.navigation(
           leading: const Icon(
             CupertinoIcons.bitcoin,
           ),
           title: const Text('Pay to Relay'),
           onPressed: (context) async {
-            Get.to(
-                () => PayToRelayPage(roomId: chatController.roomObs.value.id));
+            Get.to(() => PayToRelayPage(roomId: cc.roomObs.value.id));
           },
         ),
-        // if (chatController.roomObs.value.type == RoomType.bot)
+        // if (cc.roomObs.value.type == RoomType.bot)
         //   SettingsTile.navigation(
         //     leading: const Icon(CupertinoIcons.bitcoin),
         //     title: const Text('Pay to Chat'),
@@ -402,18 +399,18 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                 return InkWell(
                   key: Key(rm.idPubkey),
                   onTap: () async {
-                    if (chatController.room.myIdPubkey == rm.idPubkey) {
+                    if (cc.roomObs.value.myIdPubkey == rm.idPubkey) {
                       EasyLoading.showToast('It \'s me');
                       return;
                     }
-                    Contact? contact = await ContactService.instance.getContact(
-                        chatController.room.identityId, rm.idPubkey);
+                    Contact? contact = await ContactService.instance
+                        .getContact(cc.roomObs.value.identityId, rm.idPubkey);
                     String npub =
                         rust_nostr.getBech32PubkeyByHex(hex: rm.idPubkey);
                     contact ??= Contact(
                         pubkey: rm.idPubkey,
                         npubkey: npub,
-                        identityId: chatController.room.identityId)
+                        identityId: cc.roomObs.value.identityId)
                       ..name = rm.name;
                     contact.name ??= rm.name;
                     Get.dialog(CupertinoAlertDialog(
@@ -434,13 +431,13 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                           onPressed: () async {
                             Room? room = await RoomService.instance
                                 .getRoomAndContainSession(contact!.pubkey,
-                                    chatController.room.identityId);
+                                    cc.roomObs.value.identityId);
                             if (room == null) {
                               await RoomService.instance.createRoomAndsendInvite(
                                   contact.pubkey,
-                                  identity: chatController.room.getIdentity(),
+                                  identity: cc.roomObs.value.getIdentity(),
                                   greeting:
-                                      'From Group: ${chatController.roomObs.value.getRoomName()}');
+                                      'From Group: ${cc.roomObs.value.getRoomName()}');
                               return;
                             }
 
@@ -483,9 +480,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                                       EasyLoading.show(status: 'Processing...');
                                       try {
                                         await GroupService.instance
-                                            .removeMember(
-                                                chatController.roomObs.value,
-                                                rm);
+                                            .removeMember(cc.roomObs.value, rm);
                                         EasyLoading.dismiss();
                                         EasyLoading.showSuccess("Removed",
                                             duration:
@@ -533,8 +528,8 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
 
   SettingsSection dangerZoom(BuildContext context) {
     return SettingsSection(tiles: [
-      RoomUtil.autoCleanMessage(chatController),
-      RoomUtil.clearHistory(chatController),
+      RoomUtil.autoCleanMessage(cc),
+      RoomUtil.clearHistory(cc),
       SettingsTile(
           leading: const Icon(
             CupertinoIcons.trash,
@@ -571,14 +566,13 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
           child: const Text("Confirm"),
           onPressed: () async {
             String newName = textEditingController.text;
-            if (newName.isNotEmpty &&
-                newName != chatController.roomObs.value.name) {
+            if (newName.isNotEmpty && newName != cc.roomObs.value.name) {
               await GroupService.instance
-                  .changeRoomName(chatController.roomObs.value.id, newName);
+                  .changeRoomName(cc.roomObs.value.id, newName);
 
-              chatController.roomObs.value.name = newName;
+              cc.roomObs.value.name = newName;
               textEditingController.clear();
-              chatController.roomObs.update((val) {});
+              cc.roomObs.update((val) {});
               EasyLoading.showSuccess('Success');
             }
             Get.back();
@@ -608,9 +602,9 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
               try {
                 isAdmin
                     ? await GroupService.instance
-                        .dissolveGroup(chatController.roomObs.value)
+                        .dissolveGroup(cc.roomObs.value)
                     : await GroupService.instance
-                        .selfExitGroup(chatController.roomObs.value);
+                        .selfExitGroup(cc.roomObs.value);
                 EasyLoading.showSuccess('Success');
               } catch (e, s) {
                 String msg = Utils.getErrorMessage(e);
@@ -618,8 +612,8 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                 EasyLoading.showError(msg);
                 return;
               }
-              await Get.find<HomeController>().loadIdentityRoomList(
-                  chatController.roomObs.value.identityId);
+              await Get.find<HomeController>()
+                  .loadIdentityRoomList(cc.roomObs.value.identityId);
               Get.offAllNamed(Routes.root);
             }),
       ],

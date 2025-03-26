@@ -20,6 +20,7 @@ import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/cupertino.dart' hide ConnectionState;
+import 'package:flutter/material.dart' show Colors;
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:queue/queue.dart';
 
@@ -47,9 +48,7 @@ class WebsocketService extends GetxService {
   }
 
   int activitySocketCount() {
-    return channels.values
-        .where((element) => element.channelStatus == RelayStatusEnum.connected)
-        .length;
+    return channels.values.where((element) => element.isConnected()).length;
   }
 
   // new a websocket channel for this relay
@@ -97,21 +96,14 @@ class WebsocketService extends GetxService {
   }
 
   List<RelayWebsocket> getConnectedRelay() {
-    return channels.values
-        .where((element) =>
-            element.channelStatus == RelayStatusEnum.connected &&
-            element.channel != null)
-        .toList();
+    return channels.values.where((element) => element.isConnected()).toList();
   }
 
   List<RelayWebsocket> getConnectedNip104Relay() {
     var list = channels.values
-        .where((element) =>
-            element.channelStatus == RelayStatusEnum.connected &&
-            element.channel != null)
+        .where((element) => element.isConnected() && element.channel != null)
         .toList();
-    var nip104Enable = list.where((element) => element.relay.isEnableNip104);
-    return nip104Enable.toList();
+    return list.where((element) => element.relay.isEnableNip104).toList();
   }
 
   List<String> getActiveRelayString() {
@@ -127,7 +119,7 @@ class WebsocketService extends GetxService {
   List<String> getOnlineRelayString() {
     List<String> res = [];
     for (RelayWebsocket rw in channels.values) {
-      if (rw.channel != null && rw.channelStatus == RelayStatusEnum.connected) {
+      if (rw.channel != null && rw.isConnected()) {
         res.add(rw.relay.url);
       }
     }
@@ -222,7 +214,7 @@ class WebsocketService extends GetxService {
     }
     int sent = 0;
     for (RelayWebsocket rw in channels.values) {
-      if (rw.channelStatus != RelayStatusEnum.connected || rw.channel == null) {
+      if (rw.isDisConnected() || rw.isConnecting()) {
         continue;
       }
       sent++;
@@ -239,7 +231,7 @@ class WebsocketService extends GetxService {
       int sent = 0;
       for (String relay in relays) {
         if (channels[relay] != null &&
-            channels[relay]!.channelStatus == RelayStatusEnum.connected &&
+            channels[relay]!.isConnected() &&
             channels[relay]!.channel != null) {
           channels[relay]!.sendRawREQ(content);
           sent++;
@@ -250,7 +242,7 @@ class WebsocketService extends GetxService {
 
     int sent = 0;
     for (RelayWebsocket rw in channels.values) {
-      if (rw.channelStatus != RelayStatusEnum.connected || rw.channel == null) {
+      if (rw.isConnecting() || rw.isDisConnected()) {
         continue;
       }
       sent++;
@@ -284,7 +276,7 @@ class WebsocketService extends GetxService {
       int sent = 0;
       for (String relay in relays) {
         if (channels[relay] != null &&
-            channels[relay]!.channelStatus == RelayStatusEnum.connected &&
+            channels[relay]!.isConnected() &&
             channels[relay]!.channel != null) {
           channels[relay]!.sendRawREQ("[\"EVENT\",$content]");
           sent++;
@@ -295,7 +287,7 @@ class WebsocketService extends GetxService {
 
     int sent = 0;
     for (RelayWebsocket rw in channels.values) {
-      if (rw.channelStatus != RelayStatusEnum.connected || rw.channel == null) {
+      if (rw.isConnecting() || rw.isDisConnected()) {
         continue;
       }
       sent++;
@@ -397,7 +389,6 @@ class WebsocketService extends GetxService {
     if (channels[relay.url] != null) {
       channels[relay.url]!.channel?.close();
       channels[relay.url]!.channel = null;
-      channels[relay.url]!.channelStatus = RelayStatusEnum.noAcitveRelay;
       channels[relay.url]!.relay = relay;
       channels.refresh();
     }
@@ -439,7 +430,7 @@ class WebsocketService extends GetxService {
           return;
         }
 
-        if (rw.channelStatus == RelayStatusEnum.connected) {
+        if (rw.isConnected()) {
           try {
             ess = await addCashuToMessage(roomId, ess);
           } catch (e) {
@@ -461,7 +452,7 @@ class WebsocketService extends GetxService {
           results.add(ess);
           return;
         }
-        ess.sendStatus = getSendStatusByRelayStatus(rw.channelStatus);
+        ess.sendStatus = getSendStatusByState(rw.channel?.connection.state);
         results.add(ess);
       });
     }
@@ -577,21 +568,13 @@ class WebsocketService extends GetxService {
       nostrAPI.addNostrEventToQueue(rw.relay, message);
     });
     channel.connection.listen((ConnectionState state) {
-      if (state is Connecting || state is Reconnecting) {
-        rw.channelStatus = RelayStatusEnum.connecting;
-      }
-
       if (state is Connected || state is Reconnected) {
-        rw.channelStatus = RelayStatusEnum.connected;
         rw.connectSuccess(channel);
         if (connectedCallback != null) {
           connectedCallback();
         }
       }
 
-      if (state is Disconnecting || state is Disconnected) {
-        rw.channelStatus = RelayStatusEnum.failed;
-      }
       // update the main page status
       refreshMainRelayStatus();
     });
@@ -601,7 +584,7 @@ class WebsocketService extends GetxService {
 
   bool existFreeRelay() {
     for (var channel in channels.entries) {
-      if (channel.value.channelStatus == RelayStatusEnum.connected) {
+      if (channel.value.isConnected()) {
         if (relayMessageFeeModels[channel.key]?.amount == 0) {
           return true;
         }
@@ -629,18 +612,38 @@ class WebsocketService extends GetxService {
     }
   }
 
-  EventSendEnum getSendStatusByRelayStatus(RelayStatusEnum channelStatus) {
-    switch (channelStatus) {
-      case RelayStatusEnum.init:
-        return EventSendEnum.init;
-      case RelayStatusEnum.noAcitveRelay:
-        return EventSendEnum.noAcitveRelay;
-      case RelayStatusEnum.connecting:
+  EventSendEnum getSendStatusByState(ConnectionState? state) {
+    if (state == null) {
+      return EventSendEnum.noAcitveRelay;
+    }
+    switch (state) {
+      case Connecting _:
+      case Reconnecting _:
         return EventSendEnum.relayConnecting;
-      case RelayStatusEnum.failed:
+      case Connected _:
+      case Reconnected _:
+        return EventSendEnum.success;
+      case Disconnected _:
+      case Disconnecting _:
         return EventSendEnum.relayDisconnected;
       default:
         return EventSendEnum.init;
+    }
+  }
+
+  getColorByState(ConnectionState? state) {
+    switch (state) {
+      case Connecting _:
+      case Reconnecting _:
+        return Colors.yellow;
+      case Connected _:
+      case Reconnected _:
+        return Colors.green;
+      case Disconnected _:
+      case Disconnecting _:
+        return Colors.red;
+      default:
+        return Colors.grey;
     }
   }
 

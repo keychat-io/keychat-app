@@ -258,28 +258,28 @@ Let's start an encrypted chat.''';
         });
   }
 
-  static SettingsTile pinRoomSection(ChatController chatController) {
+  static SettingsTile pinRoomSection(ChatController cc) {
     return SettingsTile.switchTile(
-      initialValue: chatController.roomObs.value.pin,
+      initialValue: cc.roomObs.value.pin,
       leading: const Icon(
         CupertinoIcons.pin,
       ),
       title: const Text('Sticky on Top'),
       onToggle: (value) async {
-        chatController.roomObs.value.pin = value;
-        chatController.roomObs.value.pinAt = DateTime.now();
-        await RoomService.instance.updateRoom(chatController.roomObs.value);
-        chatController.roomObs.refresh();
+        cc.roomObs.value.pin = value;
+        cc.roomObs.value.pinAt = DateTime.now();
+        await RoomService.instance.updateRoom(cc.roomObs.value);
+        cc.roomObs.refresh();
         EasyLoading.showSuccess('Saved');
         await Get.find<HomeController>()
-            .loadIdentityRoomList(chatController.roomObs.value.identityId);
+            .loadIdentityRoomList(cc.roomObs.value.identityId);
       },
     );
   }
 
-  static SettingsTile muteSection(ChatController chatController) {
+  static SettingsTile muteSection(ChatController cc) {
     return SettingsTile.switchTile(
-      initialValue: chatController.roomObs.value.isMute,
+      initialValue: cc.roomObs.value.isMute,
       leading: const Icon(
         Icons.notifications_none,
       ),
@@ -287,7 +287,7 @@ Let's start an encrypted chat.''';
       onToggle: (value) async {
         EasyThrottle.throttle('mute_notification', const Duration(seconds: 3),
             () async {
-          Room room = chatController.roomObs.value;
+          Room room = cc.roomObs.value;
           List<String> pubkeys = [];
 
           if (room.type == RoomType.group) {
@@ -313,9 +313,8 @@ Let's start an encrypted chat.''';
           if (room.type == RoomType.common) {
             await ContactService.instance.updateReceiveKeyIsMute(room, value);
           }
-          chatController.roomObs.value.isMute = value;
-          await RoomService.instance
-              .updateRoomAndRefresh(chatController.roomObs.value);
+          cc.roomObs.value.isMute = value;
+          await RoomService.instance.updateRoomAndRefresh(cc.roomObs.value);
           EasyLoading.showSuccess('Saved');
           await Get.find<HomeController>()
               .loadIdentityRoomList(room.identityId);
@@ -446,29 +445,29 @@ Let's start an encrypted chat.''';
     );
   }
 
-  static SettingsTile mediaSection(ChatController chatController) {
+  static SettingsTile mediaSection(ChatController cc) {
     return SettingsTile.navigation(
       leading: const Icon(
         CupertinoIcons.folder,
       ),
       title: const Text('Photos, Videos & Files'),
       onPressed: (context) async {
-        Get.to(() => ChatMediaFilesPage(chatController.roomObs.value));
+        Get.to(() => ChatMediaFilesPage(cc.roomObs.value));
       },
     );
   }
 
-  static SettingsTile messageLimitSection(ChatController chatController) {
+  static SettingsTile messageLimitSection(ChatController cc) {
     return SettingsTile.navigation(
       leading: const Icon(
         CupertinoIcons.folder,
       ),
       title: const Text('Message limit'),
-      value: Text('${chatController.messageLimit.value}'),
+      value: Text('${cc.messageLimit.value}'),
     );
   }
 
-  static SettingsTile clearHistory(ChatController chatController) {
+  static SettingsTile clearHistory(ChatController cc) {
     return SettingsTile(
       leading: const Icon(
         Icons.clear_all,
@@ -498,8 +497,8 @@ Let's start an encrypted chat.''';
                   try {
                     EasyLoading.show(status: 'Processing');
                     await RoomService.instance
-                        .deleteRoomMessage(chatController.roomObs.value);
-                    chatController.messages.clear();
+                        .deleteRoomMessage(cc.roomObs.value);
+                    cc.messages.clear();
                     EasyLoading.showSuccess('Successfully');
                   } catch (e) {
                     EasyLoading.showError(e.toString());
@@ -746,12 +745,12 @@ Let's start an encrypted chat.''';
             message.realMessage ?? message.content, markdownConfig));
   }
 
-  static Widget _imageTextView(Message message, ChatController chatController,
+  static Widget _imageTextView(Message message, ChatController cc,
       Widget Function({Widget? child, String? text}) errorCallback) {
     if (message.realMessage != null) {
       try {
         var mfi = MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
-        return getImageViewWidget(message, chatController, mfi, errorCallback);
+        return getImageViewWidget(message, cc, mfi, errorCallback);
         // ignore: empty_catches
       } catch (e) {}
     }
@@ -761,7 +760,7 @@ Let's start an encrypted chat.''';
 
   static Widget getImageViewWidget(
       Message message,
-      ChatController chatController,
+      ChatController cc,
       MsgFileInfo fileInfo,
       Widget Function({Widget? child, String? text}) errorCallback) {
     if (fileInfo.updateAt != null &&
@@ -787,7 +786,7 @@ Let's start an encrypted chat.''';
             ? errorCallback(text: '[Image Loading]')
             : ImagePreviewWidget(
                 localPath: fileInfo.localPath!,
-                cc: chatController,
+                cc: cc,
                 errorCallback: errorCallback);
       case FileStatus.failed:
         return Row(
@@ -814,7 +813,7 @@ Let's start an encrypted chat.''';
 
   static Widget getTextViewWidget(
       Message message,
-      ChatController chatController,
+      ChatController cc,
       MarkdownConfig markdownConfig,
       Widget Function({Widget? child, String? text}) errorCallback) {
     try {
@@ -824,7 +823,7 @@ Let's start an encrypted chat.''';
         case MessageMediaType.video:
           return VideoMessageWidget(message, errorCallback);
         case MessageMediaType.image:
-          return _imageTextView(message, chatController, errorCallback);
+          return _imageTextView(message, cc, errorCallback);
         case MessageMediaType.file:
           return FileMessageWidget(message, errorCallback);
         case MessageMediaType.cashuA:
@@ -833,40 +832,31 @@ Let's start an encrypted chat.''';
                 key: Key('mredpocket:${message.id}'), message: message);
           }
         case MessageMediaType.setPostOffice:
-          return _getActionWidget(SetRoomRelayAction(chatController, message),
-              message, markdownConfig, errorCallback);
+          return _getActionWidget(SetRoomRelayAction(cc, message), message,
+              markdownConfig, errorCallback);
         case MessageMediaType.groupInvite:
           return _getActionWidget(
-              GroupInviteAction(message, chatController.room.getIdentity()),
+              GroupInviteAction(message, cc.roomObs.value.getIdentity()),
               message,
               markdownConfig,
               errorCallback);
         case MessageMediaType.groupInviteConfirm:
           return _getActionWidget(
-              GroupInviteConfirmAction(
-                  chatController.room.getRoomName(), message),
+              GroupInviteConfirmAction(cc.roomObs.value.getRoomName(), message),
               message,
               markdownConfig,
               errorCallback);
         // bot
         case MessageMediaType.botPricePerMessageRequest:
-          return _getActionWidget(
-              BotPricePerMessageRequestWidget(chatController, message),
-              message,
-              markdownConfig,
-              errorCallback);
+          return _getActionWidget(BotPricePerMessageRequestWidget(cc, message),
+              message, markdownConfig, errorCallback);
         case MessageMediaType.botOneTimePaymentRequest:
-          return _getActionWidget(
-              BotOneTimePaymentRequestWidget(chatController, message),
-              message,
-              markdownConfig,
-              errorCallback);
+          return _getActionWidget(BotOneTimePaymentRequestWidget(cc, message),
+              message, markdownConfig, errorCallback);
         case MessageMediaType.groupInvitationInfo:
-          return GroupInvitationInfoWidget(
-              chatController, message, errorCallback);
+          return GroupInvitationInfoWidget(cc, message, errorCallback);
         case MessageMediaType.groupInvitationRequesting:
-          return GroupInvitationRequestingWidget(
-              chatController, message, errorCallback);
+          return GroupInvitationRequestingWidget(cc, message, errorCallback);
         default:
       }
     } catch (e, s) {

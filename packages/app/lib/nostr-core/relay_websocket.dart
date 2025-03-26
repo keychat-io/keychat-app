@@ -5,6 +5,7 @@ import 'package:app/models/relay.dart';
 import 'package:app/nostr-core/nostr_nip4_req.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/message.service.dart';
+import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
@@ -18,7 +19,6 @@ const _maxReqCount = 20; // max pool size is 32. be setting by relay server
 class RelayWebsocket {
   RelayService rs = RelayService.instance;
   late Relay relay;
-  RelayStatusEnum channelStatus = RelayStatusEnum.init;
   WebSocket? channel;
   List<String> notices = [];
   int maxReqCount = _maxReqCount;
@@ -86,8 +86,23 @@ class RelayWebsocket {
     return sendRawREQ(nq.toString());
   }
 
+  isConnected() {
+    return channel?.connection.state is Connected ||
+        channel?.connection.state is Reconnected;
+  }
+
+  isDisConnected() {
+    return channel?.connection.state is Disconnected ||
+        channel?.connection.state is Disconnecting;
+  }
+
+  isConnecting() {
+    return channel?.connection.state is Connecting ||
+        channel?.connection.state is Reconnecting;
+  }
+
   _statusCheck() {
-    if (channel == null || channelStatus != RelayStatusEnum.connected) {
+    if (isDisConnected() || isConnecting()) {
       throw Exception('disconnected: ${relay.url}');
     }
   }
@@ -120,7 +135,7 @@ class RelayWebsocket {
 
   // send ping to relay. if relay not response, socket is closed.
   Future<bool> checkOnlineStatus() async {
-    if (channel == null || channelStatus == RelayStatusEnum.failed) {
+    if (channel == null || isDisConnected()) {
       return false;
     }
     notices.clear();
@@ -148,6 +163,9 @@ class RelayWebsocket {
 
     _startListen();
     Future.delayed(const Duration(seconds: 1)).then((value) {
+      // init mls keypackages
+      EasyThrottle.throttle('connectSuccess', const Duration(seconds: 3),
+          MlsGroupService.instance.initKeyPackages);
       _proccessFailedEvents();
       // nwc reconnect
       Utils.getGetxController<NostrWalletConnectController>()

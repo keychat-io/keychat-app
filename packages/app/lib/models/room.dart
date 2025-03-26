@@ -87,7 +87,7 @@ class Room extends Equatable {
   late EncryptMode encryptMode = EncryptMode.nip04;
 
   @Enumerated(EnumType.ordinal32)
-  GroupType groupType = GroupType.shareKey;
+  GroupType groupType = GroupType.mls;
 
   @Enumerated(EnumType.ordinal32)
   late RoomStatus status;
@@ -133,7 +133,7 @@ class Room extends Equatable {
       {required this.toMainPubkey,
       required this.npub,
       required this.identityId,
-      required this.status,
+      this.status = RoomStatus.enabled,
       this.type = RoomType.common}) {
     createdAt = DateTime.now();
   }

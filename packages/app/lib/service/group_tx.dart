@@ -5,11 +5,7 @@ import 'package:app/models/message.dart';
 import 'package:app/models/mykey.dart';
 import 'package:app/models/room.dart';
 import 'package:app/models/room_member.dart';
-
-import 'package:app/service/notify.service.dart';
 import 'package:app/service/signalId.service.dart';
-import 'package:app/service/websocket.service.dart';
-import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
@@ -36,28 +32,6 @@ class GroupTx {
       ..roomId = roomId;
     var savedId = await database.mykeys.put(newUser);
     return (await database.mykeys.get(savedId))!;
-  }
-
-  Future<Mykey> createMykey(int identityId, [int? roomId]) async {
-    rust_nostr.Secp256k1Account keychain = await rust_nostr.generateSecp256K1();
-    Isar database = DBProvider.database;
-    Mykey? mykey = await database.mykeys
-        .filter()
-        .identityIdEqualTo(identityId)
-        .pubkeyEqualTo(keychain.pubkey)
-        .findFirst();
-    if (mykey != null) return mykey;
-    final newUser = Mykey(
-        prikey: keychain.prikey,
-        identityId: identityId,
-        pubkey: keychain.pubkey)
-      ..roomId = roomId;
-    late Mykey savedMykey;
-    await database.writeTxn(() async {
-      var savedId = await database.mykeys.put(newUser);
-      savedMykey = (await database.mykeys.get(savedId))!;
-    });
-    return savedMykey;
   }
 
   Future<Room> _createGroupToDB(String toMainPubkey, String groupName,
@@ -90,15 +64,6 @@ class GroupTx {
       me.status = UserStatusType.invited;
       await DBProvider.database.roomMembers.put(me);
     }
-    if (room.isShareKeyGroup || room.isKDFGroup) {
-      DateTime since = roomUpdateAt != null
-          ? DateTime.fromMillisecondsSinceEpoch(roomUpdateAt)
-          : DateTime.now().subtract(const Duration(days: 30));
-      String listenKey = sharedKey?.pubkey ?? toMainPubkey;
-      await Get.find<WebsocketService>()
-          .listenPubkey([listenKey], since: since);
-      NotifyService.addPubkeys([listenKey]);
-    }
     return room;
   }
 
@@ -117,11 +82,6 @@ class GroupTx {
     int version = roomProfile.updatedAt;
     List<dynamic> users = roomProfile.users;
     Mykey? roomKey;
-    if ((roomProfile.groupType == GroupType.shareKey ||
-            roomProfile.groupType == GroupType.kdf) &&
-        toRoomPriKey == null) {
-      throw Exception('Prikey is null, failed to join group.');
-    }
     if (toRoomPriKey != null) {
       roomKey = await importMykeyTx(
           identity.id, await rust_nostr.importKey(senderKeys: toRoomPriKey));

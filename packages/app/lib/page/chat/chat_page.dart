@@ -89,7 +89,7 @@ class _ChatPage2State extends State<ChatPage> {
   @override
   void dispose() {
     try {
-      Get.delete<ChatController>(tag: controller.room.id.toString());
+      Get.delete<ChatController>(tag: controller.roomObs.value.id.toString());
       // ignore: empty_catches
     } catch (e) {}
     super.dispose();
@@ -170,7 +170,7 @@ class _ChatPage2State extends State<ChatPage> {
               child: Column(
                 children: <Widget>[
                   Obx(() => debugWidget(hc)),
-                  if (controller.room.isSendAllGroup)
+                  if (controller.roomObs.value.isSendAllGroup)
                     Obx(() => _kpaIsNull(controller)),
                   Obx(() => controller.roomObs.value.signalDecodeError
                       ? MyErrorText(
@@ -180,8 +180,8 @@ class _ChatPage2State extends State<ChatPage> {
                                   style: TextStyle(color: Colors.white)),
                               onPressed: () async {
                                 await SignalChatService.instance
-                                    .sendHelloMessage(controller.room,
-                                        controller.room.getIdentity());
+                                    .sendHelloMessage(controller.roomObs.value,
+                                        controller.roomObs.value.getIdentity());
                                 EasyLoading.showInfo(
                                     'Request sent successfully.');
                               }),
@@ -223,7 +223,7 @@ class _ChatPage2State extends State<ChatPage> {
 
                                     RoomMember? rm;
                                     if (!message.isMeSend &&
-                                        controller.room.type ==
+                                        controller.roomObs.value.type ==
                                             RoomType.group) {
                                       rm = controller.getMemberByIdPubkey(
                                           message.idPubkey);
@@ -246,7 +246,7 @@ class _ChatPage2State extends State<ChatPage> {
                                           index: index,
                                           isGroup: isGroup,
                                           roomMember: rm,
-                                          chatController: controller,
+                                          cc: controller,
                                           screenWidth: Get.width,
                                           toDisplayNameColor: Get.isDarkMode
                                               ? Colors.white54
@@ -538,7 +538,8 @@ class _ChatPage2State extends State<ChatPage> {
     if (controller.roomObs.value.type == RoomType.group) {
       route = Routes.roomSettingGroup;
     }
-    await Get.toNamed(route.replaceFirst(':id', controller.room.id.toString()));
+    await Get.toNamed(
+        route.replaceFirst(':id', controller.roomObs.value.id.toString()));
     await controller.openPageAction();
     return;
   }
@@ -582,7 +583,7 @@ class _ChatPage2State extends State<ChatPage> {
                               count++;
                               controller.getRoomStats();
                               RoomService.instance.sendMessage(
-                                  controller.room, count.toString());
+                                  controller.roomObs.value, count.toString());
                               randomTimer();
                             });
                           }
@@ -600,7 +601,7 @@ class _ChatPage2State extends State<ChatPage> {
                 OutlinedButton(
                     onPressed: () {
                       MessageService.instance
-                          .deleteMessageByRoomId(controller.room.id);
+                          .deleteMessageByRoomId(controller.roomObs.value.id);
                       Get.back();
                     },
                     child: const Text('clean')),
@@ -656,7 +657,7 @@ class _ChatPage2State extends State<ChatPage> {
       controller.hideSend.value = false;
       controller.hideAddIcon.value = true;
     }
-    if (controller.room.type == RoomType.group) {
+    if (controller.roomObs.value.type == RoomType.group) {
       String lastChar = value.substring(value.length - 1, value.length);
       if (lastChar == '@' && controller.inputTextIsAdd.value) {
         var members = controller.enableMembers.values.toList();
@@ -739,7 +740,7 @@ class _ChatPage2State extends State<ChatPage> {
       onPressed: () async {
         await RoomService.instance.deleteRoom(controller.roomObs.value);
         await Get.find<HomeController>()
-            .loadIdentityRoomList(controller.room.identityId);
+            .loadIdentityRoomList(controller.roomObs.value.identityId);
         await Get.offAllNamed(Routes.root);
       },
       child: const Text('Exit and Delete Room',
@@ -775,7 +776,7 @@ class _ChatPage2State extends State<ChatPage> {
                   logger.e(e.toString(), error: e, stackTrace: s);
                 }
                 Get.find<HomeController>()
-                    .loadIdentityRoomList(controller.room.identityId);
+                    .loadIdentityRoomList(controller.roomObs.value.identityId);
               },
               style: ButtonStyle(
                   backgroundColor: WidgetStateProperty.all(Colors.green)),
@@ -784,7 +785,7 @@ class _ChatPage2State extends State<ChatPage> {
             ),
             FilledButton(
               onPressed: () async {
-                int identityId = controller.room.identityId;
+                int identityId = controller.roomObs.value.identityId;
                 await RoomService.instance.deleteRoom(controller.roomObs.value);
                 Get.find<HomeController>().loadIdentityRoomList(identityId);
                 Get.back();

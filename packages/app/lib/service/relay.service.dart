@@ -36,10 +36,10 @@ class RelayService {
     relay.active = true;
     relay.errorMessage = null;
     await update(relay);
-    await ws.addChannel(relay, connectedCallback: () {
+    await ws.addChannel(relay, connectedCallback: () async {
       NotifyService.syncPubkeysToServer(); // sub new relay
       RelayService.instance.initRelayFeeInfo([relay]);
-      MlsGroupService.instance.uploadKeyPackages();
+      await MlsGroupService.instance.initKeyPackages(relay: relay);
     });
   }
 

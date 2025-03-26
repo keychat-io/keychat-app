@@ -318,7 +318,6 @@ class GroupService extends BaseChatService {
 
   processInvite(Room idRoom, NostrEventModel event, RoomProfile roomProfile,
       String realMessage) async {
-    String? toRoomPriKey = roomProfile.prikey; // shared private key
     String groupName = roomProfile.name;
     List<dynamic> users = roomProfile.users;
     List groupInviteMsg = jsonDecode(realMessage);
@@ -427,45 +426,12 @@ class GroupService extends BaseChatService {
     groupRoom.status = RoomStatus.enabled;
     groupRoom.name = groupName;
 
-    // Whether the shared secret key key changes
-    // kdf group will not change nostr key
-    bool isKeyChange = false;
-    if (groupRoom.isShareKeyGroup && toRoomPriKey != null) {
-      Mykey roomKey = groupRoom.mykey.value!;
-
-      if (groupRoom.mykey.value!.prikey != toRoomPriKey) {
-        isKeyChange = true;
-        await DBProvider.database.writeTxn(() async {
-          roomKey = await GroupTx.instance.importMykeyTx(identity.id,
-              await rust_nostr.importKey(senderKeys: toRoomPriKey));
-        });
-        groupRoom.mykey.value = roomKey;
-        groupRoom = await RoomService.instance
-            .updateRoom(groupRoom, updateMykey: isKeyChange);
-        await Get.find<WebsocketService>()
-            .listenPubkey([roomKey.pubkey], limit: 300);
-        NotifyService.addPubkeys([roomKey.pubkey]);
-      }
-
-      // if is p2p message, then send: I am in
-      if (event.tags[0][1] != roomKey.pubkey) {
-        await GroupService.instance.sendMessageToGroup(
-            groupRoom, '${identity.displayName} $joinGreeting',
-            subtype: KeyChatEventKinds.groupHi);
-      }
-    } else {
-      await RoomService.instance.updateRoom(groupRoom);
-    }
+    await RoomService.instance.updateRoom(groupRoom);
 
     RoomService.instance.updateChatRoomPage(groupRoom);
 
     await groupRoom.updateAllMember(users);
     await updateChatControllerMembers(groupRoom.id);
-
-    if (idRoom.type == RoomType.common &&
-        (groupRoom.isShareKeyGroup || groupRoom.isKDFGroup)) {
-      return;
-    }
 
     Message message = Message(
         identityId: groupRoom.identityId,

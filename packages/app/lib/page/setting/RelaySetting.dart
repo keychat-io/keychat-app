@@ -1,11 +1,10 @@
-import 'package:app/models/relay.dart';
 import 'package:app/nostr-core/relay_websocket.dart';
 import 'package:app/page/setting/relay_info/relay_info_bindings.dart';
 import 'package:app/page/setting/relay_info/relay_info_page.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/websocket.service.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' hide ConnectionState;
+import 'package:flutter/material.dart' hide ConnectionState;
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:settings_ui/settings_ui.dart';
@@ -99,7 +98,8 @@ class _RelaySettingState extends State<RelaySetting> {
                             leading: Icon(
                                 rw.relay.isDefault ? Icons.star : Icons.circle,
                                 size: rw.relay.isDefault ? 16 : 12,
-                                color: getColorByStatus(rw.channelStatus)),
+                                color: ws.getColorByState(
+                                    rw.channel?.connection.state)),
                             onPressed: (context) {
                               Get.to(() => const RelayInfoPage(),
                                   arguments: rw.relay,
@@ -110,19 +110,6 @@ class _RelaySettingState extends State<RelaySetting> {
                 )
               ])
             : const Center(child: Text("No relay configured yet"))));
-  }
-
-  getColorByStatus(RelayStatusEnum status) {
-    switch (status) {
-      case RelayStatusEnum.connecting:
-        return Colors.yellow;
-      case RelayStatusEnum.connected:
-        return Colors.green;
-      case RelayStatusEnum.failed:
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
   }
 
   void addRelay() {

@@ -41,13 +41,16 @@ Widget centerLoadingComponent([String title = 'loading']) {
   ));
 }
 
-textP(String title, [Color? color]) {
+textP(String title, {Color? color, int? maxLength}) {
+  if (maxLength != null) {
+    if (title.length > maxLength) {
+      title = title.substring(0, maxLength);
+    }
+  }
   return Text(
     title,
-    style: TextStyle(
-      fontSize: 16, color: color,
-      // overflow: TextOverflow.ellipsis
-    ),
+    style:
+        TextStyle(fontSize: 16, color: color, overflow: TextOverflow.ellipsis),
   );
 }
 

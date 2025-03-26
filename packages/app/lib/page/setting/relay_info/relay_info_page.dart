@@ -1,4 +1,3 @@
-import 'package:app/models/relay.dart';
 import 'package:app/nostr-core/relay_websocket.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/websocket.service.dart';
@@ -50,8 +49,7 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                           ws.channels[controller.relay.value.url];
                       if (rw != null) {
                         if (ws.channels[controller.relay.value.url]
-                                ?.channelStatus ==
-                            RelayStatusEnum.failed) {}
+                            ?.isDisConnected()) {}
                       }
                     },
                   ),

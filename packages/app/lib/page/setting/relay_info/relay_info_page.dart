@@ -270,17 +270,19 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                           ),
                           CupertinoDialogAction(
                             onPressed: () async {
-                              WebsocketService websocketService =
+                              WebsocketService ws =
                                   Get.find<WebsocketService>();
-                              if (websocketService.channels.length == 1) {
+                              if (ws.channels.length == 1) {
                                 EasyLoading.showToast('At least one relay');
                                 return;
                               }
 
                               await RelayService.instance
                                   .delete(controller.relay.value.id);
-                              websocketService
-                                  .deleteRelay(controller.relay.value);
+
+                              ws.channels[controller.relay.value.url]?.channel
+                                  ?.close();
+                              ws.channels.remove(controller.relay.value.url);
 
                               Get.back();
                               Get.back();

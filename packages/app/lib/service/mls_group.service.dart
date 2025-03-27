@@ -11,7 +11,6 @@ import 'package:app/nostr-core/nostr_nip4_req.dart';
 import 'package:app/nostr-core/relay_websocket.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/chat.service.dart';
-import 'package:app/service/group.service.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/relay.service.dart';
@@ -345,6 +344,33 @@ $error ''';
     return result2;
   }
 
+  Future<String?> getKeyPackageFromRelay(String pubkey) async {
+    var ws = Get.find<WebsocketService>();
+
+    try {
+      NostrReqModel req = NostrReqModel(
+          reqId: generate64RandomHexChars(16),
+          authors: [pubkey],
+          kinds: [EventKinds.nip104KP],
+          limit: 1,
+          since: DateTime.now().subtract(Duration(days: 365)));
+      List<RelayWebsocket> relays = ws.getConnectedNip104Relay();
+      List<NostrEventModel> list = await ws.fetchInfoFromRelay(
+          req.reqId, req.toString(),
+          waitTimeToFill: true, sockets: relays);
+      // close req
+
+      ws.sendMessage(Close(req.reqId).serialize());
+
+      if (list.isEmpty) return null;
+      return list[0].content;
+    } catch (e, s) {
+      logger.e('Error getting key package from relay: ${e.toString()}',
+          error: e, stackTrace: s);
+      return null;
+    }
+  }
+
   Future<Map<String, RoomMember>> getMembers(Room room) async {
     Map<String, RoomMember> roomMembers = {};
     Map<String, List<Uint8List>> extensions = await rust_mls.getMemberExtension(
@@ -450,7 +476,6 @@ $error ''';
   Future initKeyPackages({List<Identity>? identities, Relay? relay}) async {
     WebsocketService? ws = Utils.getGetxController<WebsocketService>();
     List<String>? onlines = ws?.getOnlineRelayString();
-    logger.d('initKeyPackages: $onlines');
     if (ws == null || onlines == null || onlines.isEmpty) {
       throw Exception('No relays available');
     }
@@ -462,7 +487,6 @@ $error ''';
           Get.find<HomeController>().allIdentities[item.id] ?? item;
 
       if (identity.mlsInit) {
-        logger.d('MLS kp for identity: ${identity.secp256k1PKHex} already');
         return;
       }
       NostrReqModel req = NostrReqModel(
@@ -939,23 +963,76 @@ $error ''';
     bool save = true,
   }) async {
     if (users.isEmpty) return;
-    Identity identity = groupRoom.getIdentity();
     await RoomService.instance.checkRoomStatus(groupRoom);
     String realMessage =
         'Invite ${users.values.join(',')} to join group ${groupRoom.name}';
 
-    await GroupService.instance.sendPrivateMessageToMembers(
-        realMessage, users.keys.toList(), identity,
+    await _sendPrivateMessageToMembers(
+        realMessage: realMessage,
+        pubkeys: users.keys.toList(),
         content: mlsWelcome,
         groupRoom: groupRoom,
-        nip17: true,
         nip17Kind: EventKinds.nip104Welcome,
-        save: save,
         additionalTags: [
-          // group id
           [EventKindTags.pubkey, groupRoom.toMainPubkey],
         ]);
 
     RoomService.getController(groupRoom.id)?.resetMembers();
+  }
+
+  // Send a group message to all enabled users
+  Future _sendPrivateMessageToMembers(
+      {required String content,
+      required String realMessage,
+      required Room groupRoom,
+      required List pubkeys,
+      int nip17Kind = EventKinds.nip17,
+      List<List<String>>? additionalTags}) async {
+    List<NostrEventModel> events = [];
+    Identity identity = groupRoom.getIdentity();
+
+    for (var pubkey in pubkeys) {
+      if (identity.secp256k1PKHex == pubkey) continue;
+      try {
+        var smr = await NostrAPI.instance.sendNip17Message(
+            groupRoom, content, identity,
+            toPubkey: pubkey,
+            realMessage: realMessage,
+            nip17Kind: nip17Kind,
+            additionalTags: additionalTags,
+            save: false);
+        if (smr.events.isEmpty) return;
+        var toSaveEvent = smr.events[0];
+        toSaveEvent.toIdPubkey = pubkey;
+        events.add(toSaveEvent);
+      } catch (e, s) {
+        logger.e(e.toString(), error: e, stackTrace: s);
+      }
+    }
+    if (events.isEmpty) {
+      throw Exception('Message Sent Failed');
+    }
+
+    Message message = Message(
+      identityId: groupRoom.identityId,
+      msgid: events[0].id,
+      eventIds: events.map((e) => e.id).toList(),
+      roomId: groupRoom.id,
+      from: identity.secp256k1PKHex,
+      idPubkey: identity.secp256k1PKHex,
+      to: groupRoom.toMainPubkey,
+      encryptType: MessageEncryptType.nip17,
+      sent: SendStatusType.success,
+      isSystem: true,
+      isMeSend: true,
+      content: realMessage,
+      createdAt: timestampToDateTime(events[0].createdAt),
+      rawEvents: events.map((e) {
+        Map m = e.toJson();
+        m['toIdPubkey'] = e.toIdPubkey;
+        return jsonEncode(m);
+      }).toList(),
+    )..isRead = true;
+    await MessageService.instance.saveMessageModel(message, room: groupRoom);
   }
 }

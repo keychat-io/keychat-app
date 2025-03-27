@@ -647,7 +647,7 @@ Let's start an encrypted chat.''';
 
     if (success == 0) return const Icon(Icons.error_outline, color: Colors.red);
 
-    return const Icon(Icons.circle, color: Colors.lightGreen);
+    return const Icon(Icons.check_circle, color: Colors.lightGreen);
   }
 
   static Widget getStatusArrowIcon(int max, int success, bool down) {

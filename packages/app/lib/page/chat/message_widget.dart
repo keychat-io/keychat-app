@@ -803,13 +803,12 @@ class MessageWidget extends StatelessWidget {
                           eventModel?.tags[0][1] ??
                           '';
                       return ExpansionTile(
-                        title: Row(
-                          children: <Widget>[
-                            RoomUtil.getStatusCheckIcon(
-                                eventSendStatus.length, success.length),
-                            const SizedBox(width: 10),
-                            Text('To: ${rm?.name ?? idPubkey}'),
-                          ],
+                        leading: RoomUtil.getStatusCheckIcon(
+                            eventSendStatus.length, success.length),
+                        title: Text(
+                          'To: ${rm?.name ?? idPubkey}',
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
                         ),
                         subtitle: Text(idPubkey),
                         children: <Widget>[

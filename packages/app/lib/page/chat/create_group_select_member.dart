@@ -37,41 +37,14 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
   final RefreshController _refreshController =
       RefreshController(initialRefresh: true);
   bool pageLoading = true;
-  void _onLoading() async {
-    int currentLength = users.length;
-    int nextLength = currentLength + 15;
-    if (nextLength > widget.contacts.length) {
-      nextLength = widget.contacts.length;
-    }
-    List<Map<String, dynamic>> news =
-        widget.contacts.getRange(currentLength, nextLength).toList();
-    if (news.isNotEmpty) {
-      List<String> pubkeys = [];
-      for (var u in news) {
-        pubkeys.add(u['pubkey']);
-      }
-      if (widget.groupType == GroupType.mls) {
-        Map res =
-            await MlsGroupService.instance.getKeyPackagesFromRelay(pubkeys);
-
-        for (var u in news) {
-          String pubkey = u['pubkey'];
-          if (res[pubkey] != null && res[pubkey].length > 0) {
-            u['mlsPK'] = res[pubkey];
-          }
-        }
-      }
-      users.addAll(news);
-    }
-    pageLoading = false;
-    setState(() {});
-    _refreshController.loadComplete();
-  }
 
   @override
   void initState() {
     super.initState();
-    _onLoading();
+    setState(() {
+      pageLoading = false;
+      users = widget.contacts;
+    });
   }
 
   @override
@@ -140,78 +113,70 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
         ],
       ),
       body: pageLoading
-          ? pageLoadingSpinKit(title: 'Loading contact\'s mls KeyPackages')
-          : SmartRefresher(
-              enablePullDown: false,
-              enablePullUp: true,
-              header: const WaterDropHeader(),
-              controller: _refreshController,
-              onLoading: _onLoading,
-              child: ListView.builder(
-                itemCount: users.length,
-                itemBuilder: (c, i) {
-                  Map user = users[i];
-                  return ListTile(
-                      dense: true,
-                      leading: Utils.getRandomAvatar(user['pubkey']),
-                      title: Text(user['name'], maxLines: 1),
-                      subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(user['npubkey'],
-                                overflow: TextOverflow.ellipsis),
-                            widget.groupType == GroupType.mls &&
-                                    user['mlsPK'] == null
-                                ? GestureDetector(
-                                    onTap: () {
-                                      Get.dialog(CupertinoAlertDialog(
-                                          title:
-                                              const Text('Not upload MLS keys'),
-                                          content: const Text(
-                                              '''1. Add a relay with support nip104.\n2. Restart app to upload KeyPackage'''),
-                                          actions: <Widget>[
-                                            CupertinoDialogAction(
-                                                child: const Text('OK'),
-                                                onPressed: () {
-                                                  Get.back();
-                                                })
-                                          ]));
-                                    },
-                                    child: Text('Not upload MLS keys',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodySmall
-                                            ?.copyWith(color: Colors.pink)))
-                                : Container()
-                          ]),
-                      trailing: widget.groupType == GroupType.mls &&
-                              user['mlsPK'] == null
-                          ? IconButton(
-                              onPressed: () {
-                                EasyLoading.showToast('Getting key packages');
-                                MlsGroupService.instance
-                                    .getKeyPackagesFromRelay(
-                                        [user['pubkey']]).then((res) {
-                                  if (res[user['pubkey']] == null) {
-                                    EasyLoading.showError(
-                                        'Not found his mls key package');
-                                    return;
-                                  }
-                                  user['mlsPK'] = res[user['pubkey']];
-                                  setState(() {});
-                                  EasyLoading.showError('Refreshed');
-                                });
-                              },
-                              icon: Icon(Icons.refresh))
-                          : Checkbox(
-                              value: user['isCheck'],
-                              onChanged: (isCheck) {
-                                user['isCheck'] = isCheck!;
-                                setState(() {});
-                              }));
-                },
-              ),
+          ? pageLoadingSpinKit(title: 'Loading...')
+          : ListView.builder(
+              itemCount: users.length,
+              itemBuilder: (c, i) {
+                Map<String, dynamic> user = users[i];
+                return ListTile(
+                    dense: true,
+                    leading: Utils.getRandomAvatar(user['pubkey']),
+                    title: Text(user['name'], maxLines: 1),
+                    subtitle:
+                        Text(user['npubkey'], overflow: TextOverflow.ellipsis),
+                    trailing: getAddMemeberCheckBox(widget.groupType, user));
+              },
             ),
     );
+  }
+
+  Widget getAddMemeberCheckBox(GroupType groupType, Map<String, dynamic> user) {
+    if (user['isAdmin'] || user['exist']) {
+      return const Icon(Icons.check_box, color: Colors.grey, size: 30);
+    }
+    if (groupType == GroupType.sendAll) {
+      return Checkbox(
+          value: user['isCheck'],
+          onChanged: (isCheck) {
+            user['isCheck'] = isCheck!;
+            setState(() {});
+          });
+    }
+
+    // mls group
+    return FutureBuilder(future: () async {
+      if (user['mlsPK'] != null) {
+        return user['mlsPK'];
+      }
+      return MlsGroupService.instance.getKeyPackageFromRelay(user['pubkey']);
+    }(), builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const CupertinoActivityIndicator();
+      }
+      if (snapshot.data == null) {
+        return IconButton(
+            onPressed: () {
+              Get.dialog(CupertinoAlertDialog(
+                  title: const Text('Not upload MLS keys'),
+                  content: const Text(
+                      '''1. Add a relay with support nip104.\n2. Restart app to upload KeyPackage'''),
+                  actions: <Widget>[
+                    CupertinoDialogAction(
+                        child: const Text('OK'),
+                        onPressed: () {
+                          Get.back();
+                        })
+                  ]));
+            },
+            icon: const Icon(Icons.warning, color: Colors.orange));
+      }
+      user['mlsPK'] = snapshot.data;
+      return Checkbox(
+          value: user['isCheck'],
+          onChanged: (isCheck) {
+            user['isCheck'] = isCheck!;
+            setState(() {});
+          });
+    });
   }
 }

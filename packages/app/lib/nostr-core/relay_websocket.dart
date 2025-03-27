@@ -81,18 +81,20 @@ class RelayWebsocket {
     }
     // Reuse the reqId of the previous request and overwrite the server's configuration
     nq.reqId = key;
-    nq.pubkeys = subscriptions[key]!.toList();
+    nq.pubkeys = subscriptions[key]?.toList();
     ++sentReqCount;
     // logger.d('use old sub: ${nq.reqId} , length: ${nq.pubkeys.length}');
     return sendRawREQ(nq.toString());
   }
 
   isConnected() {
+    if (channel == null) return false;
     return channel?.connection.state is Connected ||
         channel?.connection.state is Reconnected;
   }
 
   isDisConnected() {
+    if (channel == null) return true;
     return channel?.connection.state is Disconnected ||
         channel?.connection.state is Disconnecting;
   }
@@ -103,6 +105,10 @@ class RelayWebsocket {
   }
 
   _statusCheck() {
+    if (channel == null) {
+      throw Exception('channel is null');
+    }
+
     if (isDisConnected() || isConnecting()) {
       throw Exception('disconnected: ${relay.url}');
     }
@@ -123,10 +129,10 @@ class RelayWebsocket {
   sendRawREQ(String message, {bool retry = false}) {
     try {
       _statusCheck();
-      channel!.send(message);
-      logger.i('TO [${relay.url}]: $message');
-    } catch (e) {
-      logger.e('${e.toString()} TO [${relay.url}]: $message');
+      channel?.send(message);
+      loggerNoLine.d('TO [${relay.url}]: $message');
+    } catch (e, s) {
+      logger.e('TO [${relay.url}]: $message', error: e, stackTrace: s);
       if (retry) {
         ws.addFaiedEvents(relay.url, message);
       }
@@ -155,12 +161,11 @@ class RelayWebsocket {
     return false;
   }
 
-  void connectSuccess(WebSocket socket) async {
+  void connectSuccess() async {
     subscriptions.clear();
     notices.clear();
     maxReqCount = _maxReqCount;
     sentReqCount = 0;
-    channel = socket;
 
     _startListen();
     Future.delayed(const Duration(seconds: 1)).then((value) {

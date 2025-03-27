@@ -29,9 +29,8 @@ class RelayService {
     WebsocketService ws = Get.find<WebsocketService>();
     Relay relay = await RelayService.instance.getOrPutRelay(url);
 
-    RelayWebsocket? channel = ws.channels[url];
-    if (channel != null) {
-      ws.channels.remove(channel.relay.url);
+    if (ws.channels[url] != null) {
+      ws.channels.remove(url);
     }
     relay.active = true;
     relay.errorMessage = null;

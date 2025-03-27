@@ -291,7 +291,7 @@ class SignalChatService extends BaseChatService {
 
     var model = QRUserModel.fromJson(jsonDecode(keychatMessage.name!));
 
-    Contact contact = await ContactService.instance
+    var contact = await ContactService.instance
         .getOrCreateContact(room.identityId, room.toMainPubkey);
 
     // update contact name

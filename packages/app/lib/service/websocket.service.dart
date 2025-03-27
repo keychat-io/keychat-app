@@ -76,8 +76,8 @@ class WebsocketService extends GetxService {
 
   Future checkOnlineAndConnect([List<RelayWebsocket>? list]) async {
     loggerNoLine.d('checkOnlineAndConnect all relays');
-    // fix ConcurrentModificationError
-    for (RelayWebsocket rw in List.from(list ?? channels.values)) {
+    // fix ConcurrentModificationError List.from([list??channels.values])
+    for (RelayWebsocket rw in list ?? channels.values) {
       if (rw.relay.active == false) continue;
       rw.checkOnlineStatus().then((relayStatus) {
         if (!relayStatus) {
@@ -86,13 +86,6 @@ class WebsocketService extends GetxService {
         }
       });
     }
-  }
-
-  deleteRelay(Relay value) {
-    if (channels[value.url] != null) {
-      channels[value.url]!.channel?.close();
-    }
-    channels.remove(value.url);
   }
 
   List<RelayWebsocket> getConnectedRelay() {
@@ -155,11 +148,13 @@ class WebsocketService extends GetxService {
         limit: limit,
         kinds: kinds);
     try {
-      Get.find<WebsocketService>().sendReq(req, relay: relay);
+      sendReq(req, relay: relay);
     } catch (e) {
       if (e.toString().contains('RelayDisconnected')) {
         EasyLoading.showToast('Disconnected, Please check your relay server');
+        return;
       }
+      logger.e('listenPubkey error: $e');
     }
   }
 
@@ -226,7 +221,7 @@ class WebsocketService extends GetxService {
     if (sent == 0) throw Exception('RelayDisconnected');
   }
 
-  sendMessage(String content, [List<String>? relays]) {
+  int sendMessage(String content, [List<String>? relays]) {
     if (relays != null && relays.isNotEmpty) {
       int sent = 0;
       for (String relay in relays) {
@@ -237,7 +232,7 @@ class WebsocketService extends GetxService {
           sent++;
         }
       }
-      if (sent > 0) return;
+      if (sent > 0) return sent;
     }
 
     int sent = 0;
@@ -252,6 +247,8 @@ class WebsocketService extends GetxService {
       throw Exception(
           'Not connected any relay server, please check your network');
     }
+
+    return sent;
   }
 
   /// * content: nostr event model json string
@@ -358,7 +355,6 @@ class WebsocketService extends GetxService {
   Future stopListening() async {
     for (RelayWebsocket rw in channels.values) {
       rw.channel?.close();
-      rw.channel = null;
     }
     channels.clear();
   }
@@ -388,7 +384,6 @@ class WebsocketService extends GetxService {
     await RelayService.instance.update(relay);
     if (channels[relay.url] != null) {
       channels[relay.url]!.channel?.close();
-      channels[relay.url]!.channel = null;
       channels[relay.url]!.relay = relay;
       channels.refresh();
     }
@@ -553,7 +548,7 @@ class WebsocketService extends GetxService {
 
     loggerNoLine.i('start connect ${rw.relay.url}');
 
-    final channel = WebSocket(Uri.parse(rw.relay.url),
+    rw.channel = WebSocket(Uri.parse(rw.relay.url),
         pingInterval: const Duration(seconds: 10),
         timeout: const Duration(seconds: 8),
         backoff: LinearBackoff(
@@ -562,14 +557,12 @@ class WebsocketService extends GetxService {
           maximum: Duration(seconds: 16),
         ));
 
-    rw.channel = channel;
-
-    channel.messages.listen((message) {
+    rw.channel!.messages.listen((message) {
       nostrAPI.addNostrEventToQueue(rw.relay, message);
     });
-    channel.connection.listen((ConnectionState state) {
+    rw.channel!.connection.listen((ConnectionState state) {
       if (state is Connected || state is Reconnected) {
-        rw.connectSuccess(channel);
+        rw.connectSuccess();
         if (connectedCallback != null) {
           connectedCallback();
         }

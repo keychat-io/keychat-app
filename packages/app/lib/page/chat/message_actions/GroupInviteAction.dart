@@ -43,7 +43,7 @@ class GroupInviteAction extends StatelessWidget {
     EasyThrottle.throttle('joingroup', const Duration(seconds: 2), () async {
       NostrEventModel subEvent =
           NostrEventModel.fromJson(jsonDecode(message.content));
-      String? groupId = subEvent.getTagByKey(EventKindTags.pubkey);
+      String? groupId = subEvent.getTagByKey(EventKindTags.nip104Group);
       if (groupId == null) {
         EasyLoading.showError('Group ID is missing');
         return;

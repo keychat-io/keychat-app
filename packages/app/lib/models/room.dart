@@ -1,16 +1,14 @@
 import 'dart:convert';
 
 import 'package:app/bot/bot_server_message_model.dart';
-import 'package:app/constants.dart';
+
 import 'package:app/controller/home.controller.dart';
 import 'package:app/models/models.dart';
 
 import 'package:app/models/signal_id.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/mls_group.service.dart';
-import 'package:app/service/notify.service.dart';
 import 'package:app/service/room.service.dart';
-import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:equatable/equatable.dart';
 import 'package:get/get.dart';
@@ -598,26 +596,5 @@ Please reset room's session: Chat Setting-> Security Settings -> Reset Session''
       return null;
     }
     return bmd;
-  }
-
-  Future<Room> replaceListenPubkey(String newPubkey, int startAt,
-      {String? toDeletePubkey,
-      List<int> kinds = const [EventKinds.nip04]}) async {
-    onetimekey = newPubkey;
-    await RoomService.instance.updateRoomAndRefresh(this);
-
-    var ws = Get.find<WebsocketService>();
-    if (toDeletePubkey != null) {
-      ws.removePubkeyFromSubscription(toDeletePubkey);
-      if (isMute == false) {
-        NotifyService.removePubkeys([toDeletePubkey]);
-      }
-    }
-    await ws.listenPubkey([newPubkey],
-        since: DateTime.fromMillisecondsSinceEpoch(startAt), kinds: kinds);
-    if (isMute == false) {
-      NotifyService.addPubkeys([newPubkey]);
-    }
-    return this;
   }
 }

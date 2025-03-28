@@ -169,16 +169,3 @@ class _MyQRCodeState extends State<MyQRCode> {
     });
   }
 }
-
-String stringToHex(String input) {
-  return input.codeUnits
-      .map((unit) => unit.toRadixString(16).padLeft(2, '0'))
-      .join();
-}
-
-String hexToString(String input) {
-  return String.fromCharCodes(List.generate(
-      input.length ~/ 2,
-      (index) =>
-          int.parse(input.substring(index * 2, index * 2 + 2), radix: 16)));
-}

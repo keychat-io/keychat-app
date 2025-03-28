@@ -263,6 +263,30 @@ Please check ecash balance and mint.''';
 }
 
 class Utils {
+  static String unit8ListToHex(Uint8List input) {
+    return input.map((unit) => unit.toRadixString(16).padLeft(2, '0')).join();
+  }
+
+  static Uint8List hexToUint8List(String input) {
+    return Uint8List.fromList(List.generate(
+        input.length ~/ 2,
+        (index) =>
+            int.parse(input.substring(index * 2, index * 2 + 2), radix: 16)));
+  }
+
+  static String stringToHex(String input) {
+    return input.codeUnits
+        .map((unit) => unit.toRadixString(16).padLeft(2, '0'))
+        .join();
+  }
+
+  static String hexToString(String input) {
+    return String.fromCharCodes(List.generate(
+        input.length ~/ 2,
+        (index) =>
+            int.parse(input.substring(index * 2, index * 2 + 2), radix: 16)));
+  }
+
   static Widget genQRImage(String content,
       {double size = 300,
       double embeddedImageSize = 0,

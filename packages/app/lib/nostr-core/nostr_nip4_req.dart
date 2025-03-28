@@ -21,6 +21,16 @@ class NostrReqModel {
 
   @override
   String toString() {
+    if (kinds.contains(EventKinds.nip104GroupEvent)) {
+      return Request(reqId, [
+        Filter(
+          kinds: kinds,
+          h: pubkeys,
+          limit: limit,
+          since: since.millisecondsSinceEpoch ~/ 1000,
+        )
+      ]).serialize();
+    }
     return Request(reqId, [
       Filter(
         kinds: kinds,
@@ -31,7 +41,4 @@ class NostrReqModel {
       )
     ]).serialize();
   }
-
-  /// subscription_id is a random string that should be used to represent a subscription.
-  // late String subscriptionId;
 }

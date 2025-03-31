@@ -72,48 +72,43 @@ const IdentitySchema = CollectionSchema(
       name: r'metadata',
       type: IsarType.string,
     ),
-    r'mlsInit': PropertySchema(
-      id: 11,
-      name: r'mlsInit',
-      type: IsarType.bool,
-    ),
     r'mnemonic': PropertySchema(
-      id: 12,
+      id: 11,
       name: r'mnemonic',
       type: IsarType.string,
     ),
     r'name': PropertySchema(
-      id: 13,
+      id: 12,
       name: r'name',
       type: IsarType.string,
     ),
     r'note': PropertySchema(
-      id: 14,
+      id: 13,
       name: r'note',
       type: IsarType.string,
     ),
     r'npub': PropertySchema(
-      id: 15,
+      id: 14,
       name: r'npub',
       type: IsarType.string,
     ),
     r'secp256k1PKHex': PropertySchema(
-      id: 16,
+      id: 15,
       name: r'secp256k1PKHex',
       type: IsarType.string,
     ),
     r'secp256k1SKHex': PropertySchema(
-      id: 17,
+      id: 16,
       name: r'secp256k1SKHex',
       type: IsarType.string,
     ),
     r'stringify': PropertySchema(
-      id: 18,
+      id: 17,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'weight': PropertySchema(
-      id: 19,
+      id: 18,
       name: r'weight',
       type: IsarType.long,
     )
@@ -217,15 +212,14 @@ void _identitySerialize(
   writer.writeBool(offsets[8], object.isDefault);
   writer.writeBool(offsets[9], object.isFromSigner);
   writer.writeString(offsets[10], object.metadata);
-  writer.writeBool(offsets[11], object.mlsInit);
-  writer.writeString(offsets[12], object.mnemonic);
-  writer.writeString(offsets[13], object.name);
-  writer.writeString(offsets[14], object.note);
-  writer.writeString(offsets[15], object.npub);
-  writer.writeString(offsets[16], object.secp256k1PKHex);
-  writer.writeString(offsets[17], object.secp256k1SKHex);
-  writer.writeBool(offsets[18], object.stringify);
-  writer.writeLong(offsets[19], object.weight);
+  writer.writeString(offsets[11], object.mnemonic);
+  writer.writeString(offsets[12], object.name);
+  writer.writeString(offsets[13], object.note);
+  writer.writeString(offsets[14], object.npub);
+  writer.writeString(offsets[15], object.secp256k1PKHex);
+  writer.writeString(offsets[16], object.secp256k1SKHex);
+  writer.writeBool(offsets[17], object.stringify);
+  writer.writeLong(offsets[18], object.weight);
 }
 
 Identity _identityDeserialize(
@@ -235,10 +229,10 @@ Identity _identityDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Identity(
-    name: reader.readString(offsets[13]),
-    note: reader.readStringOrNull(offsets[14]),
-    npub: reader.readString(offsets[15]),
-    secp256k1PKHex: reader.readString(offsets[16]),
+    name: reader.readString(offsets[12]),
+    note: reader.readStringOrNull(offsets[13]),
+    npub: reader.readString(offsets[14]),
+    secp256k1PKHex: reader.readString(offsets[15]),
   );
   object.about = reader.readStringOrNull(offsets[0]);
   object.createdAt = reader.readDateTime(offsets[1]);
@@ -251,10 +245,9 @@ Identity _identityDeserialize(
   object.isDefault = reader.readBool(offsets[8]);
   object.isFromSigner = reader.readBool(offsets[9]);
   object.metadata = reader.readStringOrNull(offsets[10]);
-  object.mlsInit = reader.readBool(offsets[11]);
-  object.mnemonic = reader.readStringOrNull(offsets[12]);
-  object.secp256k1SKHex = reader.readStringOrNull(offsets[17]);
-  object.weight = reader.readLong(offsets[19]);
+  object.mnemonic = reader.readStringOrNull(offsets[11]);
+  object.secp256k1SKHex = reader.readStringOrNull(offsets[16]);
+  object.weight = reader.readLong(offsets[18]);
   return object;
 }
 
@@ -288,22 +281,20 @@ P _identityDeserializeProp<P>(
     case 10:
       return (reader.readStringOrNull(offset)) as P;
     case 11:
-      return (reader.readBool(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 12:
-      return (reader.readStringOrNull(offset)) as P;
-    case 13:
       return (reader.readString(offset)) as P;
-    case 14:
+    case 13:
       return (reader.readStringOrNull(offset)) as P;
+    case 14:
+      return (reader.readString(offset)) as P;
     case 15:
       return (reader.readString(offset)) as P;
     case 16:
-      return (reader.readString(offset)) as P;
-    case 17:
       return (reader.readStringOrNull(offset)) as P;
-    case 18:
+    case 17:
       return (reader.readBoolOrNull(offset)) as P;
-    case 19:
+    case 18:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1348,16 +1339,6 @@ extension IdentityQueryFilter
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'metadata',
         value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterFilterCondition> mlsInitEqualTo(
-      bool value) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'mlsInit',
-        value: value,
       ));
     });
   }
@@ -2421,18 +2402,6 @@ extension IdentityQuerySortBy on QueryBuilder<Identity, Identity, QSortBy> {
     });
   }
 
-  QueryBuilder<Identity, Identity, QAfterSortBy> sortByMlsInit() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'mlsInit', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterSortBy> sortByMlsInitDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'mlsInit', Sort.desc);
-    });
-  }
-
   QueryBuilder<Identity, Identity, QAfterSortBy> sortByMnemonic() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'mnemonic', Sort.asc);
@@ -2676,18 +2645,6 @@ extension IdentityQuerySortThenBy
     });
   }
 
-  QueryBuilder<Identity, Identity, QAfterSortBy> thenByMlsInit() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'mlsInit', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Identity, Identity, QAfterSortBy> thenByMlsInitDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'mlsInit', Sort.desc);
-    });
-  }
-
   QueryBuilder<Identity, Identity, QAfterSortBy> thenByMnemonic() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'mnemonic', Sort.asc);
@@ -2859,12 +2816,6 @@ extension IdentityQueryWhereDistinct
     });
   }
 
-  QueryBuilder<Identity, Identity, QDistinct> distinctByMlsInit() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'mlsInit');
-    });
-  }
-
   QueryBuilder<Identity, Identity, QDistinct> distinctByMnemonic(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -2993,12 +2944,6 @@ extension IdentityQueryProperty
   QueryBuilder<Identity, String?, QQueryOperations> metadataProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'metadata');
-    });
-  }
-
-  QueryBuilder<Identity, bool, QQueryOperations> mlsInitProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'mlsInit');
     });
   }
 

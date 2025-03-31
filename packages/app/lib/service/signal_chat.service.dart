@@ -85,7 +85,8 @@ class SignalChatService extends BaseChatService {
           await ContactService.instance.addReceiveKey(room, newReceving);
 
       Get.find<WebsocketService>().listenPubkey(toAddPubkeys,
-          since: DateTime.now().subtract(const Duration(seconds: 5)));
+          since: DateTime.now().subtract(const Duration(seconds: 5)),
+          kinds: [EventKinds.nip04]);
       if (!room.isMute) NotifyService.addPubkeys(toAddPubkeys);
     }
 

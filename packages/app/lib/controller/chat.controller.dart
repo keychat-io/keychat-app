@@ -662,11 +662,9 @@ class ChatController extends GetxController {
   }
 
   _initBotInfo() async {
-    if (roomObs.value.type == RoomType.group) return;
-    if (roomObs.value.encryptMode == EncryptMode.signal) return;
     List list =
         await NostrAPI.instance.fetchMetadata([roomObs.value.toMainPubkey]);
-    if (list.isNotEmpty) return;
+    if (list.isEmpty) return;
     NostrEventModel res = list.last;
     Map<String, dynamic> metadata =
         Map<String, dynamic>.from(jsonDecode(res.content));
@@ -721,8 +719,8 @@ class ChatController extends GetxController {
         roomContact.value = roomObs.value.contact!;
       }
     }
-
-    // bot info
-    _initBotInfo();
+    if (roomObs.value.type == RoomType.bot) {
+      _initBotInfo();
+    }
   }
 }

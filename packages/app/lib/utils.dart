@@ -958,7 +958,7 @@ class Utils {
           'Failed to initialize WebsocketService after $maxInitAttempts attempts');
       return [];
     }
-    var onlineRelays = ws.getOnlineRelayString();
+    var onlineRelays = ws.getOnlineSocketString();
     var activeRelays = defaultRelays ?? ws.getActiveRelayString();
     int attempts = 0;
 
@@ -968,7 +968,7 @@ class Utils {
           'Waiting for relays to be available... (${attempts + 1}/$maxAttempts)');
       await Future.delayed(const Duration(seconds: 1));
       attempts++;
-      onlineRelays = ws.getOnlineRelayString();
+      onlineRelays = ws.getOnlineSocketString();
     }
     return getIntersection(onlineRelays, activeRelays);
   }

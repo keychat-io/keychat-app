@@ -152,10 +152,9 @@ class NostrAPI {
         break;
       case EventKinds.nip04:
       case EventKinds.nip17:
-      case EventKinds.nip104GroupEvent:
         await _proccessNip4Message(event, eventList, relay, raw);
         break;
-      case EventKinds.nip104KP:
+      case EventKinds.mlsNipKeypackages:
       case EventKinds.setMetadata:
         SubscribeResult.instance.fill(subscribeId, event);
         break;
@@ -455,7 +454,7 @@ class NostrAPI {
       ess?.setError('proccess error: $error $stackTrace');
     }
 
-    String to = event.tags[0][1];
+    String to = event.getTagByKey(EventKindTags.pubkey)!;
     switch (event.kind) {
       case EventKinds.nip04:
         try {
@@ -498,15 +497,6 @@ class NostrAPI {
           logger.e('nip17 decrypt error: $msg', error: e, stackTrace: s);
         }
         break;
-      case EventKinds.nip104GroupEvent:
-        // mls group room. receive address is one-time-key field
-        Room? mlsRoom = await RoomService.instance.getRoomByOnetimeKey(to);
-        if (mlsRoom != null && mlsRoom.isMLSGroup) {
-          await MlsGroupService.instance
-              .decryptMessage(mlsRoom, event, failedCallback);
-          return;
-        }
-      default:
     }
   }
 
@@ -612,11 +602,11 @@ class NostrAPI {
   Future<List<NostrEventModel>> fetchMetadata(List<String> pubkeys) async {
     String id = utils.generate64RandomHexChars(16);
     Request requestWithFilter = Request(id, [
-      Filter(kinds: [EventKinds.setMetadata], authors: pubkeys, limit: 2)
+      Filter(kinds: [EventKinds.setMetadata], authors: pubkeys, limit: 1)
     ]);
 
-    var req = requestWithFilter.serialize();
-    var res = await Get.find<WebsocketService>().fetchInfoFromRelay(id, req);
+    var res = await Get.find<WebsocketService>()
+        .fetchInfoFromRelay(id, requestWithFilter.serialize());
     Get.find<WebsocketService>().sendMessage(Close(id).serialize());
     return res;
   }
@@ -628,10 +618,18 @@ class NostrAPI {
   }
 
   Future _processNip17Message(NostrEventModel event, Relay relay,
-      Function(String) failedCallbackync) async {
-    NostrEventModel subEvent =
-        await _getNostrEventByTo(event, failedCallbackync);
-    if (subEvent.kind == EventKinds.nip104Welcome) {
+      Function(String) failedCallback) async {
+    // mls group room. receive address is one-time-key field
+    String to = event.getTagByKey(EventKindTags.pubkey)!;
+    Room? mlsRoom = await RoomService.instance.getRoomByOnetimeKey(to);
+    if (mlsRoom != null && mlsRoom.isMLSGroup) {
+      await MlsGroupService.instance
+          .decryptMessage(mlsRoom, event, failedCallback);
+      return;
+    }
+    // other nip17 event
+    NostrEventModel subEvent = await _getNostrEventByTo(event, failedCallback);
+    if (subEvent.kind == EventKinds.mlsNipWelcome) {
       await MlsGroupService.instance.handleWelcomeEvent(
           subEvent: subEvent, sourceEvent: event, relay: relay);
       return;

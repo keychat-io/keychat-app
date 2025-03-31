@@ -195,7 +195,8 @@ class GroupService extends BaseChatService {
           room!.identityId, await rust_nostr.importKey(senderKeys: newPrikey));
       room.mykey.value = newkey;
     });
-    await Get.find<WebsocketService>().listenPubkey([newPubkey], limit: 1000);
+    await Get.find<WebsocketService>()
+        .listenPubkey([newPubkey], limit: 1000, kinds: [EventKinds.nip04]);
     room = await RoomService.instance.updateRoom(room, updateMykey: true);
 
     await room.updateAllMember(users);
@@ -724,6 +725,7 @@ class GroupService extends BaseChatService {
     await queue.onComplete;
     if (toAddPubkeys.isNotEmpty) {
       Get.find<WebsocketService>().listenPubkey(toAddPubkeys,
+          kinds: [EventKinds.nip04],
           since: DateTime.now().subtract(const Duration(seconds: 60)));
       NotifyService.addPubkeys(toAddPubkeys);
     }

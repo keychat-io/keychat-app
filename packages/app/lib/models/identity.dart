@@ -4,7 +4,7 @@ import 'package:isar/isar.dart';
 
 part 'identity.g.dart';
 
-@Collection(ignore: {'props', 'displayName', 'mainMykey'})
+@Collection(ignore: {'props', 'displayName', 'mainMykey', 'mlsInit'})
 // ignore: must_be_immutable
 class Identity extends Equatable {
   Id id = Isar.autoIncrement;

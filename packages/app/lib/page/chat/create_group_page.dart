@@ -96,14 +96,14 @@ class _AddGroupPageState extends State<AddGroupPage>
                   }
                   List<String> relays = [];
                   if (groupType == GroupType.mls) {
-                    var list =
-                        Get.find<WebsocketService>().getConnectedNip104Relay();
+                    var list = Get.find<WebsocketService>().getOnlineSocket();
+
                     if (list.isEmpty) {
                       Get.dialog(
                         CupertinoAlertDialog(
                           title: const Text('No relay available'),
                           content: const Text(
-                              'Please connect to a relay server which support nip104 protocol, like wss://relay.keychat.io'),
+                              'Please reconnect the relay servers or add wss://relay.keychat.io'),
                           actions: <Widget>[
                             CupertinoDialogAction(
                               child: const Text('Cancel'),

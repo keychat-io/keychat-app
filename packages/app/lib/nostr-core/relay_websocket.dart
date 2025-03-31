@@ -29,26 +29,28 @@ class RelayWebsocket {
   RelayWebsocket(this.relay, this.ws);
 
   _startListen() async {
-    DateTime since =
-        await MessageService.instance.getNostrListenStartAt(relay.url);
     // id keys
     List<String> pubkeys = await IdentityService.instance.getListenPubkeys();
+
     listenPubkeys(pubkeys, DateTime.now().subtract(const Duration(days: 2)),
         [EventKinds.nip17]);
+
+    // mls group room
+    DateTime since =
+        await MessageService.instance.getNostrListenStartAt(relay.url);
+    List<String> mlsRoomKeys =
+        await IdentityService.instance.getMlsRoomPubkeys();
+    listenPubkeys(mlsRoomKeys, since, [EventKinds.nip17]);
 
     // signal room keys
     List<String> signalRoomKeys =
         await IdentityService.instance.getSignalRoomPubkeys();
-    listenPubkeys([...pubkeys, ...signalRoomKeys], since);
 
-    // mls room keys
-    List<String> mlsRoomKeys =
-        await IdentityService.instance.getMlsRoomPubkeys();
-    listenPubkeys(mlsRoomKeys, since, [EventKinds.nip104GroupEvent]);
+    listenPubkeys([...pubkeys, ...signalRoomKeys], since, [EventKinds.nip04]);
   }
 
-  Future listenPubkeys(List<String> pubkeys, DateTime since,
-      [List<int> kinds = const [EventKinds.nip04]]) async {
+  Future listenPubkeys(
+      List<String> pubkeys, DateTime since, List<int> kinds) async {
     List<List<String>> groups = listToGroupList(pubkeys, 120);
 
     for (List<String> group in groups) {
@@ -170,8 +172,10 @@ class RelayWebsocket {
     _startListen();
     Future.delayed(const Duration(seconds: 1)).then((value) {
       // init mls keypackages
-      EasyDebounce.debounce('connectSuccess', const Duration(seconds: 3),
-          MlsGroupService.instance.initKeyPackages);
+      EasyDebounce.debounce(
+          'connectSuccess:${relay.url}', const Duration(seconds: 3), () async {
+        await MlsGroupService.instance.uploadKeyPackages(toRelays: [relay.url]);
+      });
       _proccessFailedEvents();
       // nwc reconnect
       Utils.getGetxController<NostrWalletConnectController>()

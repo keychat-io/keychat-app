@@ -1,3 +1,4 @@
+import 'package:app/constants.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
@@ -84,7 +85,8 @@ class IdentityService {
     });
     await homeController.loadRoomList(init: true);
     try {
-      Get.find<WebsocketService>().listenPubkey([account.pubkey]);
+      Get.find<WebsocketService>()
+          .listenPubkey([account.pubkey], kinds: [EventKinds.nip04]);
       Get.find<WebsocketService>().listenPubkeyNip17([account.pubkey]);
     } catch (e) {}
 
@@ -126,7 +128,8 @@ class IdentityService {
     });
 
     await Get.find<HomeController>().loadRoomList(init: true);
-    Get.find<WebsocketService>().listenPubkey([hexPubkey]);
+    Get.find<WebsocketService>()
+        .listenPubkey([hexPubkey], kinds: [EventKinds.nip04]);
     Get.find<WebsocketService>().listenPubkeyNip17([hexPubkey]);
     NotifyService.addPubkeys([hexPubkey]);
     MlsGroupService.instance.initIdentities([iden]);
@@ -148,7 +151,8 @@ class IdentityService {
     });
 
     await Get.find<HomeController>().loadRoomList(init: true);
-    Get.find<WebsocketService>().listenPubkey([hexPubkey]);
+    Get.find<WebsocketService>()
+        .listenPubkey([hexPubkey], kinds: [EventKinds.nip04]);
     Get.find<WebsocketService>().listenPubkeyNip17([hexPubkey]);
     NotifyService.addPubkeys([hexPubkey]);
     MlsGroupService.instance.initIdentities([iden]);

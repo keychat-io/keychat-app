@@ -80,7 +80,7 @@ class NostrWalletConnectController extends GetxController {
 
   initConnectUri() {
     List<String> relays = subscribeSuccessRelays.toList();
-    List<String> onlineRelays = websocketService.getOnlineRelayString();
+    List<String> onlineRelays = websocketService.getOnlineSocketString();
     // Find the intersection of relays and onlineRelays
     List<String> intersectionRelays =
         relays.where((relay) => onlineRelays.contains(relay)).toList();

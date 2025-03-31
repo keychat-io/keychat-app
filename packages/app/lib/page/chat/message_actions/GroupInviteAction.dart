@@ -43,7 +43,7 @@ class GroupInviteAction extends StatelessWidget {
     EasyThrottle.throttle('joingroup', const Duration(seconds: 2), () async {
       NostrEventModel subEvent =
           NostrEventModel.fromJson(jsonDecode(message.content));
-      String? groupId = subEvent.getTagByKey(EventKindTags.nip104Group);
+      String? groupId = subEvent.getTagByKey(EventKindTags.pubkey);
       if (groupId == null) {
         EasyLoading.showError('Group ID is missing');
         return;
@@ -100,7 +100,8 @@ class GroupInviteAction extends StatelessWidget {
             subEvent, identity, message,
             groupId: groupId);
         EasyLoading.dismiss();
-        MlsGroupService.instance.uploadKeyPackages([identity]);
+        await MlsGroupService.instance
+            .uploadKeyPackages(identities: [identity], forceUpload: true);
       } catch (e, s) {
         message.requestConfrim = RequestConfrimEnum.request;
         await MessageService.instance.updateMessageAndRefresh(message);
@@ -109,7 +110,8 @@ class GroupInviteAction extends StatelessWidget {
         if (msg.contains('Error creating StagedWelcome from Welcome')) {
           msg =
               'Your KeyPackage is invalid, Please contact the group admin, resend the invitation';
-          await MlsGroupService.instance.uploadKeyPackages([identity]);
+          await MlsGroupService.instance
+              .uploadKeyPackages(identities: [identity]);
           message.requestConfrim = RequestConfrimEnum.expired;
           await MessageService.instance.updateMessageAndRefresh(message);
         }
@@ -122,8 +124,8 @@ class GroupInviteAction extends StatelessWidget {
                   child: const Text('OK'),
                   onPressed: () async {
                     Get.back();
-                    await MlsGroupService.instance
-                        .uploadKeyPackages([identity]);
+                    await MlsGroupService.instance.uploadKeyPackages(
+                        identities: [identity], forceUpload: true);
                   })
             ]));
         return;

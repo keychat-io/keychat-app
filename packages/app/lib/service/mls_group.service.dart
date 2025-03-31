@@ -8,7 +8,6 @@ import 'package:app/nostr-core/close.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/nostr-core/nostr_nip4_req.dart';
-import 'package:app/nostr-core/relay_websocket.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/chat.service.dart';
 import 'package:app/service/identity.service.dart';
@@ -36,7 +35,7 @@ class MlsGroupService extends BaseChatService {
   Future addMemeberToGroup(Room groupRoom, List<Map<String, dynamic>> toUsers,
       [String? sender]) async {
     Identity identity = groupRoom.getIdentity();
-    Map<String, String> userNameMap = {};
+    Map<String, String> userNameMap = {}; // pubkey, name
     List<String> keyPackages = [];
     for (var user in toUsers) {
       userNameMap[user['pubkey']] = user['name'];
@@ -230,47 +229,47 @@ $error ''';
     }
   }
 
-  Future deleteOldKeypackage(List<Identity> identities) async {
-    if (identities.isEmpty) return;
-    var ws = Get.find<WebsocketService>();
-    await Future.forEach(identities, (identity) async {
-      NostrReqModel req = NostrReqModel(
-          reqId: generate64RandomHexChars(16),
-          authors: [identity.secp256k1PKHex],
-          kinds: [EventKinds.nip104KP],
-          limit: 10,
-          since: DateTime.now().subtract(Duration(days: 365)));
-      List<RelayWebsocket> relays = ws.getConnectedNip104Relay();
-      List<NostrEventModel> list = await ws.fetchInfoFromRelay(
-          req.reqId, req.toString(),
-          waitTimeToFill: true, sockets: relays);
-      Get.find<WebsocketService>().sendMessage(Close(req.reqId).serialize());
-      if (list.isEmpty) return;
-      var ess = list.map((e) => ['e', e.id]);
-      var event = await NostrAPI.instance.signEventByIdentity(
-          identity: identity,
-          content: "delete",
-          createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-          kind: EventKinds.delete,
-          tags: [
-            ...ess,
-            ["k", EventKinds.nip104KP.toString()]
-          ]);
-      Get.find<WebsocketService>().sendMessageWithCallback(event, callback: (
-          {required String relay,
-          required String eventId,
-          required bool status,
-          String? errorMessage}) async {
-        NostrAPI.instance.removeOKCallback(eventId);
-        var map = {
-          'relay': relay,
-          'status': status,
-          'errorMessage': errorMessage,
-        };
-        logger.d('fetchOldKeypackageAndDelete callback: $map');
-      });
-    });
-  }
+  // Future deleteOldKeypackage(List<Identity> identities) async {
+  //   if (identities.isEmpty) return;
+  //   var ws = Get.find<WebsocketService>();
+  //   await Future.forEach(identities, (identity) async {
+  //     NostrReqModel req = NostrReqModel(
+  //         reqId: generate64RandomHexChars(16),
+  //         authors: [identity.secp256k1PKHex],
+  //         kinds: [EventKinds.nip104KP],
+  //         limit: 10,
+  //         since: DateTime.now().subtract(Duration(days: 365)));
+  //     List<RelayWebsocket> relays = ws.getOnlineNip104Relay();
+  //     List<NostrEventModel> list = await ws.fetchInfoFromRelay(
+  //         req.reqId, req.toString(),
+  //         waitTimeToFill: true, sockets: relays);
+  //     Get.find<WebsocketService>().sendMessage(Close(req.reqId).serialize());
+  //     if (list.isEmpty) return;
+  //     var ess = list.map((e) => ['e', e.id]);
+  //     var event = await NostrAPI.instance.signEventByIdentity(
+  //         identity: identity,
+  //         content: "delete",
+  //         createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+  //         kind: EventKinds.delete,
+  //         tags: [
+  //           ...ess,
+  //           ["k", EventKinds.nip104KP.toString()]
+  //         ]);
+  //     Get.find<WebsocketService>().sendMessageWithCallback(event, callback: (
+  //         {required String relay,
+  //         required String eventId,
+  //         required bool status,
+  //         String? errorMessage}) async {
+  //       NostrAPI.instance.removeOKCallback(eventId);
+  //       var map = {
+  //         'relay': relay,
+  //         'status': status,
+  //         'errorMessage': errorMessage,
+  //       };
+  //       logger.d('fetchOldKeypackageAndDelete callback: $map');
+  //     });
+  //   });
+  // }
 
   Future dissolve(Room room) async {
     var res = await rust_mls.updateGroupContextExtensions(
@@ -304,35 +303,21 @@ $error ''';
     NostrReqModel req = NostrReqModel(
         reqId: generate64RandomHexChars(16),
         authors: pubkeys,
-        kinds: [EventKinds.nip104KP],
+        kinds: [EventKinds.mlsNipKeypackages],
         limit: pubkeys.length,
         since: DateTime.now().subtract(Duration(days: 365)));
-    List<RelayWebsocket> relays = ws.getConnectedNip104Relay();
-    List<NostrEventModel> list = await ws.fetchInfoFromRelay(
-        req.reqId, req.toString(),
-        waitTimeToFill: true, sockets: relays);
+    List<NostrEventModel> list = await ws
+        .fetchInfoFromRelay(req.reqId, req.toString(), waitTimeToFill: true);
     // close req
     Get.find<WebsocketService>().sendMessage(Close(req.reqId).serialize());
-    // Process results to get latest content per pubkey
-    Map<String, NostrEventModel> result = {};
 
+    Map<String, String> result = {};
     for (var event in list) {
-      if (!result.containsKey(event.pubkey)) {
-        result[event.pubkey] = event;
-      } else {
-        if (result[event.pubkey]!.createdAt < event.createdAt) {
-          result[event.pubkey] = event;
-        }
-      }
+      result[event.pubkey] = event.content;
     }
 
-    Map<String, String> result2 = {};
-    for (var event in result.entries) {
-      result2[event.key] = event.value.content;
-    }
-
-    logger.d('PKs: $result2');
-    return result2;
+    logger.d('PKs: $result');
+    return result;
   }
 
   Future<String?> getKeyPackageFromRelay(String pubkey) async {
@@ -342,13 +327,11 @@ $error ''';
       NostrReqModel req = NostrReqModel(
           reqId: generate64RandomHexChars(16),
           authors: [pubkey],
-          kinds: [EventKinds.nip104KP],
+          kinds: [EventKinds.mlsNipKeypackages],
           limit: 1,
           since: DateTime.now().subtract(Duration(days: 365)));
-      List<RelayWebsocket> relays = ws.getConnectedNip104Relay();
-      List<NostrEventModel> list = await ws.fetchInfoFromRelay(
-          req.reqId, req.toString(),
-          waitTimeToFill: true, sockets: relays);
+      List<NostrEventModel> list = await ws
+          .fetchInfoFromRelay(req.reqId, req.toString(), waitTimeToFill: true);
       // close req
 
       ws.sendMessage(Close(req.reqId).serialize());
@@ -412,7 +395,7 @@ $error ''';
     logger.d('subEvent $subEvent');
     String senderIdPubkey = subEvent.pubkey;
     String myIdPubkey = (sourceEvent.getTagByKey(EventKindTags.pubkey) ??
-        sourceEvent.getTagByKey(EventKindTags.nip104Group))!;
+        sourceEvent.getTagByKey(EventKindTags.pubkey))!;
     Room idRoom = await RoomService.instance
         .getOrCreateRoom(subEvent.pubkey, myIdPubkey, RoomStatus.enabled);
     Identity identity = idRoom.getIdentity();
@@ -420,7 +403,7 @@ $error ''';
       logger.d('Event sent by me: ${subEvent.id}');
       return;
     }
-    String? pubkey = subEvent.getTagByKey(EventKindTags.nip104Group);
+    String? pubkey = subEvent.getTagByKey(EventKindTags.pubkey);
     if (pubkey == null) {
       throw Exception('Tag p is null');
     }
@@ -463,60 +446,6 @@ $error ''';
             error: e, stackTrace: s);
       }
     }
-  }
-
-  Future initKeyPackages({List<Identity>? identities, Relay? relay}) async {
-    WebsocketService? ws = Utils.getGetxController<WebsocketService>();
-    List<String>? onlines = ws?.getOnlineRelayString();
-    if (ws == null || onlines == null || onlines.isEmpty) {
-      throw Exception('No relays available');
-    }
-    identities ??= Get.find<HomeController>().allIdentities.values.toList();
-    List<RelayWebsocket> relays = ws.getConnectedNip104Relay();
-
-    await Future.forEach(identities, (item) async {
-      Identity identity =
-          Get.find<HomeController>().allIdentities[item.id] ?? item;
-
-      if (identity.mlsInit) {
-        return;
-      }
-      NostrReqModel req = NostrReqModel(
-          reqId: generate64RandomHexChars(16),
-          authors: [identity.secp256k1PKHex],
-          kinds: [EventKinds.nip104KP],
-          limit: 1,
-          since: DateTime.now().subtract(Duration(days: 365)));
-      if (relay != null) {
-        relays =
-            relays.where((element) => element.relay.url == relay.url).toList();
-      }
-      List<NostrEventModel> list = await ws.fetchInfoFromRelay(
-          req.reqId, req.toString(),
-          waitTimeToFill: true, sockets: relays);
-      identity.mlsInit = true;
-      if (list.isNotEmpty) return;
-      List<String> relaysStrings = relays.map((e) => e.relay.url).toList();
-
-      // 10051
-      List<List<String>> tags =
-          relays.map((e) => ["relay", e.relay.url]).toList();
-      String event = await NostrAPI.instance.signEventByIdentity(
-          identity: identity,
-          content: "",
-          createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-          kind: EventKinds.nip104RelaysListEvent,
-          tags: tags);
-      Get.find<WebsocketService>().sendMessageWithCallback(event, callback: (
-          {required String relay,
-          required String eventId,
-          required bool status,
-          String? errorMessage}) async {
-        NostrAPI.instance.removeOKCallback(eventId);
-        logger.d('initKeyPackages callback: $eventId, $relay, $status');
-        await uploadKeyPackages([identity], relaysStrings);
-      });
-    });
   }
 
   @Deprecated('use proccessMLSPrososalMessage instead')
@@ -596,7 +525,7 @@ $error ''';
 
     await ws.listenPubkey([newPubkey],
         since: DateTime.fromMillisecondsSinceEpoch(room.version),
-        kinds: [EventKinds.nip104GroupEvent]);
+        kinds: [EventKinds.nip17]);
 
     if (room.isMute == false) {
       NotifyService.addPubkeys([newPubkey]);
@@ -652,14 +581,14 @@ $error ''';
         room: room,
         mediaType: mediaType,
         encryptType: MessageEncryptType.mls,
-        kind: EventKinds.nip104GroupEvent,
+        kind: EventKinds.nip17,
         save: save,
         sourceContent: message,
         realMessage: realMessage,
         isEncryptedMessage: true,
         additionalTags: additionalTags ??
             [
-              [EventKindTags.nip104Group, room.onetimekey!]
+              [EventKindTags.pubkey, room.onetimekey!]
             ]);
     RoomUtil.messageReceiveCheck(
             room, smr.events[0], const Duration(milliseconds: 500), 3)
@@ -732,12 +661,12 @@ $error ''';
         from: randomAccount.pubkey,
         room: room,
         encryptType: MessageEncryptType.mls,
-        kind: EventKinds.nip104GroupEvent,
+        kind: EventKinds.nip17,
         msgKeyHash: enctypted.ratchetKey == null
             ? null
             : base64.encode(enctypted.ratchetKey!),
         additionalTags: [
-          [EventKindTags.nip104Group, room.onetimekey!]
+          [EventKindTags.pubkey, room.onetimekey!]
         ],
         save: save,
         mediaType: mediaType,
@@ -788,14 +717,26 @@ $error ''';
     return room;
   }
 
-  Future uploadKeyPackages(List<Identity> identities,
-      [List<String>? relys]) async {
-    relys ??= await Utils.waitRelayOnline();
-    if (relys.isEmpty) {
+  Future uploadKeyPackages(
+      {List<Identity>? identities,
+      List<String>? toRelays,
+      bool forceUpload = false}) async {
+    List<String> onlineRelays = await Utils.waitRelayOnline();
+    if (onlineRelays.isEmpty) {
       throw Exception('No relays available');
     }
-    await deleteOldKeypackage(identities);
-    for (Identity identity in identities) {
+    identities ??= Get.find<HomeController>().allIdentities.values.toList();
+    await Future.wait(identities.map((identity) async {
+      if (!forceUpload) {
+        if (Get.find<HomeController>().allIdentities[identity.id]?.mlsInit ==
+            true) {
+          logger.d('${identity.secp256k1PKHex}\'s key packages initialized');
+          return;
+        }
+      }
+      logger.d(
+          '${EventKinds.mlsNipKeypackages} start: ${identity.secp256k1PKHex}');
+
       var pkRes =
           await rust_mls.createKeyPackage(nostrId: identity.secp256k1PKHex);
 
@@ -803,29 +744,30 @@ $error ''';
           identity: identity,
           content: pkRes.keyPackage,
           createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-          kind: EventKinds.nip104KP,
+          kind: EventKinds.mlsNipKeypackages,
           tags: [
             ["mls_protocol_version", pkRes.mlsProtocolVersion],
             ["ciphersuite", pkRes.ciphersuite],
             ["extensions", pkRes.extensions],
             ["client", KeychatGlobal.appName],
-            ["relay", ...relys]
+            ["relay", ...onlineRelays]
           ]);
-      Get.find<WebsocketService>().sendMessageWithCallback(event, callback: (
-          {required String relay,
-          required String eventId,
-          required bool status,
-          String? errorMessage}) async {
+      Get.find<WebsocketService>()
+          .sendMessageWithCallback(event, relays: toRelays, callback: (
+              {required String relay,
+              required String eventId,
+              required bool status,
+              String? errorMessage}) {
+        Get.find<HomeController>().allIdentities[identity.id]?.mlsInit = true;
         NostrAPI.instance.removeOKCallback(eventId);
-        await RelayService.instance.updateP104(relay, status);
         var map = {
           'relay': relay,
           'status': status,
           'errorMessage': errorMessage,
         };
-        logger.d('callback: $map');
+        logger.d('Kind: ${EventKinds.mlsNipKeypackages}, relay: $map');
       });
-    }
+    }));
   }
 
   Future<(Room, String?)> _handleGroupInfo(
@@ -977,12 +919,12 @@ $error ''';
 
     await _sendPrivateMessageToMembers(
         realMessage: realMessage,
-        pubkeys: users.keys.toList(),
+        users: users,
         content: mlsWelcome,
         groupRoom: groupRoom,
-        nip17Kind: EventKinds.nip104Welcome,
+        nip17Kind: EventKinds.mlsNipWelcome,
         additionalTags: [
-          [EventKindTags.nip104Group, groupRoom.toMainPubkey],
+          [EventKindTags.pubkey, groupRoom.toMainPubkey],
         ]);
 
     RoomService.getController(groupRoom.id)?.resetMembers();
@@ -993,25 +935,25 @@ $error ''';
       {required String content,
       required String realMessage,
       required Room groupRoom,
-      required List pubkeys,
+      required Map users,
       int nip17Kind = EventKinds.nip17,
       List<List<String>>? additionalTags}) async {
     List<NostrEventModel> events = [];
     Identity identity = groupRoom.getIdentity();
 
-    for (var pubkey in pubkeys) {
-      if (identity.secp256k1PKHex == pubkey) continue;
+    for (var user in users.entries) {
+      if (identity.secp256k1PKHex == user.key) continue;
       try {
         var smr = await NostrAPI.instance.sendNip17Message(
             groupRoom, content, identity,
-            toPubkey: pubkey,
-            realMessage: realMessage,
+            toPubkey: user.key,
+            realMessage: 'To: ${user.value}: $realMessage',
             nip17Kind: nip17Kind,
             additionalTags: additionalTags,
             save: false);
         if (smr.events.isEmpty) return;
         var toSaveEvent = smr.events[0];
-        toSaveEvent.toIdPubkey = pubkey;
+        toSaveEvent.toIdPubkey = user.key;
         events.add(toSaveEvent);
       } catch (e, s) {
         logger.e(e.toString(), error: e, stackTrace: s);

@@ -340,7 +340,7 @@ Room _roomDeserialize(
     identityId: reader.readLong(offsets[11]),
     npub: reader.readString(offsets[15]),
     status: _RoomstatusValueEnumMap[reader.readIntOrNull(offsets[25])] ??
-        RoomStatus.init,
+        RoomStatus.enabled,
     toMainPubkey: reader.readString(offsets[27]),
     type: _RoomtypeValueEnumMap[reader.readIntOrNull(offsets[28])] ??
         RoomType.common,
@@ -436,7 +436,7 @@ P _roomDeserializeProp<P>(
       return (reader.readStringOrNull(offset)) as P;
     case 25:
       return (_RoomstatusValueEnumMap[reader.readIntOrNull(offset)] ??
-          RoomStatus.init) as P;
+          RoomStatus.enabled) as P;
     case 26:
       return (reader.readBoolOrNull(offset)) as P;
     case 27:

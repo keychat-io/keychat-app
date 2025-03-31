@@ -37,13 +37,34 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
   @override
   void initState() {
     super.initState();
-    pageLoading = false;
+    _userNameController = TextEditingController(text: "");
+    _scrollController = ScrollController();
+    _loading();
+  }
 
+  _loading() async {
+    List<String> pubkeys = [];
+    for (int i = 0; i < widget.contacts.length; i++) {
+      Map<String, dynamic> contact = widget.contacts[i];
+      if (contact['pubkey'] != null) {
+        pubkeys.add(contact['pubkey']);
+      }
+    }
+    Map result =
+        await MlsGroupService.instance.getKeyPackagesFromRelay(pubkeys);
+    for (int i = 0; i < widget.contacts.length; i++) {
+      Map<String, dynamic> contact = widget.contacts[i];
+      if (contact['pubkey'] != null) {
+        String pubkey = contact['pubkey'];
+        if (result[pubkey] != null) {
+          contact['mlsPK'] = result[pubkey];
+        }
+      }
+    }
+    pageLoading = false;
     setState(() {
       users = widget.contacts;
     });
-    _userNameController = TextEditingController(text: "");
-    _scrollController = ScrollController();
   }
 
   @override
@@ -162,39 +183,39 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
     }
 
     // mls group
-    return FutureBuilder(future: () async {
-      if (user['mlsPK'] != null) {
-        return user['mlsPK'];
-      }
-      return MlsGroupService.instance.getKeyPackageFromRelay(user['pubkey']);
-    }(), builder: (context, snapshot) {
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return const CupertinoActivityIndicator();
-      }
-      if (snapshot.data == null) {
-        return IconButton(
-            onPressed: () {
-              Get.dialog(CupertinoAlertDialog(
-                  title: const Text('Not upload MLS keys'),
-                  content: const Text(
-                      '''1. Add a relay with support nip104.\n2. Restart app to upload KeyPackage'''),
-                  actions: <Widget>[
-                    CupertinoDialogAction(
-                        child: const Text('OK'),
-                        onPressed: () {
-                          Get.back();
-                        })
-                  ]));
-            },
-            icon: const Icon(Icons.warning, color: Colors.orange));
-      }
-      user['mlsPK'] = snapshot.data;
-      return Checkbox(
-          value: user['isCheck'],
-          onChanged: (isCheck) {
-            user['isCheck'] = isCheck!;
-            setState(() {});
-          });
-    });
+    // return FutureBuilder(future: () async {
+    //   if (user['mlsPK'] != null) {
+    //     return user['mlsPK'];
+    //   }
+    //   return MlsGroupService.instance.getKeyPackageFromRelay(user['pubkey']);
+    // }(), builder: (context, snapshot) {
+    //   if (snapshot.connectionState == ConnectionState.waiting) {
+    //     return const CupertinoActivityIndicator();
+    //   }
+    if (user['mlsPK'] == null) {
+      return IconButton(
+          onPressed: () {
+            Get.dialog(CupertinoAlertDialog(
+                title: const Text('Not upload MLS keys'),
+                content: const Text(
+                    '''1. Add a relay with support nip104.\n2. Restart app to upload KeyPackage'''),
+                actions: <Widget>[
+                  CupertinoDialogAction(
+                      child: const Text('OK'),
+                      onPressed: () {
+                        Get.back();
+                      })
+                ]));
+          },
+          icon: const Icon(Icons.warning, color: Colors.orange));
+    }
+    // user['mlsPK'] = snapshot.data;
+    return Checkbox(
+        value: user['isCheck'],
+        onChanged: (isCheck) {
+          user['isCheck'] = isCheck!;
+          setState(() {});
+        });
+    // });
   }
 }

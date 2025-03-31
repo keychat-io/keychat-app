@@ -72,7 +72,7 @@ class EventKindTags {
   static const String customMessage = 'm';
   static const String event = 'e';
   static const String pubkey = 'p';
-  static const String nip104Group = 'h';
+  // static const String nip104Group = 'h';
   static const String delegation = 'delegation';
   static const String deduplication = 'd';
   static const String expiration = 'expiration';
@@ -89,10 +89,11 @@ class EventKinds {
   static const int nip42 = 22242;
   static const int nip17 = 1059;
   static const int nip47 = 23194;
-  static const int nip104KP = 443;
-  static const int nip104RelaysListEvent = 10051;
-  static const int nip104Welcome = 444;
-  static const int nip104GroupEvent = 445;
+  // static const int nip104KP = 443;
+  // static const int nip104RelaysListEvent = 10051;
+  static const int mlsNipKeypackages = 10444;
+  static const int mlsNipWelcome = 444;
+  // static const int nip104GroupEvent = 445;
 
   // Channels
   // CHANNEL_CREATION = 40;

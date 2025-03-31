@@ -41,6 +41,16 @@ class SubscribeResult {
   List<NostrEventModel> removeSubscripton(String subId) {
     List list = _map[subId] ?? <NostrEventModel>[];
     _map.remove(subId);
+    // Filter out events with the same ID (keep only the first occurrence)
+    final uniqueEvents = <String>{};
+    list = list.where((event) {
+      final NostrEventModel model = event as NostrEventModel;
+      if (uniqueEvents.contains(model.id)) {
+        return false;
+      }
+      uniqueEvents.add(model.id);
+      return true;
+    }).toList();
     list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
     return list as List<NostrEventModel>;
   }

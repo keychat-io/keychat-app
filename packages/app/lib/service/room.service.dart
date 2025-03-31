@@ -534,8 +534,9 @@ class RoomService extends BaseChatService {
         } catch (e) {}
       }
     }
-    senderPubkey ??=
-        room.type == RoomType.common ? room.toMainPubkey : event.pubkey;
+    senderPubkey ??= (room.type == RoomType.common || room.type == RoomType.bot)
+        ? room.toMainPubkey
+        : event.pubkey;
     await MessageService.instance.saveMessageToDB(
         events: [sourceEvent ?? event],
         room: room,
@@ -550,7 +551,7 @@ class RoomService extends BaseChatService {
         encryptType: encryptType ?? RoomUtil.getEncryptMode(event, sourceEvent),
         reply: reply,
         sent: SendStatusType.success,
-        isMeSend: senderPubkey == room.getIdentity().secp256k1PKHex,
+        isMeSend: senderPubkey == room.myIdPubkey,
         isRead: isRead,
         mediaType: mediaType,
         requestConfrim: requestConfrim,
@@ -751,7 +752,7 @@ class RoomService extends BaseChatService {
     if (!netStatus) {
       throw Exception('Lost Network');
     }
-    List online = Get.find<WebsocketService>().getOnlineRelayString();
+    List online = Get.find<WebsocketService>().getOnlineSocketString();
     if (online.isEmpty) {
       throw Exception('Not connected with relay server, please retry');
     }

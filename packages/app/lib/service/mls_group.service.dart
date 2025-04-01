@@ -1,4 +1,4 @@
-import 'dart:convert' show base64, jsonDecode, jsonEncode, utf8;
+import 'dart:convert' show jsonDecode, jsonEncode, utf8;
 
 import 'package:app/constants.dart';
 import 'package:app/controller/home.controller.dart';
@@ -503,10 +503,8 @@ $error ''';
   }
 
   Future<Room> replaceListenPubkey(Room room) async {
-    Uint8List secret = await rust_mls.getExportSecret(
+    String newPubkey = await rust_mls.getListenKeyFromExportSecret(
         nostrId: room.myIdPubkey, groupId: room.toMainPubkey);
-    String newPubkey =
-        await rust_nostr.generateSeedFromKey(seedKey: List<int>.from(secret));
     if (newPubkey == room.onetimekey) {
       await RoomService.instance.updateRoomAndRefresh(room);
       return room;
@@ -655,25 +653,22 @@ $error ''';
       room = await RoomService.instance.getRoomByIdOrFail(room.id);
     }
     var randomAccount = await rust_nostr.generateSimple();
-    var smr = await NostrAPI.instance.sendNip4Message(
-        room.onetimekey!, enctypted.encryptMsg,
-        prikey: randomAccount.prikey,
-        from: randomAccount.pubkey,
-        room: room,
-        encryptType: MessageEncryptType.mls,
-        kind: EventKinds.nip17,
-        msgKeyHash: enctypted.ratchetKey == null
-            ? null
-            : base64.encode(enctypted.ratchetKey!),
-        additionalTags: [
-          [EventKindTags.pubkey, room.onetimekey!]
-        ],
-        save: save,
-        mediaType: mediaType,
-        sourceContent: message,
-        realMessage: realMessage,
-        reply: reply,
-        isEncryptedMessage: true);
+    var smr = await NostrAPI.instance
+        .sendNip4Message(room.onetimekey!, enctypted.encryptMsg,
+            prikey: randomAccount.prikey,
+            from: randomAccount.pubkey,
+            room: room,
+            encryptType: MessageEncryptType.mls,
+            kind: EventKinds.nip17,
+            additionalTags: [
+              [EventKindTags.pubkey, room.onetimekey!]
+            ],
+            save: save,
+            mediaType: mediaType,
+            sourceContent: message,
+            realMessage: realMessage,
+            reply: reply,
+            isEncryptedMessage: true);
     RoomUtil.messageReceiveCheck(
             room, smr.events[0], const Duration(milliseconds: 500), 3)
         .then((res) {
@@ -794,10 +789,6 @@ $error ''';
     DecryptedMessage decryptedMsg = await rust_mls.decryptMessage(
         nostrId: room.myIdPubkey, groupId: room.toMainPubkey, msg: decoded);
 
-    String? msgKeyHash = decryptedMsg.ratchetKey != null
-        ? base64.encode(decryptedMsg.ratchetKey!)
-        : null;
-
     String senderName = await room.getMemberNameByIdPubkey(decryptedMsg.sender);
     KeychatMessage? km;
     try {
@@ -809,7 +800,6 @@ $error ''';
         decodedContent: decryptedMsg.decryptMsg,
         senderPubkey: decryptedMsg.sender,
         encryptType: MessageEncryptType.mls,
-        msgKeyHash: msgKeyHash,
         senderName: senderName);
   }
 

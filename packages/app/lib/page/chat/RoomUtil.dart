@@ -155,7 +155,7 @@ Let's start an encrypted chat.''';
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.nostrEventStatus
           .filter()
-          .createdAtLessThan(DateTime.now().subtract(const Duration(days: 30)))
+          .createdAtLessThan(DateTime.now().subtract(const Duration(days: 180)))
           .deleteAll();
     });
     // excute auto delete message by user setting

@@ -47,19 +47,13 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
       return;
     }
     cc = controller;
-    String displayName = cc.roomObs.value.getIdentity().displayName;
-    String name = cc.getMyRoomMember()?.name ?? displayName;
-    if (name == cc.roomObs.value.myIdPubkey) {
-      myAlias = displayName;
-    }
-
-    isAdmin = cc.getMyRoomMember()?.isAdmin ?? false;
     super.initState();
-
+    RoomMember? myRoomMember =
+        cc.getMemberByIdPubkey(cc.roomObs.value.myIdPubkey);
+    myAlias = myRoomMember?.name ?? cc.roomObs.value.getIdentity().displayName;
+    isAdmin = myRoomMember?.isAdmin ?? false;
     textEditingController = TextEditingController(text: cc.roomObs.value.name);
-
-    userNameController =
-        TextEditingController(text: cc.getMyRoomMember()?.name);
+    userNameController = TextEditingController(text: myAlias);
   }
 
   @override
@@ -379,7 +373,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
   }
 
   Widget getImageGridView(List<RoomMember> list) {
-    list = list.reversed
+    list = list
         .where((e) =>
             e.status == UserStatusType.invited ||
             e.status == UserStatusType.inviting)

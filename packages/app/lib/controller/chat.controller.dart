@@ -165,10 +165,6 @@ class ChatController extends GetxController {
     return members[idPubkey];
   }
 
-  RoomMember? getMyRoomMember() {
-    return getMemberByIdPubkey(roomObs.value.myIdPubkey);
-  }
-
   Future<List<File>> getImageList(Directory directory) async {
     List<FileSystemEntity> files = directory.listSync(recursive: true);
     List<File> imageFiles = [];

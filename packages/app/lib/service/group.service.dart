@@ -141,22 +141,19 @@ class GroupService extends BaseChatService {
     if (await room.checkAdminByIdPubkey(room.myIdPubkey)) {
       throw Exception('admin can not exit group');
     }
+    if (room.isMLSGroup) {
+      await MlsGroupService.instance.sendSelfLeaveMessage(room);
+      await roomService.deleteRoom(room);
+      return;
+    }
+
     RoomMember? rm = await room.getMemberByIdPubkey(room.myIdPubkey);
     if (rm == null) return;
 
     String message =
         '[System] ${rm.name} exit group, waiting for admin commit.';
     int subtype = KeyChatEventKinds.groupSelfLeave;
-    if (room.isMLSGroup) {
-      String toSendMessage = KeychatMessage.getFeatureMessageString(
-          MessageType.mls, room, message, subtype,
-          name: room.myIdPubkey);
-      await MlsGroupService.instance
-          .sendMessage(room, toSendMessage, realMessage: message);
-    } else {
-      await sendMessageToGroup(room, message, subtype: subtype);
-    }
-
+    await sendMessageToGroup(room, message, subtype: subtype);
     await roomService.deleteRoom(room);
   }
 

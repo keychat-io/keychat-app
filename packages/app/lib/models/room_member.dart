@@ -38,7 +38,10 @@ class RoomMember extends Equatable {
   int messageCount = 0;
 
   RoomMember(
-      {required this.idPubkey, required this.roomId, required this.name}) {
+      {required this.idPubkey,
+      required this.roomId,
+      required this.name,
+      this.status = UserStatusType.invited}) {
     createdAt = DateTime.now();
     updatedAt = DateTime.now();
   }

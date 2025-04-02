@@ -208,14 +208,6 @@ class Room extends Equatable {
     return res;
   }
 
-  Future<RoomMember?> getMemberByIdPubkey(String pubkey) async {
-    return await DBProvider.database.roomMembers
-        .filter()
-        .roomIdEqualTo(id)
-        .idPubkeyEqualTo(pubkey)
-        .findFirst();
-  }
-
   Future<RoomMember?> getEnableMember(String pubkey) async {
     Isar database = DBProvider.database;
     return await database.roomMembers
@@ -505,26 +497,23 @@ class Room extends Equatable {
     return memberRooms;
   }
 
-  Future<String> getMemberNameByIdPubkey(String pubkey) async {
+  Future<RoomMember?> getMemberByIdPubkey(String pubkey) async {
     RoomMember? member =
         RoomService.getController(id)?.getMemberByIdPubkey(pubkey);
     if (member != null) {
-      return member.name;
+      return member;
     }
     if (isMLSGroup) {
       Map<String, RoomMember> map =
           await MlsGroupService.instance.getMembers(this);
-      return map[pubkey]?.name ?? pubkey;
+      return map[pubkey];
     }
 
     if (isSendAllGroup) {
       RoomMember? rm = await getMemberByIdPubkey(pubkey);
-      if (rm != null) {
-        return rm.name;
-      }
+      return rm;
     }
-
-    return pubkey;
+    return null;
   }
 
   Future<Map<String, Room>> getActiveMemberRooms(Mykey mainMykey) async {

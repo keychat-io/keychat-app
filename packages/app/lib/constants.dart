@@ -91,7 +91,7 @@ class EventKinds {
   static const int nip47 = 23194;
   // static const int nip104KP = 443;
   // static const int nip104RelaysListEvent = 10051;
-  static const int mlsNipKeypackages = 10444;
+  static const int mlsNipKeypackages = 10443;
   static const int mlsNipWelcome = 444;
   // static const int nip104GroupEvent = 445;
 

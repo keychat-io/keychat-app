@@ -57,17 +57,14 @@ class MlsGroupService extends BaseChatService {
     // send sync message to other member
     groupRoom = await RoomService.instance.getRoomByIdOrFail(groupRoom.id);
     await sendEncryptedMessage(groupRoom, data.queuedMsg,
-        realMessage: 'Invite ${userNameMap.values.join(', ')} to join group');
+        realMessage: 'Invite [${userNameMap.values.join(', ')}] to join group');
     await rust_mls.selfCommit(
         nostrId: identity.secp256k1PKHex, groupId: groupRoom.toMainPubkey);
     groupRoom = await _proccessUpdateKeys(groupRoom);
 
     // send invitation message
     await _sendInviteMessage(
-        groupRoom: groupRoom,
-        users: userNameMap,
-        mlsWelcome: welcomeMsg,
-        save: false);
+        groupRoom: groupRoom, users: userNameMap, mlsWelcome: welcomeMsg);
   }
 
   Future appendMessageOrCreate(
@@ -551,12 +548,6 @@ $error ''';
 
   Future<Room> selfUpdateKey(Room room,
       {Map<String, dynamic>? extension}) async {
-    // String key = 'mlsUpdate:${room.toMainPubkey}';
-    // int lastUpdate = await Storage.getIntOrZero(key);
-    // if (DateTime.now().millisecondsSinceEpoch - lastUpdate < 86400000) {
-    //   throw Exception('You can only update your key once per day.');
-    // }
-    // await Storage.setInt(key, DateTime.now().millisecondsSinceEpoch);
     var queuedMsg = await _selfUpdateKeyLocal(room, extension);
     Identity identity = room.getIdentity();
     String realMessage =
@@ -913,19 +904,15 @@ $error ''';
         extensions: utf8.encode(jsonEncode(map)));
   }
 
-  Future _sendInviteMessage({
-    required Room groupRoom,
-    required Map<String, String> users,
-    required String mlsWelcome,
-    bool save = true,
-  }) async {
+  Future _sendInviteMessage(
+      {required Room groupRoom,
+      required Map<String, String> users,
+      required String mlsWelcome}) async {
     if (users.isEmpty) return;
     await RoomService.instance.checkRoomStatus(groupRoom);
-    String realMessage =
-        'Invite ${users.values.join(',')} to join group ${groupRoom.name}';
 
     await _sendPrivateMessageToMembers(
-        realMessage: realMessage,
+        realMessage: 'Send invitation to [${users.values.join(',')}]',
         users: users,
         content: mlsWelcome,
         groupRoom: groupRoom,
@@ -954,11 +941,10 @@ $error ''';
         var smr = await NostrAPI.instance.sendNip17Message(
             groupRoom, content, identity,
             toPubkey: user.key,
-            realMessage: 'To: ${user.value}: $realMessage',
             nip17Kind: nip17Kind,
             additionalTags: additionalTags,
             save: false);
-        if (smr.events.isEmpty) return;
+        if (smr.events.isEmpty) continue;
         var toSaveEvent = smr.events[0];
         toSaveEvent.toIdPubkey = user.key;
         events.add(toSaveEvent);

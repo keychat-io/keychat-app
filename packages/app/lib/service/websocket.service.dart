@@ -329,7 +329,7 @@ class WebsocketService extends GetxService {
       if (success == 0) {
         int diff = DateTime.now().millisecondsSinceEpoch -
             initAt.millisecondsSinceEpoch;
-        if (diff > 2000) {
+        if (diff > 4000) {
           return await setRelayStatusInt(RelayStatusEnum.allFailed.name);
         }
       }

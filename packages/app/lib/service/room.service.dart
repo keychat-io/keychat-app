@@ -46,6 +46,7 @@ class RoomService extends BaseChatService {
   static final DBProvider dbProvider = DBProvider.instance;
   static final GroupService groupService = GroupService.instance;
   static final ContactService contactService = ContactService.instance;
+
   Future checkRoomStatus(Room room) async {
     if (room.status == RoomStatus.dissolved) {
       throw Exception('Room had been dissolved');

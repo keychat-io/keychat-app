@@ -627,8 +627,15 @@ class NostrAPI {
           .decryptMessage(mlsRoom, event, failedCallback);
       return;
     }
-    // other nip17 event
-    NostrEventModel subEvent = await _getNostrEventByTo(event, failedCallback);
+    // other nip17 event.
+    late NostrEventModel subEvent;
+    try {
+      subEvent = await _getNostrEventByTo(event, failedCallback);
+    } catch (e) {
+      // Maybe mls group room changed receiving address
+      failedCallback(e.toString());
+      return;
+    }
     if (subEvent.kind == EventKinds.mlsNipWelcome) {
       await MlsGroupService.instance.handleWelcomeEvent(
           subEvent: subEvent, sourceEvent: event, relay: relay);
@@ -675,9 +682,7 @@ class NostrAPI {
       }
     }
     if (myPrivateKey == null) {
-      logger.e('myPrivateKey is null');
-      failedCallbackync('myPrivateKey is null');
-      throw Exception('myPrivateKey is null');
+      throw Exception('myPrivateKeyIsNull');
     }
 
     rust_nostr.NostrEvent result = await rust_nostr.decryptGift(

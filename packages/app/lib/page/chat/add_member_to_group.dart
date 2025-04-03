@@ -43,6 +43,13 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
   }
 
   _loading() async {
+    if (widget.room.isSendAllGroup) {
+      setState(() {
+        pageLoading = false;
+        users = widget.contacts;
+      });
+      return;
+    }
     List<String> pubkeys = [];
     for (int i = 0; i < widget.contacts.length; i++) {
       Map<String, dynamic> contact = widget.contacts[i];

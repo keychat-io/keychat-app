@@ -45,6 +45,13 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
   }
 
   _loading() async {
+    if (widget.groupType == GroupType.sendAll) {
+      setState(() {
+        pageLoading = false;
+        users = widget.contacts;
+      });
+      return;
+    }
     List<String> pubkeys = [];
     for (int i = 0; i < widget.contacts.length; i++) {
       Map<String, dynamic> contact = widget.contacts[i];
@@ -97,8 +104,8 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
       EasyLoading.showError("Please select at least one user");
       return;
     }
-    late Room room;
     Identity identity = Get.find<HomeController>().getSelectedIdentity();
+    late Room room;
     try {
       if (widget.groupType == GroupType.sendAll) {
         room = await GroupService.instance

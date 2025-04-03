@@ -379,17 +379,20 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
             e.status == UserStatusType.inviting)
         .toList();
     return Padding(
-        padding: const EdgeInsets.only(top: 10),
+        padding: const EdgeInsets.only(bottom: 4),
         child: SizedBox(
-            height: list.length < 5 ? 80 : (list.length <= 10 ? 160 : 240),
+            height: list.length < 5 ? 100 : (list.length <= 10 ? 180 : 240),
             child: GridView.builder(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: gridCount,
-                childAspectRatio: 1.0,
+                childAspectRatio: 0.9,
               ),
               itemCount: list.length,
               itemBuilder: (context, index) {
                 RoomMember rm = list[index];
+                if (rm.name == rm.idPubkey) {
+                  rm.status = UserStatusType.inviting;
+                }
                 return InkWell(
                   key: Key(rm.idPubkey),
                   onTap: () async {
@@ -531,9 +534,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
           ),
           title: Text(isAdmin ? "Disband Group" : "Leave Group",
               style: const TextStyle(color: Colors.pink)),
-          onPressed: (context) {
-            Get.dialog(_selfExitGroup(context));
-          })
+          onPressed: _selfExitGroup)
     ]);
   }
 
@@ -576,8 +577,8 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
     ));
   }
 
-  Widget _selfExitGroup(BuildContext context) {
-    return CupertinoAlertDialog(
+  _selfExitGroup(BuildContext context) {
+    Get.dialog(CupertinoAlertDialog(
       title: Text(isAdmin ? "Disband?" : "Leave?"),
       content:
           Text('Are you sure to ${isAdmin ? 'disband' : 'leave'} this group?'),
@@ -611,6 +612,6 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
               Get.offAllNamed(Routes.root);
             }),
       ],
-    );
+    ));
   }
 }

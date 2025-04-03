@@ -9,41 +9,49 @@ class SubscribeResult {
   final Map<String, List> _map = {};
   final Map<String, int> _eventMaxRelay = {};
 
-  Future<NostrEventModel?> registerSubscripton(
-      String eventId, int maxRelay, Duration wait) async {
+  /// waitTimeToFill: fill the subscription after the wait time
+  Future<List<NostrEventModel>> registerSubscripton(String subId, int maxRelay,
+      {Duration wait = const Duration(seconds: 2),
+      bool waitTimeToFill = false}) async {
     if (maxRelay <= 0) {
       throw Exception('Relay maybe disconnected');
     }
-    _eventMaxRelay[eventId] = maxRelay;
+    _eventMaxRelay[subId] = maxRelay;
     final deadline = DateTime.now().add(wait);
     while (DateTime.now().isBefore(deadline)) {
       await Future.delayed(const Duration(milliseconds: 100));
-      if (isFilled(eventId)) {
-        return removeSubscripton(eventId);
+      if (!waitTimeToFill && isFilled(subId)) {
+        return removeSubscripton(subId);
       }
     }
-    return removeSubscripton(eventId);
+    return removeSubscripton(subId);
   }
 
-  fill(String eventId, NostrEventModel nem) {
-    List list = _map[eventId] ?? <NostrEventModel>[];
+  fill(String subId, NostrEventModel nem) {
+    List list = _map[subId] ?? <NostrEventModel>[];
     list.add(nem);
-    _map[eventId] = list;
+    _map[subId] = list;
   }
 
-  bool isFilled(String eventId) {
-    return (_map[eventId] ?? <NostrEventModel>[]).length >=
-        (_eventMaxRelay[eventId] ?? 0);
+  bool isFilled(String subId) {
+    return (_map[subId] ?? <NostrEventModel>[]).length >=
+        (_eventMaxRelay[subId] ?? 0);
   }
 
-  NostrEventModel? removeSubscripton(String eventId) {
-    List list = _map[eventId] ?? <NostrEventModel>[];
-    _map.remove(eventId);
-
-    if (list.isEmpty) {
-      return null;
-    }
+  List<NostrEventModel> removeSubscripton(String subId) {
+    List list = _map[subId] ?? <NostrEventModel>[];
+    _map.remove(subId);
+    // Filter out events with the same ID (keep only the first occurrence)
+    final uniqueEvents = <String>{};
+    list = list.where((event) {
+      final NostrEventModel model = event as NostrEventModel;
+      if (uniqueEvents.contains(model.id)) {
+        return false;
+      }
+      uniqueEvents.add(model.id);
+      return true;
+    }).toList();
     list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-    return list.last;
+    return list as List<NostrEventModel>;
   }
 }

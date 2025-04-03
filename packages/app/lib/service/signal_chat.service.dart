@@ -85,7 +85,8 @@ class SignalChatService extends BaseChatService {
           await ContactService.instance.addReceiveKey(room, newReceving);
 
       Get.find<WebsocketService>().listenPubkey(toAddPubkeys,
-          since: DateTime.now().subtract(const Duration(seconds: 5)));
+          since: DateTime.now().subtract(const Duration(seconds: 5)),
+          kinds: [EventKinds.nip04]);
       if (!room.isMute) NotifyService.addPubkeys(toAddPubkeys);
     }
 
@@ -104,7 +105,7 @@ class SignalChatService extends BaseChatService {
       sourceContent: message0,
       reply: reply,
       mediaType: mediaType,
-      isSignalMessage: true,
+      isEncryptedMessage: true,
       msgKeyHash: msgKeyHash,
       signalReceiveAddress: room.type == RoomType.bot ? to : null,
     );
@@ -215,7 +216,7 @@ class SignalChatService extends BaseChatService {
     await RoomService.instance.receiveDM(room, event,
         decodedContent: decodeString,
         sourceEvent: sourceEvent,
-        fromIdPubkey: room.toMainPubkey,
+        senderPubkey: room.toMainPubkey,
         msgKeyHash: msgKeyHash);
     return decodeString;
   }
@@ -291,7 +292,7 @@ class SignalChatService extends BaseChatService {
 
     var model = QRUserModel.fromJson(jsonDecode(keychatMessage.name!));
 
-    Contact contact = await ContactService.instance
+    var contact = await ContactService.instance
         .getOrCreateContact(room.identityId, room.toMainPubkey);
 
     // update contact name
@@ -342,7 +343,7 @@ class SignalChatService extends BaseChatService {
       logger.d('addRoomKPA success, set room encryptMode to signal');
     }
     room.contact = contact;
-    room = await RoomService.instance.updateRoomAndRefresh(room);
+    await RoomService.instance.updateRoomAndRefresh(room);
 
     await RoomService.instance.receiveDM(room, event,
         sourceEvent: sourceEvent,
@@ -381,7 +382,7 @@ ${relays.join('\n')}
 ''');
 
     await RoomService.instance
-        .sendTextMessage(room, sm.toString(), realMessage: sm.msg);
+        .sendMessage(room, sm.toString(), realMessage: sm.msg);
   }
 
   Future sendHelloMessage(Room room, Identity identity,

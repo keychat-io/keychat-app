@@ -41,13 +41,16 @@ Widget centerLoadingComponent([String title = 'loading']) {
   ));
 }
 
-textP(String title, [Color? color]) {
+textP(String title, {Color? color, int? maxLength}) {
+  if (maxLength != null) {
+    if (title.length > maxLength) {
+      title = title.substring(0, maxLength);
+    }
+  }
   return Text(
     title,
-    style: TextStyle(
-      fontSize: 16, color: color,
-      // overflow: TextOverflow.ellipsis
-    ),
+    style:
+        TextStyle(fontSize: 16, color: color, overflow: TextOverflow.ellipsis),
   );
 }
 
@@ -254,7 +257,7 @@ getGroupInfoBottomSheetWidget(BuildContext context) {
       ListView(
         children: [
           ListTile(
-            title: Text('Large Group - MLS',
+            title: Text('Large Group - MLS Protocol',
                 style: Theme.of(context).textTheme.titleMedium),
             subtitle: Text(RoomUtil.getGroupModeDescription(GroupType.mls)),
           ),
@@ -540,27 +543,33 @@ Future showMyQrCode(
   int expiredTime = DateTime.now().millisecondsSinceEpoch +
       KeychatGlobal.oneTimePubkeysLifetime * 3600 * 1000;
 
-  showModalBottomSheetWidget(
-      context,
-      identity.displayName,
+  Get.bottomSheet(
       MyQRCode(
-        identity: identity,
-        oneTimeKey: oneTimeKeys.first.pubkey,
-        signalId: signalId,
-        showMore: showMore,
-        time: expiredTime,
-        isOneTime: true,
-        onTap: Get.back,
-      ));
+          title: identity.displayName,
+          identity: identity,
+          oneTimeKey: oneTimeKeys.first.pubkey,
+          signalId: signalId,
+          showMore: showMore,
+          time: expiredTime,
+          isOneTime: true,
+          onTap: Get.back),
+      ignoreSafeArea: false,
+      isScrollControlled: true);
 }
 
-Widget pageLoadingSpinKit() {
-  return const Center(
-      child: SizedBox(
-          width: 100,
-          height: 100,
-          child: SpinKitWave(
-            color: Color.fromARGB(255, 141, 123, 243),
-            size: 40.0,
-          )));
+Widget pageLoadingSpinKit({String title = 'Loading...'}) {
+  return Center(
+      child: Wrap(
+          direction: Axis.vertical,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+        SizedBox(
+            width: 100,
+            height: 100,
+            child: SpinKitWave(
+              color: Color.fromARGB(255, 141, 123, 243),
+              size: 40.0,
+            )),
+        Text(title)
+      ]));
 }

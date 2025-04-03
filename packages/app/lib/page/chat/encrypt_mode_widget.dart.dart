@@ -9,8 +9,8 @@ import 'package:get/get.dart';
 import '../../service/room.service.dart';
 
 class EncryptModeWidget extends StatelessWidget {
-  final ChatController chatController;
-  const EncryptModeWidget({super.key, required this.chatController});
+  final ChatController cc;
+  const EncryptModeWidget({super.key, required this.cc});
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +46,7 @@ class EncryptModeWidget extends StatelessWidget {
                     subtitle: const Text('Security and Privacy Level: ⭐⭐⭐⭐⭐'),
                     leading: Radio<EncryptMode>(
                         value: EncryptMode.signal,
-                        groupValue: chatController.roomObs.value.encryptMode,
+                        groupValue: cc.roomObs.value.encryptMode,
                         onChanged: handleClick),
                     onTap: () {
                       handleClick(EncryptMode.signal);
@@ -68,7 +68,7 @@ class EncryptModeWidget extends StatelessWidget {
                     subtitle: const Text('Security and Privacy Level: ⭐'),
                     leading: Radio<EncryptMode>(
                         value: EncryptMode.nip04,
-                        groupValue: chatController.roomObs.value.encryptMode,
+                        groupValue: cc.roomObs.value.encryptMode,
                         onChanged: handleClick),
                     onTap: () {
                       handleClick(EncryptMode.nip04);
@@ -84,25 +84,25 @@ class EncryptModeWidget extends StatelessWidget {
 
   handleClick(EncryptMode? mode) async {
     if (mode == null) return;
-    Room room = chatController.roomObs.value;
+    Room room = cc.roomObs.value;
     if (mode == EncryptMode.signal &&
         room.type == RoomType.common &&
-        room.toMainPubkey == chatController.room.myIdPubkey) {
+        room.toMainPubkey == room.myIdPubkey) {
       EasyLoading.showError('Can\'t switch to signal mode with yourself');
       return;
     }
     if (mode == EncryptMode.signal && room.curve25519PkHex == null) {
-      await SignalChatService.instance.sendHelloMessage(
-          chatController.room, chatController.room.getIdentity());
+      await SignalChatService.instance
+          .sendHelloMessage(room, room.getIdentity());
       Get.back();
       Get.back();
       Get.back(); // back to room page
       EasyLoading.showSuccess('Send Request Successfully');
       return;
     }
-    chatController.roomObs.value.encryptMode = mode;
-    await RoomService.instance.updateRoom(chatController.roomObs.value);
-    chatController.roomObs.refresh();
+    cc.roomObs.value.encryptMode = mode;
+    await RoomService.instance.updateRoom(cc.roomObs.value);
+    cc.roomObs.refresh();
     EasyLoading.showSuccess('Switch successfully');
   }
 }

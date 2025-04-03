@@ -51,23 +51,24 @@ class DBProvider {
     logger.i('current db version: $currentVersion');
     if (currentVersion < 30) {
       await _migrateToVersion30();
-      await Storage.setInt(StorageKeyString.dbVersion, 30);
     }
-
-    switch (currentVersion) {
-      case 30:
-        await _migrateToVersion31();
-        await Storage.setInt(StorageKeyString.dbVersion, 31);
-      case 31:
-        await _migrateToVersion32();
-        await Storage.setInt(StorageKeyString.dbVersion, 32);
-      case 32:
-        await _migrateToVersion33();
-        await Storage.setInt(StorageKeyString.dbVersion, 33);
-      default:
-        break;
-      //throw Exception('Unknown version: $currentVersion');
+    if (currentVersion >= 30 && currentVersion < 31) {
+      currentVersion == 31;
+      await _migrateToVersion31();
     }
+    if (currentVersion >= 31 && currentVersion < 32) {
+      currentVersion = 32;
+      await _migrateToVersion32();
+    }
+    if (currentVersion >= 32 && currentVersion < 33) {
+      currentVersion = 33;
+      await _migrateToVersion33();
+    }
+    if (currentVersion >= 33 && currentVersion < 34) {
+      currentVersion = 34;
+      await _migrateToVersion34();
+    }
+    await Storage.setInt(StorageKeyString.dbVersion, currentVersion);
   }
 
   static close() async {
@@ -170,6 +171,17 @@ class DBProvider {
             .groupTypeEqualTo(GroupType.shareKey)
             .or()
             .groupTypeEqualTo(GroupType.kdf))
+        .findAll();
+    await Future.wait(list.map((room) =>
+        RoomService.instance.deleteRoom(room, websocketInited: false)));
+  }
+
+  // delete all mls group
+  static _migrateToVersion34() async {
+    List<Room> list = await DBProvider.database.rooms
+        .filter()
+        .typeEqualTo(RoomType.group)
+        .groupTypeEqualTo(GroupType.mls)
         .findAll();
     await Future.wait(list.map((room) =>
         RoomService.instance.deleteRoom(room, websocketInited: false)));

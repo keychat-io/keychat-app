@@ -17,11 +17,10 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
 class GroupInvitationInfoWidget extends StatelessWidget {
-  final ChatController chatController;
+  final ChatController cc;
   final Message message;
   final Widget Function({Widget? child, String? text}) errorCallabck;
-  const GroupInvitationInfoWidget(
-      this.chatController, this.message, this.errorCallabck,
+  const GroupInvitationInfoWidget(this.cc, this.message, this.errorCallabck,
       {super.key});
 
   @override
@@ -49,10 +48,10 @@ class GroupInvitationInfoWidget extends StatelessWidget {
             return;
           }
 
-          Room? exist = await RoomService.instance.getRoomByIdentity(
-              map.pubkey, chatController.roomObs.value.identityId);
+          Room? exist = await RoomService.instance
+              .getRoomByIdentity(map.pubkey, cc.roomObs.value.identityId);
           if (exist != null) {
-            if (exist.id == chatController.room.id) {
+            if (exist.id == cc.roomObs.value.id) {
               EasyLoading.showToast('You are already in this group');
               return;
             }
@@ -96,7 +95,7 @@ class GroupInvitationInfoWidget extends StatelessWidget {
                       () async {
                     try {
                       await MlsGroupService.instance.sendJoinGroupRequest(
-                          map, chatController.room.getIdentity());
+                          map, cc.roomObs.value.getIdentity());
                       EasyLoading.showSuccess('Request sent');
                       // proccess message status
                       message.requestConfrim = RequestConfrimEnum.approved;

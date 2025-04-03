@@ -116,7 +116,7 @@ class MinePage extends GetView<SettingController> {
                         title: const Text("App Version"),
                         value: getVersionCode(homeController),
                         onPressed: (context) {},
-                      ),
+                      )
                     ],
                   ),
                 ],
@@ -173,16 +173,15 @@ class MinePage extends GetView<SettingController> {
           leading: Utils.getRandomAvatar(identity.secp256k1PKHex,
               height: 30, width: 30),
           title: Text(
-            identity.displayName.length > 8
-                ? "${identity.displayName.substring(0, 8)}..."
-                : identity.displayName,
+            identity.displayName,
+            overflow: TextOverflow.ellipsis,
             style: i == 0
                 ? Theme.of(context).textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: Theme.of(context).colorScheme.primary)
                 : Theme.of(context).textTheme.bodyLarge,
           ),
-          value: Text(getPublicKeyDisplay(identity.npub)),
+          value: Text(getPublicKeyDisplay(identity.npub, 4)),
           onPressed: (context) async {
             Get.toNamed(Routes.settingMe, arguments: identity);
           }));

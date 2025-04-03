@@ -1,4 +1,4 @@
-import 'dart:convert' show jsonDecode, jsonEncode;
+import 'dart:convert' show jsonDecode;
 
 import 'package:app/controller/home.controller.dart';
 import 'package:app/models/browser/browser_bookmark.dart';
@@ -6,6 +6,7 @@ import 'package:app/models/browser/browser_connect.dart';
 import 'package:app/models/browser/browser_favorite.dart';
 import 'package:app/models/db_provider.dart';
 import 'package:app/models/identity.dart';
+import 'package:app/nostr-core/nostr.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/browser/BookmarkEdit.dart';
 import 'package:app/page/browser/Browser_controller.dart';
@@ -120,7 +121,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-        canPop: GetPlatform.isIOS,
+        canPop: false,
         onPopInvokedWithResult: (didPop, d) {
           if (didPop) {
             return;
@@ -259,40 +260,6 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                   icon: const Icon(Icons.more_horiz),
                 ),
               ]),
-          // bottomNavigationBar: SafeArea(
-          //     child: SizedBox(
-          //   height: 40,
-          //   child: appBar,
-          // )),
-          floatingActionButtonLocation:
-              FloatingActionButtonLocation.miniStartTop,
-          floatingActionButtonAnimator:
-              FloatingActionButtonAnimator.noAnimation,
-          floatingActionButton: GetPlatform.isIOS && canGoBack
-              ? Container(
-                  margin: EdgeInsets.only(top: Get.height * 0.9),
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withAlpha(100),
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                  child: IconButton(
-                      onPressed: goBackOrPop,
-                      padding: const EdgeInsets.all(0),
-                      icon: const Icon(
-                        Icons.arrow_back,
-                        color: Colors.white,
-                      )))
-              : (kDebugMode
-                  ? FilledButton(
-                      onPressed: () {
-                        webViewController?.evaluateJavascript(
-                            source: "window.nostr.getPublicKey()");
-                      },
-                      child: const Text('debug'))
-                  : null),
-
           body: SafeArea(
               bottom: GetPlatform.isAndroid,
               child: InAppWebView(
@@ -485,19 +452,16 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
         return identity.secp256k1PKHex;
       case 'signEvent':
         var event = data.args[1];
-        if (identity.isFromSigner) {
-          return await SignerService.instance.signEvent(
-              pubkey: identity.secp256k1PKHex, eventJson: jsonEncode(event));
-        }
-        var res = await rust_nostr.signEvent(
-            senderKeys: await identity.getSecp256k1SKHex(),
+
+        var res = await NostrAPI.instance.signEventByIdentity(
+            identity: identity,
             content: event['content'] as String,
-            createdAt: BigInt.from(event['created_at']),
+            createdAt: event['created_at'],
             kind: event['kind'] as int,
             tags: (event['tags'] as List)
                 .map((e) => List<String>.from(e))
                 .toList());
-        logger.d('signEvent: $res');
+
         return res;
       case 'nip04Encrypt':
         String to = data.args[1];
@@ -535,7 +499,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
         String plaintext = data.args[2];
         String encryptedEvent;
         if (identity.isFromSigner) {
-          encryptedEvent = await SignerService.instance.nip44Encrypt(
+          encryptedEvent = await SignerService.instance.getNip59EventString(
               from: identity.secp256k1PKHex, to: to, content: plaintext);
           logger.d(encryptedEvent);
         } else {

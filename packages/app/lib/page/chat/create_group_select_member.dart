@@ -1,23 +1,24 @@
+import 'package:app/controller/home.controller.dart';
 import 'package:app/page/components.dart';
-import 'package:app/service/kdf_group.service.dart';
+import 'package:app/service/group.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
-
-import '../../controller/home.controller.dart';
 import 'package:app/models/models.dart';
-import '../../service/group.service.dart';
 
 class CreateGroupSelectMember extends StatefulWidget {
   final List<Map<String, dynamic>> contacts;
+  final List<String> relays;
   final String groupName;
   final GroupType groupType;
 
-  const CreateGroupSelectMember(this.groupName, this.groupType, this.contacts,
+  const CreateGroupSelectMember(
+      this.groupName, this.relays, this.groupType, this.contacts,
       {super.key});
 
   @override
@@ -27,8 +28,6 @@ class CreateGroupSelectMember extends StatefulWidget {
 
 class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
     with TickerProviderStateMixin {
-  HomeController hc = Get.find<HomeController>();
-
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _userNameController =
       TextEditingController(text: "");
@@ -38,38 +37,36 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
   final RefreshController _refreshController =
       RefreshController(initialRefresh: true);
   bool pageLoading = true;
-  void _onLoading() async {
-    int currentLength = users.length;
-    int nextLength = currentLength + 15;
-    if (nextLength > widget.contacts.length) {
-      nextLength = widget.contacts.length;
-    }
-    List<Map<String, dynamic>> news =
-        widget.contacts.getRange(currentLength, nextLength).toList();
-    if (news.isNotEmpty) {
-      List<String> pubkeys = [];
-      for (var u in news) {
-        pubkeys.add(u['pubkey']);
-      }
-      Map res = await MlsGroupService.instance.getPKs(pubkeys);
-
-      for (var u in news) {
-        String pubkey = u['pubkey'];
-        if (res[pubkey] != null && res[pubkey].length > 0) {
-          u['mlsPK'] = res[pubkey];
-        }
-      }
-      users.addAll(news);
-    }
-    pageLoading = false;
-    setState(() {});
-    _refreshController.loadComplete();
-  }
 
   @override
   void initState() {
     super.initState();
-    _onLoading();
+    _loading();
+  }
+
+  _loading() async {
+    List<String> pubkeys = [];
+    for (int i = 0; i < widget.contacts.length; i++) {
+      Map<String, dynamic> contact = widget.contacts[i];
+      if (contact['pubkey'] != null) {
+        pubkeys.add(contact['pubkey']);
+      }
+    }
+    Map result =
+        await MlsGroupService.instance.getKeyPackagesFromRelay(pubkeys);
+    for (int i = 0; i < widget.contacts.length; i++) {
+      Map<String, dynamic> contact = widget.contacts[i];
+      if (contact['pubkey'] != null) {
+        String pubkey = contact['pubkey'];
+        if (result[pubkey] != null) {
+          contact['mlsPK'] = result[pubkey];
+        }
+      }
+    }
+    pageLoading = false;
+    setState(() {
+      users = widget.contacts;
+    });
   }
 
   @override
@@ -87,11 +84,7 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
       Map contact = users[i];
       if (contact['isCheck']) {
         String selectAccount = "";
-        if (hc.getSelectedIdentity().secp256k1PKHex == contact['pubkey']) {
-          selectAccount = hc.getSelectedIdentity().secp256k1PKHex;
-        } else {
-          selectAccount = contact['pubkey'];
-        }
+        selectAccount = contact['pubkey'];
         selectAccounts[selectAccount] = contact['name'];
         selectedContact.add({
           'pubkey': contact['pubkey'],
@@ -105,19 +98,16 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
       return;
     }
     late Room room;
-    Identity identity = hc.getSelectedIdentity();
+    Identity identity = Get.find<HomeController>().getSelectedIdentity();
     try {
-      if (widget.groupType == GroupType.shareKey ||
-          widget.groupType == GroupType.sendAll) {
+      if (widget.groupType == GroupType.sendAll) {
         room = await GroupService.instance
             .createGroup(widget.groupName, identity, widget.groupType);
         await GroupService.instance.inviteToJoinGroup(room, selectAccounts);
-      } else if (widget.groupType == GroupType.kdf) {
-        room = await KdfGroupService.instance
-            .createGroup(widget.groupName, identity, selectAccounts);
       } else if (widget.groupType == GroupType.mls) {
-        room = await MlsGroupService.instance
-            .createGroup(widget.groupName, identity, selectedContact);
+        room = await MlsGroupService.instance.createGroup(
+            widget.groupName, identity,
+            toUsers: selectedContact, groupRelays: widget.relays);
       }
       Get.back();
     } catch (e, s) {
@@ -145,48 +135,70 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
         ],
       ),
       body: pageLoading
-          ? pageLoadingSpinKit()
-          : SmartRefresher(
-              enablePullDown: false,
-              enablePullUp: true,
-              header: const WaterDropHeader(),
-              controller: _refreshController,
-              onLoading: _onLoading,
-              child: ListView.builder(
-                itemCount: users.length,
-                itemBuilder: (c, i) {
-                  Map user = users[i];
-                  return ListTile(
-                      dense: true,
-                      leading: Utils.getRandomAvatar(user['pubkey'],
-                          height: 30, width: 30),
-                      title: Text(user['name'], maxLines: 1),
-                      subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(user['npubkey'],
-                                overflow: TextOverflow.ellipsis),
-                            widget.groupType == GroupType.mls &&
-                                    user['mlsPK'] == null
-                                ? Text('Not upload MLS keys',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.copyWith(color: Colors.pink))
-                                : Container()
-                          ]),
-                      trailing: Checkbox(
-                          value: user['isCheck'],
-                          onChanged: widget.groupType == GroupType.mls &&
-                                  user['mlsPK'] == null
-                              ? null
-                              : (isCheck) {
-                                  user['isCheck'] = isCheck!;
-                                  setState(() {});
-                                }));
-                },
-              ),
+          ? pageLoadingSpinKit(title: 'Loading...')
+          : ListView.builder(
+              itemCount: users.length,
+              itemBuilder: (c, i) {
+                Map<String, dynamic> user = users[i];
+                return ListTile(
+                    dense: true,
+                    leading: Utils.getRandomAvatar(user['pubkey']),
+                    title: Text(user['name'], maxLines: 1),
+                    subtitle:
+                        Text(user['npubkey'], overflow: TextOverflow.ellipsis),
+                    trailing: getAddMemeberCheckBox(widget.groupType, user));
+              },
             ),
     );
+  }
+
+  Widget getAddMemeberCheckBox(GroupType groupType, Map<String, dynamic> user) {
+    if (user['isAdmin'] || user['exist']) {
+      return const Icon(Icons.check_box, color: Colors.grey, size: 30);
+    }
+    if (groupType == GroupType.sendAll) {
+      return Checkbox(
+          value: user['isCheck'],
+          onChanged: (isCheck) {
+            user['isCheck'] = isCheck!;
+            setState(() {});
+          });
+    }
+
+    // mls group
+    // return FutureBuilder(future: () async {
+    //   if (user['mlsPK'] != null) {
+    //     return user['mlsPK'];
+    //   }
+    //   return MlsGroupService.instance.getKeyPackageFromRelay(user['pubkey']);
+    // }(), builder: (context, snapshot) {
+    //   if (snapshot.connectionState == ConnectionState.waiting) {
+    //     return const CupertinoActivityIndicator();
+    //   }
+    if (user['mlsPK'] == null) {
+      return IconButton(
+          onPressed: () {
+            Get.dialog(CupertinoAlertDialog(
+                title: const Text('Not upload MLS keys'),
+                content: const Text(
+                    '''1. Add a relay with support nip104.\n2. Restart app to upload KeyPackage'''),
+                actions: <Widget>[
+                  CupertinoDialogAction(
+                      child: const Text('OK'),
+                      onPressed: () {
+                        Get.back();
+                      })
+                ]));
+          },
+          icon: const Icon(Icons.warning, color: Colors.orange));
+    }
+    // user['mlsPK'] = snapshot.data;
+    return Checkbox(
+        value: user['isCheck'],
+        onChanged: (isCheck) {
+          user['isCheck'] = isCheck!;
+          setState(() {});
+        });
+    // });
   }
 }

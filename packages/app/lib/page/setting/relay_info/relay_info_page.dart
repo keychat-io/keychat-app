@@ -1,4 +1,3 @@
-import 'package:app/models/relay.dart';
 import 'package:app/nostr-core/relay_websocket.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/websocket.service.dart';
@@ -50,12 +49,7 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                           ws.channels[controller.relay.value.url];
                       if (rw != null) {
                         if (ws.channels[controller.relay.value.url]
-                                ?.channelStatus ==
-                            RelayStatusEnum.failed) {
-                          rw.failedTimes = 1;
-                          EasyLoading.showToast('Reconnecting');
-                          ws.onErrorProcess(controller.relay.value.url);
-                        }
+                            ?.isDisConnected()) {}
                       }
                     },
                   ),
@@ -73,18 +67,12 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                       await RelayService.instance
                           .update(controller.relay.value);
                       controller.relay.refresh();
-                      WebsocketService websocketService =
-                          Get.find<WebsocketService>();
-
-                      websocketService
-                          .updateRelayWidget(controller.relay.value);
-                      if (value &&
-                          websocketService.channels[controller.relay.value.url]
-                                  ?.channelStatus !=
-                              RelayStatusEnum.success) {
-                        websocketService.addChannel(controller.relay.value);
-                        RelayService.instance
-                            .initRelayFeeInfo([controller.relay.value]);
+                      WebsocketService ws = Get.find<WebsocketService>();
+                      if (value) {
+                        await RelayService.instance
+                            .addAndConnect(controller.relay.value.url);
+                      } else {
+                        await ws.disableRelay(controller.relay.value);
                       }
                       EasyLoading.showToast('Setting saved');
                     },
@@ -282,17 +270,19 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                           ),
                           CupertinoDialogAction(
                             onPressed: () async {
-                              WebsocketService websocketService =
+                              WebsocketService ws =
                                   Get.find<WebsocketService>();
-                              if (websocketService.channels.length == 1) {
+                              if (ws.channels.length == 1) {
                                 EasyLoading.showToast('At least one relay');
                                 return;
                               }
 
                               await RelayService.instance
                                   .delete(controller.relay.value.id);
-                              websocketService
-                                  .deleteRelay(controller.relay.value);
+
+                              ws.channels[controller.relay.value.url]?.channel
+                                  ?.close();
+                              ws.channels.remove(controller.relay.value.url);
 
                               Get.back();
                               Get.back();

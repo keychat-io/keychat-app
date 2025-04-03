@@ -19,11 +19,10 @@ class ChatSettingSecurity extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     int roomId = int.parse(Get.parameters['id']!);
-    ChatController chatController = RoomService.getController(roomId)!;
+    ChatController cc = RoomService.getController(roomId)!;
 
-    List<String> receiveKeys = ContactService.instance
-            .getMyReceiveKeys(chatController.roomObs.value) ??
-        [];
+    List<String> receiveKeys =
+        ContactService.instance.getMyReceiveKeys(cc.roomObs.value) ?? [];
     return Scaffold(
         appBar:
             AppBar(centerTitle: true, title: const Text('Security Settings')),
@@ -34,10 +33,10 @@ class ChatSettingSecurity extends StatelessWidget {
                     SettingsTile(
                         title: const Text('Encrypt mode'),
                         leading: const Icon(CupertinoIcons.lock),
-                        value: chatController.roomObs.value.encryptMode ==
-                                EncryptMode.signal
-                            ? textP('Signal procotol', Colors.green)
-                            : textP('Nostr nip17', Colors.red)),
+                        value:
+                            cc.roomObs.value.encryptMode == EncryptMode.signal
+                                ? textP('Signal procotol', color: Colors.green)
+                                : textP('Nostr nip17', color: Colors.red)),
                     SettingsTile.navigation(
                       title: const Text('Reset Signal Session'),
                       leading: const Icon(CupertinoIcons.refresh),
@@ -54,11 +53,11 @@ class ChatSettingSecurity extends StatelessWidget {
                                 EasyThrottle.throttle('ResetSessionStatus',
                                     const Duration(seconds: 3), () async {
                                   await Get.find<ChatxService>()
-                                      .deleteSignalSessionKPA(chatController
-                                          .room); // delete old session
+                                      .deleteSignalSessionKPA(cc
+                                          .roomObs.value); // delete old session
                                   await SignalChatService.instance
-                                      .sendHelloMessage(chatController.room,
-                                          chatController.room.getIdentity(),
+                                      .sendHelloMessage(cc.roomObs.value,
+                                          cc.roomObs.value.getIdentity(),
                                           greeting:
                                               'Reset signal session status');
 
@@ -76,17 +75,14 @@ class ChatSettingSecurity extends StatelessWidget {
                 SettingsTile(
                   title: const Text('SendTo'),
                   leading: const Icon(CupertinoIcons.up_arrow),
-                  value: Obx(() =>
-                      chatController.roomObs.value.sendingRelays.isEmpty
-                          ? const Text('All Relays')
-                          : Flexible(
-                              child: Text(chatController
-                                      .roomObs.value.sendingRelays.isNotEmpty
-                                  ? chatController.roomObs.value.sendingRelays
-                                      .join(',')
-                                  : ''))),
+                  value: Obx(() => cc.roomObs.value.sendingRelays.isEmpty
+                      ? const Text('All Relays')
+                      : Flexible(
+                          child: Text(cc.roomObs.value.sendingRelays.isNotEmpty
+                              ? cc.roomObs.value.sendingRelays.join(',')
+                              : ''))),
                   onPressed: (c) {
-                    if (chatController.roomObs.value.sendingRelays.isEmpty) {
+                    if (cc.roomObs.value.sendingRelays.isEmpty) {
                       return;
                     }
                     Get.dialog(CupertinoAlertDialog(
@@ -103,9 +99,9 @@ class ChatSettingSecurity extends StatelessWidget {
                         CupertinoDialogAction(
                           isDestructiveAction: true,
                           onPressed: () async {
-                            chatController.roomObs.value.receivingRelays = [];
-                            await RoomService.instance.updateRoomAndRefresh(
-                                chatController.roomObs.value);
+                            cc.roomObs.value.receivingRelays = [];
+                            await RoomService.instance
+                                .updateRoomAndRefresh(cc.roomObs.value);
                             EasyLoading.showToast('Save Success');
                             Get.back();
                           },
@@ -115,24 +111,23 @@ class ChatSettingSecurity extends StatelessWidget {
                     ));
                   },
                 ),
-                if (chatController.roomObs.value.type != RoomType.bot)
+                if (cc.roomObs.value.type != RoomType.bot)
                   SettingsTile.navigation(
                     title: const Text('ReceiveFrom'),
                     leading: const Icon(CupertinoIcons.down_arrow),
-                    description: Obx(() => Text(chatController
-                            .roomObs.value.receivingRelays.isNotEmpty
-                        ? chatController.roomObs.value.receivingRelays.join(',')
-                        : '')),
+                    description: Obx(() => Text(
+                        cc.roomObs.value.receivingRelays.isNotEmpty
+                            ? cc.roomObs.value.receivingRelays.join(',')
+                            : '')),
                     onPressed: (context) async {
                       List<String>? relays = await Get.bottomSheet(
-                          SelectRoomRelay(
-                              chatController.roomObs.value.receivingRelays));
+                          SelectRoomRelay(cc.roomObs.value.receivingRelays));
                       if (relays == null) return;
-                      chatController.roomObs.value.receivingRelays = relays;
+                      cc.roomObs.value.receivingRelays = relays;
                       await RoomService.instance
-                          .updateRoomAndRefresh(chatController.roomObs.value);
-                      await SignalChatService.instance.sendRelaySyncMessage(
-                          chatController.roomObs.value, relays);
+                          .updateRoomAndRefresh(cc.roomObs.value);
+                      await SignalChatService.instance
+                          .sendRelaySyncMessage(cc.roomObs.value, relays);
                       EasyLoading.showToast('Save Success');
                     },
                   ),

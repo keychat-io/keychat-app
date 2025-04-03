@@ -1,8 +1,10 @@
 import 'package:app/controller/home.controller.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/create_group_select_member.dart';
+import 'package:app/page/setting/RelaySetting.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
@@ -92,9 +94,40 @@ class _AddGroupPageState extends State<AddGroupPage>
                       "isAdmin": false
                     });
                   }
+                  List<String> relays = [];
+                  if (groupType == GroupType.mls) {
+                    var list = Get.find<WebsocketService>().getOnlineSocket();
 
-                  Get.to(() =>
-                      CreateGroupSelectMember(groupName, groupType, list));
+                    if (list.isEmpty) {
+                      Get.dialog(
+                        CupertinoAlertDialog(
+                          title: const Text('No relay available'),
+                          content: const Text(
+                              'Please reconnect the relay servers or add wss://relay.keychat.io'),
+                          actions: <Widget>[
+                            CupertinoDialogAction(
+                              child: const Text('Cancel'),
+                              onPressed: () {
+                                Get.back();
+                              },
+                            ),
+                            CupertinoDialogAction(
+                              child: const Text('Network'),
+                              onPressed: () {
+                                Get.back();
+                                Get.to(() => RelaySetting());
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                      return;
+                    }
+                    relays = list.map((e) => e.relay.url).toList();
+                  }
+
+                  Get.to(() => CreateGroupSelectMember(
+                      groupName, relays, groupType, list));
                 },
                 child: const Text('Next'))),
         body: SafeArea(
@@ -140,28 +173,6 @@ class _AddGroupPageState extends State<AddGroupPage>
                             .colorScheme
                             .primary
                             .withValues(alpha: 0.1)),
-                    // ListTile(
-                    //     title: Text("Medium Group - Signal Protocol",
-                    //         style: Theme.of(context).textTheme.titleSmall),
-                    //     subtitle: Text(
-                    //         RoomUtil.getGroupModeDescription(GroupType.kdf),
-                    //         style: Theme.of(context).textTheme.bodySmall),
-                    //     leading: Radio<GroupType>(
-                    //       value: GroupType.kdf,
-                    //       groupValue: groupType,
-                    //       onChanged: (value) {
-                    //         FocusScope.of(context).unfocus();
-                    //         setState(() {
-                    //           groupType = value as GroupType;
-                    //           selectedGroupType = GroupType.kdf;
-                    //         });
-                    //       },
-                    //     ),
-                    //     selected: selectedGroupType == GroupType.kdf,
-                    //     selectedTileColor: Theme.of(context)
-                    //         .colorScheme
-                    //         .primary
-                    //         .withValues(alpha: 0.1)),
                     ListTile(
                       selectedTileColor: Theme.of(context)
                           .colorScheme

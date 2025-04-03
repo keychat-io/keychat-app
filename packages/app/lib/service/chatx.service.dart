@@ -1,6 +1,7 @@
 import 'dart:convert' show jsonDecode;
 import 'dart:typed_data' show Uint8List;
 
+import 'package:app/constants.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/identity.dart';
@@ -45,7 +46,8 @@ class ChatxService extends GetxService {
       newKeys.addAll(newKeys2);
     }
     if (needListen.isNotEmpty) {
-      Get.find<WebsocketService>().listenPubkey(needListen);
+      Get.find<WebsocketService>()
+          .listenPubkey(needListen, kinds: [EventKinds.nip04]);
       NotifyService.addPubkeys(needListen);
     }
     return newKeys;

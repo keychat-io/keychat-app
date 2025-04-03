@@ -16,11 +16,10 @@ import 'package:get/get.dart';
 import 'package:keychat_ecash/utils.dart';
 
 class BotOneTimePaymentRequestWidget extends StatefulWidget {
-  final ChatController chatController;
+  final ChatController cc;
   final Message message;
 
-  const BotOneTimePaymentRequestWidget(this.chatController, this.message,
-      {super.key});
+  const BotOneTimePaymentRequestWidget(this.cc, this.message, {super.key});
 
   @override
   _BotOneTimePaymentRequestWidgetState createState() =>
@@ -114,9 +113,8 @@ class _BotOneTimePaymentRequestWidgetState
                           message: confirmResult,
                           payToken: cashuTokenString);
 
-                      await RoomService.instance.sendTextMessage(
-                          widget.chatController.roomObs.value,
-                          jsonEncode(bcm.toJson()),
+                      await RoomService.instance.sendMessage(
+                          widget.cc.roomObs.value, jsonEncode(bcm.toJson()),
                           realMessage:
                               'Selected ${data.name}, and send ecash: ${data.price} ${data.unit}');
 

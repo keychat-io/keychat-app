@@ -11,11 +11,10 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
 class BotPricePerMessageRequestWidget extends StatefulWidget {
-  final ChatController chatController;
+  final ChatController cc;
   final Message message;
 
-  const BotPricePerMessageRequestWidget(this.chatController, this.message,
-      {super.key});
+  const BotPricePerMessageRequestWidget(this.cc, this.message, {super.key});
 
   @override
   _BotPricePerMessageRequestWidgetState createState() =>
@@ -94,13 +93,12 @@ class _BotPricePerMessageRequestWidgetState
 
                       // save config to local db
                       Map localConfig = jsonDecode(
-                          widget.chatController.roomObs.value.botLocalConfig ??
-                              '{}');
+                          widget.cc.roomObs.value.botLocalConfig ?? '{}');
                       localConfig[bmm!.type.name] = data;
-                      widget.chatController.roomObs.value.botLocalConfig =
+                      widget.cc.roomObs.value.botLocalConfig =
                           jsonEncode(localConfig);
-                      await RoomService.instance.updateRoomAndRefresh(
-                          widget.chatController.roomObs.value);
+                      await RoomService.instance
+                          .updateRoomAndRefresh(widget.cc.roomObs.value);
 
                       await MessageService.instance
                           .updateMessageAndRefresh(widget.message);

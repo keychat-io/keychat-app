@@ -1,4 +1,5 @@
 import 'package:app/models/nostr_event_status.dart';
+import 'package:app/nostr-core/close.dart';
 import 'package:app/nostr-core/subscribe_result.dart';
 import 'package:app/service/SignerService.dart';
 import 'package:app/service/mls_group.service.dart';
@@ -16,7 +17,6 @@ import 'package:app/nostr-core/request.dart';
 import 'package:app/service/secure_storage.dart';
 
 import 'package:app/service/identity.service.dart';
-import 'package:app/service/kdf_group.service.dart';
 import 'package:app/service/nip4_chat.service.dart';
 import 'package:app/service/signal_chat.service.dart';
 import 'package:app/service/websocket.service.dart';
@@ -150,10 +150,11 @@ class NostrAPI {
       case EventKinds.contactList:
         await _proccessNip2(event);
         break;
-      case EventKinds.encryptedDirectMessage:
+      case EventKinds.nip04:
       case EventKinds.nip17:
         await _proccessNip4Message(event, eventList, relay, raw);
         break;
+      case EventKinds.mlsNipKeypackages:
       case EventKinds.setMetadata:
         SubscribeResult.instance.fill(subscribeId, event);
         break;
@@ -161,7 +162,7 @@ class NostrAPI {
         await Get.find<WorldController>().processEvent(event);
         break;
       case EventKinds.nip47:
-        Utils.getGetxController<NostrWalletConnectController>()
+        await Utils.getGetxController<NostrWalletConnectController>()
             ?.processEvent(relay, event);
         break;
       default:
@@ -234,16 +235,18 @@ class NostrAPI {
       required String from,
       required Room room,
       required MessageEncryptType encryptType,
+      int kind = EventKinds.nip04,
+      List<List<String>>? additionalTags,
       MessageMediaType? mediaType,
       MsgReply? reply,
       bool? isSystem,
       String? realMessage,
       String? sourceContent,
-      bool isSignalMessage = false,
+      bool isEncryptedMessage = false,
       String? signalReceiveAddress,
       String? msgKeyHash}) async {
     late String encryptedEvent;
-    if (isSignalMessage) {
+    if (isEncryptedMessage) {
       var receiverPubkeys = [toPubkey];
       if (signalReceiveAddress != null) {
         receiverPubkeys.add(signalReceiveAddress);
@@ -252,7 +255,8 @@ class NostrAPI {
           senderKeys: prikey,
           receiverPubkeys: receiverPubkeys,
           content: toEncryptText,
-          kind: EventKinds.encryptedDirectMessage);
+          kind: kind,
+          additionalTags: additionalTags);
     } else {
       encryptedEvent = await rust_nostr.getEncryptEvent(
           senderKeys: prikey, receiverPubkey: toPubkey, content: toEncryptText);
@@ -277,7 +281,7 @@ class NostrAPI {
         from: from,
         to: toPubkey,
         isSystem: isSystem ?? false,
-        idPubkey: room.myIdPubkey,
+        senderPubkey: room.myIdPubkey,
         content: sourceContent ?? toEncryptText,
         realMessage: realMessage,
         isRead: true,
@@ -289,6 +293,7 @@ class NostrAPI {
     return SendMessageResponse(events: [event], message: model);
   }
 
+  /// timestampTweaked: true-random timestamp in 0~2days ago
   Future<SendMessageResponse> sendNip17Message(
     Room room,
     String sourceContent,
@@ -297,22 +302,26 @@ class NostrAPI {
     String? realMessage,
     MessageMediaType? mediaType,
     MsgReply? reply,
-    bool timestampTweaked = false, // use DateTime.now
+    bool timestampTweaked = false,
     bool save = true,
+    int nip17Kind = EventKinds.nip17,
+    List<List<String>>? additionalTags,
   }) async {
     String? encryptedEvent;
     if (identity.isFromSigner) {
-      encryptedEvent = await SignerService.instance.nip44Encrypt(
+      encryptedEvent = await SignerService.instance.getNip59EventString(
           content: sourceContent,
           from: identity.secp256k1PKHex,
+          additionalTags: additionalTags,
           to: toPubkey ?? room.toMainPubkey);
     } else {
       encryptedEvent = await rust_nostr.createGiftJson(
-          kind: 14,
+          kind: nip17Kind,
           senderKeys: await identity.getSecp256k1SKHex(),
           receiverPubkey: toPubkey ?? room.toMainPubkey,
           timestampTweaked: timestampTweaked,
-          content: sourceContent);
+          content: sourceContent,
+          additionalTags: additionalTags);
     }
     return await _sendAndSaveGiftMessage(
         toPubkey ?? room.toMainPubkey, sourceContent,
@@ -356,7 +365,7 @@ class NostrAPI {
         from: from,
         to: to,
         isSystem: isSystem ?? false,
-        idPubkey: room.myIdPubkey,
+        senderPubkey: room.myIdPubkey,
         content: sourceContent,
         realMessage: realMessage,
         isRead: true,
@@ -425,10 +434,10 @@ class NostrAPI {
 
     NostrEventStatus? ess = await NostrEventStatus.getReceiveEvent(event.id);
     if (ess != null) {
-      logger.d('duplicate_db: ${event.id}');
+      loggerNoLine.i('Duplicate event: ${event.id}');
       return;
     }
-    logger.d('start proccess: ${event.id}');
+    loggerNoLine.i('Start proccess event: ${event.id}');
 
     _updateRelayLastMessageAt(relay.url, event.createdAt);
     ess = await NostrEventStatus.createReceiveEvent(relay.url, event.id, raw);
@@ -445,10 +454,9 @@ class NostrAPI {
       ess?.setError('proccess error: $error $stackTrace');
     }
 
+    String to = event.getTagByKey(EventKindTags.pubkey)!;
     switch (event.kind) {
-      case EventKinds.encryptedDirectMessage:
-        String to = event.tags[0][1];
-
+      case EventKinds.nip04:
         try {
           // signal chat room
           Room? room =
@@ -456,23 +464,6 @@ class NostrAPI {
           if (room != null) {
             await SignalChatService.instance.decryptMessage(room, event, relay,
                 failedCallback: failedCallback);
-            return;
-          }
-
-          // shared key room
-          Room? sharedKeyRoom =
-              await RoomService.instance.getGroupByReceivePubkey(to);
-          if (sharedKeyRoom != null) {
-            await _groupMessageHandle(
-                sharedKeyRoom, event, relay, failedCallback, to);
-            return;
-          }
-
-          // mls group room. receive address is one-time-key field
-          Room? mlsRoom = await RoomService.instance.getRoomByOnetimeKey(to);
-          if (mlsRoom != null && mlsRoom.isMLSGroup) {
-            await _groupMessageHandle(
-                mlsRoom, event, relay, failedCallback, to);
             return;
           }
 
@@ -506,34 +497,7 @@ class NostrAPI {
           logger.e('nip17 decrypt error: $msg', error: e, stackTrace: s);
         }
         break;
-      default:
     }
-  }
-
-  Future<void> _groupMessageHandle(Room groupRoom, NostrEventModel event,
-      Relay relay, Function(String error) failedCallback, String to) async {
-    if (groupRoom.groupType == GroupType.kdf) {
-      await _proccessByKDFRoom(groupRoom, event, relay, failedCallback);
-      return;
-    }
-    if (groupRoom.groupType == GroupType.mls) {
-      await MlsGroupService.instance
-          .decryptMessage(groupRoom, event, failedCallback: failedCallback);
-      return;
-    }
-    await dmNip4Proccess(event, relay, failedCallback, room: groupRoom);
-  }
-
-  Future _proccessByKDFRoom(Room kdfRoom, NostrEventModel event, Relay relay,
-      Function(String error) failedCallback) async {
-    String? content = await decryptNip4Content(event);
-    if (content == null) {
-      logger.e('decrypt error: ${event.toString()}');
-      failedCallback('Nip04 decrypt error');
-      return;
-    }
-    await KdfGroupService.instance.decryptMessage(kdfRoom, event,
-        nip4DecodedContent: content, failedCallback: failedCallback);
   }
 
   Future dmNip4Proccess(NostrEventModel sourceEvent, Relay relay,
@@ -632,17 +596,19 @@ class NostrAPI {
           .sendRawReq(closeSerialize(nip05SubscriptionId));
     }
 
-    nip05SubscriptionId = await fetchMetadata(pubkeys);
+    // nip05SubscriptionId = await fetchMetadata(pubkeys);
   }
 
-  Future<dynamic> fetchMetadata(List<String> pubkeys) async {
+  Future<List<NostrEventModel>> fetchMetadata(List<String> pubkeys) async {
     String id = utils.generate64RandomHexChars(16);
     Request requestWithFilter = Request(id, [
-      Filter(kinds: [EventKinds.setMetadata], authors: pubkeys, limit: 2)
+      Filter(kinds: [EventKinds.setMetadata], authors: pubkeys, limit: 1)
     ]);
 
-    var req = requestWithFilter.serialize();
-    return await Get.find<WebsocketService>().fetchInfoFromRelay(id, req);
+    var res = await Get.find<WebsocketService>()
+        .fetchInfoFromRelay(id, requestWithFilter.serialize());
+    Get.find<WebsocketService>().sendMessage(Close(id).serialize());
+    return res;
   }
 
   void _proccessNotice(Relay relay, String msg1) {
@@ -652,12 +618,31 @@ class NostrAPI {
   }
 
   Future _processNip17Message(NostrEventModel event, Relay relay,
-      Function(String) failedCallbackync) async {
-    NostrEventModel subEvent =
-        await _getNostrEventByTo(event, failedCallbackync);
-
+      Function(String) failedCallback) async {
+    // mls group room. receive address is one-time-key field
+    String to = event.getTagByKey(EventKindTags.pubkey)!;
+    Room? mlsRoom = await RoomService.instance.getRoomByOnetimeKey(to);
+    if (mlsRoom != null && mlsRoom.isMLSGroup) {
+      await MlsGroupService.instance
+          .decryptMessage(mlsRoom, event, failedCallback);
+      return;
+    }
+    // other nip17 event.
+    late NostrEventModel subEvent;
+    try {
+      subEvent = await _getNostrEventByTo(event, failedCallback);
+    } catch (e) {
+      // Maybe mls group room changed receiving address
+      failedCallback(e.toString());
+      return;
+    }
+    if (subEvent.kind == EventKinds.mlsNipWelcome) {
+      await MlsGroupService.instance.handleWelcomeEvent(
+          subEvent: subEvent, sourceEvent: event, relay: relay);
+      return;
+    }
     dynamic decodedContent;
-    logger.d('subEvent: ${subEvent.content}');
+    logger.d('subEvent: $subEvent');
     try {
       decodedContent = jsonDecode(subEvent.content);
     } catch (e) {
@@ -697,9 +682,7 @@ class NostrAPI {
       }
     }
     if (myPrivateKey == null) {
-      logger.e('myPrivateKey is null');
-      failedCallbackync('myPrivateKey is null');
-      throw Exception('myPrivateKey is null');
+      throw Exception('myPrivateKeyIsNull');
     }
 
     rust_nostr.NostrEvent result = await rust_nostr.decryptGift(
@@ -728,5 +711,46 @@ class NostrAPI {
         String? errorMessage,
       }) callback) {
     NostrAPI.instance.okCallback[eventID] = callback;
+  }
+
+  void removeOKCallback(String eventID) {
+    EasyDebounce.debounce(
+        '_removeOKCallback$eventID', const Duration(seconds: 2), () {
+      NostrAPI.instance.okCallback.remove(eventID);
+    });
+  }
+
+  Future<String> signEventByIdentity(
+      {required Identity identity,
+      String? id,
+      required String content,
+      required int createdAt,
+      required int kind,
+      required List<List<String>> tags}) async {
+    if (!identity.isFromSigner) {
+      return await rust_nostr.signEvent(
+          senderKeys: await identity.getSecp256k1SKHex(),
+          tags: tags,
+          createdAt: BigInt.from(createdAt),
+          content: content,
+          kind: kind);
+    }
+
+    var event = {
+      'id': id ?? utils.generate64RandomHexChars(16),
+      'pubkey': identity.secp256k1PKHex,
+      'created_at': createdAt,
+      'kind': kind,
+      'tags': tags,
+      'content': content,
+      'sig': '',
+    };
+    var res = await SignerService.instance.signEvent(
+        pubkey: identity.secp256k1PKHex, eventJson: jsonEncode(event));
+    if (res == null) {
+      throw Exception('amber sign event error');
+    }
+
+    return res;
   }
 }

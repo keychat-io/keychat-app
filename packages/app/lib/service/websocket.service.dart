@@ -1,3 +1,5 @@
+import 'dart:convert' show jsonDecode;
+
 import 'package:app/constants.dart';
 import 'package:app/models/db_provider.dart';
 import 'package:app/models/embedded/cashu_info.dart';
@@ -8,24 +10,21 @@ import 'package:app/models/relay.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/nostr-core/nostr_nip4_req.dart';
-import 'package:app/nostr-core/subscribe_event_status.dart';
 import 'package:app/nostr-core/relay_websocket.dart';
+import 'package:app/nostr-core/subscribe_event_status.dart';
 import 'package:app/nostr-core/subscribe_result.dart';
 import 'package:app/page/setting/RelaySetting.dart';
-import 'package:app/service/message.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_debounce.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/cupertino.dart' hide ConnectionState;
+import 'package:flutter/material.dart' show Colors;
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:queue/queue.dart';
-import 'package:web_socket_channel/io.dart';
-
 import 'package:get/get.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
-
-const int failedTimesLimit = 3;
+import 'package:queue/queue.dart';
+import 'package:web_socket_client/web_socket_client.dart';
 
 class WebsocketService extends GetxService {
   RelayService rs = RelayService.instance;
@@ -39,21 +38,46 @@ class WebsocketService extends GetxService {
 
   DateTime initAt = DateTime.now();
 
-  @override
-  void onReady() {
-    super.onReady();
-    localFeesConfigFromLocalStorage();
-    RelayService.instance.initRelayFeeInfo();
-  }
+  String? lastRelayStatus;
+
+  bool startLock = false;
 
   int activitySocketCount() {
-    return channels.values
-        .where((element) => element.channelStatus == RelayStatusEnum.success)
-        .length;
+    return channels.values.where((element) => element.isConnected()).length;
+  }
+
+  Future<NostrEventStatus> addCashuToMessage(
+      int roomId, NostrEventStatus eventSendStatus) async {
+    RelayMessageFee? payInfoModel =
+        relayMessageFeeModels[eventSendStatus.relay];
+    if (payInfoModel == null) return eventSendStatus;
+    if (payInfoModel.amount == 0) return eventSendStatus;
+    CashuInfoModel? cashuA;
+    try {
+      cashuA = await CashuUtil.getStamp(
+          amount: payInfoModel.amount,
+          token: payInfoModel.unit.name,
+          mints: payInfoModel.mints);
+      eventSendStatus.ecashName = payInfoModel.unit.name;
+      double amount = (payInfoModel.amount).toDouble();
+      eventSendStatus.ecashAmount = amount;
+      eventSendStatus.ecashToken = cashuA.token;
+      eventSendStatus.ecashMint = cashuA.mint;
+    } catch (e) {
+      String msg = Utils.getErrorMessage(e);
+      if (msg.startsWith('Insufficant')) throw Exception(ErrorMessages.noFunds);
+      loggerNoLine.e('${eventSendStatus.relay} getStamp failed: $msg');
+      throw Exception(msg);
+    }
+    String message = eventSendStatus.rawEvent!;
+    message = message.substring(0, message.length - 1);
+    message += ',"${cashuA.token}"]';
+    eventSendStatus.rawEvent = message;
+    return eventSendStatus;
   }
 
   // new a websocket channel for this relay
-  Future addChannel(Relay relay, [List<String> pubkeys = const []]) async {
+  Future addChannel(Relay relay, {Function? connectedCallback}) async {
     WebsocketService ws = this;
     RelayWebsocket rw = RelayWebsocket(relay, ws);
     channels[relay.url] = rw;
@@ -61,41 +85,87 @@ class WebsocketService extends GetxService {
       return;
     }
 
-    rw = await _startConnectRelay(rw);
-    if (pubkeys.isNotEmpty) {
-      DateTime since =
-          await MessageService.instance.getNostrListenStartAt(relay.url);
-      rw.listenPubkeys(pubkeys, since);
-    }
+    await _startConnectRelay(rw, connectedCallback: () async {
+      logger.d('relay: ${relay.url} connected, callback');
+      if (connectedCallback != null) {
+        connectedCallback();
+      }
+    });
   }
 
-  Future checkOnlineAndConnect() async {
+  addFaiedEvents(String relay, String raw) {
+    if (failedEventsMap[relay] == null) {
+      failedEventsMap[relay] = {};
+    }
+    failedEventsMap[relay]!.add(raw);
+  }
+
+  Future checkOnlineAndConnect([List<RelayWebsocket>? list]) async {
     loggerNoLine.d('checkOnlineAndConnect all relays');
-    // fix ConcurrentModificationError
-    for (RelayWebsocket rw in List.from(channels.values)) {
+    // fix ConcurrentModificationError List.from([list??channels.values])
+    for (RelayWebsocket rw in list ?? channels.values) {
       if (rw.relay.active == false) continue;
       rw.checkOnlineStatus().then((relayStatus) {
         if (!relayStatus) {
-          rw.channel?.sink.close();
-          _startConnectRelay(rw, true);
+          rw.channel?.close();
+          _startConnectRelay(rw);
         }
       });
     }
   }
 
-  deleteRelay(Relay value) {
-    if (channels[value.url] != null) {
-      channels[value.url]!.channel?.sink.close();
-    }
-    channels.remove(value.url);
+  clearFailedEvents(String relay) {
+    failedEventsMap.remove(relay);
   }
 
-  List<RelayWebsocket> getConnectedRelay() {
-    return channels.values
-        .where((element) =>
-            element.channelStatus == RelayStatusEnum.success &&
-            element.channel != null)
-        .toList();
+  Future createChannels([List<Relay> list = const []]) async {
+    WebsocketService ws = this;
+    await Future.wait(list.map((Relay relay) async {
+      RelayWebsocket rw = RelayWebsocket(relay, ws);
+      channels[relay.url] = rw;
+      await _startConnectRelay(rw);
+    }));
+  }
+
+  Future disableRelay(Relay relay) async {
+    relay.active = false;
+    relay.errorMessage = null;
+    await RelayService.instance.update(relay);
+    if (channels[relay.url] != null) {
+      channels[relay.url]!.channel?.close();
+      channels[relay.url]!.relay = relay;
+      channels.refresh();
+    }
+  }
+
+  bool existFreeRelay() {
+    for (var channel in channels.entries) {
+      if (channel.value.isConnected()) {
+        if (relayMessageFeeModels[channel.key]?.amount == 0) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  // fetch info and wait for response data
+  Future<List<NostrEventModel>> fetchInfoFromRelay(
+      String subId, String eventString,
+      {Duration wait = const Duration(seconds: 2),
+      bool waitTimeToFill = false,
+      List<RelayWebsocket>? sockets}) async {
+    sockets ??= getOnlineSocket();
+    if (sockets.isEmpty) {
+      logger.d('Not connected, or the relay not support nips');
+      return [];
+    }
+    for (RelayWebsocket rw in sockets) {
+      rw.sendRawREQ(eventString);
+    }
+    return await SubscribeResult.instance.registerSubscripton(
+        subId, sockets.length,
+        wait: wait, waitTimeToFill: waitTimeToFill);
   }
 
   List<String> getActiveRelayString() {
@@ -108,14 +178,64 @@ class WebsocketService extends GetxService {
     return res;
   }
 
-  List<String> getOnlineRelayString() {
+  getColorByState(ConnectionState? state) {
+    switch (state) {
+      case Connecting _:
+      case Reconnecting _:
+        return Colors.yellow;
+      case Connected _:
+      case Reconnected _:
+        return Colors.green;
+      case Disconnected _:
+      case Disconnecting _:
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Set<String> getFailedEvents(String relay) {
+    return failedEventsMap[relay] ?? {};
+  }
+
+  // List<RelayWebsocket> getOnlineNip104Relay() {
+  //   var list = channels.values
+  //       .where((element) => element.isConnected() && element.channel != null)
+  //       .toList();
+  //   return list.where((element) => element.relay.isEnableNip104).toList();
+  // }
+
+  List<RelayWebsocket> getOnlineSocket() {
+    return channels.values.where((element) => element.isConnected()).toList();
+  }
+
+  List<String> getOnlineSocketString() {
     List<String> res = [];
     for (RelayWebsocket rw in channels.values) {
-      if (rw.channel != null && rw.channelStatus == RelayStatusEnum.success) {
+      if (rw.channel != null && rw.isConnected()) {
         res.add(rw.relay.url);
       }
     }
     return res;
+  }
+
+  EventSendEnum getSendStatusByState(ConnectionState? state) {
+    if (state == null) {
+      return EventSendEnum.noAcitveRelay;
+    }
+    switch (state) {
+      case Connecting _:
+      case Reconnecting _:
+        return EventSendEnum.relayConnecting;
+      case Connected _:
+      case Reconnected _:
+        return EventSendEnum.success;
+      case Disconnected _:
+      case Disconnecting _:
+        return EventSendEnum.relayDisconnected;
+      default:
+        return EventSendEnum.init;
+    }
   }
 
   Future<WebsocketService> init() async {
@@ -131,20 +251,26 @@ class WebsocketService extends GetxService {
   }
 
   listenPubkey(List<String> pubkeys,
-      {DateTime? since, String? relay, int? limit}) {
+      {DateTime? since, String? relay, int? limit, required List<int> kinds}) {
     if (pubkeys.isEmpty) return;
 
     since ??= DateTime.now().subtract(const Duration(days: 7));
     String subId = generate64RandomHexChars(16);
 
-    NostrNip4Req req = NostrNip4Req(
-        reqId: subId, pubkeys: pubkeys, since: since, limit: limit);
+    NostrReqModel req = NostrReqModel(
+        reqId: subId,
+        pubkeys: pubkeys,
+        since: since,
+        limit: limit,
+        kinds: kinds);
     try {
-      Get.find<WebsocketService>().sendReq(req, relay: relay);
+      sendReq(req, relay: relay);
     } catch (e) {
       if (e.toString().contains('RelayDisconnected')) {
         EasyLoading.showToast('Disconnected, Please check your relay server');
+        return;
       }
+      logger.e('listenPubkey error: $e');
     }
   }
 
@@ -155,7 +281,7 @@ class WebsocketService extends GetxService {
     since ??= DateTime.now().subtract(const Duration(days: 2));
     String subId = generate64RandomHexChars(16);
 
-    NostrNip4Req req = NostrNip4Req(
+    NostrReqModel req = NostrReqModel(
         reqId: subId,
         pubkeys: pubkeys,
         since: since,
@@ -165,126 +291,50 @@ class WebsocketService extends GetxService {
     Get.find<WebsocketService>().sendReq(req, relay: relay);
   }
 
-  sendRawReq(String msg) {
-    List<RelayWebsocket> list = getConnectedRelay();
-
-    for (RelayWebsocket rw in list) {
-      rw.sendRawREQ(msg);
-    }
-  }
-
-  // fetch info and wait for response data
-  Future<NostrEventModel?> fetchInfoFromRelay(
-      String subId, String eventString) async {
-    List<RelayWebsocket> list = getConnectedRelay();
-    if (list.isEmpty) throw Exception('Not connected with relay server');
-    for (RelayWebsocket rw in list) {
-      rw.sendRawREQ(eventString);
-    }
-    return await SubscribeResult.instance
-        .registerSubscripton(subId, list.length, const Duration(seconds: 2));
-  }
-
-  sendReq(NostrNip4Req nostrReq,
-      {String? relay, Function(String relay)? callback}) {
-    if (relay != null && channels[relay] != null) {
-      return channels[relay]!.sendREQ(nostrReq);
-    }
-    int sent = 0;
-    for (RelayWebsocket rw in channels.values) {
-      if (rw.channelStatus != RelayStatusEnum.success || rw.channel == null) {
-        continue;
-      }
-      sent++;
-      rw.sendREQ(nostrReq);
-      if (callback != null) {
-        callback(rw.relay.url);
+  Future localFeesConfigFromLocalStorage() async {
+    Map map1 = await Storage.getLocalStorageMap(
+        StorageKeyString.relayMessageFeeConfig);
+    for (var entry in map1.entries) {
+      if (entry.value.keys.length > 0) {
+        relayMessageFeeModels[entry.key] =
+            RelayMessageFee.fromJson(entry.value);
       }
     }
-    if (sent == 0) throw Exception('RelayDisconnected');
+
+    Map map2 =
+        await Storage.getLocalStorageMap(StorageKeyString.relayFileFeeConfig);
+    for (var entry in map2.entries) {
+      if (entry.value.keys.length > 0) {
+        relayFileFeeModels[entry.key] = RelayFileFee.fromJson(entry.value);
+      }
+    }
   }
 
-  sendMessage(String content, [List<String>? relays]) {
-    if (relays != null && relays.isNotEmpty) {
-      int sent = 0;
-      for (String relay in relays) {
-        if (channels[relay] != null &&
-            channels[relay]!.channelStatus == RelayStatusEnum.success &&
-            channels[relay]!.channel != null) {
-          channels[relay]!.sendRawREQ(content);
-          sent++;
+  @override
+  void onReady() {
+    super.onReady();
+    localFeesConfigFromLocalStorage();
+    RelayService.instance.initRelayFeeInfo();
+  }
+
+  refreshMainRelayStatus() {
+    EasyDebounce.debounce('refreshMainRelayStatus', Duration(seconds: 1),
+        () async {
+      int success = getOnlineSocket().length;
+      loggerNoLine.d('refreshMainRelayStatus, online: $success');
+      if (success > 0) {
+        return await setRelayStatusInt(RelayStatusEnum.connected.name);
+      }
+
+      if (success == 0) {
+        int diff = DateTime.now().millisecondsSinceEpoch -
+            initAt.millisecondsSinceEpoch;
+        if (diff > 4000) {
+          return await setRelayStatusInt(RelayStatusEnum.allFailed.name);
         }
       }
-      if (sent > 0) return;
-    }
-
-    int sent = 0;
-    for (RelayWebsocket rw in channels.values) {
-      if (rw.channelStatus != RelayStatusEnum.success || rw.channel == null) {
-        continue;
-      }
-      sent++;
-      rw.sendRawREQ(content);
-    }
-    if (sent == 0) throw Exception('Not connected with relay server');
-  }
-
-  setChannelStatus(String relay, RelayStatusEnum status,
-      [String? errorMessage]) {
-    channels[relay]?.channelStatus = status;
-    if (channels[relay] != null) {
-      channels[relay]!.relay.errorMessage = errorMessage;
-    }
-
-    int success = channels.values
-        .where((RelayWebsocket element) =>
-            element.channelStatus == RelayStatusEnum.success)
-        .length;
-
-    if (success > 0) return setRelayStatusInt(RelayStatusEnum.success.name);
-
-    if (success == 0) {
-      int diff =
-          DateTime.now().millisecondsSinceEpoch - initAt.millisecondsSinceEpoch;
-      if (diff > 2000) {
-        return setRelayStatusInt(RelayStatusEnum.allFailed.name);
-      }
-    }
-    setRelayStatusInt(RelayStatusEnum.connecting.name);
-  }
-
-  String? lastRelayStatus;
-  Future setRelayStatusInt(String name) async {
-    lastRelayStatus = name;
-    EasyDebounce.debounce(
-        'setRelayStatusInt', const Duration(milliseconds: 100), () {
-      relayStatusInt.value = lastRelayStatus ?? name;
-      channels.refresh();
+      await setRelayStatusInt(RelayStatusEnum.connecting.name);
     });
-  }
-
-  bool startLock = false;
-  Future start([List<Relay>? list]) async {
-    if (startLock) return;
-    try {
-      startLock = true;
-      NostrAPI.instance.processedEventIds.clear();
-      initAt = DateTime.now();
-      SubscribeEventStatus.clear();
-      await stopListening();
-      list ??= await RelayService.instance.list();
-      await createChannels(list);
-    } finally {
-      startLock = false;
-    }
-  }
-
-  Future stopListening() async {
-    for (RelayWebsocket rw in channels.values) {
-      rw.channel?.sink.close();
-      rw.channel = null;
-    }
-    channels.clear();
   }
 
   removePubkeyFromSubscription(String pubkey) {
@@ -306,16 +356,137 @@ class WebsocketService extends GetxService {
     }
   }
 
-  void updateRelayWidget(Relay value) {
-    if (channels[value.url] != null) {
-      if (!value.active) {
-        channels[value.url]!.channelStatus = RelayStatusEnum.noAcitveRelay;
+  int sendMessage(String content, [List<String>? relays]) {
+    if (relays != null && relays.isNotEmpty) {
+      int sent = 0;
+      for (String relay in relays) {
+        if (channels[relay] != null &&
+            channels[relay]!.isConnected() &&
+            channels[relay]!.channel != null) {
+          channels[relay]!.sendRawREQ(content);
+          sent++;
+        }
       }
-      channels[value.url]!.relay = value;
-      channels.refresh();
-    } else {
-      addChannel(value);
+      if (sent > 0) return sent;
     }
+
+    int sent = 0;
+    for (RelayWebsocket rw in channels.values) {
+      if (rw.isConnecting() || rw.isDisConnected()) {
+        continue;
+      }
+      sent++;
+      rw.sendRawREQ(content);
+    }
+    if (sent == 0) {
+      throw Exception(
+          'Not connected any relay server, please check your network');
+    }
+
+    return sent;
+  }
+
+  /// * content: nostr event model json string
+  sendMessageWithCallback(String content,
+      {List<String>? relays,
+      Function(
+              {required String relay,
+              required String eventId,
+              required bool status,
+              String? errorMessage})?
+          callback}) {
+    if (callback != null) {
+      try {
+        var map = jsonDecode(content);
+        if (map['id'] != null) {
+          NostrAPI.instance.setOKCallback(map['id'], callback);
+        }
+        // ignore: empty_catches
+      } catch (e) {}
+    }
+    if (relays != null && relays.isNotEmpty) {
+      int sent = 0;
+      for (String relay in relays) {
+        if (channels[relay] != null &&
+            channels[relay]!.isConnected() &&
+            channels[relay]!.channel != null) {
+          channels[relay]!.sendRawREQ("[\"EVENT\",$content]");
+          sent++;
+        }
+      }
+      if (sent > 0) return;
+    }
+
+    int sent = 0;
+    for (RelayWebsocket rw in channels.values) {
+      if (rw.isConnecting() || rw.isDisConnected()) {
+        continue;
+      }
+      sent++;
+      rw.sendRawREQ("[\"EVENT\",$content]");
+    }
+    if (sent == 0) {
+      throw Exception(
+          'Not connected any relay server, please check your network');
+    }
+  }
+
+  sendRawReq(String msg) {
+    List<RelayWebsocket> list = getOnlineSocket();
+
+    for (RelayWebsocket rw in list) {
+      rw.sendRawREQ(msg);
+    }
+  }
+
+  sendReq(NostrReqModel nostrReq,
+      {String? relay, Function(String relay)? callback}) {
+    if (relay != null && channels[relay] != null) {
+      return channels[relay]!.sendREQ(nostrReq);
+    }
+    int sent = 0;
+    for (RelayWebsocket rw in channels.values) {
+      if (rw.isDisConnected() || rw.isConnecting()) {
+        continue;
+      }
+      sent++;
+      rw.sendREQ(nostrReq);
+      if (callback != null) {
+        callback(rw.relay.url);
+      }
+    }
+    if (sent == 0) throw Exception('RelayDisconnected');
+  }
+
+  Future setRelayStatusInt(String name) async {
+    lastRelayStatus = name;
+    EasyDebounce.debounce(
+        'setRelayStatusInt', const Duration(milliseconds: 100), () {
+      relayStatusInt.value = lastRelayStatus ?? name;
+      channels.refresh();
+    });
+  }
+
+  Future start([List<Relay>? list]) async {
+    if (startLock) return;
+    try {
+      startLock = true;
+      NostrAPI.instance.processedEventIds.clear();
+      initAt = DateTime.now();
+      SubscribeEventStatus.clear();
+      await stopListening();
+      list ??= await RelayService.instance.list();
+      await createChannels(list);
+    } finally {
+      startLock = false;
+    }
+  }
+
+  Future stopListening() async {
+    for (RelayWebsocket rw in channels.values) {
+      rw.channel?.close();
+    }
+    channels.clear();
   }
 
   Future<List<String>> writeNostrEvent(
@@ -324,7 +495,12 @@ class WebsocketService extends GetxService {
       required int roomId,
       List<String> toRelays = const []}) async {
     List<String> activeRelays = _getTargetRelays(toRelays);
-
+    if (activeRelays.isEmpty) {
+      if (toRelays.isNotEmpty) {
+        throw Exception('${toRelays.join(',')} not connected');
+      }
+      throw Exception('No active relay');
+    }
     SubscribeEventStatus.addSubscripton(event.id, activeRelays.length);
 
     String rawEvent = "[\"EVENT\",$eventString]";
@@ -349,7 +525,7 @@ class WebsocketService extends GetxService {
           return;
         }
 
-        if (rw.channelStatus == RelayStatusEnum.success) {
+        if (rw.isConnected()) {
           try {
             ess = await addCashuToMessage(roomId, ess);
           } catch (e) {
@@ -371,7 +547,7 @@ class WebsocketService extends GetxService {
           results.add(ess);
           return;
         }
-        ess.sendStatus = getSendStatusByRelayStatus(rw.channelStatus);
+        ess.sendStatus = getSendStatusByState(rw.channel?.connection.state);
         results.add(ess);
       });
     }
@@ -421,171 +597,42 @@ class WebsocketService extends GetxService {
     if (activeRelays.isEmpty) {
       throw Exception('No active relay');
     }
-    if (toRelays.isNotEmpty) {
-      List<String> activeTargetRelays =
-          activeRelays.where((element) => toRelays.contains(element)).toList();
-      if (activeTargetRelays.isNotEmpty) {
-        activeRelays = activeTargetRelays;
-      }
-    }
-    return activeRelays;
-  }
-
-  Future<NostrEventStatus> addCashuToMessage(
-      int roomId, NostrEventStatus eventSendStatus) async {
-    RelayMessageFee? payInfoModel =
-        relayMessageFeeModels[eventSendStatus.relay];
-    if (payInfoModel == null) return eventSendStatus;
-    if (payInfoModel.amount == 0) return eventSendStatus;
-    CashuInfoModel? cashuA;
-    try {
-      cashuA = await CashuUtil.getStamp(
-          amount: payInfoModel.amount,
-          token: payInfoModel.unit.name,
-          mints: payInfoModel.mints);
-      eventSendStatus.ecashName = payInfoModel.unit.name;
-      double amount = (payInfoModel.amount).toDouble();
-      eventSendStatus.ecashAmount = amount;
-      eventSendStatus.ecashToken = cashuA.token;
-      eventSendStatus.ecashMint = cashuA.mint;
-    } catch (e) {
-      String msg = Utils.getErrorMessage(e);
-      if (msg.startsWith('Insufficant')) throw Exception(ErrorMessages.noFunds);
-      loggerNoLine.e('${eventSendStatus.relay} getStamp failed: $msg');
-      throw Exception(msg);
-    }
-    String message = eventSendStatus.rawEvent!;
-    message = message.substring(0, message.length - 1);
-    message += ',"${cashuA.token}"]';
-    eventSendStatus.rawEvent = message;
-    return eventSendStatus;
-  }
-
-  Future createChannels([List<Relay> list = const []]) async {
-    WebsocketService ws = this;
-    await Future.wait(list.map((Relay relay) async {
-      RelayWebsocket rw = RelayWebsocket(relay, ws);
-      channels[relay.url] = rw;
-      await _startConnectRelay(rw);
-    }));
+    if (toRelays.isEmpty) return activeRelays;
+    return activeRelays.where((element) => toRelays.contains(element)).toList();
   }
 
   Future<RelayWebsocket> _startConnectRelay(RelayWebsocket rw,
-      [bool ignoreFailedTime = false]) async {
+      {Function? connectedCallback}) async {
     if (rw.relay.active == false) {
       return rw;
     }
 
-    if (rw.failedTimes > failedTimesLimit && !ignoreFailedTime) {
-      rw.channelStatus = RelayStatusEnum.failed;
-      rw.channel?.sink.close();
-      clearFailedEvents(rw.relay.url);
-      return rw;
-    }
+    loggerNoLine.i('start connect ${rw.relay.url}');
 
-    loggerNoLine
-        .i('start connect ${rw.relay.url}, failedTimes: ${rw.failedTimes}');
-
-    final channel = IOWebSocketChannel.connect(Uri.parse(rw.relay.url),
+    rw.channel = WebSocket(Uri.parse(rw.relay.url),
         pingInterval: const Duration(seconds: 10),
-        connectTimeout: const Duration(seconds: 8));
+        timeout: const Duration(seconds: 8),
+        backoff: LinearBackoff(
+          initial: Duration(seconds: 0),
+          increment: Duration(seconds: 2),
+          maximum: Duration(seconds: 16),
+        ));
 
-    rw.connecting();
-    rw.channel = channel;
-
-    String? errorMessage;
-    channel.stream.listen((message) {
+    rw.channel!.messages.listen((message) {
       nostrAPI.addNostrEventToQueue(rw.relay, message);
-    }, onDone: () {
-      logger.d('${rw.relay.url} websocket onDone');
-      onErrorProcess(rw.relay.url, errorMessage);
-    }, onError: (e) {
-      errorMessage = e.toString();
-      logger.e('${rw.relay.url} onError ${e.toString()}');
-      onErrorProcess(rw.relay.url, errorMessage);
     });
-
-    try {
-      await channel.ready;
-      rw.connectSuccess(channel);
-    } catch (e, s) {
-      logger.e(e.toString(), error: e, stackTrace: s);
-      onErrorProcess(rw.relay.url, e.toString());
-      return rw;
-    }
-
-    return rw;
-  }
-
-  bool existFreeRelay() {
-    for (var channel in channels.entries) {
-      if (channel.value.channelStatus == RelayStatusEnum.success) {
-        if (relayMessageFeeModels[channel.key]?.amount == 0) {
-          return true;
+    rw.channel!.connection.listen((ConnectionState state) {
+      if (state is Connected || state is Reconnected) {
+        rw.connectSuccess();
+        if (connectedCallback != null) {
+          connectedCallback();
         }
       }
-    }
-    return false;
-  }
 
-  Future localFeesConfigFromLocalStorage() async {
-    Map map1 = await Storage.getLocalStorageMap(
-        StorageKeyString.relayMessageFeeConfig);
-    for (var entry in map1.entries) {
-      if (entry.value.keys.length > 0) {
-        relayMessageFeeModels[entry.key] =
-            RelayMessageFee.fromJson(entry.value);
-      }
-    }
-
-    Map map2 =
-        await Storage.getLocalStorageMap(StorageKeyString.relayFileFeeConfig);
-    for (var entry in map2.entries) {
-      if (entry.value.keys.length > 0) {
-        relayFileFeeModels[entry.key] = RelayFileFee.fromJson(entry.value);
-      }
-    }
-  }
-
-  void onErrorProcess(String relay, [String? errorMessage]) {
-    EasyDebounce.debounce(
-        '_startConnectRelay_$relay', const Duration(milliseconds: 1000),
-        () async {
-      if (channels[relay] == null) return;
-      channels[relay]?.disconnected(errorMessage);
-      logger.d(
-          '$relay onErrorProcess _reconnectTimes: ${channels[relay]?.failedTimes}');
-      await _startConnectRelay(channels[relay]!);
+      // update the main page status
+      refreshMainRelayStatus();
     });
-  }
 
-  EventSendEnum getSendStatusByRelayStatus(RelayStatusEnum channelStatus) {
-    switch (channelStatus) {
-      case RelayStatusEnum.init:
-        return EventSendEnum.init;
-      case RelayStatusEnum.noAcitveRelay:
-        return EventSendEnum.noAcitveRelay;
-      case RelayStatusEnum.connecting:
-        return EventSendEnum.relayConnecting;
-      case RelayStatusEnum.failed:
-        return EventSendEnum.relayDisconnected;
-      default:
-        return EventSendEnum.init;
-    }
-  }
-
-  Set<String> getFailedEvents(String relay) {
-    return failedEventsMap[relay] ?? {};
-  }
-
-  addFaiedEvents(String relay, String raw) {
-    if (failedEventsMap[relay] == null) {
-      failedEventsMap[relay] = {};
-    }
-    failedEventsMap[relay]!.add(raw);
-  }
-
-  clearFailedEvents(String relay) {
-    failedEventsMap.remove(relay);
+    return rw;
   }
 }

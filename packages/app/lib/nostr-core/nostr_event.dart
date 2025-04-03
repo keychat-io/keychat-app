@@ -92,10 +92,8 @@ class NostrEventModel {
   }) {
     pubkey = pubkey.toLowerCase();
   }
-  bool get isSignal =>
-      kind == EventKinds.encryptedDirectMessage && !content.contains('?iv=');
-  bool get isNip4 =>
-      kind == EventKinds.encryptedDirectMessage && content.contains('?iv=');
+  bool get isSignal => kind == EventKinds.nip04 && !content.contains('?iv=');
+  bool get isNip4 => kind == EventKinds.nip04 && content.contains('?iv=');
   MessageEncryptType get encryptType => kind == EventKinds.nip17
       ? MessageEncryptType.nip17
       : (isSignal ? MessageEncryptType.signal : MessageEncryptType.nip4);
@@ -173,7 +171,8 @@ class NostrEventModel {
         'content': content,
         'sig': sig
       };
-  String toJsonString() => jsonEncode(toJson());
+  @override
+  String toString() => jsonEncode(toJson());
 
   /// Serialize to nostr event message
   /// - ["EVENT", event JSON as defined above]
@@ -236,5 +235,18 @@ class NostrEventModel {
       subscriptionId: subscriptionId,
       verify: verify,
     );
+  }
+
+  List<String>? getTagsByKey(String key) {
+    Map<String, List<String>> tagsMap = {};
+    for (var tag in tags) {
+      tagsMap[tag[0]] = tag.sublist(1);
+    }
+    return tagsMap[key];
+  }
+
+  String? getTagByKey(String key) {
+    List<String>? tagsMap = getTagsByKey(key);
+    return tagsMap?[0];
   }
 }

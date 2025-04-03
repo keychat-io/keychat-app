@@ -24,10 +24,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart';
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:settings_ui/settings_ui.dart';
 
-import '../../models/db_provider.dart';
 import '../../service/file_util.dart';
 import '../../service/message.service.dart';
 import '../components.dart';
@@ -41,10 +41,10 @@ class MessageWidget extends StatelessWidget {
   final Color fontColor;
   final Color backgroundColor;
   late int index;
-  late ChatController chatController;
+  late ChatController cc;
   List<String> addTimeList = [];
   RoomMember? roomMember;
-  late Contact contact;
+  // late Contact contact;
   late double screenWidth;
   late bool isGroup;
   late Color toDisplayNameColor;
@@ -55,16 +55,15 @@ class MessageWidget extends StatelessWidget {
       {super.key,
       required this.myAavtar,
       required this.index,
-      required this.contact,
       required this.isGroup,
-      required this.chatController,
+      required this.cc,
       required this.fontColor,
       required this.backgroundColor,
       required this.screenWidth,
       required this.toDisplayNameColor,
       required this.markdownConfig,
       this.roomMember}) {
-    message = chatController.messages[index];
+    message = cc.messages[index];
   }
 
   @override
@@ -72,9 +71,9 @@ class MessageWidget extends StatelessWidget {
     return Column(
       children: [
         Visibility(
-          visible: (index == chatController.messages.length - 1) ||
+          visible: (index == cc.messages.length - 1) ||
               message.createdAt.minute !=
-                  chatController.messages[index + 1].createdAt.minute,
+                  cc.messages[index + 1].createdAt.minute,
           child: Container(
             margin: const EdgeInsets.only(top: 2),
             child: Text(
@@ -95,11 +94,11 @@ class MessageWidget extends StatelessWidget {
   }
 
   Widget encryptInfo() {
-    if (chatController.room.type != RoomType.common) {
+    if (cc.roomObs.value.type != RoomType.common) {
       return Container();
     }
 
-    if (chatController.roomContact.value.name == 'Note to Self') {
+    if (cc.roomContact.value.name == 'Note to Self') {
       return Container();
     }
     return _getEncryptMode(message);
@@ -211,7 +210,7 @@ class MessageWidget extends StatelessWidget {
     var style = TextStyle(
         fontSize: 12,
         color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6));
-    return chatController.showFromAndTo.value
+    return cc.showFromAndTo.value
         ? Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(5),
@@ -234,7 +233,7 @@ class MessageWidget extends StatelessWidget {
                           overflow: TextOverflow.ellipsis, style: style),
                     if (message.receiveAt != null)
                       Text(
-                          'ReceiveAt: ${formatTime(message.receiveAt!.millisecondsSinceEpoch, 'yyyy-MM-dd HH:mm:ss:SSS')}',
+                          'Received: ${formatTime(message.receiveAt!.millisecondsSinceEpoch, 'yyyy-MM-dd HH:mm:ss:SSS')}',
                           overflow: TextOverflow.ellipsis,
                           style: style),
                   ]),
@@ -293,21 +292,19 @@ class MessageWidget extends StatelessWidget {
 
                       if (message.reply != null) {
                         Identity identity = Get.find<HomeController>()
-                            .allIdentities[chatController.room.identityId]!;
+                            .allIdentities[cc.roomObs.value.identityId]!;
                         message.fromContact = FromContact(
                             identity.secp256k1PKHex, identity.displayName);
                         var decodeContent = jsonDecode(message.content);
                         message.realMessage = message.reply!.content;
-                        chatController.inputReplys.value = [message];
-                        chatController.hideAdd.value = true;
-                        chatController.inputReplys.refresh();
-                        chatController.textEditingController.text =
-                            decodeContent['msg'];
+                        cc.inputReplys.value = [message];
+                        cc.hideAdd.value = true;
+                        cc.inputReplys.refresh();
+                        cc.textEditingController.text = decodeContent['msg'];
                       } else {
-                        chatController.textEditingController.text =
-                            message.content;
+                        cc.textEditingController.text = message.content;
                       }
-                      chatController.chatContentFocus.requestFocus();
+                      cc.chatContentFocus.requestFocus();
                     },
                   ),
               ],
@@ -328,7 +325,7 @@ class MessageWidget extends StatelessWidget {
         onLongPress: _handleTextLongPress,
         child: message.reply == null
             ? RoomUtil.getTextViewWidget(
-                message, chatController, markdownConfig, _textCallback)
+                message, cc, markdownConfig, _textCallback)
             : _getReplyWidget());
 
     if (message.isMeSend) {
@@ -361,7 +358,7 @@ class MessageWidget extends StatelessWidget {
           children: <Widget>[
             Padding(
                 padding: const EdgeInsets.only(left: 5),
-                child: Text(contact.displayName,
+                child: Text(message.senderName ?? message.idPubkey,
                     maxLines: 1,
                     style: TextStyle(fontSize: 14, color: toDisplayNameColor))),
             child
@@ -394,8 +391,7 @@ class MessageWidget extends StatelessWidget {
 
       BotClientMessageModel? bcmm;
       TokenInfo? token;
-      if (message.isMeSend &&
-          chatController.roomObs.value.type == RoomType.bot) {
+      if (message.isMeSend && cc.roomObs.value.type == RoomType.bot) {
         try {
           bcmm = BotClientMessageModel.fromJson(jsonDecode(message.content));
           if (bcmm.payToken != null) {
@@ -418,7 +414,7 @@ class MessageWidget extends StatelessWidget {
       result2.add(event);
     }
 
-    List<RoomMember> members = chatController.members;
+    List<RoomMember> members = cc.members.values.toList();
     _showRawDatas(message, result1, members, result2);
   }
 
@@ -480,28 +476,34 @@ class MessageWidget extends StatelessWidget {
               onLongPress: () {
                 String userName = isGroup
                     ? (roomMember?.name ?? 'Unknow')
-                    : chatController.room.getRoomName();
-                chatController.addMetionName(userName);
-                chatController.chatContentFocus.unfocus();
-                FocusScope.of(Get.context!)
-                    .requestFocus(chatController.chatContentFocus);
+                    : cc.roomObs.value.getRoomName();
+                cc.addMetionName(userName);
+                cc.chatContentFocus.unfocus();
+                FocusScope.of(Get.context!).requestFocus(cc.chatContentFocus);
               },
               onTap: () async {
-                if (contact.pubkey.isEmpty) return;
                 if (isGroup) {
                   await Get.to(() => ContactPage(
                       identityId: message.identityId,
-                      contact: contact,
+                      contact: Contact(
+                          identityId: message.identityId,
+                          npubkey: getBech32PubkeyByHex(hex: message.idPubkey),
+                          pubkey: message.idPubkey)
+                        ..name = message.senderName,
                       title: 'Group Member',
-                      greeting: 'From Group: ${chatController.room.name}'));
+                      greeting: 'From Group: ${cc.roomObs.value.name}'));
                 } else {
                   await Get.toNamed(Routes.roomSettingContact
-                      .replaceFirst(':id', chatController.room.id.toString()));
+                      .replaceFirst(':id', cc.roomObs.value.id.toString()));
                 }
-                await chatController.openPageAction();
+                await cc.openPageAction();
               },
-              child:
-                  Utils.getRandomAvatar(contact.pubkey, height: 40, width: 40),
+              child: Utils.getRandomAvatar(
+                  message.idPubkey.isNotEmpty
+                      ? message.idPubkey
+                      : cc.roomObs.value.toMainPubkey,
+                  height: 40,
+                  width: 40),
             ),
           ),
           Expanded(
@@ -531,8 +533,8 @@ class MessageWidget extends StatelessWidget {
       if (msg != null) {
         if (msg.mediaType == MessageMediaType.image) {
           MsgFileInfo mfi = MsgFileInfo.fromJson(jsonDecode(msg.realMessage!));
-          subTitleChild = RoomUtil.getImageViewWidget(
-              msg, chatController, mfi, _textCallback);
+          subTitleChild =
+              RoomUtil.getImageViewWidget(msg, cc, mfi, _textCallback);
         } else {
           String content = msg.mediaType == MessageMediaType.text
               ? (msg.realMessage ?? msg.content)
@@ -620,7 +622,7 @@ class MessageWidget extends StatelessWidget {
           child: const Text('Delete'),
           onPressed: () async {
             await MessageService.instance.deleteMessageById(message.id);
-            chatController.messages.remove(message);
+            cc.messages.remove(message);
             Get.back();
             try {
               if (message.mediaType == MessageMediaType.file ||
@@ -729,6 +731,7 @@ class MessageWidget extends StatelessWidget {
                               // tableRow('Encrypt',
                               //     encryptText[message.encryptType.name]),
                               tableRow("ID", event.id),
+                              tableRow("Kind", event.kind.toString()),
                               tableRow("From", event.pubkey),
                               tableRow("To", event.tags[0][1]),
                               tableRow(
@@ -800,19 +803,18 @@ class MessageWidget extends StatelessWidget {
                           eventModel?.tags[0][1] ??
                           '';
                       return ExpansionTile(
-                        title: Row(
-                          children: <Widget>[
-                            RoomUtil.getStatusCheckIcon(
-                                eventSendStatus.length, success.length),
-                            const SizedBox(width: 10),
-                            Text('To: ${rm?.name ?? idPubkey}'),
-                          ],
+                        leading: RoomUtil.getStatusCheckIcon(
+                            eventSendStatus.length, success.length),
+                        title: Text(
+                          'To: ${rm?.name ?? idPubkey}',
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
                         ),
                         subtitle: Text(idPubkey),
                         children: <Widget>[
                           relayStatusList(context, eventSendStatus),
                           if (eventModel != null)
-                            ListTile(title: Text(eventModel.toJsonString())),
+                            ListTile(title: Text(eventModel.toString())),
                         ],
                       );
                     })
@@ -822,7 +824,7 @@ class MessageWidget extends StatelessWidget {
 
   _handleForward(BuildContext context) {
     Get.back();
-    var identity = chatController.room.getIdentity();
+    var identity = cc.roomObs.value.getIdentity();
     if (message.isMediaType) {
       RoomUtil.forwardMediaMessage(identity,
           mediaType: message.mediaType,
@@ -838,17 +840,17 @@ class MessageWidget extends StatelessWidget {
     Get.back();
     if (message.isMeSend) {
       Identity identity = Get.find<HomeController>()
-          .allIdentities[chatController.room.identityId]!;
+          .allIdentities[cc.roomObs.value.identityId]!;
       message.fromContact =
           FromContact(identity.secp256k1PKHex, identity.displayName);
     } else {
-      message.fromContact = FromContact(contact.pubkey, contact.displayName);
+      message.fromContact =
+          FromContact(message.idPubkey, message.senderName ?? message.idPubkey);
     }
-    chatController.inputReplys.value = [message];
-    chatController.hideAdd.value = true;
-    chatController.inputReplys.refresh();
-    FocusScope.of(chatController.context ?? context)
-        .requestFocus(chatController.chatContentFocus);
+    cc.inputReplys.value = [message];
+    cc.hideAdd.value = true;
+    cc.inputReplys.refresh();
+    FocusScope.of(cc.context ?? context).requestFocus(cc.chatContentFocus);
   }
 
   void _handleTextLongPress() async {
@@ -877,7 +879,7 @@ class MessageWidget extends StatelessWidget {
                       onPressed: (context) async {
                         String conent = message.content;
                         if (message.realMessage != null &&
-                            chatController.roomObs.value.type == RoomType.bot) {
+                            cc.roomObs.value.type == RoomType.bot) {
                           conent = message.realMessage!;
                         }
                         Clipboard.setData(ClipboardData(text: conent));

@@ -4,6 +4,11 @@ https://keepachangelog.com/zh-CN/1.1.0
 
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
+## 1.30.3+6339
+1. Upgrade mls group, compatible with NIP104.
+2. Change websocket lib to `web_socket_client`
+3. Code Style
+
 ## 1.29.1+6331
 1. Delete the kdf and shared-key group rooms.
 2. Integrated with NIP-47(Nostr wallet connect).

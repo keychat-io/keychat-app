@@ -62,16 +62,14 @@ class _InviteMemberToMLSState extends State<InviteMemberToMLS>
       EasyLoading.showError("Please select at least one user");
       return;
     }
-    String myPubkey = widget.room.getIdentity().secp256k1PKHex;
-    RoomMember? meMember = await widget.room.getMember(myPubkey);
 
     try {
       Room groupRoom =
           await RoomService.instance.getRoomByIdOrFail(widget.room.id);
-      String sender = meMember == null ? myPubkey : meMember.name;
+      String sender = widget.room.getIdentity().displayName;
 
       await MlsGroupService.instance
-          .inviteToJoinGroup(groupRoom, selectUsers, sender);
+          .addMemeberToGroup(groupRoom, selectUsers, sender);
 
       // update message status
       for (int i = 0; i < selectedMessages.length; i++) {

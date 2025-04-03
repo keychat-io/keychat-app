@@ -1,30 +1,38 @@
 import 'dart:convert';
 
 import 'package:app/bot/bot_server_message_model.dart';
+
 import 'package:app/controller/home.controller.dart';
-import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 
 import 'package:app/models/signal_id.dart';
 import 'package:app/service/chatx.service.dart';
-import 'package:app/service/message.service.dart';
-import 'package:app/service/notify.service.dart';
+import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/room.service.dart';
-import 'package:app/service/signalId.service.dart';
-import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:equatable/equatable.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_signal.dart';
 
-import 'db_provider.dart';
-
 part 'room.g.dart';
 
-enum RoomType { common, private, group, bot }
+enum RoomType {
+  common,
+  @Deprecated('use common instead')
+  private,
+  group,
+  bot
+}
 
-enum GroupType { shareKey, sendAll, kdf, mls }
+enum GroupType {
+  @Deprecated('use mls instead')
+  shareKey,
+  sendAll,
+  @Deprecated('use mls instead')
+  kdf,
+  mls
+}
 
 enum EncryptMode { nip04, signal }
 
@@ -77,7 +85,7 @@ class Room extends Equatable {
   late EncryptMode encryptMode = EncryptMode.nip04;
 
   @Enumerated(EnumType.ordinal32)
-  GroupType groupType = GroupType.shareKey;
+  GroupType groupType = GroupType.mls;
 
   @Enumerated(EnumType.ordinal32)
   late RoomStatus status;
@@ -117,20 +125,24 @@ class Room extends Equatable {
   // relays
   List<String> receivingRelays = [];
   List<String> sendingRelays = [];
+  bool sentHelloToMLS = false; // for mls group
 
   Room(
       {required this.toMainPubkey,
       required this.npub,
       required this.identityId,
-      required this.status,
+      this.status = RoomStatus.enabled,
       this.type = RoomType.common}) {
     createdAt = DateTime.now();
   }
 
   bool get isSendAllGroup =>
       groupType == GroupType.sendAll && type == RoomType.group;
+  @Deprecated('shareKey Group is deprecated')
   bool get isShareKeyGroup =>
       groupType == GroupType.shareKey && type == RoomType.group;
+
+  @Deprecated('KDF Group is deprecated')
   bool get isKDFGroup => groupType == GroupType.kdf && type == RoomType.group;
   bool get isMLSGroup => groupType == GroupType.mls && type == RoomType.group;
 
@@ -196,25 +208,6 @@ class Room extends Equatable {
     return res;
   }
 
-  Future<RoomMember?> getMemberByIdPubkey(String pubkey) async {
-    Isar database = DBProvider.database;
-
-    return await database.roomMembers
-        .filter()
-        .roomIdEqualTo(id)
-        .idPubkeyEqualTo(pubkey)
-        .findFirst();
-  }
-
-  Future<RoomMember?> getMember(String pubkey) async {
-    Isar database = DBProvider.database;
-    return await database.roomMembers
-        .filter()
-        .roomIdEqualTo(id)
-        .idPubkeyEqualTo(pubkey)
-        .findFirst();
-  }
-
   Future<RoomMember?> getEnableMember(String pubkey) async {
     Isar database = DBProvider.database;
     return await database.roomMembers
@@ -225,19 +218,30 @@ class Room extends Equatable {
         .findFirst();
   }
 
-  Future<List<RoomMember>> getMembers() async {
-    return await DBProvider.database.roomMembers
+  Future<Map<String, RoomMember>> getMembers() async {
+    Map<String, RoomMember> map = {};
+    var list = await DBProvider.database.roomMembers
         .filter()
         .roomIdEqualTo(id)
         .findAll();
+    for (var rm in list) {
+      map[rm.idPubkey] = rm;
+    }
+    return map;
   }
 
-  Future<List<RoomMember>> getEnableMembers() async {
-    return await DBProvider.database.roomMembers
+  Future<Map<String, RoomMember>> getEnableMembers() async {
+    Map<String, RoomMember> map = {};
+
+    var list = await DBProvider.database.roomMembers
         .filter()
         .roomIdEqualTo(id)
         .statusEqualTo(UserStatusType.invited)
         .findAll();
+    for (var rm in list) {
+      map[rm.idPubkey] = rm;
+    }
+    return map;
   }
 
   Future<List<RoomMember>> getNotEnableMembers() async {
@@ -270,23 +274,27 @@ class Room extends Equatable {
   }
 
   Future<bool> checkAdminByIdPubkey(String pubkey) async {
-    int count = await DBProvider.database.roomMembers
-        .filter()
-        .roomIdEqualTo(id)
-        .idPubkeyEqualTo(pubkey)
-        .isAdminEqualTo(true)
-        .count();
-    return count > 0;
+    String? admin = await getAdmin();
+    if (admin == null) return false;
+    return admin == pubkey;
   }
 
-  Future<RoomMember?> getAdmin() async {
+  Future<String?> getAdmin() async {
     Isar database = DBProvider.database;
-
-    return await database.roomMembers
+    if (isMLSGroup) {
+      var info = await MlsGroupService.instance.getGroupExtension(this);
+      if (info.admins.isEmpty) {
+        return null;
+      } else {
+        return info.admins[0];
+      }
+    }
+    RoomMember? rm = await database.roomMembers
         .filter()
         .roomIdEqualTo(id)
         .isAdminEqualTo(true)
         .findFirst();
+    return rm?.idPubkey;
   }
 
   // metadata
@@ -477,8 +485,8 @@ class Room extends Equatable {
 
   Future<Map<String, Room>> getEnableMemberRooms() async {
     Map<String, Room> memberRooms = {};
-    List<RoomMember> rms = await getEnableMembers();
-    for (RoomMember rm in rms) {
+    var rms = await getEnableMembers();
+    for (RoomMember rm in rms.values) {
       if (rm.idPubkey == myIdPubkey) continue;
 
       Room idRoom = await RoomService.instance.getOrCreateRoom(
@@ -489,9 +497,28 @@ class Room extends Equatable {
     return memberRooms;
   }
 
+  Future<RoomMember?> getMemberByIdPubkey(String pubkey) async {
+    RoomMember? member =
+        RoomService.getController(id)?.getMemberByIdPubkey(pubkey);
+    if (member != null) {
+      return member;
+    }
+    if (isMLSGroup) {
+      Map<String, RoomMember> map =
+          await MlsGroupService.instance.getMembers(this);
+      return map[pubkey];
+    }
+
+    if (isSendAllGroup) {
+      RoomMember? rm = await getMemberByIdPubkey(pubkey);
+      return rm;
+    }
+    return null;
+  }
+
   Future<Map<String, Room>> getActiveMemberRooms(Mykey mainMykey) async {
     Map<String, Room> memberRooms = {};
-    List<RoomMember> rms = await getMembers();
+    List<RoomMember> rms = (await getMembers()).values.toList();
     for (RoomMember rm in rms) {
       if (rm.idPubkey == mainMykey.pubkey) continue;
 
@@ -541,35 +568,6 @@ class Room extends Equatable {
     }
   }
 
-  // clear keys. if receive all member's prekey message
-  // clear keys. if reach the expired time
-  Future checkAndCleanSignalKeys() async {
-    if (groupType != GroupType.kdf) return;
-    int count = await DBProvider.database.roomMembers
-        .filter()
-        .roomIdEqualTo(id)
-        .messageCountLessThan(KeychatGlobal.kdfGroupPrekeyMessageCount + 1)
-        .group((q) => q
-            .statusEqualTo(UserStatusType.invited)
-            .or()
-            .statusEqualTo(UserStatusType.inviting))
-        .count();
-    SignalId? signalId =
-        await SignalIdService.instance.getSignalIdByPubkey(sharedSignalID);
-    if (signalId == null) return;
-    if (count > 0) {
-      DateTime expiredAt = signalId.updatedAt
-          .add(Duration(days: KeychatGlobal.kdfGroupKeysExpired));
-      if (expiredAt.isAfter(DateTime.now())) return; // not need to delete keys
-    }
-    if (signalId.keys == null || (signalId.keys?.isEmpty ?? true)) return;
-    logger.i('clean signal keys: $toMainPubkey');
-    signalId.keys = "";
-    await SignalIdService.instance.updateSignalId(signalId);
-    MessageService.instance
-        .saveSystemMessage(this, 'Clear shared signal-id-keys successfully');
-  }
-
   String getDebugInfo(String error) {
     return '''$error
 Room: $id, ${getRoomName()} $toMainPubkey,
@@ -587,25 +585,5 @@ Please reset room's session: Chat Setting-> Security Settings -> Reset Session''
       return null;
     }
     return bmd;
-  }
-
-  Future<Room> replaceListenPubkey(String newPubkey, int startAt,
-      [String? toDeletePubkey]) async {
-    onetimekey = newPubkey;
-    await RoomService.instance.updateRoomAndRefresh(this);
-
-    var ws = Get.find<WebsocketService>();
-    if (toDeletePubkey != null) {
-      ws.removePubkeyFromSubscription(toDeletePubkey);
-      if (isMute == false) {
-        NotifyService.removePubkeys([toDeletePubkey]);
-      }
-    }
-    await ws.listenPubkey([newPubkey],
-        since: DateTime.fromMillisecondsSinceEpoch(startAt));
-    if (isMute == false) {
-      NotifyService.addPubkeys([newPubkey]);
-    }
-    return this;
   }
 }

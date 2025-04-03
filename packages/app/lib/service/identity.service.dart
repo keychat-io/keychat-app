@@ -1,3 +1,4 @@
+import 'package:app/constants.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
@@ -19,7 +20,6 @@ import 'package:keychat_rust_ffi_plugin/api_signal.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
 
-import '../models/db_provider.dart';
 import 'file_util.dart';
 
 class IdentityService {
@@ -27,7 +27,6 @@ class IdentityService {
   static IdentityService get instance => _instance ??= IdentityService._();
   // Avoid self instance
   IdentityService._();
-  static final DBProvider dbProvider = DBProvider.instance;
 
   Future<bool> checkPrikeyExist(String prikey) async {
     var res = await DBProvider.database.mykeys
@@ -86,7 +85,8 @@ class IdentityService {
     });
     await homeController.loadRoomList(init: true);
     try {
-      Get.find<WebsocketService>().listenPubkey([account.pubkey]);
+      Get.find<WebsocketService>()
+          .listenPubkey([account.pubkey], kinds: [EventKinds.nip04]);
       Get.find<WebsocketService>().listenPubkeyNip17([account.pubkey]);
     } catch (e) {}
 
@@ -128,7 +128,8 @@ class IdentityService {
     });
 
     await Get.find<HomeController>().loadRoomList(init: true);
-    Get.find<WebsocketService>().listenPubkey([hexPubkey]);
+    Get.find<WebsocketService>()
+        .listenPubkey([hexPubkey], kinds: [EventKinds.nip04]);
     Get.find<WebsocketService>().listenPubkeyNip17([hexPubkey]);
     NotifyService.addPubkeys([hexPubkey]);
     MlsGroupService.instance.initIdentities([iden]);
@@ -150,7 +151,8 @@ class IdentityService {
     });
 
     await Get.find<HomeController>().loadRoomList(init: true);
-    Get.find<WebsocketService>().listenPubkey([hexPubkey]);
+    Get.find<WebsocketService>()
+        .listenPubkey([hexPubkey], kinds: [EventKinds.nip04]);
     Get.find<WebsocketService>().listenPubkeyNip17([hexPubkey]);
     NotifyService.addPubkeys([hexPubkey]);
     MlsGroupService.instance.initIdentities([iden]);
@@ -297,7 +299,6 @@ class IdentityService {
 
   Future updateIdentity(Identity identity) async {
     Isar database = DBProvider.database;
-
     await database.writeTxn(() async {
       return await database.identitys.put(identity);
     });
@@ -406,11 +407,16 @@ class IdentityService {
     return prikey;
   }
 
-  Future<List<String>> getRoomPubkeys() async {
+  Future<List<String>> getSignalRoomPubkeys() async {
     List<int> skipedIdentityIds = await getDisableChatIdentityIDList();
     // only listen nip04
     List<String> signal = await ContactService.instance
         .getAllReceiveKeys(skipIDs: skipedIdentityIds);
+    return signal;
+  }
+
+  Future<List<String>> getMlsRoomPubkeys() async {
+    List<int> skipedIdentityIds = await getDisableChatIdentityIDList();
     Set<String> mlsPubkeys = {};
     // mls room's receive key
     List<Room> mlsRooms = await RoomService.instance.getMlsRooms();
@@ -420,7 +426,7 @@ class IdentityService {
       }
       mlsPubkeys.add(room.onetimekey!);
     }
-    return <String>{...signal, ...mlsPubkeys}.toList();
+    return mlsPubkeys.toList();
   }
 
   Future<List<String>> getRoomPubkeysSkipMute() async {

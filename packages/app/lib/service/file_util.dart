@@ -70,8 +70,9 @@ class FileUtils {
       return;
     }
     double progress = count / total;
-    // logger.d('progress: $progress, count: $count ,total: $total');
-    EasyLoading.showProgress(progress, status: status);
+    if (progress > 0.2) {
+      EasyLoading.showProgress(progress, status: status);
+    }
   }
 
   static Widget getImageView(File file,

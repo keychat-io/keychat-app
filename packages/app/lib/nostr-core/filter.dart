@@ -19,6 +19,8 @@ class Filter {
 
   List<String>? t;
 
+  List<String>? h; // mls group
+
   /// a timestamp, events must be newer than this to pass
   int? since;
 
@@ -37,6 +39,7 @@ class Filter {
       this.p,
       this.r,
       this.t,
+      this.h,
       this.since,
       this.until,
       this.limit});
@@ -51,6 +54,7 @@ class Filter {
     p = json['#p'] == null ? null : List<String>.from(json['#p']);
     r = json['#r'] == null ? null : List<String>.from(json['#r']);
     t = json['#t'] == null ? null : List<String>.from(json['#t']);
+    h = json['#h'] == null ? null : List<String>.from(json['#h']);
     since = json['since'];
     until = json['until'];
     limit = json['limit'];
@@ -79,6 +83,9 @@ class Filter {
     }
     if (t != null) {
       data['#t'] = t;
+    }
+    if (h != null) {
+      data['#h'] = h;
     }
     if (since != null) {
       data['since'] = since;

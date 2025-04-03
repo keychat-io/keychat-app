@@ -9,6 +9,7 @@ import 'package:app/page/setting/UnreadMessages.dart';
 import 'package:app/page/setting/UploadedPubkeys.dart';
 import 'package:app/page/setting/file_storage_server.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
+import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
@@ -57,6 +58,24 @@ class MoreChatSetting extends StatelessWidget {
                       handleNotificationSettting();
                     },
                     title: const Text('Notifications'))
+            ]),
+            SettingsSection(title: const Text('MLS Group Settings'), tiles: [
+              SettingsTile(
+                  leading: const Icon(CupertinoIcons.cloud_upload),
+                  title: const Text("Upload KeyPackage"),
+                  onPressed: (context) async {
+                    try {
+                      await MlsGroupService.instance
+                          .uploadKeyPackages(forceUpload: true);
+                      EasyLoading.showSuccess('Upload Success');
+                    } catch (e, s) {
+                      String msg = Utils.getErrorMessage(e);
+                      logger.e('Failed to upload KeyPackages: $msg',
+                          stackTrace: s);
+                      EasyLoading.showError(
+                          'Failed to upload KeyPackages: $msg');
+                    }
+                  }),
             ]),
             SettingsSection(title: const Text('Backup'), tiles: [
               SettingsTile.navigation(

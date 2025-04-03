@@ -230,8 +230,8 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
       media = files;
     });
     // String base = await FileUtils.getRoomFolder(
-    //   identityId: chatController.room.identityId,
-    //   roomId: chatController.room.id);
+    //   identityId: cc.room.identityId,
+    //   roomId: cc.room.id);
   }
 
   _onTap(int index, [File? thumbnailFile]) {

@@ -2,6 +2,7 @@ import 'package:app/global.dart';
 import 'package:app/models/embedded/relay_file_fee.dart';
 import 'package:app/models/embedded/relay_message_fee.dart';
 import 'package:app/nostr-core/relay_websocket.dart';
+import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/storage.dart';
 
@@ -13,7 +14,6 @@ import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:app/models/models.dart';
 
-import '../models/db_provider.dart';
 import 'identity.service.dart';
 
 class RelayService {
@@ -27,12 +27,20 @@ class RelayService {
 
   Future addAndConnect(String url) async {
     WebsocketService ws = Get.find<WebsocketService>();
-    if (ws.channels[url] != null) return;
-
     Relay relay = await RelayService.instance.getOrPutRelay(url);
-    ws.addChannel(relay);
-    NotifyService.syncPubkeysToServer(); // sub new relay
-    RelayService.instance.initRelayFeeInfo([relay]);
+
+    if (ws.channels[url] != null) {
+      ws.channels.remove(url);
+    }
+    relay.active = true;
+    relay.errorMessage = null;
+    await update(relay);
+    await ws.addChannel(relay, connectedCallback: () async {
+      NotifyService.syncPubkeysToServer(); // sub new relay
+      RelayService.instance.initRelayFeeInfo([relay]);
+      await MlsGroupService.instance
+          .uploadKeyPackages(toRelays: [relay.url], forceUpload: true);
+    });
   }
 
   Future<Relay> add(String url, [bool isDefault = false]) async {
@@ -154,6 +162,17 @@ class RelayService {
     } catch (e) {
       logger.i('updateStatus error: $e');
     }
+  }
+
+  Future<Relay> updateP104(String relayUrl, bool isEnableNip104) async {
+    Relay relay = await getOrPutRelay(relayUrl);
+    relay.isEnableNip104 = isEnableNip104;
+    await update(relay);
+    Utils.getGetxController<WebsocketService>()
+        ?.channels[relayUrl]
+        ?.relay
+        .isEnableNip104 = isEnableNip104;
+    return relay;
   }
 
   Future update(Relay relay) async {
@@ -403,5 +422,11 @@ class RelayService {
       loggerNoLine.e(e.toString());
     }
     return null;
+  }
+
+  Future addOrActiveRelay(List<String> relays) async {
+    for (String url in relays) {
+      await addAndConnect(url);
+    }
   }
 }

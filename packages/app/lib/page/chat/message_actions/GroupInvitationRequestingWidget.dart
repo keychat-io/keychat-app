@@ -18,11 +18,11 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
 class GroupInvitationRequestingWidget extends StatelessWidget {
-  final ChatController chatController;
+  final ChatController cc;
   final Message message;
   final Widget Function({Widget? child, String? text}) errorCallabck;
   const GroupInvitationRequestingWidget(
-      this.chatController, this.message, this.errorCallabck,
+      this.cc, this.message, this.errorCallabck,
       {super.key});
 
   @override
@@ -51,12 +51,12 @@ class GroupInvitationRequestingWidget extends StatelessWidget {
             return;
           }
           Room? groupRoom = await RoomService.instance.getRoomByIdentity(
-              map.roomPubkey, chatController.room.getIdentity().id);
+              map.roomPubkey, cc.roomObs.value.getIdentity().id);
           if (groupRoom == null) {
             EasyLoading.showToast('Group not found');
             return;
           }
-          if (map.myPubkey == chatController.room.myIdPubkey) {
+          if (map.myPubkey == cc.roomObs.value.myIdPubkey) {
             EasyLoading.showToast('It\'s your message');
             return;
           }
@@ -96,10 +96,10 @@ class GroupInvitationRequestingWidget extends StatelessWidget {
                         }
                       ];
 
-                      await MlsGroupService.instance.inviteToJoinGroup(
+                      await MlsGroupService.instance.addMemeberToGroup(
                           groupRoom,
                           users,
-                          chatController.room.getIdentity().displayName);
+                          cc.roomObs.value.getIdentity().displayName);
 
                       message.requestConfrim = RequestConfrimEnum.approved;
                       message.isRead = true;

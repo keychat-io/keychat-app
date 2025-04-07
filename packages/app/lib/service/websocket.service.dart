@@ -101,17 +101,17 @@ class WebsocketService extends GetxService {
   }
 
   Future checkOnlineAndConnect([List<RelayWebsocket>? list]) async {
-    loggerNoLine.d('checkOnlineAndConnect all relays');
+    initAt = DateTime.now();
+    refreshMainRelayStatus();
     // fix ConcurrentModificationError List.from([list??channels.values])
-    for (RelayWebsocket rw in list ?? channels.values) {
-      if (rw.relay.active == false) continue;
-      rw.checkOnlineStatus().then((relayStatus) {
-        if (!relayStatus) {
-          rw.channel?.close();
-          _startConnectRelay(rw);
-        }
-      });
-    }
+    await Future.wait((list ?? channels.values).map((rw) async {
+      if (rw.relay.active == false) return;
+      bool relayStatus = await rw.checkOnlineStatus();
+      if (!relayStatus) {
+        rw.channel?.close();
+        _startConnectRelay(rw);
+      }
+    }));
   }
 
   clearFailedEvents(String relay) {
@@ -197,13 +197,6 @@ class WebsocketService extends GetxService {
   Set<String> getFailedEvents(String relay) {
     return failedEventsMap[relay] ?? {};
   }
-
-  // List<RelayWebsocket> getOnlineNip104Relay() {
-  //   var list = channels.values
-  //       .where((element) => element.isConnected() && element.channel != null)
-  //       .toList();
-  //   return list.where((element) => element.relay.isEnableNip104).toList();
-  // }
 
   List<RelayWebsocket> getOnlineSocket() {
     return channels.values.where((element) => element.isConnected()).toList();
@@ -317,24 +310,21 @@ class WebsocketService extends GetxService {
     RelayService.instance.initRelayFeeInfo();
   }
 
-  refreshMainRelayStatus() {
-    EasyDebounce.debounce('refreshMainRelayStatus', Duration(seconds: 1),
-        () async {
-      int success = getOnlineSocket().length;
-      loggerNoLine.d('refreshMainRelayStatus, online: $success');
-      if (success > 0) {
-        return await setRelayStatusInt(RelayStatusEnum.connected.name);
-      }
+  refreshMainRelayStatus() async {
+    int success = getOnlineSocket().length;
+    loggerNoLine.d('refreshMainRelayStatus, online: $success');
+    if (success > 0) {
+      return await setRelayStatusInt(RelayStatusEnum.connected.name);
+    }
 
-      if (success == 0) {
-        int diff = DateTime.now().millisecondsSinceEpoch -
-            initAt.millisecondsSinceEpoch;
-        if (diff > 4000) {
-          return await setRelayStatusInt(RelayStatusEnum.allFailed.name);
-        }
+    if (success == 0) {
+      int diff =
+          DateTime.now().millisecondsSinceEpoch - initAt.millisecondsSinceEpoch;
+      if (diff > 4000) {
+        return await setRelayStatusInt(RelayStatusEnum.allFailed.name);
       }
-      await setRelayStatusInt(RelayStatusEnum.connecting.name);
-    });
+    }
+    await setRelayStatusInt(RelayStatusEnum.connecting.name);
   }
 
   removePubkeyFromSubscription(String pubkey) {
@@ -534,8 +524,6 @@ class WebsocketService extends GetxService {
             results.add(ess);
             return;
           }
-          logger.i(
-              'to:[${rw.relay.url}]: ${ess.rawEvent} }'); // ${eventRaw.length > 200 ? eventRaw.substring(0, 400) : eventRaw}');
           try {
             rw.sendRawREQ(ess.rawEvent!, retry: true);
             success++;

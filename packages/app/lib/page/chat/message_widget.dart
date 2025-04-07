@@ -839,13 +839,17 @@ class MessageWidget extends StatelessWidget {
   void _handleReply(BuildContext context) {
     Get.back();
     if (message.isMeSend) {
-      Identity identity = Get.find<HomeController>()
-          .allIdentities[cc.roomObs.value.identityId]!;
-      message.fromContact =
-          FromContact(identity.secp256k1PKHex, identity.displayName);
+      message.fromContact = FromContact(cc.roomObs.value.myIdPubkey,
+          cc.roomObs.value.getIdentity().displayName);
     } else {
-      message.fromContact =
-          FromContact(message.idPubkey, message.senderName ?? message.idPubkey);
+      String senderName = cc.roomObs.value.getRoomName();
+      if (cc.roomObs.value.isSendAllGroup || cc.roomObs.value.isMLSGroup) {
+        RoomMember? rm = cc.getMemberByIdPubkey(message.idPubkey);
+        if (rm != null) {
+          senderName = rm.name;
+        }
+      }
+      message.fromContact = FromContact(message.idPubkey, senderName);
     }
     cc.inputReplys.value = [message];
     cc.hideAdd.value = true;

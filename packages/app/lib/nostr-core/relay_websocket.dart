@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:app/constants.dart';
 import 'package:app/models/relay.dart';
 import 'package:app/nostr-core/nostr_nip4_req.dart';

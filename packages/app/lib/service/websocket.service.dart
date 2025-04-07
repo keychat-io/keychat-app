@@ -524,8 +524,6 @@ class WebsocketService extends GetxService {
             results.add(ess);
             return;
           }
-          logger.i(
-              'to:[${rw.relay.url}]: ${ess.rawEvent} }'); // ${eventRaw.length > 200 ? eventRaw.substring(0, 400) : eventRaw}');
           try {
             rw.sendRawREQ(ess.rawEvent!, retry: true);
             success++;

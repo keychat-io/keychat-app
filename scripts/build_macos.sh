@@ -12,7 +12,7 @@ current_path=$(pwd)
 cd packages/app/
 rm -rf build/macos && flutter build macos --release -v
 
-dart run dmg --sign-certificate "Developer ID Application: KEYME PTE. LTD. (HDBNSZBLMN)" --verbose --no-build --notary-profile "NotaryProfile"
+dart run dmg --sign-certificate "Developer ID Application: xxx" --verbose --no-build --notary-profile "NotaryProfile"
 
 output="$current_path/packages/app/build/macos/Build/Products/Release"
 echo "dmg path: $output"

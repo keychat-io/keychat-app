@@ -4,7 +4,7 @@ description: keychat
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.30.6+6344
+version: 1.30.8+6347
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
@@ -46,7 +46,7 @@ dependencies:
   qr_flutter: ^4.1.0
   settings_ui: ^2.0.2
   search_page: ^2.3.0
-  app_settings: ^5.1.1
+  app_settings: ^6.1.1
   flutter_native_splash: ^2.4.4
   package_info_plus: ^8.1.1
   flutter_spinkit: ^5.2.0 # loading
@@ -79,16 +79,15 @@ dependencies:
   flutter_secure_storage: ^10.0.0-beta.4
   avatar_plus: ^0.0.5
   freezed_annotation: ^3.0.0
-  barcode_scan2: ^4.5.0
+  barcode_scan2: ^4.5.1
   intl: ^0.19.0
   firebase_core: ^3.12.1
   firebase_messaging: ^15.2.4
-  firebase_crashlytics: ^4.3.4
   async_queue: ^2.0.2
   url_launcher: ^6.3.1
   flutter_inappwebview: ^6.2.0-beta.2
   encrypt: ^5.0.3
-  file_picker: ^9.0.2
+  file_picker: ^10.0.0
   image: ^4.5.2
   pub_semver: ^2.1.5
   flutter_new_badger: ^1.1.0
@@ -96,7 +95,7 @@ dependencies:
   amberflutter:
     git:
       url: https://github.com/keychat-io/amberflutter.git
-  web_socket_client: ^0.1.5
+  web_socket_client: ^0.2.0
   path: ^1.9.0
 
 dev_dependencies:

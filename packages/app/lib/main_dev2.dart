@@ -4,7 +4,6 @@ import 'package:app/service/chatx.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -52,14 +51,7 @@ void main() async {
     theme: AppThemeCustom.light(),
     darkTheme: AppThemeCustom.dark(),
   );
-  if (!kDebugMode && dotenv.get('FCMapiKey', fallback: '') != '') {
-    try {
-      FlutterError.onError =
-          FirebaseCrashlytics.instance.recordFlutterFatalError;
-    } catch (e, s) {
-      logger.e(e.toString(), stackTrace: s);
-    }
-  }
+
   // fix https://github.com/flutter/flutter/issues/119465
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(

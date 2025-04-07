@@ -510,8 +510,11 @@ class Room extends Equatable {
     }
 
     if (isSendAllGroup) {
-      RoomMember? rm = await getMemberByIdPubkey(pubkey);
-      return rm;
+      return await DBProvider.database.roomMembers
+          .filter()
+          .roomIdEqualTo(id)
+          .idPubkeyEqualTo(pubkey)
+          .findFirst();
     }
     return null;
   }

@@ -3,7 +3,6 @@ plugins {
     id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
     id "com.google.gms.google-services"
-    id "com.google.firebase.crashlytics"
 }
 
 apply from: "../../../keychat_rust_ffi_plugin/cargokit/gradle/plugin.gradle"

@@ -399,7 +399,8 @@ class MoreChatSetting extends StatelessWidget {
               SettingsTile.navigation(
                   title: const Text('Open System Settings'),
                   onPressed: (context) async {
-                    await AppSettings.openAppSettings();
+                    await AppSettings.openAppSettings(
+                        type: AppSettingsType.notification);
                   }),
               SettingsTile.navigation(
                   title: const Text('Listening Pubkey Stats'),
@@ -470,7 +471,8 @@ class MoreChatSetting extends StatelessWidget {
               EasyLoading.showSuccess(
                   "Please enable this config in system setting");
 
-              await AppSettings.openAppSettings();
+              await AppSettings.openAppSettings(
+                  type: AppSettingsType.notification);
               return;
             }
             try {

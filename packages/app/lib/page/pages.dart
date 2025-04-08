@@ -1,3 +1,4 @@
+import 'package:app/desktop/desktop.dart';
 import 'package:app/page/chat/chat_setting_contact_page.dart';
 import 'package:app/page/chat/chat_setting_group_page.dart';
 import 'package:app/page/chat/chat_settings_security.dart';
@@ -27,6 +28,10 @@ class Pages {
     GetPage(
         name: Routes.root,
         page: () => const CupertinoRootPage(),
+        transition: Transition.fadeIn),
+    GetPage(
+        name: Routes.rootDesktop,
+        page: () => const DesktopMain(),
         transition: Transition.fadeIn),
     GetPage(
         name: Routes.login,

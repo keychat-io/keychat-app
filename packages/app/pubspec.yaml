@@ -97,6 +97,7 @@ dependencies:
       url: https://github.com/keychat-io/amberflutter.git
   web_socket_client: ^0.2.0
   path: ^1.9.0
+  sidebarx: ^0.17.1
 
 dev_dependencies:
   flutter_test:

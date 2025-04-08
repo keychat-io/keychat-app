@@ -1,5 +1,6 @@
 import 'dart:io' show Directory;
 
+import 'package:app/page/routes.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
@@ -68,7 +69,11 @@ void main() async {
 }
 
 Future<String> getInitRoute(bool isLogin) async {
-  return isLogin ? '/' : '/login';
+  logger.d(isLogin && GetPlatform.isDesktop);
+  if (isLogin && GetPlatform.isDesktop) {
+    return Routes.rootDesktop;
+  }
+  return isLogin ? Routes.root : Routes.login;
   // int onboarding = await Storage.getIntOrZero(StorageKeyString.onboarding);
   // // if (!isLogin && onboarding == 0) {
   // if (onboarding == 0) {

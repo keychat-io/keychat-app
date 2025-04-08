@@ -26,4 +26,4 @@ open $output
 # https://github.com/sindresorhus/create-dmg
 # npm install --global create-dmg
 # copy file path: alt+cmd+c
-# create-dmg '~/Desktop/Keychat.app' --overwrite --dmg-title='Keychat' './Keychat.dmg'
+# create-dmg '~/Desktop/Keychat.app' --overwrite --dmg-title='Keychat'

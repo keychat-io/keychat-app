@@ -12,11 +12,12 @@ current_path=$(pwd)
 cd packages/app/
 rm -rf build/macos && flutter build macos --release -v
 
-dart run dmg --sign-certificate "Developer ID Application: xxx" --verbose --no-build --notary-profile "NotaryProfile"
+dart run dmg --sign-certificate "xxx" --verbose --no-build --notary-profile "NotaryProfile2"
 
 output="$current_path/packages/app/build/macos/Build/Products/Release"
 echo "dmg path: $output"
 open $output
+
 # output: build/macos/Build/Products/Release/<name>.dmg
 
 ## or export *.app from xcode and create dmg by create-dmg

@@ -226,8 +226,6 @@ class WebsocketService extends GetxService {
       case Disconnected _:
       case Disconnecting _:
         return EventSendEnum.relayDisconnected;
-      default:
-        return EventSendEnum.init;
     }
   }
 

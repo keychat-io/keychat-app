@@ -233,8 +233,9 @@ class DbSetting {
 
   Future<bool> importDB(
       BuildContext context, String decryptionKey, File file) async {
-    var appFolder = await Utils.getAppFolder();
-    String sourcePath = '$appFolder/prod/database/';
+    Directory appFolder = await Utils.getAppFolder();
+    
+    String sourcePath = '${appFolder.path}/prod/database/';
 
     deleteAllFilesInDirectory(sourcePath);
     return await importAndDecryptPackage(file.path, decryptionKey, sourcePath);

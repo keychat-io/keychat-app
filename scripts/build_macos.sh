@@ -21,8 +21,9 @@ open $output
 # output: build/macos/Build/Products/Release/<name>.dmg
 
 ## or export *.app from xcode and create dmg by create-dmg
-# click widown-> Organizer -> Archives -> validate app -> Export  -> keychat.app
-# create dmg by .app file
+# click widown-> Organizer -> Archives -> Notary app -> Export  -> keychat.app
+
 # https://github.com/sindresorhus/create-dmg
 # npm install --global create-dmg
-# create-dmg 'path/to/.app' --overwrite --dmg-title='keychat' 'path/to/output/.dmg'
+# copy file path: alt+cmd+c
+# create-dmg '~/Desktop/Keychat.app' --overwrite --dmg-title='Keychat' './Keychat.dmg'

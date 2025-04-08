@@ -569,6 +569,8 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
               textEditingController.clear();
               cc.roomObs.update((val) {});
               EasyLoading.showSuccess('Success');
+              Get.find<HomeController>()
+                  .loadIdentityRoomList(cc.roomObs.value.identityId);
             }
             Get.back();
           },

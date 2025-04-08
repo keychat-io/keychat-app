@@ -523,12 +523,12 @@ class Utils {
     switch (groupType) {
       case GroupType.mls:
         return [const Color(0xffEC6E0E), const Color(0xffDF4D9E)];
+      case GroupType.sendAll:
+        return [const Color(0xff945BF3), const Color(0xff713CD0)];
       case GroupType.kdf:
         return [const Color(0xffCE9FFC), const Color(0xff7367F0)];
       case GroupType.shareKey:
         return [const Color(0xff823C70), const Color(0xffAF362D)];
-      case GroupType.sendAll:
-        return [const Color(0xff945BF3), const Color(0xff713CD0)];
     }
   }
 
@@ -828,6 +828,12 @@ class Utils {
     if (account.length <= nameLength) return account;
     if (account.contains(' ')) {
       return account.split(' ').first;
+    }
+    if (account.contains('-')) {
+      return account.split('-').first;
+    }
+    if (account.contains('_')) {
+      return account.split('_').first;
     }
     if (RegExp(r'^[a-zA-Z0-9]+$').hasMatch(account)) {
       return account.split(RegExp(r'(?=[A-Z])|\s+')).first;

@@ -17,7 +17,6 @@ import 'package:app/page/setting/RelaySetting.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
-import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/cupertino.dart' hide ConnectionState;
 import 'package:flutter/material.dart' show Colors;
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -37,8 +36,6 @@ class WebsocketService extends GetxService {
   Map<String, Set<String>> failedEventsMap = {};
 
   DateTime initAt = DateTime.now();
-
-  String? lastRelayStatus;
 
   bool startLock = false;
 
@@ -315,17 +312,17 @@ class WebsocketService extends GetxService {
   refreshMainRelayStatus() async {
     int success = getOnlineSocket().length;
     if (success > 0) {
-      return await setRelayStatusInt(RelayStatusEnum.connected.name);
+      return await _setMainRelayStatus(RelayStatusEnum.connected);
     }
 
     if (success == 0) {
       int diff =
           DateTime.now().millisecondsSinceEpoch - initAt.millisecondsSinceEpoch;
       if (diff > 4000) {
-        return await setRelayStatusInt(RelayStatusEnum.allFailed.name);
+        return await _setMainRelayStatus(RelayStatusEnum.allFailed);
       }
     }
-    await setRelayStatusInt(RelayStatusEnum.connecting.name);
+    await _setMainRelayStatus(RelayStatusEnum.connecting);
   }
 
   removePubkeyFromSubscription(String pubkey) {
@@ -479,17 +476,12 @@ class WebsocketService extends GetxService {
     if (sent == 0) throw Exception('RelayDisconnected');
   }
 
-  Future setRelayStatusInt(String name) async {
-    lastRelayStatus = name;
-    EasyDebounce.debounce(
-        'setRelayStatusInt', const Duration(milliseconds: 100), () {
-      relayStatusInt.value = lastRelayStatus ?? name;
-      if (relayStatusInt.value != (lastRelayStatus ?? name)) {
-        relayStatusInt.value = lastRelayStatus ?? name;
-        loggerNoLine.d('RelayStatus: ${relayStatusInt.value}');
-        channels.refresh();
-      }
-    });
+  Future _setMainRelayStatus(RelayStatusEnum status) async {
+    if (relayStatusInt.value != status.name) {
+      relayStatusInt.value = status.name;
+      loggerNoLine.d('setMainRelayStatus: ${relayStatusInt.value}');
+      channels.refresh();
+    }
   }
 
   Future start([List<Relay>? list]) async {

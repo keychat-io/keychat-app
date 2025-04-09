@@ -92,7 +92,7 @@ class SignalChatService extends BaseChatService {
 
     var senderKey = await rust_nostr.generateSimple();
     String toPubkey = room.type == RoomType.bot ? room.toMainPubkey : to;
-    SendMessageResponse smr = await NostrAPI.instance.sendNip4Message(
+    SendMessageResponse smr = await NostrAPI.instance.sendEventMessage(
       toPubkey,
       base64.encode(ciphertext),
       save: save,

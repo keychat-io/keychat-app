@@ -11,7 +11,13 @@ include: package:flutter_lints/flutter.yaml
 analyzer:
   errors:
     invalid_annotation_target: ignore
-  exclude: [build/**, android/, packages/app/build/ ,packages/keychat_rust_ffi_plugin/lib/lib.dart]
+  exclude:
+    [
+      build/**,
+      android/,
+      packages/app/build/**,
+      packages/keychat_rust_ffi_plugin/lib/lib.dart,
+    ]
 
 linter:
   # The lint rules applied to this project can be customized in the

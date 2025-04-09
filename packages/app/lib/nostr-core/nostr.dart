@@ -152,7 +152,7 @@ class NostrAPI {
         break;
       case EventKinds.nip04:
       case EventKinds.nip17:
-        await _proccessNip4Message(event, eventList, relay, raw);
+        await _proccessEventMessage(event, eventList, relay, raw);
         break;
       case EventKinds.mlsNipKeypackages:
       case EventKinds.setMetadata:
@@ -228,7 +228,7 @@ class NostrAPI {
     // return event;
   }
 
-  Future<SendMessageResponse> sendNip4Message(
+  Future<SendMessageResponse> sendEventMessage(
       String toPubkey, String toEncryptText,
       {bool save = true,
       required String prikey,
@@ -423,7 +423,7 @@ class NostrAPI {
     });
   }
 
-  Future _proccessNip4Message(
+  Future _proccessEventMessage(
       NostrEventModel event, List eventList, Relay relay, String raw) async {
     if (processedEventIds.contains(event.id)) {
       logger.i('duplicate_local: ${event.id}');
@@ -451,7 +451,7 @@ class NostrAPI {
       return;
     }
     failedCallback(String error, [String? stackTrace]) {
-      ess?.setError('proccess error: $error $stackTrace');
+      ess?.setError('$error ${stackTrace ?? ''}');
     }
 
     String to = event.getTagByKey(EventKindTags.pubkey)!;
@@ -667,7 +667,7 @@ class NostrAPI {
       }
     }
     if (myPrivateKey == null) {
-      throw Exception('myPrivateKeyIsNull');
+      throw Exception('SkipMyMessage_Or_PrivateKeyIsNull');
     }
 
     rust_nostr.NostrEvent result = await rust_nostr.decryptGift(

@@ -208,15 +208,15 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                                     EasyThrottle.throttle('UpdateMyGroupKey',
                                         const Duration(seconds: 3), () async {
                                       try {
+                                        EasyLoading.show(
+                                            status: 'Processing...');
                                         await MlsGroupService.instance
                                             .selfUpdateKey(cc.roomObs.value);
                                         EasyLoading.showSuccess('Success');
                                       } catch (e, s) {
-                                        EasyLoading.showError(e.toString(),
-                                            duration:
-                                                const Duration(seconds: 3));
-                                        logger.e(e.toString(),
-                                            error: e, stackTrace: s);
+                                        String msg = Utils.getErrorMessage(e);
+                                        EasyLoading.showError(msg);
+                                        logger.e(msg, error: e, stackTrace: s);
                                       }
                                     });
                                   },
@@ -474,22 +474,20 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                                     isDestructiveAction: true,
                                     child: const Text("Remove"),
                                     onPressed: () async {
-                                      EasyLoading.show(status: 'Processing...');
                                       try {
+                                        EasyLoading.show(
+                                            status: 'Processing...');
                                         await GroupService.instance
                                             .removeMember(cc.roomObs.value, rm);
-                                        EasyLoading.dismiss();
                                         EasyLoading.showSuccess("Removed",
                                             duration:
                                                 const Duration(seconds: 1));
+                                        Get.back();
                                       } catch (e, s) {
                                         logger.e(e.toString(),
                                             error: e, stackTrace: s);
-                                        EasyLoading.showError(e.toString(),
-                                            duration:
-                                                const Duration(seconds: 2));
-                                      } finally {
-                                        Get.back();
+                                        String msg = Utils.getErrorMessage(e);
+                                        EasyLoading.showError(msg);
                                       }
                                     },
                                   ),
@@ -558,22 +556,33 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
               Get.back();
             }),
         CupertinoDialogAction(
-          child: const Text("Confirm"),
+          isDefaultAction: true,
           onPressed: () async {
             String newName = textEditingController.text;
-            if (newName.isNotEmpty && newName != cc.roomObs.value.name) {
+            if (newName.isEmpty || newName == cc.roomObs.value.name) {
+              EasyLoading.showToast('Please enter a new name');
+              return;
+            }
+
+            try {
+              EasyLoading.show(status: 'Processing...');
+
               await GroupService.instance
                   .changeRoomName(cc.roomObs.value.id, newName);
 
               cc.roomObs.value.name = newName;
-              textEditingController.clear();
-              cc.roomObs.update((val) {});
+              cc.roomObs.refresh();
               EasyLoading.showSuccess('Success');
               Get.find<HomeController>()
                   .loadIdentityRoomList(cc.roomObs.value.identityId);
+              Get.back();
+            } catch (e, s) {
+              String msg = Utils.getErrorMessage(e);
+              EasyLoading.showError(msg);
+              logger.e(msg, error: e, stackTrace: s);
             }
-            Get.back();
           },
+          child: const Text("Confirm"),
         ),
       ],
     ));

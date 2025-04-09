@@ -25,11 +25,12 @@ class RelayService {
   // Avoid self instance
   RelayService._();
 
-  Future addAndConnect(String url) async {
+  Future<bool> addAndConnect(String url) async {
     WebsocketService ws = Get.find<WebsocketService>();
     Relay relay = await RelayService.instance.getOrPutRelay(url);
 
     if (ws.channels[url] != null) {
+      if (ws.channels[url]!.isConnected()) return false; // already connected
       ws.channels.remove(url);
     }
     relay.active = true;
@@ -41,6 +42,7 @@ class RelayService {
       await MlsGroupService.instance
           .uploadKeyPackages(toRelays: [relay.url], forceUpload: true);
     });
+    return true;
   }
 
   Future<Relay> add(String url, [bool isDefault = false]) async {
@@ -424,9 +426,14 @@ class RelayService {
     return null;
   }
 
-  Future addOrActiveRelay(List<String> relays) async {
+  Future<int> addOrActiveRelay(List<String> relays) async {
+    int success = 0;
     for (String url in relays) {
-      await addAndConnect(url);
+      bool result = await addAndConnect(url);
+      if (result) {
+        success++;
+      }
     }
+    return success;
   }
 }

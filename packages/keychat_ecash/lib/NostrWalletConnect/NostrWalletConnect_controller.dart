@@ -120,7 +120,8 @@ class NostrWalletConnectController extends GetxController {
           kinds: kinds,
           pubkeys: [service.value.pubkey],
           since: DateTime.now().subtract(Duration(minutes: 1)));
-      websocketService.sendReq(req, relay: relay, callback: (String relay) {
+      websocketService.sendReq(req, relays: relay != null ? [relay] : null,
+          callback: (String relay) {
         if (logs.length > 30) {
           logs.removeRange(0, 20);
         }

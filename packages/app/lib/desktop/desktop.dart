@@ -5,7 +5,6 @@ import 'package:app/page/login/me.dart';
 import 'package:app/page/room_list.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:sidebarx/sidebarx.dart';
 

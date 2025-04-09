@@ -124,6 +124,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
     }
 
     try {
+      EasyLoading.show(status: 'Processing...');
       Room groupRoom =
           await RoomService.instance.getRoomByIdOrFail(widget.room.id);
       String sender = widget.room.getIdentity().displayName;
@@ -137,7 +138,8 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
       EasyLoading.showSuccess('Success');
       Get.back();
     } catch (e, s) {
-      EasyLoading.showError(e.toString());
+      String msg = Utils.getErrorMessage(e);
+      EasyLoading.showError(msg);
       logger.e(e.toString(), error: e, stackTrace: s);
     }
   }

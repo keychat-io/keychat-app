@@ -279,16 +279,18 @@ class _ChatPage2State extends State<ChatPage> {
                 EasyThrottle.throttle('sendGreeting', Duration(seconds: 3),
                     () async {
                   try {
-                    EasyLoading.show(status: 'Sending...');
+                    EasyLoading.show(
+                        status:
+                            '1. Receving all messages... \n2. Sending greeting...');
                     while (DateTime.now()
                             .difference(controller.lastMessageAddedAt)
                             .inMilliseconds <
                         1500) {
-                      logger.d('wait for 300ms');
+                      logger.d('wait for 300ms, then send greeting');
                       await Future.delayed(const Duration(milliseconds: 300));
                     }
                     await MlsGroupService.instance
-                        .sendGreeting(controller.roomObs.value);
+                        .sendGreetingMessage(controller.roomObs.value);
                     EasyLoading.dismiss();
                   } catch (e) {
                     String msg = Utils.getErrorMessage(e);

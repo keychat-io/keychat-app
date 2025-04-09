@@ -25,12 +25,8 @@ import 'package:easy_debounce/easy_debounce.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
-
 import '../constants.dart';
-import '../controller/home.controller.dart';
-import '../models/db_provider.dart';
 import '../service/message.service.dart';
-import '../service/contact.service.dart';
 import '../service/room.service.dart';
 import '../service/storage.dart';
 import '../utils.dart' as utils;
@@ -40,7 +36,9 @@ typedef OnMessageReceived = void Function(int type, dynamic message);
 class NostrAPI {
   static DBProvider dbProvider = DBProvider.instance;
   Set<String> processedEventIds = {};
-  String nip05SubscriptionId = '';
+  Set<String> subscriptionIdEose = {};
+  Map<String, DateTime> subscriptionLastEvent = {};
+
   final nostrEventQueue = AsyncQueue.autoStart();
 
   static NostrAPI? _instance;
@@ -64,9 +62,10 @@ class NostrAPI {
           break;
         case NostrResKinds.event:
           loggerNoLine.i('receive event: ${relay.url} $message');
+          subscriptionLastEvent[res[1]] = DateTime.now();
           await _proccessEvent01(res, relay, message);
           break;
-        case NostrResKinds.eose:
+        case NostrResKinds.eose: // end event signal from relay
           if (res[1].toString().startsWith('nwc')) {
             Utils.getGetxController<NostrWalletConnectController>()
                 ?.proccessEOSE(relay, res);
@@ -93,6 +92,7 @@ class NostrAPI {
   }
 
   _proccessEOSE(Relay relay, List res) async {
+    subscriptionIdEose.add(res[1]);
     String key = '${StorageKeyString.lastMessageAt}:${relay.url}';
     int lastMessageAt = await Storage.getIntOrZero(key);
     if (lastMessageAt == 0) return;
@@ -582,21 +582,6 @@ class NostrAPI {
       return KeychatMessage.fromJson(str);
     } catch (e) {}
     return null;
-  }
-
-  Future subscripAllMetaData() async {
-    Identity identity = Get.find<HomeController>().allIdentities[0]!;
-    List<Contact> contacts =
-        await ContactService.instance.getContactList(identity.id);
-    if (contacts.isEmpty) return;
-
-    List<String> pubkeys = contacts.map((e) => e.pubkey).toList();
-    if (pubkeys.isNotEmpty && nip05SubscriptionId.isNotEmpty) {
-      Get.find<WebsocketService>()
-          .sendRawReq(closeSerialize(nip05SubscriptionId));
-    }
-
-    // nip05SubscriptionId = await fetchMetadata(pubkeys);
   }
 
   Future<List<NostrEventModel>> fetchMetadata(List<String> pubkeys) async {

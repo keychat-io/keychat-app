@@ -6,6 +6,7 @@ import 'package:app/page/routes.dart';
 import 'package:app/rust_api.dart';
 import 'package:app/service/file_util.dart';
 import 'package:app/service/storage.dart';
+import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:app/service/room.service.dart';
@@ -17,7 +18,6 @@ import 'package:isar/isar.dart';
 
 import '../controller/chat.controller.dart';
 import '../controller/home.controller.dart';
-import '../models/db_provider.dart';
 
 class MessageService {
   static MessageService? _instance;
@@ -53,6 +53,11 @@ class MessageService {
     }
     logger.i(
         '[message]:room:${model.roomId} ${model.isMeSend ? 'Send' : 'Receive'}: ${model.content} ');
+    _messageNotifyToPage(isCurrentPage, model, room);
+    return model;
+  }
+
+  _messageNotifyToPage(bool isCurrentPage, Message model, Room room) async {
     await RoomService.getController(model.roomId)?.addMessage(model);
     var hc = Get.find<HomeController>();
     hc.roomLastMessage[model.roomId] = model;
@@ -64,43 +69,45 @@ class MessageService {
       String contenet = model.mediaType == MessageMediaType.text
           ? (model.realMessage ?? model.content)
           : '[${model.mediaType.name}]';
-      if (Get.isSnackbarOpen) {
-        try {
-          Get.closeAllSnackbars();
-          // ignore: empty_catches
-        } catch (e) {}
-      }
+
       if (GetPlatform.isDesktop) {
         if (Get.find<HomeController>().resumed == false) {
           Get.find<HomeController>().addUnreadCount();
         }
       }
-      bool isCurrentRoomPage = Get.currentRoute
-          .startsWith(Routes.room.replaceFirst(':id', room.id.toString()));
-
-      Get.snackbar(room.getRoomName(), contenet,
-          titleText: Text(room.getRoomName(),
-              style: Theme.of(Get.context!).textTheme.titleMedium),
-          messageText:
-              Text(contenet, maxLines: 4, overflow: TextOverflow.ellipsis),
-          backgroundColor: Theme.of(Get.context!).colorScheme.surfaceContainer,
-          snackPosition: SnackPosition.TOP,
-          isDismissible: true,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          duration: const Duration(seconds: 5),
-          mainButton: isCurrentRoomPage
-              ? null
-              : TextButton(
-                  child: const Text('View'),
-                  onPressed: () {
-                    pressSnackbar(room);
-                  }),
-          icon: Utils.getRandomAvatar(room.toMainPubkey), onTap: (c) {
-        if (isCurrentRoomPage) return;
-        pressSnackbar(room);
+      EasyThrottle.throttle('newMessageSnackbar', Duration(seconds: 2), () {
+        bool isCurrentRoomPage = Get.currentRoute
+            .startsWith(Routes.room.replaceFirst(':id', room.id.toString()));
+        if (Get.isSnackbarOpen) {
+          try {
+            Get.closeAllSnackbars();
+            // ignore: empty_catches
+          } catch (e) {}
+        }
+        Get.snackbar(room.getRoomName(), contenet,
+            titleText: Text(room.getRoomName(),
+                style: Theme.of(Get.context!).textTheme.titleMedium),
+            messageText:
+                Text(contenet, maxLines: 4, overflow: TextOverflow.ellipsis),
+            backgroundColor:
+                Theme.of(Get.context!).colorScheme.surfaceContainer,
+            snackPosition: SnackPosition.TOP,
+            isDismissible: true,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            duration: const Duration(seconds: 5),
+            mainButton: isCurrentRoomPage
+                ? null
+                : TextButton(
+                    child: const Text('View'),
+                    onPressed: () {
+                      pressSnackbar(room);
+                    }),
+            icon: Utils.getRandomAvatar(room.toMainPubkey), onTap: (c) {
+          if (isCurrentRoomPage) return;
+          pressSnackbar(room);
+        });
       });
     }
-    return model;
   }
 
   void pressSnackbar(Room room) {

@@ -242,7 +242,10 @@ class WebsocketService extends GetxService {
   }
 
   listenPubkey(List<String> pubkeys,
-      {DateTime? since, String? relay, int? limit, required List<int> kinds}) {
+      {DateTime? since,
+      List<String>? relays,
+      int? limit,
+      required List<int> kinds}) {
     if (pubkeys.isEmpty) return;
 
     since ??= DateTime.now().subtract(const Duration(days: 7));
@@ -255,19 +258,19 @@ class WebsocketService extends GetxService {
         limit: limit,
         kinds: kinds);
     try {
-      sendReq(req, relay: relay);
+      sendReq(req, relays: relays);
     } catch (e) {
       if (e.toString().contains('RelayDisconnected')) {
         EasyLoading.showToast('Disconnected, Please check your relay server');
         return;
       }
-      logger.e('listenPubkey error: $e');
+      logger.e('error: $e');
     }
   }
 
-  listenPubkeyNip17(List<String> pubkeys,
-      {DateTime? since, String? relay, int? limit}) async {
-    if (pubkeys.isEmpty) return;
+  NostrReqModel? listenPubkeyNip17(List<String> pubkeys,
+      {DateTime? since, List<String>? relays, int? limit}) {
+    if (pubkeys.isEmpty) return null;
 
     since ??= DateTime.now().subtract(const Duration(days: 2));
     String subId = generate64RandomHexChars(16);
@@ -279,7 +282,8 @@ class WebsocketService extends GetxService {
         limit: limit,
         kinds: [EventKinds.nip17]);
 
-    Get.find<WebsocketService>().sendReq(req, relay: relay);
+    sendReq(req, relays: relays);
+    return req;
   }
 
   Future localFeesConfigFromLocalStorage() async {
@@ -310,7 +314,6 @@ class WebsocketService extends GetxService {
 
   refreshMainRelayStatus() async {
     int success = getOnlineSocket().length;
-    loggerNoLine.d('refreshMainRelayStatus, online: $success');
     if (success > 0) {
       return await setRelayStatusInt(RelayStatusEnum.connected.name);
     }
@@ -342,6 +345,17 @@ class WebsocketService extends GetxService {
         break;
       }
     }
+  }
+
+  String? getSubscriptionIdsByPubkey(String pubkey) {
+    for (RelayWebsocket rw in channels.values) {
+      for (var entry in rw.subscriptions.entries) {
+        if (entry.value.contains(pubkey)) {
+          return entry.key;
+        }
+      }
+    }
+    return null;
   }
 
   int sendMessage(String content, [List<String>? relays]) {
@@ -428,19 +442,38 @@ class WebsocketService extends GetxService {
   }
 
   sendReq(NostrReqModel nostrReq,
-      {String? relay, Function(String relay)? callback}) {
-    if (relay != null && channels[relay] != null) {
-      return channels[relay]!.sendREQ(nostrReq);
+      {List<String>? relays, Function(String relay)? callback}) {
+    if (relays != null && relays.isNotEmpty) {
+      int sent = 0;
+      for (String relayUrl in relays) {
+        if (channels[relayUrl]?.isConnected()) {
+          try {
+            channels[relayUrl]!.sendREQ(nostrReq);
+            sent++;
+            if (callback != null) {
+              callback(relayUrl);
+            }
+          } catch (e) {
+            logger.e(e.toString());
+          }
+        }
+      }
+      if (sent > 0) return;
     }
+
     int sent = 0;
     for (RelayWebsocket rw in channels.values) {
       if (rw.isDisConnected() || rw.isConnecting()) {
         continue;
       }
-      sent++;
-      rw.sendREQ(nostrReq);
-      if (callback != null) {
-        callback(rw.relay.url);
+      try {
+        rw.sendREQ(nostrReq);
+        sent++;
+        if (callback != null) {
+          callback(rw.relay.url);
+        }
+      } catch (e) {
+        logger.e(e.toString());
       }
     }
     if (sent == 0) throw Exception('RelayDisconnected');
@@ -451,7 +484,11 @@ class WebsocketService extends GetxService {
     EasyDebounce.debounce(
         'setRelayStatusInt', const Duration(milliseconds: 100), () {
       relayStatusInt.value = lastRelayStatus ?? name;
-      channels.refresh();
+      if (relayStatusInt.value != (lastRelayStatus ?? name)) {
+        relayStatusInt.value = lastRelayStatus ?? name;
+        loggerNoLine.d('RelayStatus: ${relayStatusInt.value}');
+        channels.refresh();
+      }
     });
   }
 
@@ -460,6 +497,8 @@ class WebsocketService extends GetxService {
     try {
       startLock = true;
       NostrAPI.instance.processedEventIds.clear();
+      NostrAPI.instance.subscriptionIdEose.clear();
+      NostrAPI.instance.subscriptionLastEvent.clear();
       initAt = DateTime.now();
       SubscribeEventStatus.clear();
       await stopListening();

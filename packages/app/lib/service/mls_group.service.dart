@@ -569,21 +569,22 @@ $error ''';
     }
 
     var randomAccount = await rust_nostr.generateSimple();
-    var smr = await NostrAPI.instance.sendNip4Message(room.onetimekey!, message,
-        prikey: randomAccount.prikey,
-        from: randomAccount.pubkey,
-        room: room,
-        mediaType: mediaType,
-        encryptType: MessageEncryptType.mls,
-        kind: EventKinds.nip17,
-        save: save,
-        sourceContent: message,
-        realMessage: realMessage,
-        isEncryptedMessage: true,
-        additionalTags: additionalTags ??
-            [
-              [EventKindTags.pubkey, room.onetimekey!]
-            ]);
+    var smr =
+        await NostrAPI.instance.sendEventMessage(room.onetimekey!, message,
+            prikey: randomAccount.prikey,
+            from: randomAccount.pubkey,
+            room: room,
+            mediaType: mediaType,
+            encryptType: MessageEncryptType.mls,
+            kind: EventKinds.nip17,
+            save: save,
+            sourceContent: message,
+            realMessage: realMessage,
+            isEncryptedMessage: true,
+            additionalTags: additionalTags ??
+                [
+                  [EventKindTags.pubkey, room.onetimekey!]
+                ]);
     RoomUtil.messageReceiveCheck(
             room, smr.events[0], const Duration(milliseconds: 500), 3)
         .then((res) {
@@ -650,7 +651,7 @@ $error ''';
     }
     var randomAccount = await rust_nostr.generateSimple();
     var smr = await NostrAPI.instance
-        .sendNip4Message(room.onetimekey!, enctypted.encryptMsg,
+        .sendEventMessage(room.onetimekey!, enctypted.encryptMsg,
             prikey: randomAccount.prikey,
             from: randomAccount.pubkey,
             room: room,
@@ -994,21 +995,19 @@ $error ''';
     await Utils.waitRelayOnline(defaultRelays: relays);
     String? subId =
         Get.find<WebsocketService>().getSubscriptionIdsByPubkey(recevingKey);
+    if (subId == null) return;
     bool subEventEosed = NostrAPI.instance.subscriptionIdEose.contains(subId);
     int queryTimes = 0;
     while (!subEventEosed) {
       DateTime? last = NostrAPI.instance.subscriptionLastEvent[subId];
-      // always get new events.
-      if (last != null) {
-        if (last
-            .isBefore(DateTime.now().subtract(const Duration(seconds: 1)))) {
-          logger.e('Not Eose: $subId');
-          queryTimes++;
-          if (queryTimes > 3) {
-            logger.e('Not Eose: $subId, but timeout');
-            break;
-          }
-        }
+      // get a new events? pending for 500ms
+      if (last == null ||
+          last.isBefore(DateTime.now().subtract(const Duration(seconds: 1)))) {
+        queryTimes++;
+      }
+      if (queryTimes > 3) {
+        logger.e('Not Eose: $subId, but timeout');
+        break;
       }
 
       await Future.delayed(const Duration(milliseconds: 500));

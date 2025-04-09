@@ -113,7 +113,7 @@ class Nip4ChatService extends BaseChatService {
     mainSign = "[\"EVENT\",$mainSign]";
 
     var secp256K1Account = await rust_nostr.generateSimple();
-    return await nostrAPI.sendNip4Message(
+    return await nostrAPI.sendEventMessage(
         toAddress ?? room.toMainPubkey, mainSign,
         prikey: secp256K1Account.prikey,
         from: secp256K1Account.pubkey,
@@ -134,7 +134,7 @@ class Nip4ChatService extends BaseChatService {
     MessageMediaType? mediaType,
   }) async {
     Identity identity = room.getIdentity();
-    return await nostrAPI.sendNip4Message(
+    return await nostrAPI.sendEventMessage(
       room.toMainPubkey,
       message,
       room: room,

@@ -22,7 +22,7 @@ class RelayWebsocket {
   List<String> notices = [];
   int maxReqCount = _maxReqCount;
   int sentReqCount = 0;
-  Map<String, Set<String>> subscriptions = {};
+  Map<String, Set<String>> subscriptions = {}; // subId -> pubkeys
   late WebsocketService ws;
   RelayWebsocket(this.relay, this.ws);
 

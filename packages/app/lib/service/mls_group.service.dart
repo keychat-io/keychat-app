@@ -173,11 +173,9 @@ $error ''';
         groupId: room.toMainPubkey,
         welcome: welcome);
     GroupExtension info = await getGroupExtension(room);
-    logger.d('GroupExtension: ${info.toMap()}');
     room.name = info.name;
     room.description = info.description;
     room.sendingRelays = info.relays;
-    room.receivingRelays = info.relays;
     if (info.relays.isNotEmpty) {
       await RelayService.instance.addOrActiveRelay(info.relays);
     }
@@ -475,6 +473,8 @@ $error ''';
   }
 
   Future removeMembers(Room room, List<RoomMember> list) async {
+    await waitingForEose(
+        recevingKey: room.onetimekey, relays: room.sendingRelays);
     Identity identity = room.getIdentity();
     List<String> idPubkeys = [];
     List<String> names = [];
@@ -512,6 +512,9 @@ $error ''';
       return room;
     }
     String? toDeletePubkey = room.onetimekey;
+    // waiting for the old pubkey to be Eosed. means that all events proccessed
+    await waitingForEose(
+        recevingKey: room.onetimekey, relays: room.sendingRelays);
 
     room.onetimekey = newPubkey;
     await RoomService.instance.updateRoomAndRefresh(room);
@@ -523,9 +526,9 @@ $error ''';
       }
     }
 
-    await ws.listenPubkey([newPubkey],
-        since: DateTime.fromMillisecondsSinceEpoch(room.version),
-        kinds: [EventKinds.nip17]);
+    ws.listenPubkeyNip17([newPubkey],
+        since: DateTime.fromMillisecondsSinceEpoch(room.version)
+            .subtract(Duration(seconds: 3)));
 
     if (room.isMute == false) {
       NotifyService.addPubkeys([newPubkey]);
@@ -533,14 +536,7 @@ $error ''';
     return room;
   }
 
-  Future sendGreeting(Room room) async {
-    await Utils.waitRelayOnline();
-    while (NostrAPI.instance.nostrEventQueue.size > 0) {
-      logger.d('${NostrAPI.instance.nostrEventQueue.size} events left)');
-      await Future.delayed(const Duration(seconds: 1));
-    }
-    // waiting for the last task
-    await Future.delayed(const Duration(seconds: 1));
+  Future sendGreetingMessage(Room room) async {
     room.sentHelloToMLS = true;
     await selfUpdateKey(room,
         extension: {'name': room.getIdentity().displayName});
@@ -548,6 +544,8 @@ $error ''';
 
   Future<Room> selfUpdateKey(Room room,
       {Map<String, dynamic>? extension}) async {
+    await waitingForEose(
+        recevingKey: room.onetimekey, relays: room.sendingRelays);
     var queuedMsg = await _selfUpdateKeyLocal(room, extension);
     Identity identity = room.getIdentity();
     String realMessage =
@@ -556,6 +554,8 @@ $error ''';
     await rust_mls.selfCommit(
         nostrId: identity.secp256k1PKHex, groupId: room.toMainPubkey);
     room = await replaceListenPubkey(room);
+    await RoomService.getController(room.id)?.resetMembers();
+
     return room;
   }
 
@@ -569,21 +569,22 @@ $error ''';
     }
 
     var randomAccount = await rust_nostr.generateSimple();
-    var smr = await NostrAPI.instance.sendNip4Message(room.onetimekey!, message,
-        prikey: randomAccount.prikey,
-        from: randomAccount.pubkey,
-        room: room,
-        mediaType: mediaType,
-        encryptType: MessageEncryptType.mls,
-        kind: EventKinds.nip17,
-        save: save,
-        sourceContent: message,
-        realMessage: realMessage,
-        isEncryptedMessage: true,
-        additionalTags: additionalTags ??
-            [
-              [EventKindTags.pubkey, room.onetimekey!]
-            ]);
+    var smr =
+        await NostrAPI.instance.sendEventMessage(room.onetimekey!, message,
+            prikey: randomAccount.prikey,
+            from: randomAccount.pubkey,
+            room: room,
+            mediaType: mediaType,
+            encryptType: MessageEncryptType.mls,
+            kind: EventKinds.nip17,
+            save: save,
+            sourceContent: message,
+            realMessage: realMessage,
+            isEncryptedMessage: true,
+            additionalTags: additionalTags ??
+                [
+                  [EventKindTags.pubkey, room.onetimekey!]
+                ]);
     RoomUtil.messageReceiveCheck(
             room, smr.events[0], const Duration(milliseconds: 500), 3)
         .then((res) {
@@ -650,7 +651,7 @@ $error ''';
     }
     var randomAccount = await rust_nostr.generateSimple();
     var smr = await NostrAPI.instance
-        .sendNip4Message(room.onetimekey!, enctypted.encryptMsg,
+        .sendEventMessage(room.onetimekey!, enctypted.encryptMsg,
             prikey: randomAccount.prikey,
             from: randomAccount.pubkey,
             room: room,
@@ -696,6 +697,8 @@ $error ''';
   }
 
   Future<Room> updateGroupName(Room room, String newName) async {
+    await waitingForEose(
+        recevingKey: room.onetimekey, relays: room.sendingRelays);
     var res = await rust_mls.updateGroupContextExtensions(
         nostrId: room.myIdPubkey,
         groupId: room.toMainPubkey,
@@ -774,9 +777,7 @@ $error ''';
     room.name = info.name;
     room.description = info.description;
     room.sendingRelays = info.relays;
-    if (info.relays.isNotEmpty) {
-      await RelayService.instance.addOrActiveRelay(info.relays);
-    }
+    await RelayService.instance.addOrActiveRelay(info.relays);
     room = await replaceListenPubkey(room);
     return (room, null);
   }
@@ -988,5 +989,31 @@ $error ''';
     String realMessage = 'I am exiting the group chat';
     await sendEncryptedMessage(room, queuedMsg,
         realMessage: realMessage, save: false);
+  }
+
+  Future waitingForEose({String? recevingKey, List<String>? relays}) async {
+    if (recevingKey == null) return;
+    await Utils.waitRelayOnline(defaultRelays: relays);
+    String? subId =
+        Get.find<WebsocketService>().getSubscriptionIdsByPubkey(recevingKey);
+    if (subId == null) return;
+    bool subEventEosed = NostrAPI.instance.subscriptionIdEose.contains(subId);
+    int queryTimes = 0;
+    while (!subEventEosed) {
+      DateTime? last = NostrAPI.instance.subscriptionLastEvent[subId];
+      // get a new events? pending for 500ms
+      if (last == null ||
+          last.isBefore(DateTime.now().subtract(const Duration(seconds: 1)))) {
+        queryTimes++;
+      }
+      if (queryTimes > 3) {
+        logger.e('Not Eose: $subId, but timeout');
+        break;
+      }
+
+      await Future.delayed(const Duration(milliseconds: 500));
+      subEventEosed = NostrAPI.instance.subscriptionIdEose.contains(subId);
+    }
+    logger.d('done for Eose: $subId');
   }
 }

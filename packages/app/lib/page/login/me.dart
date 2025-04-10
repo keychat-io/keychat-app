@@ -34,8 +34,7 @@ class MinePage extends GetView<SettingController> {
         ),
         body: Container(
           padding: EdgeInsets.only(
-              bottom:
-                  GetPlatform.isMobile ? kMinInteractiveDimension * 1.5 : 0),
+              bottom: GetPlatform.isMobile ? kMinInteractiveDimension : 0),
           child: Obx(() => SettingsList(
                 platform: DevicePlatform.iOS,
                 sections: [

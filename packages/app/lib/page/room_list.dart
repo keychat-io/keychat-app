@@ -1,3 +1,4 @@
+import 'package:app/desktop/DesktopController.dart';
 import 'package:app/models/models.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/new_friends_rooms.dart';
@@ -124,14 +125,25 @@ class RoomList extends GetView<HomeController> {
                         pinTileBackground, context);
                   }
                   Room room = rooms[index];
-                  return GestureDetector(
+                  return InkWell(
+                      hoverColor: Colors.grey.shade100,
                       key: ObjectKey('${index}_room${room.id}'),
                       onTap: () async {
-                        await Get.toNamed('/room/${room.id}', arguments: room);
+                        if (GetPlatform.isDesktop) {
+                          Get.find<DesktopController>().selectedRoom.value =
+                              room;
+                          Get.find<DesktopController>().selectedRoom.refresh();
+                          return;
+                        }
+                        await Get.toNamed('/room/${room.id}',
+                            id: room.id, arguments: room);
 
                         RoomService.instance.markAllRead(
                             identityId: room.identityId, roomId: room.id);
                         controller.resortRoomList(room.identityId);
+                      },
+                      onSecondaryTapDown: (e) {
+                        onSecondaryTapDown(e, room, context);
                       },
                       onLongPress: () =>
                           RoomUtil.showRoomActionSheet(context, room),
@@ -386,5 +398,60 @@ class RoomList extends GetView<HomeController> {
         ),
       ],
     ));
+  }
+
+  void onSecondaryTapDown(TapDownDetails e, Room room, BuildContext context) {
+    if (!GetPlatform.isDesktop) {
+      return;
+    }
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
+    final position = RelativeRect.fromRect(
+      Rect.fromPoints(
+        e.globalPosition,
+        e.globalPosition,
+      ),
+      Offset.zero & overlay.size,
+    );
+    showMenu(
+      context: context,
+      position: position,
+      items: [
+        PopupMenuItem(
+          child: Row(
+            children: [
+              const Icon(Icons.pin_drop),
+              const SizedBox(width: 10),
+              Text(room.pin ? 'Unpin' : 'Pin'),
+            ],
+          ),
+          // onTap: () => RoomUtil.togglePin(room),
+        ),
+        PopupMenuItem(
+          child: Row(
+            children: [
+              const Icon(Icons.notifications_off_outlined),
+              const SizedBox(width: 10),
+              Text(room.isMute ? 'Unmute' : 'Mute'),
+            ],
+          ),
+          // onTap: () => RoomUtil.toggleMute(room),
+        ),
+        const PopupMenuItem(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(Icons.delete_outline, color: Colors.red),
+              SizedBox(width: 10),
+              Text('Delete', style: TextStyle(color: Colors.red)),
+            ],
+          ),
+        ),
+      ],
+    ).then((value) {
+      if (value == 'delete') {
+        // RoomUtil.showDeleteDialog(context, room);
+      }
+    });
   }
 }

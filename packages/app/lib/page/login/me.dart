@@ -57,23 +57,24 @@ class MinePage extends GetView<SettingController> {
                               Get.bottomSheet(const SelectModeToCreateId());
                             })
                       ]),
-                  SettingsSection(
-                      margin: const EdgeInsetsDirectional.symmetric(
-                          horizontal: 16, vertical: 16),
-                      tiles: [
-                        SettingsTile.navigation(
-                          leading: const Icon(
-                            CupertinoIcons.bitcoin,
-                            color: Color(0xfff2a900),
+                  if (GetPlatform.isMobile)
+                    SettingsSection(
+                        margin: const EdgeInsetsDirectional.symmetric(
+                            horizontal: 16, vertical: 16),
+                        tiles: [
+                          SettingsTile.navigation(
+                            leading: const Icon(
+                              CupertinoIcons.bitcoin,
+                              color: Color(0xfff2a900),
+                            ),
+                            value: Text(
+                                '${Utils.getGetxController<EcashController>()?.totalSats.value.toString() ?? '-'} ${EcashTokenSymbol.sat.name}'),
+                            onPressed: (context) async {
+                              Get.toNamed(Routes.ecash);
+                            },
+                            title: const Text("Bitcoin Ecash"),
                           ),
-                          value: Text(
-                              '${Utils.getGetxController<EcashController>()?.totalSats.value.toString() ?? '-'} ${EcashTokenSymbol.sat.name}'),
-                          onPressed: (context) async {
-                            Get.toNamed(Routes.ecash);
-                          },
-                          title: const Text("Bitcoin Ecash"),
-                        ),
-                      ]),
+                        ]),
                   SettingsSection(
                     margin: const EdgeInsetsDirectional.symmetric(
                         horizontal: 16, vertical: 16),

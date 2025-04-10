@@ -1,43 +1,81 @@
 import 'package:app/controller/home.controller.dart';
-import 'package:app/global.dart';
+import 'package:app/desktop/DesktopController.dart';
 import 'package:app/page/browser/Browser_page.dart';
+import 'package:app/page/chat/chat_page.dart';
 import 'package:app/page/login/me.dart';
 import 'package:app/page/room_list.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:keychat_ecash/cashu_page.dart';
 import 'package:sidebarx/sidebarx.dart';
 
-class DesktopMain extends StatefulWidget {
+class DesktopMain extends GetView<DesktopController> {
   const DesktopMain({super.key});
 
   @override
-  State<DesktopMain> createState() => _DesktopMainState();
-}
-
-class _DesktopMainState extends State<DesktopMain> {
-  final _controller = SidebarXController(selectedIndex: 0, extended: true);
-  final _key = GlobalKey<ScaffoldState>();
-  @override
   Widget build(BuildContext context) {
+    DesktopController dc = Get.find<DesktopController>();
     return Scaffold(
-      key: _key,
-      drawer: HomeSidebarX(controller: _controller),
+      key: controller.globalKey,
       body: Row(
         children: [
-          HomeSidebarX(controller: _controller),
+          HomeSidebarX(controller: controller.sidebarXController),
           Expanded(
-            child: Center(
-              child: _ScreensBody(
-                sidebarXController: _controller,
-              ),
-            ),
-          ),
+              child: AnimatedBuilder(
+            animation: controller.sidebarXController,
+            builder: (context, child) {
+              switch (controller.sidebarXController.selectedIndex) {
+                case 0:
+                  return Row(
+                    children: [
+                      SizedBox(
+                        width: 280,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border(
+                              right: BorderSide(
+                                color: Theme.of(context)
+                                    .dividerColor
+                                    .withAlpha(40),
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                          child: RoomList(),
+                        ),
+                      ),
+                      Expanded(
+                          child: Obx(() =>
+                              dc.selectedRoom.value.identityId == -1
+                                  ? const Center(child: Text('Keychat.io'))
+                                  : ChatPage(
+                                      key: ValueKey(dc.selectedRoom.value.id),
+                                      room: dc.selectedRoom.value))),
+                    ],
+                  );
+                case 1:
+                  return const BrowserPage();
+                case 2:
+                  return const CashuPage();
+                case 3:
+                  return const MinePage();
+                default:
+                  return Text(
+                    controller.sidebarXController.selectedIndex.toString(),
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  );
+              }
+            },
+          )),
         ],
       ),
     );
   }
 }
+
+final double iconSize = 24;
 
 class HomeSidebarX extends GetView<HomeController> {
   const HomeSidebarX({
@@ -46,19 +84,17 @@ class HomeSidebarX extends GetView<HomeController> {
   }) : _controller = controller;
 
   final SidebarXController _controller;
+
   @override
   Widget build(BuildContext context) {
     return SidebarX(
       controller: _controller,
       theme: SidebarXTheme(
-        margin: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: canvasColor,
-          borderRadius: BorderRadius.circular(20),
+          color: Color(0xFFE8E8E8),
         ),
+        margin: const EdgeInsets.all(0),
         hoverColor: scaffoldBackgroundColor,
-        textStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
-        selectedTextStyle: const TextStyle(color: Colors.white),
         hoverTextStyle: const TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.w500,
@@ -67,33 +103,28 @@ class HomeSidebarX extends GetView<HomeController> {
         selectedItemTextPadding: const EdgeInsets.only(left: 30),
         itemDecoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: canvasColor),
+          // border: Border.all(color: canvasColor),
         ),
         selectedItemDecoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: actionColor.withOpacity(0.37),
-          ),
           gradient: const LinearGradient(
             colors: [accentCanvasColor, canvasColor],
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.28),
+              color: Theme.of(context).colorScheme.onPrimaryContainer,
               blurRadius: 30,
             )
           ],
         ),
         iconTheme: IconThemeData(
-          color: Colors.white.withOpacity(0.7),
-          size: 20,
+          size: iconSize,
         ),
-        selectedIconTheme: const IconThemeData(
+        selectedIconTheme: IconThemeData(
           color: Colors.white,
-          size: 20,
+          size: iconSize,
         ),
       ),
-
       showToggleButton: false, // footerDivider: divider,
       headerBuilder: (context, extended) {
         return Padding(
@@ -106,60 +137,28 @@ class HomeSidebarX extends GetView<HomeController> {
           iconBuilder: (selected, hovered) {
             return Obx(() => Badge(
                 backgroundColor: Colors.red,
-                textColor: Colors.white,
                 label: Text('${controller.allUnReadCount.value}'),
                 isLabelVisible: controller.allUnReadCount.value > 0,
-                child: Icon(CupertinoIcons.chat_bubble_fill,
-                    color: selected
-                        ? KeychatGlobal.primaryColor.withValues(alpha: 0.9)
-                        : Colors.white,
-                    size: 26)));
+                child: selected
+                    ? Icon(CupertinoIcons.chat_bubble_fill,
+                        color: Colors.white, size: iconSize)
+                    : Icon(CupertinoIcons.chat_bubble,
+                        color: Colors.black, size: iconSize)));
           },
-          label: 'Chat',
           onTap: () {
-            debugPrint('Chat');
+            debugPrint('Chats');
           },
         ),
-        const SidebarXItem(
-          icon: CupertinoIcons.compass,
-          label: 'Browser',
-        ),
-        const SidebarXItem(
-          icon: CupertinoIcons.settings,
-          label: 'Me',
-        ),
+        const SidebarXItem(icon: CupertinoIcons.compass),
+        SidebarXItem(iconBuilder: (selected, hovered) {
+          return Icon(
+            CupertinoIcons.bitcoin,
+            color: Color(0xfff2a900),
+            size: iconSize,
+          );
+        }),
+        const SidebarXItem(icon: CupertinoIcons.settings),
       ],
-    );
-  }
-}
-
-class _ScreensBody extends StatelessWidget {
-  const _ScreensBody({
-    required this.sidebarXController,
-  });
-
-  final SidebarXController sidebarXController;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return AnimatedBuilder(
-      animation: sidebarXController,
-      builder: (context, child) {
-        switch (sidebarXController.selectedIndex) {
-          case 0:
-            return RoomList();
-          case 1:
-            return BrowserPage();
-          case 2:
-            return MinePage();
-          default:
-            return Text(
-              sidebarXController.selectedIndex.toString(),
-              style: theme.textTheme.headlineSmall,
-            );
-        }
-      },
     );
   }
 }

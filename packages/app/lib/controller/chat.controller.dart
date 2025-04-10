@@ -80,7 +80,6 @@ class ChatController extends GetxController {
   late FocusNode keyboardFocus;
   late AutoScrollController autoScrollController;
   late ScrollController textFieldScrollController;
-  BuildContext? context;
   DateTime lastMessageAddedAt = DateTime.now();
 
   final List<IconData> featuresIcons = [

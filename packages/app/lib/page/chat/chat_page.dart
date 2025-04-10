@@ -32,7 +32,8 @@ import 'package:settings_ui/settings_ui.dart';
 
 // ignore: must_be_immutable
 class ChatPage extends StatefulWidget {
-  const ChatPage({super.key});
+  final Room? room;
+  const ChatPage({this.room, super.key});
 
   @override
   _ChatPage2State createState() => _ChatPage2State();
@@ -817,24 +818,28 @@ class _ChatPage2State extends State<ChatPage> {
   }
 
   Room _getRoomAndInit(BuildContext context) {
-    int roomId = int.parse(Get.parameters['id']!);
-    Room? room;
-    if (Get.arguments == null) {
-      room = RoomService.instance.getRoomByIdSync(roomId);
-    } else {
-      // room = Get.arguments as Room;
-      try {
-        Map<String, dynamic> arguments = Get.arguments;
-        room = arguments['room'];
-        isFromSearch = arguments['isFromSearch'];
-        searchDt = arguments['searchDt'];
-      } catch (e) {
-        // only one arguments, not in Json format
-        room = Get.arguments as Room;
+    Room? room = widget.room;
+    int? roomId = widget.room?.id;
+    if (room == null) {
+      if (Get.parameters['id'] != null) {
+        roomId = int.parse(Get.parameters['id']!);
+      }
+      if (Get.arguments == null && roomId != null) {
+        room = RoomService.instance.getRoomByIdSync(roomId);
+      } else {
+        // room = Get.arguments as Room;
+        try {
+          Map<String, dynamic> arguments = Get.arguments;
+          room = arguments['room'];
+          isFromSearch = arguments['isFromSearch'];
+          searchDt = arguments['searchDt'];
+        } catch (e) {
+          // only one arguments, not in Json format
+          room = Get.arguments as Room;
+        }
       }
     }
     controller = Get.put(ChatController(room!), tag: roomId.toString());
-    controller.context = context;
     if (isFromSearch) {
       controller.searchMsgIndex = 1;
       controller.searchDt = searchDt;

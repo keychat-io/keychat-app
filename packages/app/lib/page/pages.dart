@@ -56,7 +56,7 @@ class Pages {
       name: Routes.contactList,
       page: () => const ContactsPage(),
     ),
-    GetPage(name: Routes.room, page: () => const ChatPage()),
+    GetPage(name: Routes.room, page: () => ChatPage()),
     GetPage(
         name: Routes.roomSettingContact,
         page: () => const ChatSettingContactPage()),
@@ -66,7 +66,6 @@ class Pages {
     GetPage(
         name: Routes.roomSettingContactSecurity,
         page: () => const ChatSettingSecurity()),
-    // GetPage(name: Routes.room, page: () => const ChatPage()),
     GetPage(name: Routes.ecash, page: () => const CashuPage()),
     GetPage(name: Routes.ecashBillCashu, page: () => const CashuBillPage()),
     GetPage(

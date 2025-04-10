@@ -74,6 +74,7 @@ class MessageService {
         if (Get.find<HomeController>().resumed == false) {
           Get.find<HomeController>().addUnreadCount();
         }
+        return;
       }
       EasyThrottle.throttle('newMessageSnackbar', Duration(seconds: 2), () {
         bool isCurrentRoomPage = Get.currentRoute

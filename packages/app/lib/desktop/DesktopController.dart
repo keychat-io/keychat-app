@@ -8,6 +8,10 @@ class DesktopController extends GetxController {
   final sidebarXController =
       SidebarXController(selectedIndex: 0, extended: false);
   final globalKey = GlobalKey<ScaffoldState>();
+  resetRoom() {
+    selectedRoom.value = Room(identityId: -1, toMainPubkey: '', npub: '');
+  }
+
   @override
   void onClose() {
     // Dispose of any resources here

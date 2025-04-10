@@ -4,10 +4,13 @@ import 'package:app/page/browser/Browser_page.dart';
 import 'package:app/page/chat/chat_page.dart';
 import 'package:app/page/login/me.dart';
 import 'package:app/page/room_list.dart';
+import 'package:app/utils.dart';
+import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/cashu_page.dart';
+import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:sidebarx/sidebarx.dart';
 
 class DesktopMain extends GetView<DesktopController> {
@@ -20,7 +23,7 @@ class DesktopMain extends GetView<DesktopController> {
       key: controller.globalKey,
       body: Row(
         children: [
-          HomeSidebarX(controller: controller.sidebarXController),
+          HomeSidebarX(),
           Expanded(
               child: AnimatedBuilder(
             animation: controller.sidebarXController,
@@ -33,7 +36,6 @@ class DesktopMain extends GetView<DesktopController> {
                         width: 280,
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors.white,
                             border: Border(
                               right: BorderSide(
                                 color: Theme.of(context)
@@ -77,21 +79,23 @@ class DesktopMain extends GetView<DesktopController> {
 
 final double iconSize = 24;
 
-class HomeSidebarX extends GetView<HomeController> {
-  const HomeSidebarX({
-    super.key,
-    required SidebarXController controller,
-  }) : _controller = controller;
-
-  final SidebarXController _controller;
-
+class HomeSidebarX extends GetView<DesktopController> {
+  const HomeSidebarX({super.key});
   @override
   Widget build(BuildContext context) {
+    HomeController hc = Get.find<HomeController>();
+
+    const canvasColor = Color(0xFF2E2E48);
+    const scaffoldBackgroundColor = Color(0xFF464667);
+    const accentCanvasColor = Color(0xFF3E3E61);
+
     return SidebarX(
-      controller: _controller,
+      controller: controller.sidebarXController,
       theme: SidebarXTheme(
         decoration: BoxDecoration(
-          color: Color(0xFFE8E8E8),
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Color(0xFF2E243F)
+              : Color(0xFFE8E8E8),
         ),
         margin: const EdgeInsets.all(0),
         hoverColor: scaffoldBackgroundColor,
@@ -103,20 +107,11 @@ class HomeSidebarX extends GetView<HomeController> {
         selectedItemTextPadding: const EdgeInsets.only(left: 30),
         itemDecoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
-          // border: Border.all(color: canvasColor),
         ),
         selectedItemDecoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          gradient: const LinearGradient(
-            colors: [accentCanvasColor, canvasColor],
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Theme.of(context).colorScheme.onPrimaryContainer,
-              blurRadius: 30,
-            )
-          ],
-        ),
+            borderRadius: BorderRadius.circular(10),
+            gradient:
+                const LinearGradient(colors: [accentCanvasColor, canvasColor])),
         iconTheme: IconThemeData(
           size: iconSize,
         ),
@@ -137,36 +132,35 @@ class HomeSidebarX extends GetView<HomeController> {
           iconBuilder: (selected, hovered) {
             return Obx(() => Badge(
                 backgroundColor: Colors.red,
-                label: Text('${controller.allUnReadCount.value}'),
-                isLabelVisible: controller.allUnReadCount.value > 0,
+                label: Text('${hc.allUnReadCount.value}',
+                    style: const TextStyle(color: Colors.white)),
+                isLabelVisible: hc.allUnReadCount.value > 0,
                 child: selected
                     ? Icon(CupertinoIcons.chat_bubble_fill,
                         color: Colors.white, size: iconSize)
                     : Icon(CupertinoIcons.chat_bubble,
-                        color: Colors.black, size: iconSize)));
-          },
-          onTap: () {
-            debugPrint('Chats');
+                        color: Get.isDarkMode ? Colors.white : Colors.black,
+                        size: iconSize)));
           },
         ),
         const SidebarXItem(icon: CupertinoIcons.compass),
-        SidebarXItem(iconBuilder: (selected, hovered) {
-          return Icon(
-            CupertinoIcons.bitcoin,
-            color: Color(0xfff2a900),
-            size: iconSize,
-          );
-        }),
+        SidebarXItem(
+          iconBuilder: (selected, hovered) {
+            return Icon(
+              CupertinoIcons.bitcoin,
+              color: Color(0xfff2a900),
+              size: iconSize,
+            );
+          },
+          onTap: () {
+            EasyThrottle.throttle(
+                'loadCashuABalance', const Duration(seconds: 3), () {
+              Utils.getGetxController<EcashController>()?.getBalance();
+            });
+          },
+        ),
         const SidebarXItem(icon: CupertinoIcons.settings),
       ],
     );
   }
 }
-
-const primaryColor = Color(0xFF685BFF);
-const canvasColor = Color(0xFF2E2E48);
-const scaffoldBackgroundColor = Color(0xFF464667);
-const accentCanvasColor = Color(0xFF3E3E61);
-const white = Colors.white;
-final actionColor = const Color(0xFF5F5FA7).withOpacity(0.6);
-final divider = Divider(color: white.withOpacity(0.3), height: 1);

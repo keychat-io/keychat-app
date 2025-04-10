@@ -439,8 +439,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                               return;
                             }
 
-                            await Get.offAndToNamed('/room/${room.id}',
-                                arguments: room);
+                            await Utils.offAndToNamedRoom(room);
                             await Get.find<HomeController>()
                                 .loadIdentityRoomList(room.identityId);
                           },
@@ -621,7 +620,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
               }
               await Get.find<HomeController>()
                   .loadIdentityRoomList(cc.roomObs.value.identityId);
-              Get.offAllNamed(Routes.root);
+              Utils.offAllNamed(Routes.root);
             }),
       ],
     ));

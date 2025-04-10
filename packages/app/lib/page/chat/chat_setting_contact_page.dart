@@ -251,7 +251,7 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                     .deleteRoomHandler(room.toMainPubkey, room.identityId);
                 Get.find<HomeController>()
                     .loadIdentityRoomList(room.identityId);
-                await Get.offAllNamed(Routes.root);
+                await Utils.offAllNamed(Routes.root);
               } catch (e) {
                 String msg = Utils.getErrorMessage(e);
                 logger.e(msg, error: e, stackTrace: StackTrace.current);

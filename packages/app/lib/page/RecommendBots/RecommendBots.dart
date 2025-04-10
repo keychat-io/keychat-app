@@ -63,7 +63,7 @@ class RecommendBots extends StatelessWidget {
                           identity: identity);
                       await SignalChatService.instance
                           .sendHelloMessage(room, identity);
-                      await Get.toNamed('/room/${room.id}', arguments: room);
+                      await Utils.toNamedRoom(room);
                     },
                     child: const Text('Add')),
               );

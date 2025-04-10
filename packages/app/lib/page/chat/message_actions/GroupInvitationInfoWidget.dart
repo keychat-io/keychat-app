@@ -69,7 +69,7 @@ class GroupInvitationInfoWidget extends StatelessWidget {
                   child: const Text('Go'),
                   onPressed: () async {
                     Navigator.of(context).pop();
-                    await Get.toNamed('/room/${exist.id}', arguments: exist);
+                    await Utils.toNamedRoom(exist);
                   },
                 ),
               ],

@@ -116,7 +116,7 @@ class MessageService {
     if (Get.currentRoute.startsWith('/room/')) {
       Get.offNamed('/room/${room.id}', arguments: room);
     } else {
-      Get.toNamed('/room/${room.id}', arguments: room);
+      Utils.toNamedRoom(room);
     }
   }
 

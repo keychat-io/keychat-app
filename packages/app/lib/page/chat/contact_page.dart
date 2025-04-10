@@ -154,8 +154,7 @@ class ContactPage extends StatelessWidget {
                   }
                   await Get.find<HomeController>()
                       .loadIdentityRoomList(room0.identityId);
-                  await Get.offAndToNamed('/room/${room0.id}',
-                      arguments: room0);
+                  await Utils.offAndToNamedRoom(room0);
                   await Get.find<HomeController>()
                       .loadIdentityRoomList(room0.identityId);
                 });

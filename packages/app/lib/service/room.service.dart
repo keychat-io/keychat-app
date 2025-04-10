@@ -851,7 +851,7 @@ class RoomService extends BaseChatService {
       }
 
       if (autoJump) {
-        await Get.offAndToNamed('/room/${room.id}', arguments: room);
+        await Utils.offAndToNamedRoom(room);
         Utils.getGetxController<HomeController>()
             ?.loadIdentityRoomList(identity.id);
       }

@@ -83,11 +83,10 @@ class _AnonymousRoomsState extends State<AnonymousRooms> {
                     room.unReadCount = 0;
                     _updateRoom(room);
                     if (list.length == 1) {
-                      await Get.offAndToNamed('/room/${room.id}',
-                          arguments: room);
+                      await Utils.offAndToNamedRoom(room);
                       return;
                     }
-                    await Get.toNamed('/room/${room.id}', arguments: room);
+                    await Utils.toNamedRoom(room);
                   },
                   title: Text(
                     room.getRoomName(),

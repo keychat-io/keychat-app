@@ -26,7 +26,7 @@ class RoomList extends GetView<HomeController> {
   Widget build(BuildContext context) {
     Color pinTileBackground =
         Get.isDarkMode ? const Color(0xFF202020) : const Color(0xFFEDEDED);
-
+    DesktopController desktopController = Get.find<DesktopController>();
     Divider divider = Divider(
         height: 0.1,
         color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
@@ -126,17 +126,14 @@ class RoomList extends GetView<HomeController> {
                   }
                   Room room = rooms[index];
                   return InkWell(
-                      hoverColor: Colors.grey.shade100,
                       key: ObjectKey('${index}_room${room.id}'),
                       onTap: () async {
                         if (GetPlatform.isDesktop) {
                           Get.find<DesktopController>().selectedRoom.value =
                               room;
-                          Get.find<DesktopController>().selectedRoom.refresh();
-                          return;
+                        } else {
+                          await Utils.toNamedRoom(room);
                         }
-                        await Get.toNamed('/room/${room.id}',
-                            id: room.id, arguments: room);
 
                         RoomService.instance.markAllRead(
                             identityId: room.identityId, roomId: room.id);
@@ -150,42 +147,53 @@ class RoomList extends GetView<HomeController> {
                       child: Container(
                           color:
                               room.pin ? pinTileBackground : Colors.transparent,
-                          child: ListTile(
-                            leading: Utils.getAvatarDot(room),
-                            key: Key('room:${room.id}'),
-                            title: Text(room.getRoomName(),
-                                maxLines: 1,
-                                style: Theme.of(context).textTheme.titleMedium),
-                            subtitle: Obx(() => RoomUtil.getSubtitleDisplay(
-                                room,
-                                messageExpired,
-                                controller.roomLastMessage[room.id])),
-                            trailing: controller.roomLastMessage[room.id] ==
-                                    null
-                                ? null
-                                : Wrap(
-                                    direction: Axis.vertical,
-                                    alignment: WrapAlignment.center,
-                                    crossAxisAlignment: WrapCrossAlignment.end,
-                                    children: [
-                                      textSmallGray(
-                                          Get.context!,
-                                          Utils.formatTimeMsg(controller
-                                              .roomLastMessage[room.id]!
-                                              .createdAt)),
-                                      room.isMute
-                                          ? Icon(
-                                              Icons.notifications_off_outlined,
-                                              color: Theme.of(Get.context!)
-                                                  .colorScheme
-                                                  .onSurface
-                                                  .withValues(alpha: 0.6),
-                                              size: 16,
-                                            )
-                                          : Container()
-                                    ],
-                                  ),
-                          )));
+                          child: Obx(() => ListTile(
+                                leading: Utils.getAvatarDot(room),
+                                key: Key('room:${room.id}'),
+                                selected:
+                                    desktopController.selectedRoom.value.id ==
+                                        room.id,
+                                selectedTileColor: Theme.of(context)
+                                    .colorScheme
+                                    .primary
+                                    .withValues(alpha: 200),
+                                title: Text(room.getRoomName(),
+                                    maxLines: 1,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium),
+                                subtitle: Obx(() => RoomUtil.getSubtitleDisplay(
+                                    room,
+                                    messageExpired,
+                                    controller.roomLastMessage[room.id])),
+                                trailing: controller.roomLastMessage[room.id] ==
+                                        null
+                                    ? null
+                                    : Wrap(
+                                        direction: Axis.vertical,
+                                        alignment: WrapAlignment.center,
+                                        crossAxisAlignment:
+                                            WrapCrossAlignment.end,
+                                        children: [
+                                          textSmallGray(
+                                              Get.context!,
+                                              Utils.formatTimeMsg(controller
+                                                  .roomLastMessage[room.id]!
+                                                  .createdAt)),
+                                          room.isMute
+                                              ? Icon(
+                                                  Icons
+                                                      .notifications_off_outlined,
+                                                  color: Theme.of(Get.context!)
+                                                      .colorScheme
+                                                      .onSurface
+                                                      .withValues(alpha: 0.6),
+                                                  size: 16,
+                                                )
+                                              : Container()
+                                        ],
+                                      ),
+                              ))));
                 });
           }).toList())),
     );
@@ -259,7 +267,7 @@ class RoomList extends GetView<HomeController> {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           onTap: () async {
-            await Get.to(() => AnonymousRooms(rooms));
+            await Get.bottomSheet(AnonymousRooms(rooms));
             controller.loadRoomList();
           },
           subtitle: Text('Rooms: ${rooms.length}'),
@@ -296,7 +304,7 @@ class RoomList extends GetView<HomeController> {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           onTap: () async {
-            await Get.to(() => AnonymousRooms(rooms));
+            await Get.bottomSheet(AnonymousRooms(rooms));
             controller.loadRoomList();
           },
           subtitle: Text('Rooms: ${rooms.length}'),

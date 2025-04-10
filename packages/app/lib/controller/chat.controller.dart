@@ -206,6 +206,12 @@ class ChatController extends GetxController {
   }
 
   Future handleSubmitted() async {
+    if (HardwareKeyboard.instance.isControlPressed ||
+        HardwareKeyboard.instance.isShiftPressed ||
+        HardwareKeyboard.instance.isAltPressed) {
+      return;
+    }
+
     String text = textEditingController.text.trim();
     if (text.isEmpty) {
       return;

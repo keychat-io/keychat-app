@@ -6,6 +6,8 @@ import 'package:app/controller/chat.controller.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/page/browser/Browser_controller.dart';
 import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app/page/chat/chat_setting_contact_page.dart';
+import 'package:app/page/chat/chat_setting_group_page.dart';
 import 'package:app/page/chat/message_widget.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/routes.dart';
@@ -90,7 +92,9 @@ class _ChatPage2State extends State<ChatPage> {
   @override
   void dispose() {
     try {
-      Get.delete<ChatController>(tag: controller.roomObs.value.id.toString());
+      if (GetPlatform.isMobile) {
+        Get.delete<ChatController>(tag: controller.roomObs.value.id.toString());
+      }
       // ignore: empty_catches
     } catch (e) {}
     super.dispose();
@@ -128,16 +132,22 @@ class _ChatPage2State extends State<ChatPage> {
                 : const SizedBox()),
           ),
           actions: [
-            Obx(() => controller.roomObs.value.status != RoomStatus.approving
-                ? IconButton(
-                    onPressed: goToSetting,
-                    icon: const Icon(
-                      Icons.more_horiz,
-                    ),
-                  )
-                : Container())
+            if (GetPlatform.isMobile)
+              Obx(() => controller.roomObs.value.status != RoomStatus.approving
+                  ? IconButton(
+                      onPressed: goToSetting,
+                      icon: const Icon(
+                        Icons.more_horiz,
+                      ),
+                    )
+                  : Container())
           ],
         ),
+        endDrawer: GetPlatform.isDesktop
+            ? Drawer(
+                width: 400,
+                child: Obx(() => goToSettingWidget(controller.roomObs.value)))
+            : null,
         floatingActionButtonLocation: FloatingActionButtonLocation.miniEndTop,
         floatingActionButton: Obx(() => controller.unreadIndex.value > 1
             ? FilledButton.icon(
@@ -312,126 +322,124 @@ class _ChatPage2State extends State<ChatPage> {
       case RoomStatus.removedFromGroup:
         return _exitInputSection();
       default:
-        return SafeArea(
-            top: false,
-            maintainBottomViewPadding: true,
-            child: Column(
-              children: [
-                _getReplyWidget(),
-                Container(
-                    padding: EdgeInsets.only(
-                        left: 10,
-                        right: 10,
-                        bottom: 10,
-                        top: controller.inputReplys.isNotEmpty ? 0 : 10),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: <Widget>[
-                        if (controller.botCommands.isNotEmpty)
-                          botMenuWidget(controller, context),
-                        Expanded(
-                          child: KeyboardListener(
-                            focusNode: controller.keyboardFocus,
-                            onKeyEvent: (KeyEvent event) {
-                              if (event.runtimeType == KeyDownEvent &&
-                                  event.physicalKey ==
-                                      PhysicalKeyboardKey.enter) {
-                                if (!(HardwareKeyboard
-                                        .instance.isControlPressed ||
-                                    HardwareKeyboard.instance.isShiftPressed ||
-                                    HardwareKeyboard.instance.isAltPressed)) {
-                                  controller.handleSubmitted();
-                                }
-                              }
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 8),
-                              decoration: BoxDecoration(
-                                borderRadius: const BorderRadius.all(
-                                  Radius.circular(4.0),
-                                ),
-                                color: Get.isDarkMode
-                                    ? Colors.grey.shade800
-                                    : Colors.grey.shade100,
-                              ),
-                              child: TextFormField(
-                                controller: controller.textEditingController,
-                                keyboardType: TextInputType.multiline,
-                                focusNode: controller.chatContentFocus,
-                                autofocus: GetPlatform.isDesktop,
-                                decoration: const InputDecoration(
-                                    isCollapsed: true,
-                                    hintText: 'Message',
-                                    enabledBorder: InputBorder.none,
-                                    focusedBorder: InputBorder.none,
-                                    contentPadding: EdgeInsets.all(0)),
-                                textInputAction: TextInputAction.send,
-                                onEditingComplete: controller.handleSubmitted,
-                                maxLines: 8,
-                                minLines: 1,
-                                scrollController:
-                                    controller.textFieldScrollController,
-                                textAlign: TextAlign.left,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyLarge
-                                    ?.copyWith(fontSize: 16),
-                                cursorColor: Colors.green,
-                                onTap: () {
-                                  controller.hideEmoji.value = true;
-                                  controller.hideAdd.value = true;
-                                },
-                                onChanged: handleOnChanged,
-                                onFieldSubmitted: (c) {
-                                  controller.handleSubmitted();
-                                },
-                                enabled: true,
-                              ),
+        return _inputEditSection();
+    }
+  }
+
+  Widget _inputEditSection() {
+    return SafeArea(
+        top: false,
+        maintainBottomViewPadding: true,
+        child: Column(
+          children: [
+            _getReplyWidget(),
+            Container(
+                padding: EdgeInsets.only(
+                    left: 10,
+                    right: 10,
+                    bottom: 10,
+                    top: controller.inputReplys.isNotEmpty ? 0 : 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: <Widget>[
+                    if (controller.botCommands.isNotEmpty)
+                      botMenuWidget(controller, context),
+                    Expanded(
+                      child: KeyboardListener(
+                        focusNode: controller.keyboardFocus,
+                        onKeyEvent: (KeyEvent event) {
+                          if (event.runtimeType == KeyDownEvent &&
+                              event.physicalKey == PhysicalKeyboardKey.enter) {
+                            controller.handleSubmitted();
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 8),
+                          decoration: BoxDecoration(
+                            borderRadius: const BorderRadius.all(
+                              Radius.circular(4.0),
                             ),
+                            color: Get.isDarkMode
+                                ? Colors.grey.shade800
+                                : Colors.grey.shade100,
+                          ),
+                          child: TextFormField(
+                            controller: controller.textEditingController,
+                            keyboardType: TextInputType.multiline,
+                            focusNode: controller.chatContentFocus,
+                            autofocus: GetPlatform.isDesktop,
+                            decoration: const InputDecoration(
+                                isCollapsed: true,
+                                hintText: 'Message',
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                contentPadding: EdgeInsets.all(0)),
+                            textInputAction: TextInputAction.send,
+                            onEditingComplete: controller.handleSubmitted,
+                            maxLines: 8,
+                            minLines: 1,
+                            scrollController:
+                                controller.textFieldScrollController,
+                            textAlign: TextAlign.left,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyLarge
+                                ?.copyWith(fontSize: 16),
+                            cursorColor: Colors.green,
+                            onTap: () {
+                              controller.hideEmoji.value = true;
+                              controller.hideAdd.value = true;
+                            },
+                            onChanged: handleOnChanged,
+                            onFieldSubmitted: (c) {
+                              controller.handleSubmitted();
+                            },
+                            enabled: true,
                           ),
                         ),
-                        Padding(
-                          padding: const EdgeInsets.only(left: 10, bottom: 5),
-                          child: GestureDetector(
-                              onTap: handleMessageSend,
-                              child: controller.inputText.value.isNotEmpty
-                                  ? const Icon(
-                                      weight: 300,
-                                      size: 28,
-                                      CupertinoIcons.arrow_up_circle_fill,
-                                      color: Color.fromARGB(255, 100, 80, 243))
-                                  : Icon(
-                                      size: 28,
-                                      CupertinoIcons.add_circled,
-                                      weight: 300,
-                                      color: Theme.of(context)
-                                          .iconTheme
-                                          .color
-                                          ?.withAlpha(155),
-                                    )),
-                        ),
-                      ],
-                    )),
-                Visibility(
-                  visible: !controller.hideAdd.value,
-                  child: AnimatedOpacity(
-                    opacity: !controller.hideAdd.value ? 1.0 : 0.0,
-                    duration: const Duration(milliseconds: 500),
-                    child: AnimatedContainer(
-                      height: !controller.hideAdd.value
-                          ? controller.featuresIcons.length > 4
-                              ? 220.0
-                              : 100
-                          : 0.0,
-                      duration: const Duration(milliseconds: 500),
-                      child: getFeaturesWidget(context),
+                      ),
                     ),
-                  ),
-                )
-              ],
-            ));
-    }
+                    Padding(
+                      padding: const EdgeInsets.only(left: 10, bottom: 5),
+                      child: GestureDetector(
+                          onTap: handleMessageSend,
+                          child: controller.inputText.value.isNotEmpty
+                              ? const Icon(
+                                  weight: 300,
+                                  size: 28,
+                                  CupertinoIcons.arrow_up_circle_fill,
+                                  color: Color.fromARGB(255, 100, 80, 243))
+                              : Icon(
+                                  size: 28,
+                                  CupertinoIcons.add_circled,
+                                  weight: 300,
+                                  color: Theme.of(context)
+                                      .iconTheme
+                                      .color
+                                      ?.withAlpha(155),
+                                )),
+                    ),
+                  ],
+                )),
+            Visibility(
+              visible: !controller.hideAdd.value,
+              child: AnimatedOpacity(
+                opacity: !controller.hideAdd.value ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 500),
+                child: AnimatedContainer(
+                  height: !controller.hideAdd.value
+                      ? controller.featuresIcons.length > 4
+                          ? 220.0
+                          : 100
+                      : 0.0,
+                  duration: const Duration(milliseconds: 500),
+                  child: getFeaturesWidget(context),
+                ),
+              ),
+            )
+          ],
+        ));
   }
 
   Padding botMenuWidget(ChatController controller, BuildContext context) {
@@ -545,6 +553,13 @@ class _ChatPage2State extends State<ChatPage> {
         route.replaceFirst(':id', controller.roomObs.value.id.toString()));
     await controller.openPageAction();
     return;
+  }
+
+  Widget goToSettingWidget(Room room) {
+    if (room.type == RoomType.group) {
+      return ChatSettingGroupPage(roomId: room.id, key: ValueKey(room.id));
+    }
+    return ChatSettingContactPage(roomId: room.id, key: ValueKey(room.id));
   }
 
   Widget debugWidget(HomeController hc) {
@@ -744,7 +759,7 @@ class _ChatPage2State extends State<ChatPage> {
         await RoomService.instance.deleteRoom(controller.roomObs.value);
         await Get.find<HomeController>()
             .loadIdentityRoomList(controller.roomObs.value.identityId);
-        await Get.offAllNamed(Routes.root);
+        await Utils.offAllNamed(Routes.root);
       },
       child: const Text('Exit and Delete Room',
           style: TextStyle(color: Colors.white)),

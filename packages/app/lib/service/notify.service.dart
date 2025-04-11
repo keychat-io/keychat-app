@@ -239,7 +239,7 @@ Fix:
   }
 
   static Future<bool> removePubkeys(List<String> pubkeys) async {
-    if (fcmToken == null) return false;
+    if (fcmToken == null) return true;
 
     try {
       var res = await Dio().post('${KeychatGlobal.notifycationServer}/remove',

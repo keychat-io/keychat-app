@@ -854,7 +854,7 @@ class MessageWidget extends StatelessWidget {
     cc.inputReplys.value = [message];
     cc.hideAdd.value = true;
     cc.inputReplys.refresh();
-    FocusScope.of(cc.context ?? context).requestFocus(cc.chatContentFocus);
+    FocusScope.of(Get.context ?? context).requestFocus(cc.chatContentFocus);
   }
 
   void _handleTextLongPress() async {

@@ -36,7 +36,9 @@ class BrowserPage extends GetView<BrowserController> {
                         ConstrainedBox(
                           constraints: BoxConstraints(
                             maxHeight: 55,
-                            maxWidth: Get.width - 80,
+                            maxWidth: GetPlatform.isDesktop
+                                ? Get.width * 0.82
+                                : Get.width - 80,
                           ),
                           child: Form(
                             key: PageStorageKey(
@@ -67,14 +69,14 @@ class BrowserPage extends GetView<BrowserController> {
                                     if (controller.input.isNotEmpty)
                                       IconButton(
                                         icon: const Icon(CupertinoIcons.clear,
-                                            size: 24),
+                                            size: 20),
                                         onPressed: () {
                                           controller.textController.clear();
                                         },
                                       ),
                                     IconButton(
                                       icon: const Icon(CupertinoIcons.search,
-                                          size: 24),
+                                          size: 20),
                                       onPressed: () async {
                                         if (controller
                                             .textController.text.isEmpty) {

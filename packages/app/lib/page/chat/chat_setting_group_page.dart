@@ -24,7 +24,8 @@ import '../../service/group.service.dart';
 import 'add_member_to_group.dart';
 
 class ChatSettingGroupPage extends StatefulWidget {
-  const ChatSettingGroupPage({super.key});
+  final int? roomId;
+  const ChatSettingGroupPage({super.key, this.roomId});
 
   @override
   createState() => _ChatSettingGroupPageState();
@@ -40,7 +41,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
   bool isAdmin = false;
   @override
   void initState() {
-    int roomId = int.parse(Get.parameters['id']!);
+    int roomId = widget.roomId ?? int.parse(Get.parameters['id']!);
     var controller = RoomService.getController(roomId);
     if (controller == null) {
       Get.back();
@@ -438,8 +439,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                               return;
                             }
 
-                            await Get.offAndToNamed('/room/${room.id}',
-                                arguments: room);
+                            await Utils.offAndToNamedRoom(room);
                             await Get.find<HomeController>()
                                 .loadIdentityRoomList(room.identityId);
                           },
@@ -620,7 +620,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
               }
               await Get.find<HomeController>()
                   .loadIdentityRoomList(cc.roomObs.value.identityId);
-              Get.offAllNamed(Routes.root);
+              Utils.offAllNamed(Routes.root);
             }),
       ],
     ));

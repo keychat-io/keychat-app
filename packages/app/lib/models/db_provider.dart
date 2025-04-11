@@ -50,10 +50,11 @@ class DBProvider {
     int currentVersion = await Storage.getIntOrZero(StorageKeyString.dbVersion);
     logger.i('current db version: $currentVersion');
     if (currentVersion < 30) {
+      currentVersion = 34; // skip old versions for new users
       await _migrateToVersion30();
     }
     if (currentVersion >= 30 && currentVersion < 31) {
-      currentVersion == 31;
+      currentVersion = 31;
       await _migrateToVersion31();
     }
     if (currentVersion >= 31 && currentVersion < 32) {

@@ -1,3 +1,4 @@
+import 'package:app/desktop/DesktopController.dart';
 import 'package:app/models/models.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/new_friends_rooms.dart';
@@ -25,18 +26,19 @@ class RoomList extends GetView<HomeController> {
   Widget build(BuildContext context) {
     Color pinTileBackground =
         Get.isDarkMode ? const Color(0xFF202020) : const Color(0xFFEDEDED);
-
+    DesktopController desktopController = Get.find<DesktopController>();
     Divider divider = Divider(
         height: 0.1,
         color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
         indent: 80.0);
+    WebsocketService ws = Get.find<WebsocketService>();
     return Scaffold(
       appBar: AppBar(
           automaticallyImplyLeading: false,
           titleSpacing: 0,
           centerTitle: true,
           leadingWidth: 0,
-          actions: [Obx(() => getRelaysStatus())],
+          actions: [Obx(() => getRelaysStatus(ws.relayStatusInt.value))],
           title: PreferredSize(
               preferredSize: const Size.fromHeight(0),
               child: SizedBox(
@@ -82,7 +84,7 @@ class RoomList extends GetView<HomeController> {
                     ),
                   )))),
       body: Obx(() => TabBarView(
-          key: const Key('roomlistTabview'),
+          key: GlobalObjectKey('roomlist_tabview'),
           controller: controller.tabController,
           children: controller.tabBodyDatas.keys.map((identityId) {
             TabData data = controller.tabBodyDatas[identityId]!;
@@ -124,56 +126,77 @@ class RoomList extends GetView<HomeController> {
                         pinTileBackground, context);
                   }
                   Room room = rooms[index];
-                  return GestureDetector(
+                  return InkWell(
                       key: ObjectKey('${index}_room${room.id}'),
                       onTap: () async {
-                        await Get.toNamed('/room/${room.id}', arguments: room);
+                        if (GetPlatform.isDesktop) {
+                          Get.find<DesktopController>().selectedRoom.value =
+                              room;
+                        } else {
+                          await Utils.toNamedRoom(room);
+                        }
 
                         RoomService.instance.markAllRead(
                             identityId: room.identityId, roomId: room.id);
                         controller.resortRoomList(room.identityId);
+                      },
+                      onSecondaryTapDown: (e) {
+                        onSecondaryTapDown(e, room, context);
                       },
                       onLongPress: () =>
                           RoomUtil.showRoomActionSheet(context, room),
                       child: Container(
                           color:
                               room.pin ? pinTileBackground : Colors.transparent,
-                          child: ListTile(
-                            leading: Utils.getAvatarDot(room),
-                            key: Key('room:${room.id}'),
-                            title: Text(room.getRoomName(),
-                                maxLines: 1,
-                                style: Theme.of(context).textTheme.titleMedium),
-                            subtitle: Obx(() => RoomUtil.getSubtitleDisplay(
-                                room,
-                                messageExpired,
-                                controller.roomLastMessage[room.id])),
-                            trailing: controller.roomLastMessage[room.id] ==
-                                    null
-                                ? null
-                                : Wrap(
-                                    direction: Axis.vertical,
-                                    alignment: WrapAlignment.center,
-                                    crossAxisAlignment: WrapCrossAlignment.end,
-                                    children: [
-                                      textSmallGray(
-                                          Get.context!,
-                                          Utils.formatTimeMsg(controller
-                                              .roomLastMessage[room.id]!
-                                              .createdAt)),
-                                      room.isMute
-                                          ? Icon(
-                                              Icons.notifications_off_outlined,
-                                              color: Theme.of(Get.context!)
-                                                  .colorScheme
-                                                  .onSurface
-                                                  .withValues(alpha: 0.6),
-                                              size: 16,
-                                            )
-                                          : Container()
-                                    ],
-                                  ),
-                          )));
+                          child: Obx(() => ListTile(
+                                contentPadding:
+                                    EdgeInsets.only(left: 16, right: 16),
+                                leading: Utils.getAvatarDot(room),
+                                key: Key('room:${room.id}'),
+                                selected:
+                                    desktopController.selectedRoom.value.id ==
+                                        room.id,
+                                selectedTileColor: Theme.of(context)
+                                    .colorScheme
+                                    .primary
+                                    .withValues(alpha: 200),
+                                title: Text(room.getRoomName(),
+                                    maxLines: 1,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium),
+                                subtitle: Obx(() => RoomUtil.getSubtitleDisplay(
+                                    room,
+                                    messageExpired,
+                                    controller.roomLastMessage[room.id])),
+                                trailing: controller.roomLastMessage[room.id] ==
+                                        null
+                                    ? null
+                                    : Wrap(
+                                        direction: Axis.vertical,
+                                        alignment: WrapAlignment.center,
+                                        crossAxisAlignment:
+                                            WrapCrossAlignment.end,
+                                        children: [
+                                          textSmallGray(
+                                              Get.context!,
+                                              Utils.formatTimeMsg(controller
+                                                  .roomLastMessage[room.id]!
+                                                  .createdAt)),
+                                          room.isMute
+                                              ? Icon(
+                                                  Icons
+                                                      .notifications_off_outlined,
+                                                  color: Theme.of(Get.context!)
+                                                      .colorScheme
+                                                      .onSurface
+                                                      .withValues(alpha: 0.6),
+                                                  size: 16,
+                                                )
+                                              : Container()
+                                        ],
+                                      ),
+                              ))));
                 });
           }).toList())),
     );
@@ -247,7 +270,7 @@ class RoomList extends GetView<HomeController> {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           onTap: () async {
-            await Get.to(() => AnonymousRooms(rooms));
+            await Get.bottomSheet(AnonymousRooms(rooms));
             controller.loadRoomList();
           },
           subtitle: Text('Rooms: ${rooms.length}'),
@@ -280,11 +303,11 @@ class RoomList extends GetView<HomeController> {
                   child: const Icon(CupertinoIcons.person_badge_plus_fill,
                       size: 26))),
           title: Text(
-            'Requesting Friends',
+            'Requesting',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           onTap: () async {
-            await Get.to(() => AnonymousRooms(rooms));
+            await Get.bottomSheet(AnonymousRooms(rooms));
             controller.loadRoomList();
           },
           subtitle: Text('Rooms: ${rooms.length}'),
@@ -297,9 +320,7 @@ class RoomList extends GetView<HomeController> {
         ));
   }
 
-  Widget getRelaysStatus() {
-    WebsocketService webSocketService = Get.find<WebsocketService>();
-    String status = webSocketService.relayStatusInt.value;
+  Widget getRelaysStatus(String status) {
     if (!controller.isConnectedNetwork.value) {
       status = RelayStatusEnum.noNetwork.name;
     }
@@ -386,5 +407,48 @@ class RoomList extends GetView<HomeController> {
         ),
       ],
     ));
+  }
+
+  void onSecondaryTapDown(TapDownDetails e, Room room, BuildContext context) {
+    if (!GetPlatform.isDesktop) {
+      return;
+    }
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
+    final position = RelativeRect.fromRect(
+      Rect.fromPoints(
+        e.globalPosition,
+        e.globalPosition,
+      ),
+      Offset.zero & overlay.size,
+    );
+    showMenu(
+      context: context,
+      position: position,
+      items: [
+        const PopupMenuItem(value: 'read', child: Text('Make as Read')),
+        PopupMenuItem(value: 'pin', child: Text(room.pin ? 'Unpin' : 'Pin')),
+        PopupMenuItem(
+            value: 'mute', child: Text(room.isMute ? 'Unmute' : 'Mute')),
+      ],
+    ).then((value) async {
+      switch (value) {
+        case 'pin':
+          room.pin = !room.pin;
+          room.pinAt = DateTime.now();
+          await RoomService.instance.updateRoomAndRefresh(room);
+          await controller.loadIdentityRoomList(room.identityId);
+          break;
+        case 'mute':
+          await RoomService.instance.mute(room, !room.isMute);
+          break;
+        case 'read':
+          await RoomService.instance
+              .markAllRead(identityId: room.identityId, roomId: room.id);
+          controller.resortRoomList(room.identityId);
+          break;
+        default:
+      }
+    });
   }
 }

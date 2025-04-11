@@ -97,14 +97,6 @@ class ContactDetailPage extends StatelessWidget {
                               .titleMedium
                               ?.copyWith(height: 2, color: Colors.black87),
                         ),
-                        // ElevatedButton(
-                        //     onPressed: () async {
-                        //       Room room = await RoomService.instance
-                        //           .getRoomByContact(controller.contact.value);
-                        //       Get.offAndToNamed('/room/${room.id}',
-                        //           arguments: room);
-                        //     },
-                        //     child: const Text('Send message'))
                       ],
                     )
                   ],

@@ -15,11 +15,12 @@ import '../../service/signal_chat.service.dart';
 import '../components.dart';
 
 class ChatSettingSecurity extends StatelessWidget {
-  const ChatSettingSecurity({super.key});
+  final int? roomId;
+  const ChatSettingSecurity({super.key, this.roomId});
   @override
   Widget build(BuildContext context) {
-    int roomId = int.parse(Get.parameters['id']!);
-    ChatController cc = RoomService.getController(roomId)!;
+    int id = roomId ?? int.parse(Get.parameters['id']!);
+    ChatController cc = RoomService.getController(id)!;
 
     List<String> receiveKeys =
         ContactService.instance.getMyReceiveKeys(cc.roomObs.value) ?? [];

@@ -4,6 +4,7 @@ import 'dart:io' show Directory, File, FileMode, Platform;
 import 'dart:math' show Random;
 
 import 'package:app/controller/setting.controller.dart';
+import 'package:app/desktop/DesktopController.dart';
 import 'package:app/global.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/models/room.dart';
@@ -926,5 +927,35 @@ class Utils {
       EasyLoading.showError("Failed to create identity: $e");
     }
     return null;
+  }
+
+  static Future offAndToNamedRoom(Room room, [dynamic arguments]) async {
+    if (GetPlatform.isMobile) {
+      await Get.offAndToNamed('/room/${room.id}', arguments: arguments ?? room);
+      return;
+    }
+    Get.back();
+    Get.find<DesktopController>().selectedRoom.value = room;
+  }
+
+  static Future toNamedRoom(Room room, [dynamic arguments]) async {
+    if (GetPlatform.isMobile) {
+      await Get.toNamed('/room/${room.id}', arguments: arguments ?? room);
+      return;
+    }
+    Get.find<DesktopController>().selectedRoom.value = room;
+  }
+
+  static offAllNamed(String path, [dynamic arguments]) {
+    if (GetPlatform.isMobile) {
+      Get.offAllNamed(path, arguments: arguments);
+      return;
+    }
+    if (Get.isOverlaysOpen) {
+      Get.back();
+      Get.find<DesktopController>().resetRoom();
+      return;
+    }
+    Get.offAllNamed(path, arguments: arguments);
   }
 }

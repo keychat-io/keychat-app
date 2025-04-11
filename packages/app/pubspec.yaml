@@ -4,7 +4,7 @@ description: keychat
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.30.10+6352
+version: 1.31.2+6355
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
@@ -97,6 +97,8 @@ dependencies:
       url: https://github.com/keychat-io/amberflutter.git
   web_socket_client: ^0.2.0
   path: ^1.9.0
+  sidebarx: ^0.17.1
+  super_clipboard: ^0.8.24
 
 dev_dependencies:
   flutter_test:

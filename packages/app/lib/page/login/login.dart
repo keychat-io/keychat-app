@@ -50,7 +50,7 @@ class Login extends StatelessWidget {
                             await SecureStorage.instance.clearAll();
                             var res = await Get.to(() => const CreateAccount());
                             if (res != null) {
-                              Get.offAllNamed(Routes.root, arguments: true);
+                              Utils.offAllNamed(Routes.root, true);
                             }
                           } catch (e, s) {
                             EasyLoading.showError(e.toString());
@@ -83,7 +83,7 @@ class Login extends StatelessWidget {
           onPressed: (context) async {
             Identity? res = await Get.to(() => const ImportSeedPhrase());
             if (res != null) {
-              Get.offAllNamed(Routes.root, arguments: true);
+              Utils.offAllNamed(Routes.root, true);
             }
           },
         ),
@@ -93,7 +93,7 @@ class Login extends StatelessWidget {
           onPressed: (context) async {
             Identity? res = await Get.to(() => const ImportNsec());
             if (res != null) {
-              Get.offAllNamed(Routes.root, arguments: true);
+              Utils.offAllNamed(Routes.root, true);
             }
           },
         ),
@@ -107,7 +107,7 @@ class Login extends StatelessWidget {
             onPressed: (context) async {
               var identity = await Utils.handleAmberLogin();
               if (identity != null) {
-                Get.offAllNamed(Routes.root, arguments: true);
+                Utils.offAllNamed(Routes.root, true);
               }
             },
           )

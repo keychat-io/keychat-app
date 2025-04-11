@@ -20,7 +20,8 @@ import '../../service/room.service.dart';
 
 // ignore: must_be_immutable
 class ChatSettingContactPage extends StatefulWidget {
-  const ChatSettingContactPage({super.key});
+  final int? roomId;
+  const ChatSettingContactPage({super.key, this.roomId});
 
   @override
   State<StatefulWidget> createState() => _ChatSettingContactPageState();
@@ -37,7 +38,7 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
 
   @override
   void initState() {
-    int roomId = int.parse(Get.parameters['id']!);
+    int roomId = widget.roomId ?? int.parse(Get.parameters['id']!);
     var controller = RoomService.getController(roomId);
     if (controller == null) {
       Get.back();
@@ -250,7 +251,7 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                     .deleteRoomHandler(room.toMainPubkey, room.identityId);
                 Get.find<HomeController>()
                     .loadIdentityRoomList(room.identityId);
-                await Get.offAllNamed(Routes.root);
+                await Utils.offAllNamed(Routes.root);
               } catch (e) {
                 String msg = Utils.getErrorMessage(e);
                 logger.e(msg, error: e, stackTrace: StackTrace.current);

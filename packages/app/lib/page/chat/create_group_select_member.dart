@@ -124,7 +124,7 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
       return;
     }
 
-    await Get.offAndToNamed('/room/${room.id}', arguments: room);
+    await Utils.offAndToNamedRoom(room);
     await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
   }
 

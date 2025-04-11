@@ -363,13 +363,11 @@ class HomeController extends GetxController
   void networkListenHandle(List<ConnectivityResult> result) {
     if (result.contains(ConnectivityResult.none)) {
       isConnectedNetwork.value = false;
+      Get.find<WebsocketService>().checkOnlineAndConnect();
     } else {
       // network from disconnected to connected
       if (!isConnectedNetwork.value) {
-        EasyDebounce.debounce('isConnectedNetwork', const Duration(seconds: 1),
-            () {
-          Get.find<WebsocketService>().start();
-        });
+        Get.find<WebsocketService>().start();
       }
       isConnectedNetwork.value = true;
     }

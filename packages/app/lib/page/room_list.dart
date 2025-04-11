@@ -302,7 +302,7 @@ class RoomList extends GetView<HomeController> {
                   child: const Icon(CupertinoIcons.person_badge_plus_fill,
                       size: 26))),
           title: Text(
-            'Requesting Friends',
+            'Requesting',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           onTap: () async {

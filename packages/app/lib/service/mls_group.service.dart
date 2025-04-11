@@ -760,7 +760,7 @@ $error ''';
           'status': status,
           'errorMessage': errorMessage,
         };
-        logger.d('Kind: ${EventKinds.mlsNipKeypackages}, relay: $map');
+        loggerNoLine.i('Kind: ${EventKinds.mlsNipKeypackages}, relay: $map');
       });
     }));
   }

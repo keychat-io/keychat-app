@@ -953,7 +953,9 @@ class Utils {
     }
     if (Get.isOverlaysOpen) {
       Get.back();
+      Get.find<DesktopController>().resetRoom();
+      return;
     }
-    Get.find<DesktopController>().resetRoom();
+    Get.offAllNamed(path, arguments: arguments);
   }
 }

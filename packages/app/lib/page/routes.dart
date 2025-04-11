@@ -1,6 +1,5 @@
 abstract class Routes {
   static const root = '/';
-  static const rootDesktop = '/desktop';
   // static const init = '/';
   static const login = '/login';
   static const importKey = '/login/import_key';

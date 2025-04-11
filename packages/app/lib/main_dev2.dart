@@ -70,9 +70,6 @@ void main() async {
 }
 
 Future<String> getInitRoute(bool isLogin) async {
-  if (isLogin && GetPlatform.isDesktop) {
-    return Routes.rootDesktop;
-  }
   return isLogin ? Routes.root : Routes.login;
   // int onboarding = await Storage.getIntOrZero(StorageKeyString.onboarding);
   // // if (!isLogin && onboarding == 0) {

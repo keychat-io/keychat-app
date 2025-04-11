@@ -27,11 +27,11 @@ class Pages {
         transition: Transition.fadeIn),
     GetPage(
         name: Routes.root,
-        page: () => const CupertinoRootPage(),
-        transition: Transition.fadeIn),
-    GetPage(
-        name: Routes.rootDesktop,
-        page: () => const DesktopMain(),
+        page: () {
+          return GetPlatform.isMobile
+              ? const CupertinoRootPage()
+              : const DesktopMain();
+        },
         transition: Transition.fadeIn),
     GetPage(
         name: Routes.login,

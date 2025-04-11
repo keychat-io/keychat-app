@@ -363,11 +363,11 @@ class HomeController extends GetxController
   void networkListenHandle(List<ConnectivityResult> result) {
     if (result.contains(ConnectivityResult.none)) {
       isConnectedNetwork.value = false;
-      Get.find<WebsocketService>().checkOnlineAndConnect();
+      Utils.getGetxController<WebsocketService>()?.checkOnlineAndConnect();
     } else {
       // network from disconnected to connected
       if (!isConnectedNetwork.value) {
-        Get.find<WebsocketService>().start();
+        Utils.getGetxController<WebsocketService>()?.start();
       }
       isConnectedNetwork.value = true;
     }

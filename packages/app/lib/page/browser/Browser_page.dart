@@ -37,7 +37,7 @@ class BrowserPage extends GetView<BrowserController> {
                           constraints: BoxConstraints(
                             maxHeight: 55,
                             maxWidth: GetPlatform.isDesktop
-                                ? Get.width * 0.8
+                                ? Get.width * 0.82
                                 : Get.width - 80,
                           ),
                           child: Form(

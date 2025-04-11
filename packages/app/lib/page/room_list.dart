@@ -31,13 +31,14 @@ class RoomList extends GetView<HomeController> {
         height: 0.1,
         color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
         indent: 80.0);
+    WebsocketService ws = Get.find<WebsocketService>();
     return Scaffold(
       appBar: AppBar(
           automaticallyImplyLeading: false,
           titleSpacing: 0,
           centerTitle: true,
           leadingWidth: 0,
-          actions: [Obx(() => getRelaysStatus())],
+          actions: [Obx(() => getRelaysStatus(ws.relayStatusInt.value))],
           title: PreferredSize(
               preferredSize: const Size.fromHeight(0),
               child: SizedBox(
@@ -319,9 +320,7 @@ class RoomList extends GetView<HomeController> {
         ));
   }
 
-  Widget getRelaysStatus() {
-    WebsocketService webSocketService = Get.find<WebsocketService>();
-    String status = webSocketService.relayStatusInt.value;
+  Widget getRelaysStatus(String status) {
     if (!controller.isConnectedNetwork.value) {
       status = RelayStatusEnum.noNetwork.name;
     }

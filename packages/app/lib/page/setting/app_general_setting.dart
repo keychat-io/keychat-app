@@ -174,7 +174,7 @@ class AppGeneralSetting extends GetView<SettingController> {
                   // ignore: empty_catches
                 } catch (e) {}
                 NotifyService.clearAll();
-                Utils.offAllNamed(Routes.login);
+                Get.offAllNamed(Routes.login);
               } catch (e, s) {
                 EasyLoading.showError(e.toString(),
                     duration: const Duration(seconds: 2));

@@ -119,7 +119,9 @@ class HomeController extends GetxController
           }
         }
         appstates.clear();
-        removeBadge();
+        if (GetPlatform.isMobile) {
+          removeBadge();
+        }
         EasyThrottle.throttle(
             'AppLifecycleState.resumed', const Duration(seconds: 3), () {
           Get.find<WebsocketService>().checkOnlineAndConnect();
@@ -505,6 +507,16 @@ class HomeController extends GetxController
         item.rooms.where((element) => element is! Room).toList();
     item.rooms = [...nonRoomItems, ...RoomUtil.sortRoomList(friendsRooms)];
     tabBodyDatas[identityId] = item;
+  }
+
+  Room? getRoomByIdentity(int identityId, int roomId) {
+    List<Room> list = getRoomsByIdentity(identityId);
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id == roomId) {
+        return list[i];
+      }
+    }
+    return null;
   }
 }
 

@@ -49,12 +49,16 @@ class DesktopMain extends GetView<DesktopController> {
                         ),
                       ),
                       Expanded(
-                          child: Obx(() =>
-                              dc.selectedRoom.value.identityId == -1
-                                  ? const Center(child: Text('Keychat.io'))
-                                  : ChatPage(
-                                      key: ValueKey(dc.selectedRoom.value.id),
-                                      room: dc.selectedRoom.value))),
+                          child: Obx(() => dc.selectedRoom.value.identityId ==
+                                  -1
+                              ? const Center(
+                                  child: Padding(
+                                      padding: EdgeInsets.all(16),
+                                      child: Text(
+                                          'Bitcoin Ecash / Nostr / Signal / MLS Protocol')))
+                              : ChatPage(
+                                  key: ValueKey(dc.selectedRoom.value.id),
+                                  room: dc.selectedRoom.value))),
                     ],
                   );
                 case 1:

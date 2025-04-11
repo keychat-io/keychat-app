@@ -25,6 +25,7 @@ enum MessageMediaType {
   image,
   video,
   contact,
+  @Deprecated('Use MessageMediaType.file instead')
   pdf,
   setPostOffice,
   groupInvite,

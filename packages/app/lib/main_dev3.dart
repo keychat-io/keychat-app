@@ -1,11 +1,12 @@
 import 'dart:io' show Directory;
 
+import 'package:app/desktop/DesktopController.dart';
+import 'package:app/page/routes.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -69,7 +70,10 @@ void main() async {
 }
 
 Future<String> getInitRoute(bool isLogin) async {
-  return isLogin ? '/' : '/login';
+  if (isLogin && GetPlatform.isDesktop) {
+    return Routes.rootDesktop;
+  }
+  return isLogin ? Routes.root : Routes.login;
   // int onboarding = await Storage.getIntOrZero(StorageKeyString.onboarding);
   // // if (!isLogin && onboarding == 0) {
   // if (onboarding == 0) {
@@ -143,6 +147,7 @@ Future<SettingController> initServices() async {
   Get.putAsync(() => ChatxService().init(dbPath));
   Get.putAsync(() => WebsocketService().init());
   Get.put(HomeController(), permanent: true);
+  Get.lazyPut(() => DesktopController(), fenix: true);
   return sc;
 }
 

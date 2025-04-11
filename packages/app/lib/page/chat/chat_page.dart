@@ -1,5 +1,6 @@
 import 'dart:async' show Timer;
 import 'dart:convert' show jsonDecode;
+import 'dart:io';
 import 'dart:math' show Random;
 
 import 'package:app/controller/chat.controller.dart';
@@ -28,9 +29,12 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 import 'package:get/get.dart';
 import 'package:app/models/models.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:markdown_widget/markdown_widget.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:settings_ui/settings_ui.dart';
+import 'package:super_clipboard/super_clipboard.dart';
 
 // ignore: must_be_immutable
 class ChatPage extends StatefulWidget {
@@ -347,10 +351,20 @@ class _ChatPage2State extends State<ChatPage> {
                     Expanded(
                       child: KeyboardListener(
                         focusNode: controller.keyboardFocus,
-                        onKeyEvent: (KeyEvent event) {
+                        onKeyEvent: (KeyEvent event) async {
+                          // enter
                           if (event.runtimeType == KeyDownEvent &&
                               event.physicalKey == PhysicalKeyboardKey.enter) {
                             controller.handleSubmitted();
+                            return;
+                          }
+
+                          // cmd + v
+                          if (event.runtimeType == KeyDownEvent &&
+                              HardwareKeyboard.instance.isMetaPressed &&
+                              event.logicalKey == LogicalKeyboardKey.keyV) {
+                            _handlePasteboard();
+                            return;
                           }
                         },
                         child: Container(
@@ -371,7 +385,7 @@ class _ChatPage2State extends State<ChatPage> {
                             autofocus: GetPlatform.isDesktop,
                             decoration: const InputDecoration(
                                 isCollapsed: true,
-                                hintText: 'Message',
+                                hintText: 'Write a message...',
                                 enabledBorder: InputBorder.none,
                                 focusedBorder: InputBorder.none,
                                 contentPadding: EdgeInsets.all(0)),
@@ -919,5 +933,64 @@ class _ChatPage2State extends State<ChatPage> {
           },
           child: const Text('View')),
     );
+  }
+
+  Future _handlePasteboard() async {
+    final clipboard = SystemClipboard.instance;
+    if (clipboard == null) {
+      return; // Clipboard API is not supported on this platform.
+    }
+    final reader = await clipboard.read();
+
+    logger.d('cmd+v');
+    final imageFormats = [
+      (Formats.png, MessageMediaType.image, true),
+      (Formats.jpeg, MessageMediaType.image, true),
+      (Formats.webp, MessageMediaType.image, true),
+      (Formats.gif, MessageMediaType.image, false),
+      (Formats.mp4, MessageMediaType.video, true),
+      (Formats.heif, MessageMediaType.image, true),
+      (Formats.pdf, MessageMediaType.file, false),
+      (Formats.plainTextFile, MessageMediaType.file, false),
+    ];
+
+    for (var (format, mediaType, compress) in imageFormats) {
+      if (reader.canProvide(format)) {
+        return _readFromStream(reader, format, mediaType, compress);
+      }
+    }
+  }
+
+  _readFromStream(
+      ClipboardReader reader, SimpleFileFormat format, MessageMediaType type,
+      [bool compress = true]) async {
+    /// Binary formats need to be read as streams
+    reader.getFile(format, (DataReaderFile file) async {
+      try {
+        EasyLoading.show(status: 'Pasting...');
+        Uint8List imageBytes = await file.readAll();
+        final tempDir = await getTemporaryDirectory();
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        String? mimeType = format.mimeTypes?.first;
+        if (mimeType == null) return;
+        String suffix = mimeType.split('/').last;
+        String newFileName = 'pasted_image_$timestamp.$suffix';
+        final path = '${tempDir.path}/$newFileName';
+        final teampFile = File(path);
+        await teampFile.writeAsBytes(imageBytes);
+
+        XFile xFile = XFile(path,
+            bytes: imageBytes, mimeType: mimeType, name: newFileName);
+        if (controller.textEditingController.text.endsWith('.$suffix')) {
+          controller.textEditingController.clear();
+        }
+        await controller.handleSendMediaFile(xFile, type, compress);
+      } catch (e, s) {
+        logger.e(e.toString(), stackTrace: s);
+      } finally {
+        await Future.delayed(Duration(seconds: 2));
+        EasyLoading.dismiss();
+      }
+    });
   }
 }

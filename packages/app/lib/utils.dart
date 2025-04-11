@@ -931,8 +931,7 @@ class Utils {
 
   static Future offAndToNamedRoom(Room room, [dynamic arguments]) async {
     if (GetPlatform.isMobile) {
-      await Get.offAndToNamed('/room/${room.id}',
-          id: room.id, arguments: arguments ?? room);
+      await Get.offAndToNamed('/room/${room.id}', arguments: arguments ?? room);
       return;
     }
     Get.back();
@@ -941,16 +940,15 @@ class Utils {
 
   static Future toNamedRoom(Room room, [dynamic arguments]) async {
     if (GetPlatform.isMobile) {
-      await Get.toNamed('/room/${room.id}',
-          id: room.id, arguments: arguments ?? room);
+      await Get.toNamed('/room/${room.id}', arguments: arguments ?? room);
       return;
     }
     Get.find<DesktopController>().selectedRoom.value = room;
   }
 
-  static offAllNamed(String path) {
+  static offAllNamed(String path, [dynamic arguments]) {
     if (GetPlatform.isMobile) {
-      Get.offAllNamed(path);
+      Get.offAllNamed(path, arguments: arguments);
       return;
     }
     if (Get.isOverlaysOpen) {

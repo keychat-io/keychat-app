@@ -1,5 +1,6 @@
 import 'dart:convert' show base64Encode, utf8;
 import 'dart:io' show Directory, File, FileSystemEntity;
+import 'dart:typed_data' show Uint8List;
 import 'package:app/global.dart';
 import 'package:app/models/db_provider.dart';
 import 'package:app/models/embedded/msg_file_info.dart';
@@ -79,18 +80,20 @@ class FileUtils {
       [double width = 150, double height = 150]) {
     bool isSVG = file.path.endsWith('.svg');
 
-    return isSVG
-        ? SvgPicture.file(
-            file,
-            width: width,
-            height: height,
-            fit: BoxFit.fitWidth,
-          )
-        : Image.file(
-            file,
-            width: width,
-            fit: BoxFit.fitWidth,
-          );
+    if (isSVG) {
+      return SvgPicture.file(
+        file,
+        width: width,
+        height: height,
+        fit: BoxFit.fitWidth,
+      );
+    }
+
+    return Image.file(
+      file,
+      width: width,
+      fit: BoxFit.fitWidth,
+    );
   }
 
   static Future<String> getRoomFolder(
@@ -168,7 +171,7 @@ class FileUtils {
 
     String newPath = await getNewFilePath(appDocPath, xfile.path);
     List<int> fileBytes = [];
-    if (type == MessageMediaType.image) {
+    if (type == MessageMediaType.image && compress) {
       img.Image? sourceInput = await img.decodeImageFile(xfile.path);
       if (sourceInput == null) {
         throw Exception('Image decode failed');
@@ -359,6 +362,105 @@ class FileUtils {
     }
 
     throw Exception('File_upload_faild');
+  }
+
+  static String getFileTypeFromBytes(Uint8List bytes) {
+    if (bytes.length < 8) {
+      return 'Unknow';
+    }
+    // Check file signatures (magic numbers)
+    final List<int> header = bytes.sublist(0, 8);
+
+    // Check for common image formats
+    if (bytes.length >= 3 &&
+        bytes[0] == 0xFF &&
+        bytes[1] == 0xD8 &&
+        bytes[2] == 0xFF) {
+      return 'image/jpeg';
+    }
+
+    if (bytes.length >= 8 &&
+        header[0] == 0x89 &&
+        header[1] == 0x50 &&
+        header[2] == 0x4E &&
+        header[3] == 0x47 &&
+        header[4] == 0x0D &&
+        header[5] == 0x0A &&
+        header[6] == 0x1A &&
+        header[7] == 0x0A) {
+      return 'image/png';
+    }
+
+    if (bytes.length >= 4 &&
+        header[0] == 0x47 &&
+        header[1] == 0x49 &&
+        header[2] == 0x46 &&
+        header[3] == 0x38) {
+      return 'image/gif';
+    }
+
+    if (bytes.length >= 4 &&
+        ((header[0] == 0x49 &&
+                header[1] == 0x49 &&
+                header[2] == 0x2A &&
+                header[3] == 0x00) ||
+            (header[0] == 0x4D &&
+                header[1] == 0x4D &&
+                header[2] == 0x00 &&
+                header[3] == 0x2A))) {
+      return 'image/tiff';
+    }
+
+    // Check for PDF
+    if (bytes.length >= 5 &&
+        bytes[0] == 0x25 &&
+        bytes[1] == 0x50 &&
+        bytes[2] == 0x44 &&
+        bytes[3] == 0x46 &&
+        bytes[4] == 0x2D) {
+      return 'application/pdf';
+    }
+
+    // Check for common video formats
+    if (bytes.length >= 8 &&
+        header[4] == 0x66 &&
+        header[5] == 0x74 &&
+        header[6] == 0x79 &&
+        header[7] == 0x70) {
+      return 'video/mp4';
+    }
+
+    // Check for WebM
+    if (bytes.length >= 4 &&
+        header[0] == 0x1A &&
+        header[1] == 0x45 &&
+        header[2] == 0xDF &&
+        header[3] == 0xA3) {
+      return 'video/webm';
+    }
+
+    // Check for ZIP-based formats
+    if (bytes.length >= 4 &&
+        header[0] == 0x50 &&
+        header[1] == 0x4B &&
+        header[2] == 0x03 &&
+        header[3] == 0x04) {
+      return 'application/zip';
+    }
+
+    // Check for common document formats
+    if (bytes.length >= 8 &&
+        header[0] == 0xD0 &&
+        header[1] == 0xCF &&
+        header[2] == 0x11 &&
+        header[3] == 0xE0 &&
+        header[4] == 0xA1 &&
+        header[5] == 0xB1 &&
+        header[6] == 0x1A &&
+        header[7] == 0xE1) {
+      return 'application/vnd.ms-office';
+    }
+    return 'application/octet-stream';
   }
 }
 

@@ -83,7 +83,7 @@ class RoomList extends GetView<HomeController> {
                     ),
                   )))),
       body: Obx(() => TabBarView(
-          key: const Key('roomlistTabview'),
+          key: GlobalObjectKey('roomlist_tabview'),
           controller: controller.tabController,
           children: controller.tabBodyDatas.keys.map((identityId) {
             TabData data = controller.tabBodyDatas[identityId]!;
@@ -148,6 +148,8 @@ class RoomList extends GetView<HomeController> {
                           color:
                               room.pin ? pinTileBackground : Colors.transparent,
                           child: Obx(() => ListTile(
+                                contentPadding:
+                                    EdgeInsets.only(left: 16, right: 16),
                                 leading: Utils.getAvatarDot(room),
                                 key: Key('room:${room.id}'),
                                 selected:
@@ -425,40 +427,28 @@ class RoomList extends GetView<HomeController> {
       context: context,
       position: position,
       items: [
+        const PopupMenuItem(value: 'read', child: Text('Make as Read')),
+        PopupMenuItem(value: 'pin', child: Text(room.pin ? 'Unpin' : 'Pin')),
         PopupMenuItem(
-          child: Row(
-            children: [
-              const Icon(Icons.pin_drop),
-              const SizedBox(width: 10),
-              Text(room.pin ? 'Unpin' : 'Pin'),
-            ],
-          ),
-          // onTap: () => RoomUtil.togglePin(room),
-        ),
-        PopupMenuItem(
-          child: Row(
-            children: [
-              const Icon(Icons.notifications_off_outlined),
-              const SizedBox(width: 10),
-              Text(room.isMute ? 'Unmute' : 'Mute'),
-            ],
-          ),
-          // onTap: () => RoomUtil.toggleMute(room),
-        ),
-        const PopupMenuItem(
-          value: 'delete',
-          child: Row(
-            children: [
-              Icon(Icons.delete_outline, color: Colors.red),
-              SizedBox(width: 10),
-              Text('Delete', style: TextStyle(color: Colors.red)),
-            ],
-          ),
-        ),
+            value: 'mute', child: Text(room.isMute ? 'Unmute' : 'Mute')),
       ],
-    ).then((value) {
-      if (value == 'delete') {
-        // RoomUtil.showDeleteDialog(context, room);
+    ).then((value) async {
+      switch (value) {
+        case 'pin':
+          room.pin = !room.pin;
+          room.pinAt = DateTime.now();
+          await RoomService.instance.updateRoomAndRefresh(room);
+          await controller.loadIdentityRoomList(room.identityId);
+          break;
+        case 'mute':
+          await RoomService.instance.mute(room, !room.isMute);
+          break;
+        case 'read':
+          await RoomService.instance
+              .markAllRead(identityId: room.identityId, roomId: room.id);
+          controller.resortRoomList(room.identityId);
+          break;
+        default:
       }
     });
   }

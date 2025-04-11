@@ -171,9 +171,10 @@ class AppGeneralSetting extends GetView<SettingController> {
                 Storage.setInt(StorageKeyString.onboarding, 0);
                 try {
                   await FirebaseMessaging.instance.deleteToken();
+                  // ignore: empty_catches
                 } catch (e) {}
                 NotifyService.clearAll();
-                Get.offAllNamed(Routes.login);
+                Utils.offAllNamed(Routes.login);
               } catch (e, s) {
                 EasyLoading.showError(e.toString(),
                     duration: const Duration(seconds: 2));

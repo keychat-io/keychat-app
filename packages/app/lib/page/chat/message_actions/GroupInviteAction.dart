@@ -130,7 +130,7 @@ class GroupInviteAction extends StatelessWidget {
             ]));
         return;
       }
-      await Get.offAndToNamed('/room/${groupRoom.id}', arguments: groupRoom);
+      await Utils.offAndToNamedRoom(groupRoom);
       Get.find<HomeController>().loadIdentityRoomList(groupRoom.identityId);
     });
   }

@@ -26,7 +26,6 @@ import 'package:app/page/chat/message_actions/VideoMessageWidget.dart';
 import 'package:app/page/widgets/image_preview_widget.dart';
 import 'package:app/service/signal_chat_util.dart';
 import 'package:app/service/websocket.service.dart';
-import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/services.dart';
 
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -34,7 +33,6 @@ import 'package:keychat_ecash/red_pocket.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
-import 'package:app/service/contact.service.dart';
 import 'package:app/service/storage.dart';
 
 import 'package:app/controller/chat.controller.dart';
@@ -47,7 +45,6 @@ import 'package:app/models/room.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/widgets/image_min_preview_widget.dart';
 import 'package:app/service/file_util.dart';
-import 'package:app/service/notify.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
@@ -285,40 +282,7 @@ Let's start an encrypted chat.''';
       ),
       title: const Text('Mute Notifications'),
       onToggle: (value) async {
-        EasyThrottle.throttle('mute_notification', const Duration(seconds: 3),
-            () async {
-          Room room = cc.roomObs.value;
-          List<String> pubkeys = [];
-
-          if (room.type == RoomType.group) {
-            if (room.isMLSGroup && room.onetimekey != null) {
-              pubkeys.add(room.onetimekey!);
-            } else if (room.mykey.value?.pubkey != null) {
-              pubkeys.add(room.mykey.value!.pubkey);
-            }
-          } else {
-            List<String>? data = ContactService.instance.getMyReceiveKeys(room);
-            if (data != null) pubkeys.addAll(data);
-          }
-          bool res = false;
-          if (value) {
-            res = await NotifyService.removePubkeys(pubkeys);
-          } else {
-            res = await NotifyService.addPubkeys(pubkeys);
-          }
-          if (!res) {
-            EasyLoading.showError('Failed, Please try again');
-            return;
-          }
-          if (room.type == RoomType.common) {
-            await ContactService.instance.updateReceiveKeyIsMute(room, value);
-          }
-          cc.roomObs.value.isMute = value;
-          await RoomService.instance.updateRoomAndRefresh(cc.roomObs.value);
-          EasyLoading.showSuccess('Saved');
-          await Get.find<HomeController>()
-              .loadIdentityRoomList(room.identityId);
-        });
+        await RoomService.instance.mute(cc.roomObs.value, value);
       },
     );
   }
@@ -531,7 +495,7 @@ Let's start an encrypted chat.''';
             }
             return FilledButton(
               onPressed: () async {
-                await Get.offAndToNamed('/room/${room.id}', arguments: room);
+                await Utils.offAndToNamedRoom(room);
                 Get.find<HomeController>()
                     .loadIdentityRoomList(room.identityId);
               },

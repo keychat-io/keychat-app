@@ -125,37 +125,37 @@ class _SearchPageState extends State<SearchPage> {
           SearchResult result = _searchResults[index];
           if (result.type == "first") {
             if (_searchContactResults.isEmpty) {
-              return const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Contacts"),
-                  SizedBox(
-                    height: 5,
-                  ),
-                  Text("  No contact found."),
-                  SizedBox(
-                    height: 5,
-                  ),
-                ],
-              );
+              return Padding(
+                  padding: EdgeInsets.all(16),
+                  child: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Contacts"),
+                      SizedBox(
+                        height: 5,
+                      ),
+                      Text("No contact found."),
+                      SizedBox(
+                        height: 5,
+                      ),
+                    ],
+                  ));
             }
             return const Text("Contacts");
           }
           if (result.type == "second") {
             if (_searchMessageResults.isEmpty) {
-              return const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Chat History"),
-                  SizedBox(
-                    height: 5,
-                  ),
-                  Text("  No chat history found."),
-                  SizedBox(
-                    height: 5,
-                  ),
-                ],
-              );
+              return Padding(
+                  padding: EdgeInsets.all(16),
+                  child: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Chat History"),
+                      SizedBox(height: 5),
+                      Text("No chat history found."),
+                      SizedBox(height: 5),
+                    ],
+                  ));
             }
             return const Text("Chat History");
           }
@@ -173,7 +173,7 @@ class _SearchPageState extends State<SearchPage> {
                 onTap: () async {
                   Room? room = snapshot.data;
                   if (room == null) return;
-                  await Get.offAndToNamed('/room/${room.id}', arguments: room);
+                  await Utils.offAndToNamedRoom(room);
                 },
                 // leading: const Text("Contact:"),
                 leading: Utils.getRandomAvatar(
@@ -211,7 +211,7 @@ class _SearchPageState extends State<SearchPage> {
                 onTap: () async {
                   Room? room = snapshot.data;
                   if (room == null) return;
-                  await Get.toNamed('/room/${room.id}', arguments: {
+                  await Utils.offAndToNamedRoom(room, {
                     "room": room,
                     "searchDt": _searchResults[index].data.createdAt,
                     "isFromSearch": true

@@ -426,7 +426,7 @@ class NostrAPI {
   Future _proccessEventMessage(
       NostrEventModel event, List eventList, Relay relay, String raw) async {
     if (processedEventIds.contains(event.id)) {
-      logger.i('duplicate_local: ${event.id}');
+      loggerNoLine.i('duplicate_local: ${event.id}');
       return;
     } else {
       processedEventIds.add(event.id);

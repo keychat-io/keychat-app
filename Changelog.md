@@ -4,6 +4,11 @@ https://keepachangelog.com/zh-CN/1.1.0
 
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
+## 1.31.1+6353
+1. Fix bugs in MLS Group
+2. Support desktop layout
+3. Desktop: Support pasting images and files into input fields
+
 ## 1.30.3+6339
 1. Upgrade mls group, compatible with NIP104.
 2. Change websocket lib to `web_socket_client`

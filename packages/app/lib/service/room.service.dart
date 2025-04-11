@@ -11,6 +11,7 @@ import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/signalId.service.dart';
+import 'package:easy_debounce/easy_throttle.dart';
 import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_mls.dart' as rust_mls;
@@ -851,7 +852,7 @@ class RoomService extends BaseChatService {
       }
 
       if (autoJump) {
-        await Get.offAndToNamed('/room/${room.id}', arguments: room);
+        await Utils.offAndToNamedRoom(room);
         Utils.getGetxController<HomeController>()
             ?.loadIdentityRoomList(identity.id);
       }
@@ -869,6 +870,49 @@ class RoomService extends BaseChatService {
       Utils.getGetxController<HomeController>()
           ?.loadIdentityRoomList(identityId);
     }
+  }
+
+  Future markAllReadSimple(Room room) async {
+    Room? homeRoom =
+        Get.find<HomeController>().getRoomByIdentity(room.identityId, room.id);
+    if (homeRoom == null) return;
+    if (homeRoom.unReadCount == 0) return;
+    await markAllRead(identityId: room.identityId, roomId: room.id);
+  }
+
+  Future mute(Room room, bool value) async {
+    EasyThrottle.throttle(
+        'mute_notification:${room.id}', const Duration(seconds: 1), () async {
+      List<String> pubkeys = [];
+
+      if (room.type == RoomType.group) {
+        if (room.isMLSGroup && room.onetimekey != null) {
+          pubkeys.add(room.onetimekey!);
+        } else if (room.mykey.value?.pubkey != null) {
+          pubkeys.add(room.mykey.value!.pubkey);
+        }
+      } else {
+        List<String>? data = ContactService.instance.getMyReceiveKeys(room);
+        if (data != null) pubkeys.addAll(data);
+      }
+      bool res = false;
+      if (value) {
+        res = await NotifyService.removePubkeys(pubkeys);
+      } else {
+        res = await NotifyService.addPubkeys(pubkeys);
+      }
+      if (!res) {
+        EasyLoading.showError('Failed, Please try again');
+        return;
+      }
+      if (room.type == RoomType.common) {
+        await ContactService.instance.updateReceiveKeyIsMute(room, value);
+      }
+      room.isMute = value;
+      await RoomService.instance.updateRoomAndRefresh(room);
+      EasyLoading.showSuccess('Saved');
+      await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
+    });
   }
 }
 

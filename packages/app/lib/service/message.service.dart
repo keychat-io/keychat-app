@@ -74,6 +74,7 @@ class MessageService {
         if (Get.find<HomeController>().resumed == false) {
           Get.find<HomeController>().addUnreadCount();
         }
+        return;
       }
       EasyThrottle.throttle('newMessageSnackbar', Duration(seconds: 2), () {
         bool isCurrentRoomPage = Get.currentRoute
@@ -115,7 +116,7 @@ class MessageService {
     if (Get.currentRoute.startsWith('/room/')) {
       Get.offNamed('/room/${room.id}', arguments: room);
     } else {
-      Get.toNamed('/room/${room.id}', arguments: room);
+      Utils.toNamedRoom(room);
     }
   }
 

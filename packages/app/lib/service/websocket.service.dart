@@ -29,6 +29,7 @@ class WebsocketService extends GetxService {
   RelayService rs = RelayService.instance;
   NostrAPI nostrAPI = NostrAPI.instance;
   RxString relayStatusInt = RelayStatusEnum.init.name.obs;
+  RxInt relayConnected = 0.obs;
   final RxMap<String, RelayWebsocket> channels = <String, RelayWebsocket>{}.obs;
   final RxMap<String, RelayMessageFee> relayMessageFeeModels =
       <String, RelayMessageFee>{}.obs;
@@ -311,6 +312,7 @@ class WebsocketService extends GetxService {
 
   refreshMainRelayStatus() async {
     int success = getOnlineSocket().length;
+    relayConnected.value = success;
     if (success > 0) {
       return await _setMainRelayStatus(RelayStatusEnum.connected);
     }

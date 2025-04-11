@@ -1,3 +1,4 @@
+import 'package:app/desktop/desktop.dart';
 import 'package:app/page/chat/chat_setting_contact_page.dart';
 import 'package:app/page/chat/chat_setting_group_page.dart';
 import 'package:app/page/chat/chat_settings_security.dart';
@@ -26,7 +27,11 @@ class Pages {
         transition: Transition.fadeIn),
     GetPage(
         name: Routes.root,
-        page: () => const CupertinoRootPage(),
+        page: () {
+          return GetPlatform.isMobile
+              ? const CupertinoRootPage()
+              : const DesktopMain();
+        },
         transition: Transition.fadeIn),
     GetPage(
         name: Routes.login,
@@ -51,7 +56,7 @@ class Pages {
       name: Routes.contactList,
       page: () => const ContactsPage(),
     ),
-    GetPage(name: Routes.room, page: () => const ChatPage()),
+    GetPage(name: Routes.room, page: () => ChatPage()),
     GetPage(
         name: Routes.roomSettingContact,
         page: () => const ChatSettingContactPage()),
@@ -61,7 +66,6 @@ class Pages {
     GetPage(
         name: Routes.roomSettingContactSecurity,
         page: () => const ChatSettingSecurity()),
-    // GetPage(name: Routes.room, page: () => const ChatPage()),
     GetPage(name: Routes.ecash, page: () => const CashuPage()),
     GetPage(name: Routes.ecashBillCashu, page: () => const CashuBillPage()),
     GetPage(

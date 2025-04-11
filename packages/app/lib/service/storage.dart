@@ -8,6 +8,7 @@ class StorageKeyString {
   static String themeMode = 'themeMode';
   static String settingNotifyStatus = 'settingNotifyStatus';
   static String notificationFCMToken = 'notificationFCMToken';
+  static String desktopRoomListWidth = 'desktopRoomListWidth';
 
   static String homeSelectedTabIndex = 'homeSelectedTabIndex';
   static String dbVersion = 'dbVersion';

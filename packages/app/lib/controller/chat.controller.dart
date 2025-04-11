@@ -27,7 +27,6 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 
 const int maxMessageId = 999999999999;
-const int messageLimitPerPage = 30;
 
 String newlineChar = String.fromCharCode(13);
 
@@ -47,6 +46,7 @@ class ChatController extends GetxController {
   RxList<Room> kpaIsNullRooms = <Room>[].obs; // for signal group chat
   int searchMsgIndex = -1;
   DateTime searchDt = DateTime.now();
+  int messageLimitPerPage = 30;
 
   // hide add button
   RxBool hideAdd = true.obs;
@@ -80,7 +80,6 @@ class ChatController extends GetxController {
   late FocusNode keyboardFocus;
   late AutoScrollController autoScrollController;
   late ScrollController textFieldScrollController;
-  BuildContext? context;
   DateTime lastMessageAddedAt = DateTime.now();
 
   final List<IconData> featuresIcons = [
@@ -116,11 +115,16 @@ class ChatController extends GetxController {
         index = 1;
       }
     }
-    if (autoScrollController.position.pixels <= 300) {
+    if (!autoScrollController.hasClients) {
       messages.insert(index, message);
     } else {
-      messagesMore.add(message);
+      if (autoScrollController.position.pixels <= 300) {
+        messages.insert(index, message);
+      } else {
+        messagesMore.add(message);
+      }
     }
+
     lastMessageAddedAt = DateTime.now();
   }
 
@@ -207,6 +211,12 @@ class ChatController extends GetxController {
   }
 
   Future handleSubmitted() async {
+    if (HardwareKeyboard.instance.isControlPressed ||
+        HardwareKeyboard.instance.isShiftPressed ||
+        HardwareKeyboard.instance.isAltPressed) {
+      return;
+    }
+
     String text = textEditingController.text.trim();
     if (text.isEmpty) {
       return;
@@ -234,6 +244,7 @@ class ChatController extends GetxController {
       inputText.value = '';
       inputTextIsAdd.value = true;
       jumpToBottom(100);
+      RoomService.instance.markAllReadSimple(roomObs.value);
     } catch (e, s) {
       textEditingController.text = text;
       String msg = Utils.getErrorMessage(e);
@@ -384,6 +395,7 @@ class ChatController extends GetxController {
     });
     if (GetPlatform.isDesktop) {
       chatContentFocus.requestFocus();
+      messageLimitPerPage = 100;
     }
 
     textFieldScrollController = ScrollController();
@@ -481,7 +493,7 @@ class ChatController extends GetxController {
         CupertinoDialogAction(
           isDefaultAction: true,
           onPressed: () async {
-            await _handleSendMediaFile(xfile!, MessageMediaType.image, true);
+            await handleSendMediaFile(xfile!, MessageMediaType.image, true);
             Get.back();
           },
           child: const Text('OK'),
@@ -587,16 +599,16 @@ class ChatController extends GetxController {
     XFile xfile = result.files.first.xFile;
 
     if (file_util.isImageFile(xfile.path)) {
-      return _handleSendMediaFile(xfile, MessageMediaType.image, true);
+      return handleSendMediaFile(xfile, MessageMediaType.image, true);
     }
 
     if (file_util.isVideoFile(xfile.path)) {
-      return _handleSendMediaFile(xfile, MessageMediaType.video, true);
+      return handleSendMediaFile(xfile, MessageMediaType.video, true);
     }
-    _handleSendMediaFile(xfile, MessageMediaType.file, false);
+    handleSendMediaFile(xfile, MessageMediaType.file, false);
   }
 
-  Future _handleSendMediaFile(
+  Future handleSendMediaFile(
       XFile xfile, MessageMediaType mediaType, bool compress) async {
     EasyThrottle.throttle('sendMediaFile', const Duration(seconds: 1),
         () async {

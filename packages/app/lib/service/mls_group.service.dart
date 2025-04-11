@@ -724,7 +724,8 @@ $error ''';
       if (!forceUpload) {
         if (Get.find<HomeController>().allIdentities[identity.id]?.mlsInit ==
             true) {
-          logger.d('${identity.secp256k1PKHex}\'s key packages initialized');
+          loggerNoLine
+              .d('${identity.secp256k1PKHex}\'s key packages initialized');
           return;
         }
       }
@@ -759,7 +760,7 @@ $error ''';
           'status': status,
           'errorMessage': errorMessage,
         };
-        logger.d('Kind: ${EventKinds.mlsNipKeypackages}, relay: $map');
+        loggerNoLine.i('Kind: ${EventKinds.mlsNipKeypackages}, relay: $map');
       });
     }));
   }

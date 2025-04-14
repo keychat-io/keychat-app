@@ -145,7 +145,7 @@ class RoomList extends GetView<HomeController> {
                               room.pin ? pinTileBackground : Colors.transparent,
                           child: Obx(() => ListTile(
                                 contentPadding:
-                                    EdgeInsets.only(left: 16, right: 16),
+                                    EdgeInsets.only(left: 8, right: 8),
                                 leading: Utils.getAvatarDot(room),
                                 key: Key('room:${room.id}'),
                                 selected:
@@ -155,23 +155,19 @@ class RoomList extends GetView<HomeController> {
                                     .colorScheme
                                     .primary
                                     .withValues(alpha: 200),
-                                title: Text(room.getRoomName(),
-                                    maxLines: 1,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium),
-                                subtitle: Obx(() => RoomUtil.getSubtitleDisplay(
-                                    room,
-                                    messageExpired,
-                                    controller.roomLastMessage[room.id])),
-                                trailing: controller.roomLastMessage[room.id] ==
-                                        null
-                                    ? null
-                                    : Wrap(
-                                        direction: Axis.vertical,
-                                        alignment: WrapAlignment.center,
-                                        crossAxisAlignment:
-                                            WrapCrossAlignment.end,
+                                title: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(room.getRoomName(),
+                                        maxLines: 1,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium),
+                                    if (controller.roomLastMessage[room.id] !=
+                                        null)
+                                      Wrap(
+                                        direction: Axis.horizontal,
                                         children: [
                                           textSmallGray(
                                               Get.context!,
@@ -191,6 +187,12 @@ class RoomList extends GetView<HomeController> {
                                               : Container()
                                         ],
                                       ),
+                                  ],
+                                ),
+                                subtitle: Obx(() => RoomUtil.getSubtitleDisplay(
+                                    room,
+                                    messageExpired,
+                                    controller.roomLastMessage[room.id])),
                               ))));
                 });
           }).toList())),

@@ -74,3 +74,11 @@ Like the postal system, Keychat requires no registration. Users just generate No
   static int kdfGroupPrekeyMessageCount = 3;
   static int kdfGroupKeysExpired = 7;
 }
+
+// for desktop nest routing
+class GetXNestKey {
+  static int room = 1;
+  static int browser = 2;
+  static int setting = 3;
+  static int ecash = 4;
+}

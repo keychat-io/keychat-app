@@ -1,7 +1,7 @@
 import 'package:app/controller/chat.controller.dart';
 import 'package:app/controller/home.controller.dart';
+import 'package:app/global.dart';
 import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/page/chat/message_bill/pay_to_relay_page.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/service/contact.service.dart';
@@ -174,8 +174,10 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                   title: const Text('Security Settings'),
                   leading: const Icon(CupertinoIcons.lock_shield),
                   onPressed: (context) {
-                    Get.toNamed(Routes.roomSettingContactSecurity
-                        .replaceFirst(':id', cc.roomObs.value.id.toString()));
+                    Get.toNamed(
+                        Routes.roomSettingContactSecurity.replaceFirst(
+                            ':id', cc.roomObs.value.id.toString()),
+                        id: GetPlatform.isDesktop ? GetXNestKey.room : null);
                   },
                 ),
                 SettingsTile.switchTile(
@@ -200,7 +202,10 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                   ),
                   title: const Text('Pay to Relay'),
                   onPressed: (context) async {
-                    Get.to(() => PayToRelayPage(roomId: cc.roomObs.value.id));
+                    Get.toNamed(
+                        Routes.roomSettingPayToRelay.replaceFirst(
+                            ':id', cc.roomObs.value.id.toString()),
+                        id: GetPlatform.isDesktop ? GetXNestKey.room : null);
                   },
                 ),
               ]),
@@ -251,7 +256,7 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                     .deleteRoomHandler(room.toMainPubkey, room.identityId);
                 Get.find<HomeController>()
                     .loadIdentityRoomList(room.identityId);
-                await Utils.offAllNamed(Routes.root);
+                await Utils.offAllNamedRoom(Routes.root);
               } catch (e) {
                 String msg = Utils.getErrorMessage(e);
                 logger.e(msg, error: e, stackTrace: StackTrace.current);

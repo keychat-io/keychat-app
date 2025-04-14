@@ -115,17 +115,22 @@ class ChatController extends GetxController {
         index = 1;
       }
     }
+    lastMessageAddedAt = DateTime.now();
+
     if (!autoScrollController.hasClients) {
       messages.insert(index, message);
-    } else {
+      return;
+    }
+    try {
       if (autoScrollController.position.pixels <= 300) {
         messages.insert(index, message);
-      } else {
-        messagesMore.add(message);
+        return;
       }
+      // ignore: empty_catches
+    } catch (e) {
+      logger.e(e.toString());
     }
-
-    lastMessageAddedAt = DateTime.now();
+    messagesMore.add(message);
   }
 
   void addMetionName(String name) {
@@ -705,7 +710,8 @@ class ChatController extends GetxController {
         await MessageService.instance.saveSystemMessage(roomObs.value, config,
             suffix: '', isMeSend: false);
       } catch (e) {
-        logger.e(e.toString(), error: e, stackTrace: StackTrace.current);
+        logger.e('botPricePerMessageRequest: ${e.toString()}',
+            error: e, stackTrace: StackTrace.current);
       }
     }
     await RoomService.instance.updateRoomAndRefresh(roomObs.value);

@@ -804,16 +804,6 @@ class RoomService extends BaseChatService {
     return cc;
   }
 
-  static ChatController getOrCreateController(Room room) {
-    ChatController? cc;
-    try {
-      cc = Get.find<ChatController>(tag: room.id.toString());
-    } catch (e) {
-      cc = Get.put(ChatController(room), tag: room.id.toString());
-    }
-    return cc!;
-  }
-
   Future<Room?> createRoomAndsendInvite(String input,
       {bool autoJump = true, Identity? identity, String? greeting}) async {
     HomeController? hc = Utils.getGetxController<HomeController>();

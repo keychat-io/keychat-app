@@ -260,7 +260,7 @@ class RelayService {
       await RelayService.instance.fetchRelayMessageFee(relays);
       await RelayService.instance.fetchRelayFileFee(relays);
     } catch (e, s) {
-      logger.e(e.toString(), stackTrace: s);
+      logger.e('fee: ${e.toString()}', stackTrace: s);
     }
   }
 

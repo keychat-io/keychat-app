@@ -9,7 +9,6 @@ import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:async_queue/async_queue.dart';
 import 'package:easy_debounce/easy_debounce.dart';
-import 'package:easy_debounce/easy_throttle.dart';
 import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.dart';
 import 'package:web_socket_client/web_socket_client.dart';
 
@@ -56,13 +55,7 @@ class RelayWebsocket {
 
       NostrReqModel req = NostrReqModel(
           reqId: subId, kinds: kinds, pubkeys: group, since: since);
-      try {
-        sendRawREQ(req.toString());
-      } catch (e) {
-        logger.e(e.toString());
-        EasyThrottle.throttle('checkOnlineStatus${relay.url}',
-            const Duration(seconds: 1), checkOnlineStatus);
-      }
+      sendRawREQ(req.toString());
     }
   }
 

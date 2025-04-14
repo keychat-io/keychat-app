@@ -129,12 +129,7 @@ class RoomList extends GetView<HomeController> {
                   return InkWell(
                       key: ObjectKey('${index}_room${room.id}'),
                       onTap: () async {
-                        if (GetPlatform.isDesktop) {
-                          Get.find<DesktopController>().selectedRoom.value =
-                              room;
-                        } else {
-                          await Utils.toNamedRoom(room);
-                        }
+                        await Utils.toNamedRoom(room);
 
                         RoomService.instance.markAllRead(
                             identityId: room.identityId, roomId: room.id);

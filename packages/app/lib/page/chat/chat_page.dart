@@ -3,12 +3,11 @@ import 'dart:convert' show jsonDecode;
 import 'dart:io';
 import 'dart:math' show Random;
 
+import 'package:app/app.dart';
 import 'package:app/controller/chat.controller.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/page/browser/Browser_controller.dart';
 import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/page/chat/chat_setting_contact_page.dart';
-import 'package:app/page/chat/chat_setting_group_page.dart';
 import 'package:app/page/chat/message_widget.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/routes.dart';
@@ -18,9 +17,7 @@ import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/mls_group.service.dart';
-import 'package:app/service/room.service.dart';
 import 'package:app/service/signal_chat.service.dart';
-import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -28,7 +25,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 import 'package:get/get.dart';
-import 'package:app/models/models.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:path_provider/path_provider.dart';
@@ -95,12 +91,7 @@ class _ChatPage2State extends State<ChatPage> {
 
   @override
   void dispose() {
-    try {
-      if (GetPlatform.isMobile) {
-        Get.delete<ChatController>(tag: controller.roomObs.value.id.toString());
-      }
-      // ignore: empty_catches
-    } catch (e) {}
+    Get.delete<ChatController>(tag: controller.roomObs.value.id.toString());
     super.dispose();
   }
 
@@ -136,22 +127,16 @@ class _ChatPage2State extends State<ChatPage> {
                 : const SizedBox()),
           ),
           actions: [
-            if (GetPlatform.isMobile)
-              Obx(() => controller.roomObs.value.status != RoomStatus.approving
-                  ? IconButton(
-                      onPressed: goToSetting,
-                      icon: const Icon(
-                        Icons.more_horiz,
-                      ),
-                    )
-                  : Container())
+            Obx(() => controller.roomObs.value.status != RoomStatus.approving
+                ? IconButton(
+                    onPressed: goToSetting,
+                    icon: const Icon(
+                      Icons.more_horiz,
+                    ),
+                  )
+                : Container())
           ],
         ),
-        endDrawer: GetPlatform.isDesktop
-            ? Drawer(
-                width: 400,
-                child: Obx(() => goToSettingWidget(controller.roomObs.value)))
-            : null,
         floatingActionButtonLocation: FloatingActionButtonLocation.miniEndTop,
         floatingActionButton: Obx(() => controller.unreadIndex.value > 1
             ? FilledButton.icon(
@@ -227,6 +212,8 @@ class _ChatPage2State extends State<ChatPage> {
                                   }
                                 },
                                 child: ListView.builder(
+                                  key: ObjectKey(
+                                      'room:${controller.roomObs.value.id}'),
                                   reverse: true,
                                   shrinkWrap: true,
                                   controller: controller.autoScrollController,
@@ -564,16 +551,10 @@ class _ChatPage2State extends State<ChatPage> {
       route = Routes.roomSettingGroup;
     }
     await Get.toNamed(
-        route.replaceFirst(':id', controller.roomObs.value.id.toString()));
+        route.replaceFirst(':id', controller.roomObs.value.id.toString()),
+        id: GetPlatform.isDesktop ? GetXNestKey.room : null);
     await controller.openPageAction();
     return;
-  }
-
-  Widget goToSettingWidget(Room room) {
-    if (room.type == RoomType.group) {
-      return ChatSettingGroupPage(roomId: room.id, key: ValueKey(room.id));
-    }
-    return ChatSettingContactPage(roomId: room.id, key: ValueKey(room.id));
   }
 
   Widget debugWidget(HomeController hc) {
@@ -773,7 +754,7 @@ class _ChatPage2State extends State<ChatPage> {
         await RoomService.instance.deleteRoom(controller.roomObs.value);
         await Get.find<HomeController>()
             .loadIdentityRoomList(controller.roomObs.value.identityId);
-        await Utils.offAllNamed(Routes.root);
+        await Utils.offAllNamedRoom(Routes.root);
       },
       child: const Text('Exit and Delete Room',
           style: TextStyle(color: Colors.white)),
@@ -949,9 +930,7 @@ class _ChatPage2State extends State<ChatPage> {
       (Formats.webp, MessageMediaType.image, true),
       (Formats.gif, MessageMediaType.image, false),
       (Formats.mp4, MessageMediaType.video, true),
-      (Formats.heif, MessageMediaType.image, true),
-      (Formats.pdf, MessageMediaType.file, false),
-      (Formats.plainTextFile, MessageMediaType.file, false),
+      (Formats.pdf, MessageMediaType.file, false)
     ];
 
     for (var (format, mediaType, compress) in imageFormats) {
@@ -986,7 +965,7 @@ class _ChatPage2State extends State<ChatPage> {
         }
         await controller.handleSendMediaFile(xFile, type, compress);
       } catch (e, s) {
-        logger.e(e.toString(), stackTrace: s);
+        logger.e('_readFromStream: ${e.toString()}', stackTrace: s);
       } finally {
         await Future.delayed(Duration(seconds: 2));
         EasyLoading.dismiss();

@@ -446,6 +446,9 @@ $error ''';
             error: e, stackTrace: s);
       }
     }
+    Future.delayed(Duration(seconds: 1)).then((value) {
+      uploadKeyPackages(identities: identities);
+    });
   }
 
   @Deprecated('use proccessMLSPrososalMessage instead')

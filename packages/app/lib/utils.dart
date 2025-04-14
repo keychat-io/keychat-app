@@ -936,12 +936,10 @@ class Utils {
       await Get.offAndToNamed('/room/${room.id}', arguments: arguments ?? room);
       return;
     }
-    // nothing changed
-    if (room.id == Get.find<DesktopController>().selectedRoom.value.id) {
-      return;
-    }
+
+    Get.back();
     Get.find<DesktopController>().selectedRoom.value = room;
-    await Get.offAndToNamed('/room/${room.id}',
+    await Get.toNamed('/room/${room.id}',
         arguments: arguments ?? room, id: GetXNestKey.room);
   }
 

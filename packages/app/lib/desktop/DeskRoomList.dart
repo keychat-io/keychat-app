@@ -61,7 +61,12 @@ class DeskRoomList extends GetView<DesktopController> {
                   if (roomPathRegex.hasMatch(route)) {
                     final match = roomPathRegex.firstMatch(route);
                     int roomId = int.parse(match!.group(1)!);
-                    Room room = settings.arguments as Room;
+                    late Room room;
+                    try {
+                      room = settings.arguments as Room;
+                    } catch (e) {
+                      room = (settings.arguments as Map)['room'] as Room;
+                    }
                     return GetPageRoute(
                         transition: Transition.fadeIn,
                         page: () =>

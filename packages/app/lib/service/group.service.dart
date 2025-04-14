@@ -980,9 +980,7 @@ ${rm.idPubkey}
       int? subtype,
       String? ext,
       String? realMessage}) async {
-    if (room.type != RoomType.group) throw Exception('room type error');
-
-    if (room.groupType == GroupType.mls) {
+    if (room.isMLSGroup) {
       KeychatMessage sm = KeychatMessage(c: MessageType.mls, type: subtype ?? 0)
         ..name = ext
         ..msg = message;
@@ -990,7 +988,7 @@ ${rm.idPubkey}
           realMessage: realMessage ?? message, save: save);
     }
 
-    if (room.groupType == GroupType.sendAll) {
+    if (room.isSendAllGroup) {
       return await sendToAllMessage(room, message,
           subtype: subtype, ext: ext, realMessage: realMessage);
     }

@@ -193,7 +193,7 @@ class RoomService extends BaseChatService {
         }
       }
     }
-    if (groupType == GroupType.mls) {
+    if (roomType == RoomType.group && groupType == GroupType.mls) {
       if (mlsListenPubkey != null) {
         if (websocketInited) {
           Get.find<WebsocketService>()

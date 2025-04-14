@@ -252,6 +252,7 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
             child: const Text('Delete'),
             onPressed: () async {
               try {
+                Get.back();
                 await RoomService.instance
                     .deleteRoomHandler(room.toMainPubkey, room.identityId);
                 Get.find<HomeController>()

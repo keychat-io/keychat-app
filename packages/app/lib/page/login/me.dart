@@ -154,7 +154,7 @@ class MinePage extends GetView<SettingController> {
       child: Wrap(
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Text(homeController.remoteAppConfig['appVersion']),
+          Text(localVersion),
           if (isNewVersionAvailable)
             Container(
               margin: const EdgeInsets.only(left: 5),

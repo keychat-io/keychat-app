@@ -56,7 +56,6 @@ class _ChatPage2State extends State<ChatPage> {
   late Color fontColor;
   @override
   void initState() {
-    super.initState();
     Room room = _getRoomAndInit(context);
     myAavtar = Utils.getRandomAvatar(room.getIdentity().secp256k1PKHex,
         height: 40, width: 40);
@@ -87,11 +86,15 @@ class _ChatPage2State extends State<ChatPage> {
           style: const TextStyle(
               color: Colors.blue, decoration: TextDecoration.none)),
     ]);
+    super.initState();
   }
 
   @override
   void dispose() {
-    Get.delete<ChatController>(tag: controller.roomObs.value.id.toString());
+    // Get.delete<ChatController>(tag: controller.roomObs.value.id.toString());
+    // if (GetPlatform.isDesktop) {
+    //   Get.find<DesktopController>().resetRoom();
+    // }
     super.dispose();
   }
 
@@ -339,19 +342,25 @@ class _ChatPage2State extends State<ChatPage> {
                       child: KeyboardListener(
                         focusNode: controller.keyboardFocus,
                         onKeyEvent: (KeyEvent event) async {
-                          // enter
-                          if (event.runtimeType == KeyDownEvent &&
-                              event.physicalKey == PhysicalKeyboardKey.enter) {
-                            controller.handleSubmitted();
-                            return;
-                          }
-
-                          // cmd + v
-                          if (event.runtimeType == KeyDownEvent &&
-                              HardwareKeyboard.instance.isMetaPressed &&
-                              event.logicalKey == LogicalKeyboardKey.keyV) {
-                            _handlePasteboard();
-                            return;
+                          if (event is KeyDownEvent) {
+                            if (event.logicalKey == LogicalKeyboardKey.enter &&
+                                !HardwareKeyboard.instance.isControlPressed &&
+                                !HardwareKeyboard.instance.isMetaPressed &&
+                                !HardwareKeyboard.instance.isShiftPressed &&
+                                !HardwareKeyboard.instance.isAltPressed) {
+                              controller.handleSubmitted();
+                              return;
+                            }
+                            final isCmdPressed = HardwareKeyboard
+                                    .instance.logicalKeysPressed
+                                    .contains(LogicalKeyboardKey.metaLeft) ||
+                                HardwareKeyboard.instance.logicalKeysPressed
+                                    .contains(LogicalKeyboardKey.metaRight);
+                            if (event.logicalKey == LogicalKeyboardKey.keyV &&
+                                isCmdPressed) {
+                              _handlePasteboard();
+                              return;
+                            }
                           }
                         },
                         child: Container(
@@ -849,12 +858,15 @@ class _ChatPage2State extends State<ChatPage> {
         }
       }
     }
-    controller = Get.put(ChatController(room!), tag: roomId.toString());
+    controller =
+        Utils.getGetxController<ChatController>(tag: roomId.toString()) ??
+            Get.put(ChatController(room!), tag: roomId.toString());
+
     if (isFromSearch) {
       controller.searchMsgIndex = 1;
       controller.searchDt = searchDt;
     }
-    return room;
+    return room!;
   }
 
   Widget _kpaIsNull(ChatController controller) {

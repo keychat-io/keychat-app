@@ -17,32 +17,30 @@ class DesktopMain extends GetView<DesktopController> {
 
   @override
   Widget build(BuildContext context) {
+    final pages = [
+      const DeskRoomList(key: GlobalObjectKey('tab0')),
+      const BrowserPage(key: GlobalObjectKey('tab1')),
+      const CashuPage(key: GlobalObjectKey('tab2')),
+      const MinePage(key: GlobalObjectKey('tab3')),
+    ];
+
     return Scaffold(
       key: controller.globalKey,
       body: Row(
         children: [
           HomeSidebarX(),
           Expanded(
-              child: AnimatedBuilder(
-            animation: controller.sidebarXController,
-            builder: (context, child) {
-              switch (controller.sidebarXController.selectedIndex) {
-                case 0:
-                  return DeskRoomList();
-                case 1:
-                  return const BrowserPage();
-                case 2:
-                  return const CashuPage();
-                case 3:
-                  return const MinePage();
-                default:
-                  return Text(
-                    controller.sidebarXController.selectedIndex.toString(),
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  );
-              }
-            },
-          )),
+            child: AnimatedBuilder(
+              animation: controller.sidebarXController,
+              builder: (context, child) {
+                return IndexedStack(
+                  index: controller.sidebarXController.selectedIndex,
+                  sizing: StackFit.expand,
+                  children: pages,
+                );
+              },
+            ),
+          ),
         ],
       ),
     );

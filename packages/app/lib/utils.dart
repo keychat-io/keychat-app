@@ -948,7 +948,9 @@ class Utils {
       await Get.offAllNamed(Routes.root, arguments: arguments);
       return;
     }
-
+    if (Get.isDialogOpen ?? false) {
+      Get.back();
+    }
     await Get.offAndToNamed(Routes.roomEmpty,
         arguments: arguments, id: GetXNestKey.room);
   }

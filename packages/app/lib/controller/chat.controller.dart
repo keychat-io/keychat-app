@@ -127,8 +127,8 @@ class ChatController extends GetxController {
         return;
       }
       // ignore: empty_catches
-    } catch (e) {
-      logger.e(e.toString());
+    } catch (e, s) {
+      logger.e(e.toString(), stackTrace: s);
     }
     messagesMore.add(message);
   }

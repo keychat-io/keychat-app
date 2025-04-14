@@ -129,12 +129,7 @@ class RoomList extends GetView<HomeController> {
                   return InkWell(
                       key: ObjectKey('${index}_room${room.id}'),
                       onTap: () async {
-                        if (GetPlatform.isDesktop) {
-                          Get.find<DesktopController>().selectedRoom.value =
-                              room;
-                        } else {
-                          await Utils.toNamedRoom(room);
-                        }
+                        await Utils.toNamedRoom(room);
 
                         RoomService.instance.markAllRead(
                             identityId: room.identityId, roomId: room.id);
@@ -211,19 +206,19 @@ class RoomList extends GetView<HomeController> {
       child: Container(
         height: 40,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(0),
+          borderRadius: BorderRadius.circular(4),
           color: pinTileBackground,
         ),
-        margin: const EdgeInsets.only(top: 0, bottom: 2),
+        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: Row(
           children: [
-            const SizedBox(width: 10),
-            Icon(Icons.search,
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withValues(alpha: 0.4)),
-            const SizedBox(width: 10),
+            Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                child: Icon(Icons.search,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.4))),
             Expanded(
               child: Text(
                 'Search',
@@ -234,7 +229,6 @@ class RoomList extends GetView<HomeController> {
                         .withValues(alpha: 0.4)),
               ),
             ),
-            const SizedBox(width: 10),
           ],
         ),
       ),

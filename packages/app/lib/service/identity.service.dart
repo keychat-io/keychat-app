@@ -108,7 +108,9 @@ class IdentityService {
     } else {
       NotifyService.addPubkeys([account.pubkey]);
     }
-    MlsGroupService.instance.initIdentities([iden]);
+    MlsGroupService.instance.initIdentities([iden]).then((_) {
+      MlsGroupService.instance.uploadKeyPackages(identities: [iden]);
+    });
     return iden;
   }
 
@@ -132,7 +134,9 @@ class IdentityService {
         .listenPubkey([hexPubkey], kinds: [EventKinds.nip04]);
     Get.find<WebsocketService>().listenPubkeyNip17([hexPubkey]);
     NotifyService.addPubkeys([hexPubkey]);
-    MlsGroupService.instance.initIdentities([iden]);
+    MlsGroupService.instance.initIdentities([iden]).then((_) {
+      MlsGroupService.instance.uploadKeyPackages(identities: [iden]);
+    });
     return iden;
   }
 
@@ -155,7 +159,9 @@ class IdentityService {
         .listenPubkey([hexPubkey], kinds: [EventKinds.nip04]);
     Get.find<WebsocketService>().listenPubkeyNip17([hexPubkey]);
     NotifyService.addPubkeys([hexPubkey]);
-    MlsGroupService.instance.initIdentities([iden]);
+    MlsGroupService.instance.initIdentities([iden]).then((_) {
+      MlsGroupService.instance.uploadKeyPackages(identities: [iden]);
+    });
     return iden;
   }
 

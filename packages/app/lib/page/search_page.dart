@@ -59,6 +59,7 @@ class _SearchPageState extends State<SearchPage> {
                       Expanded(
                         child: TextField(
                           controller: _searchController,
+                          autofocus: true,
                           onChanged: (query) async {
                             List<Message> messages =
                                 await _mockSearchMessage(identity, query);

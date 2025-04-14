@@ -5,7 +5,7 @@ import 'package:app/page/login/OnboardingPage2Detail.dart';
 import 'package:app/page/login/import_nsec.dart';
 import 'package:app/page/login/import_seed_phrase.dart';
 import 'package:app/page/routes.dart';
-import 'package:app/page/setting/more_chat_setting.dart';
+import 'package:app/page/setting/app_general_setting.dart';
 
 import 'package:app/service/secure_storage.dart';
 import 'package:app/utils.dart';
@@ -50,7 +50,7 @@ class Login extends StatelessWidget {
                             await SecureStorage.instance.clearAll();
                             var res = await Get.to(() => const CreateAccount());
                             if (res != null) {
-                              Utils.offAllNamed(Routes.root, true);
+                              Get.offAllNamed(Routes.root, arguments: true);
                             }
                           } catch (e, s) {
                             EasyLoading.showError(e.toString());
@@ -74,7 +74,7 @@ class Login extends StatelessWidget {
           leading: const Icon(Icons.file_open),
           title: const Text("From Backup File"),
           onPressed: (context) {
-            const MoreChatSetting().enableImportDB(context);
+            AppGeneralSetting.enableImportDB(context);
           },
         ),
         SettingsTile.navigation(
@@ -83,7 +83,7 @@ class Login extends StatelessWidget {
           onPressed: (context) async {
             Identity? res = await Get.to(() => const ImportSeedPhrase());
             if (res != null) {
-              Utils.offAllNamed(Routes.root, true);
+              Get.offAllNamed(Routes.root, arguments: true);
             }
           },
         ),
@@ -93,7 +93,7 @@ class Login extends StatelessWidget {
           onPressed: (context) async {
             Identity? res = await Get.to(() => const ImportNsec());
             if (res != null) {
-              Utils.offAllNamed(Routes.root, true);
+              Get.offAllNamed(Routes.root, arguments: true);
             }
           },
         ),
@@ -107,7 +107,7 @@ class Login extends StatelessWidget {
             onPressed: (context) async {
               var identity = await Utils.handleAmberLogin();
               if (identity != null) {
-                Utils.offAllNamed(Routes.root, true);
+                Get.offAllNamed(Routes.root, arguments: true);
               }
             },
           )

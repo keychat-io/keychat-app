@@ -1,10 +1,8 @@
 import 'package:app/controller/home.controller.dart';
+import 'package:app/desktop/DeskRoomList.dart';
 import 'package:app/desktop/DesktopController.dart';
 import 'package:app/page/browser/Browser_page.dart';
-import 'package:app/page/chat/chat_page.dart';
-import 'package:app/page/components.dart';
 import 'package:app/page/login/me.dart';
-import 'package:app/page/room_list.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
@@ -19,7 +17,6 @@ class DesktopMain extends GetView<DesktopController> {
 
   @override
   Widget build(BuildContext context) {
-    DesktopController dc = Get.find<DesktopController>();
     return Scaffold(
       key: controller.globalKey,
       body: Row(
@@ -31,45 +28,7 @@ class DesktopMain extends GetView<DesktopController> {
             builder: (context, child) {
               switch (controller.sidebarXController.selectedIndex) {
                 case 0:
-                  return Row(
-                    children: [
-                      Obx(() => SizedBox(
-                          width: controller.roomListWidth.value,
-                          child: RoomList())),
-                      MouseRegion(
-                        cursor: SystemMouseCursors.resizeLeftRight,
-                        child: GestureDetector(
-                          onHorizontalDragUpdate: (details) {
-                            controller.setRoomListWidth(
-                              controller.roomListWidth.value + details.delta.dx,
-                            );
-                          },
-                          child: Container(
-                            width: 1,
-                            decoration: BoxDecoration(
-                                border: Border(
-                                    right: BorderSide(
-                                        color: Theme.of(context)
-                                            .dividerColor
-                                            .withAlpha(40),
-                                        width: 1))),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                          child: Obx(() => dc.selectedRoom.value.identityId ==
-                                  -1
-                              ? Center(
-                                  child: Padding(
-                                      padding: EdgeInsets.all(16),
-                                      child: textSmallGray(context,
-                                          'Select a chat to start secure messaging',
-                                          fontSize: 14)))
-                              : ChatPage(
-                                  key: ValueKey(dc.selectedRoom.value.id),
-                                  room: dc.selectedRoom.value))),
-                    ],
-                  );
+                  return DeskRoomList();
                 case 1:
                   return const BrowserPage();
                 case 2:

@@ -193,7 +193,7 @@ class RoomService extends BaseChatService {
         }
       }
     }
-    if (groupType == GroupType.mls) {
+    if (roomType == RoomType.group && groupType == GroupType.mls) {
       if (mlsListenPubkey != null) {
         if (websocketInited) {
           Get.find<WebsocketService>()
@@ -802,16 +802,6 @@ class RoomService extends BaseChatService {
       // ignore: empty_catches
     } catch (e) {}
     return cc;
-  }
-
-  static ChatController getOrCreateController(Room room) {
-    ChatController? cc;
-    try {
-      cc = Get.find<ChatController>(tag: room.id.toString());
-    } catch (e) {
-      cc = Get.put(ChatController(room), tag: room.id.toString());
-    }
-    return cc!;
   }
 
   Future<Room?> createRoomAndsendInvite(String input,

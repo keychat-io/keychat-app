@@ -208,6 +208,8 @@ getSheetAppBar(BuildContext context, String title, [Function? callback]) {
       IconButton(
         icon: const Icon(Icons.close),
         onPressed: () {
+          logger.d('xxx');
+
           Get.back();
           if (callback != null) callback();
         },
@@ -251,10 +253,9 @@ showFitSheetWidget(BuildContext context, String title, List<Widget> bodys,
 }
 
 getGroupInfoBottomSheetWidget(BuildContext context) {
-  showModalBottomSheetWidget(
-      context,
-      'Group Type Info',
-      ListView(
+  Get.bottomSheet(
+      Scaffold(
+          body: ListView(
         children: [
           ListTile(
             title: Text('Large Group - MLS Protocol',
@@ -267,7 +268,9 @@ getGroupInfoBottomSheetWidget(BuildContext context) {
             subtitle: Text(RoomUtil.getGroupModeDescription(GroupType.sendAll)),
           ),
         ],
-      ));
+      )),
+      isScrollControlled: true,
+      ignoreSafeArea: false);
 }
 
 Widget codeSnippet(String text) {
@@ -535,7 +538,7 @@ Future showMyQrCode(
     signalId = await SignalIdService.instance.createSignalId(identity.id);
   } catch (e, s) {
     String msg = Utils.getErrorMessage(e);
-    logger.e(e.toString(), error: e, stackTrace: s);
+    logger.e('signalId: ${e.toString()}', error: e, stackTrace: s);
     EasyLoading.showError(msg);
     return;
   }

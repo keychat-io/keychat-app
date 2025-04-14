@@ -1,7 +1,6 @@
 import 'package:app/app.dart';
 // import 'package:app/page/chat/ForwardSelectRoom.dart';
 import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/page/chat/message_bill/pay_to_relay_page.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
@@ -358,17 +357,12 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
           ),
           title: const Text('Pay to Relay'),
           onPressed: (context) async {
-            Get.to(() => PayToRelayPage(roomId: cc.roomObs.value.id));
+            Get.toNamed(
+                Routes.roomSettingPayToRelay
+                    .replaceFirst(':id', cc.roomObs.value.id.toString()),
+                id: GetPlatform.isDesktop ? GetXNestKey.room : null);
           },
         ),
-        // if (cc.roomObs.value.type == RoomType.bot)
-        //   SettingsTile.navigation(
-        //     leading: const Icon(CupertinoIcons.bitcoin),
-        //     title: const Text('Pay to Chat'),
-        //     onPressed: (context) async {
-        //       Get.to(() => PayToRelayPage(roomId: room.id));
-        //     },
-        //   ),
       ],
     );
   }
@@ -620,7 +614,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
               }
               await Get.find<HomeController>()
                   .loadIdentityRoomList(cc.roomObs.value.identityId);
-              Utils.offAllNamed(Routes.root);
+              Utils.offAllNamedRoom(Routes.root);
             }),
       ],
     ));

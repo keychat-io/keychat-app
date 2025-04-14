@@ -446,9 +446,6 @@ $error ''';
             error: e, stackTrace: s);
       }
     }
-    Future.delayed(Duration(seconds: 1)).then((value) {
-      uploadKeyPackages(identities: identities);
-    });
   }
 
   @Deprecated('use proccessMLSPrososalMessage instead')
@@ -727,8 +724,6 @@ $error ''';
       if (!forceUpload) {
         if (Get.find<HomeController>().allIdentities[identity.id]?.mlsInit ==
             true) {
-          loggerNoLine
-              .d('${identity.secp256k1PKHex}\'s key packages initialized');
           return;
         }
       }

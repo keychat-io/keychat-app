@@ -1,4 +1,5 @@
 import 'package:app/app.dart';
+import 'package:app/desktop/DesktopController.dart';
 import 'package:app/models/browser/browser_bookmark.dart';
 import 'package:app/models/browser/browser_connect.dart';
 import 'package:app/models/browser/browser_favorite.dart';
@@ -77,6 +78,9 @@ class DBProvider {
   }
 
   bool isCurrentPage(int roomId) {
+    if (GetPlatform.isDesktop) {
+      return Get.find<DesktopController>().selectedRoom.value.id == roomId;
+    }
     String route = Get.currentRoute;
     if (route.startsWith('/room/')) {
       try {

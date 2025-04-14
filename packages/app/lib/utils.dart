@@ -4,10 +4,10 @@ import 'dart:io' show Directory, File, FileMode, Platform;
 import 'dart:math' show Random;
 
 import 'package:app/controller/setting.controller.dart';
-import 'package:app/desktop/DesktopController.dart';
 import 'package:app/global.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/models/room.dart';
+import 'package:app/page/routes.dart';
 import 'package:app/service/SignerService.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/storage.dart';
@@ -34,6 +34,8 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+
+import 'desktop/DesktopController.dart';
 
 Logger logger = Logger(
     filter: kReleaseMode ? MyLogFilter() : null,
@@ -934,8 +936,21 @@ class Utils {
       await Get.offAndToNamed('/room/${room.id}', arguments: arguments ?? room);
       return;
     }
+
     Get.back();
     Get.find<DesktopController>().selectedRoom.value = room;
+    await Get.toNamed('/room/${room.id}',
+        arguments: arguments ?? room, id: GetXNestKey.room);
+  }
+
+  static Future offAllNamedRoom([dynamic arguments]) async {
+    if (GetPlatform.isMobile) {
+      await Get.offAllNamed(Routes.root, arguments: arguments);
+      return;
+    }
+
+    await Get.offAndToNamed(Routes.roomEmpty,
+        arguments: arguments, id: GetXNestKey.room);
   }
 
   static Future toNamedRoom(Room room, [dynamic arguments]) async {
@@ -943,19 +958,12 @@ class Utils {
       await Get.toNamed('/room/${room.id}', arguments: arguments ?? room);
       return;
     }
+    // nothing changed
+    if (room.id == Get.find<DesktopController>().selectedRoom.value.id) {
+      return;
+    }
     Get.find<DesktopController>().selectedRoom.value = room;
-  }
-
-  static offAllNamed(String path, [dynamic arguments]) {
-    if (GetPlatform.isMobile) {
-      Get.offAllNamed(path, arguments: arguments);
-      return;
-    }
-    if (Get.isOverlaysOpen) {
-      Get.back();
-      Get.find<DesktopController>().resetRoom();
-      return;
-    }
-    Get.offAllNamed(path, arguments: arguments);
+    await Get.offAllNamed('/room/${room.id}',
+        arguments: arguments ?? room, id: GetXNestKey.room);
   }
 }

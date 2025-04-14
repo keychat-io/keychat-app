@@ -1,10 +1,14 @@
 // ignore_for_file: use_build_context_synchronously
 
-import 'dart:io' show exit;
+import 'dart:io' show File, exit;
+
+import 'package:app/page/components.dart';
+import 'package:app/page/dbSetup/db_setting.dart';
 
 import 'package:app/controller/home.controller.dart';
 import 'package:app/page/FileExplore.dart';
 import 'package:app/page/login/OnboardingPage2.dart';
+import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app/service/websocket.service.dart';
@@ -122,9 +126,252 @@ class AppGeneralSetting extends GetView<SettingController> {
                 },
               ),
             ]),
+            SettingsSection(title: const Text('Backup'), tiles: [
+              SettingsTile.navigation(
+                leading: const Icon(Icons.dataset_outlined),
+                title: const Text("Database Setting"),
+                onPressed: handleDBSettting,
+              )
+            ]),
             dangerZone()
           ],
         ));
+  }
+
+  handleDBSettting(BuildContext context) async {
+    HomeController hc = Get.find<HomeController>();
+    show300hSheetWidget(
+        context,
+        'Database Setting',
+        Obx(
+          () => SettingsList(platform: DevicePlatform.iOS, sections: [
+            SettingsSection(title: const Text('Database Setting'), tiles: [
+              SettingsTile.switchTile(
+                  initialValue: hc.checkRunStatus.value,
+                  description: hc.checkRunStatus.value
+                      ? NoticeTextWidget.warning(
+                          'Pause the chat to enable database actions.')
+                      : NoticeTextWidget.warning(
+                          'Use the latest chat database on your device to avoid message interruptions.'),
+                  onToggle: (res) async {
+                    if (!res) {
+                      Get.dialog(CupertinoAlertDialog(
+                        title: const Text("Stop chat?"),
+                        content: const Text(
+                            "You will not be able to receive and send messages while the chat is stopped."),
+                        actions: <Widget>[
+                          CupertinoDialogAction(
+                            child: const Text('Cancel'),
+                            onPressed: () {
+                              Get.back();
+                            },
+                          ),
+                          CupertinoDialogAction(
+                              isDestructiveAction: true,
+                              child: const Text('Stop'),
+                              onPressed: () async {
+                                closeAllRelays();
+                                Get.back();
+                              }),
+                        ],
+                      ));
+                      return;
+                    }
+                    Get.find<HomeController>().checkRunStatus.value = true;
+                    Get.find<WebsocketService>().start();
+                  },
+                  title: Text(hc.checkRunStatus.value
+                      ? 'Chat is running'
+                      : 'Chat is stopped')),
+              SettingsTile.navigation(
+                  title: const Text('Export data'),
+                  onPressed: (context) async {
+                    // need check if message sending and receiving are disabled
+                    // and need to set pwd to encrypt database
+                    if (hc.checkRunStatus.value) {
+                      EasyLoading.showError(
+                          'Pause the chat to export database');
+                      return;
+                    }
+                    _showSetEncryptionPwdDialog(context);
+                  }),
+            ])
+          ]),
+        ));
+  }
+
+  void _showSetEncryptionPwdDialog(BuildContext context) {
+    TextEditingController passwordController = TextEditingController();
+    TextEditingController confirmPasswordController = TextEditingController();
+
+    Get.dialog(
+      CupertinoAlertDialog(
+        title: const Text("Set encryption password"),
+        content: Container(
+          color: Colors.transparent,
+          padding: const EdgeInsets.only(top: 15),
+          child: Column(
+            children: [
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                textInputAction: TextInputAction.next,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Password',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: confirmPasswordController,
+                obscureText: true,
+                textInputAction: TextInputAction.done,
+                decoration: const InputDecoration(
+                  labelText: 'Confirm Password',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Get.back();
+            },
+            child: const Text('Cancel'),
+          ),
+          CupertinoActionSheetAction(
+            isDefaultAction: true,
+            onPressed: () async {
+              if (passwordController.text.isNotEmpty &&
+                  passwordController.text == confirmPasswordController.text) {
+                await Storage.setString(StorageKeyString.dbBackupPwd,
+                    confirmPasswordController.text);
+                EasyLoading.showSuccess("Password successfully set");
+                Get.back();
+                await Future.delayed(const Duration(microseconds: 100));
+                DbSetting().exportDB(context, confirmPasswordController.text);
+              } else {
+                EasyLoading.showError('Passwords do not match');
+              }
+            },
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static _showEnterDecryptionPwdDialog(BuildContext context, File file) {
+    TextEditingController passwordController = TextEditingController();
+
+    Get.dialog(
+      CupertinoAlertDialog(
+        title: const Text("Enter decryption password"),
+        content: Container(
+          color: Colors.transparent,
+          padding: const EdgeInsets.only(top: 15),
+          child: Column(
+            children: [
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                textInputAction: TextInputAction.done,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Password',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Get.back();
+            },
+            child: const Text('Cancel'),
+          ),
+          CupertinoActionSheetAction(
+            isDefaultAction: true,
+            onPressed: () async {
+              if (passwordController.text.isNotEmpty) {
+                try {
+                  bool success = await DbSetting()
+                      .importDB(context, passwordController.text, file);
+                  // await Future.delayed(const Duration(microseconds: 100));
+                  if (success) {
+                    EasyLoading.showSuccess("Decryption successful");
+                    // need to restart the app and reload database
+                    // Restart.restartApp does not work?
+                    // Restart.restartApp(
+                    //   // Customizing the notification message only on IOS
+                    //   notificationTitle: 'Restarting App',
+                    //   notificationBody:
+                    //       'Please tap here to open the app again.',
+                    // );
+                    Get.dialog(
+                      CupertinoAlertDialog(
+                        title: const Text('Restart Required'),
+                        content: const Text(
+                            'The app needs to restart to reload the database. Please restart the app manually.'),
+                        actions: [
+                          CupertinoDialogAction(
+                            child: const Text(
+                              'Exit',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                            onPressed: () {
+                              exit(0); // Exit the app
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  } else {
+                    EasyLoading.showError('Decryption failed');
+                  }
+                } catch (e) {
+                  EasyLoading.showError('Decryption failed');
+                }
+              } else {
+                EasyLoading.showError('Password can not be empty');
+              }
+            },
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static enableImportDB(BuildContext context) {
+    Get.dialog(CupertinoAlertDialog(
+      title: const Text("Alert"),
+      content: const Text(
+          'Once executed, this action will permanently delete all your local data. Proceed with caution to avoid unintended consequences.'),
+      actions: <Widget>[
+        CupertinoDialogAction(
+          child: const Text("Cancel"),
+          onPressed: () {
+            Get.back();
+          },
+        ),
+        CupertinoDialogAction(
+          child: const Text("Confirm"),
+          onPressed: () async {
+            File? file = await DbSetting().importFile();
+            if (file == null) {
+              return;
+            }
+            _showEnterDecryptionPwdDialog(context, file);
+          },
+        ),
+      ],
+    ));
   }
 
   void closeAllRelays() async {

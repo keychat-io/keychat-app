@@ -417,7 +417,7 @@ class HomeController extends GetxController
     try {
       RoomUtil.executeAutoDelete();
     } catch (e, s) {
-      logger.e(e.toString(), stackTrace: s);
+      logger.e('executeAutoDelete:${e.toString()}', stackTrace: s);
     }
 
     // start to create ai identity

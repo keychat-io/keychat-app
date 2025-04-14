@@ -9,12 +9,13 @@ import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'pay_to_relay_controller.dart';
 
 class PayToRelayPage extends StatelessWidget {
-  final int roomId;
-  const PayToRelayPage({super.key, required this.roomId});
+  final int? roomId;
+  const PayToRelayPage({super.key, this.roomId});
 
   @override
   Widget build(BuildContext context) {
-    PayToRelayController controller = Get.put(PayToRelayController(roomId));
+    int id = roomId ?? int.parse(Get.parameters['id']!);
+    PayToRelayController controller = Get.put(PayToRelayController(id));
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,

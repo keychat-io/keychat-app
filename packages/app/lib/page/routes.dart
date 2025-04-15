@@ -8,10 +8,6 @@ abstract class Routes {
   static const addGroup = '/add_group';
   static const createIdentity = '/create_identity';
 
-  static const setting = '/setting';
-  static const settingMore = '/setting/more';
-  static const settingMe = '/setting/me';
-
   // webrtc
   static const webrtcSetting = '/webrtc/setting';
 

@@ -1,9 +1,12 @@
 import 'package:app/controller/setting.controller.dart';
+import 'package:app/global.dart';
 import 'package:app/page/browser/BrowserSetting.dart';
+import 'package:app/page/login/AccountSetting/AccountSetting_bindings.dart';
 import 'package:app/page/login/SelectModeToCreateID.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/page/setting/RelaySetting.dart';
 import 'package:app/page/setting/app_general_setting.dart';
+import 'package:app/page/setting/more_chat_setting.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:app/controller/home.controller.dart';
@@ -16,6 +19,8 @@ import 'package:pub_semver/pub_semver.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:app/models/models.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+import 'AccountSetting/AccountSetting_page.dart';
 
 class MinePage extends GetView<SettingController> {
   const MinePage({super.key});
@@ -85,7 +90,10 @@ class MinePage extends GetView<SettingController> {
                         leading: const Icon(CupertinoIcons.chat_bubble),
                         title: const Text("Chat Settings"),
                         onPressed: (context) async {
-                          Get.toNamed(Routes.settingMore);
+                          Get.to(() => const MoreChatSetting(),
+                              id: GetPlatform.isDesktop
+                                  ? GetXNestKey.setting
+                                  : null);
                         },
                       ),
                       if (!GetPlatform.isLinux)
@@ -93,7 +101,10 @@ class MinePage extends GetView<SettingController> {
                             title: const Text("Browser Settings"),
                             leading: const Icon(CupertinoIcons.compass),
                             onPressed: (context) async {
-                              Get.to(() => const BrowserSetting());
+                              Get.to(() => const BrowserSetting(),
+                                  id: GetPlatform.isDesktop
+                                      ? GetXNestKey.setting
+                                      : null);
                             }),
                       SettingsTile.navigation(
                           leading: const Icon(CupertinoIcons.globe),
@@ -101,14 +112,20 @@ class MinePage extends GetView<SettingController> {
                               ? Text('Connecting')
                               : Text(ws.relayConnected.value.toString())),
                           onPressed: (c) {
-                            Get.to(() => const RelaySetting());
+                            Get.to(() => const RelaySetting(),
+                                id: GetPlatform.isDesktop
+                                    ? GetXNestKey.setting
+                                    : null);
                           },
                           title: const Text('Network')),
                       SettingsTile.navigation(
                         leading: const Icon(CupertinoIcons.settings),
                         title: const Text("App Settings"),
                         onPressed: (context) {
-                          Get.to(() => const AppGeneralSetting());
+                          Get.to(() => const AppGeneralSetting(),
+                              id: GetPlatform.isDesktop
+                                  ? GetXNestKey.setting
+                                  : null);
                         },
                       ),
                     ],
@@ -189,7 +206,10 @@ class MinePage extends GetView<SettingController> {
           ),
           value: Text(getPublicKeyDisplay(identity.npub, 4)),
           onPressed: (context) async {
-            Get.toNamed(Routes.settingMe, arguments: identity);
+            Get.to(() => AccountSettingPage(),
+                arguments: identity,
+                binding: AccountSettingBindings(identity),
+                id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
           }));
     }
     return res;

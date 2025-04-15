@@ -2,6 +2,7 @@
 
 import 'dart:io' show File, exit;
 
+import 'package:app/global.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/dbSetup/db_setting.dart';
 
@@ -113,7 +114,8 @@ class AppGeneralSetting extends GetView<SettingController> {
                 leading: const Icon(CupertinoIcons.doc),
                 title: const Text("App File Explore"),
                 onPressed: (context) async {
-                  Get.to(() => FileExplorerPage(dir: controller.appFolder));
+                  Get.to(() => FileExplorerPage(dir: controller.appFolder),
+                      id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
                 },
               ),
               SettingsTile.navigation(
@@ -122,7 +124,8 @@ class AppGeneralSetting extends GetView<SettingController> {
                 description: const Text(
                     'Keychat is a chat app, built on Bitcoin Ecash, Nostr Protocol and Signal / MLS Protocol.'),
                 onPressed: (context) {
-                  Get.to(() => const OnboardingPage2());
+                  Get.to(() => const OnboardingPage2(),
+                      id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
                 },
               ),
             ]),

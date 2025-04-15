@@ -1,9 +1,9 @@
 import 'package:app/controller/home.controller.dart';
 import 'package:app/desktop/DeskBrowser.dart';
+import 'package:app/desktop/DeskSetting.dart';
 import 'package:app/desktop/DeskEcash.dart';
 import 'package:app/desktop/DeskRoomList.dart';
 import 'package:app/desktop/DesktopController.dart';
-import 'package:app/page/login/me.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
@@ -30,10 +30,10 @@ class DesktopMain extends GetView<DesktopController> {
                   index: controller.sidebarXController.selectedIndex,
                   sizing: StackFit.expand,
                   children: [
-                    const DeskRoomList(key: GlobalObjectKey('tab0')),
-                    const DeskBrowser(key: GlobalObjectKey('tab1')),
-                    const DeskEcash(key: GlobalObjectKey('tab2')),
-                    const MinePage(key: GlobalObjectKey('tab3')),
+                    const DeskRoomList(key: GlobalObjectKey('desk_tab0')),
+                    const DeskBrowser(key: GlobalObjectKey('desk_tab1')),
+                    const DeskEcash(key: GlobalObjectKey('desk_tab2')),
+                    const DeskSetting(key: GlobalObjectKey('desk_tab3')),
                   ],
                 );
               },

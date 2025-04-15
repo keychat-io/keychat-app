@@ -198,59 +198,73 @@ class CashuPage extends GetView<EcashController> {
                               return GestureDetector(
                                   onLongPress: () {
                                     // delete item
-                                    Get.bottomSheet(SettingsList(
-                                      platform: DevicePlatform.iOS,
-                                      sections: [
-                                        SettingsSection(
-                                          title: Text(server.mint),
-                                          tiles: [
-                                            SettingsTile(
-                                              title: const Text('Delete Mint',
-                                                  style: TextStyle(
-                                                      color: Colors.red)),
-                                              onPressed: (context) async {
-                                                try {
-                                                  EcashController ec = Get.find<
-                                                      EcashController>();
-                                                  if (ec.mintBalances.length ==
-                                                      1) {
-                                                    EasyLoading.showError(
-                                                        'Can\'t delete the last mint');
-                                                    return;
-                                                  }
-                                                  EasyLoading.show(
-                                                      status: 'Proccessing');
+                                    Get.bottomSheet(
+                                        clipBehavior: Clip.antiAlias,
+                                        shape: const RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.vertical(
+                                                top: Radius.circular(4))),
+                                        SettingsList(
+                                          platform: DevicePlatform.iOS,
+                                          sections: [
+                                            SettingsSection(
+                                              title: Text(server.mint),
+                                              tiles: [
+                                                SettingsTile(
+                                                  title: const Text(
+                                                      'Delete Mint',
+                                                      style: TextStyle(
+                                                          color: Colors.red)),
+                                                  onPressed: (context) async {
+                                                    try {
+                                                      EcashController ec =
+                                                          Get.find<
+                                                              EcashController>();
+                                                      if (ec.mintBalances
+                                                              .length ==
+                                                          1) {
+                                                        EasyLoading.showError(
+                                                            'Can\'t delete the last mint');
+                                                        return;
+                                                      }
+                                                      EasyLoading.show(
+                                                          status:
+                                                              'Proccessing');
 
-                                                  int balance =
-                                                      ec.getBalanceByMint(
-                                                          server.mint);
-                                                  if (balance > 0) {
-                                                    EasyLoading.showError(
-                                                        'Please withdraw first');
-                                                    return;
-                                                  }
-                                                  if (balance == 0) {
-                                                    await rust_cashu.removeMint(
-                                                        url: server.mint);
-                                                  }
-                                                  await ec.getBalance();
-                                                  EasyLoading.showToast(
-                                                      'Successfully');
-                                                } catch (e, s) {
-                                                  EasyLoading.dismiss();
-                                                  String msg =
-                                                      Utils.getErrorMessage(e);
+                                                      int balance =
+                                                          ec.getBalanceByMint(
+                                                              server.mint);
+                                                      if (balance > 0) {
+                                                        EasyLoading.showError(
+                                                            'Please withdraw first');
+                                                        return;
+                                                      }
+                                                      if (balance == 0) {
+                                                        await rust_cashu
+                                                            .removeMint(
+                                                                url: server
+                                                                    .mint);
+                                                      }
+                                                      await ec.getBalance();
+                                                      EasyLoading.showToast(
+                                                          'Successfully');
+                                                    } catch (e, s) {
+                                                      EasyLoading.dismiss();
+                                                      String msg =
+                                                          Utils.getErrorMessage(
+                                                              e);
 
-                                                  logger.e(e.toString(),
-                                                      error: e, stackTrace: s);
-                                                  EasyLoading.showError(msg);
-                                                }
-                                              },
+                                                      logger.e(e.toString(),
+                                                          error: e,
+                                                          stackTrace: s);
+                                                      EasyLoading.showError(
+                                                          msg);
+                                                    }
+                                                  },
+                                                )
+                                              ],
                                             )
                                           ],
-                                        )
-                                      ],
-                                    ));
+                                        ));
                                   },
                                   child: Container(
                                     margin: const EdgeInsets.symmetric(
@@ -585,9 +599,7 @@ class CashuPage extends GetView<EcashController> {
                   },
                   icon: const Icon(CupertinoIcons.qrcode_viewfinder, size: 24)),
               GestureDetector(
-                onTap: () {
-                  _handleReceive();
-                },
+                onTap: _handleReceive,
                 child: Container(
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.primary.withAlpha(40),
@@ -605,52 +617,77 @@ class CashuPage extends GetView<EcashController> {
   }
 
   _handleSend() {
-    Get.bottomSheet(SettingsList(platform: DevicePlatform.iOS, sections: [
-      SettingsSection(tiles: [
-        SettingsTile.navigation(
-          title: const Text('Send Ecash'),
-          onPressed: (context) async {
-            Get.back();
-            await Get.bottomSheet(const CashuSendPage(false));
-            controller.ecashBillController.getTransactions();
-          },
-        ),
-        SettingsTile.navigation(
-          title: const Text('Send to Lightning Wallet'),
-          onPressed: (context) async {
-            Get.back();
-            await showModalBottomSheetWidget(
-                context, '', const PayInvoicePage(),
-                showAppBar: false);
-            controller.lightningBillController.getTransactions();
-          },
-        ),
-      ])
-    ]));
+    Get.bottomSheet(
+      SettingsList(platform: DevicePlatform.iOS, sections: [
+        SettingsSection(tiles: [
+          SettingsTile.navigation(
+            title: const Text('Send Ecash'),
+            onPressed: (context) async {
+              Get.back();
+              await Get.bottomSheet(
+                  clipBehavior: Clip.antiAlias,
+                  shape: const RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(4))),
+                  const CashuSendPage(false));
+              controller.ecashBillController.getTransactions();
+            },
+          ),
+          SettingsTile.navigation(
+            title: const Text('Send to Lightning Wallet'),
+            onPressed: (context) async {
+              Get.back();
+              await Get.bottomSheet(
+                  clipBehavior: Clip.antiAlias,
+                  shape: const RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(4))),
+                  const PayInvoicePage());
+              controller.lightningBillController.getTransactions();
+            },
+          ),
+        ])
+      ]),
+      clipBehavior: Clip.antiAlias,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
+    );
   }
 
   _handleReceive() {
-    Get.bottomSheet(SettingsList(platform: DevicePlatform.iOS, sections: [
-      SettingsSection(tiles: [
-        SettingsTile.navigation(
-          title: const Text('Receive Ecash'),
-          onPressed: (context) async {
-            Get.back();
-            await showModalBottomSheetWidget(context, '', const ReceiveEcash(),
-                showAppBar: false);
-            controller.ecashBillController.getTransactions();
-          },
-        ),
-        SettingsTile.navigation(
-          title: const Text('Receive from Lightning Network'),
-          onPressed: (context) async {
-            Get.back();
-            await showModalBottomSheetWidget(
-                context, '', const CreateInvoicePage(),
-                showAppBar: false);
-          },
-        ),
-      ])
-    ]));
+    Get.bottomSheet(
+        clipBehavior: Clip.antiAlias,
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
+        SettingsList(platform: DevicePlatform.iOS, sections: [
+          SettingsSection(tiles: [
+            SettingsTile.navigation(
+              title: const Text('Receive Ecash'),
+              onPressed: (context) async {
+                Get.back();
+                await Get.bottomSheet(
+                    clipBehavior: Clip.antiAlias,
+                    shape: const RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(4))),
+                    const ReceiveEcash());
+                controller.ecashBillController.getTransactions();
+              },
+            ),
+            SettingsTile.navigation(
+              title: const Text('Receive from Lightning Network'),
+              onPressed: (context) async {
+                Get.back();
+                await Get.bottomSheet(
+                    clipBehavior: Clip.antiAlias,
+                    shape: const RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(4))),
+                    const CreateInvoicePage());
+                controller.lightningBillController.getTransactions();
+              },
+            ),
+          ])
+        ]));
   }
 }

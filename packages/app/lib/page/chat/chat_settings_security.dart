@@ -122,6 +122,10 @@ class ChatSettingSecurity extends StatelessWidget {
                             : '')),
                     onPressed: (context) async {
                       List<String>? relays = await Get.bottomSheet(
+                          clipBehavior: Clip.antiAlias,
+                          shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(4))),
                           SelectRoomRelay(cc.roomObs.value.receivingRelays));
                       if (relays == null) return;
                       cc.roomObs.value.receivingRelays = relays;

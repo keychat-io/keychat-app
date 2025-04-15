@@ -552,7 +552,11 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
       return null;
     }
     // select a identity
-    Identity? selected = await Get.bottomSheet(SelectIdentityForBrowser(host));
+    Identity? selected = await Get.bottomSheet(
+        clipBehavior: Clip.antiAlias,
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
+        SelectIdentityForBrowser(host));
     if (selected != null) {
       EasyLoading.show(status: 'Processing...');
       try {

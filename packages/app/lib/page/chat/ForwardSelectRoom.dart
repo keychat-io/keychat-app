@@ -66,6 +66,10 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
             TextButton.icon(
                 onPressed: () async {
                   Identity? selected = await Get.bottomSheet(
+                      clipBehavior: Clip.antiAlias,
+                      shape: const RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(4))),
                       const SelectIdentityForward('Select a Identity'));
                   if (selected == null) return;
                   init(selected);

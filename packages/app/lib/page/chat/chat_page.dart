@@ -457,38 +457,43 @@ class _ChatPage2State extends State<ChatPage> {
               Map? botPricePerMessageRequest =
                   localConfig['botPricePerMessageRequest'];
               Get.bottomSheet(
+                  clipBehavior: Clip.antiAlias,
+                  shape: const RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(4))),
                   SettingsList(platform: DevicePlatform.iOS, sections: [
-                SettingsSection(
-                    title: const Text('Commands'),
-                    tiles: controller.botCommands
-                        .map(
-                          (element) => SettingsTile(
-                              title: Text(element['name']),
-                              value: Flexible(
-                                  child: textSmallGray(
-                                      context, element['description'],
-                                      overflow: TextOverflow.clip)),
+                    SettingsSection(
+                        title: const Text('Commands'),
+                        tiles: controller.botCommands
+                            .map(
+                              (element) => SettingsTile(
+                                  title: Text(element['name']),
+                                  value: Flexible(
+                                      child: textSmallGray(
+                                          context, element['description'],
+                                          overflow: TextOverflow.clip)),
+                                  onPressed: (context) async {
+                                    RoomService.instance.sendMessage(
+                                        controller.roomObs.value,
+                                        element['name']);
+                                    Get.back();
+                                  }),
+                            )
+                            .toList()),
+                    if (botPricePerMessageRequest != null)
+                      SettingsSection(
+                        title: const Text('Selected Local Config'),
+                        tiles: [
+                          SettingsTile(
+                              title: Text(botPricePerMessageRequest['name']),
+                              trailing: Text(
+                                  '${botPricePerMessageRequest['price']} ${botPricePerMessageRequest['unit']} /message'),
                               onPressed: (context) async {
-                                RoomService.instance.sendMessage(
-                                    controller.roomObs.value, element['name']);
                                 Get.back();
-                              }),
-                        )
-                        .toList()),
-                if (botPricePerMessageRequest != null)
-                  SettingsSection(
-                    title: const Text('Selected Local Config'),
-                    tiles: [
-                      SettingsTile(
-                          title: Text(botPricePerMessageRequest['name']),
-                          trailing: Text(
-                              '${botPricePerMessageRequest['price']} ${botPricePerMessageRequest['unit']} /message'),
-                          onPressed: (context) async {
-                            Get.back();
-                          })
-                    ],
-                  )
-              ]));
+                              })
+                        ],
+                      )
+                  ]));
             },
             child: Icon(
               size: 26,
@@ -686,36 +691,41 @@ class _ChatPage2State extends State<ChatPage> {
       String lastChar = value.substring(value.length - 1, value.length);
       if (lastChar == '@' && controller.inputTextIsAdd.value) {
         var members = controller.enableMembers.values.toList();
-        RoomMember? roomMember = await Get.bottomSheet(Scaffold(
-            appBar: AppBar(
-              leading: Container(),
-              title: const Text('Select member to alert'),
-            ),
-            body: ListView.separated(
-                controller: ScrollController(),
-                separatorBuilder: (BuildContext context, int index) => Divider(
-                    color: Theme.of(context)
-                        .dividerTheme
-                        .color
-                        ?.withValues(alpha: 0.05)),
-                itemCount: members.length,
-                itemBuilder: (context, index) {
-                  RoomMember rm = members[index];
-                  return ListTile(
-                      onTap: () {
-                        Get.back(result: members[index]);
-                      },
-                      leading: Utils.getRandomAvatar(rm.idPubkey,
-                          height: 36, width: 36),
-                      title: Text(
-                        rm.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 18,
-                        ),
-                      ));
-                })));
+        RoomMember? roomMember = await Get.bottomSheet(
+            clipBehavior: Clip.antiAlias,
+            shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
+            Scaffold(
+                appBar: AppBar(
+                  leading: Container(),
+                  title: const Text('Select member to alert'),
+                ),
+                body: ListView.separated(
+                    controller: ScrollController(),
+                    separatorBuilder: (BuildContext context, int index) =>
+                        Divider(
+                            color: Theme.of(context)
+                                .dividerTheme
+                                .color
+                                ?.withValues(alpha: 0.05)),
+                    itemCount: members.length,
+                    itemBuilder: (context, index) {
+                      RoomMember rm = members[index];
+                      return ListTile(
+                          onTap: () {
+                            Get.back(result: members[index]);
+                          },
+                          leading: Utils.getRandomAvatar(rm.idPubkey,
+                              height: 36, width: 36),
+                          title: Text(
+                            rm.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 18,
+                            ),
+                          ));
+                    })));
         if (roomMember != null) {
           controller.addMetionName(roomMember.name);
           controller.chatContentFocus.requestFocus();

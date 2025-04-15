@@ -1,3 +1,4 @@
+import 'package:app/app.dart';
 import 'package:app/desktop/DesktopController.dart';
 import 'package:app/models/models.dart';
 import 'package:app/page/chat/RoomUtil.dart';
@@ -50,14 +51,15 @@ class RoomList extends GetView<HomeController> {
                           : Alignment.bottomCenter,
                       children: <Widget>[
                         TabBar(
-                            indicatorColor:
-                                Theme.of(context).colorScheme.primary,
+                            indicatorColor: KeychatGlobal.primaryColor,
                             indicatorWeight: 1,
                             isScrollable: true,
                             controller: controller.tabController,
                             tabAlignment: TabAlignment.start,
                             labelStyle: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w600),
+                                color: KeychatGlobal.primaryColor,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600),
                             dividerColor: Colors.transparent,
                             tabs:
                                 controller.tabBodyDatas.values.map((TabData e) {
@@ -149,9 +151,7 @@ class RoomList extends GetView<HomeController> {
                                 selected:
                                     desktopController.selectedRoom.value.id ==
                                         room.id,
-                                selectedTileColor: Theme.of(context)
-                                    .colorScheme
-                                    .primary
+                                selectedTileColor: KeychatGlobal.primaryColor
                                     .withValues(alpha: 200),
                                 title: Row(
                                   mainAxisAlignment:
@@ -264,7 +264,12 @@ class RoomList extends GetView<HomeController> {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           onTap: () async {
-            await Get.bottomSheet(AnonymousRooms(rooms));
+            await Get.bottomSheet(
+                clipBehavior: Clip.antiAlias,
+                shape: const RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(4))),
+                AnonymousRooms(rooms));
             controller.loadRoomList();
           },
           subtitle: Text('Rooms: ${rooms.length}'),
@@ -301,7 +306,12 @@ class RoomList extends GetView<HomeController> {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           onTap: () async {
-            await Get.bottomSheet(AnonymousRooms(rooms));
+            await Get.bottomSheet(
+                clipBehavior: Clip.antiAlias,
+                shape: const RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(4))),
+                AnonymousRooms(rooms));
             controller.loadRoomList();
           },
           subtitle: Text('Rooms: ${rooms.length}'),
@@ -410,12 +420,11 @@ class RoomList extends GetView<HomeController> {
     final RenderBox overlay =
         Overlay.of(context).context.findRenderObject() as RenderBox;
     final position = RelativeRect.fromRect(
-      Rect.fromPoints(
-        e.globalPosition,
-        e.globalPosition,
-      ),
-      Offset.zero & overlay.size,
-    );
+        Rect.fromPoints(
+          e.globalPosition,
+          e.globalPosition,
+        ),
+        Offset.zero & overlay.size);
     showMenu(
       context: context,
       position: position,

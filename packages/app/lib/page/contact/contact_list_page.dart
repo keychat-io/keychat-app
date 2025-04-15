@@ -170,8 +170,14 @@ class _FriendCell extends StatelessWidget {
         ),
         InkWell(
           onTap: () async {
-            await Get.bottomSheet(ContactDetailPage(contact),
-                isScrollControlled: true, ignoreSafeArea: false);
+            await Get.bottomSheet(
+                clipBehavior: Clip.antiAlias,
+                shape: const RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(4))),
+                ContactDetailPage(contact),
+                isScrollControlled: true,
+                ignoreSafeArea: false);
             updateList();
           },
           child: ListTile(

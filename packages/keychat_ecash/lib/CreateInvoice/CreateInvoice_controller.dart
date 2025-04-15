@@ -1,3 +1,4 @@
+import 'package:app/global.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/services.dart';
 import 'package:keychat_ecash/Bills/lightning_bill_controller.dart';
@@ -51,7 +52,8 @@ class CreateInvoiceController extends GetxController {
       EasyLoading.dismiss();
       EasyLoading.showToast('Create Successfully');
       textController.clear();
-      await Get.off(() => LightningTransactionPage(transaction: ln));
+      await Get.off(() => LightningTransactionPage(transaction: ln),
+          id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
     } catch (e, s) {
       String msg = Utils.getErrorMessage(e);
       EasyLoading.showToast('Exception: $msg');

@@ -1,3 +1,4 @@
+import 'package:app/global.dart';
 import 'package:flutter/services.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_ecash/Bills/ecash_bill_controller.dart';
@@ -39,10 +40,8 @@ class _CashuSendPageState extends State<CashuSendPage> {
                 BoxDecoration(color: Theme.of(context).colorScheme.surface),
             child: Column(children: [
               Center(
-                child: Text(
-                  'Send Sat(Cashu)',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+                child: Text('Send Sat(Cashu)',
+                    style: Theme.of(context).textTheme.titleMedium),
               ),
               Obx(() => SelectMint(cashuController.latestMintUrl.value,
                       (String mint) {
@@ -124,8 +123,13 @@ class _CashuSendPageState extends State<CashuSendPage> {
                           Get.back(result: cashuInfoModel);
                           return;
                         }
-                        Get.off(() => CashuTransactionPage(
-                            transaction: cashuInfoModel.toCashuTransaction()));
+                        Get.off(
+                            () => CashuTransactionPage(
+                                transaction:
+                                    cashuInfoModel.toCashuTransaction()),
+                            id: GetPlatform.isDesktop
+                                ? GetXNestKey.setting
+                                : null);
                       } catch (e, s) {
                         String msg = Utils.getErrorMessage(e);
                         if (msg.startsWith('11001')) {

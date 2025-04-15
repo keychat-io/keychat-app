@@ -84,9 +84,9 @@ class ChatController extends GetxController {
   DateTime lastMessageAddedAt = DateTime.now();
 
   final List<String> featuresIcons = [
-    'assets/images/album.png',
+    'assets/images/photo.png',
     'assets/images/camera.png',
-    'assets/images/videos.png',
+    'assets/images/video.png',
     'assets/images/file.png',
     'assets/images/BTC.png',
   ];
@@ -97,7 +97,7 @@ class ChatController extends GetxController {
     'Camera',
     'Video',
     'File',
-    'SAT',
+    'Sat'
   ];
 
   List<Function> featuresOnTaps = [];
@@ -645,8 +645,11 @@ class ChatController extends GetxController {
   }
 
   _handleSendSats() async {
-    CashuInfoModel? cashuInfo =
-        await Get.bottomSheet(const CashuSendPage(true));
+    CashuInfoModel? cashuInfo = await Get.bottomSheet(
+        clipBehavior: Clip.hardEdge,
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
+        const CashuSendPage(true));
     if (cashuInfo == null) return;
     try {
       await RoomService.instance.sendMessage(roomObs.value, cashuInfo.token,
@@ -661,11 +664,15 @@ class ChatController extends GetxController {
   }
 
   _handleSendWithCamera() async {
-    PermissionStatus result = await Permission.camera.status;
-    if (!result.isGranted) {
-      result = await Permission.camera.request();
+    if (GetPlatform.isMacOS) {
+      EasyLoading.showToast('Camera not supported on MacOS');
+      return;
     }
-    if (result.isGranted) {
+    bool isGranted = true;
+    if (GetPlatform.isMobile || GetPlatform.isWindows) {
+      isGranted = await Permission.camera.request().isGranted;
+    }
+    if (isGranted) {
       await pickAndUploadImage(ImageSource.camera);
       hideAdd.value = true; // close features section
     } else {

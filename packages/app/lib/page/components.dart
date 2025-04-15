@@ -254,6 +254,9 @@ showFitSheetWidget(BuildContext context, String title, List<Widget> bodys,
 
 getGroupInfoBottomSheetWidget(BuildContext context) {
   Get.bottomSheet(
+      clipBehavior: Clip.antiAlias,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
       Scaffold(
           body: ListView(
         children: [
@@ -386,9 +389,7 @@ showSearchContactsPage(BuildContext context, List<Contact> contactList) {
                       if (clipboardData != null) {
                         final pastedText = clipboardData.text;
                         if (pastedText != null && pastedText != '') {
-                          Get.off(() => AddtoContactsPage(
-                                pastedText,
-                              ));
+                          Get.off(() => AddtoContactsPage(pastedText));
                         } else {
                           EasyLoading.showToast('Clipboard is empty');
                         }
@@ -547,6 +548,9 @@ Future showMyQrCode(
       KeychatGlobal.oneTimePubkeysLifetime * 3600 * 1000;
 
   Get.bottomSheet(
+      clipBehavior: Clip.antiAlias,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
       MyQRCode(
           title: identity.displayName,
           identity: identity,

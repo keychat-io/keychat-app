@@ -221,7 +221,11 @@ class Utils {
 
   static bottomSheedAndHideStatusBar(Widget widget) async {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
-    await Get.bottomSheet(widget,
+    await Get.bottomSheet(
+        clipBehavior: Clip.antiAlias,
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
+        widget,
         isScrollControlled: true,
         enterBottomSheetDuration: Duration.zero,
         exitBottomSheetDuration: Duration.zero);

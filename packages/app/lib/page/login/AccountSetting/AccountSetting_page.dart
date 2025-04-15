@@ -172,7 +172,12 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                               leading: const Icon(Icons.key),
                               title: const Text("Seed Phrase"),
                               onPressed: (context) {
-                                Get.bottomSheet(_idKeysWidget());
+                                Get.bottomSheet(
+                                    clipBehavior: Clip.antiAlias,
+                                    shape: const RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.vertical(
+                                            top: Radius.circular(4))),
+                                    _idKeysWidget());
                               },
                             )
                         ],

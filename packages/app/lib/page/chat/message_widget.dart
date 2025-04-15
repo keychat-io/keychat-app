@@ -323,6 +323,9 @@ class MessageWidget extends StatelessWidget {
   Widget _getMessageContainer() {
     var child = GestureDetector(
         onLongPress: _handleTextLongPress,
+        onSecondaryTapDown: (TapDownDetails e) {
+          _onSecondaryTapDown(Get.context!, e);
+        },
         child: message.reply == null
             ? RoomUtil.getTextViewWidget(
                 message, cc, markdownConfig, _textCallback)
@@ -443,11 +446,7 @@ class MessageWidget extends StatelessWidget {
           child: Padding(
               padding:
                   const EdgeInsets.only(left: 10, right: 4, top: 8, bottom: 4),
-              child: Text(title,
-                  style: Theme.of(Get.context!)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(color: fontColor.withValues(alpha: 0.7))))),
+              child: Text(title))),
       TableCell(
           child: Padding(
               padding:
@@ -857,75 +856,167 @@ class MessageWidget extends StatelessWidget {
     FocusScope.of(Get.context ?? context).requestFocus(cc.chatContentFocus);
   }
 
+  void _onSecondaryTapDown(BuildContext context, TapDownDetails e) async {
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
+    final position = RelativeRect.fromRect(
+        Rect.fromPoints(
+          e.globalPosition,
+          e.globalPosition,
+        ),
+        Offset.zero & overlay.size);
+
+    final theme = Theme.of(context);
+
+    await showMenu(
+      context: context,
+      elevation: 8,
+      color: theme.popupMenuTheme.color ?? theme.cardColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      position: position,
+      items: [
+        PopupMenuItem(
+          mouseCursor: SystemMouseCursors.click,
+          child: Row(
+            children: const [
+              Icon(Icons.copy, size: 18),
+              SizedBox(width: 8),
+              Text('Copy'),
+            ],
+          ),
+          onTap: () async {
+            String content = message.content;
+            if (message.realMessage != null &&
+                cc.roomObs.value.type == RoomType.bot) {
+              content = message.realMessage!;
+            }
+            await Clipboard.setData(ClipboardData(text: content));
+            EasyLoading.showToast('Copied');
+          },
+        ),
+        PopupMenuItem(
+          mouseCursor: SystemMouseCursors.click,
+          child: Row(
+            children: const [
+              Icon(CupertinoIcons.reply, size: 18),
+              SizedBox(width: 8),
+              Text('Reply'),
+            ],
+          ),
+          onTap: () => _handleReply(Get.context!),
+        ),
+        PopupMenuItem(
+          mouseCursor: SystemMouseCursors.click,
+          child: Row(
+            children: const [
+              Icon(CupertinoIcons.arrowshape_turn_up_right, size: 18),
+              SizedBox(width: 8),
+              Text('Forward'),
+            ],
+          ),
+          onTap: () => _handleForward(Get.context!),
+        ),
+        PopupMenuItem(
+          mouseCursor: SystemMouseCursors.click,
+          child: Row(
+            children: const [
+              Icon(Icons.code, size: 18),
+              SizedBox(width: 8),
+              Text('Raw Data'),
+            ],
+          ),
+          onTap: () => _handleShowRawdata(Get.context!),
+        ),
+        PopupMenuItem(
+          mouseCursor: SystemMouseCursors.click,
+          child: Row(
+            children: [
+              const Icon(Icons.delete, color: Colors.red, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'Delete',
+                style: Theme.of(Get.context!)
+                    .textTheme
+                    .bodyLarge
+                    ?.copyWith(color: Colors.red),
+              ),
+            ],
+          ),
+          onTap: () {
+            Future.delayed(const Duration(milliseconds: 100), () {
+              _showDeleteDialog(message);
+            });
+          },
+        ),
+      ],
+    );
+  }
+
   void _handleTextLongPress() async {
-    if (GetPlatform.isMobile) {
-      await HapticFeedback.lightImpact();
-    }
-    show300hSheetWidget(
-      Get.context!,
-      'actions',
-      SettingsList(
-          platform: DevicePlatform.iOS,
-          physics: const NeverScrollableScrollPhysics(),
-          sections: [
-            SettingsSection(
-                title: message.mediaType == MessageMediaType.text
-                    ? Text(
-                        '「${message.realMessage ?? message.content}」',
-                        maxLines: 5,
-                        overflow: TextOverflow.ellipsis,
-                      )
-                    : Text('「${message.mediaType.name.toUpperCase()}」'),
-                tiles: [
-                  SettingsTile.navigation(
-                      title: const Text('Copy'),
-                      leading: const Icon(Icons.copy),
-                      onPressed: (context) async {
-                        String conent = message.content;
-                        if (message.realMessage != null &&
-                            cc.roomObs.value.type == RoomType.bot) {
-                          conent = message.realMessage!;
-                        }
-                        Clipboard.setData(ClipboardData(text: conent));
-                        EasyLoading.showToast('Copied');
-                        Get.back();
-                      }),
-                  SettingsTile.navigation(
-                      onPressed: _handleReply,
-                      leading: const Icon(CupertinoIcons.reply),
-                      title: const Text('Reply')),
-                  if (message.isSystem == false &&
-                      (message.mediaType == MessageMediaType.text ||
-                          message.mediaType == MessageMediaType.image ||
-                          message.mediaType == MessageMediaType.video ||
-                          message.mediaType == MessageMediaType.file))
-                    SettingsTile.navigation(
-                        onPressed: _handleForward,
-                        leading:
-                            const Icon(CupertinoIcons.arrowshape_turn_up_right),
-                        title: const Text('Forward')),
-                  SettingsTile.navigation(
-                      leading: const Icon(Icons.code),
-                      onPressed: _handleShowRawdata,
-                      title: const Text('Raw Data')),
-                  SettingsTile.navigation(
-                      leading: const Icon(
-                        Icons.delete,
-                        color: Colors.red,
-                      ),
-                      onPressed: (BuildContext context) {
-                        Get.back();
-                        _showDeleteDialog(message);
-                      },
-                      title: Text(
-                        'Delete',
-                        style: Theme.of(Get.context!)
-                            .textTheme
-                            .bodyLarge
-                            ?.copyWith(color: Colors.red),
-                      ))
-                ]),
-          ]),
+    await HapticFeedback.lightImpact();
+    Get.bottomSheet(
+      clipBehavior: Clip.antiAlias,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
+      SettingsList(sections: [
+        SettingsSection(
+            title: message.mediaType == MessageMediaType.text
+                ? Text(
+                    '「${message.realMessage ?? message.content}」',
+                    maxLines: 5,
+                    overflow: TextOverflow.ellipsis,
+                  )
+                : Text('「${message.mediaType.name.toUpperCase()}」'),
+            tiles: [
+              SettingsTile.navigation(
+                  title: const Text('Copy'),
+                  leading: const Icon(Icons.copy),
+                  onPressed: (context) async {
+                    String conent = message.content;
+                    if (message.realMessage != null &&
+                        cc.roomObs.value.type == RoomType.bot) {
+                      conent = message.realMessage!;
+                    }
+                    Clipboard.setData(ClipboardData(text: conent));
+                    EasyLoading.showToast('Copied');
+                    Get.back();
+                  }),
+              SettingsTile.navigation(
+                  onPressed: _handleReply,
+                  leading: const Icon(CupertinoIcons.reply),
+                  title: const Text('Reply')),
+              if (message.isSystem == false &&
+                  (message.mediaType == MessageMediaType.text ||
+                      message.mediaType == MessageMediaType.image ||
+                      message.mediaType == MessageMediaType.video ||
+                      message.mediaType == MessageMediaType.file))
+                SettingsTile.navigation(
+                    onPressed: _handleForward,
+                    leading:
+                        const Icon(CupertinoIcons.arrowshape_turn_up_right),
+                    title: const Text('Forward')),
+              SettingsTile.navigation(
+                  leading: const Icon(Icons.code),
+                  onPressed: _handleShowRawdata,
+                  title: const Text('Raw Data')),
+              SettingsTile.navigation(
+                  leading: const Icon(
+                    Icons.delete,
+                    color: Colors.red,
+                  ),
+                  onPressed: (BuildContext context) {
+                    Get.back();
+                    _showDeleteDialog(message);
+                  },
+                  title: Text(
+                    'Delete',
+                    style: Theme.of(Get.context!)
+                        .textTheme
+                        .bodyLarge
+                        ?.copyWith(color: Colors.red),
+                  ))
+            ]),
+      ]),
     );
   }
 }

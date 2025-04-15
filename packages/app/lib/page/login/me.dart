@@ -61,7 +61,12 @@ class MinePage extends GetView<SettingController> {
                                     ?.withValues(alpha: 0.5),
                                 size: 22),
                             onPressed: (context) async {
-                              Get.bottomSheet(const SelectModeToCreateId());
+                              Get.bottomSheet(
+                                  clipBehavior: Clip.antiAlias,
+                                  shape: const RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.vertical(
+                                          top: Radius.circular(4))),
+                                  const SelectModeToCreateId());
                             })
                       ]),
                   if (GetPlatform.isMobile)

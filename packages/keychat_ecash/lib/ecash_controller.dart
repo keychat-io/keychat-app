@@ -310,7 +310,6 @@ class EcashController extends GetxController {
 
   Future initMintUrl() async {
     mints.value = await rust_cashu.getMints();
-
     if (mints.isEmpty) {
       await rust_cashu.addMint(url: KeychatGlobal.defaultCashuMintURL);
       latestMintUrl.value = KeychatGlobal.defaultCashuMintURL;

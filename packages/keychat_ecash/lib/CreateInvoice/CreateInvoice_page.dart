@@ -26,7 +26,7 @@ class CreateInvoicePage extends StatelessWidget {
           ),
         ),
         body: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 10),
+            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
             decoration:
                 BoxDecoration(color: Theme.of(context).colorScheme.surface),
             child: Column(children: [
@@ -37,21 +37,17 @@ class CreateInvoicePage extends StatelessWidget {
               Form(
                 child: Expanded(
                     child: Column(children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 10),
-                    child: TextField(
-                        style: const TextStyle(fontSize: 20),
-                        controller: controller.textController,
-                        keyboardType: TextInputType.number,
-                        // textInputAction: TextInputAction.done,
-                        autofocus: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Input Amount',
-                          hintText: 'Amount',
-                          border: OutlineInputBorder(),
-                        )),
-                  )
+                  TextField(
+                      style: const TextStyle(fontSize: 20),
+                      controller: controller.textController,
+                      keyboardType: TextInputType.number,
+                      // textInputAction: TextInputAction.done,
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Input Amount',
+                        hintText: 'Amount',
+                        border: OutlineInputBorder(),
+                      )),
                 ])),
               ),
               Obx(() => cashuController

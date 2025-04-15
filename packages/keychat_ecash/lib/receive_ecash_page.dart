@@ -120,7 +120,8 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
                     return;
                   }
                   try {
-                    await CashuUtil.handleReceiveToken(token: encodedToken);
+                    await CashuUtil.handleReceiveToken(
+                        token: encodedToken, retry: true);
                     receiveTextController.clear();
                     controller.requestPageRefresh();
                     setState(() {

@@ -32,6 +32,12 @@ class CashuPage extends GetView<EcashController> {
           centerTitle: true,
           title: const Text("Bitcoin Ecash"),
           actions: [
+            if (GetPlatform.isDesktop)
+              IconButton(
+                  onPressed: () {
+                    controller.refreshController.requestRefresh();
+                  },
+                  icon: const Icon(CupertinoIcons.refresh)),
             IconButton(
                 onPressed: () {
                   Get.to(() => const EcashSettingPage(),

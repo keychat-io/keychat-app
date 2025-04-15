@@ -40,6 +40,8 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
 
   @override
   void dispose() {
+    Utils.getOrPutGetxController(create: EcashBillController.new)
+        .stopCheckPending(tx);
     super.dispose();
   }
 

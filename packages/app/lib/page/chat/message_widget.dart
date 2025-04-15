@@ -667,16 +667,26 @@ class MessageWidget extends StatelessWidget {
       {BotClientMessageModel? botClientMessageModel,
       rust_cashu.TokenInfo? payToken}) {
     BuildContext buildContext = Get.context!;
-    return showModalBottomSheetWidget(
-        buildContext,
-        'RawData',
-        SingleChildScrollView(
-            // padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
-            child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+    return Get.bottomSheet(
+        isScrollControlled: true,
+        ignoreSafeArea: false,
+        Scaffold(
+            extendBodyBehindAppBar: true,
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              scrolledUnderElevation: 0.0,
+              leading: Container(),
+              actions: [
+                IconButton(onPressed: Get.back, icon: const Icon(Icons.close))
+              ],
+            ),
+            body: Container(
+                padding: const EdgeInsets.all(16),
+                child: SingleChildScrollView(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                       relayStatusList(buildContext, ess),
                       const SizedBox(height: 10),
                       if (message.mediaType == MessageMediaType.file ||
@@ -746,7 +756,7 @@ class MessageWidget extends StatelessWidget {
                                     message.msgKeyHash ?? ''),
                               tableRow("Sig", event.sig),
                             ])),
-                    ]))));
+                    ])))));
   }
 
   // for small group message, send to multi members
@@ -774,51 +784,67 @@ class MessageWidget extends StatelessWidget {
 
       result.add(data);
     }
-    BuildContext buildContext = Get.context!;
 
-    return showModalBottomSheetWidget(
-        buildContext,
-        'RawData',
-        SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
-            child: Column(
-              children: [
-                // getFileTable(buildContext, message),
-                ListView.builder(
-                    physics: const NeverScrollableScrollPhysics(),
-                    shrinkWrap: true,
-                    itemCount: result.length,
-                    itemBuilder: (context, index) {
-                      Map map = result[index];
-                      // String idPubkey = maps.keys.toList()[index];
-                      RoomMember? rm = map['to'];
-                      List<NostrEventStatus> eventSendStatus = map['ess'] ?? [];
-                      NostrEventModel? eventModel = map['eventModel'];
-                      List<NostrEventStatus> success = eventSendStatus
-                          .where((element) =>
-                              element.sendStatus == EventSendEnum.success)
-                          .toList();
-                      String idPubkey = eventModel?.toIdPubkey ??
-                          eventModel?.tags[0][1] ??
-                          '';
-                      return ExpansionTile(
-                        leading: RoomUtil.getStatusCheckIcon(
-                            eventSendStatus.length, success.length),
-                        title: Text(
-                          'To: ${rm?.name ?? idPubkey}',
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 2,
-                        ),
-                        subtitle: Text(idPubkey),
-                        children: <Widget>[
-                          relayStatusList(context, eventSendStatus),
-                          if (eventModel != null)
-                            ListTile(title: Text(eventModel.toString())),
-                        ],
-                      );
-                    })
+    Get.bottomSheet(
+        isScrollControlled: true,
+        ignoreSafeArea: false,
+        Scaffold(
+            extendBodyBehindAppBar: true,
+            appBar: AppBar(
+              leading: Container(),
+              backgroundColor: Colors.transparent,
+              scrolledUnderElevation: 0.0,
+              elevation: 0.0,
+              actions: [
+                IconButton(onPressed: Get.back, icon: Icon(Icons.close))
               ],
-            )));
+            ),
+            body: Container(
+                padding: const EdgeInsets.all(16),
+                child: SingleChildScrollView(
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
+                    child: Column(
+                      children: [
+                        // getFileTable(buildContext, message),
+                        ListView.builder(
+                            physics: const NeverScrollableScrollPhysics(),
+                            shrinkWrap: true,
+                            itemCount: result.length,
+                            itemBuilder: (context, index) {
+                              Map map = result[index];
+                              // String idPubkey = maps.keys.toList()[index];
+                              RoomMember? rm = map['to'];
+                              List<NostrEventStatus> eventSendStatus =
+                                  map['ess'] ?? [];
+                              NostrEventModel? eventModel = map['eventModel'];
+                              List<NostrEventStatus> success = eventSendStatus
+                                  .where((element) =>
+                                      element.sendStatus ==
+                                      EventSendEnum.success)
+                                  .toList();
+                              String idPubkey = eventModel?.toIdPubkey ??
+                                  eventModel?.tags[0][1] ??
+                                  '';
+                              return ExpansionTile(
+                                leading: RoomUtil.getStatusCheckIcon(
+                                    eventSendStatus.length, success.length),
+                                title: Text(
+                                  'To: ${rm?.name ?? idPubkey}',
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 2,
+                                ),
+                                subtitle: Text(idPubkey),
+                                children: <Widget>[
+                                  relayStatusList(context, eventSendStatus),
+                                  if (eventModel != null)
+                                    ListTile(
+                                        title: Text(eventModel.toString())),
+                                ],
+                              );
+                            })
+                      ],
+                    )))));
   }
 
   _handleForward(BuildContext context) {

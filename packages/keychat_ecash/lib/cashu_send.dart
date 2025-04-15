@@ -123,12 +123,15 @@ class _CashuSendPageState extends State<CashuSendPage> {
                           Get.back(result: cashuInfoModel);
                           return;
                         }
-                        Get.off(
+                        if (Get.isBottomSheetOpen ?? false) {
+                          Get.back();
+                        }
+                        Get.to(
                             () => CashuTransactionPage(
                                 transaction:
                                     cashuInfoModel.toCashuTransaction()),
                             id: GetPlatform.isDesktop
-                                ? GetXNestKey.setting
+                                ? GetXNestKey.ecash
                                 : null);
                       } catch (e, s) {
                         String msg = Utils.getErrorMessage(e);

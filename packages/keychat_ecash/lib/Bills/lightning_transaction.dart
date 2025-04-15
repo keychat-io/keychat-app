@@ -38,8 +38,8 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
     lightningBillController =
         Utils.getOrPutGetxController(create: LightningBillController.new);
 
-    lightningBillController!.pendingTaskMap[tx.hash] = true;
-    lightningBillController!.startCheckPending(tx, expiryTs, (ln) {
+    lightningBillController?.pendingTaskMap[tx.hash] = true;
+    lightningBillController?.startCheckPending(tx, expiryTs, (ln) {
       setState(() {
         tx = ln;
       });
@@ -48,7 +48,7 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
 
   @override
   void dispose() {
-    lightningBillController?.pendingTaskMap[tx.hash] = false;
+    lightningBillController?.stopCheckPending(tx);
     super.dispose();
   }
 

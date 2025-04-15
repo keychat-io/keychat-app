@@ -123,7 +123,7 @@ class HomeSidebarX extends GetView<DesktopController> {
             });
           },
         ),
-        const SidebarXItem(icon: CupertinoIcons.settings),
+        const SidebarXItem(icon: CupertinoIcons.person),
       ],
     );
   }

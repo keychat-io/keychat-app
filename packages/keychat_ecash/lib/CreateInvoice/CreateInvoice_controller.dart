@@ -52,8 +52,11 @@ class CreateInvoiceController extends GetxController {
       EasyLoading.dismiss();
       EasyLoading.showToast('Create Successfully');
       textController.clear();
-      await Get.off(() => LightningTransactionPage(transaction: ln),
-          id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
+      if (Get.isBottomSheetOpen ?? false) {
+        Get.back();
+      }
+      await Get.to(() => LightningTransactionPage(transaction: ln),
+          id: GetPlatform.isDesktop ? GetXNestKey.ecash : null);
     } catch (e, s) {
       String msg = Utils.getErrorMessage(e);
       EasyLoading.showToast('Exception: $msg');

@@ -246,15 +246,25 @@ class AppGeneralSetting extends GetView<SettingController> {
             isDefaultAction: true,
             onPressed: () async {
               if (passwordController.text.isNotEmpty &&
-                  passwordController.text == confirmPasswordController.text) {
-                await Storage.setString(StorageKeyString.dbBackupPwd,
-                    confirmPasswordController.text);
-                EasyLoading.showSuccess("Password successfully set");
-                Get.back();
-                await Future.delayed(const Duration(microseconds: 100));
-                DbSetting().exportDB(context, confirmPasswordController.text);
-              } else {
+                  passwordController.text != confirmPasswordController.text) {
                 EasyLoading.showError('Passwords do not match');
+                return;
+              }
+              await Storage.setString(
+                  StorageKeyString.dbBackupPwd, confirmPasswordController.text);
+              Get.back();
+              await Future.delayed(const Duration(microseconds: 100));
+              EasyLoading.show(status: 'Exporting...');
+              try {
+                await DbSetting()
+                    .exportDB(context, confirmPasswordController.text);
+                EasyLoading.showSuccess("Export successful");
+              } catch (e, s) {
+                logger.e(e.toString(), error: e, stackTrace: s);
+                EasyLoading.showError('Export failed: ${e.toString()}');
+              } finally {
+                await Future.delayed(const Duration(seconds: 2));
+                EasyLoading.dismiss();
               }
             },
             child: const Text('Confirm'),

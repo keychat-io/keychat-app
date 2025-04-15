@@ -1,6 +1,5 @@
 import 'dart:async' show Timer;
 import 'dart:convert' show jsonDecode;
-import 'dart:io';
 import 'dart:math' show Random;
 
 import 'package:app/app.dart';
@@ -25,12 +24,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 import 'package:get/get.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:markdown_widget/markdown_widget.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:settings_ui/settings_ui.dart';
-import 'package:super_clipboard/super_clipboard.dart';
 
 // ignore: must_be_immutable
 class ChatPage extends StatefulWidget {
@@ -50,7 +46,6 @@ class _ChatPage2State extends State<ChatPage> {
   late Widget myAavtar;
   bool isGroup = false;
   late MarkdownConfig markdownDarkConfig;
-  Color meBackgroundColor = const Color(0xff7748FF);
   late Color toBackgroundColor;
   late MarkdownConfig markdownLightConfig;
   late Color fontColor;
@@ -257,7 +252,7 @@ class _ChatPage2State extends State<ChatPage> {
                                               ? Colors.white54
                                               : Colors.black54,
                                           backgroundColor: message.isMeSend
-                                              ? meBackgroundColor
+                                              ? KeychatGlobal.primaryColor
                                               : toBackgroundColor,
                                           fontColor: fontColor,
                                           markdownConfig:
@@ -358,7 +353,7 @@ class _ChatPage2State extends State<ChatPage> {
                                     .contains(LogicalKeyboardKey.metaRight);
                             if (event.logicalKey == LogicalKeyboardKey.keyV &&
                                 isCmdPressed) {
-                              _handlePasteboard();
+                              controller.handlePasteboard();
                               return;
                             }
                           }
@@ -419,7 +414,7 @@ class _ChatPage2State extends State<ChatPage> {
                                   weight: 300,
                                   size: 28,
                                   CupertinoIcons.arrow_up_circle_fill,
-                                  color: Color.fromARGB(255, 100, 80, 243))
+                                  color: KeychatGlobal.primaryColor)
                               : Icon(
                                   size: 28,
                                   CupertinoIcons.add_circled,
@@ -439,9 +434,9 @@ class _ChatPage2State extends State<ChatPage> {
                 duration: const Duration(milliseconds: 500),
                 child: AnimatedContainer(
                   height: !controller.hideAdd.value
-                      ? controller.featuresIcons.length > 4
+                      ? GetPlatform.isMobile
                           ? 220.0
-                          : 100
+                          : 120
                       : 0.0,
                   duration: const Duration(milliseconds: 500),
                   child: getFeaturesWidget(context),
@@ -507,8 +502,8 @@ class _ChatPage2State extends State<ChatPage> {
     return GridView.builder(
       physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.all(8.0),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: GetPlatform.isDesktop ? 5 : 4,
       ),
       itemCount: controller.featuresIcons.length,
       itemBuilder: (context, index) {
@@ -519,21 +514,25 @@ class _ChatPage2State extends State<ChatPage> {
             child: Column(
               children: [
                 Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(5.0),
-                  ),
-                  child: Icon(
-                    controller.featuresIcons[index],
-                    size: 32.0,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(5.0),
+                    ),
+                    child: Center(
+                      child: SizedBox(
+                        width: 36,
+                        height: 36,
+                        child: Image.asset(
+                          controller.featuresIcons[index],
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    )),
                 Text(controller.featuresTitles[index])
               ],
             ));
@@ -542,16 +541,20 @@ class _ChatPage2State extends State<ChatPage> {
   }
 
   handleMessageSend() async {
-    if (controller.textEditingController.text.isEmpty) {
-      if (controller.roomObs.value.type == RoomType.bot) {
-        EasyLoading.showToast('Not supported int bot chat now');
-        return;
-      }
-      controller.hideAdd.trigger(false);
-      controller.chatContentFocus.unfocus();
+    if (controller.textEditingController.text.isNotEmpty) {
+      await controller.handleSubmitted();
       return;
     }
-    await controller.handleSubmitted();
+    if (controller.roomObs.value.type == RoomType.bot) {
+      EasyLoading.showToast('Not supported in bot chat now');
+      return;
+    }
+    controller.hideAdd.trigger(!controller.hideAdd.value);
+    if (controller.hideAdd.value) {
+      controller.chatContentFocus.unfocus();
+    } else {
+      controller.chatContentFocus.requestFocus();
+    }
   }
 
   Future goToSetting() async {
@@ -926,62 +929,5 @@ class _ChatPage2State extends State<ChatPage> {
           },
           child: const Text('View')),
     );
-  }
-
-  Future _handlePasteboard() async {
-    final clipboard = SystemClipboard.instance;
-    if (clipboard == null) {
-      return; // Clipboard API is not supported on this platform.
-    }
-    final reader = await clipboard.read();
-
-    logger.d('cmd+v');
-    final imageFormats = [
-      (Formats.png, MessageMediaType.image, true),
-      (Formats.jpeg, MessageMediaType.image, true),
-      (Formats.webp, MessageMediaType.image, true),
-      (Formats.gif, MessageMediaType.image, false),
-      (Formats.mp4, MessageMediaType.video, true),
-      (Formats.pdf, MessageMediaType.file, false)
-    ];
-
-    for (var (format, mediaType, compress) in imageFormats) {
-      if (reader.canProvide(format)) {
-        return _readFromStream(reader, format, mediaType, compress);
-      }
-    }
-  }
-
-  _readFromStream(
-      ClipboardReader reader, SimpleFileFormat format, MessageMediaType type,
-      [bool compress = true]) async {
-    /// Binary formats need to be read as streams
-    reader.getFile(format, (DataReaderFile file) async {
-      try {
-        EasyLoading.show(status: 'Pasting...');
-        Uint8List imageBytes = await file.readAll();
-        final tempDir = await getTemporaryDirectory();
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        String? mimeType = format.mimeTypes?.first;
-        if (mimeType == null) return;
-        String suffix = mimeType.split('/').last;
-        String newFileName = 'pasted_image_$timestamp.$suffix';
-        final path = '${tempDir.path}/$newFileName';
-        final teampFile = File(path);
-        await teampFile.writeAsBytes(imageBytes);
-
-        XFile xFile = XFile(path,
-            bytes: imageBytes, mimeType: mimeType, name: newFileName);
-        if (controller.textEditingController.text.endsWith('.$suffix')) {
-          controller.textEditingController.clear();
-        }
-        await controller.handleSendMediaFile(xFile, type, compress);
-      } catch (e, s) {
-        logger.e('_readFromStream: ${e.toString()}', stackTrace: s);
-      } finally {
-        await Future.delayed(Duration(seconds: 2));
-        EasyLoading.dismiss();
-      }
-    });
   }
 }

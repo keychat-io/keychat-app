@@ -10,12 +10,10 @@ class LightningBillController extends GetxController {
   RxBool status = false.obs;
   bool run = true;
   late RefreshController refreshController;
-  late EcashController ecashController;
 
   @override
   void onInit() {
     super.onInit();
-    ecashController = Get.find<EcashController>();
     refreshController = RefreshController();
     getTransactions().then((list) {
       status.value = true;
@@ -56,7 +54,7 @@ class LightningBillController extends GetxController {
       var list = await rust_cashu.getLnPendingTransactions();
       if (list.isEmpty) {
         run = false;
-        ecashController.getBalance();
+        Get.find<EcashController>().getBalance();
         logger.d('tx status changed, update balance');
         return;
       }
@@ -86,7 +84,7 @@ class LightningBillController extends GetxController {
           ln.status == TransactionStatus.failed ||
           (now > expiryTs && expiryTs > 0)) {
         callback(ln);
-        ecashController.requestPageRefresh();
+        Get.find<EcashController>().requestPageRefresh();
         return;
       }
       logger.d('Checking status: ${tx.hash}');

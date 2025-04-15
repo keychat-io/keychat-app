@@ -32,8 +32,6 @@ abstract class Routes {
 
   // ecash
   static const ecash = '/ecash';
-  static const ecashBillCashu = '/ecash/bills/cashu';
-  static const ecashBillLightning = '/ecash/bills/lightning';
   static const ecashSetting = '/ecash/setting';
   static const ecashPaySuccess = '/ecash/pay_success';
 }

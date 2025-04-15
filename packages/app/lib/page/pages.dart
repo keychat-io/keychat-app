@@ -70,9 +70,6 @@ class Pages {
     GetPage(
         name: Routes.roomSettingPayToRelay, page: () => const PayToRelayPage()),
     GetPage(name: Routes.ecash, page: () => const CashuPage()),
-    GetPage(name: Routes.ecashBillCashu, page: () => const CashuBillPage()),
-    GetPage(
-        name: Routes.ecashBillLightning, page: () => const LightningBillPage()),
     GetPage(name: Routes.ecashSetting, page: () => const EcashSettingPage()),
   ];
 }

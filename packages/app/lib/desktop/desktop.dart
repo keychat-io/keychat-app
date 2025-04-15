@@ -1,14 +1,14 @@
 import 'package:app/controller/home.controller.dart';
+import 'package:app/desktop/DeskBrowser.dart';
+import 'package:app/desktop/DeskEcash.dart';
 import 'package:app/desktop/DeskRoomList.dart';
 import 'package:app/desktop/DesktopController.dart';
-import 'package:app/page/browser/Browser_page.dart';
 import 'package:app/page/login/me.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:keychat_ecash/cashu_page.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:sidebarx/sidebarx.dart';
 
@@ -17,13 +17,6 @@ class DesktopMain extends GetView<DesktopController> {
 
   @override
   Widget build(BuildContext context) {
-    final pages = [
-      const DeskRoomList(key: GlobalObjectKey('tab0')),
-      const BrowserPage(key: GlobalObjectKey('tab1')),
-      const CashuPage(key: GlobalObjectKey('tab2')),
-      const MinePage(key: GlobalObjectKey('tab3')),
-    ];
-
     return Scaffold(
       key: controller.globalKey,
       body: Row(
@@ -36,7 +29,12 @@ class DesktopMain extends GetView<DesktopController> {
                 return IndexedStack(
                   index: controller.sidebarXController.selectedIndex,
                   sizing: StackFit.expand,
-                  children: pages,
+                  children: [
+                    const DeskRoomList(key: GlobalObjectKey('tab0')),
+                    const DeskBrowser(key: GlobalObjectKey('tab1')),
+                    const DeskEcash(key: GlobalObjectKey('tab2')),
+                    const MinePage(key: GlobalObjectKey('tab3')),
+                  ],
                 );
               },
             ),

@@ -584,6 +584,16 @@ class Utils {
     }
   }
 
+  static T getOrPutGetxController<T extends GetxController>(
+      {String? tag, required T Function() create}) {
+    try {
+      T t = Get.find<T>(tag: tag);
+      return t;
+    } catch (e) {
+      return Get.put(create(), tag: tag);
+    }
+  }
+
   static List<String> getIntersection(List<String> list1, List<String> list2) {
     final set = Set<String>.from(list1);
 

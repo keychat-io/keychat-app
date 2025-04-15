@@ -1,6 +1,7 @@
 import 'dart:convert' show jsonDecode;
 
 import 'package:app/controller/home.controller.dart';
+import 'package:app/global.dart';
 import 'package:app/models/browser/browser_bookmark.dart';
 import 'package:app/models/browser/browser_connect.dart';
 import 'package:app/models/browser/browser_favorite.dart';
@@ -140,7 +141,12 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                     icon: const Icon(Icons.arrow_back)),
                 IconButton(
                     padding: const EdgeInsets.symmetric(horizontal: 2),
-                    onPressed: Get.back,
+                    onPressed: () {
+                      Get.back(
+                          id: GetPlatform.isDesktop
+                              ? GetXNestKey.browser
+                              : null);
+                    },
                     icon: const Icon(Icons.close)),
                 if (canGoForward)
                   IconButton(
@@ -406,7 +412,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
             icon: const Icon(Icons.copy, size: 16),
             padding: const EdgeInsets.all(0),
             onPressed: () {
-              Get.back();
+              Get.back(id: GetPlatform.isDesktop ? GetXNestKey.browser : null);
               Clipboard.setData(ClipboardData(text: url));
               EasyLoading.showToast('URL Copied');
             },
@@ -421,7 +427,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
       if (canGoBack) {
         webViewController?.goBack();
       } else {
-        Navigator.of(Get.context!).pop();
+        Get.back(id: GetPlatform.isDesktop ? GetXNestKey.browser : null);
       }
     });
   }

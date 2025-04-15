@@ -1,6 +1,7 @@
 import 'dart:convert' show jsonEncode, jsonDecode;
 
 import 'package:app/controller/setting.controller.dart';
+import 'package:app/global.dart';
 import 'package:app/models/browser/browser_favorite.dart';
 import 'package:app/models/browser/browser_history.dart';
 import 'package:app/models/db_provider.dart';
@@ -128,7 +129,8 @@ class BrowserController extends GetxController {
         title.value = defaultTitle;
       }
       initBrowser();
-      Get.to(() => BrowserDetailPage(content, title.value));
+      Get.to(() => BrowserDetailPage(content, title.value),
+          id: GetPlatform.isDesktop ? GetXNestKey.browser : null);
     });
   }
 

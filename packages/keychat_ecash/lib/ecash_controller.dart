@@ -44,12 +44,15 @@ class EcashController extends GetxController {
   late ScrollController scrollController;
   late TextEditingController nameController;
   late RefreshController refreshController;
-
+  late EcashBillController ecashBillController;
+  late LightningBillController lightningBillController;
   @override
   void onInit() async {
     scrollController = ScrollController();
     nameController = TextEditingController();
     refreshController = RefreshController();
+    ecashBillController = Get.put(EcashBillController());
+    lightningBillController = Get.put(LightningBillController());
     super.onInit();
     Get.lazyPut(() => NostrWalletConnectController(), fenix: true);
   }

@@ -67,18 +67,16 @@ class RoomList extends GetView<HomeController> {
                                   : identity.displayName;
                               return Tab(
                                   child: badges.Badge(
-                                showBadge:
-                                    (e.unReadCount + e.anonymousUnReadCount) >
-                                        0,
-                                position: badges.BadgePosition.topEnd(
-                                    top: -10, end: -15),
-                                child: Text(
-                                  title,
-                                  style: const TextStyle(
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ));
+                                      showBadge: (e.unReadCount +
+                                              e.anonymousUnReadCount) >
+                                          0,
+                                      position: badges.BadgePosition.topEnd(
+                                          top: -10, end: -15),
+                                      child: Text(
+                                        title,
+                                        style: const TextStyle(
+                                            overflow: TextOverflow.ellipsis),
+                                      )));
                             }).toList()),
                       ],
                     ),

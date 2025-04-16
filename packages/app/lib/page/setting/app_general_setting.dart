@@ -2,6 +2,7 @@
 
 import 'dart:io' show File, exit;
 
+import 'package:app/global.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/dbSetup/db_setting.dart';
 
@@ -47,73 +48,78 @@ class AppGeneralSetting extends GetView<SettingController> {
                   leading: const Icon(CupertinoIcons.brightness),
                   onPressed: (context) async {
                     Get.bottomSheet(
+                        clipBehavior: Clip.antiAlias,
+                        shape: const RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.vertical(top: Radius.circular(4))),
                         SettingsList(platform: DevicePlatform.iOS, sections: [
-                      SettingsSection(
-                          title: const Text('Select theme mode'),
-                          tiles: [
-                            SettingsTile(
-                              onPressed: (value) async {
-                                Get.changeThemeMode(ThemeMode.system);
-                                controller.themeMode.value =
-                                    ThemeMode.system.name;
-                                await Storage.setString(
-                                    StorageKeyString.themeMode,
-                                    ThemeMode.system.name);
-                              },
-                              title: const Text("System Mode"),
-                              trailing: controller.themeMode.value ==
-                                      ThemeMode.system.name
-                                  ? const Icon(
-                                      Icons.done,
-                                      color: Colors.green,
-                                    )
-                                  : null,
-                            ),
-                            SettingsTile(
-                              onPressed: (value) async {
-                                Get.changeThemeMode(ThemeMode.light);
-                                controller.themeMode.value =
-                                    ThemeMode.light.name;
-                                await Storage.setString(
-                                    StorageKeyString.themeMode,
-                                    ThemeMode.light.name);
-                              },
-                              title: const Text("Light Mode"),
-                              trailing: controller.themeMode.value ==
-                                      ThemeMode.light.name
-                                  ? const Icon(
-                                      Icons.done,
-                                      color: Colors.green,
-                                    )
-                                  : null,
-                            ),
-                            SettingsTile(
-                              onPressed: (value) async {
-                                Get.changeThemeMode(ThemeMode.dark);
-                                controller.themeMode.value =
-                                    ThemeMode.dark.name;
-                                await Storage.setString(
-                                    StorageKeyString.themeMode,
-                                    ThemeMode.dark.name);
-                              },
-                              title: const Text("Dark Mode"),
-                              trailing: controller.themeMode.value ==
-                                      ThemeMode.dark.name
-                                  ? const Icon(
-                                      Icons.done,
-                                      color: Colors.green,
-                                    )
-                                  : null,
-                            ),
-                          ])
-                    ]));
+                          SettingsSection(
+                              title: const Text('Select theme mode'),
+                              tiles: [
+                                SettingsTile(
+                                  onPressed: (value) async {
+                                    Get.changeThemeMode(ThemeMode.system);
+                                    controller.themeMode.value =
+                                        ThemeMode.system.name;
+                                    await Storage.setString(
+                                        StorageKeyString.themeMode,
+                                        ThemeMode.system.name);
+                                  },
+                                  title: const Text("System Mode"),
+                                  trailing: controller.themeMode.value ==
+                                          ThemeMode.system.name
+                                      ? const Icon(
+                                          Icons.done,
+                                          color: Colors.green,
+                                        )
+                                      : null,
+                                ),
+                                SettingsTile(
+                                  onPressed: (value) async {
+                                    Get.changeThemeMode(ThemeMode.light);
+                                    controller.themeMode.value =
+                                        ThemeMode.light.name;
+                                    await Storage.setString(
+                                        StorageKeyString.themeMode,
+                                        ThemeMode.light.name);
+                                  },
+                                  title: const Text("Light Mode"),
+                                  trailing: controller.themeMode.value ==
+                                          ThemeMode.light.name
+                                      ? const Icon(
+                                          Icons.done,
+                                          color: Colors.green,
+                                        )
+                                      : null,
+                                ),
+                                SettingsTile(
+                                  onPressed: (value) async {
+                                    Get.changeThemeMode(ThemeMode.dark);
+                                    controller.themeMode.value =
+                                        ThemeMode.dark.name;
+                                    await Storage.setString(
+                                        StorageKeyString.themeMode,
+                                        ThemeMode.dark.name);
+                                  },
+                                  title: const Text("Dark Mode"),
+                                  trailing: controller.themeMode.value ==
+                                          ThemeMode.dark.name
+                                      ? const Icon(
+                                          Icons.done,
+                                          color: Colors.green,
+                                        )
+                                      : null,
+                                ),
+                              ])
+                        ]));
                   },
                   title: const Text("Dark Mode")),
               SettingsTile.navigation(
                 leading: const Icon(CupertinoIcons.doc),
                 title: const Text("App File Explore"),
                 onPressed: (context) async {
-                  Get.to(() => FileExplorerPage(dir: controller.appFolder));
+                  Get.to(() => FileExplorerPage(dir: controller.appFolder),
+                      id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
                 },
               ),
               SettingsTile.navigation(
@@ -122,7 +128,8 @@ class AppGeneralSetting extends GetView<SettingController> {
                 description: const Text(
                     'Keychat is a chat app, built on Bitcoin Ecash, Nostr Protocol and Signal / MLS Protocol.'),
                 onPressed: (context) {
-                  Get.to(() => const OnboardingPage2());
+                  Get.to(() => const OnboardingPage2(),
+                      id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
                 },
               ),
             ]),
@@ -246,15 +253,25 @@ class AppGeneralSetting extends GetView<SettingController> {
             isDefaultAction: true,
             onPressed: () async {
               if (passwordController.text.isNotEmpty &&
-                  passwordController.text == confirmPasswordController.text) {
-                await Storage.setString(StorageKeyString.dbBackupPwd,
-                    confirmPasswordController.text);
-                EasyLoading.showSuccess("Password successfully set");
-                Get.back();
-                await Future.delayed(const Duration(microseconds: 100));
-                DbSetting().exportDB(context, confirmPasswordController.text);
-              } else {
+                  passwordController.text != confirmPasswordController.text) {
                 EasyLoading.showError('Passwords do not match');
+                return;
+              }
+              await Storage.setString(
+                  StorageKeyString.dbBackupPwd, confirmPasswordController.text);
+              Get.back();
+              await Future.delayed(const Duration(microseconds: 100));
+              EasyLoading.show(status: 'Exporting...');
+              try {
+                await DbSetting()
+                    .exportDB(context, confirmPasswordController.text);
+                EasyLoading.showSuccess("Export successful");
+              } catch (e, s) {
+                logger.e(e.toString(), error: e, stackTrace: s);
+                EasyLoading.showError('Export failed: ${e.toString()}');
+              } finally {
+                await Future.delayed(const Duration(seconds: 2));
+                EasyLoading.dismiss();
               }
             },
             child: const Text('Confirm'),

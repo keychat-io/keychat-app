@@ -10,16 +10,16 @@ class LightningBillController extends GetxController {
   RxBool status = false.obs;
   bool run = true;
   late RefreshController refreshController;
-  late EcashController ecashController;
 
   @override
   void onInit() {
     super.onInit();
-    ecashController = Get.find<EcashController>();
     refreshController = RefreshController();
-    getTransactions().then((list) {
-      status.value = true;
-      rust_cashu.getLnPendingTransactions().then(checkPendings);
+    Future.delayed(Duration(seconds: 1)).then((_) {
+      getTransactions().then((list) {
+        status.value = true;
+        rust_cashu.getLnPendingTransactions().then(checkPendings);
+      });
     });
   }
 
@@ -56,7 +56,7 @@ class LightningBillController extends GetxController {
       var list = await rust_cashu.getLnPendingTransactions();
       if (list.isEmpty) {
         run = false;
-        ecashController.getBalance();
+        Get.find<EcashController>().getBalance();
         logger.d('tx status changed, update balance');
         return;
       }
@@ -76,21 +76,33 @@ class LightningBillController extends GetxController {
       callback(tx);
       return;
     }
-    while (true) {
+
+    pendingTaskMap[tx.hash] = true;
+
+    while (pendingTaskMap[tx.hash] != null && pendingTaskMap[tx.hash] == true) {
       Transaction item = await rust_cashu.checkTransaction(id: tx.hash);
       LNTransaction ln = item.field0 as LNTransaction;
-      if (pendingTaskMap[ln.hash] == false) return;
       int now = DateTime.now().millisecondsSinceEpoch;
 
       if (ln.status == TransactionStatus.success ||
           ln.status == TransactionStatus.failed ||
           (now > expiryTs && expiryTs > 0)) {
         callback(ln);
-        ecashController.requestPageRefresh();
+        Get.find<EcashController>().requestPageRefresh();
+        pendingTaskMap.remove(tx.hash);
         return;
       }
       logger.d('Checking status: ${tx.hash}');
       await Future.delayed(const Duration(seconds: 2));
+    }
+
+    logger.d('Check stopped for transaction: ${tx.hash}');
+  }
+
+  void stopCheckPending(LNTransaction tx) {
+    if (pendingTaskMap.containsKey(tx.hash)) {
+      pendingTaskMap[tx.hash] = false;
+      logger.d('Stopping check for lightning transaction: ${tx.hash}');
     }
   }
 }

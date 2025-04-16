@@ -495,7 +495,7 @@ Let's start an encrypted chat.''';
             }
             return FilledButton(
               onPressed: () async {
-                await Utils.offAndToNamedRoom(room);
+                Utils.offAndToNamedRoom(room);
                 Get.find<HomeController>()
                     .loadIdentityRoomList(room.identityId);
               },

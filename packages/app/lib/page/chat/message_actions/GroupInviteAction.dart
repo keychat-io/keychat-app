@@ -49,6 +49,9 @@ class GroupInviteAction extends StatelessWidget {
         return;
       }
       bool? accept = await Get.bottomSheet(
+          clipBehavior: Clip.antiAlias,
+          shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
           GroupInfoWidget(subEvent, identity.secp256k1PKHex, groupId));
       if (accept == null) return;
       message.requestConfrim = accept == true

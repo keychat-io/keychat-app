@@ -49,13 +49,15 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        resizeToAvoidBottomInset: false,
         appBar: AppBar(
           centerTitle: true,
           leading: Container(),
           title: const Text('Receive Ecash'),
         ),
         body: Padding(
-            padding: const EdgeInsets.all(16),
+            padding:
+                const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 4),
             child: Column(children: [
               Form(
                 autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -63,8 +65,7 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
                     child: Column(
                   children: [
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
                       child: TextField(
                         controller: receiveTextController,
                         textInputAction: TextInputAction.done,
@@ -121,7 +122,8 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
                     return;
                   }
                   try {
-                    await CashuUtil.handleReceiveToken(token: encodedToken);
+                    await CashuUtil.handleReceiveToken(
+                        token: encodedToken, retry: true);
                     receiveTextController.clear();
                     controller.requestPageRefresh();
                     setState(() {

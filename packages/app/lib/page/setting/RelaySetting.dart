@@ -1,3 +1,4 @@
+import 'package:app/global.dart';
 import 'package:app/nostr-core/relay_websocket.dart';
 import 'package:app/page/setting/relay_info/relay_info_bindings.dart';
 import 'package:app/page/setting/relay_info/relay_info_page.dart';
@@ -102,8 +103,10 @@ class _RelaySettingState extends State<RelaySetting> {
                                     rw.channel?.connection.state)),
                             onPressed: (context) {
                               Get.to(() => const RelayInfoPage(),
-                                  arguments: rw.relay,
-                                  binding: RelayInfoBindings());
+                                  binding: RelayInfoBindings(rw.relay),
+                                  id: GetPlatform.isDesktop
+                                      ? GetXNestKey.setting
+                                      : null);
                             },
                           ))
                       .toList(),

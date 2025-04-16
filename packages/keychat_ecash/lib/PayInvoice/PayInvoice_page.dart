@@ -42,6 +42,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        resizeToAvoidBottomInset: false,
         appBar: AppBar(
             leading: Container(),
             centerTitle: true,

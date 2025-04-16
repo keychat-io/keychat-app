@@ -45,6 +45,7 @@ class _AddGroupPageState extends State<AddGroupPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        resizeToAvoidBottomInset: false,
         appBar: AppBar(
           leading: GestureDetector(
               onTap: () {
@@ -126,8 +127,11 @@ class _AddGroupPageState extends State<AddGroupPage>
                     relays = list.map((e) => e.relay.url).toList();
                   }
 
-                  Get.to(() => CreateGroupSelectMember(
-                      groupName, relays, groupType, list));
+                  Get.bottomSheet(
+                      CreateGroupSelectMember(
+                          groupName, relays, groupType, list),
+                      isScrollControlled: true,
+                      ignoreSafeArea: false);
                 },
                 child: const Text('Next'))),
         body: SafeArea(

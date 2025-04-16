@@ -7,6 +7,7 @@ import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -37,10 +38,11 @@ void main() async {
 
   initEasyLoading();
   Get.config(
-      enableLog: true,
+      enableLog: kDebugMode,
       logWriterCallback: _logWriterCallback,
       defaultPopGesture: true,
-      defaultTransition: Transition.cupertino);
+      defaultTransition:
+          GetPlatform.isDesktop ? Transition.fadeIn : Transition.cupertino);
   String initialRoute = await getInitRoute(isLogin);
   var getMaterialApp = GetMaterialApp(
     initialRoute: initialRoute,

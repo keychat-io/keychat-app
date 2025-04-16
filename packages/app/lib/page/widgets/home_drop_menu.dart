@@ -1,6 +1,7 @@
 import 'package:app/controller/home.controller.dart';
+import 'package:app/page/chat/create_contact_page.dart';
+import 'package:app/page/chat/create_group_page.dart';
 import 'package:app/page/components.dart';
-import 'package:app/page/routes.dart';
 import 'package:app/service/qrscan.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
@@ -93,13 +94,25 @@ class _HomeDropMenuWidgetState extends State<HomeDropMenuWidget> {
               });
               hc.setTipsViewed(
                   StorageKeyString.tipsAddFriends, hc.addFriendTips);
-              Get.toNamed(Routes.addFriend);
+              Get.bottomSheet(const AddtoContactsPage(""),
+                  isScrollControlled: true,
+                  ignoreSafeArea: false,
+                  backgroundColor: Theme.of(context).colorScheme.surface,
+                  shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(16))));
               break;
             case menuScan:
               QrScanService.instance.handleQRScan();
               break;
             case menuNewGroup:
-              Get.toNamed(Routes.addGroup);
+              Get.bottomSheet(const AddGroupPage(),
+                  isScrollControlled: true,
+                  ignoreSafeArea: false,
+                  backgroundColor: Theme.of(context).colorScheme.surface,
+                  shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(16))));
               break;
             case menuMyQrcode:
               var identity = Get.find<HomeController>().getSelectedIdentity();

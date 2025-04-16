@@ -1,3 +1,4 @@
+import 'package:app/global.dart';
 import 'package:app/models/browser/browser_bookmark.dart';
 import 'package:app/models/browser/browser_favorite.dart';
 import 'package:app/page/browser/BrowserBookmarkPage.dart';
@@ -19,93 +20,85 @@ class BrowserPage extends GetView<BrowserController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        appBar: AppBar(
+          leading: Container(),
+          title: Text('Browser'),
+          centerTitle: true,
+          actions: [
+            IconButton(
+                onPressed: () {
+                  Get.to(() => const BrowserSetting(),
+                      id: GetPlatform.isDesktop ? GetXNestKey.browser : null);
+                },
+                icon: const Icon(CupertinoIcons.settings)),
+          ],
+        ),
         body: GestureDetector(
             onTap: () {
               Utils.hideKeyboard(Get.context!);
             },
             child: Padding(
-                padding: const EdgeInsets.only(left: 16, right: 16),
-                child: Obx(() => ListView(children: [
-                      SizedBox(
-                          height: controller.favorites.length < 25
-                              ? (150 -
-                                  (controller.favorites.length / 5).floor() *
-                                      30)
-                              : 30),
-                      Row(children: [
-                        ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxHeight: 55,
-                            maxWidth: GetPlatform.isDesktop
-                                ? Get.width * 0.82
-                                : Get.width - 80,
-                          ),
-                          child: Form(
-                            key: PageStorageKey(
-                                'input:${controller.defaultSearchEngineObx.value}'),
-                            child: TextFormField(
-                              textInputAction: TextInputAction.go,
-                              maxLines: 1,
-                              controller: controller.textController,
-                              decoration: InputDecoration(
-                                labelText: Utils.capitalizeFirstLetter(
-                                    controller.defaultSearchEngineObx.value),
-                                border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(100.0)),
-                                isDense: true,
-                                contentPadding: const EdgeInsets.all(2),
-                                prefixIcon: Padding(
-                                  padding: const EdgeInsets.all(12.0),
-                                  child: SvgPicture.asset(
-                                    'assets/images/logo/${controller.defaultSearchEngineObx.value}.svg',
-                                    fit: BoxFit.contain,
-                                    width: 20,
-                                    height: 20,
-                                  ),
-                                ),
-                                suffixIcon: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (controller.input.isNotEmpty)
-                                      IconButton(
-                                        icon: const Icon(CupertinoIcons.clear,
-                                            size: 20),
-                                        onPressed: () {
-                                          controller.textController.clear();
-                                        },
-                                      ),
-                                    IconButton(
-                                      icon: const Icon(CupertinoIcons.search,
-                                          size: 20),
-                                      onPressed: () async {
-                                        if (controller
-                                            .textController.text.isEmpty) {
-                                          return;
-                                        }
-                                        submitSearchForm(controller
-                                            .textController.text
-                                            .trim());
-                                      },
-                                    ),
-                                  ],
-                                ),
+                padding: const EdgeInsets.only(top: 32, left: 16, right: 16),
+                child: Obx(() => Center(
+                        child: Column(children: [
+                      Form(
+                        key: PageStorageKey(
+                            'input:${controller.defaultSearchEngineObx.value}'),
+                        child: TextFormField(
+                          textInputAction: TextInputAction.go,
+                          maxLines: 1,
+                          controller: controller.textController,
+                          decoration: InputDecoration(
+                            labelText: Utils.capitalizeFirstLetter(
+                                controller.defaultSearchEngineObx.value),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(100.0)),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.all(2),
+                            prefixIcon: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: SvgPicture.asset(
+                                'assets/images/logo/${controller.defaultSearchEngineObx.value}.svg',
+                                fit: BoxFit.contain,
+                                width: 20,
+                                height: 20,
                               ),
-                              onFieldSubmitted: submitSearchForm,
+                            ),
+                            suffixIcon: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (controller.input.isNotEmpty)
+                                  IconButton(
+                                    icon: const Icon(CupertinoIcons.clear,
+                                        size: 20),
+                                    onPressed: () {
+                                      controller.textController.clear();
+                                    },
+                                  ),
+                                IconButton(
+                                  icon: const Icon(CupertinoIcons.search,
+                                      size: 20),
+                                  onPressed: () async {
+                                    if (controller
+                                        .textController.text.isEmpty) {
+                                      return;
+                                    }
+                                    submitSearchForm(
+                                        controller.textController.text.trim());
+                                  },
+                                ),
+                              ],
                             ),
                           ),
+                          onFieldSubmitted: submitSearchForm,
                         ),
-                        IconButton(
-                            onPressed: () {
-                              Get.to(() => const BrowserSetting());
-                            },
-                            icon: const Icon(Icons.menu))
-                      ]),
+                      ),
                       const SizedBox(height: 32),
                       quickSection(context),
                       const SizedBox(height: 16),
                       functionSection(context),
                       const SizedBox(height: 48)
-                    ])))));
+                    ]))))));
   }
 
   void submitSearchForm(value) {
@@ -139,21 +132,32 @@ class BrowserPage extends GetView<BrowserController> {
   }
 
   Widget quickSection(BuildContext context) {
+    int crossAxisCount = 4;
+    double spacing = 8.0;
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth < 600) {
+    } else if (screenWidth < 900) {
+      crossAxisCount = 5;
+    } else if (screenWidth < 1200) {
+      crossAxisCount = 6;
+    } else {
+      crossAxisCount = 8;
+    }
+
     return controller.favorites.isEmpty
         ? Container()
         : Container(
             decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.onSurface.withAlpha(10),
                 borderRadius: const BorderRadius.all(Radius.circular(8))),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.all(8),
             child: GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 5,
-                  crossAxisSpacing: 8.0,
-                  childAspectRatio: 0.7,
-                  mainAxisSpacing: 8.0),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: spacing,
+                  mainAxisSpacing: spacing),
               itemCount: controller.favorites.length,
               itemBuilder: (context, index) {
                 final site = controller.favorites[index];
@@ -246,7 +250,8 @@ class BrowserPage extends GetView<BrowserController> {
         'icon': 'assets/images/recommend.png',
         'title': 'Web Store',
         'onTap': () async {
-          await Get.to(() => const WebStorePage());
+          await Get.to(() => const WebStorePage(),
+              id: GetPlatform.isDesktop ? GetXNestKey.browser : null);
           await Get.find<BrowserController>().loadFavorite();
         }
       },
@@ -254,7 +259,8 @@ class BrowserPage extends GetView<BrowserController> {
         'icon': 'assets/images/bookmark.png',
         'title': 'Bookmark',
         'onTap': () {
-          Get.to(() => const BrowserBookmarkPage());
+          Get.to(() => const BrowserBookmarkPage(),
+              id: GetPlatform.isDesktop ? GetXNestKey.browser : null);
           Get.find<BrowserController>().loadFavorite();
         }
       },
@@ -262,7 +268,8 @@ class BrowserPage extends GetView<BrowserController> {
         'icon': 'assets/images/history.png',
         'title': 'History',
         'onTap': () {
-          Get.to(() => const BrowserHistoryPage());
+          Get.to(() => const BrowserHistoryPage(),
+              id: GetPlatform.isDesktop ? GetXNestKey.browser : null);
         }
       }
     ];

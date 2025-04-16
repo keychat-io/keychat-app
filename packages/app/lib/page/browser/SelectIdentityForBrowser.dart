@@ -59,7 +59,12 @@ class _SelectIdentityForBrowserState extends State<SelectIdentityForBrowser> {
                     ?.withValues(alpha: 0.5),
                 size: 22),
             onPressed: (context) async {
-              await Get.bottomSheet(const SelectModeToCreateId());
+              await Get.bottomSheet(
+                  clipBehavior: Clip.antiAlias,
+                  shape: const RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(4))),
+                  const SelectModeToCreateId());
               init();
             })
       ])

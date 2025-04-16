@@ -5,6 +5,7 @@ import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/utils.dart';
 import 'package:settings_ui/settings_ui.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 class SelectMint extends StatefulWidget {
   final String mint;
@@ -17,10 +18,11 @@ class SelectMint extends StatefulWidget {
 
 class _SelectMintState extends State<SelectMint> {
   String selected = '';
+  late EcashController ecashController;
 
   @override
-  @override
   void initState() {
+    ecashController = Get.find<EcashController>();
     setState(() {
       selected = widget.mint;
     });
@@ -33,7 +35,7 @@ class _SelectMintState extends State<SelectMint> {
       elevation: 0.2,
       child: ListTile(
         title: Text(
-            '${Get.find<EcashController>().getBalanceByMint(selected).toString()} ${EcashTokenSymbol.sat.name}'),
+            '${ecashController.getBalanceByMint(selected).toString()} ${EcashTokenSymbol.sat.name}'),
         subtitle: Text(selected),
         trailing: IconButton(
             icon: Icon(
@@ -48,12 +50,14 @@ class _SelectMintState extends State<SelectMint> {
   }
 
   void selectMint() async {
-    EcashController cashuController = Get.find<EcashController>();
-
+    if (ecashController.mintBalances.isEmpty) {
+      EasyLoading.showError('No mint available');
+      return;
+    }
     String? mint = await Get.bottomSheet(
         SettingsList(platform: DevicePlatform.iOS, sections: [
       SettingsSection(
-          tiles: cashuController.mintBalances
+          tiles: ecashController.mintBalances
               .map((e) => SettingsTile(
                     title: Text(e.mint),
                     value: Text(e.balance.toString()),

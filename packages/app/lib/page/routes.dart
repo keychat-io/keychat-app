@@ -4,13 +4,8 @@ abstract class Routes {
   static const login = '/login';
   static const importKey = '/login/import_key';
   static const onboarding = '/onboarding';
-  static const addFriend = '/add_friend';
-  static const addGroup = '/add_group';
-  static const createIdentity = '/create_identity';
 
-  static const setting = '/setting';
-  static const settingMore = '/setting/more';
-  static const settingMe = '/setting/me';
+  static const createIdentity = '/create_identity';
 
   // webrtc
   static const webrtcSetting = '/webrtc/setting';
@@ -25,15 +20,12 @@ abstract class Routes {
       '/room/:id/chat_setting_contact/security';
   static const roomSettingPayToRelay =
       '/room/:id/chat_setting_contact/pay_to_relay';
-  static const contactList = '/contacts';
   static const contact = '/contact/:id';
 
   static const scanQR = '/scanQR';
 
   // ecash
   static const ecash = '/ecash';
-  static const ecashBillCashu = '/ecash/bills/cashu';
-  static const ecashBillLightning = '/ecash/bills/lightning';
   static const ecashSetting = '/ecash/setting';
   static const ecashPaySuccess = '/ecash/pay_success';
 }

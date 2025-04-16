@@ -75,7 +75,7 @@ class _FileMessageWidgetState extends State<FileMessageWidget> {
 
   handleOnTap() {
     if (msgFileInfo != null) {
-      Get.to(() => FileMessagePreview(widget.message, msgFileInfo!));
+      Get.bottomSheet(FileMessagePreview(widget.message, msgFileInfo!));
     }
   }
 }

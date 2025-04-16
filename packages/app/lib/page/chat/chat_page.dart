@@ -1,6 +1,5 @@
 import 'dart:async' show Timer;
 import 'dart:convert' show jsonDecode;
-import 'dart:io';
 import 'dart:math' show Random;
 
 import 'package:app/app.dart';
@@ -25,12 +24,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 import 'package:get/get.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:markdown_widget/markdown_widget.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:settings_ui/settings_ui.dart';
-import 'package:super_clipboard/super_clipboard.dart';
 
 // ignore: must_be_immutable
 class ChatPage extends StatefulWidget {
@@ -50,13 +46,11 @@ class _ChatPage2State extends State<ChatPage> {
   late Widget myAavtar;
   bool isGroup = false;
   late MarkdownConfig markdownDarkConfig;
-  Color meBackgroundColor = const Color(0xff7748FF);
   late Color toBackgroundColor;
   late MarkdownConfig markdownLightConfig;
   late Color fontColor;
   @override
   void initState() {
-    super.initState();
     Room room = _getRoomAndInit(context);
     myAavtar = Utils.getRandomAvatar(room.getIdentity().secp256k1PKHex,
         height: 40, width: 40);
@@ -87,11 +81,15 @@ class _ChatPage2State extends State<ChatPage> {
           style: const TextStyle(
               color: Colors.blue, decoration: TextDecoration.none)),
     ]);
+    super.initState();
   }
 
   @override
   void dispose() {
-    Get.delete<ChatController>(tag: controller.roomObs.value.id.toString());
+    // Get.delete<ChatController>(tag: controller.roomObs.value.id.toString());
+    // if (GetPlatform.isDesktop) {
+    //   Get.find<DesktopController>().resetRoom();
+    // }
     super.dispose();
   }
 
@@ -254,7 +252,7 @@ class _ChatPage2State extends State<ChatPage> {
                                               ? Colors.white54
                                               : Colors.black54,
                                           backgroundColor: message.isMeSend
-                                              ? meBackgroundColor
+                                              ? KeychatGlobal.primaryColor
                                               : toBackgroundColor,
                                           fontColor: fontColor,
                                           markdownConfig:
@@ -339,19 +337,25 @@ class _ChatPage2State extends State<ChatPage> {
                       child: KeyboardListener(
                         focusNode: controller.keyboardFocus,
                         onKeyEvent: (KeyEvent event) async {
-                          // enter
-                          if (event.runtimeType == KeyDownEvent &&
-                              event.physicalKey == PhysicalKeyboardKey.enter) {
-                            controller.handleSubmitted();
-                            return;
-                          }
-
-                          // cmd + v
-                          if (event.runtimeType == KeyDownEvent &&
-                              HardwareKeyboard.instance.isMetaPressed &&
-                              event.logicalKey == LogicalKeyboardKey.keyV) {
-                            _handlePasteboard();
-                            return;
+                          if (event is KeyDownEvent) {
+                            if (event.logicalKey == LogicalKeyboardKey.enter &&
+                                !HardwareKeyboard.instance.isControlPressed &&
+                                !HardwareKeyboard.instance.isMetaPressed &&
+                                !HardwareKeyboard.instance.isShiftPressed &&
+                                !HardwareKeyboard.instance.isAltPressed) {
+                              controller.handleSubmitted();
+                              return;
+                            }
+                            final isCmdPressed = HardwareKeyboard
+                                    .instance.logicalKeysPressed
+                                    .contains(LogicalKeyboardKey.metaLeft) ||
+                                HardwareKeyboard.instance.logicalKeysPressed
+                                    .contains(LogicalKeyboardKey.metaRight);
+                            if (event.logicalKey == LogicalKeyboardKey.keyV &&
+                                isCmdPressed) {
+                              controller.handlePasteboard();
+                              return;
+                            }
                           }
                         },
                         child: Container(
@@ -410,7 +414,7 @@ class _ChatPage2State extends State<ChatPage> {
                                   weight: 300,
                                   size: 28,
                                   CupertinoIcons.arrow_up_circle_fill,
-                                  color: Color.fromARGB(255, 100, 80, 243))
+                                  color: KeychatGlobal.primaryColor)
                               : Icon(
                                   size: 28,
                                   CupertinoIcons.add_circled,
@@ -430,9 +434,9 @@ class _ChatPage2State extends State<ChatPage> {
                 duration: const Duration(milliseconds: 500),
                 child: AnimatedContainer(
                   height: !controller.hideAdd.value
-                      ? controller.featuresIcons.length > 4
+                      ? GetPlatform.isMobile
                           ? 220.0
-                          : 100
+                          : 120
                       : 0.0,
                   duration: const Duration(milliseconds: 500),
                   child: getFeaturesWidget(context),
@@ -453,38 +457,43 @@ class _ChatPage2State extends State<ChatPage> {
               Map? botPricePerMessageRequest =
                   localConfig['botPricePerMessageRequest'];
               Get.bottomSheet(
+                  clipBehavior: Clip.antiAlias,
+                  shape: const RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(4))),
                   SettingsList(platform: DevicePlatform.iOS, sections: [
-                SettingsSection(
-                    title: const Text('Commands'),
-                    tiles: controller.botCommands
-                        .map(
-                          (element) => SettingsTile(
-                              title: Text(element['name']),
-                              value: Flexible(
-                                  child: textSmallGray(
-                                      context, element['description'],
-                                      overflow: TextOverflow.clip)),
+                    SettingsSection(
+                        title: const Text('Commands'),
+                        tiles: controller.botCommands
+                            .map(
+                              (element) => SettingsTile(
+                                  title: Text(element['name']),
+                                  value: Flexible(
+                                      child: textSmallGray(
+                                          context, element['description'],
+                                          overflow: TextOverflow.clip)),
+                                  onPressed: (context) async {
+                                    RoomService.instance.sendMessage(
+                                        controller.roomObs.value,
+                                        element['name']);
+                                    Get.back();
+                                  }),
+                            )
+                            .toList()),
+                    if (botPricePerMessageRequest != null)
+                      SettingsSection(
+                        title: const Text('Selected Local Config'),
+                        tiles: [
+                          SettingsTile(
+                              title: Text(botPricePerMessageRequest['name']),
+                              trailing: Text(
+                                  '${botPricePerMessageRequest['price']} ${botPricePerMessageRequest['unit']} /message'),
                               onPressed: (context) async {
-                                RoomService.instance.sendMessage(
-                                    controller.roomObs.value, element['name']);
                                 Get.back();
-                              }),
-                        )
-                        .toList()),
-                if (botPricePerMessageRequest != null)
-                  SettingsSection(
-                    title: const Text('Selected Local Config'),
-                    tiles: [
-                      SettingsTile(
-                          title: Text(botPricePerMessageRequest['name']),
-                          trailing: Text(
-                              '${botPricePerMessageRequest['price']} ${botPricePerMessageRequest['unit']} /message'),
-                          onPressed: (context) async {
-                            Get.back();
-                          })
-                    ],
-                  )
-              ]));
+                              })
+                        ],
+                      )
+                  ]));
             },
             child: Icon(
               size: 26,
@@ -498,8 +507,8 @@ class _ChatPage2State extends State<ChatPage> {
     return GridView.builder(
       physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.all(8.0),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: GetPlatform.isDesktop ? 5 : 4,
       ),
       itemCount: controller.featuresIcons.length,
       itemBuilder: (context, index) {
@@ -510,21 +519,25 @@ class _ChatPage2State extends State<ChatPage> {
             child: Column(
               children: [
                 Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(5.0),
-                  ),
-                  child: Icon(
-                    controller.featuresIcons[index],
-                    size: 32.0,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(5.0),
+                    ),
+                    child: Center(
+                      child: SizedBox(
+                        width: 36,
+                        height: 36,
+                        child: Image.asset(
+                          controller.featuresIcons[index],
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    )),
                 Text(controller.featuresTitles[index])
               ],
             ));
@@ -533,16 +546,20 @@ class _ChatPage2State extends State<ChatPage> {
   }
 
   handleMessageSend() async {
-    if (controller.textEditingController.text.isEmpty) {
-      if (controller.roomObs.value.type == RoomType.bot) {
-        EasyLoading.showToast('Not supported int bot chat now');
-        return;
-      }
-      controller.hideAdd.trigger(false);
-      controller.chatContentFocus.unfocus();
+    if (controller.textEditingController.text.isNotEmpty) {
+      await controller.handleSubmitted();
       return;
     }
-    await controller.handleSubmitted();
+    if (controller.roomObs.value.type == RoomType.bot) {
+      EasyLoading.showToast('Not supported in bot chat now');
+      return;
+    }
+    controller.hideAdd.trigger(!controller.hideAdd.value);
+    if (controller.hideAdd.value) {
+      controller.chatContentFocus.unfocus();
+    } else {
+      controller.chatContentFocus.requestFocus();
+    }
   }
 
   Future goToSetting() async {
@@ -674,36 +691,41 @@ class _ChatPage2State extends State<ChatPage> {
       String lastChar = value.substring(value.length - 1, value.length);
       if (lastChar == '@' && controller.inputTextIsAdd.value) {
         var members = controller.enableMembers.values.toList();
-        RoomMember? roomMember = await Get.bottomSheet(Scaffold(
-            appBar: AppBar(
-              leading: Container(),
-              title: const Text('Select member to alert'),
-            ),
-            body: ListView.separated(
-                controller: ScrollController(),
-                separatorBuilder: (BuildContext context, int index) => Divider(
-                    color: Theme.of(context)
-                        .dividerTheme
-                        .color
-                        ?.withValues(alpha: 0.05)),
-                itemCount: members.length,
-                itemBuilder: (context, index) {
-                  RoomMember rm = members[index];
-                  return ListTile(
-                      onTap: () {
-                        Get.back(result: members[index]);
-                      },
-                      leading: Utils.getRandomAvatar(rm.idPubkey,
-                          height: 36, width: 36),
-                      title: Text(
-                        rm.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 18,
-                        ),
-                      ));
-                })));
+        RoomMember? roomMember = await Get.bottomSheet(
+            clipBehavior: Clip.antiAlias,
+            shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
+            Scaffold(
+                appBar: AppBar(
+                  leading: Container(),
+                  title: const Text('Select member to alert'),
+                ),
+                body: ListView.separated(
+                    controller: ScrollController(),
+                    separatorBuilder: (BuildContext context, int index) =>
+                        Divider(
+                            color: Theme.of(context)
+                                .dividerTheme
+                                .color
+                                ?.withValues(alpha: 0.05)),
+                    itemCount: members.length,
+                    itemBuilder: (context, index) {
+                      RoomMember rm = members[index];
+                      return ListTile(
+                          onTap: () {
+                            Get.back(result: members[index]);
+                          },
+                          leading: Utils.getRandomAvatar(rm.idPubkey,
+                              height: 36, width: 36),
+                          title: Text(
+                            rm.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 18,
+                            ),
+                          ));
+                    })));
         if (roomMember != null) {
           controller.addMetionName(roomMember.name);
           controller.chatContentFocus.requestFocus();
@@ -837,7 +859,6 @@ class _ChatPage2State extends State<ChatPage> {
       if (Get.arguments == null && roomId != null) {
         room = RoomService.instance.getRoomByIdSync(roomId);
       } else {
-        // room = Get.arguments as Room;
         try {
           Map<String, dynamic> arguments = Get.arguments;
           room = arguments['room'];
@@ -849,12 +870,15 @@ class _ChatPage2State extends State<ChatPage> {
         }
       }
     }
-    controller = Get.put(ChatController(room!), tag: roomId.toString());
+    controller =
+        Utils.getGetxController<ChatController>(tag: roomId.toString()) ??
+            Get.put(ChatController(room!), tag: roomId.toString());
+
     if (isFromSearch) {
       controller.searchMsgIndex = 1;
       controller.searchDt = searchDt;
     }
-    return room;
+    return room!;
   }
 
   Widget _kpaIsNull(ChatController controller) {
@@ -914,62 +938,5 @@ class _ChatPage2State extends State<ChatPage> {
           },
           child: const Text('View')),
     );
-  }
-
-  Future _handlePasteboard() async {
-    final clipboard = SystemClipboard.instance;
-    if (clipboard == null) {
-      return; // Clipboard API is not supported on this platform.
-    }
-    final reader = await clipboard.read();
-
-    logger.d('cmd+v');
-    final imageFormats = [
-      (Formats.png, MessageMediaType.image, true),
-      (Formats.jpeg, MessageMediaType.image, true),
-      (Formats.webp, MessageMediaType.image, true),
-      (Formats.gif, MessageMediaType.image, false),
-      (Formats.mp4, MessageMediaType.video, true),
-      (Formats.pdf, MessageMediaType.file, false)
-    ];
-
-    for (var (format, mediaType, compress) in imageFormats) {
-      if (reader.canProvide(format)) {
-        return _readFromStream(reader, format, mediaType, compress);
-      }
-    }
-  }
-
-  _readFromStream(
-      ClipboardReader reader, SimpleFileFormat format, MessageMediaType type,
-      [bool compress = true]) async {
-    /// Binary formats need to be read as streams
-    reader.getFile(format, (DataReaderFile file) async {
-      try {
-        EasyLoading.show(status: 'Pasting...');
-        Uint8List imageBytes = await file.readAll();
-        final tempDir = await getTemporaryDirectory();
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        String? mimeType = format.mimeTypes?.first;
-        if (mimeType == null) return;
-        String suffix = mimeType.split('/').last;
-        String newFileName = 'pasted_image_$timestamp.$suffix';
-        final path = '${tempDir.path}/$newFileName';
-        final teampFile = File(path);
-        await teampFile.writeAsBytes(imageBytes);
-
-        XFile xFile = XFile(path,
-            bytes: imageBytes, mimeType: mimeType, name: newFileName);
-        if (controller.textEditingController.text.endsWith('.$suffix')) {
-          controller.textEditingController.clear();
-        }
-        await controller.handleSendMediaFile(xFile, type, compress);
-      } catch (e, s) {
-        logger.e('_readFromStream: ${e.toString()}', stackTrace: s);
-      } finally {
-        await Future.delayed(Duration(seconds: 2));
-        EasyLoading.dismiss();
-      }
-    });
   }
 }

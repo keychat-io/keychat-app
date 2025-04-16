@@ -55,7 +55,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                                   text: controller
                                       .identity.value.secp256k1PKHex));
                               EasyLoading.showSuccess("Public Key Copied");
-                              Navigator.pop(context);
+                              Get.back();
                             },
                           ),
                           ListTile(
@@ -64,7 +64,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                             title: const Text('Delete ID',
                                 style: TextStyle(color: Colors.red)),
                             onTap: () {
-                              Navigator.pop(context);
+                              Get.back();
                               dialogToDeleteId();
                             },
                           ),
@@ -433,44 +433,6 @@ class AccountSettingPage extends GetView<AccountSettingController> {
         });
   }
 
-  void deleteIdentity() async {
-    if (controller.confirmDeleteController.text !=
-        controller.identity.value.displayName) {
-      EasyLoading.showError("Name does not match");
-      return;
-    }
-    controller.confirmDeleteController.clear();
-    HomeController hc = Get.find<HomeController>();
-    List<Identity> identities =
-        await IdentityService.instance.getIdentityList();
-    if (identities.length == 1) {
-      Get.back();
-      EasyLoading.showError("You cannot delete the last ID");
-      return;
-    }
-
-    EcashController ec = Get.find<EcashController>();
-    if (ec.currentIdentity?.id == controller.identity.value.id) {
-      int balance = ec.getTotalByMints();
-      if (balance > 0) {
-        EasyLoading.showError('Please withdraw all balance');
-        return;
-      }
-    }
-    try {
-      EasyLoading.showInfo('Deleting...');
-      await IdentityService.instance.delete(controller.identity.value);
-      hc.loadRoomList(init: true);
-
-      EasyLoading.showSuccess("ID deleted");
-      Get.back();
-      Get.back();
-    } catch (e, s) {
-      logger.e(e.toString(), error: e, stackTrace: s);
-      EasyLoading.showError(e.toString());
-    }
-  }
-
   void dialogToDeleteId() {
     Get.dialog(CupertinoAlertDialog(
       title: const Text("Delete ID?"),
@@ -498,11 +460,51 @@ class AccountSettingPage extends GetView<AccountSettingController> {
           },
         ),
         CupertinoDialogAction(
-          onPressed: deleteIdentity,
-          child: const Text(
-            "Delete",
-            style: TextStyle(color: Colors.red),
-          ),
+          onPressed: () async {
+            if (controller.confirmDeleteController.text !=
+                controller.identity.value.displayName) {
+              EasyLoading.showError("Name does not match");
+              return;
+            }
+            controller.confirmDeleteController.clear();
+            HomeController hc = Get.find<HomeController>();
+            List<Identity> identities =
+                await IdentityService.instance.getIdentityList();
+            if (identities.length == 1) {
+              Get.back(); // close dialog
+              EasyLoading.showError("You cannot delete the last ID");
+              return;
+            }
+
+            EcashController ec = Get.find<EcashController>();
+            if (ec.currentIdentity?.id == controller.identity.value.id) {
+              int balance = ec.getTotalByMints();
+              if (balance > 0) {
+                EasyLoading.showError('Please withdraw all balance');
+                return;
+              }
+            }
+            try {
+              EasyLoading.showInfo('Deleting...');
+              await IdentityService.instance.delete(controller.identity.value);
+              hc.loadRoomList(init: true);
+
+              EasyLoading.showSuccess("ID deleted");
+              if (Get.isDialogOpen ?? false) {
+                Get.back();
+              }
+              if (GetPlatform.isDesktop) {
+                Get.offAllNamed('/setting',
+                    id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
+              } else {
+                Get.back();
+              }
+            } catch (e, s) {
+              logger.e(e.toString(), error: e, stackTrace: s);
+              EasyLoading.showError(e.toString());
+            }
+          },
+          child: const Text("Delete", style: TextStyle(color: Colors.red)),
         ),
       ],
     ));

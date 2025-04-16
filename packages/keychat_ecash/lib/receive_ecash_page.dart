@@ -49,13 +49,15 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        resizeToAvoidBottomInset: false,
         appBar: AppBar(
           centerTitle: true,
           leading: Container(),
           title: const Text('Receive Ecash'),
         ),
         body: Padding(
-            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+            padding:
+                const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 4),
             child: Column(children: [
               Form(
                 autovalidateMode: AutovalidateMode.onUserInteraction,

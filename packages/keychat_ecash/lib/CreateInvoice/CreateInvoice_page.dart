@@ -17,6 +17,7 @@ class CreateInvoicePage extends StatelessWidget {
     CreateInvoiceController controller = Get.put(CreateInvoiceController());
 
     return Scaffold(
+        resizeToAvoidBottomInset: false,
         appBar: AppBar(
           leading: Container(),
           centerTitle: true,

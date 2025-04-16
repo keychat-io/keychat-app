@@ -671,11 +671,9 @@ class MessageWidget extends StatelessWidget {
         isScrollControlled: true,
         ignoreSafeArea: false,
         Scaffold(
-            extendBodyBehindAppBar: true,
             appBar: AppBar(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              scrolledUnderElevation: 0.0,
+              title: Text('RawData'),
+              centerTitle: true,
               leading: Container(),
               actions: [
                 IconButton(onPressed: Get.back, icon: const Icon(Icons.close))
@@ -789,12 +787,10 @@ class MessageWidget extends StatelessWidget {
         isScrollControlled: true,
         ignoreSafeArea: false,
         Scaffold(
-            extendBodyBehindAppBar: true,
             appBar: AppBar(
               leading: Container(),
-              backgroundColor: Colors.transparent,
-              scrolledUnderElevation: 0.0,
-              elevation: 0.0,
+              title: Text('RawData'),
+              centerTitle: true,
               actions: [
                 IconButton(onPressed: Get.back, icon: Icon(Icons.close))
               ],

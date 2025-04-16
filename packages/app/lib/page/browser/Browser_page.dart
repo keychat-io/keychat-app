@@ -23,7 +23,7 @@ class BrowserPage extends GetView<BrowserController> {
         appBar: AppBar(
           leading: Container(),
           title: Text('Browser'),
-          automaticallyImplyLeading: false,
+          centerTitle: true,
           actions: [
             IconButton(
                 onPressed: () {
@@ -132,27 +132,16 @@ class BrowserPage extends GetView<BrowserController> {
   }
 
   Widget quickSection(BuildContext context) {
-    int crossAxisCount = 5;
-    double childAspectRatio = 0.7;
+    int crossAxisCount = 4;
     double spacing = 8.0;
-
     final screenWidth = MediaQuery.of(context).size.width;
-
-    if (screenWidth < 360) {
-      crossAxisCount = 3;
-      childAspectRatio = 0.8;
-    } else if (screenWidth < 600) {
-      crossAxisCount = 4;
-      childAspectRatio = 0.75;
+    if (screenWidth < 600) {
     } else if (screenWidth < 900) {
       crossAxisCount = 5;
-      childAspectRatio = 1.4;
     } else if (screenWidth < 1200) {
       crossAxisCount = 6;
-      childAspectRatio = 1.6;
     } else {
       crossAxisCount = 8;
-      childAspectRatio = 1.8;
     }
 
     return controller.favorites.isEmpty
@@ -161,14 +150,13 @@ class BrowserPage extends GetView<BrowserController> {
             decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.onSurface.withAlpha(10),
                 borderRadius: const BorderRadius.all(Radius.circular(8))),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.all(8),
             child: GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: crossAxisCount,
                   crossAxisSpacing: spacing,
-                  childAspectRatio: childAspectRatio,
                   mainAxisSpacing: spacing),
               itemCount: controller.favorites.length,
               itemBuilder: (context, index) {

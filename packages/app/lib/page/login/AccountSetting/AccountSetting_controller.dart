@@ -4,15 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class AccountSettingController extends GetxController {
+  final Identity identity0;
+  AccountSettingController(this.identity0);
   Rx<Identity> identity = Identity(name: '', secp256k1PKHex: '', npub: '').obs;
-  late TextEditingController usernameController;
-  late TextEditingController confirmDeleteController;
+  TextEditingController usernameController = TextEditingController();
+  TextEditingController confirmDeleteController = TextEditingController();
   RxBool isNpub = true.obs;
   @override
   void onInit() async {
-    identity.value = Get.arguments!;
-    usernameController = TextEditingController(text: identity.value.name);
-    confirmDeleteController = TextEditingController();
+    identity.value = identity0;
     super.onInit();
   }
 

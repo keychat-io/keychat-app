@@ -66,8 +66,14 @@ class GroupInvitationRequestingWidget extends StatelessWidget {
             List<Message> requests =
                 await MessageService.instance.getMessageByRequestId(requestId);
             if (requests.length >= 2) {
-              Get.bottomSheet(InviteMemberToMLS(groupRoom, requests),
-                  isScrollControlled: true, ignoreSafeArea: false);
+              Get.bottomSheet(
+                  clipBehavior: Clip.antiAlias,
+                  shape: const RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(4))),
+                  InviteMemberToMLS(groupRoom, requests),
+                  isScrollControlled: true,
+                  ignoreSafeArea: false);
               return;
             }
           }

@@ -221,7 +221,11 @@ class Utils {
 
   static bottomSheedAndHideStatusBar(Widget widget) async {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
-    await Get.bottomSheet(widget,
+    await Get.bottomSheet(
+        clipBehavior: Clip.antiAlias,
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
+        widget,
         isScrollControlled: true,
         enterBottomSheetDuration: Duration.zero,
         exitBottomSheetDuration: Duration.zero);
@@ -581,6 +585,16 @@ class Utils {
       return t;
     } catch (e) {
       return null;
+    }
+  }
+
+  static T getOrPutGetxController<T extends GetxController>(
+      {String? tag, required T Function() create}) {
+    try {
+      T t = Get.find<T>(tag: tag);
+      return t;
+    } catch (e) {
+      return Get.put(create(), tag: tag);
     }
   }
 
@@ -948,7 +962,9 @@ class Utils {
       await Get.offAllNamed(Routes.root, arguments: arguments);
       return;
     }
-
+    if (Get.isDialogOpen ?? false) {
+      Get.back();
+    }
     await Get.offAndToNamed(Routes.roomEmpty,
         arguments: arguments, id: GetXNestKey.room);
   }

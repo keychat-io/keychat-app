@@ -1,10 +1,12 @@
 import 'package:app/controller/home.controller.dart';
+import 'package:app/global.dart';
 import 'package:app/models/browser/browser_connect.dart';
 import 'package:app/models/db_provider.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/page/browser/BrowserConnectedWebsite.dart';
 import 'package:app/page/components.dart';
-import 'package:app/page/routes.dart';
+import 'package:app/page/contact/contact_list_page.dart';
+
 import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/secure_storage.dart';
@@ -53,7 +55,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                                   text: controller
                                       .identity.value.secp256k1PKHex));
                               EasyLoading.showSuccess("Public Key Copied");
-                              Navigator.pop(context);
+                              Get.back();
                             },
                           ),
                           ListTile(
@@ -62,7 +64,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                             title: const Text('Delete ID',
                                 style: TextStyle(color: Colors.red)),
                             onTap: () {
-                              Navigator.pop(context);
+                              Get.back();
                               dialogToDeleteId();
                             },
                           ),
@@ -172,7 +174,12 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                               leading: const Icon(Icons.key),
                               title: const Text("Seed Phrase"),
                               onPressed: (context) {
-                                Get.bottomSheet(_idKeysWidget());
+                                Get.bottomSheet(
+                                    clipBehavior: Clip.antiAlias,
+                                    shape: const RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.vertical(
+                                            top: Radius.circular(4))),
+                                    _idKeysWidget());
                               },
                             )
                         ],
@@ -235,8 +242,11 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                                 CupertinoIcons.person_2_square_stack_fill),
                             title: const Text("Contact List"),
                             onPressed: (context) {
-                              Get.toNamed(Routes.contactList,
-                                  arguments: controller.identity.value);
+                              Get.to(
+                                  () => ContactsPage(controller.identity.value),
+                                  id: GetPlatform.isDesktop
+                                      ? GetXNestKey.setting
+                                      : null);
                             },
                           ),
                       ],
@@ -423,44 +433,6 @@ class AccountSettingPage extends GetView<AccountSettingController> {
         });
   }
 
-  void deleteIdentity() async {
-    if (controller.confirmDeleteController.text !=
-        controller.identity.value.displayName) {
-      EasyLoading.showError("Name does not match");
-      return;
-    }
-    controller.confirmDeleteController.clear();
-    HomeController hc = Get.find<HomeController>();
-    List<Identity> identities =
-        await IdentityService.instance.getIdentityList();
-    if (identities.length == 1) {
-      Get.back();
-      EasyLoading.showError("You cannot delete the last ID");
-      return;
-    }
-
-    EcashController ec = Get.find<EcashController>();
-    if (ec.currentIdentity?.id == controller.identity.value.id) {
-      int balance = ec.getTotalByMints();
-      if (balance > 0) {
-        EasyLoading.showError('Please withdraw all balance');
-        return;
-      }
-    }
-    try {
-      EasyLoading.showInfo('Deleting...');
-      await IdentityService.instance.delete(controller.identity.value);
-      hc.loadRoomList(init: true);
-
-      EasyLoading.showSuccess("ID deleted");
-      Get.back();
-      Get.back();
-    } catch (e, s) {
-      logger.e(e.toString(), error: e, stackTrace: s);
-      EasyLoading.showError(e.toString());
-    }
-  }
-
   void dialogToDeleteId() {
     Get.dialog(CupertinoAlertDialog(
       title: const Text("Delete ID?"),
@@ -488,11 +460,51 @@ class AccountSettingPage extends GetView<AccountSettingController> {
           },
         ),
         CupertinoDialogAction(
-          onPressed: deleteIdentity,
-          child: const Text(
-            "Delete",
-            style: TextStyle(color: Colors.red),
-          ),
+          onPressed: () async {
+            if (controller.confirmDeleteController.text !=
+                controller.identity.value.displayName) {
+              EasyLoading.showError("Name does not match");
+              return;
+            }
+            controller.confirmDeleteController.clear();
+            HomeController hc = Get.find<HomeController>();
+            List<Identity> identities =
+                await IdentityService.instance.getIdentityList();
+            if (identities.length == 1) {
+              Get.back(); // close dialog
+              EasyLoading.showError("You cannot delete the last ID");
+              return;
+            }
+
+            EcashController ec = Get.find<EcashController>();
+            if (ec.currentIdentity?.id == controller.identity.value.id) {
+              int balance = ec.getTotalByMints();
+              if (balance > 0) {
+                EasyLoading.showError('Please withdraw all balance');
+                return;
+              }
+            }
+            try {
+              EasyLoading.showInfo('Deleting...');
+              await IdentityService.instance.delete(controller.identity.value);
+              hc.loadRoomList(init: true);
+
+              EasyLoading.showSuccess("ID deleted");
+              if (Get.isDialogOpen ?? false) {
+                Get.back();
+              }
+              if (GetPlatform.isDesktop) {
+                Get.offAllNamed('/setting',
+                    id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
+              } else {
+                Get.back();
+              }
+            } catch (e, s) {
+              logger.e(e.toString(), error: e, stackTrace: s);
+              EasyLoading.showError(e.toString());
+            }
+          },
+          child: const Text("Delete", style: TextStyle(color: Colors.red)),
         ),
       ],
     ));

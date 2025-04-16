@@ -1,3 +1,4 @@
+import 'package:app/global.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:flutter/services.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
@@ -101,7 +102,8 @@ class EcashSettingPage extends GetView<EcashSettingController> {
             ),
             title: const Text("Nostr Wallet Connect"),
             onPressed: (context) {
-              Get.to(() => const NostrWalletConnectPage());
+              Get.to(() => const NostrWalletConnectPage(),
+                  id: GetPlatform.isDesktop ? GetXNestKey.ecash : null);
             },
           ),
         ])

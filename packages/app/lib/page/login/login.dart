@@ -60,7 +60,12 @@ class Login extends StatelessWidget {
                         child: const Text("Create ID")),
                     OutlinedButton(
                         onPressed: () async {
-                          Get.bottomSheet(getRecoverPage());
+                          Get.bottomSheet(
+                              clipBehavior: Clip.antiAlias,
+                              shape: const RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.vertical(
+                                      top: Radius.circular(4))),
+                              getRecoverPage());
                         },
                         child: const Text("Recover ID")),
                   ])

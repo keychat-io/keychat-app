@@ -134,8 +134,11 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                       "isAdmin": admin == contactList[i].pubkey
                     });
                   }
-                  Get.to(() => AddMemberToGroup(
-                      room: cc.roomObs.value, contacts: contacts));
+                  Get.bottomSheet(
+                      AddMemberToGroup(
+                          room: cc.roomObs.value, contacts: contacts),
+                      isScrollControlled: true,
+                      ignoreSafeArea: false);
                 },
                 icon: const Icon(CupertinoIcons.plus_circle_fill))
           ],

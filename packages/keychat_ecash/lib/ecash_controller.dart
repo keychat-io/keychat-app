@@ -20,7 +20,6 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 import 'package:app/global.dart';
 
-import 'package:app/service/message.service.dart';
 import 'package:app/utils.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -44,12 +43,15 @@ class EcashController extends GetxController {
   late ScrollController scrollController;
   late TextEditingController nameController;
   late RefreshController refreshController;
-
+  late EcashBillController ecashBillController;
+  late LightningBillController lightningBillController;
   @override
   void onInit() async {
     scrollController = ScrollController();
     nameController = TextEditingController();
     refreshController = RefreshController();
+    ecashBillController = Get.put(EcashBillController());
+    lightningBillController = Get.put(LightningBillController());
     super.onInit();
     Get.lazyPut(() => NostrWalletConnectController(), fenix: true);
   }
@@ -283,31 +285,8 @@ class EcashController extends GetxController {
     }
   }
 
-  Future updateMessageStatus() async {
-    List txs = await rust_cashu.getPendingTransactions();
-    List<Message> messages =
-        await MessageService.instance.getCashuPendingMessage();
-    for (Message m in messages) {
-      for (var i = 0; i < txs.length; i++) {
-        CashuTransaction ct = txs[i].field0 as CashuTransaction;
-        if (m.cashuInfo == null || m.cashuInfo?.id == null) {
-          break;
-        }
-
-        if (ct.id == m.cashuInfo!.id) {
-          if (m.cashuInfo!.status != ct.status) {
-            m.cashuInfo!.status = ct.status;
-            await MessageService.instance.updateMessage(m);
-            break;
-          }
-        }
-      }
-    }
-  }
-
   Future initMintUrl() async {
     mints.value = await rust_cashu.getMints();
-
     if (mints.isEmpty) {
       await rust_cashu.addMint(url: KeychatGlobal.defaultCashuMintURL);
       latestMintUrl.value = KeychatGlobal.defaultCashuMintURL;

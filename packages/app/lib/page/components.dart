@@ -23,7 +23,6 @@ import 'package:search_page/search_page.dart';
 import 'package:settings_ui/settings_ui.dart';
 
 import '../controller/home.controller.dart';
-import '../service/contact.service.dart';
 import '../service/room.service.dart';
 
 Widget centerLoadingComponent([String title = 'loading']) {
@@ -254,6 +253,9 @@ showFitSheetWidget(BuildContext context, String title, List<Widget> bodys,
 
 getGroupInfoBottomSheetWidget(BuildContext context) {
   Get.bottomSheet(
+      clipBehavior: Clip.antiAlias,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
       Scaffold(
           body: ListView(
         children: [
@@ -386,91 +388,7 @@ showSearchContactsPage(BuildContext context, List<Contact> contactList) {
                       if (clipboardData != null) {
                         final pastedText = clipboardData.text;
                         if (pastedText != null && pastedText != '') {
-                          Get.off(() => AddtoContactsPage(
-                                pastedText,
-                              ));
-                        } else {
-                          EasyLoading.showToast('Clipboard is empty');
-                        }
-                      }
-                    },
-                    child: const Text('Add to contacts from clipboard'))
-              ],
-            ),
-          ),
-          failure: InkWell(
-            child: Center(
-                child: Column(
-              children: [
-                SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.2,
-                ),
-                const Text(
-                    'Not found in local, but you can add him/her to contacts.'),
-                const SizedBox(
-                  height: 20,
-                ),
-                FilledButton(
-                  onPressed: () async {
-                    Get.off(() => AddtoContactsPage(input));
-                  },
-                  child: const Text(
-                    'Add to contacts',
-                  ),
-                ),
-              ],
-            )),
-          ),
-          builder: (contact) => ListTile(
-                onTap: () async {},
-                leading: Utils.getRandomAvatar(contact.pubkey,
-                    height: 40, width: 40),
-                title: Text(
-                  contact.displayName.toString(),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
-                subtitle: Text(
-                  // contact.npubkey.toString(),
-                  "${contact.npubkey.substring(0, 18)}...${contact.npubkey.substring(contact.npubkey.length - 18)}",
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
-                dense: true,
-                shape: RoundedRectangleBorder(
-                  side: const BorderSide(color: Colors.black12, width: 0.1),
-                  borderRadius: BorderRadius.circular(0),
-                ),
-              ),
-          filter: (contact) => [contact.displayName.toString()]));
-}
-
-showSearchContactsPage2(BuildContext context) async {
-  Identity identity = Get.find<HomeController>().getSelectedIdentity();
-  List<Contact> contactList =
-      await ContactService.instance.getContactList(identity.id);
-  String input = "";
-  showSearch(
-      context: context,
-      delegate: SearchPage(
-          onQueryUpdate: (value) {
-            input = value;
-          },
-          searchLabel: "Search Friend",
-          items: contactList,
-          suggestion: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                OutlinedButton(
-                    onPressed: () async {
-                      final clipboardData =
-                          await Clipboard.getData('text/plain');
-                      if (clipboardData != null) {
-                        final pastedText = clipboardData.text;
-                        if (pastedText != null && pastedText != '') {
-                          Get.off(() => AddtoContactsPage(input));
+                          Get.off(() => AddtoContactsPage(pastedText));
                         } else {
                           EasyLoading.showToast('Clipboard is empty');
                         }
@@ -547,6 +465,9 @@ Future showMyQrCode(
       KeychatGlobal.oneTimePubkeysLifetime * 3600 * 1000;
 
   Get.bottomSheet(
+      clipBehavior: Clip.antiAlias,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
       MyQRCode(
           title: identity.displayName,
           identity: identity,

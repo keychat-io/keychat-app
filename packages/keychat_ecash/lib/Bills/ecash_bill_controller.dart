@@ -11,6 +11,8 @@ class EcashBillController extends GetxController {
   RxBool status = false.obs;
   late RefreshController refreshController;
 
+  final Map<String, bool> _activeChecks = {};
+
   @override
   void onInit() async {
     refreshController = RefreshController();
@@ -25,13 +27,15 @@ class EcashBillController extends GetxController {
   }
 
   initPageData() {
-    rust_cashu.checkPending().then(
-      (value) async {
-        await Get.find<EcashController>().getBalance();
-        status.value = true;
-        getTransactions();
-      },
-    );
+    Future.delayed(Duration(seconds: 1)).then((_) {
+      rust_cashu.checkPending().then(
+        (value) async {
+          await Utils.getGetxController<EcashController>()?.getBalance();
+          status.value = true;
+          getTransactions();
+        },
+      );
+    });
   }
 
   Future getTransactions({
@@ -55,17 +59,30 @@ class EcashBillController extends GetxController {
       callback(tx);
       return;
     }
-    while (true) {
+
+    _activeChecks[tx.id] = true;
+
+    while (_activeChecks[tx.id] != null && _activeChecks[tx.id] == true) {
       Transaction item = await rust_cashu.checkTransaction(id: tx.id);
       CashuTransaction ln = item.field0 as CashuTransaction;
       if (ln.status == TransactionStatus.success ||
           ln.status == TransactionStatus.failed) {
         callback(ln);
         Get.find<EcashController>().requestPageRefresh();
+        _activeChecks.remove(tx.id);
         return;
       }
       logger.d('Checking status: ${tx.id}');
       await Future.delayed(const Duration(seconds: 1));
+    }
+
+    logger.d('Check stopped for transaction: ${tx.id}');
+  }
+
+  void stopCheckPending(CashuTransaction tx) {
+    if (_activeChecks.containsKey(tx.id)) {
+      _activeChecks.remove(tx.id);
+      logger.d('Stopping check for transaction: ${tx.id}');
     }
   }
 }

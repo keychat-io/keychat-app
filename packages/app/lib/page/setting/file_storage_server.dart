@@ -60,42 +60,47 @@ class _FileStorageSettingState extends State<FileStorageSetting> {
                           onPressed: (context) async {
                             List<Relay> relays =
                                 await RelayService.instance.getEnableRelays();
-                            Get.bottomSheet(SettingsList(
-                                platform: DevicePlatform.iOS,
-                                sections: [
-                                  SettingsSection(
-                                      title: const Text(
-                                          'Select File Storage Server'),
-                                      tiles: relays
-                                          .map(
-                                            (Relay relay) => SettingsTile(
-                                              onPressed: (context) async {
-                                                EasyLoading.show(
-                                                    status: 'Loading...');
-                                                await settingController
-                                                    .setDefaultFileServer(
-                                                        relay.url);
-                                                await _init();
-                                                EasyLoading.showSuccess(
-                                                    'Success');
-                                                Get.back();
-                                              },
-                                              title: ListTile(
-                                                title: Text(relay.url),
-                                                subtitle: Text(
-                                                    getFeeString(relay.url)),
-                                              ),
-                                              trailing:
-                                                  relay.url == defaultFileServer
+                            Get.bottomSheet(
+                                clipBehavior: Clip.antiAlias,
+                                shape: const RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.vertical(
+                                        top: Radius.circular(4))),
+                                SettingsList(
+                                    platform: DevicePlatform.iOS,
+                                    sections: [
+                                      SettingsSection(
+                                          title: const Text(
+                                              'Select File Storage Server'),
+                                          tiles: relays
+                                              .map(
+                                                (Relay relay) => SettingsTile(
+                                                  onPressed: (context) async {
+                                                    EasyLoading.show(
+                                                        status: 'Loading...');
+                                                    await settingController
+                                                        .setDefaultFileServer(
+                                                            relay.url);
+                                                    await _init();
+                                                    EasyLoading.showSuccess(
+                                                        'Success');
+                                                    Get.back();
+                                                  },
+                                                  title: ListTile(
+                                                    title: Text(relay.url),
+                                                    subtitle: Text(getFeeString(
+                                                        relay.url)),
+                                                  ),
+                                                  trailing: relay.url ==
+                                                          defaultFileServer
                                                       ? const Icon(
                                                           Icons.done,
                                                           color: Colors.green,
                                                         )
                                                       : null,
-                                            ),
-                                          )
-                                          .toList())
-                                ]));
+                                                ),
+                                              )
+                                              .toList())
+                                    ]));
                           },
                         ),
                       ],

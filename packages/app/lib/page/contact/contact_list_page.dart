@@ -1,8 +1,8 @@
 // ignore_for_file: must_be_immutable
 
 import 'package:app/models/models.dart';
+import 'package:app/page/chat/create_contact_page.dart';
 import 'package:app/page/contact/ContactDetail/ContactDetail_page.dart';
-import 'package:app/page/routes.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
@@ -12,9 +12,9 @@ import '../components.dart';
 import 'contact_index_bar.dart';
 
 class ContactsPage extends StatefulWidget {
-  const ContactsPage({super.key});
+  final Identity identity;
+  const ContactsPage(this.identity, {super.key});
   @override
-  // ignore: library_private_types_in_public_api
   _ContactsPageState createState() => _ContactsPageState();
 }
 
@@ -31,8 +31,8 @@ class _ContactsPageState extends State<ContactsPage> {
   };
 
   _getData() async {
-    List<Contact> contactList = await ContactService.instance
-        .getContactList((Get.arguments as Identity).id);
+    List<Contact> contactList =
+        await ContactService.instance.getContactList(widget.identity.id);
 
     List<Contact> contactStartNum = [];
     List<Contact> restContacts = [];
@@ -88,7 +88,14 @@ class _ContactsPageState extends State<ContactsPage> {
           actions: [
             IconButton(
                 onPressed: () {
-                  Get.toNamed(Routes.addFriend);
+                  Get.bottomSheet(
+                      clipBehavior: Clip.antiAlias,
+                      shape: const RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(4))),
+                      const AddtoContactsPage(""),
+                      isScrollControlled: true,
+                      ignoreSafeArea: false);
                 },
                 icon: const Icon(CupertinoIcons.person_add)),
             IconButton(
@@ -170,8 +177,14 @@ class _FriendCell extends StatelessWidget {
         ),
         InkWell(
           onTap: () async {
-            await Get.bottomSheet(ContactDetailPage(contact),
-                isScrollControlled: true, ignoreSafeArea: false);
+            await Get.bottomSheet(
+                clipBehavior: Clip.antiAlias,
+                shape: const RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(4))),
+                ContactDetailPage(contact),
+                isScrollControlled: true,
+                ignoreSafeArea: false);
             updateList();
           },
           child: ListTile(

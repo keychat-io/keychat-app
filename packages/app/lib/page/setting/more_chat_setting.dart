@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:app/controller/home.controller.dart';
+import 'package:app/global.dart';
 import 'package:app/page/setting/QueryReceivedEvent.dart';
 import 'package:app/page/setting/UnreadMessages.dart';
 import 'package:app/page/setting/UploadedPubkeys.dart';
@@ -42,7 +43,8 @@ class MoreChatSetting extends StatelessWidget {
                 leading: const Icon(Icons.folder_open_outlined),
                 title: const Text("Media Server"),
                 onPressed: (context) {
-                  Get.to(() => const FileStorageSetting());
+                  Get.to(() => const FileStorageSetting(),
+                      id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
                 },
               ),
               if (GetPlatform.isIOS ||
@@ -79,21 +81,24 @@ class MoreChatSetting extends StatelessWidget {
                 title: const Text("Failed Events"),
                 onPressed: (context) async {
                   Get.to(() => const NostrEventsPage(),
-                      binding: NostrEventsBindings());
+                      binding: NostrEventsBindings(),
+                      id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
                 },
               ),
               SettingsTile.navigation(
                 leading: const Icon(Icons.event),
                 title: const Text("Query Received Event"),
                 onPressed: (context) async {
-                  Get.to(() => const QueryReceivedEvent());
+                  Get.to(() => const QueryReceivedEvent(),
+                      id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
                 },
               ),
               SettingsTile.navigation(
                 leading: const Icon(Icons.copy),
                 title: const Text("Unread Messages"),
                 onPressed: (context) async {
-                  Get.to(() => const UnreadMessages());
+                  Get.to(() => const UnreadMessages(),
+                      id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
                 },
               ),
             ]),

@@ -40,7 +40,10 @@ class DesktopController extends GetxController {
   }
 
   resetRoom() {
-    selectedRoom.value = Room(identityId: -1, toMainPubkey: '', npub: '');
+    try {
+      selectedRoom.value = Room(identityId: -1, toMainPubkey: '', npub: '');
+      // ignore: empty_catches
+    } catch (e) {}
   }
 
   @override

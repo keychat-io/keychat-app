@@ -4,15 +4,12 @@ import 'package:app/service/qrscan.service.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:keychat_ecash/Bills/cashu_transaction.dart';
-import 'package:keychat_ecash/Bills/ecash_bill_controller.dart';
-import 'package:keychat_ecash/Bills/lightning_bill_controller.dart';
 import 'package:keychat_ecash/Bills/lightning_transaction.dart';
 import 'package:keychat_ecash/EcashSetting/EcashSetting_bindings.dart';
 import 'package:keychat_ecash/receive_ecash_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
-import 'package:app/page/routes.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:settings_ui/settings_ui.dart';
 
@@ -24,32 +21,33 @@ import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 
-const int billLimit = 3;
-
 class CashuPage extends GetView<EcashController> {
   const CashuPage({super.key});
   @override
   Widget build(context) {
-    EcashBillController ecashBillController = Get.put(EcashBillController());
-    LightningBillController lightningBillController =
-        Get.put(LightningBillController());
+    int billLimit = GetPlatform.isDesktop ? 5 : 3;
+
     return Scaffold(
         appBar: AppBar(
           centerTitle: true,
           title: const Text("Bitcoin Ecash"),
           actions: [
+            if (GetPlatform.isDesktop)
+              IconButton(
+                  onPressed: () {
+                    controller.refreshController.requestRefresh();
+                  },
+                  icon: const Icon(CupertinoIcons.refresh)),
             IconButton(
                 onPressed: () {
                   Get.to(() => const EcashSettingPage(),
-                      binding: EcashSettingBindings());
+                      binding: EcashSettingBindings(),
+                      id: GetPlatform.isDesktop ? GetXNestKey.ecash : null);
                 },
                 icon: const Icon(CupertinoIcons.settings))
           ],
         ),
-        bottomNavigationBar: bottomBarWidget(context,
-            controller: controller,
-            ecashBillController: ecashBillController,
-            lightningBillController: lightningBillController),
+        bottomNavigationBar: bottomBarWidget(context),
         body: Container(
             padding:
                 GetPlatform.isDesktop ? EdgeInsets.all(8) : EdgeInsets.all(0),
@@ -100,7 +98,7 @@ class CashuPage extends GetView<EcashController> {
                             height: 150.0,
                             initialPage: 0,
                             disableCenter: true,
-                            viewportFraction: 0.6,
+                            viewportFraction: 0.5,
                             padEnds: false,
                             enlargeCenterPage: true,
                             enableInfiniteScroll: false),
@@ -206,59 +204,73 @@ class CashuPage extends GetView<EcashController> {
                               return GestureDetector(
                                   onLongPress: () {
                                     // delete item
-                                    Get.bottomSheet(SettingsList(
-                                      platform: DevicePlatform.iOS,
-                                      sections: [
-                                        SettingsSection(
-                                          title: Text(server.mint),
-                                          tiles: [
-                                            SettingsTile(
-                                              title: const Text('Delete Mint',
-                                                  style: TextStyle(
-                                                      color: Colors.red)),
-                                              onPressed: (context) async {
-                                                try {
-                                                  EcashController ec = Get.find<
-                                                      EcashController>();
-                                                  if (ec.mintBalances.length ==
-                                                      1) {
-                                                    EasyLoading.showError(
-                                                        'Can\'t delete the last mint');
-                                                    return;
-                                                  }
-                                                  EasyLoading.show(
-                                                      status: 'Proccessing');
+                                    Get.bottomSheet(
+                                        clipBehavior: Clip.antiAlias,
+                                        shape: const RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.vertical(
+                                                top: Radius.circular(4))),
+                                        SettingsList(
+                                          platform: DevicePlatform.iOS,
+                                          sections: [
+                                            SettingsSection(
+                                              title: Text(server.mint),
+                                              tiles: [
+                                                SettingsTile(
+                                                  title: const Text(
+                                                      'Delete Mint',
+                                                      style: TextStyle(
+                                                          color: Colors.red)),
+                                                  onPressed: (context) async {
+                                                    try {
+                                                      EcashController ec =
+                                                          Get.find<
+                                                              EcashController>();
+                                                      if (ec.mintBalances
+                                                              .length ==
+                                                          1) {
+                                                        EasyLoading.showError(
+                                                            'Can\'t delete the last mint');
+                                                        return;
+                                                      }
+                                                      EasyLoading.show(
+                                                          status:
+                                                              'Proccessing');
 
-                                                  int balance =
-                                                      ec.getBalanceByMint(
-                                                          server.mint);
-                                                  if (balance > 0) {
-                                                    EasyLoading.showError(
-                                                        'Please withdraw first');
-                                                    return;
-                                                  }
-                                                  if (balance == 0) {
-                                                    await rust_cashu.removeMint(
-                                                        url: server.mint);
-                                                  }
-                                                  await ec.getBalance();
-                                                  EasyLoading.showToast(
-                                                      'Successfully');
-                                                } catch (e, s) {
-                                                  EasyLoading.dismiss();
-                                                  String msg =
-                                                      Utils.getErrorMessage(e);
+                                                      int balance =
+                                                          ec.getBalanceByMint(
+                                                              server.mint);
+                                                      if (balance > 0) {
+                                                        EasyLoading.showError(
+                                                            'Please withdraw first');
+                                                        return;
+                                                      }
+                                                      if (balance == 0) {
+                                                        await rust_cashu
+                                                            .removeMint(
+                                                                url: server
+                                                                    .mint);
+                                                      }
+                                                      await ec.getBalance();
+                                                      EasyLoading.showToast(
+                                                          'Successfully');
+                                                    } catch (e, s) {
+                                                      EasyLoading.dismiss();
+                                                      String msg =
+                                                          Utils.getErrorMessage(
+                                                              e);
 
-                                                  logger.e(e.toString(),
-                                                      error: e, stackTrace: s);
-                                                  EasyLoading.showError(msg);
-                                                }
-                                              },
+                                                      logger.e(e.toString(),
+                                                          error: e,
+                                                          stackTrace: s);
+                                                      EasyLoading.showError(
+                                                          msg);
+                                                    }
+                                                  },
+                                                )
+                                              ],
                                             )
                                           ],
-                                        )
-                                      ],
-                                    ));
+                                        ));
                                   },
                                   child: Container(
                                     margin: const EdgeInsets.symmetric(
@@ -356,13 +368,17 @@ class CashuPage extends GetView<EcashController> {
                                       .bodyLarge!
                                       .color),
                               onPressed: () {
-                                Get.toNamed(Routes.ecashBillCashu);
+                                Get.to(() => CashuBillPage(),
+                                    id: GetPlatform.isDesktop
+                                        ? GetXNestKey.ecash
+                                        : null);
                               },
                               child: const Text('More'),
                             )
                           ])),
                   Obx(() => Column(
-                        children: ecashBillController.transactions.isEmpty
+                        children: controller
+                                .ecashBillController.transactions.isEmpty
                             ? [
                                 Padding(
                                     padding: const EdgeInsets.symmetric(
@@ -383,13 +399,14 @@ class CashuPage extends GetView<EcashController> {
                                       ],
                                     ))
                               ]
-                            : ecashBillController.transactions
+                            : controller.ecashBillController.transactions
                                 .sublist(
                                     0,
-                                    ecashBillController.transactions.length >
+                                    controller.ecashBillController.transactions
+                                                .length >
                                             billLimit
                                         ? billLimit
-                                        : ecashBillController
+                                        : controller.ecashBillController
                                             .transactions.length)
                                 .map((CashuTransaction transaction) {
                                 bool isSend =
@@ -418,8 +435,12 @@ class CashuPage extends GetView<EcashController> {
                                       EasyLoading.showToast('It is failed');
                                       return;
                                     }
-                                    Get.to(() => CashuTransactionPage(
-                                        transaction: transaction));
+                                    Get.to(
+                                        () => CashuTransactionPage(
+                                            transaction: transaction),
+                                        id: GetPlatform.isDesktop
+                                            ? GetXNestKey.ecash
+                                            : null);
                                   },
                                 );
                               }).toList(),
@@ -442,13 +463,17 @@ class CashuPage extends GetView<EcashController> {
                                       .bodyLarge!
                                       .color),
                               onPressed: () {
-                                Get.toNamed(Routes.ecashBillLightning);
+                                Get.to(() => LightningBillPage(),
+                                    id: GetPlatform.isDesktop
+                                        ? GetXNestKey.ecash
+                                        : null);
                               },
                               child: const Text('More'),
                             )
                           ])),
                   Obx(() => Column(
-                        children: lightningBillController.transactions.isEmpty
+                        children: controller
+                                .lightningBillController.transactions.isEmpty
                             ? [
                                 Padding(
                                     padding: const EdgeInsets.symmetric(
@@ -469,14 +494,14 @@ class CashuPage extends GetView<EcashController> {
                                       ],
                                     ))
                               ]
-                            : lightningBillController.transactions
+                            : controller.lightningBillController.transactions
                                 .sublist(
                                     0,
-                                    lightningBillController
+                                    controller.lightningBillController
                                                 .transactions.length >
                                             billLimit
                                         ? billLimit
-                                        : lightningBillController
+                                        : controller.lightningBillController
                                             .transactions.length)
                                 .map((LNTransaction transaction) {
                                 bool isSend =
@@ -525,8 +550,12 @@ class CashuPage extends GetView<EcashController> {
                                       EasyLoading.showToast('It is failed');
                                       return;
                                     }
-                                    Get.to(() => LightningTransactionPage(
-                                        transaction: transaction));
+                                    Get.to(
+                                        () => LightningTransactionPage(
+                                            transaction: transaction),
+                                        id: GetPlatform.isDesktop
+                                            ? GetXNestKey.ecash
+                                            : null);
                                   },
                                 );
                               }).toList(),
@@ -539,31 +568,27 @@ class CashuPage extends GetView<EcashController> {
             )));
   }
 
-  Widget bottomBarWidget(BuildContext context,
-      {required EcashController controller,
-      required EcashBillController ecashBillController,
-      required LightningBillController lightningBillController}) {
+  Widget bottomBarWidget(BuildContext context) {
     return Container(
-        width: Get.width,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-        ),
-        padding:
-            const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 32),
+        width: GetPlatform.isDesktop ? 100 : Get.width,
+        padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 16,
+            bottom: GetPlatform.isDesktop ? 16 : 32),
         child: Wrap(
             direction: Axis.horizontal,
-            alignment: WrapAlignment.spaceAround,
-            crossAxisAlignment: WrapCrossAlignment.end,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            alignment: WrapAlignment.center,
+            spacing: 24,
             children: [
               GestureDetector(
                 onTap: () {
-                  _handleSend(ecashBillController, lightningBillController);
+                  _handleSend();
                 },
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Get.isDarkMode
-                        ? const Color(0xFF333333)
-                        : Colors.grey.shade300,
+                    color: Theme.of(context).colorScheme.primary.withAlpha(40),
                     borderRadius: BorderRadius.circular(5.0),
                   ),
                   child: Container(
@@ -580,14 +605,10 @@ class CashuPage extends GetView<EcashController> {
                   },
                   icon: const Icon(CupertinoIcons.qrcode_viewfinder, size: 24)),
               GestureDetector(
-                onTap: () {
-                  _handleReceive(ecashBillController, lightningBillController);
-                },
+                onTap: _handleReceive,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Get.isDarkMode
-                        ? const Color(0xFF333333)
-                        : Colors.grey.shade300,
+                    color: Theme.of(context).colorScheme.primary.withAlpha(40),
                     borderRadius: BorderRadius.circular(5.0),
                   ),
                   child: Container(
@@ -601,55 +622,78 @@ class CashuPage extends GetView<EcashController> {
             ]));
   }
 
-  _handleSend(EcashBillController ecashBillController,
-      LightningBillController lightningBillController) {
-    Get.bottomSheet(SettingsList(platform: DevicePlatform.iOS, sections: [
-      SettingsSection(tiles: [
-        SettingsTile.navigation(
-          title: const Text('Send Ecash'),
-          onPressed: (context) async {
-            Get.back();
-            await Get.bottomSheet(const CashuSendPage(false));
-            ecashBillController.getTransactions();
-          },
-        ),
-        SettingsTile.navigation(
-          title: const Text('Send to Lightning Wallet'),
-          onPressed: (context) async {
-            Get.back();
-            await showModalBottomSheetWidget(
-                context, '', const PayInvoicePage(),
-                showAppBar: false);
-            lightningBillController.getTransactions();
-          },
-        ),
-      ])
-    ]));
+  _handleSend() {
+    Get.bottomSheet(
+      SettingsList(platform: DevicePlatform.iOS, sections: [
+        SettingsSection(tiles: [
+          SettingsTile.navigation(
+            title: const Text('Send Ecash'),
+            onPressed: (context) async {
+              Get.back();
+              await Get.bottomSheet(
+                  clipBehavior: Clip.antiAlias,
+                  shape: const RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(4))),
+                  const CashuSendPage(false));
+              controller.ecashBillController.getTransactions();
+            },
+          ),
+          SettingsTile.navigation(
+            title: const Text('Send to Lightning Wallet'),
+            onPressed: (context) async {
+              Get.back();
+              await Get.bottomSheet(
+                  clipBehavior: Clip.antiAlias,
+                  shape: const RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(4))),
+                  const PayInvoicePage());
+              controller.lightningBillController.getTransactions();
+            },
+          ),
+        ])
+      ]),
+      clipBehavior: Clip.antiAlias,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
+    );
   }
 
-  _handleReceive(EcashBillController ecashBillController,
-      LightningBillController lightningBillController) {
-    Get.bottomSheet(SettingsList(platform: DevicePlatform.iOS, sections: [
-      SettingsSection(tiles: [
-        SettingsTile.navigation(
-          title: const Text('Receive Ecash'),
-          onPressed: (context) async {
-            Get.back();
-            await showModalBottomSheetWidget(context, '', const ReceiveEcash(),
-                showAppBar: false);
-            ecashBillController.getTransactions();
-          },
-        ),
-        SettingsTile.navigation(
-          title: const Text('Receive from Lightning Network'),
-          onPressed: (context) async {
-            Get.back();
-            await showModalBottomSheetWidget(
-                context, '', const CreateInvoicePage(),
-                showAppBar: false);
-          },
-        ),
-      ])
-    ]));
+  _handleReceive() {
+    Get.bottomSheet(
+        clipBehavior: Clip.antiAlias,
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
+        SettingsList(platform: DevicePlatform.iOS, sections: [
+          SettingsSection(tiles: [
+            SettingsTile.navigation(
+              title: const Text('Receive Ecash'),
+              onPressed: (context) async {
+                Get.back();
+                await Get.bottomSheet(
+                    clipBehavior: Clip.antiAlias,
+                    shape: const RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(4))),
+                    const ReceiveEcash());
+                controller.ecashBillController.getTransactions();
+              },
+            ),
+            SettingsTile.navigation(
+              title: const Text('Receive from Lightning Network'),
+              onPressed: (context) async {
+                Get.back();
+                await Get.bottomSheet(
+                    clipBehavior: Clip.antiAlias,
+                    shape: const RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(4))),
+                    const CreateInvoicePage());
+                controller.lightningBillController.getTransactions();
+              },
+            ),
+          ])
+        ]));
   }
 }

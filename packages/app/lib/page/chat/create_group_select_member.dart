@@ -105,8 +105,8 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
       return;
     }
     Identity identity = Get.find<HomeController>().getSelectedIdentity();
-    late Room room;
     try {
+      late Room room;
       if (widget.groupType == GroupType.sendAll) {
         room = await GroupService.instance
             .createGroup(widget.groupName, identity, widget.groupType);
@@ -116,16 +116,14 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
             widget.groupName, identity,
             toUsers: selectedContact, groupRelays: widget.relays);
       }
+      await Get.find<HomeController>().loadIdentityRoomList(identity.id);
       Get.back();
+      await Utils.offAndToNamedRoom(room);
     } catch (e, s) {
       String msg = Utils.getErrorMessage(e);
       logger.e('create group error', error: e, stackTrace: s);
       EasyLoading.showError(msg);
-      return;
     }
-
-    await Utils.offAndToNamedRoom(room);
-    await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
   }
 
   @override

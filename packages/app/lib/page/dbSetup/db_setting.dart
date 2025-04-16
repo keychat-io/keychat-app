@@ -67,7 +67,7 @@ class DbSetting {
     return outputFile;
   }
 
-  void exportDB(BuildContext context, encryptionKey) async {
+  Future exportDB(BuildContext context, encryptionKey) async {
     final fileName =
         'Keychat_db_${formatTime(DateTime.now().millisecondsSinceEpoch, 'yyyy-MM-dd')}';
     var appFolder = await Utils.getAppFolder();
@@ -234,7 +234,7 @@ class DbSetting {
   Future<bool> importDB(
       BuildContext context, String decryptionKey, File file) async {
     Directory appFolder = await Utils.getAppFolder();
-    
+
     String sourcePath = '${appFolder.path}/prod/database/';
 
     deleteAllFilesInDirectory(sourcePath);

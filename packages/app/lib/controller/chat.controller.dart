@@ -16,15 +16,16 @@ import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
+import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
+import 'package:super_clipboard/super_clipboard.dart';
 
 const int maxMessageId = 999999999999;
 
@@ -82,12 +83,12 @@ class ChatController extends GetxController {
   late ScrollController textFieldScrollController;
   DateTime lastMessageAddedAt = DateTime.now();
 
-  final List<IconData> featuresIcons = [
-    Icons.image,
-    Icons.camera_alt,
-    Icons.movie,
-    Icons.upload_file_sharp,
-    Icons.currency_bitcoin,
+  final List<String> featuresIcons = [
+    'assets/images/photo.png',
+    'assets/images/camera.png',
+    'assets/images/video.png',
+    'assets/images/file.png',
+    'assets/images/BTC.png',
   ];
 
   //image video camera-image  camera-video file satos
@@ -96,7 +97,7 @@ class ChatController extends GetxController {
     'Camera',
     'Video',
     'File',
-    'SAT',
+    'Sat'
   ];
 
   List<Function> featuresOnTaps = [];
@@ -127,8 +128,8 @@ class ChatController extends GetxController {
         return;
       }
       // ignore: empty_catches
-    } catch (e) {
-      logger.e(e.toString());
+    } catch (e, s) {
+      logger.e(e.toString(), stackTrace: s);
     }
     messagesMore.add(message);
   }
@@ -588,16 +589,6 @@ class ChatController extends GetxController {
     return list;
   }
 
-  updateMessageStatus(Message message) {
-    for (var i = 0; i < messages.length; i++) {
-      Message element = messages[i];
-      if (element.isMeSend == true && element.id == message.id) {
-        messages[i] = message;
-        break;
-      }
-    }
-  }
-
   _handleFileUpload() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles();
     if (result == null) return;
@@ -644,8 +635,11 @@ class ChatController extends GetxController {
   }
 
   _handleSendSats() async {
-    CashuInfoModel? cashuInfo =
-        await Get.bottomSheet(const CashuSendPage(true));
+    CashuInfoModel? cashuInfo = await Get.bottomSheet(
+        clipBehavior: Clip.hardEdge,
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
+        const CashuSendPage(true));
     if (cashuInfo == null) return;
     try {
       await RoomService.instance.sendMessage(roomObs.value, cashuInfo.token,
@@ -660,11 +654,15 @@ class ChatController extends GetxController {
   }
 
   _handleSendWithCamera() async {
-    PermissionStatus result = await Permission.camera.status;
-    if (!result.isGranted) {
-      result = await Permission.camera.request();
+    if (GetPlatform.isMacOS) {
+      EasyLoading.showToast('Camera not supported on MacOS');
+      return;
     }
-    if (result.isGranted) {
+    bool isGranted = true;
+    if (GetPlatform.isMobile || GetPlatform.isWindows) {
+      isGranted = await Permission.camera.request().isGranted;
+    }
+    if (isGranted) {
       await pickAndUploadImage(ImageSource.camera);
       hideAdd.value = true; // close features section
     } else {
@@ -736,5 +734,62 @@ class ChatController extends GetxController {
     if (roomObs.value.type == RoomType.bot) {
       _initBotInfo();
     }
+  }
+
+  Future handlePasteboard() async {
+    final clipboard = SystemClipboard.instance;
+    if (clipboard == null) {
+      return; // Clipboard API is not supported on this platform.
+    }
+    final reader = await clipboard.read();
+
+    logger.d('cmd+v');
+    final imageFormats = [
+      (Formats.png, MessageMediaType.image, true),
+      (Formats.jpeg, MessageMediaType.image, true),
+      (Formats.webp, MessageMediaType.image, true),
+      (Formats.gif, MessageMediaType.image, false),
+      (Formats.mp4, MessageMediaType.video, true),
+      (Formats.pdf, MessageMediaType.file, false)
+    ];
+
+    for (var (format, mediaType, compress) in imageFormats) {
+      if (reader.canProvide(format)) {
+        return _readFromStream(reader, format, mediaType, compress);
+      }
+    }
+  }
+
+  _readFromStream(
+      ClipboardReader reader, SimpleFileFormat format, MessageMediaType type,
+      [bool compress = true]) async {
+    /// Binary formats need to be read as streams
+    reader.getFile(format, (DataReaderFile file) async {
+      try {
+        EasyLoading.show(status: 'Pasting...');
+        Uint8List imageBytes = await file.readAll();
+        final tempDir = await getTemporaryDirectory();
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        String? mimeType = format.mimeTypes?.first;
+        if (mimeType == null) return;
+        String suffix = mimeType.split('/').last;
+        String newFileName = 'pasted_image_$timestamp.$suffix';
+        final path = '${tempDir.path}/$newFileName';
+        final teampFile = File(path);
+        await teampFile.writeAsBytes(imageBytes);
+
+        XFile xFile = XFile(path,
+            bytes: imageBytes, mimeType: mimeType, name: newFileName);
+        if (textEditingController.text.endsWith('.$suffix')) {
+          textEditingController.clear();
+        }
+        await handleSendMediaFile(xFile, type, compress);
+      } catch (e, s) {
+        logger.e('_readFromStream: ${e.toString()}', stackTrace: s);
+      } finally {
+        await Future.delayed(Duration(seconds: 2));
+        EasyLoading.dismiss();
+      }
+    });
   }
 }

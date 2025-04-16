@@ -100,7 +100,8 @@ class QrScanService {
       return;
     }
     if (str.startsWith('npub') || str.length == 64) {
-      Get.to(() => AddtoContactsPage(str));
+      Get.bottomSheet(AddtoContactsPage(str),
+          isScrollControlled: true, ignoreSafeArea: false);
       return;
     }
     bool isBase = isBase64(str);

@@ -1,13 +1,12 @@
+import 'package:app/app.dart';
+import 'package:app/controller/home.controller.dart';
 import 'package:app/desktop/DesktopController.dart';
-import 'package:app/models/models.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/new_friends_rooms.dart';
 import 'package:app/page/search_page.dart';
 import 'package:app/page/setting/RelaySetting.dart';
 import 'package:app/page/widgets/home_drop_menu.dart';
-import 'package:app/service/room.service.dart';
 import 'package:app/service/websocket.service.dart';
-import 'package:app/utils.dart';
 import 'package:badges/badges.dart' as badges;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -15,7 +14,6 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 
-import '../controller/home.controller.dart';
 import 'RecommendBots/RecommendBots.dart';
 import 'components.dart';
 
@@ -50,14 +48,15 @@ class RoomList extends GetView<HomeController> {
                           : Alignment.bottomCenter,
                       children: <Widget>[
                         TabBar(
-                            indicatorColor:
-                                Theme.of(context).colorScheme.primary,
+                            indicatorColor: KeychatGlobal.primaryColor,
                             indicatorWeight: 1,
                             isScrollable: true,
                             controller: controller.tabController,
                             tabAlignment: TabAlignment.start,
                             labelStyle: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w600),
+                                color: KeychatGlobal.primaryColor,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600),
                             dividerColor: Colors.transparent,
                             tabs:
                                 controller.tabBodyDatas.values.map((TabData e) {
@@ -67,18 +66,16 @@ class RoomList extends GetView<HomeController> {
                                   : identity.displayName;
                               return Tab(
                                   child: badges.Badge(
-                                showBadge:
-                                    (e.unReadCount + e.anonymousUnReadCount) >
-                                        0,
-                                position: badges.BadgePosition.topEnd(
-                                    top: -10, end: -15),
-                                child: Text(
-                                  title,
-                                  style: const TextStyle(
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ));
+                                      showBadge: (e.unReadCount +
+                                              e.anonymousUnReadCount) >
+                                          0,
+                                      position: badges.BadgePosition.topEnd(
+                                          top: -10, end: -15),
+                                      child: Text(
+                                        title,
+                                        style: const TextStyle(
+                                            overflow: TextOverflow.ellipsis),
+                                      )));
                             }).toList()),
                       ],
                     ),
@@ -145,33 +142,27 @@ class RoomList extends GetView<HomeController> {
                               room.pin ? pinTileBackground : Colors.transparent,
                           child: Obx(() => ListTile(
                                 contentPadding:
-                                    EdgeInsets.only(left: 16, right: 16),
+                                    EdgeInsets.only(left: 8, right: 8),
                                 leading: Utils.getAvatarDot(room),
                                 key: Key('room:${room.id}'),
                                 selected:
                                     desktopController.selectedRoom.value.id ==
                                         room.id,
-                                selectedTileColor: Theme.of(context)
-                                    .colorScheme
-                                    .primary
+                                selectedTileColor: KeychatGlobal.primaryColor
                                     .withValues(alpha: 200),
-                                title: Text(room.getRoomName(),
-                                    maxLines: 1,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium),
-                                subtitle: Obx(() => RoomUtil.getSubtitleDisplay(
-                                    room,
-                                    messageExpired,
-                                    controller.roomLastMessage[room.id])),
-                                trailing: controller.roomLastMessage[room.id] ==
-                                        null
-                                    ? null
-                                    : Wrap(
-                                        direction: Axis.vertical,
-                                        alignment: WrapAlignment.center,
-                                        crossAxisAlignment:
-                                            WrapCrossAlignment.end,
+                                title: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(room.getRoomName(),
+                                        maxLines: 1,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium),
+                                    if (controller.roomLastMessage[room.id] !=
+                                        null)
+                                      Wrap(
+                                        direction: Axis.horizontal,
                                         children: [
                                           textSmallGray(
                                               Get.context!,
@@ -191,6 +182,12 @@ class RoomList extends GetView<HomeController> {
                                               : Container()
                                         ],
                                       ),
+                                  ],
+                                ),
+                                subtitle: Obx(() => RoomUtil.getSubtitleDisplay(
+                                    room,
+                                    messageExpired,
+                                    controller.roomLastMessage[room.id])),
                               ))));
                 });
           }).toList())),
@@ -264,7 +261,12 @@ class RoomList extends GetView<HomeController> {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           onTap: () async {
-            await Get.bottomSheet(AnonymousRooms(rooms));
+            await Get.bottomSheet(
+                clipBehavior: Clip.antiAlias,
+                shape: const RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(4))),
+                AnonymousRooms(rooms));
             controller.loadRoomList();
           },
           subtitle: Text('Rooms: ${rooms.length}'),
@@ -301,7 +303,12 @@ class RoomList extends GetView<HomeController> {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           onTap: () async {
-            await Get.bottomSheet(AnonymousRooms(rooms));
+            await Get.bottomSheet(
+                clipBehavior: Clip.antiAlias,
+                shape: const RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(4))),
+                AnonymousRooms(rooms));
             controller.loadRoomList();
           },
           subtitle: Text('Rooms: ${rooms.length}'),
@@ -410,12 +417,11 @@ class RoomList extends GetView<HomeController> {
     final RenderBox overlay =
         Overlay.of(context).context.findRenderObject() as RenderBox;
     final position = RelativeRect.fromRect(
-      Rect.fromPoints(
-        e.globalPosition,
-        e.globalPosition,
-      ),
-      Offset.zero & overlay.size,
-    );
+        Rect.fromPoints(
+          e.globalPosition,
+          e.globalPosition,
+        ),
+        Offset.zero & overlay.size);
     showMenu(
       context: context,
       position: position,

@@ -6,17 +6,26 @@
 
 Keychat is a chat app, built on [Bitcoin Ecash](https://cashu.space/), [Nostr Protocol](https://github.com/nostr-protocol/nips), [Signal Protocol](https://github.com/signalapp/libsignal) and [MLS Protocol](https://messaginglayersecurity.rocks/).
 
+Mobile Screenshot
 <p>
-<img src="./docs/images/app_home.png" width="24%" height="auto" />
-<img src="./docs/images/browser.png" width="24%" height="auto"/>
-<img src="./docs/images/settings.png" width="24%" height="auto"/>
-<img src="./docs/images/chat.jpeg" width="24%" height="auto"/>
+<img src="./docs/images/app_home.png" width="30%" height="auto" />
+<img src="./docs/images/browser.png" width="30%" height="auto"/>
+<img src="./docs/images/settings.png" width="30%" height="auto"/>
+</p>
+
+Desktop Screenshot
+<p>
+<img src="./docs/images/desktop.gif" width="90%" height="auto"/>
 </p>
 
 ## Download
 
 - [Android APK](https://github.com/keychat-io/keychat-app/releases)
+- [MacOS-ARM](https://github.com/keychat-io/keychat-app/releases)
 - iOS: Comming
+- GooglePlay: Comming
+- Windows: Comming
+- Linux: Comming
 
 
 ## About Keychat

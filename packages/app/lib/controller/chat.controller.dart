@@ -589,16 +589,6 @@ class ChatController extends GetxController {
     return list;
   }
 
-  updateMessageStatus(Message message) {
-    for (var i = 0; i < messages.length; i++) {
-      Message element = messages[i];
-      if (element.isMeSend == true && element.id == message.id) {
-        messages[i] = message;
-        break;
-      }
-    }
-  }
-
   _handleFileUpload() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles();
     if (result == null) return;

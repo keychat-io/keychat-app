@@ -153,10 +153,21 @@ class MinePage extends GetView<SettingController> {
   }
 
   Widget getVersionCode(HomeController homeController) {
-    String newVersion = (GetPlatform.isAndroid
-            ? homeController.remoteAppConfig['androidVersion']
-            : homeController.remoteAppConfig['iosVersion']) ??
-        "0.0.0+0";
+    String platform = GetPlatform.isAndroid
+        ? 'android'
+        : GetPlatform.isIOS
+            ? 'ios'
+            : GetPlatform.isMacOS
+                ? 'macos'
+                : GetPlatform.isWindows
+                    ? 'windows'
+                    : GetPlatform.isLinux
+                        ? 'linux'
+                        : 'ios';
+
+    String newVersion =
+        homeController.remoteAppConfig['${platform}Version'] ?? "0.0.0+0";
+
     String localVersion =
         homeController.remoteAppConfig['appVersion'] ?? '0.0.0+0';
 
@@ -165,13 +176,13 @@ class MinePage extends GetView<SettingController> {
     bool isNewVersionAvailable = n.compareTo(l) > 0;
     return GestureDetector(
       onTap: () {
-        if (GetPlatform.isAndroid) {
-          const url = 'https://github.com/keychat-io/keychat-app/releases';
-          launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-        } else if (GetPlatform.isIOS) {
+        if (GetPlatform.isIOS) {
           const url = 'itms-beta://testflight.apple.com';
           launchUrl(Uri.parse(url), mode: LaunchMode.platformDefault);
+          return;
         }
+        const url = 'https://github.com/keychat-io/keychat-app/releases';
+        launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
       },
       child: Wrap(
         crossAxisAlignment: WrapCrossAlignment.center,

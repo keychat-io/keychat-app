@@ -859,7 +859,6 @@ class _ChatPage2State extends State<ChatPage> {
       if (Get.arguments == null && roomId != null) {
         room = RoomService.instance.getRoomByIdSync(roomId);
       } else {
-        // room = Get.arguments as Room;
         try {
           Map<String, dynamic> arguments = Get.arguments;
           room = arguments['room'];

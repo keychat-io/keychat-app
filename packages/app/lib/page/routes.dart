@@ -4,8 +4,7 @@ abstract class Routes {
   static const login = '/login';
   static const importKey = '/login/import_key';
   static const onboarding = '/onboarding';
-  static const addFriend = '/add_friend';
-  static const addGroup = '/add_group';
+
   static const createIdentity = '/create_identity';
 
   // webrtc
@@ -21,7 +20,6 @@ abstract class Routes {
       '/room/:id/chat_setting_contact/security';
   static const roomSettingPayToRelay =
       '/room/:id/chat_setting_contact/pay_to_relay';
-  static const contactList = '/contacts';
   static const contact = '/contact/:id';
 
   static const scanQR = '/scanQR';

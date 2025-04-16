@@ -1,14 +1,12 @@
 import 'package:app/app.dart';
+import 'package:app/controller/home.controller.dart';
 import 'package:app/desktop/DesktopController.dart';
-import 'package:app/models/models.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/new_friends_rooms.dart';
 import 'package:app/page/search_page.dart';
 import 'package:app/page/setting/RelaySetting.dart';
 import 'package:app/page/widgets/home_drop_menu.dart';
-import 'package:app/service/room.service.dart';
 import 'package:app/service/websocket.service.dart';
-import 'package:app/utils.dart';
 import 'package:badges/badges.dart' as badges;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -16,7 +14,6 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 
-import '../controller/home.controller.dart';
 import 'RecommendBots/RecommendBots.dart';
 import 'components.dart';
 

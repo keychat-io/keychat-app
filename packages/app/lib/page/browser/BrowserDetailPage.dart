@@ -45,7 +45,7 @@ class BrowserDetailPage extends StatefulWidget {
 }
 
 class _BrowserDetailPageState extends State<BrowserDetailPage> {
-  final GlobalKey webViewKey = GlobalKey();
+  final ValueKey webViewKey = ValueKey(Utils.randomString(8));
   final String defaultTitle = "Loading...";
   InAppWebViewController? webViewController;
   InAppWebViewSettings settings = InAppWebViewSettings(

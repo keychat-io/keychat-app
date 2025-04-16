@@ -11,7 +11,6 @@ class EcashBillController extends GetxController {
   RxBool status = false.obs;
   late RefreshController refreshController;
 
-  // 用于跟踪正在检查的交易
   final Map<String, bool> _activeChecks = {};
 
   @override

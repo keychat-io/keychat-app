@@ -1,5 +1,5 @@
 import 'dart:convert' show jsonDecode;
-import 'dart:io' show File;
+import 'dart:io' show File, Platform, Process;
 import 'package:app/app.dart';
 import 'package:app/bot/bot_client_message_model.dart';
 import 'package:app/controller/chat.controller.dart';
@@ -901,6 +901,51 @@ class MessageWidget extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       position: position,
       items: [
+        if (message.isMediaType)
+          PopupMenuItem(
+            mouseCursor: SystemMouseCursors.click,
+            child: Row(
+              children: const [
+                Icon(Icons.photo, size: 18),
+                SizedBox(width: 8),
+                Text('View in Finder'),
+              ],
+            ),
+            onTap: () {
+              MsgFileInfo mfi =
+                  MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
+              if (mfi.status != FileStatus.decryptSuccess) {
+                EasyLoading.showToast('File not decrypted');
+                return;
+              }
+              if (mfi.localPath == null) {
+                EasyLoading.showToast('File not exist');
+                return;
+              }
+              String filePath = FileUtils.getAbsolutelyFilePath(
+                  Get.find<SettingController>().appFolder.path, mfi.localPath!);
+
+              // Get the directory of the file
+              String fileDir = File(filePath).parent.path;
+
+              // Open the directory containing the file
+              try {
+                if (Platform.isWindows) {
+                  Process.run('explorer.exe', [fileDir]);
+                } else if (Platform.isMacOS) {
+                  Process.run('open', [fileDir]);
+                } else if (Platform.isLinux) {
+                  Process.run('xdg-open', [fileDir]);
+                } else {
+                  EasyLoading.showToast(
+                      'Opening directories not supported on this platform');
+                }
+              } catch (e) {
+                EasyLoading.showError(
+                    'Error opening directory: ${e.toString()}');
+              }
+            },
+          ),
         PopupMenuItem(
           mouseCursor: SystemMouseCursors.click,
           child: Row(

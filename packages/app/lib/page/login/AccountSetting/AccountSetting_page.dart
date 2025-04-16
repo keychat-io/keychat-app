@@ -1,10 +1,12 @@
 import 'package:app/controller/home.controller.dart';
+import 'package:app/global.dart';
 import 'package:app/models/browser/browser_connect.dart';
 import 'package:app/models/db_provider.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/page/browser/BrowserConnectedWebsite.dart';
 import 'package:app/page/components.dart';
-import 'package:app/page/routes.dart';
+import 'package:app/page/contact/contact_list_page.dart';
+
 import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/secure_storage.dart';
@@ -240,8 +242,11 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                                 CupertinoIcons.person_2_square_stack_fill),
                             title: const Text("Contact List"),
                             onPressed: (context) {
-                              Get.toNamed(Routes.contactList,
-                                  arguments: controller.identity.value);
+                              Get.to(
+                                  () => ContactsPage(controller.identity.value),
+                                  id: GetPlatform.isDesktop
+                                      ? GetXNestKey.setting
+                                      : null);
                             },
                           ),
                       ],

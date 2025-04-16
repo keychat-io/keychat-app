@@ -20,7 +20,6 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 import 'package:app/global.dart';
 
-import 'package:app/service/message.service.dart';
 import 'package:app/utils.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -283,28 +282,6 @@ class EcashController extends GetxController {
       }
     } catch (e) {
       logger.e('Failed to fetch BTC price', error: e);
-    }
-  }
-
-  Future updateMessageStatus() async {
-    List txs = await rust_cashu.getPendingTransactions();
-    List<Message> messages =
-        await MessageService.instance.getCashuPendingMessage();
-    for (Message m in messages) {
-      for (var i = 0; i < txs.length; i++) {
-        CashuTransaction ct = txs[i].field0 as CashuTransaction;
-        if (m.cashuInfo == null || m.cashuInfo?.id == null) {
-          break;
-        }
-
-        if (ct.id == m.cashuInfo!.id) {
-          if (m.cashuInfo!.status != ct.status) {
-            m.cashuInfo!.status = ct.status;
-            await MessageService.instance.updateMessage(m);
-            break;
-          }
-        }
-      }
     }
   }
 

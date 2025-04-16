@@ -556,9 +556,9 @@ class _ChatPage2State extends State<ChatPage> {
     }
     controller.hideAdd.trigger(!controller.hideAdd.value);
     if (controller.hideAdd.value) {
-      controller.chatContentFocus.unfocus();
-    } else {
       controller.chatContentFocus.requestFocus();
+    } else {
+      controller.chatContentFocus.unfocus();
     }
   }
 

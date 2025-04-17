@@ -27,7 +27,7 @@ class DesktopMain extends GetView<DesktopController> {
               animation: controller.sidebarXController,
               builder: (context, child) {
                 return IndexedStack(
-                  index: 1, //controller.sidebarXController.selectedIndex,
+                  index: controller.sidebarXController.selectedIndex,
                   sizing: StackFit.expand,
                   children: [
                     const DeskRoomList(key: GlobalObjectKey('desk_tab0')),

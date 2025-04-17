@@ -16,65 +16,73 @@ import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+class WebviewTabData {
+  WebviewTab tab;
+  String uniqueKey;
+  String? title;
+  String url;
+  String? favicon;
+  WebviewTabData(
+      {required this.tab, required this.uniqueKey, required this.url});
+}
+
 class MultiWebviewController extends GetxController {
-  final RxMap<String, WebviewTab> _tabsMap = <String, WebviewTab>{}.obs;
-
-  final RxList<String> _tabOrder = <String>[].obs;
-
-  final RxInt currentTabIndex = 0.obs;
-
-  List<WebviewTab> get webViewTabs =>
-      _tabOrder.map((id) => _tabsMap[id]!).toList();
-
-  int _tabCounter = 0;
+  final RxList<WebviewTabData> tabs = <WebviewTabData>[].obs;
 
   late TextEditingController textController;
   RxString title = 'Loading'.obs;
   RxString defaultSearchEngineObx = 'google'.obs;
   RxString input = ''.obs;
   RxDouble progress = 0.2.obs;
+  int currentIndex = 0;
 
   RxSet<String> enableSearchEngine = <String>{}.obs;
   RxList<BrowserFavorite> favorites = <BrowserFavorite>[].obs;
   RxMap<String, dynamic> config = <String, dynamic>{}.obs;
   static const maxHistoryInHome = 12;
 
-  Function(String url)? urlChangeCallBack;
+  late Function(String url) urlChangeCallBack;
 
   WebViewEnvironment? webViewEnvironment;
 
   String _generateUniqueId() {
-    return "${DateTime.now().millisecondsSinceEpoch}_${_tabCounter++}";
+    return generate64RandomHexChars(8);
   }
 
   void addNewTab() {
     final String uniqueId = _generateUniqueId();
     final tab = WebviewTab(
       uniqueKey: uniqueId,
-      initUrl: 'newtab',
-      key: ValueKey(uniqueId),
+      initUrl: KeychatGlobal.newTab,
+      key: GlobalObjectKey(uniqueId),
+      windowId: 0,
     );
 
-    _tabsMap[uniqueId] = tab;
-    _tabOrder.add(uniqueId);
+    tabs.add(WebviewTabData(tab: tab, uniqueKey: uniqueId, url: tab.initUrl));
+    setCurrentTabIndex!(tabs.length - 1);
+  }
 
-    currentTabIndex.value = _tabOrder.length - 1;
+  void removeByIndex(int removeIndex) {
+    if (removeIndex > 0) {
+      tabs.remove(tabs[removeIndex]);
+      if (tabs.isEmpty) {
+        addNewTab();
+      }
+    }
+    if (removeIndex >= currentIndex) {
+      setCurrentTabIndex!(tabs.length - 1);
+    }
   }
 
   void removeTab(String tabId) {
-    if (_tabsMap.containsKey(tabId)) {
-      final index = _tabOrder.indexOf(tabId);
-      _tabsMap.remove(tabId);
-      _tabOrder.remove(tabId);
-
-      if (_tabOrder.isEmpty) {
-        addNewTab();
-      } else if (currentTabIndex.value >= _tabOrder.length) {
-        currentTabIndex.value = _tabOrder.length - 1;
-      } else if (index < currentTabIndex.value) {
-        currentTabIndex.value--;
+    int removeIndex = -1;
+    for (var i = 0; i < tabs.length; i++) {
+      if (tabs[i].uniqueKey == tabId) {
+        removeIndex = i;
+        break;
       }
     }
+    removeByIndex(removeIndex);
   }
 
   lanuchWebview(
@@ -120,26 +128,44 @@ class MultiWebviewController extends GetxController {
     final String uniqueId = _generateUniqueId();
 
     if (GetPlatform.isMobile) {
-      Get.to(
-          () => WebviewTab(
-              key: ValueKey(uniqueId),
-              initUrl: content,
-              initTitle: title.value,
-              uniqueKey: uniqueId),
-          id: GetPlatform.isDesktop ? GetXNestKey.browser : null);
+      Get.to(() => WebviewTab(
+            key: GlobalObjectKey(uniqueId),
+            initUrl: content,
+            initTitle: title.value,
+            uniqueKey: uniqueId,
+            windowId: 0,
+          ));
       return;
     }
 
     final tab = WebviewTab(
       uniqueKey: uniqueId,
       initUrl: content,
-      key: ValueKey(uniqueId),
+      key: GlobalObjectKey(uniqueId),
+      windowId: getLastWindowId(),
     );
+    if (tabs.isNotEmpty) {
+      if (tabs.last.url == KeychatGlobal.newTab) {
+        tabs.insert(tabs.length - 1,
+            WebviewTabData(tab: tab, uniqueKey: uniqueId, url: tab.initUrl));
+        setCurrentTabIndex!(tabs.length - 2);
+        return;
+      }
+    }
+    tabs.add(WebviewTabData(tab: tab, uniqueKey: uniqueId, url: tab.initUrl));
+    setCurrentTabIndex!(tabs.length - 1);
+  }
 
-    _tabsMap[uniqueId] = tab;
-    _tabOrder.add(uniqueId);
+  Function(int)? setCurrentTabIndex;
 
-    currentTabIndex.value = _tabOrder.length - 1;
+  int getLastWindowId() {
+    int windowId = 0;
+    for (var item in tabs) {
+      if (item.tab.windowId > windowId) {
+        windowId = item.tab.windowId + 1;
+      }
+    }
+    return windowId;
   }
 
   loadConfig() async {
@@ -219,7 +245,7 @@ class MultiWebviewController extends GetxController {
     initWebview();
     deleteOldHistories();
 
-    if (_tabsMap.isEmpty) {
+    if (tabs.isEmpty) {
       addNewTab();
     }
 
@@ -289,6 +315,24 @@ class MultiWebviewController extends GetxController {
     } catch (e) {
       debugPrint('Error getting favicon: $e');
       return null;
+    }
+  }
+
+  void setTabData(
+      {required String uniqueId,
+      String? title,
+      required String url,
+      String? favicon}) {
+    int tabIndex = tabs.indexWhere((tab) => tab.uniqueKey == uniqueId);
+    if (tabIndex >= 0) {
+      if (title != null) {
+        tabs[tabIndex].title = title;
+      }
+      tabs[tabIndex].url = url;
+      if (favicon != null) {
+        tabs[tabIndex].favicon = favicon;
+      }
+      tabs.refresh(); // Trigger UI update since we're using GetX
     }
   }
 }

@@ -27,8 +27,7 @@ class BrowserPage extends GetView<MultiWebviewController> {
           actions: [
             IconButton(
                 onPressed: () {
-                  Get.to(() => const BrowserSetting(),
-                      id: GetPlatform.isDesktop ? GetXNestKey.browser : null);
+                  Get.to(() => const BrowserSetting());
                 },
                 icon: const Icon(CupertinoIcons.settings)),
           ],
@@ -250,26 +249,35 @@ class BrowserPage extends GetView<MultiWebviewController> {
         'icon': 'assets/images/recommend.png',
         'title': 'Web Store',
         'onTap': () async {
-          await Get.to(() => const WebStorePage(),
-              id: GetPlatform.isDesktop ? GetXNestKey.browser : null);
+          if (GetPlatform.isDesktop) {
+            await Get.bottomSheet(const WebStorePage());
+          } else {
+            await Get.to(() => const WebStorePage());
+          }
           controller.loadFavorite();
         }
       },
       {
         'icon': 'assets/images/bookmark.png',
         'title': 'Bookmark',
-        'onTap': () {
-          Get.to(() => const BrowserBookmarkPage(),
-              id: GetPlatform.isDesktop ? GetXNestKey.browser : null);
+        'onTap': () async {
+          if (GetPlatform.isDesktop) {
+            await Get.bottomSheet(const BrowserBookmarkPage());
+          } else {
+            await Get.to(() => const BrowserBookmarkPage());
+          }
           controller.loadFavorite();
         }
       },
       {
         'icon': 'assets/images/history.png',
         'title': 'History',
-        'onTap': () {
-          Get.to(() => const BrowserHistoryPage(),
-              id: GetPlatform.isDesktop ? GetXNestKey.browser : null);
+        'onTap': () async {
+          if (GetPlatform.isDesktop) {
+            await Get.bottomSheet(const BrowserHistoryPage());
+          } else {
+            await Get.to(() => const BrowserHistoryPage());
+          }
         }
       }
     ];

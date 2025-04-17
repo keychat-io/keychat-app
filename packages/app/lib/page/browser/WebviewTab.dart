@@ -2,16 +2,13 @@ import 'dart:convert' show jsonDecode;
 
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
-import 'package:app/models/browser/browser_bookmark.dart';
-import 'package:app/models/browser/browser_connect.dart';
-import 'package:app/models/browser/browser_favorite.dart';
-import 'package:app/models/db_provider.dart';
-import 'package:app/models/identity.dart';
+import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/browser/BookmarkEdit.dart';
-import 'package:app/page/browser/Browser_controller.dart';
+import 'package:app/page/browser/Browser_page.dart';
 import 'package:app/page/browser/FavoriteEdit.dart';
+import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/page/browser/SelectIdentityForBrowser.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/SignerService.dart';
@@ -24,7 +21,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
@@ -35,17 +31,22 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
-class BrowserDetailPage extends StatefulWidget {
+class WebviewTab extends StatefulWidget {
+  final String uniqueKey;
   final String initUrl;
-  final String title;
-  const BrowserDetailPage(this.initUrl, this.title, {super.key});
+  final String? initTitle;
+  const WebviewTab({
+    super.key,
+    required this.uniqueKey,
+    required this.initUrl,
+    this.initTitle,
+  });
 
   @override
-  _BrowserDetailPageState createState() => _BrowserDetailPageState();
+  _WebViewTabState createState() => _WebViewTabState();
 }
 
-class _BrowserDetailPageState extends State<BrowserDetailPage> {
-  final ValueKey webViewKey = ValueKey(Utils.randomString(8));
+class _WebViewTabState extends State<WebviewTab> {
   final String defaultTitle = "Loading...";
   InAppWebViewController? webViewController;
   InAppWebViewSettings settings = InAppWebViewSettings(
@@ -53,6 +54,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
       mediaPlaybackRequiresUserGesture: false,
       allowsInlineMediaPlayback: true,
       useShouldOverrideUrlLoading: true,
+      supportMultipleWindows: true,
       transparentBackground: Get.isDarkMode,
       cacheEnabled: true,
       iframeAllow: "camera; microphone",
@@ -60,24 +62,26 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
       iframeAllowFullscreen: true);
 
   PullToRefreshController? pullToRefreshController;
-  String url = "";
+  String _url = "";
   double progress = 0;
   // bool marked = false;
-  String title = "Loading...";
+  String _title = "Loading...";
   bool canGoBack = false;
   bool canGoForward = false;
   late EcashController ecashController;
-  late BrowserController browserController;
+  late MultiWebviewController controller;
   BrowserConnect? browserConnect;
 
   @override
   void initState() {
-    browserController = Get.find<BrowserController>();
+    controller = Get.find<MultiWebviewController>();
+
+    // browserController = Get.put(BrowserController(), tag: widget.uniqueKey);
     ecashController = Get.find<EcashController>();
-    title = widget.title;
-    url = widget.initUrl;
+    _title = widget.initTitle ?? defaultTitle;
+    _url = widget.initUrl;
     super.initState();
-    initBrowserConnect(WebUri(url));
+    initBrowserConnect(WebUri(_url));
     pullToRefreshController = kIsWeb ||
             ![TargetPlatform.iOS, TargetPlatform.android]
                 .contains(defaultTargetPlatform)
@@ -106,7 +110,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
     var uri = await webViewController?.getUrl();
     if (uri == null) return;
     setState(() {
-      url = uri.toString();
+      _url = uri.toString();
     });
     initBrowserConnect(uri);
   }
@@ -121,6 +125,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.initUrl == 'newtab') return BrowserPage();
     return PopScope(
         canPop: false,
         onPopInvokedWithResult: (didPop, d) {
@@ -157,7 +162,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                       icon: const Icon(Icons.arrow_forward)),
               ]),
               centerTitle: true,
-              title: Text(title),
+              title: Text(_title),
               bottom: PreferredSize(
                   preferredSize: const Size.fromHeight(0),
                   child: progress < 1.0
@@ -171,7 +176,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                     return [
                       PopupMenuItem(
                         value: 'tools',
-                        child: getPopTools(url),
+                        child: getPopTools(_url),
                       ),
                       PopupMenuItem(
                         value: 'refresh',
@@ -269,7 +274,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
           body: SafeArea(
               bottom: GetPlatform.isAndroid,
               child: InAppWebView(
-                key: webViewKey,
+                key: PageStorageKey(widget.uniqueKey),
                 // keepAlive: keepAlive,
                 // webViewEnvironment: browserController.webViewEnvironment,
                 initialUrlRequest: URLRequest(url: WebUri(widget.initUrl)),
@@ -282,7 +287,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                 },
                 onLoadStart: (controller, url) async {
                   setState(() {
-                    this.url = url.toString();
+                    _url = url.toString();
                   });
                 },
                 onPermissionRequest: (controller, request) async {
@@ -353,7 +358,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                       assetFilePath: "assets/js/nostr.js");
                   pullToRefreshController?.endRefreshing();
                   setState(() {
-                    this.url = url.toString();
+                    _url = url.toString();
                   });
                 },
                 onReceivedServerTrustAuthRequest: (_, challenge) async {
@@ -379,7 +384,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
                 onTitleChanged: (controller, title) async {
                   if (title != null) {
                     setState(() {
-                      this.title = title;
+                      _title = title;
                     });
                   }
                 },
@@ -560,8 +565,7 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
     if (selected != null) {
       EasyLoading.show(status: 'Processing...');
       try {
-        String? favicon =
-            await browserController.getFavicon(webViewController!, host);
+        String? favicon = await controller.getFavicon(webViewController!, host);
         BrowserConnect bc = BrowserConnect(
             host: host, pubkey: selected.secp256k1PKHex, favicon: favicon);
         int id = await BrowserConnect.save(bc);
@@ -599,12 +603,12 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
             .urlEqualTo(uri.toString())
             .findFirst();
         if (exist == null) {
-          String? favicon = await browserController
+          String? favicon = await controller
               .getFavicon(webViewController!, uri.host)
               .timeout(const Duration(seconds: 10));
-          String? siteTitle = title == defaultTitle
+          String? siteTitle = _title == defaultTitle
               ? await webViewController?.getTitle()
-              : title;
+              : _title;
           await BrowserBookmark.add(
               url: uri.toString(), favicon: favicon, title: siteTitle);
           EasyLoading.showSuccess('Added');
@@ -615,19 +619,19 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
       case 'favorite':
         var exist = await BrowserFavorite.getByUrl(uri.toString());
         if (exist == null) {
-          String? favicon = await browserController
+          String? favicon = await controller
               .getFavicon(webViewController!, uri.host)
               .timeout(const Duration(seconds: 10));
-          String? siteTitle = title == defaultTitle
+          String? siteTitle = _title == defaultTitle
               ? await webViewController?.getTitle()
-              : title;
+              : _title;
           await BrowserFavorite.add(
               url: uri.toString(), favicon: favicon, title: siteTitle);
           EasyLoading.showSuccess('Added');
         } else {
           await Get.to(() => FavoriteEdit(favorite: exist));
         }
-        await browserController.loadFavorite();
+        await controller.loadFavorite();
         break;
       case 'copy':
         Clipboard.setData(ClipboardData(text: uri.toString()));
@@ -668,13 +672,13 @@ class _BrowserDetailPageState extends State<BrowserDetailPage> {
       setState(() {
         this.canGoBack = canGoBack ?? false;
         this.canGoForward = canGoForward ?? false;
-        url = uri.toString();
+        _url = uri.toString();
       });
       // fetch new title
       String? newTitle = await webViewController!.getTitle();
       String? favicon =
-          await browserController.getFavicon(webViewController!, uri!.host);
-      browserController.addHistory(url.toString(), newTitle ?? title, favicon);
+          await controller.getFavicon(webViewController!, uri!.host);
+      controller.addHistory(_url.toString(), newTitle ?? _title, favicon);
     });
   }
 }

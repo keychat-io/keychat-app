@@ -1,12 +1,5 @@
 import 'package:app/app.dart';
 import 'package:app/desktop/DesktopController.dart';
-import 'package:app/models/browser/browser_bookmark.dart';
-import 'package:app/models/browser/browser_connect.dart';
-import 'package:app/models/browser/browser_favorite.dart';
-import 'package:app/models/browser/browser_history.dart';
-import 'package:app/models/ecash_bill.dart';
-import 'package:app/models/nostr_event_status.dart';
-import 'package:app/models/signal_id.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;

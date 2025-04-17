@@ -4,6 +4,7 @@ import 'package:app/models/browser/browser_favorite.dart';
 import 'package:app/page/browser/BrowserBookmarkPage.dart';
 import 'package:app/page/browser/BrowserHistoryPage.dart';
 import 'package:app/page/browser/BrowserSetting.dart';
+import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/page/browser/WebStorePage.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
@@ -12,9 +13,8 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
-import 'Browser_controller.dart';
 
-class BrowserPage extends GetView<BrowserController> {
+class BrowserPage extends GetView<MultiWebviewController> {
   const BrowserPage({super.key});
 
   @override
@@ -252,7 +252,7 @@ class BrowserPage extends GetView<BrowserController> {
         'onTap': () async {
           await Get.to(() => const WebStorePage(),
               id: GetPlatform.isDesktop ? GetXNestKey.browser : null);
-          await Get.find<BrowserController>().loadFavorite();
+          controller.loadFavorite();
         }
       },
       {
@@ -261,7 +261,7 @@ class BrowserPage extends GetView<BrowserController> {
         'onTap': () {
           Get.to(() => const BrowserBookmarkPage(),
               id: GetPlatform.isDesktop ? GetXNestKey.browser : null);
-          Get.find<BrowserController>().loadFavorite();
+          controller.loadFavorite();
         }
       },
       {

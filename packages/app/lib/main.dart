@@ -1,6 +1,7 @@
 import 'dart:io' show Directory;
 
 import 'package:app/desktop/DesktopController.dart';
+import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/websocket.service.dart';
@@ -19,7 +20,6 @@ import 'package:keychat_rust_ffi_plugin/index.dart';
 import 'controller/home.controller.dart';
 import 'controller/setting.controller.dart';
 import 'models/db_provider.dart';
-import 'page/browser/Browser_controller.dart';
 import 'page/app_theme.dart';
 import 'page/pages.dart';
 import 'service/identity.service.dart';
@@ -141,7 +141,7 @@ Future<SettingController> initServices() async {
   await DBProvider.initDB(dbPath);
   SettingController sc = Get.put(SettingController(), permanent: true);
   Get.put(EcashController(dbPath), permanent: true);
-  Get.put(BrowserController(), permanent: true);
+  Get.put(MultiWebviewController(), permanent: true);
   Get.putAsync(() => ChatxService().init(dbPath));
   Get.putAsync(() => WebsocketService().init());
   Get.put(HomeController(), permanent: true);

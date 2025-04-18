@@ -142,7 +142,7 @@ class RoomList extends GetView<HomeController> {
                               room.pin ? pinTileBackground : Colors.transparent,
                           child: Obx(() => ListTile(
                                 contentPadding:
-                                    EdgeInsets.only(left: 8, right: 8),
+                                    EdgeInsets.only(left: 16, right: 16),
                                 leading: Utils.getAvatarDot(room),
                                 key: Key('room:${room.id}'),
                                 selected:

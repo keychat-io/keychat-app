@@ -27,6 +27,9 @@ class StorageKeyString {
 
   static String dbBackupPwd = "dbBackupPwd";
 
+  static const String desktopBrowserSidebarWidth =
+      'desktop_browser_sidebar_width';
+
   static String getSignalAliceKey(String myPubkey, String bobPubkey) {
     return "aliceKey:$myPubkey-$bobPubkey";
   }

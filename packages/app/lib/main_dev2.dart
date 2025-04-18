@@ -18,7 +18,7 @@ import 'package:keychat_rust_ffi_plugin/index.dart';
 import 'controller/home.controller.dart';
 import 'controller/setting.controller.dart';
 import 'models/db_provider.dart';
-import 'page/browser/Browser_controller.dart';
+import 'page/browser/BrowserTabController.dart';
 import 'page/app_theme.dart';
 import 'page/pages.dart';
 import 'service/identity.service.dart';
@@ -140,7 +140,7 @@ Future<SettingController> initServices() async {
   await DBProvider.initDB(dbPath);
   SettingController sc = Get.put(SettingController(), permanent: true);
   Get.put(EcashController(dbPath), permanent: true);
-  Get.put(BrowserController(), permanent: true);
+  Get.put(WebviewTabController(), permanent: true);
   Get.putAsync(() => ChatxService().init(dbPath));
   Get.putAsync(() => WebsocketService().init());
   Get.put(HomeController(), permanent: true);

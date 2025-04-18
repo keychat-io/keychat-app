@@ -1,3 +1,4 @@
+import 'package:app/desktop/DesktopController.dart';
 import 'package:app/global.dart';
 import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/utils.dart';
@@ -13,11 +14,15 @@ class DeskBrowser extends StatefulWidget {
 
 class _DeskBrowserState extends State<DeskBrowser> {
   late MultiWebviewController controller;
+  late DesktopController desktopController;
   int currentTabIndex = 0;
+  final stackKey = GlobalObjectKey('browser_stack');
+
   @override
   void initState() {
     super.initState();
     controller = Get.find<MultiWebviewController>();
+    desktopController = Get.find<DesktopController>();
     controller.setCurrentTabIndex = (int index) {
       setState(() {
         currentTabIndex = index;
@@ -27,11 +32,9 @@ class _DeskBrowserState extends State<DeskBrowser> {
 
   @override
   Widget build(BuildContext context) {
-    final stackKey = GlobalObjectKey('browser_stack');
-
     return Row(children: [
       Obx(() => Container(
-          width: 260,
+          width: desktopController.browserSidebarWidth.value,
           padding: EdgeInsets.symmetric(vertical: 16),
           child: ListView.builder(
             itemCount: controller.tabs.length + 1,
@@ -56,7 +59,7 @@ class _DeskBrowserState extends State<DeskBrowser> {
                         controller.tabs[index].url),
                 selected: currentTabIndex == index,
                 onTap: () {
-                  controller.setCurrentTabIndex!(index);
+                  controller.setCurrentTabIndex(index);
                 },
                 onClose: () {
                   controller.removeByIndex(index);
@@ -64,13 +67,25 @@ class _DeskBrowserState extends State<DeskBrowser> {
               );
             },
           ))),
-      SizedBox(
-        width: 1,
-        height: double.infinity,
-        child: VerticalDivider(
-          thickness: 1,
-          width: 1,
-          color: Theme.of(context).dividerColor.withAlpha(50),
+      MouseRegion(
+        cursor: SystemMouseCursors.resizeLeftRight,
+        child: GestureDetector(
+          onHorizontalDragUpdate: (details) {
+            desktopController.setBrowserSidebarWidth(
+              desktopController.browserSidebarWidth.value + details.delta.dx,
+            );
+          },
+          child: Container(
+            width: 1,
+            decoration: BoxDecoration(
+              border: Border(
+                right: BorderSide(
+                  color: Theme.of(context).dividerColor.withAlpha(30),
+                  width: 1,
+                ),
+              ),
+            ),
+          ),
         ),
       ),
       Expanded(

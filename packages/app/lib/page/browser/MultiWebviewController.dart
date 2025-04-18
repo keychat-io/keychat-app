@@ -1,6 +1,7 @@
 import 'dart:convert' show jsonEncode, jsonDecode;
 
 import 'package:app/controller/setting.controller.dart';
+import 'package:app/desktop/DesktopController.dart';
 import 'package:app/global.dart';
 import 'package:app/models/browser/browser_favorite.dart';
 import 'package:app/models/browser/browser_history.dart';
@@ -59,18 +60,19 @@ class MultiWebviewController extends GetxController {
     );
 
     tabs.add(WebviewTabData(tab: tab, uniqueKey: uniqueId, url: tab.initUrl));
-    setCurrentTabIndex!(tabs.length - 1);
+    setCurrentTabIndex(tabs.length - 1);
   }
 
   void removeByIndex(int removeIndex) {
-    if (removeIndex > 0) {
+    logger.d(removeIndex);
+    if (removeIndex >= 0) {
       tabs.remove(tabs[removeIndex]);
       if (tabs.isEmpty) {
         addNewTab();
       }
     }
     if (removeIndex >= currentIndex) {
-      setCurrentTabIndex!(tabs.length - 1);
+      setCurrentTabIndex(tabs.length - 1);
     }
   }
 
@@ -144,19 +146,22 @@ class MultiWebviewController extends GetxController {
       key: GlobalObjectKey(uniqueId),
       windowId: getLastWindowId(),
     );
+    if (Get.find<DesktopController>().sidebarXController.selectedIndex != 1) {
+      Get.find<DesktopController>().sidebarXController.selectIndex(1);
+    }
     if (tabs.isNotEmpty) {
       if (tabs.last.url == KeychatGlobal.newTab) {
         tabs.insert(tabs.length - 1,
             WebviewTabData(tab: tab, uniqueKey: uniqueId, url: tab.initUrl));
-        setCurrentTabIndex!(tabs.length - 2);
+        setCurrentTabIndex(tabs.length - 2);
         return;
       }
     }
     tabs.add(WebviewTabData(tab: tab, uniqueKey: uniqueId, url: tab.initUrl));
-    setCurrentTabIndex!(tabs.length - 1);
+    setCurrentTabIndex(tabs.length - 1);
   }
 
-  Function(int)? setCurrentTabIndex;
+  Function(int) setCurrentTabIndex = (p0) {};
 
   int getLastWindowId() {
     int windowId = 0;
@@ -335,6 +340,12 @@ class MultiWebviewController extends GetxController {
       tabs.refresh(); // Trigger UI update since we're using GetX
     }
   }
+
+  WebviewTabData? getTab(String uniqueKey) {
+    return tabs.firstWhereOrNull((e) => e.uniqueKey == uniqueKey);
+  }
+
+  void updateTabData({required String uniqueId, required String url}) {}
 }
 
 const String defaultSearchEngine = 'searXNG';

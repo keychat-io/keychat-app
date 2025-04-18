@@ -588,14 +588,15 @@ class CashuPage extends GetView<EcashController> {
                 },
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withAlpha(40),
+                    color: KeychatGlobal.primaryColor,
                     borderRadius: BorderRadius.circular(5.0),
                   ),
                   child: Container(
                     alignment: Alignment.center,
                     width: 130.0,
                     height: 44.0,
-                    child: const Text('Send'),
+                    child: const Text('Send',
+                        style: TextStyle(color: Colors.white)),
                   ),
                 ),
               ),
@@ -608,14 +609,15 @@ class CashuPage extends GetView<EcashController> {
                 onTap: _handleReceive,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withAlpha(40),
+                    color: KeychatGlobal.primaryColor,
                     borderRadius: BorderRadius.circular(5.0),
                   ),
                   child: Container(
                     alignment: Alignment.center,
                     width: 130.0,
                     height: 44.0,
-                    child: const Text('Receive'),
+                    child: const Text('Receive',
+                        style: TextStyle(color: Colors.white)),
                   ),
                 ),
               ),

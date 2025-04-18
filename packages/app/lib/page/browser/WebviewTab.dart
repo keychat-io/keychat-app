@@ -6,8 +6,8 @@ import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/browser/BookmarkEdit.dart';
-import 'package:app/page/browser/Browser_controller.dart';
-import 'package:app/page/browser/Browser_page.dart';
+import 'package:app/page/browser/BrowserHome.dart';
+import 'package:app/page/browser/BrowserTabController.dart';
 import 'package:app/page/browser/FavoriteEdit.dart';
 import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/page/browser/SelectIdentityForBrowser.dart';
@@ -16,6 +16,7 @@ import 'package:app/service/SignerService.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/utils.dart';
+import 'package:auto_size_text_plus/auto_size_text_plus.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -46,66 +47,34 @@ class WebviewTab extends StatefulWidget {
   });
   @override
   _WebviewTabState createState() => _WebviewTabState();
-
-  String get title {
-    final state = (key as GlobalObjectKey).currentState as _WebviewTabState?;
-    return state?.tc.title.value ?? initTitle ?? initUrl;
-  }
-
-  String? get favicon {
-    final state = (key as GlobalObjectKey).currentState as _WebviewTabState?;
-    return state?.favicon;
-  }
 }
 
 class _WebviewTabState extends State<WebviewTab> {
   late EcashController ecashController;
   late MultiWebviewController controller;
-  late BrowserController tc;
-  PullToRefreshController? pullToRefreshController;
-  InAppWebViewController? webViewController;
+  late WebviewTabController tc;
   late String title;
+  late String url;
+  double progress = 0.2;
   String? favicon;
 
   @override
-  void dispose() {
-    webViewController?.dispose();
-    pullToRefreshController?.dispose();
-
-    super.dispose();
-  }
-
-  @override
   void initState() {
+    url = widget.initUrl;
+    title = widget.initTitle ?? url;
     controller = Get.find<MultiWebviewController>();
-    tc = Get.put(BrowserController(), tag: widget.uniqueKey);
+    tc = Get.put(WebviewTabController(), tag: widget.uniqueKey);
     ecashController = Get.find<EcashController>();
-    tc.title.value = widget.initTitle ?? widget.initUrl;
-    tc.url.value = widget.initUrl;
-    initBrowserConnect(WebUri(tc.url.value));
-    pullToRefreshController = kIsWeb ||
-            ![TargetPlatform.iOS, TargetPlatform.android]
-                .contains(defaultTargetPlatform)
-        ? null
-        : PullToRefreshController(
-            settings: PullToRefreshSettings(color: Colors.purple),
-            onRefresh: () async {
-              if (defaultTargetPlatform == TargetPlatform.android) {
-                webViewController?.reload();
-              } else if (defaultTargetPlatform == TargetPlatform.iOS) {
-                webViewController?.loadUrl(
-                    urlRequest:
-                        URLRequest(url: await webViewController?.getUrl()));
-              }
-            });
+    initBrowserConnect(WebUri(widget.initUrl));
     super.initState();
   }
 
   void menuOpened() async {
-    var uri = await webViewController?.getUrl();
+    var uri = await tc.webViewController?.getUrl();
     if (uri == null) return;
-    tc.url.value = uri.toString();
     initBrowserConnect(uri);
+    if (uri.toString() != url) return;
+    controller.updateTabData(uniqueId: widget.uniqueKey, url: uri.toString());
   }
 
   initBrowserConnect(WebUri uri) {
@@ -116,7 +85,7 @@ class _WebviewTabState extends State<WebviewTab> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.initUrl == KeychatGlobal.newTab) return BrowserPage();
+    if (widget.initUrl == KeychatGlobal.newTab) return BrowserHome();
 
     return PopScope(
         canPop: false,
@@ -126,300 +95,291 @@ class _WebviewTabState extends State<WebviewTab> {
           }
           goBackOrPop();
         },
-        child: Obx(() => Scaffold(
-              appBar: AppBar(
-                  titleSpacing: 0,
-                  leadingWidth: 0,
-                  leading: Container(),
-                  title: Obx(() => Row(
-                        spacing: 8,
-                        children: [
-                          Row(children: [
-                            IconButton(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 2),
-                                onPressed: goBackOrPop,
-                                icon: const Icon(Icons.arrow_back)),
-                            IconButton(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 2),
-                                onPressed: () {
-                                  if (GetPlatform.isMobile) {
-                                    Get.back();
-                                  } else {
-                                    controller.removeTab(widget.uniqueKey);
-                                  }
-                                },
-                                icon: const Icon(Icons.close)),
-                            if (tc.canGoForward.value || GetPlatform.isDesktop)
-                              IconButton(
-                                  onPressed: () {
-                                    webViewController?.goForward();
-                                  },
-                                  icon: const Icon(Icons.arrow_forward)),
-                            if (GetPlatform.isDesktop)
-                              IconButton(
-                                  onPressed: () {
-                                    webViewController?.reload();
-                                  },
-                                  icon: const Icon(Icons.refresh)),
-                          ]),
-                          Expanded(child: Center(child: Text(tc.title.value)))
-                        ],
-                      )),
-                  actions: [
-                    PopupMenuButton<String>(
-                      onOpened: menuOpened,
-                      onSelected: popupMenuSelected,
-                      itemBuilder: (BuildContext context) {
-                        return [
-                          PopupMenuItem(
-                            value: 'tools',
-                            child: getPopTools(tc.url.value),
-                          ),
-                          PopupMenuItem(
-                            value: 'refresh',
-                            child: Row(spacing: 16, children: [
-                              const Icon(Icons.refresh),
-                              Text('Refresh',
-                                  style: Theme.of(context).textTheme.bodyLarge)
-                            ]),
-                          ),
-                          PopupMenuItem(
-                            value: 'bookmark',
-                            child: Row(spacing: 16, children: [
-                              FutureBuilder(future: () async {
-                                final url = await webViewController?.getUrl();
-                                if (url == null) return null;
-                                return await DBProvider
-                                    .database.browserBookmarks
-                                    .filter()
-                                    .urlEqualTo(url.toString())
-                                    .findFirst();
-                              }(), builder: (context, snapshot) {
-                                if (snapshot.data != null) {
-                                  return const Icon(
-                                    CupertinoIcons.bookmark_fill,
-                                    color: Colors.orange,
-                                  );
-                                }
-                                return const Icon(CupertinoIcons.bookmark);
-                              }),
-                              Text('Bookmark',
-                                  style: Theme.of(context).textTheme.bodyLarge)
-                            ]),
-                          ),
-                          PopupMenuItem(
-                            value: 'favorite',
-                            child: Row(spacing: 16, children: [
-                              SvgPicture.asset(
-                                'assets/images/app_add.svg',
-                                height: 24,
-                                width: 24,
-                                colorFilter: ColorFilter.mode(
-                                    Theme.of(context)
-                                        .iconTheme
-                                        .color!
-                                        .withAlpha(200),
-                                    BlendMode.srcIn),
-                              ),
-                              Text('Add to Favorites',
-                                  style: Theme.of(context).textTheme.bodyLarge)
-                            ]),
-                          ),
-                          const PopupMenuItem(
-                            height: 1,
-                            value: 'divider',
-                            child: Divider(),
-                          ),
-                          PopupMenuItem(
-                            value: 'shareToRooms',
-                            child: Row(spacing: 16, children: [
-                              const Icon(CupertinoIcons.chat_bubble),
-                              Text('Share to Room',
-                                  style: Theme.of(context).textTheme.bodyLarge)
-                            ]),
-                          ),
-                          PopupMenuItem(
-                            value: 'share',
-                            child: Row(spacing: 16, children: [
-                              const Icon(CupertinoIcons.share),
-                              Text('Share',
-                                  style: Theme.of(context).textTheme.bodyLarge)
-                            ]),
-                          ),
-                          if (tc.browserConnect.value.host == "")
-                            PopupMenuItem(
-                              value: 'clear',
-                              child: Row(spacing: 12, children: [
-                                const Icon(Icons.storage),
-                                Text('Clear Cache',
-                                    style:
-                                        Theme.of(context).textTheme.bodyLarge)
-                              ]),
-                            ),
-                          if (tc.browserConnect.value.host != "")
-                            PopupMenuItem(
-                              value: 'disconnect',
-                              child: Row(spacing: 12, children: [
-                                const Icon(Icons.logout),
-                                Text('ID Logout',
-                                    style:
-                                        Theme.of(context).textTheme.bodyLarge)
-                              ]),
-                            ),
-                        ];
-                      },
-                      icon: const Icon(Icons.more_horiz),
-                    ),
-                  ]),
-              body: SafeArea(
-                  bottom: GetPlatform.isAndroid,
-                  child: Column(children: <Widget>[
-                    Expanded(
-                        child: Stack(children: [
-                      InAppWebView(
-                        key: PageStorageKey(widget.uniqueKey),
-                        // keepAlive: keepAlive,
-                        // webViewEnvironment: browserController.webViewEnvironment,
-                        initialUrlRequest:
-                            URLRequest(url: WebUri(widget.initUrl)),
-                        initialSettings: tc.settings,
-                        pullToRefreshController: pullToRefreshController,
-                        onWebViewCreated: (controller) {
-                          webViewController = controller;
-                          controller.addJavaScriptHandler(
-                              handlerName: 'keychat',
-                              callback: javascriptHandler);
-                        },
-                        onLoadStart: (controller, url) async {
-                          tc.url.value = url.toString();
-                        },
-                        onPermissionRequest: (controller, request) async {
-                          return PermissionResponse(
-                              resources: request.resources,
-                              action: PermissionResponseAction.GRANT);
-                        },
-                        shouldOverrideUrlLoading: (controller,
-                            NavigationAction navigationAction) async {
-                          WebUri? uri = navigationAction.request.url;
-                          logger.d(
-                              'shouldOverrideUrlLoading: ${uri?.toString()}');
-                          if (uri == null) return NavigationActionPolicy.ALLOW;
-                          try {
-                            var str = uri.toString();
-                            if (str.startsWith('cashu')) {
-                              ecashController.proccessCashuAString(str);
-                              return NavigationActionPolicy.CANCEL;
+        child: Scaffold(
+          appBar: AppBar(
+              titleSpacing: 0,
+              leadingWidth: 0,
+              leading: Container(),
+              title: Row(spacing: 8, children: [
+                Obx(() => Row(children: [
+                      IconButton(
+                          padding: const EdgeInsets.symmetric(horizontal: 2),
+                          onPressed: goBackOrPop,
+                          icon: const Icon(Icons.arrow_back)),
+                      IconButton(
+                          padding: const EdgeInsets.symmetric(horizontal: 2),
+                          onPressed: () {
+                            if (GetPlatform.isMobile) {
+                              Get.back();
+                            } else {
+                              controller.removeTab(widget.uniqueKey);
                             }
-                            // lightning invoice
-                            if (str.startsWith('lightning:')) {
-                              str = str.replaceFirst('lightning:', '');
-                              var tx = await ecashController
-                                  .proccessPayLightningBill(str, isPay: true);
-                              if (tx != null) {
-                                var lnTx = tx.field0 as LNTransaction;
-                                logger.d(
-                                    'LN Transaction:   Amount=${lnTx.amount}, '
-                                    'INfo=${lnTx.info}, Description=${lnTx.fee}, '
-                                    'Hash=${lnTx.hash}, NodeId=${lnTx.status.name}');
-                              }
-                              return NavigationActionPolicy.CANCEL;
-                            }
-                            if (str.startsWith('lnbc')) {
-                              var tx = await ecashController
-                                  .proccessPayLightningBill(str, isPay: true);
-                              if (tx != null) {
-                                logger.d((tx.field0 as LNTransaction).pr);
-                              }
-
-                              return NavigationActionPolicy.CANCEL;
-                            }
-
-                            if (![
-                              "http",
-                              "https",
-                              "file",
-                              "chrome",
-                              "data",
-                              "javascript",
-                              "about"
-                            ].contains(uri.scheme)) {
-                              if (await canLaunchUrl(uri)) {
-                                // Launch the App
-                                await launchUrl(uri);
-                                // and cancel the request
-                                return NavigationActionPolicy.CANCEL;
-                              }
-                            }
-                            onUpdateVisitedHistory(uri);
-                            return NavigationActionPolicy.ALLOW;
-                          } catch (e) {
-                            logger.d(e.toString(), error: e);
-                          }
-                          return NavigationActionPolicy.ALLOW;
-                        },
-                        onLoadStop: (controller, url) async {
-                          onUpdateVisitedHistory(url);
-                          await controller.injectJavascriptFileFromAsset(
-                              assetFilePath: "assets/js/nostr.js");
-                          pullToRefreshController?.endRefreshing();
-                          tc.url.value = url.toString();
-                        },
-                        onReceivedServerTrustAuthRequest: (_, challenge) async {
-                          return ServerTrustAuthResponse(
-                              action: ServerTrustAuthResponseAction.PROCEED);
-                        },
-                        onReceivedError: (controller, request, error) {
-                          pullToRefreshController?.endRefreshing();
-                        },
-                        onProgressChanged: (controller, progress) {
-                          if (progress == 100) {
-                            pullToRefreshController?.endRefreshing();
-                          }
-
-                          tc.progress.value = progress / 100;
-                        },
-                        onConsoleMessage: (controller, consoleMessage) {
-                          if (kDebugMode) {
-                            print('console: ${consoleMessage.message}');
-                          }
-                        },
-                        onTitleChanged: (controller, title) async {
-                          if (title != null) {
-                            tc.url.value = title.toString();
-                          }
-                        },
-                        onUpdateVisitedHistory:
-                            (controller, url, androidIsReload) {
-                          onUpdateVisitedHistory(url);
-                        },
+                          },
+                          icon: const Icon(Icons.close)),
+                      if (tc.canGoForward.value || GetPlatform.isDesktop)
+                        IconButton(
+                            onPressed: () {
+                              tc.webViewController?.goForward();
+                            },
+                            icon: const Icon(Icons.arrow_forward)),
+                      if (GetPlatform.isDesktop)
+                        IconButton(
+                            onPressed: () {
+                              tc.webViewController?.reload();
+                            },
+                            icon: const Icon(Icons.refresh)),
+                    ])),
+                Expanded(
+                    child: Center(
+                        child: AutoSizeText(title,
+                            minFontSize: 10,
+                            stepGranularity: 2,
+                            maxFontSize: 16,
+                            maxLines: 1,
+                            overflow: TextOverflow.clip)))
+              ]),
+              actions: [
+                PopupMenuButton<String>(
+                  onOpened: menuOpened,
+                  onSelected: popupMenuSelected,
+                  itemBuilder: (BuildContext context) {
+                    return [
+                      PopupMenuItem(
+                        value: 'tools',
+                        child: getPopTools(url),
                       ),
-                      tc.progress.value < 1.0
-                          ? LinearProgressIndicator(value: tc.progress.value)
-                          : Container()
-                    ]))
-                  ])),
-            )));
+                      PopupMenuItem(
+                        value: 'refresh',
+                        child: Row(spacing: 16, children: [
+                          const Icon(Icons.refresh),
+                          Text('Refresh',
+                              style: Theme.of(context).textTheme.bodyLarge)
+                        ]),
+                      ),
+                      PopupMenuItem(
+                        value: 'bookmark',
+                        child: Row(spacing: 16, children: [
+                          FutureBuilder(future: () async {
+                            final url = await tc.webViewController?.getUrl();
+                            if (url == null) return null;
+                            return await DBProvider.database.browserBookmarks
+                                .filter()
+                                .urlEqualTo(url.toString())
+                                .findFirst();
+                          }(), builder: (context, snapshot) {
+                            if (snapshot.data != null) {
+                              return const Icon(
+                                CupertinoIcons.bookmark_fill,
+                                color: Colors.orange,
+                              );
+                            }
+                            return const Icon(CupertinoIcons.bookmark);
+                          }),
+                          Text('Bookmark',
+                              style: Theme.of(context).textTheme.bodyLarge)
+                        ]),
+                      ),
+                      PopupMenuItem(
+                        value: 'favorite',
+                        child: Row(spacing: 16, children: [
+                          SvgPicture.asset(
+                            'assets/images/app_add.svg',
+                            height: 24,
+                            width: 24,
+                            colorFilter: ColorFilter.mode(
+                                Theme.of(context)
+                                    .iconTheme
+                                    .color!
+                                    .withAlpha(200),
+                                BlendMode.srcIn),
+                          ),
+                          Text('Add to Favorites',
+                              style: Theme.of(context).textTheme.bodyLarge)
+                        ]),
+                      ),
+                      const PopupMenuItem(
+                        height: 1,
+                        value: 'divider',
+                        child: Divider(),
+                      ),
+                      PopupMenuItem(
+                        value: 'shareToRooms',
+                        child: Row(spacing: 16, children: [
+                          const Icon(CupertinoIcons.chat_bubble),
+                          Text('Share to Room',
+                              style: Theme.of(context).textTheme.bodyLarge)
+                        ]),
+                      ),
+                      PopupMenuItem(
+                        value: 'share',
+                        child: Row(spacing: 16, children: [
+                          const Icon(CupertinoIcons.share),
+                          Text('Share',
+                              style: Theme.of(context).textTheme.bodyLarge)
+                        ]),
+                      ),
+                      if (tc.browserConnect.value.host == "")
+                        PopupMenuItem(
+                          value: 'clear',
+                          child: Row(spacing: 12, children: [
+                            const Icon(Icons.storage),
+                            Text('Clear Cache',
+                                style: Theme.of(context).textTheme.bodyLarge)
+                          ]),
+                        ),
+                      if (tc.browserConnect.value.host != "")
+                        PopupMenuItem(
+                          value: 'disconnect',
+                          child: Row(spacing: 12, children: [
+                            const Icon(Icons.logout),
+                            Text('ID Logout',
+                                style: Theme.of(context).textTheme.bodyLarge)
+                          ]),
+                        ),
+                    ];
+                  },
+                  icon: const Icon(Icons.more_horiz),
+                ),
+              ]),
+          body: SafeArea(
+              bottom: GetPlatform.isAndroid,
+              child: Column(children: <Widget>[
+                Expanded(
+                    child: Stack(children: [
+                  InAppWebView(
+                    key: PageStorageKey(widget.uniqueKey),
+                    // keepAlive: keepAlive,
+                    // webViewEnvironment: browserController.webViewEnvironment,
+                    initialUrlRequest: URLRequest(url: WebUri(widget.initUrl)),
+                    initialSettings: tc.settings,
+                    pullToRefreshController: tc.pullToRefreshController,
+                    onWebViewCreated: (controller) {
+                      tc.webViewController = controller;
+                      controller.addJavaScriptHandler(
+                          handlerName: 'keychat', callback: javascriptHandler);
+                    },
+                    onLoadStart: (controller, uri) async {
+                      if (uri == null) return;
+                      if (uri.toString() == url) return;
+                      updateTabInfo(
+                          widget.uniqueKey, uri.toString(), title, favicon);
+                    },
+                    onPermissionRequest: (controller, request) async {
+                      return PermissionResponse(
+                          resources: request.resources,
+                          action: PermissionResponseAction.GRANT);
+                    },
+                    shouldOverrideUrlLoading:
+                        (controller, NavigationAction navigationAction) async {
+                      WebUri? uri = navigationAction.request.url;
+                      logger.d('shouldOverrideUrlLoading: ${uri?.toString()}');
+                      if (uri == null) return NavigationActionPolicy.ALLOW;
+                      try {
+                        var str = uri.toString();
+                        if (str.startsWith('cashu')) {
+                          ecashController.proccessCashuAString(str);
+                          return NavigationActionPolicy.CANCEL;
+                        }
+                        // lightning invoice
+                        if (str.startsWith('lightning:')) {
+                          str = str.replaceFirst('lightning:', '');
+                          var tx = await ecashController
+                              .proccessPayLightningBill(str, isPay: true);
+                          if (tx != null) {
+                            var lnTx = tx.field0 as LNTransaction;
+                            logger.d('LN Transaction:   Amount=${lnTx.amount}, '
+                                'INfo=${lnTx.info}, Description=${lnTx.fee}, '
+                                'Hash=${lnTx.hash}, NodeId=${lnTx.status.name}');
+                          }
+                          return NavigationActionPolicy.CANCEL;
+                        }
+                        if (str.startsWith('lnbc')) {
+                          var tx = await ecashController
+                              .proccessPayLightningBill(str, isPay: true);
+                          if (tx != null) {
+                            logger.d((tx.field0 as LNTransaction).pr);
+                          }
+
+                          return NavigationActionPolicy.CANCEL;
+                        }
+
+                        if (![
+                          "http",
+                          "https",
+                          "file",
+                          "chrome",
+                          "data",
+                          "javascript",
+                          "about"
+                        ].contains(uri.scheme)) {
+                          if (await canLaunchUrl(uri)) {
+                            // Launch the App
+                            await launchUrl(uri);
+                            // and cancel the request
+                            return NavigationActionPolicy.CANCEL;
+                          }
+                        }
+                        onUpdateVisitedHistory(uri);
+                        return NavigationActionPolicy.ALLOW;
+                      } catch (e) {
+                        logger.d(e.toString(), error: e);
+                      }
+                      return NavigationActionPolicy.ALLOW;
+                    },
+                    onLoadStop: (controller, url) async {
+                      onUpdateVisitedHistory(url);
+                      await controller.injectJavascriptFileFromAsset(
+                          assetFilePath: "assets/js/nostr.js");
+                      tc.pullToRefreshController?.endRefreshing();
+                    },
+                    onReceivedServerTrustAuthRequest: (_, challenge) async {
+                      return ServerTrustAuthResponse(
+                          action: ServerTrustAuthResponseAction.PROCEED);
+                    },
+                    onReceivedError: (controller, request, error) {
+                      tc.pullToRefreshController?.endRefreshing();
+                    },
+                    onProgressChanged: (controller, data) {
+                      if (data == 100) {
+                        tc.pullToRefreshController?.endRefreshing();
+                      }
+                      setState(() {
+                        progress = data / 100;
+                      });
+                    },
+                    onConsoleMessage: (controller, consoleMessage) {
+                      if (kDebugMode) {
+                        print('console: ${consoleMessage.message}');
+                      }
+                    },
+                    onTitleChanged: (controller, title) async {
+                      if (title == null) return;
+                      updateTabInfo(widget.uniqueKey, url, title, favicon);
+                    },
+                    onUpdateVisitedHistory: (controller, url, androidIsReload) {
+                      onUpdateVisitedHistory(url);
+                    },
+                  ),
+                  progress < 1.0
+                      ? LinearProgressIndicator(value: progress)
+                      : Container()
+                ]))
+              ])),
+        ));
   }
 
   Widget getPopTools(String url) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Theme.of(Get.context!).scaffoldBackgroundColor,
-        borderRadius: BorderRadius.circular(5),
-      ),
+          color: Theme.of(Get.context!).scaffoldBackgroundColor,
+          borderRadius: BorderRadius.circular(5)),
       child: Row(
         spacing: 4,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
-            child: Text(
-              url,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
+            child: Text(url, maxLines: 2, overflow: TextOverflow.ellipsis),
           ),
           IconButton(
             icon: const Icon(Icons.copy, size: 16),
@@ -436,9 +396,9 @@ class _WebviewTabState extends State<WebviewTab> {
   }
 
   void goBackOrPop() {
-    webViewController?.canGoBack().then((canGoBack) {
+    tc.webViewController?.canGoBack().then((canGoBack) {
       if (canGoBack) {
-        webViewController?.goBack();
+        tc.webViewController?.goBack();
       } else {
         if (GetPlatform.isDesktop) {
           controller.removeTab(widget.uniqueKey);
@@ -458,9 +418,8 @@ class _WebviewTabState extends State<WebviewTab> {
       return relays;
     }
 
-    WebUri? uri = await webViewController?.getUrl();
-    if (uri == null) return;
-    String host = uri.host;
+    WebUri? uri = await tc.webViewController?.getUrl();
+    String host = uri?.host ?? url;
     Identity? identity = await getOrSelectIdentity(host);
     if (identity == null) {
       return null;
@@ -574,7 +533,8 @@ class _WebviewTabState extends State<WebviewTab> {
     if (selected != null) {
       EasyLoading.show(status: 'Processing...');
       try {
-        String? favicon = await controller.getFavicon(webViewController!, host);
+        String? favicon =
+            await controller.getFavicon(tc.webViewController!, host);
         BrowserConnect bc = BrowserConnect(
             host: host, pubkey: selected.secp256k1PKHex, favicon: favicon);
         int id = await BrowserConnect.save(bc);
@@ -590,7 +550,7 @@ class _WebviewTabState extends State<WebviewTab> {
   }
 
   Future popupMenuSelected(String value) async {
-    final uri = await webViewController?.getUrl();
+    final uri = await tc.webViewController?.getUrl();
     if (uri == null) return;
 
     switch (value) {
@@ -602,7 +562,7 @@ class _WebviewTabState extends State<WebviewTab> {
         RoomUtil.forwardTextMessage(identity, uri.toString());
         break;
       case 'refresh':
-        webViewController?.reload();
+        tc.webViewController?.reload();
         break;
       case 'bookmark':
         var exist = await DBProvider.database.browserBookmarks
@@ -611,11 +571,9 @@ class _WebviewTabState extends State<WebviewTab> {
             .findFirst();
         if (exist == null) {
           String? favicon = await controller
-              .getFavicon(webViewController!, uri.host)
+              .getFavicon(tc.webViewController!, uri.host)
               .timeout(const Duration(seconds: 10));
-          String? siteTitle = tc.title.value == widget.initUrl
-              ? await webViewController?.getTitle()
-              : tc.title.value;
+          String siteTitle = await tc.webViewController?.getTitle() ?? title;
           await BrowserBookmark.add(
               url: uri.toString(), favicon: favicon, title: siteTitle);
           EasyLoading.showSuccess('Added');
@@ -627,11 +585,9 @@ class _WebviewTabState extends State<WebviewTab> {
         var exist = await BrowserFavorite.getByUrl(uri.toString());
         if (exist == null) {
           String? favicon = await controller
-              .getFavicon(webViewController!, uri.host)
+              .getFavicon(tc.webViewController!, uri.host)
               .timeout(const Duration(seconds: 10));
-          String? siteTitle = tc.title.value == widget.initUrl
-              ? await webViewController?.getTitle()
-              : tc.title.value;
+          String siteTitle = await tc.webViewController?.getTitle() ?? title;
           await BrowserFavorite.add(
               url: uri.toString(), favicon: favicon, title: siteTitle);
           EasyLoading.showSuccess('Added');
@@ -645,57 +601,57 @@ class _WebviewTabState extends State<WebviewTab> {
         EasyLoading.showToast('Copied');
         break;
       case 'clear':
-        if (webViewController == null) return;
-        webViewController?.webStorage.localStorage.clear();
-        webViewController?.webStorage.sessionStorage.clear();
+        if (tc.webViewController == null) return;
+        tc.webViewController?.webStorage.localStorage.clear();
+        tc.webViewController?.webStorage.sessionStorage.clear();
         EasyLoading.showToast('Clear Success');
-        webViewController?.reload();
+        tc.webViewController?.reload();
         break;
       case 'disconnect':
         var res = await BrowserConnect.getByHost(uri.host);
         if (res != null) {
           await BrowserConnect.delete(res.id);
         }
-        webViewController?.webStorage.localStorage.clear();
-        webViewController?.webStorage.sessionStorage.clear();
+        tc.webViewController?.webStorage.localStorage.clear();
+        tc.webViewController?.webStorage.sessionStorage.clear();
         EasyLoading.showToast('Logout Success');
 
         tc.setBrowserConnect(null);
         tc.canGoBack.value = false;
         tc.canGoForward.value = false;
-        webViewController?.reload();
+        tc.webViewController?.reload();
         break;
     }
   }
 
   onUpdateVisitedHistory(WebUri? uri) async {
-    if (webViewController == null) return;
+    if (tc.webViewController == null) return;
     EasyDebounce.debounce('urlHistoryUpdate', const Duration(milliseconds: 100),
         () async {
-      bool? canGoBack = await webViewController?.canGoBack();
-      bool? canGoForward = await webViewController?.canGoForward();
+      bool? canGoBack = await tc.webViewController?.canGoBack();
+      bool? canGoForward = await tc.webViewController?.canGoForward();
       logger.d('canGoBack: $canGoBack, canGoForward: $canGoForward');
       tc.canGoBack.value = canGoBack ?? false;
       tc.canGoForward.value = canGoForward ?? false;
-      tc.url.value = uri.toString();
-      // fetch new title
-      String? newTitle = await webViewController!.getTitle();
-      if (newTitle != null) {
-        tc.title.value = newTitle;
-      }
-
+      String? newTitle = await tc.webViewController?.getTitle();
       String? favicon =
-          await controller.getFavicon(webViewController!, uri!.host);
-      controller.setTabData(
-          uniqueId: widget.uniqueKey,
-          title: newTitle,
-          url: uri.toString(),
-          favicon: favicon);
-      setState(() {
-        title = newTitle ?? title;
-        favicon = favicon;
-      });
-      controller.addHistory(tc.url.value, newTitle ?? tc.title.value, favicon);
+          await controller.getFavicon(tc.webViewController!, uri!.host);
+      updateTabInfo(widget.uniqueKey, url, newTitle ?? title, favicon);
+      controller.addHistory(uri.toString(), newTitle ?? title, favicon);
+    });
+  }
+
+  updateTabInfo(String key, String url0, String title0, String? favicon0) {
+    logger.d(title0);
+    controller.setTabData(
+        uniqueId: widget.uniqueKey,
+        title: title0,
+        url: url0,
+        favicon: favicon0);
+    setState(() {
+      title = title0;
+      favicon = favicon0;
+      url = url0;
     });
   }
 }

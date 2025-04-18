@@ -1,5 +1,5 @@
 import 'package:app/global.dart';
-import 'package:app/page/browser/Browser_page.dart';
+import 'package:app/page/browser/BrowserHome.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/services.dart';
@@ -26,7 +26,7 @@ class _CupertinoRootPageState extends State<CupertinoRootPage> {
   late HomeController homeController;
   @override
   void initState() {
-    pages = [RoomList(), BrowserPage(), MinePage()];
+    pages = [RoomList(), BrowserHome(), MinePage()];
     homeController = Get.find<HomeController>();
     super.initState();
   }

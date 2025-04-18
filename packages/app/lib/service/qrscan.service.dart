@@ -1,4 +1,4 @@
-import 'package:app/page/browser/Browser_controller.dart';
+import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/page/chat/create_contact_page.dart';
 import 'package:app/page/components.dart';
 import 'package:barcode_scan2/barcode_scan2.dart';
@@ -150,7 +150,7 @@ class QrScanService {
           onPressed: () async {
             Get.back();
             if (url.startsWith('https:') || url.startsWith('http:')) {
-              Get.find<BrowserController>()
+              Get.find<MultiWebviewController>()
                   .lanuchWebview(content: url.toString());
               return;
             }

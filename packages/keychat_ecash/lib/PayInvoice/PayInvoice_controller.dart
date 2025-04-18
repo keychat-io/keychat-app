@@ -60,9 +60,15 @@ class PayInvoiceController extends GetxController {
 
       textController.clear();
       cc.requestPageRefresh();
-
-      await Get.to(() =>
-          LightningTransactionPage(transaction: tx.field0 as LNTransaction));
+      if (!isPay) {
+        if (GetPlatform.isDesktop) {
+          await Get.bottomSheet(LightningTransactionPage(
+              transaction: tx.field0 as LNTransaction));
+        } else {
+          await Get.to(() => LightningTransactionPage(
+              transaction: tx.field0 as LNTransaction));
+        }
+      }
       return tx;
     } catch (e, s) {
       String msg = Utils.getErrorMessage(e);

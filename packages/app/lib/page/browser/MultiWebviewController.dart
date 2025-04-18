@@ -1,14 +1,14 @@
 import 'dart:convert' show jsonEncode, jsonDecode;
 
 import 'package:app/controller/setting.controller.dart';
+import 'package:app/desktop/DesktopController.dart';
 import 'package:app/global.dart';
 import 'package:app/models/browser/browser_favorite.dart';
 import 'package:app/models/browser/browser_history.dart';
 import 'package:app/models/db_provider.dart';
-import 'package:app/page/browser/BrowserDetailPage.dart';
+import 'package:app/page/browser/WebviewTab.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
-import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart'
@@ -17,21 +17,160 @@ import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class BrowserController extends GetxController {
+class WebviewTabData {
+  WebviewTab tab;
+  String uniqueKey;
+  String? title;
+  String url;
+  String? favicon;
+  WebviewTabData(
+      {required this.tab, required this.uniqueKey, required this.url});
+}
+
+class MultiWebviewController extends GetxController {
+  final RxList<WebviewTabData> tabs = <WebviewTabData>[].obs;
+
   late TextEditingController textController;
   RxString title = 'Loading'.obs;
   RxString defaultSearchEngineObx = 'google'.obs;
   RxString input = ''.obs;
   RxDouble progress = 0.2.obs;
+  int currentIndex = 0;
 
   RxSet<String> enableSearchEngine = <String>{}.obs;
   RxList<BrowserFavorite> favorites = <BrowserFavorite>[].obs;
   RxMap<String, dynamic> config = <String, dynamic>{}.obs;
   static const maxHistoryInHome = 12;
 
-  Function(String url)? urlChangeCallBack;
+  late Function(String url) urlChangeCallBack;
 
   WebViewEnvironment? webViewEnvironment;
+
+  String _generateUniqueId() {
+    return generate64RandomHexChars(8);
+  }
+
+  void addNewTab() {
+    final String uniqueId = _generateUniqueId();
+    final tab = WebviewTab(
+      uniqueKey: uniqueId,
+      initUrl: KeychatGlobal.newTab,
+      key: GlobalObjectKey(uniqueId),
+      windowId: 0,
+    );
+
+    tabs.add(WebviewTabData(tab: tab, uniqueKey: uniqueId, url: tab.initUrl));
+    setCurrentTabIndex(tabs.length - 1);
+  }
+
+  void removeByIndex(int removeIndex) {
+    if (removeIndex >= 0) {
+      tabs.remove(tabs[removeIndex]);
+      if (tabs.isEmpty) {
+        addNewTab();
+      }
+    }
+    if (removeIndex >= currentIndex) {
+      setCurrentTabIndex(tabs.length - 1);
+    }
+  }
+
+  void removeTab(String tabId) {
+    int removeIndex = -1;
+    for (var i = 0; i < tabs.length; i++) {
+      if (tabs[i].uniqueKey == tabId) {
+        removeIndex = i;
+        break;
+      }
+    }
+    removeByIndex(removeIndex);
+  }
+
+  lanuchWebview(
+      {required String content,
+      String engine = 'google',
+      String? defaultTitle}) async {
+    if (content.isEmpty) return;
+
+    if (GetPlatform.isLinux) {
+      logger.d('webview not working on linux');
+      if (!await launchUrl(Uri.parse(content))) {
+        throw Exception('Could not launch $content');
+      }
+      return;
+    }
+
+    Uri? uri;
+    if (content.startsWith('http') == false) {
+      // try: domain.com
+      bool isDomain = Utils.isDomain(content);
+      // start search engine
+      if (isDomain) {
+        content = 'https://$content';
+      } else {
+        engine = engine.toLowerCase();
+        switch (engine) {
+          case 'google':
+            content = 'https://www.google.com/search?q=$content';
+            break;
+          case 'brave':
+            content = 'https://search.brave.com/search?q=$content';
+          case 'startpage':
+            content = 'https://www.startpage.com/sp/search?q=$content';
+          case 'searxng':
+            content = 'https://searx.tiekoetter.com/search?q=$content';
+            break;
+        }
+      }
+    }
+    uri = Uri.tryParse(content);
+    if (uri == null) return;
+
+    final String uniqueId = _generateUniqueId();
+
+    if (GetPlatform.isMobile) {
+      Get.to(() => WebviewTab(
+            initUrl: content,
+            initTitle: title.value,
+            uniqueKey: uniqueId,
+            windowId: 0,
+          ));
+      return;
+    }
+
+    final tab = WebviewTab(
+      uniqueKey: uniqueId,
+      initUrl: content,
+      key: GlobalObjectKey(uniqueId),
+      windowId: getLastWindowId(),
+    );
+
+    if (Get.find<DesktopController>().sidebarXController.selectedIndex != 1) {
+      Get.find<DesktopController>().sidebarXController.selectIndex(1);
+    }
+    if (tabs.isNotEmpty) {
+      if (tabs.last.url == KeychatGlobal.newTab) {
+        tabs.insert(tabs.length - 1,
+            WebviewTabData(tab: tab, uniqueKey: uniqueId, url: tab.initUrl));
+        setCurrentTabIndex(tabs.length - 2);
+        return;
+      }
+    }
+    tabs.add(WebviewTabData(tab: tab, uniqueKey: uniqueId, url: tab.initUrl));
+    setCurrentTabIndex(tabs.length - 1);
+  }
+
+  Function(int) setCurrentTabIndex = (p0) {};
+
+  int getLastWindowId() {
+    int windowId = 0;
+    for (var item in tabs) {
+      if (item.tab.windowId > windowId) {
+        windowId = item.tab.windowId + 1;
+      }
+    }
+    return windowId;
+  }
 
   loadConfig() async {
     String? localConfig = await Storage.getString('browserConfig');
@@ -84,56 +223,6 @@ class BrowserController extends GetxController {
     progress.value = 0.0;
   }
 
-  lanuchWebview(
-      {required String content,
-      String engine = 'google',
-      String? defaultTitle}) async {
-    if (content.isEmpty) return;
-
-    if (GetPlatform.isLinux) {
-      logger.d('webview not working on linux');
-      if (!await launchUrl(Uri.parse(content))) {
-        throw Exception('Could not launch $content');
-      }
-      return;
-    }
-
-    EasyThrottle.throttle('browserOnComplete', const Duration(seconds: 2),
-        () async {
-      Uri? uri;
-      if (content.startsWith('http') == false) {
-        // try: domain.com
-        bool isDomain = Utils.isDomain(content);
-        // start search engine
-        if (isDomain) {
-          content = 'https://$content';
-        } else {
-          engine = engine.toLowerCase();
-          switch (engine) {
-            case 'google':
-              content = 'https://www.google.com/search?q=$content';
-              break;
-            case 'brave':
-              content = 'https://search.brave.com/search?q=$content';
-            case 'startpage':
-              content = 'https://www.startpage.com/sp/search?q=$content';
-            case 'searxng':
-              content = 'https://searx.tiekoetter.com/search?q=$content';
-              break;
-          }
-        }
-      }
-      uri = Uri.tryParse(content);
-      if (uri == null) return;
-      if (defaultTitle != null) {
-        title.value = defaultTitle;
-      }
-      initBrowser();
-      Get.to(() => BrowserDetailPage(content, title.value),
-          id: GetPlatform.isDesktop ? GetXNestKey.browser : null);
-    });
-  }
-
   loadFavorite() async {
     favorites.value = await BrowserFavorite.getAll();
   }
@@ -159,6 +248,11 @@ class BrowserController extends GetxController {
     loadFavorite();
     initWebview();
     deleteOldHistories();
+
+    if (tabs.isEmpty) {
+      addNewTab();
+    }
+
     super.onInit();
   }
 
@@ -227,6 +321,30 @@ class BrowserController extends GetxController {
       return null;
     }
   }
+
+  void setTabData(
+      {required String uniqueId,
+      String? title,
+      required String url,
+      String? favicon}) {
+    int tabIndex = tabs.indexWhere((tab) => tab.uniqueKey == uniqueId);
+    if (tabIndex >= 0) {
+      if (title != null) {
+        tabs[tabIndex].title = title;
+      }
+      tabs[tabIndex].url = url;
+      if (favicon != null) {
+        tabs[tabIndex].favicon = favicon;
+      }
+      tabs.refresh(); // Trigger UI update since we're using GetX
+    }
+  }
+
+  WebviewTabData? getTab(String uniqueKey) {
+    return tabs.firstWhereOrNull((e) => e.uniqueKey == uniqueKey);
+  }
+
+  void updateTabData({required String uniqueId, required String url}) {}
 }
 
 const String defaultSearchEngine = 'searXNG';

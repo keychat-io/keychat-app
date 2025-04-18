@@ -1,5 +1,5 @@
 import 'package:app/models/browser/browser_history.dart';
-import 'package:app/page/browser/Browser_controller.dart';
+import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -16,8 +16,10 @@ class BrowserHistoryPage extends StatefulWidget {
 class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
   Map<String, List<BrowserHistory>> groupedHistory = {};
   late RefreshController refreshController;
+  late MultiWebviewController controller;
   @override
   void initState() {
+    controller = Get.find<MultiWebviewController>();
     refreshController = RefreshController();
     loadData(limit: 20, offset: 0);
     super.initState();
@@ -52,7 +54,7 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
                             child: const Text('Clear'),
                             onPressed: () async {
                               await BrowserHistory.deleteAll();
-                              Get.find<BrowserController>().lastHistory = null;
+                              controller.lastHistory = null;
                               setState(() {
                                 groupedHistory.clear();
                               });
@@ -105,7 +107,7 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
                               : Text(site.url,
                                   maxLines: 1, overflow: TextOverflow.ellipsis),
                           dense: true,
-                          onTap: () => Get.find<BrowserController>()
+                          onTap: () => Get.find<MultiWebviewController>()
                               .lanuchWebview(
                                   content: site.url, defaultTitle: site.title),
                           trailing: IconButton(

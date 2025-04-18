@@ -5,7 +5,7 @@ import 'dart:math' show Random;
 import 'package:app/app.dart';
 import 'package:app/controller/chat.controller.dart';
 import 'package:app/controller/home.controller.dart';
-import 'package:app/page/browser/Browser_controller.dart';
+import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/message_widget.dart';
 import 'package:app/page/components.dart';
@@ -62,7 +62,7 @@ class _ChatPage2State extends State<ChatPage> {
       LinkConfig(
           onTap: (url) {
             Utils.hideKeyboard(Get.context!);
-            Get.find<BrowserController>().lanuchWebview(content: url);
+            Get.find<MultiWebviewController>().lanuchWebview(content: url);
           },
           style: const TextStyle(
               color: Colors.white,
@@ -76,7 +76,7 @@ class _ChatPage2State extends State<ChatPage> {
       LinkConfig(
           onTap: (url) {
             Utils.hideKeyboard(Get.context!);
-            Get.find<BrowserController>().lanuchWebview(content: url);
+            Get.find<MultiWebviewController>().lanuchWebview(content: url);
           },
           style: const TextStyle(
               color: Colors.blue, decoration: TextDecoration.none)),
@@ -252,7 +252,7 @@ class _ChatPage2State extends State<ChatPage> {
                                               ? Colors.white54
                                               : Colors.black54,
                                           backgroundColor: message.isMeSend
-                                              ? KeychatGlobal.primaryColor
+                                              ? KeychatGlobal.secondaryColor
                                               : toBackgroundColor,
                                           fontColor: fontColor,
                                           markdownConfig:

@@ -1,6 +1,6 @@
 import 'package:app/models/identity.dart';
 import 'package:app/page/browser/BrowserConnectedWebsite.dart';
-import 'package:app/page/browser/Browser_controller.dart';
+import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
@@ -18,12 +18,12 @@ class BrowserSetting extends StatefulWidget {
 }
 
 class _BrowserSettingState extends State<BrowserSetting> {
-  late BrowserController controller;
+  late MultiWebviewController controller;
   List<Identity> identities = [];
   @override
   void initState() {
     super.initState();
-    controller = Get.find<BrowserController>();
+    controller = Get.find<MultiWebviewController>();
     init();
   }
 
@@ -135,9 +135,9 @@ class _BrowserSettingState extends State<BrowserSetting> {
 
   selectRetentionPeriod(int? value) async {
     if (value == null) return;
-    Get.find<BrowserController>().setConfig('historyRetentionDays', value);
+    controller.setConfig('historyRetentionDays', value);
     EasyLoading.showSuccess('Success');
-    await Get.find<BrowserController>().deleteOldHistories();
+    await controller.deleteOldHistories();
     Get.back();
   }
 }

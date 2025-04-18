@@ -1,7 +1,8 @@
 import 'package:app/models/browser/browser_bookmark.dart';
 import 'package:app/models/browser/browser_favorite.dart';
 import 'package:app/page/browser/BookmarkEdit.dart';
-import 'package:app/page/browser/Browser_controller.dart';
+import 'package:app/page/browser/MultiWebviewController.dart'
+    show MultiWebviewController;
 import 'package:app/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -110,7 +111,7 @@ class _BrowserBookmarkPageState extends State<BrowserBookmarkPage> {
                     ],
                   ),
                   onTap: () {
-                    Get.find<BrowserController>().lanuchWebview(
+                    Get.find<MultiWebviewController>().lanuchWebview(
                         content: site.url, defaultTitle: site.title);
                   },
                 );

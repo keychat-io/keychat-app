@@ -1,6 +1,6 @@
 import 'package:app/controller/home.controller.dart';
 import 'package:app/models/browser/browser_favorite.dart';
-import 'package:app/page/browser/Browser_controller.dart';
+import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/page/components.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/material.dart';
@@ -19,8 +19,10 @@ class _WebStorePageState extends State<WebStorePage> {
   late HomeController homeController;
   Set<String> exists = {};
   late RefreshController refreshController;
+  late MultiWebviewController controller;
   @override
   void initState() {
+    controller = Get.find<MultiWebviewController>();
     refreshController = RefreshController();
     homeController = Get.find<HomeController>();
     init();
@@ -31,7 +33,7 @@ class _WebStorePageState extends State<WebStorePage> {
     if (homeController.recommendWebstore.isEmpty) {
       await homeController.loadAppRemoteConfig();
     }
-    List<BrowserFavorite> list = Get.find<BrowserController>().favorites;
+    List<BrowserFavorite> list = controller.favorites;
     Set<String> urls = list.map((e) => e.url).toSet();
     setState(() {
       exists = urls;
@@ -96,7 +98,7 @@ class _WebStorePageState extends State<WebStorePage> {
                                           context, site['description'],
                                           maxLines: 1),
                                       onTap: () {
-                                        Get.find<BrowserController>()
+                                        Get.find<MultiWebviewController>()
                                             .lanuchWebview(
                                                 content: url,
                                                 defaultTitle: site['title']);

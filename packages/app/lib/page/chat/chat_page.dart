@@ -252,7 +252,7 @@ class _ChatPage2State extends State<ChatPage> {
                                               ? Colors.white54
                                               : Colors.black54,
                                           backgroundColor: message.isMeSend
-                                              ? KeychatGlobal.primaryColor
+                                              ? KeychatGlobal.secondaryColor
                                               : toBackgroundColor,
                                           fontColor: fontColor,
                                           markdownConfig:

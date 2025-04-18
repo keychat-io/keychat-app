@@ -131,7 +131,6 @@ class MultiWebviewController extends GetxController {
 
     if (GetPlatform.isMobile) {
       Get.to(() => WebviewTab(
-            key: GlobalObjectKey(uniqueId),
             initUrl: content,
             initTitle: title.value,
             uniqueKey: uniqueId,
@@ -146,6 +145,7 @@ class MultiWebviewController extends GetxController {
       key: GlobalObjectKey(uniqueId),
       windowId: getLastWindowId(),
     );
+
     if (Get.find<DesktopController>().sidebarXController.selectedIndex != 1) {
       Get.find<DesktopController>().sidebarXController.selectIndex(1);
     }

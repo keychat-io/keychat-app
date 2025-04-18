@@ -23,69 +23,72 @@ class BrowserHome extends GetView<MultiWebviewController> {
             onTap: () {
               Utils.hideKeyboard(Get.context!);
             },
-            child: Padding(
-                padding: const EdgeInsets.only(top: 32, left: 16, right: 16),
-                child: Obx(() => Center(
-                        child: Column(children: [
-                      Form(
-                        key: PageStorageKey(
-                            'input:${controller.defaultSearchEngineObx.value}'),
-                        child: TextFormField(
-                          textInputAction: TextInputAction.go,
-                          maxLines: 1,
-                          controller: controller.textController,
-                          decoration: InputDecoration(
-                            labelText: Utils.capitalizeFirstLetter(
-                                controller.defaultSearchEngineObx.value),
-                            border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(100.0)),
-                            isDense: true,
-                            contentPadding: const EdgeInsets.all(2),
-                            prefixIcon: Padding(
-                              padding: const EdgeInsets.all(12.0),
-                              child: SvgPicture.asset(
-                                'assets/images/logo/${controller.defaultSearchEngineObx.value}.svg',
-                                fit: BoxFit.contain,
-                                width: 20,
-                                height: 20,
-                              ),
-                            ),
-                            suffixIcon: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (controller.input.isNotEmpty)
-                                  IconButton(
-                                    icon: const Icon(CupertinoIcons.clear,
-                                        size: 20),
-                                    onPressed: () {
-                                      controller.textController.clear();
-                                    },
+            child: SafeArea(
+                child: Padding(
+                    padding:
+                        const EdgeInsets.only(top: 32, left: 16, right: 16),
+                    child: Obx(() => Center(
+                            child: Column(children: [
+                          Form(
+                            key: PageStorageKey(
+                                'input:${controller.defaultSearchEngineObx.value}'),
+                            child: TextFormField(
+                              textInputAction: TextInputAction.go,
+                              maxLines: 1,
+                              controller: controller.textController,
+                              decoration: InputDecoration(
+                                labelText: Utils.capitalizeFirstLetter(
+                                    controller.defaultSearchEngineObx.value),
+                                border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(100.0)),
+                                isDense: true,
+                                contentPadding: const EdgeInsets.all(2),
+                                prefixIcon: Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: SvgPicture.asset(
+                                    'assets/images/logo/${controller.defaultSearchEngineObx.value}.svg',
+                                    fit: BoxFit.contain,
+                                    width: 20,
+                                    height: 20,
                                   ),
-                                IconButton(
-                                  icon: const Icon(CupertinoIcons.search,
-                                      size: 20),
-                                  onPressed: () async {
-                                    if (controller
-                                        .textController.text.isEmpty) {
-                                      return;
-                                    }
-                                    submitSearchForm(
-                                        controller.textController.text.trim());
-                                  },
                                 ),
-                              ],
+                                suffixIcon: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (controller.input.isNotEmpty)
+                                      IconButton(
+                                        icon: const Icon(CupertinoIcons.clear,
+                                            size: 20),
+                                        onPressed: () {
+                                          controller.textController.clear();
+                                        },
+                                      ),
+                                    IconButton(
+                                      icon: const Icon(CupertinoIcons.search,
+                                          size: 20),
+                                      onPressed: () async {
+                                        if (controller
+                                            .textController.text.isEmpty) {
+                                          return;
+                                        }
+                                        submitSearchForm(controller
+                                            .textController.text
+                                            .trim());
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              onFieldSubmitted: submitSearchForm,
                             ),
                           ),
-                          onFieldSubmitted: submitSearchForm,
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      if (controller.favorites.isNotEmpty)
-                        quickSection(context),
-                      const SizedBox(height: 16),
-                      functionSection(context),
-                      const SizedBox(height: 48)
-                    ]))))));
+                          const SizedBox(height: 32),
+                          if (controller.favorites.isNotEmpty)
+                            quickSection(context),
+                          const SizedBox(height: 16),
+                          functionSection(context),
+                          const SizedBox(height: 48)
+                        ])))))));
   }
 
   void submitSearchForm(value) {
@@ -122,7 +125,8 @@ class BrowserHome extends GetView<MultiWebviewController> {
     int crossAxisCount = 4;
     double spacing = 8.0;
     final screenWidth = MediaQuery.of(context).size.width;
-    if (screenWidth < 900) {
+    if (screenWidth < 600) {
+    } else if (screenWidth < 900) {
       crossAxisCount = 6;
     } else if (screenWidth < 1200) {
       crossAxisCount = 8;

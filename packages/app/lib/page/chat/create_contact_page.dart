@@ -100,7 +100,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.only(top: 20.0, bottom: 40),
+                padding: const EdgeInsets.only(top: 40.0, bottom: 40),
                 child: FilledButton(
                   onPressed: () async {
                     String input = _controller.text.trim();

@@ -18,7 +18,7 @@ class WebviewTabController extends GetxController {
       mediaPlaybackRequiresUserGesture: false,
       allowsInlineMediaPlayback: true,
       useShouldOverrideUrlLoading: true,
-      supportMultipleWindows: true,
+      supportMultipleWindows: GetPlatform.isDesktop,
       transparentBackground: Get.isDarkMode,
       cacheEnabled: true,
       iframeAllow: "camera; microphone",

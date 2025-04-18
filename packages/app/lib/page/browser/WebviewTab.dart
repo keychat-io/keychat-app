@@ -99,6 +99,7 @@ class _WebviewTabState extends State<WebviewTab> {
           appBar: AppBar(
               titleSpacing: 0,
               leadingWidth: 0,
+              toolbarHeight: GetPlatform.isDesktop ? 48 : 40,
               leading: Container(),
               title: Row(spacing: 8, children: [
                 Obx(() => Row(children: [

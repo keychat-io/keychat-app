@@ -28,12 +28,14 @@ import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 class HomeController extends GetxController
     with GetTickerProviderStateMixin, WidgetsBindingObserver {
   IdentityService identityService = IdentityService.instance;
   RxMap<int, Identity> chatIdentities = <int, Identity>{}.obs;
   RxMap<int, Identity> allIdentities = <int, Identity>{}.obs;
+  Map<int, RefreshController> refreshControllers = {};
   RxInt allUnReadCount = 0.obs;
   bool isAppBadgeSupported = false;
 
@@ -222,9 +224,13 @@ class HomeController extends GetxController
     chatIdentities.clear();
     allIdentities.clear();
     for (var i = 0; i < list.length; i++) {
-      allIdentities[list[i].id] = list[i];
+      int id = list[i].id;
+      allIdentities[id] = list[i];
       if (list[i].enableChat) {
-        chatIdentities[list[i].id] = list[i];
+        chatIdentities[id] = list[i];
+        if (refreshControllers[id] == null) {
+          refreshControllers[id] = RefreshController();
+        }
       }
     }
     return chatIdentities.values.toList();
@@ -284,6 +290,10 @@ class HomeController extends GetxController
         unReadSum = unReadSum + item.unReadCount + item.anonymousUnReadCount;
       }
       setUnreadCount(unReadSum.toInt());
+
+      if (refreshControllers[identityId] == null) {
+        refreshControllers[identityId] = RefreshController();
+      }
     });
   }
 
@@ -339,6 +349,9 @@ class HomeController extends GetxController
         ..unReadCount = unReadCount
         ..anonymousUnReadCount = anonymousUnReadCount
         ..rooms = rooms;
+      if (refreshControllers[id] == null) {
+        refreshControllers[id] = RefreshController();
+      }
     }
 
     tabBodyDatas.value = thisTabBodyDatas;
@@ -377,9 +390,11 @@ class HomeController extends GetxController
   onClose() async {
     tabController.dispose();
     WidgetsBinding.instance.removeObserver(this);
-    // scrollControllers.values.map((e) => e.dispose());
     rust_cashu.closeDb();
     subscription.cancel();
+    refreshControllers.forEach((key, value) {
+      value.dispose();
+    });
     Get.find<WebsocketService>().stopListening();
     if (Get.context != null) {
       Utils.hideKeyboard(Get.context!);

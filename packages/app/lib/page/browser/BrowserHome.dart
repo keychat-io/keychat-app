@@ -24,11 +24,10 @@ class BrowserHome extends GetView<MultiWebviewController> {
               Utils.hideKeyboard(Get.context!);
             },
             child: SafeArea(
-                child: Padding(
+                child: Container(
                     padding:
-                        const EdgeInsets.only(top: 32, left: 16, right: 16),
-                    child: Obx(() => Center(
-                            child: Column(children: [
+                        const EdgeInsets.only(top: 40, left: 16, right: 16),
+                    child: Obx(() => ListView(children: [
                           Form(
                             key: PageStorageKey(
                                 'input:${controller.defaultSearchEngineObx.value}'),
@@ -88,7 +87,7 @@ class BrowserHome extends GetView<MultiWebviewController> {
                           const SizedBox(height: 16),
                           functionSection(context),
                           const SizedBox(height: 48)
-                        ])))))));
+                        ]))))));
   }
 
   void submitSearchForm(value) {
@@ -127,7 +126,7 @@ class BrowserHome extends GetView<MultiWebviewController> {
     final screenWidth = MediaQuery.of(context).size.width;
     if (screenWidth < 600) {
     } else if (screenWidth < 900) {
-      crossAxisCount = 6;
+      crossAxisCount = 5;
     } else if (screenWidth < 1200) {
       crossAxisCount = 8;
     } else {
@@ -340,7 +339,7 @@ class BrowserHome extends GetView<MultiWebviewController> {
             borderRadius: const BorderRadius.all(Radius.circular(8))),
         padding: const EdgeInsets.all(16),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             ...features.map((item) {
               return quickSectionItem(

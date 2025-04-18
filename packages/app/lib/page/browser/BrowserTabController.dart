@@ -28,7 +28,6 @@ class WebviewTabController extends GetxController {
   @override
   void onClose() {
     webViewController?.dispose();
-    pullToRefreshController?.dispose();
     super.onClose();
   }
 

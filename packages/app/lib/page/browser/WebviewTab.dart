@@ -87,8 +87,8 @@ class _WebviewTabState extends State<WebviewTab> {
   Widget build(BuildContext context) {
     if (widget.initUrl == KeychatGlobal.newTab) return BrowserHome();
 
-    return PopScope(
-        canPop: false,
+    return Obx(() => PopScope(
+        canPop: !tc.canGoBack.value,
         onPopInvokedWithResult: (didPop, d) {
           if (didPop) {
             return;
@@ -366,7 +366,7 @@ class _WebviewTabState extends State<WebviewTab> {
                       : Container()
                 ]))
               ])),
-        ));
+        )));
   }
 
   Widget getPopTools(String url) {
@@ -627,23 +627,22 @@ class _WebviewTabState extends State<WebviewTab> {
 
   onUpdateVisitedHistory(WebUri? uri) async {
     if (tc.webViewController == null) return;
+    bool? canGoBack = await tc.webViewController?.canGoBack();
+    bool? canGoForward = await tc.webViewController?.canGoForward();
+    logger.d('canGoBack: $canGoBack, canGoForward: $canGoForward');
+    tc.canGoBack.value = canGoBack ?? false;
+    tc.canGoForward.value = canGoForward ?? false;
+    String? newTitle = await tc.webViewController?.getTitle();
+    String? favicon =
+        await controller.getFavicon(tc.webViewController!, uri!.host);
     EasyDebounce.debounce('urlHistoryUpdate', const Duration(milliseconds: 100),
         () async {
-      bool? canGoBack = await tc.webViewController?.canGoBack();
-      bool? canGoForward = await tc.webViewController?.canGoForward();
-      logger.d('canGoBack: $canGoBack, canGoForward: $canGoForward');
-      tc.canGoBack.value = canGoBack ?? false;
-      tc.canGoForward.value = canGoForward ?? false;
-      String? newTitle = await tc.webViewController?.getTitle();
-      String? favicon =
-          await controller.getFavicon(tc.webViewController!, uri!.host);
       updateTabInfo(widget.uniqueKey, url, newTitle ?? title, favicon);
       controller.addHistory(uri.toString(), newTitle ?? title, favicon);
     });
   }
 
   updateTabInfo(String key, String url0, String title0, String? favicon0) {
-    logger.d(title0);
     controller.setTabData(
         uniqueId: widget.uniqueKey,
         title: title0,

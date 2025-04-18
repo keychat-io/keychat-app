@@ -64,7 +64,6 @@ class MultiWebviewController extends GetxController {
   }
 
   void removeByIndex(int removeIndex) {
-    logger.d(removeIndex);
     if (removeIndex >= 0) {
       tabs.remove(tabs[removeIndex]);
       if (tabs.isEmpty) {

@@ -86,7 +86,6 @@ class _PayToLnurlState extends State<PayToLnurl> {
                       }
                       String url =
                           data['callback'] + '?amount=${amount * 1000}';
-                      logger.d(url);
                       var res = await Dio().get(url);
                       pr = res.data['pr'];
                       if (pr == null) {

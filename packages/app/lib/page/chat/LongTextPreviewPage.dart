@@ -1,4 +1,4 @@
-import 'package:app/page/browser/Browser_controller.dart';
+import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -41,7 +41,7 @@ class LongTextPreviewPage extends StatelessWidget {
                         const PConfig(textStyle: TextStyle(fontSize: 20)),
                         LinkConfig(onTap: (url) {
                           Utils.hideKeyboard(Get.context!);
-                          Get.find<BrowserController>()
+                          Get.find<MultiWebviewController>()
                               .lanuchWebview(content: url);
                         })
                       ]))))

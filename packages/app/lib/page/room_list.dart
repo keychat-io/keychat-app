@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 import 'RecommendBots/RecommendBots.dart';
 import 'components.dart';
@@ -89,107 +90,123 @@ class RoomList extends GetView<HomeController> {
             List rooms = data.rooms;
             DateTime messageExpired =
                 DateTime.now().subtract(const Duration(seconds: 5));
-            return ListView.separated(
-                key: ObjectKey('roomlist_tab_$identityId'),
-                padding:
-                    const EdgeInsets.only(bottom: kMinInteractiveDimension * 2),
-                separatorBuilder: (context, index) {
-                  if (rooms[index] is Room) {
-                    if (rooms[index].pin) {
-                      return Container();
-                    }
-                    return divider;
-                  }
-                  return Container();
-                },
-                itemCount: friendsCount,
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    if (data.rooms.length > 4) {
-                      return getSearchWidget(context, pinTileBackground);
-                    }
-                    return const SizedBox();
-                  }
-                  if (index == 1) {
-                    return RecommendBots(
-                        data.identity, List<Room>.from(rooms.sublist(4)));
-                  }
-                  if (index == 2) {
-                    return getNewFriendsWidget(data, rooms[2] as List<Room>,
-                        pinTileBackground, context);
-                  }
-                  if (index == 3) {
-                    return getRequestingWidget(data, rooms[3] as List<Room>,
-                        pinTileBackground, context);
-                  }
-                  Room room = rooms[index];
-                  return InkWell(
-                      key: ObjectKey('${index}_room${room.id}'),
-                      onTap: () async {
-                        await Utils.toNamedRoom(room);
 
-                        RoomService.instance.markAllRead(
-                            identityId: room.identityId, roomId: room.id);
-                        controller.resortRoomList(room.identityId);
-                      },
-                      onSecondaryTapDown: (e) {
-                        onSecondaryTapDown(e, room, context);
-                      },
-                      onLongPress: () =>
-                          RoomUtil.showRoomActionSheet(context, room),
-                      child: Container(
-                          color:
-                              room.pin ? pinTileBackground : Colors.transparent,
-                          child: Obx(() => ListTile(
-                                contentPadding:
-                                    EdgeInsets.only(left: 8, right: 8),
-                                leading: Utils.getAvatarDot(room),
-                                key: Key('room:${room.id}'),
-                                selected:
-                                    desktopController.selectedRoom.value.id ==
-                                        room.id,
-                                selectedTileColor: KeychatGlobal.primaryColor
-                                    .withValues(alpha: 200),
-                                title: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(room.getRoomName(),
-                                        maxLines: 1,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleMedium),
-                                    if (controller.roomLastMessage[room.id] !=
-                                        null)
-                                      Wrap(
-                                        direction: Axis.horizontal,
-                                        children: [
-                                          textSmallGray(
-                                              Get.context!,
-                                              Utils.formatTimeMsg(controller
-                                                  .roomLastMessage[room.id]!
-                                                  .createdAt)),
-                                          room.isMute
-                                              ? Icon(
-                                                  Icons
-                                                      .notifications_off_outlined,
-                                                  color: Theme.of(Get.context!)
-                                                      .colorScheme
-                                                      .onSurface
-                                                      .withValues(alpha: 0.6),
-                                                  size: 16,
-                                                )
-                                              : Container()
-                                        ],
-                                      ),
-                                  ],
-                                ),
-                                subtitle: Obx(() => RoomUtil.getSubtitleDisplay(
-                                    room,
-                                    messageExpired,
-                                    controller.roomLastMessage[room.id])),
-                              ))));
-                });
+            return SmartRefresher(
+                enablePullDown: true,
+                header: const WaterDropHeader(),
+                controller: controller.refreshControllers[identityId] ??
+                    RefreshController(),
+                onRefresh: () async {
+                  // reconnect websocket
+                  await Get.find<WebsocketService>().start();
+                  controller.refreshControllers[identityId]?.refreshCompleted();
+                },
+                child: ListView.separated(
+                  key: ObjectKey('roomlist_tab_$identityId'),
+                  padding: const EdgeInsets.only(
+                      bottom: kMinInteractiveDimension * 2),
+                  separatorBuilder: (context, index) {
+                    if (rooms[index] is Room) {
+                      if (rooms[index].pin) {
+                        return Container();
+                      }
+                      return divider;
+                    }
+                    return Container();
+                  },
+                  itemCount: friendsCount,
+                  itemBuilder: (context, index) {
+                    if (index == 0) {
+                      if (data.rooms.length > 4) {
+                        return getSearchWidget(context, pinTileBackground);
+                      }
+                      return const SizedBox();
+                    }
+                    if (index == 1) {
+                      return RecommendBots(
+                          data.identity, List<Room>.from(rooms.sublist(4)));
+                    }
+                    if (index == 2) {
+                      return getNewFriendsWidget(data, rooms[2] as List<Room>,
+                          pinTileBackground, context);
+                    }
+                    if (index == 3) {
+                      return getRequestingWidget(data, rooms[3] as List<Room>,
+                          pinTileBackground, context);
+                    }
+                    Room room = rooms[index];
+                    return InkWell(
+                        key: ObjectKey('${index}_room${room.id}'),
+                        onTap: () async {
+                          await Utils.toNamedRoom(room);
+
+                          RoomService.instance.markAllRead(
+                              identityId: room.identityId, roomId: room.id);
+                          controller.resortRoomList(room.identityId);
+                        },
+                        onSecondaryTapDown: (e) {
+                          onSecondaryTapDown(e, room, context);
+                        },
+                        onLongPress: () =>
+                            RoomUtil.showRoomActionSheet(context, room),
+                        child: Container(
+                            color: room.pin
+                                ? pinTileBackground
+                                : Colors.transparent,
+                            child: Obx(() => ListTile(
+                                  contentPadding:
+                                      EdgeInsets.only(left: 16, right: 16),
+                                  leading: Utils.getAvatarDot(room),
+                                  key: Key('room:${room.id}'),
+                                  selected:
+                                      desktopController.selectedRoom.value.id ==
+                                          room.id,
+                                  selectedTileColor: KeychatGlobal.primaryColor
+                                      .withValues(alpha: 200),
+                                  title: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(room.getRoomName(),
+                                          maxLines: 1,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium),
+                                      if (controller.roomLastMessage[room.id] !=
+                                          null)
+                                        Wrap(
+                                          direction: Axis.horizontal,
+                                          children: [
+                                            textSmallGray(
+                                                Get.context!,
+                                                Utils.formatTimeMsg(controller
+                                                    .roomLastMessage[room.id]!
+                                                    .createdAt)),
+                                            room.isMute
+                                                ? Icon(
+                                                    Icons
+                                                        .notifications_off_outlined,
+                                                    color:
+                                                        Theme.of(Get.context!)
+                                                            .colorScheme
+                                                            .onSurface
+                                                            .withValues(
+                                                                alpha: 0.6),
+                                                    size: 16,
+                                                  )
+                                                : Container()
+                                          ],
+                                        ),
+                                    ],
+                                  ),
+                                  subtitle: Obx(() =>
+                                      RoomUtil.getSubtitleDisplay(
+                                          room,
+                                          messageExpired,
+                                          controller.roomLastMessage[room.id])),
+                                ))));
+                  },
+                ));
           }).toList())),
     );
   }

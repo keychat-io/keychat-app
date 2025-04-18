@@ -2,27 +2,13 @@ import 'dart:convert' show jsonDecode;
 import 'package:any_link_preview/any_link_preview.dart';
 import 'package:app/constants.dart';
 import 'package:app/global.dart';
-import 'package:app/models/contact.dart';
-import 'package:app/models/embedded/msg_reply.dart';
-import 'package:app/models/identity.dart';
-import 'package:app/models/keychat/group_message.dart';
-import 'package:app/models/keychat/prekey_message_model.dart';
-import 'package:app/models/keychat/qrcode_user_model.dart';
-import 'package:app/models/nostr_event_status.dart';
+import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr_event.dart';
-import 'package:app/page/browser/Browser_controller.dart';
+import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/page/chat/ChatMediaFilesPage.dart';
 import 'package:app/page/chat/ForwardSelectRoom.dart';
 import 'package:app/page/chat/contact_page.dart';
-import 'package:app/page/chat/message_actions/BotOneTimePaymentRequestWidget.dart';
-import 'package:app/page/chat/message_actions/BotPricePerMessageRequestWidget.dart';
-import 'package:app/page/chat/message_actions/FileMessageWidget.dart';
-import 'package:app/page/chat/message_actions/GroupInvitationInfoWidget.dart';
-import 'package:app/page/chat/message_actions/GroupInvitationRequestingWidget.dart';
-import 'package:app/page/chat/message_actions/GroupInviteAction.dart';
-import 'package:app/page/chat/message_actions/GroupInviteConfirmAction.dart';
-import 'package:app/page/chat/message_actions/SetRoomRelayAction.dart';
-import 'package:app/page/chat/message_actions/VideoMessageWidget.dart';
+
 import 'package:app/page/widgets/image_preview_widget.dart';
 import 'package:app/service/signal_chat_util.dart';
 import 'package:app/service/websocket.service.dart';
@@ -672,7 +658,7 @@ Let's start an encrypted chat.''';
         link: content,
         onTap: () {
           Utils.hideKeyboard(Get.context!);
-          Get.find<BrowserController>().lanuchWebview(content: content);
+          Get.find<MultiWebviewController>().lanuchWebview(content: content);
         },
         placeholderWidget:
             errorCallback(child: getMarkdownView(content, markdownConfig)),

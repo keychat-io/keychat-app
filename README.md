@@ -8,9 +8,10 @@ Keychat is a chat app, built on [Bitcoin Ecash](https://cashu.space/), [Nostr Pr
 
 Mobile Screenshot
 <p>
-<img src="./docs/images/app_home.png" width="30%" height="auto" />
-<img src="./docs/images/browser.png" width="30%" height="auto"/>
-<img src="./docs/images/settings.png" width="30%" height="auto"/>
+<img src="./docs/images/app1.jpg" width="23%" height="auto" />
+<img src="./docs/images/app4.jpg" width="23%" height="auto"/>
+<img src="./docs/images/app2.jpg" width="23%" height="auto"/>
+<img src="./docs/images/app3.jpg" width="23%" height="auto"/>
 </p>
 
 Desktop Screenshot
@@ -21,38 +22,38 @@ Desktop Screenshot
 ## Download
 
 - [Android APK](https://github.com/keychat-io/keychat-app/releases)
-- [MacOS-ARM](https://github.com/keychat-io/keychat-app/releases)
-- iOS: Comming
-- GooglePlay: Comming
-- Windows: Comming
-- Linux: Comming
+- [MacOS-arm64](https://github.com/keychat-io/keychat-app/releases)
+- iOS: Coming
+- GooglePlay: Coming
+- Windows: Coming
+- Linux: Coming
 
 
 ## About Keychat
+Senders send messages stamped with Bitcoin ecash to Nostr relays. The Nostr relays collect the Bitcoin ecash, then deliver messages to receivers.
 
-- Senders send messages stamped with Bitcoin ecash to Nostr relays. The Nostr relays collect the Bitcoin ecash, then deliver messages to receivers.
-- Unlike the centralized postal system, Keychat can use multiple Bitcoin ecash issuers and Nostr relays, each maintained by distinct operators.
-- Keychat uses Signal protocol to ensure message encryption security and meta-data privacy.
-- The content of the letter can be exposed easily by opening the envelope. Keychat messages are end-to-end encrypted via Signal protocol, with a unique encryption key generated for each message. Only the sender and receiver can decrypt the message.
-- The addresses of both parties on the envelope can be tracked. In theory, this problem is solved if they change addresses daily. So Keychat reuses Signal protocol to update sending and receiving addresses for nearly every message.
-- Like the postal system, Keychat requires no registration. Users just generate Nostr keys as ID.
+Unlike the centralized postal system, Keychat can use multiple Bitcoin ecash issuers and Nostr relays, each maintained by distinct operators.
 
-## Supported Hardware Platform
+Keychat uses Signal protocol to ensure message encryption security and meta-data privacy.
 
-- Android
-- iOS
-- macOS
-- Linux
-- Windows
+The content of the letter can be exposed easily by opening the envelope. Keychat messages are end-to-end encrypted via Signal protocol, with a unique encryption key generated for each message. Only the sender and receiver can decrypt the message.
+
+The addresses of both parties on the envelope can be tracked. In theory, this problem is solved if they change addresses daily. So Keychat reuses Signal protocol to update sending and receiving addresses for nearly every message.
+
+Like the postal system, Keychat requires no registration. Users just generate Nostr keys as ID.
+
+<p>
+<img src="./docs/images/inspiration.png" width="90%" height="auto"/>
+</p>
 
 ## Spec Compliance
 
 Keychat implements the following nips:
 
 - [NIP-01: Basic protocol flow][nip01]
-- [NIP-04: Encrypted direct message][nip04]
 - [NIP-06: Basic key derivation from mnemonic seed phrase][nip06]
 - [NIP-07: window.nostr capability for web browsers][nip07]
+- [NIP-17: Private Direct Messages][nip17]
 - [NIP-19: Bech32-encoded entities][NIP19]
 - [NIP-44: Encrypted Payloads][NIP44]
 - [NIP-47: Nostr Wallet Connect][NIP47]
@@ -61,7 +62,7 @@ Keychat implements the following nips:
  
 [nips]: https://github.com/nostr-protocol/nips
 [nip01]: https://github.com/nostr-protocol/nips/blob/master/01.md
-[nip04]: https://github.com/nostr-protocol/nips/blob/master/04.md
+[nip17]: https://github.com/nostr-protocol/nips/blob/master/17.md
 [nip06]: https://github.com/nostr-protocol/nips/blob/master/06.md
 [nip07]: https://github.com/nostr-protocol/nips/blob/master/07.md
 [nip19]: https://github.com/nostr-protocol/nips/blob/master/19.md
@@ -95,7 +96,7 @@ melos run build:macos
 - [Nostr Protocol](https://nostr.com/): for delivering and storing messages.
 - [Ecash Cashu](https://cashu.space/): for paying micropayments to relays (optional), depends on whether relay charges a fee.
 - [Signal Protocol](https://github.com/signalapp/libsignal): for encrypting messages (end-to-end).
-- [MLS Protocol](https://github.com/signalapp/libsignal): messaging Layer Security (MLS) is a security layer for encrypting messages in groups of size two to many. 
+- [MLS Protocol](https://github.com/signalapp/libsignal): messaging Layer Security (MLS) is a security layer for encrypting messages in large group. 
 - AWS S3: for storing encrypted files.
 - [Isar DB](https://github.com/isar/isar): a NoSQL database for Flutter for local data storage.
 - [flutter_rust_bridge](https://github.com/fzyzcjy/flutter_rust_bridge/): Flutter/Dart <-> Rust binding generator, feature-rich, but seamless and simple.

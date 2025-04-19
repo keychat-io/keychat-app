@@ -1,35 +1,13 @@
-# Keychat APP
+# Keychat
 
 [![Downloads](https://img.shields.io/github/downloads/keychat-io/keychat-app/total?style=flat-square&logo=github)](https://github.com/keychat-io/keychat-apph/releases/)[![Last Version](https://img.shields.io/github/release/keychat-io/keychat-app/all.svg?style=flat-square)](https://github.com/keychat-io/keychat-app/releases/)[![License](https://img.shields.io/github/license/keychat-io/keychat-app)](LICENSE)
 
 
 
+## About Keychat
+
 Keychat is a chat app, built on [Bitcoin Ecash](https://cashu.space/), [Nostr Protocol](https://github.com/nostr-protocol/nips), [Signal Protocol](https://github.com/signalapp/libsignal) and [MLS Protocol](https://messaginglayersecurity.rocks/).
 
-Mobile Screenshot
-<p>
-<img src="./docs/images/app1.jpg" width="23%" height="auto" />
-<img src="./docs/images/app4.jpg" width="23%" height="auto"/>
-<img src="./docs/images/app2.jpg" width="23%" height="auto"/>
-<img src="./docs/images/app3.jpg" width="23%" height="auto"/>
-</p>
-
-Desktop Screenshot
-<p>
-<img src="./docs/images/desktop.gif" width="90%" height="auto"/>
-</p>
-
-## Download
-
-- [Android APK](https://github.com/keychat-io/keychat-app/releases)
-- [MacOS-arm64](https://github.com/keychat-io/keychat-app/releases)
-- iOS: Coming
-- GooglePlay: Coming
-- Windows: Coming
-- Linux: Coming
-
-
-## About Keychat
 Senders send messages stamped with Bitcoin ecash to Nostr relays. The Nostr relays collect the Bitcoin ecash, then deliver messages to receivers.
 
 Unlike the centralized postal system, Keychat can use multiple Bitcoin ecash issuers and Nostr relays, each maintained by distinct operators.
@@ -42,9 +20,33 @@ The addresses of both parties on the envelope can be tracked. In theory, this pr
 
 Like the postal system, Keychat requires no registration. Users just generate Nostr keys as ID.
 
+### Inspiration
 <p>
 <img src="./docs/images/inspiration.png" width="90%" height="auto"/>
 </p>
+
+
+### Mobile Screenshot
+<p>
+<img src="./docs/images/app1.jpg" width="23%" height="auto" />
+<img src="./docs/images/app4.jpg" width="23%" height="auto"/>
+<img src="./docs/images/app2.jpg" width="23%" height="auto"/>
+<img src="./docs/images/app3.jpg" width="23%" height="auto"/>
+</p>
+
+### Desktop Screenshot
+<p>
+<img src="./docs/images/desktop.gif" width="90%" height="auto"/>
+</p>
+
+## Download
+
+- [Android APK](https://github.com/keychat-io/keychat-app/releases)
+- [MacOS-arm64](https://github.com/keychat-io/keychat-app/releases)
+- iOS: Coming
+- GooglePlay: Coming
+- Windows: Coming
+- Linux: Coming
 
 ## Spec Compliance
 

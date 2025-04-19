@@ -20,10 +20,20 @@ The addresses of both parties on the envelope can be tracked. In theory, this pr
 
 Like the postal system, Keychat requires no registration. Users just generate Nostr keys as ID.
 
-### Inspiration
 <p>
 <img src="./docs/images/inspiration.png" width="90%" height="auto"/>
 </p>
+
+### Design Philosoph
+Offline Me needs self-controlled IDs and wallets to live in the physical world.
+
+Online Me also first needs self-controlled IDs and wallets to live in the digital world.
+
+Then Me can chat and browse.
+
+In Chat, Me uses the IDs and pays for relays per message with the wallets.
+
+In Browser, Me uses the IDs to log in to mini apps and pays in Bitcoin with the wallets.
 
 
 ### Mobile Screenshot
@@ -47,6 +57,9 @@ Like the postal system, Keychat requires no registration. Users just generate No
 - GooglePlay: Coming
 - Windows: Coming
 - Linux: Coming
+
+## Follow Us
+[npub1h0uj825jgcr9lzxyp37ehasuenq070707pj63je07n8mkcsg3u0qnsrwx8](https://jumble.social/users/npub1h0uj825jgcr9lzxyp37ehasuenq070707pj63je07n8mkcsg3u0qnsrwx8)
 
 ## Spec Compliance
 

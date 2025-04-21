@@ -4,14 +4,11 @@ import 'package:app/desktop/DesktopController.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/new_friends_rooms.dart';
 import 'package:app/page/search_page.dart';
-import 'package:app/page/setting/RelaySetting.dart';
-import 'package:app/page/widgets/home_drop_menu.dart';
+import 'package:app/page/widgets/RelayStatus.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:badges/badges.dart' as badges;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 
@@ -25,19 +22,17 @@ class RoomList extends GetView<HomeController> {
   Widget build(BuildContext context) {
     Color pinTileBackground =
         Get.isDarkMode ? const Color(0xFF202020) : const Color(0xFFEDEDED);
-    DesktopController desktopController = Get.find<DesktopController>();
     Divider divider = Divider(
         height: 0.1,
         color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
         indent: 80.0);
-    WebsocketService ws = Get.find<WebsocketService>();
     return Scaffold(
       appBar: AppBar(
           automaticallyImplyLeading: false,
           titleSpacing: 0,
           centerTitle: true,
           leadingWidth: 0,
-          actions: [Obx(() => getRelaysStatus(ws.relayStatusInt.value))],
+          actions: [RelayStatus()],
           title: PreferredSize(
               preferredSize: const Size.fromHeight(0),
               child: SizedBox(
@@ -158,9 +153,12 @@ class RoomList extends GetView<HomeController> {
                                       EdgeInsets.only(left: 16, right: 16),
                                   leading: Utils.getAvatarDot(room),
                                   key: Key('room:${room.id}'),
-                                  selected:
-                                      desktopController.selectedRoom.value.id ==
-                                          room.id,
+                                  selected: Utils.getGetxController<
+                                              DesktopController>()
+                                          ?.selectedRoom
+                                          .value
+                                          .id ==
+                                      room.id,
                                   selectedTileColor: KeychatGlobal.primaryColor
                                       .withValues(alpha: 200),
                                   title: Row(
@@ -336,95 +334,6 @@ class RoomList extends GetView<HomeController> {
                   .onSurface
                   .withValues(alpha: 0.4)),
         ));
-  }
-
-  Widget getRelaysStatus(String status) {
-    if (!controller.isConnectedNetwork.value) {
-      status = RelayStatusEnum.noNetwork.name;
-    }
-
-    switch (status) {
-      case 'connecting':
-        return SizedBox(
-          width: 48,
-          height: 48,
-          child: IconButton(
-            color: Colors.black,
-            icon: SpinKitDoubleBounce(
-              color: Colors.amber.shade200,
-              size: 22.0,
-              duration: const Duration(milliseconds: 4000),
-            ),
-            onPressed: () {
-              _showDialogForReconnect(false, "Relays connecting");
-              // EasyLoading.showToast('Relays connecting, please wait...');
-            },
-          ),
-        );
-      case 'noAcitveRelay':
-      case 'allFailed':
-      case 'noNetwork':
-        return SizedBox(
-            width: 48,
-            height: 48,
-            child: IconButton(
-              icon: Icon(
-                Icons.error,
-                color: Colors.red.shade400,
-              ),
-              onPressed: () {
-                String message =
-                    'All relays connecting error, please check network';
-                if (status == 'noAcitveRelay') {
-                  message = 'No any enable relay, please check the config';
-                }
-                _showDialogForReconnect(false, message);
-              },
-            ));
-      default:
-    }
-    return GestureDetector(
-        onLongPress: () {
-          Get.to(() => const RelaySetting());
-        },
-        child: badges.Badge(
-            showBadge: controller.addFriendTips.value,
-            position: badges.BadgePosition.topEnd(top: 5, end: 5),
-            child: HomeDropMenuWidget(controller.addFriendTips.value)));
-  }
-
-  _showDialogForReconnect(bool status, String message) {
-    Get.dialog(CupertinoAlertDialog(
-      title: status
-          ? const Icon(
-              Icons.check_circle,
-              color: Colors.green,
-              size: 34,
-            )
-          : const Icon(
-              Icons.error,
-              color: Colors.red,
-              size: 34,
-            ),
-      content: Text(message),
-      actions: [
-        CupertinoDialogAction(
-          child: const Text("Cancel"),
-          onPressed: () async {
-            Get.back();
-          },
-        ),
-        CupertinoDialogAction(
-          isDefaultAction: status,
-          onPressed: () async {
-            Get.find<WebsocketService>().init();
-            EasyLoading.showToast('Relays connecting, please wait...');
-            Get.back();
-          },
-          child: const Text("Reconnect"),
-        ),
-      ],
-    ));
   }
 
   void onSecondaryTapDown(TapDownDetails e, Room room, BuildContext context) {

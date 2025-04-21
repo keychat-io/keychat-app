@@ -17,7 +17,6 @@ import 'package:app/service/identity.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/utils.dart';
 import 'package:auto_size_text_plus/auto_size_text_plus.dart';
-import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';

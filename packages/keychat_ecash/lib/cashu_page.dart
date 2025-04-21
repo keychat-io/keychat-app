@@ -578,59 +578,29 @@ class CashuPage extends GetView<EcashController> {
   }
 
   Widget bottomBarWidget(BuildContext context) {
-    return Container(
-        width: GetPlatform.isDesktop ? 100 : Get.width,
-        padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 16,
-            bottom: GetPlatform.isDesktop ? 16 : 32),
-        child: Wrap(
-            direction: Axis.horizontal,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            alignment: WrapAlignment.center,
-            spacing: 24,
-            children: [
-              GestureDetector(
-                onTap: () {
-                  _handleSend();
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: KeychatGlobal.primaryColor,
-                    borderRadius: BorderRadius.circular(5.0),
-                  ),
-                  child: Container(
-                    alignment: Alignment.center,
-                    width: 130.0,
-                    height: 44.0,
-                    child: const Text('Send',
-                        style: TextStyle(color: Colors.white)),
-                  ),
-                ),
-              ),
-              IconButton.filled(
-                  onPressed: () {
-                    QrScanService.instance.handleQRScan();
-                  },
-                  icon: const Icon(CupertinoIcons.qrcode_viewfinder, size: 24)),
-              GestureDetector(
-                onTap: _handleReceive,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: KeychatGlobal.primaryColor,
-                    borderRadius: BorderRadius.circular(5.0),
-                  ),
-                  child: Container(
-                    alignment: Alignment.center,
-                    width: 130.0,
-                    height: 44.0,
-                    child: const Text('Receive',
-                        style: TextStyle(color: Colors.white)),
-                  ),
-                ),
-              ),
-            ]));
+    return Padding(
+        padding: EdgeInsets.only(bottom: 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Wrap(
+                spacing: 16,
+                runAlignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  FilledButton(onPressed: _handleSend, child: Text('Send')),
+                  IconButton(
+                      color: Theme.of(context).colorScheme.primary,
+                      onPressed: () {
+                        QrScanService.instance.handleQRScan();
+                      },
+                      icon: const Icon(CupertinoIcons.qrcode_viewfinder,
+                          size: 24)),
+                  FilledButton(
+                      onPressed: _handleReceive, child: Text('Receive')),
+                ])
+          ],
+        ));
   }
 
   _handleSend() {

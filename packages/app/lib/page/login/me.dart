@@ -181,7 +181,7 @@ class MinePage extends GetView<SettingController> {
           launchUrl(Uri.parse(url), mode: LaunchMode.platformDefault);
           return;
         }
-        const url = 'https://github.com/keychat-io/keychat-app/releases';
+        const url = 'https://keychat.io';
         launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
       },
       child: Wrap(

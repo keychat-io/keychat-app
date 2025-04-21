@@ -2,6 +2,8 @@ import 'dart:io' show Directory;
 
 import 'package:app/global.dart';
 import 'package:app/utils.dart';
+import 'package:flutter/foundation.dart'
+    show FlutterError, FlutterErrorDetails, PlatformDispatcher;
 import 'package:get/get.dart';
 import '../service/storage.dart';
 
@@ -29,13 +31,40 @@ class SettingController extends GetxController with StateMixin<Type> {
     // avatar folder
     avatarsFolder = '${appFolder.path}/avatars';
     browserCacheFolder = '${appFolder.path}/browserCache';
+    String errorsFolder = '${appFolder.path}/errors';
 
-    for (var folder in [avatarsFolder, browserCacheFolder]) {
+    for (var folder in [avatarsFolder, browserCacheFolder, errorsFolder]) {
       Directory(folder).exists().then((res) {
         if (res) return;
         Directory(folder).createSync(recursive: true);
       });
     }
+
+    // Catch uncaught Flutter errors
+    FlutterError.onError = (FlutterErrorDetails details) {
+      FlutterError.presentError(details);
+
+      final error = StringBuffer()
+        ..writeln('Time: ${DateTime.now()}')
+        ..writeln('Error: ${details.exceptionAsString()}')
+        ..writeln('Stack Trace: ${details.stack}')
+        ..writeln('Library: ${details.library}')
+        ..writeln('Context: ${details.context}');
+
+      Utils.logErrorToFile(error.toString());
+    };
+
+    // Catch errors not handled by Flutter
+    PlatformDispatcher.instance.onError = (error, stack) {
+      final errorDetails = StringBuffer()
+        ..writeln('Time: ${DateTime.now()}')
+        ..writeln('Error: $error')
+        ..writeln('Stack Trace: $stack');
+
+      Utils.logErrorToFile(errorDetails.toString());
+      return true; // Return true to prevent the error from propagating
+    };
+
     // file server
     initDefaultFileServerConfig();
   }

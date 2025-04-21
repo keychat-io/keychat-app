@@ -982,4 +982,25 @@ class Utils {
     await Get.offAllNamed('/room/${room.id}',
         arguments: arguments ?? room, id: GetXNestKey.room);
   }
+
+  // Catch and log errors to file
+  static void logErrorToFile(String errorDetails) async {
+    if (kReleaseMode) {
+      try {
+        Directory appFolder = await getAppFolder();
+        final dateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+        final String errorFilePath = '${appFolder.path}/errors/$dateStr.log';
+        final File file = File(errorFilePath);
+
+        if (!file.existsSync()) {
+          file.createSync(recursive: true);
+        }
+
+        await file.writeAsString('$errorDetails\n\n', mode: FileMode.append);
+        logger.e('Error written to $errorFilePath');
+      } catch (e) {
+        logger.e('Failed to write error to file: $e');
+      }
+    }
+  }
 }

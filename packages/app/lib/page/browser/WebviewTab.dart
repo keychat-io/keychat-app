@@ -117,12 +117,13 @@ class _WebviewTabState extends State<WebviewTab> {
                             }
                           },
                           icon: const Icon(Icons.close)),
-                      if (tc.canGoForward.value || GetPlatform.isDesktop)
-                        IconButton(
-                            onPressed: () {
-                              tc.webViewController?.goForward();
-                            },
-                            icon: const Icon(Icons.arrow_forward)),
+                      tc.canGoForward.value
+                          ? IconButton(
+                              onPressed: () {
+                                tc.webViewController?.goForward();
+                              },
+                              icon: const Icon(Icons.arrow_forward))
+                          : Container(),
                       if (GetPlatform.isDesktop)
                         IconButton(
                             onPressed: () {
@@ -320,7 +321,6 @@ class _WebviewTabState extends State<WebviewTab> {
                             return NavigationActionPolicy.CANCEL;
                           }
                         }
-                        onUpdateVisitedHistory(uri);
                         return NavigationActionPolicy.ALLOW;
                       } catch (e) {
                         logger.d(e.toString(), error: e);
@@ -329,7 +329,7 @@ class _WebviewTabState extends State<WebviewTab> {
                     },
                     onLoadStop: (controller, url) async {
                       onUpdateVisitedHistory(url);
-                      await controller.injectJavascriptFileFromAsset(
+                      controller.injectJavascriptFileFromAsset(
                           assetFilePath: "assets/js/nostr.js");
                       tc.pullToRefreshController?.endRefreshing();
                     },
@@ -358,7 +358,7 @@ class _WebviewTabState extends State<WebviewTab> {
                       updateTabInfo(widget.uniqueKey, url, title, favicon);
                     },
                     onUpdateVisitedHistory: (controller, url, androidIsReload) {
-                      onUpdateVisitedHistory(url);
+                      // onUpdateVisitedHistory(url);
                     },
                   ),
                   progress < 1.0
@@ -625,8 +625,9 @@ class _WebviewTabState extends State<WebviewTab> {
     }
   }
 
-  onUpdateVisitedHistory(WebUri? uri) async {
+  Future onUpdateVisitedHistory(WebUri? uri) async {
     if (tc.webViewController == null) return;
+
     bool? canGoBack = await tc.webViewController?.canGoBack();
     bool? canGoForward = await tc.webViewController?.canGoForward();
     logger.d('canGoBack: $canGoBack, canGoForward: $canGoForward');
@@ -635,11 +636,8 @@ class _WebviewTabState extends State<WebviewTab> {
     String? newTitle = await tc.webViewController?.getTitle();
     String? favicon =
         await controller.getFavicon(tc.webViewController!, uri!.host);
-    EasyDebounce.debounce('urlHistoryUpdate', const Duration(milliseconds: 100),
-        () async {
-      updateTabInfo(widget.uniqueKey, url, newTitle ?? title, favicon);
-      controller.addHistory(uri.toString(), newTitle ?? title, favicon);
-    });
+    updateTabInfo(widget.uniqueKey, url, newTitle ?? title, favicon);
+    controller.addHistory(uri.toString(), newTitle ?? title, favicon);
   }
 
   updateTabInfo(String key, String url0, String title0, String? favicon0) {

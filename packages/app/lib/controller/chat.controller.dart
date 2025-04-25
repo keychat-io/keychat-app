@@ -22,10 +22,10 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
-import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
+// import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
-import 'package:super_clipboard/super_clipboard.dart';
+// import 'package:super_clipboard/super_clipboard.dart';
 
 const int maxMessageId = 999999999999;
 
@@ -737,59 +737,59 @@ class ChatController extends GetxController {
   }
 
   Future handlePasteboard() async {
-    final clipboard = SystemClipboard.instance;
-    if (clipboard == null) {
-      return; // Clipboard API is not supported on this platform.
-    }
-    final reader = await clipboard.read();
+    // final clipboard = SystemClipboard.instance;
+    // if (clipboard == null) {
+    //   return; // Clipboard API is not supported on this platform.
+    // }
+    // final reader = await clipboard.read();
 
-    logger.d('cmd+v');
-    final imageFormats = [
-      (Formats.png, MessageMediaType.image, true),
-      (Formats.jpeg, MessageMediaType.image, true),
-      (Formats.webp, MessageMediaType.image, true),
-      (Formats.gif, MessageMediaType.image, false),
-      (Formats.mp4, MessageMediaType.video, true),
-      (Formats.pdf, MessageMediaType.file, false)
-    ];
+    // logger.d('cmd+v');
+    // final imageFormats = [
+    //   (Formats.png, MessageMediaType.image, true),
+    //   (Formats.jpeg, MessageMediaType.image, true),
+    //   (Formats.webp, MessageMediaType.image, true),
+    //   (Formats.gif, MessageMediaType.image, false),
+    //   (Formats.mp4, MessageMediaType.video, true),
+    //   (Formats.pdf, MessageMediaType.file, false)
+    // ];
 
-    for (var (format, mediaType, compress) in imageFormats) {
-      if (reader.canProvide(format)) {
-        return _readFromStream(reader, format, mediaType, compress);
-      }
-    }
+    // for (var (format, mediaType, compress) in imageFormats) {
+    //   if (reader.canProvide(format)) {
+    //     return _readFromStream(reader, format, mediaType, compress);
+    //   }
+    // }
   }
 
-  _readFromStream(
-      ClipboardReader reader, SimpleFileFormat format, MessageMediaType type,
-      [bool compress = true]) async {
-    /// Binary formats need to be read as streams
-    reader.getFile(format, (DataReaderFile file) async {
-      try {
-        EasyLoading.show(status: 'Pasting...');
-        Uint8List imageBytes = await file.readAll();
-        final tempDir = await getTemporaryDirectory();
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        String? mimeType = format.mimeTypes?.first;
-        if (mimeType == null) return;
-        String suffix = mimeType.split('/').last;
-        String newFileName = 'pasted_image_$timestamp.$suffix';
-        final path = '${tempDir.path}/$newFileName';
-        final teampFile = File(path);
-        await teampFile.writeAsBytes(imageBytes);
+  // _readFromStream(
+  //     ClipboardReader reader, SimpleFileFormat format, MessageMediaType type,
+  //     [bool compress = true]) async {
+  //   /// Binary formats need to be read as streams
+  //   reader.getFile(format, (DataReaderFile file) async {
+  //     try {
+  //       EasyLoading.show(status: 'Pasting...');
+  //       Uint8List imageBytes = await file.readAll();
+  //       final tempDir = await getTemporaryDirectory();
+  //       final timestamp = DateTime.now().millisecondsSinceEpoch;
+  //       String? mimeType = format.mimeTypes?.first;
+  //       if (mimeType == null) return;
+  //       String suffix = mimeType.split('/').last;
+  //       String newFileName = 'pasted_image_$timestamp.$suffix';
+  //       final path = '${tempDir.path}/$newFileName';
+  //       final teampFile = File(path);
+  //       await teampFile.writeAsBytes(imageBytes);
 
-        XFile xFile = XFile(path,
-            bytes: imageBytes, mimeType: mimeType, name: newFileName);
-        if (textEditingController.text.endsWith('.$suffix')) {
-          textEditingController.clear();
-        }
-        await handleSendMediaFile(xFile, type, compress);
-      } catch (e, s) {
-        logger.e('_readFromStream: ${e.toString()}', stackTrace: s);
-      } finally {
-        await Future.delayed(Duration(seconds: 2));
-        EasyLoading.dismiss();
-      }
-    });
-  }
+  //       XFile xFile = XFile(path,
+  //           bytes: imageBytes, mimeType: mimeType, name: newFileName);
+  //       if (textEditingController.text.endsWith('.$suffix')) {
+  //         textEditingController.clear();
+  //       }
+  //       await handleSendMediaFile(xFile, type, compress);
+  //     } catch (e, s) {
+  //       logger.e('_readFromStream: ${e.toString()}', stackTrace: s);
+  //     } finally {
+  //       await Future.delayed(Duration(seconds: 2));
+  //       EasyLoading.dismiss();
+  //     }
+  //   });
+  // }
 }

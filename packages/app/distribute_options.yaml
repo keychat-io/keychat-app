@@ -21,6 +21,10 @@ releases:
           build_args:
             enable-experiment: records
 
+
 # flutter_distributor release --name=dev
 # flutter_distributor release --name=dev --jobs=release-dev-linux-deb
+
+# https://fastforge.dev/zh/getting-started
+# fastforge package --platform windows --targets exe --flutter-build-args=verbose
 

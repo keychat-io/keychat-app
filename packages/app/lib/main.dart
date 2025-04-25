@@ -6,6 +6,7 @@ import 'package:app/page/routes.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
+import 'package:app/utils/MyCustomScrollBehavior.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -45,15 +46,15 @@ void main() async {
           GetPlatform.isDesktop ? Transition.fadeIn : Transition.cupertino);
   String initialRoute = await getInitRoute(isLogin);
   var getMaterialApp = GetMaterialApp(
-    initialRoute: initialRoute,
-    getPages: Pages.routes,
-    builder: EasyLoading.init(),
-    locale: Get.deviceLocale,
-    debugShowCheckedModeBanner: false,
-    themeMode: themeMode,
-    theme: AppThemeCustom.light(),
-    darkTheme: AppThemeCustom.dark(),
-  );
+      initialRoute: initialRoute,
+      getPages: Pages.routes,
+      builder: EasyLoading.init(),
+      locale: Get.deviceLocale,
+      debugShowCheckedModeBanner: false,
+      themeMode: themeMode,
+      theme: AppThemeCustom.light(),
+      darkTheme: AppThemeCustom.dark(),
+      scrollBehavior: MyCustomScrollBehavior());
 
   // fix https://github.com/flutter/flutter/issues/119465
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);

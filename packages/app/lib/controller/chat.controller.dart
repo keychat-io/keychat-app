@@ -48,7 +48,7 @@ class ChatController extends GetxController {
   RxList<Room> kpaIsNullRooms = <Room>[].obs; // for signal group chat
   int searchMsgIndex = -1;
   DateTime searchDt = DateTime.now();
-  int messageLimitPerPage = 10;
+  int messageLimitPerPage = 30;
 
   // hide add button
   RxBool hideAdd = true.obs;

@@ -24,6 +24,7 @@ import 'package:isar/isar.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 // import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
 import 'package:permission_handler/permission_handler.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 // import 'package:super_clipboard/super_clipboard.dart';
 
@@ -47,7 +48,7 @@ class ChatController extends GetxController {
   RxList<Room> kpaIsNullRooms = <Room>[].obs; // for signal group chat
   int searchMsgIndex = -1;
   DateTime searchDt = DateTime.now();
-  int messageLimitPerPage = 30;
+  int messageLimitPerPage = 10;
 
   // hide add button
   RxBool hideAdd = true.obs;
@@ -81,6 +82,7 @@ class ChatController extends GetxController {
   late FocusNode keyboardFocus;
   late AutoScrollController autoScrollController;
   late ScrollController textFieldScrollController;
+  late RefreshController refreshController;
   DateTime lastMessageAddedAt = DateTime.now();
 
   final List<String> featuresIcons = [
@@ -369,13 +371,26 @@ class ChatController extends GetxController {
   }
 
   Future loadMoreChatHistory() async {
-    if (messages.isEmpty) return;
+    if (messages.isEmpty) {
+      refreshController.loadComplete();
+      return;
+    }
 
+    // Load more messages
     DateTime from = messages.last.createdAt;
     var list = await MessageService.instance.listMessageByTime(
         roomId: roomObs.value.id, from: from, limit: messageLimitPerPage);
+
+    if (list.isEmpty) {
+      refreshController.loadComplete();
+      return; // No new messages to load
+    }
+
+    // Add new messages
     messages.addAll(sortMessageById(list));
     messages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
+
+    refreshController.loadComplete();
     messages.refresh();
   }
 
@@ -387,6 +402,7 @@ class ChatController extends GetxController {
     textEditingController.dispose();
     textFieldScrollController.dispose();
     autoScrollController.dispose();
+    refreshController.dispose();
     super.onClose();
   }
 
@@ -394,6 +410,7 @@ class ChatController extends GetxController {
   void onInit() async {
     chatContentFocus = FocusNode();
     keyboardFocus = FocusNode();
+    refreshController = RefreshController();
     chatContentFocus.addListener(() {
       if (GetPlatform.isMobile) {
         jumpToBottom2(10);

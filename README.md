@@ -55,7 +55,7 @@ In Browser, Me uses the IDs to log in to mini apps and pays in Bitcoin with the 
 
 - [Android APK](https://github.com/keychat-io/keychat-app/releases)
 - [MacOS-arm64](https://github.com/keychat-io/keychat-app/releases)
-- iOS: Coming
+- [iOS](https://apps.apple.com/us/app/keychat-io/id6447493752)
 - GooglePlay: Coming
 - Windows: Coming
 - Linux: Coming

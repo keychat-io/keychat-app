@@ -8,6 +8,10 @@
 
 Keychat is a chat app, built on [Bitcoin Ecash](https://cashu.space/), [Nostr Protocol](https://github.com/nostr-protocol/nips), [Signal Protocol](https://github.com/signalapp/libsignal) and [MLS Protocol](https://messaginglayersecurity.rocks/).
 
+Keychat is inspired by the postal system — stamps, post offices, letters.
+
+Keychat uses Bitcoin ecash as stamps and Nostr relays as post offices.
+
 Senders send messages stamped with Bitcoin ecash to Nostr relays. The Nostr relays collect the Bitcoin ecash, then deliver messages to receivers.
 
 Keychat uses Signal/MLS protocol to ensure message encryption security and meta-data privacy.

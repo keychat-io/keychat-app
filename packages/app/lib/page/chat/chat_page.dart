@@ -25,6 +25,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 import 'package:get/get.dart';
 import 'package:markdown_widget/markdown_widget.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:settings_ui/settings_ui.dart';
 
@@ -191,9 +192,12 @@ class _ChatPage2State extends State<ChatPage> {
                               ? const Color(0xFF000000)
                               : const Color(0xffededed),
                           padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: RefreshIndicator(
-                            displacement: 2,
-                            onRefresh: controller.loadMoreChatHistory,
+                          child: SmartRefresher(
+                            reverse: true,
+                            enablePullDown: false,
+                            enablePullUp: true,
+                            controller: controller.refreshController,
+                            onLoading: controller.loadMoreChatHistory,
                             child: Obx(() => Listener(
                                 onPointerMove: (event) {
                                   if (event.delta.dy < -10 && isFromSearch) {

@@ -66,7 +66,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
             children: [
               TextField(
                 textInputAction: TextInputAction.done,
-                maxLines: 8,
+                maxLines: 2,
                 minLines: 1,
                 controller: _controller,
                 // autofocus: true,

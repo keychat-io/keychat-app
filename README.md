@@ -92,10 +92,12 @@ Keychat implements the following nips:
 
 ```
 git submodule update --init --recursive
-dart pub global activate melos 6.2.0
+dart pub global activate melos
 melos bootstrap
 
 # build rust lib: packages\keychat_rust_ffi_plugin\README.md
+# cd packages/keychat_rust_ffi_plugin
+# git submodule update --init --recursive
 
 cd packages/app
 flutter devices
@@ -105,6 +107,11 @@ flutter run -d xxx
 melos run build:ios 
 melos run build:android
 melos run build:macos
+
+# windows
+dart pub global activate fastforge
+
+
 ```
 
 

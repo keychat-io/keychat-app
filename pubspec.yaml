@@ -156,6 +156,13 @@ melos:
       name: build_ios
       description: "build android"
       run: bash scripts/build_android.sh
+    build:win:
+      name: build_windows
+      description: "build windows exe"
+      steps:
+        - cd packages/app
+        - fastforge package --platform windows --targets exe --flutter-build-args=verbose
+        - explorer ".\packages\app\build\dist\"
     rust:ios:
       name: rust_api_2_dart
       run: bash scripts/rust_generate_ios.sh

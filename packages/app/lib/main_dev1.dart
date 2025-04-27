@@ -1,12 +1,15 @@
 import 'dart:io' show Directory;
 
 import 'package:app/desktop/DesktopController.dart';
+import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
+import 'package:app/utils/MyCustomScrollBehavior.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -18,7 +21,6 @@ import 'package:keychat_rust_ffi_plugin/index.dart';
 import 'controller/home.controller.dart';
 import 'controller/setting.controller.dart';
 import 'models/db_provider.dart';
-import 'page/browser/BrowserTabController.dart';
 import 'page/app_theme.dart';
 import 'page/pages.dart';
 import 'service/identity.service.dart';
@@ -37,21 +39,22 @@ void main() async {
 
   initEasyLoading();
   Get.config(
-      enableLog: true,
+      enableLog: kDebugMode,
       logWriterCallback: _logWriterCallback,
       defaultPopGesture: true,
-      defaultTransition: Transition.cupertino);
+      defaultTransition:
+          GetPlatform.isDesktop ? Transition.fadeIn : Transition.cupertino);
   String initialRoute = await getInitRoute(isLogin);
   var getMaterialApp = GetMaterialApp(
-    initialRoute: initialRoute,
-    getPages: Pages.routes,
-    builder: EasyLoading.init(),
-    locale: Get.deviceLocale,
-    debugShowCheckedModeBanner: false,
-    themeMode: themeMode,
-    theme: AppThemeCustom.light(),
-    darkTheme: AppThemeCustom.dark(),
-  );
+      initialRoute: initialRoute,
+      getPages: Pages.routes,
+      builder: EasyLoading.init(),
+      locale: Get.deviceLocale,
+      debugShowCheckedModeBanner: false,
+      themeMode: themeMode,
+      theme: AppThemeCustom.light(),
+      darkTheme: AppThemeCustom.dark(),
+      scrollBehavior: MyCustomScrollBehavior());
 
   // fix https://github.com/flutter/flutter/issues/119465
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -125,8 +128,8 @@ Future<SettingController> initServices() async {
   }
 
   await RustLib.init();
-  String env = 'dev1';
-  //const String.fromEnvironment("MYENV", defaultValue: "prod");
+  String env =
+      'dev1'; //const String.fromEnvironment("MYENV", defaultValue: "prod");
   env_config.Config.instance.init(env);
   isProdEnv = env_config.Config.isProd();
 
@@ -140,7 +143,7 @@ Future<SettingController> initServices() async {
   await DBProvider.initDB(dbPath);
   SettingController sc = Get.put(SettingController(), permanent: true);
   Get.put(EcashController(dbPath), permanent: true);
-  Get.put(WebviewTabController(), permanent: true);
+  Get.put(MultiWebviewController(), permanent: true);
   Get.putAsync(() => ChatxService().init(dbPath));
   Get.putAsync(() => WebsocketService().init());
   Get.put(HomeController(), permanent: true);

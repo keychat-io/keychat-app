@@ -140,11 +140,11 @@ Future<SettingController> initServices() async {
   dbDirectory.createSync(recursive: true);
   logger.i('APP Folder: $dbPath');
   await DBProvider.initDB(dbPath);
-  Get.putAsync(() => WebsocketService().init());
   SettingController sc = Get.put(SettingController(), permanent: true);
   Get.put(EcashController(dbPath), permanent: true);
   Get.put(MultiWebviewController(), permanent: true);
   Get.putAsync(() => ChatxService().init(dbPath));
+  await Get.putAsync(() => WebsocketService().init());
   Get.put(HomeController(), permanent: true);
   Get.lazyPut(() => DesktopController(), fenix: true);
   return sc;

@@ -1,0 +1,5 @@
+<Identity Name="Keychat" 
+    Version="1.31.11" 
+    Publisher="CN=Keychat, O=KEYME, C=SG"/>
+    
+<!-- New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=Keychat, O=KEYME, C=SG" -KeyAlgorithm RSA -KeyLength 2048 -HashAlgorithm SHA256 -CertStoreLocation "Cert:\CurrentUser\My" -NotAfter (Get-Date).AddYears(5) -FriendlyName "Keychat_CA" -->

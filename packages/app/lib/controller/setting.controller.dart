@@ -21,7 +21,6 @@ class SettingController extends GetxController with StateMixin<Type> {
 
   @override
   void onInit() async {
-    super.onInit();
     appFolder = await Utils.getAppFolder();
 
     // viewKeychatFutures.value = await getViewKeychatFutures();
@@ -64,6 +63,7 @@ class SettingController extends GetxController with StateMixin<Type> {
       Utils.logErrorToFile(errorDetails.toString());
       return true; // Return true to prevent the error from propagating
     };
+    super.onInit();
 
     // file server
     initDefaultFileServerConfig();

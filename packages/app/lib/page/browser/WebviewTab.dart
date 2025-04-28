@@ -91,9 +91,9 @@ class _WebviewTabState extends State<WebviewTab> {
     return Obx(() => PopScope(
         canPop: !tc.canGoBack.value,
         onPopInvokedWithResult: (didPop, d) {
-          if (didPop) {
-            return;
-          }
+          // if (didPop) {
+          //   return;
+          // }
           goBackOrPop();
         },
         child: Scaffold(

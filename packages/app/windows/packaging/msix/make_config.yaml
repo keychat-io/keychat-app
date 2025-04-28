@@ -1,0 +1,10 @@
+display_name: Keychat
+publisher_display_name: KEYME
+identity_name: com.keychat.io
+logo_path: assets/images/logo.png
+capabilities: internetClient, webcam, documentsLibrary
+languages: en-us
+install_certificate: "false"
+sign_msix: "false"
+certificate_path: ""
+certificate_password: ""

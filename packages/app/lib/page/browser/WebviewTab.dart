@@ -17,6 +17,7 @@ import 'package:app/service/identity.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/utils.dart';
 import 'package:auto_size_text_plus/auto_size_text_plus.dart';
+import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -91,9 +92,6 @@ class _WebviewTabState extends State<WebviewTab> {
     return Obx(() => PopScope(
         canPop: !tc.canGoBack.value,
         onPopInvokedWithResult: (didPop, d) {
-          // if (didPop) {
-          //   return;
-          // }
           goBackOrPop();
         },
         child: Scaffold(
@@ -435,7 +433,7 @@ class _WebviewTabState extends State<WebviewTab> {
                       updateTabInfo(widget.uniqueKey, url, title, favicon);
                     },
                     onUpdateVisitedHistory: (controller, url, androidIsReload) {
-                      // onUpdateVisitedHistory(url);
+                      onUpdateVisitedHistory(url);
                     },
                   ),
                   progress < 1.0
@@ -704,17 +702,19 @@ class _WebviewTabState extends State<WebviewTab> {
 
   Future onUpdateVisitedHistory(WebUri? uri) async {
     if (tc.webViewController == null) return;
-
-    bool? canGoBack = await tc.webViewController?.canGoBack();
-    bool? canGoForward = await tc.webViewController?.canGoForward();
-    logger.d('canGoBack: $canGoBack, canGoForward: $canGoForward');
-    tc.canGoBack.value = canGoBack ?? false;
-    tc.canGoForward.value = canGoForward ?? false;
-    String? newTitle = await tc.webViewController?.getTitle();
-    String? favicon =
-        await controller.getFavicon(tc.webViewController!, uri!.host);
-    updateTabInfo(widget.uniqueKey, url, newTitle ?? title, favicon);
-    controller.addHistory(uri.toString(), newTitle ?? title, favicon);
+    EasyDebounce.debounce(uri.toString(), Duration(milliseconds: 200),
+        () async {
+      bool? canGoBack = await tc.webViewController?.canGoBack();
+      bool? canGoForward = await tc.webViewController?.canGoForward();
+      logger.d('canGoBack: $canGoBack, canGoForward: $canGoForward');
+      tc.canGoBack.value = canGoBack ?? false;
+      tc.canGoForward.value = canGoForward ?? false;
+      String? newTitle = await tc.webViewController?.getTitle();
+      String? favicon =
+          await controller.getFavicon(tc.webViewController!, uri!.host);
+      updateTabInfo(widget.uniqueKey, url, newTitle ?? title, favicon);
+      controller.addHistory(uri.toString(), newTitle ?? title, favicon);
+    });
   }
 
   updateTabInfo(String key, String url0, String title0, String? favicon0) {

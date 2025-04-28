@@ -19,15 +19,16 @@ class BrowserHome extends GetView<MultiWebviewController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        resizeToAvoidBottomInset: false,
         body: GestureDetector(
             onTap: () {
               Utils.hideKeyboard(Get.context!);
             },
             child: SafeArea(
                 child: Container(
-                    padding:
-                        const EdgeInsets.only(top: 40, left: 16, right: 16),
+                    padding: const EdgeInsets.only(left: 16, right: 16),
                     child: Obx(() => ListView(children: [
+                          SizedBox(height: 32),
                           Form(
                             key: PageStorageKey(
                                 'input:${controller.defaultSearchEngineObx.value}'),
@@ -288,7 +289,7 @@ class BrowserHome extends GetView<MultiWebviewController> {
     var features = [
       {
         'icon': 'assets/images/recommend.png',
-        'title': 'Web Store',
+        'title': 'Mini APP',
         'onTap': () async {
           if (GetPlatform.isDesktop) {
             await Get.bottomSheet(const WebStorePage());

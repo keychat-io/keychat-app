@@ -23,11 +23,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
+import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
@@ -333,11 +335,32 @@ class _WebviewTabState extends State<WebviewTab> {
                       tc.pullToRefreshController?.endRefreshing();
                     },
                     onReceivedServerTrustAuthRequest: (_, challenge) async {
+                      var sslError = challenge.protectionSpace.sslError;
+                      if (sslError != null && (sslError.code != null)) {
+                        if ((GetPlatform.isIOS || GetPlatform.isMacOS) &&
+                            sslError.code == SslErrorType.UNSPECIFIED) {
+                          return ServerTrustAuthResponse(
+                              action: ServerTrustAuthResponseAction.PROCEED);
+                        }
+
+                        return ServerTrustAuthResponse(
+                            action: ServerTrustAuthResponseAction.CANCEL);
+                      }
                       return ServerTrustAuthResponse(
                           action: ServerTrustAuthResponseAction.PROCEED);
                     },
-                    onReceivedError: (controller, request, error) {
-                      tc.pullToRefreshController?.endRefreshing();
+                    onDownloadStartRequest: (controller, url) async {
+                      String path = url.url.path;
+                      String fileName =
+                          path.substring(path.lastIndexOf('/') + 1);
+
+                      await FlutterDownloader.enqueue(
+                        url: url.toString(),
+                        fileName: fileName,
+                        savedDir: (await getTemporaryDirectory()).path,
+                        showNotification: true,
+                        openFileFromNotification: true,
+                      );
                     },
                     onProgressChanged: (controller, data) {
                       if (data == 100) {
@@ -346,6 +369,61 @@ class _WebviewTabState extends State<WebviewTab> {
                       setState(() {
                         progress = data / 100;
                       });
+                    },
+                    onReceivedError: (controller, request, error) async {
+                      var isForMainFrame = request.isForMainFrame ?? false;
+                      if (!isForMainFrame) {
+                        return;
+                      }
+
+                      tc.pullToRefreshController?.endRefreshing();
+
+                      if ((GetPlatform.isIOS ||
+                              GetPlatform.isMacOS ||
+                              GetPlatform.isWindows) &&
+                          error.type == WebResourceErrorType.CANCELLED) {
+                        // NSURLErrorDomain
+                        return;
+                      }
+                      if (GetPlatform.isWindows &&
+                          error.type ==
+                              WebResourceErrorType.CONNECTION_ABORTED) {
+                        // CONNECTION_ABORTED
+                        return;
+                      }
+
+                      var errorUrl = request.url;
+
+                      tc.webViewController?.loadData(data: """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <style>
+    ${await InAppWebViewController.tRexRunnerCss}
+    </style>
+    <style>
+    .interstitial-wrapper {
+        box-sizing: border-box;
+        font-size: 1em;
+        line-height: 1.6em;
+        margin: 0 auto 0;
+        max-width: 600px;
+        width: 100%;
+    }
+    </style>
+</head>
+<body>
+    ${await InAppWebViewController.tRexRunnerHtml}
+    <div class="interstitial-wrapper">
+      <h1>Website not available</h1>
+      <p>Could not load web pages at <strong>$errorUrl</strong> because:</p>
+      <p>${error.description}</p>
+    </div>
+</body>
+    """, baseUrl: errorUrl, historyUrl: errorUrl);
                     },
                     onConsoleMessage: (controller, consoleMessage) {
                       if (kDebugMode) {

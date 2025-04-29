@@ -8,3 +8,4 @@ install_certificate: "false"
 sign_msix: "false"
 certificate_path: ""
 certificate_password: ""
+# fastforge package --platform windows --targets msix --skip-clean true

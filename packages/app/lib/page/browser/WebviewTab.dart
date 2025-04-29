@@ -1,6 +1,7 @@
 import 'dart:convert' show jsonDecode;
 
 import 'package:app/controller/home.controller.dart';
+import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr.dart';
@@ -250,10 +251,11 @@ class _WebviewTabState extends State<WebviewTab> {
                   InAppWebView(
                     key: PageStorageKey(widget.uniqueKey),
                     // keepAlive: keepAlive,
-                    // webViewEnvironment: browserController.webViewEnvironment,
+                    webViewEnvironment: Get.find<SettingController>().webViewEnvironment,
                     initialUrlRequest: URLRequest(url: WebUri(widget.initUrl)),
                     initialSettings: tc.settings,
                     pullToRefreshController: tc.pullToRefreshController,
+                    
                     onWebViewCreated: (controller) {
                       tc.webViewController = controller;
                       controller.addJavaScriptHandler(

@@ -1,13 +1,12 @@
 import 'dart:convert' show jsonDecode;
 
 import 'package:app/controller/home.controller.dart';
-import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/browser/BookmarkEdit.dart';
-import 'package:app/page/browser/BrowserHome.dart';
+import 'package:app/page/browser/BrowserNewTab.dart';
 import 'package:app/page/browser/BrowserTabController.dart';
 import 'package:app/page/browser/FavoriteEdit.dart';
 import 'package:app/page/browser/MultiWebviewController.dart';
@@ -56,17 +55,12 @@ class _WebviewTabState extends State<WebviewTab> {
   late EcashController ecashController;
   late MultiWebviewController controller;
   late WebviewTabController tc;
-  late String title;
-  late String url;
-  double progress = 0.2;
-  String? favicon;
 
   @override
   void initState() {
-    url = widget.initUrl;
-    title = widget.initTitle ?? url;
     controller = Get.find<MultiWebviewController>();
-    tc = Get.put(WebviewTabController(), tag: widget.uniqueKey);
+    tc = controller.getOrCreateController(
+        widget.initUrl, widget.initTitle, widget.uniqueKey);
     ecashController = Get.find<EcashController>();
     initBrowserConnect(WebUri(widget.initUrl));
     super.initState();
@@ -76,7 +70,6 @@ class _WebviewTabState extends State<WebviewTab> {
     var uri = await tc.webViewController?.getUrl();
     if (uri == null) return;
     initBrowserConnect(uri);
-    if (uri.toString() != url) return;
     controller.updateTabData(uniqueId: widget.uniqueKey, url: uri.toString());
   }
 
@@ -88,7 +81,7 @@ class _WebviewTabState extends State<WebviewTab> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.initUrl == KeychatGlobal.newTab) return BrowserHome();
+    if (widget.initUrl == KeychatGlobal.newTab) return BrowserNewTab();
 
     return Obx(() => PopScope(
         canPop: !tc.canGoBack.value,
@@ -98,48 +91,53 @@ class _WebviewTabState extends State<WebviewTab> {
         child: Scaffold(
           appBar: AppBar(
               titleSpacing: 0,
-              leadingWidth: 0,
+              leadingWidth: 16,
               toolbarHeight: GetPlatform.isDesktop ? 48 : 40,
               leading: Container(),
-              title: Row(spacing: 8, children: [
-                Obx(() => Row(children: [
-                      IconButton(
-                          padding: const EdgeInsets.symmetric(horizontal: 2),
-                          onPressed: goBackOrPop,
-                          icon: const Icon(Icons.arrow_back)),
-                      IconButton(
-                          padding: const EdgeInsets.symmetric(horizontal: 2),
-                          onPressed: () {
-                            if (GetPlatform.isMobile) {
-                              Get.back();
-                            } else {
-                              controller.removeTab(widget.uniqueKey);
-                            }
-                          },
-                          icon: const Icon(Icons.close)),
-                      tc.canGoForward.value
-                          ? IconButton(
-                              onPressed: () {
-                                tc.webViewController?.goForward();
-                              },
-                              icon: const Icon(Icons.arrow_forward))
-                          : Container(),
-                      if (GetPlatform.isDesktop)
-                        IconButton(
-                            onPressed: () {
-                              tc.webViewController?.reload();
-                            },
-                            icon: const Icon(Icons.refresh)),
-                    ])),
-                Expanded(
-                    child: Center(
-                        child: AutoSizeText(title,
-                            minFontSize: 10,
-                            stepGranularity: 2,
-                            maxFontSize: 16,
-                            maxLines: 1,
-                            overflow: TextOverflow.clip)))
-              ]),
+              centerTitle: true,
+              title: GetPlatform.isDesktop
+                  ? Row(spacing: 8, children: [
+                      Obx(() => Row(children: [
+                            IconButton(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 2),
+                                onPressed: goBackOrPop,
+                                icon: const Icon(Icons.arrow_back)),
+                            IconButton(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 2),
+                                onPressed: () {
+                                  if (GetPlatform.isMobile) {
+                                    Get.back();
+                                  } else {
+                                    controller.removeTab(widget.uniqueKey);
+                                  }
+                                },
+                                icon: const Icon(Icons.close)),
+                            tc.canGoForward.value
+                                ? IconButton(
+                                    onPressed: () {
+                                      tc.webViewController?.goForward();
+                                    },
+                                    icon: const Icon(Icons.arrow_forward))
+                                : Container(),
+                            if (GetPlatform.isDesktop)
+                              IconButton(
+                                  onPressed: () {
+                                    tc.webViewController?.reload();
+                                  },
+                                  icon: const Icon(Icons.refresh)),
+                          ])),
+                      Expanded(
+                          child: Center(
+                              child: AutoSizeText(tc.title.value,
+                                  minFontSize: 10,
+                                  stepGranularity: 2,
+                                  maxFontSize: 16,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.clip)))
+                    ])
+                  : Text(tc.title.value),
               actions: [
                 PopupMenuButton<String>(
                   onOpened: menuOpened,
@@ -148,7 +146,7 @@ class _WebviewTabState extends State<WebviewTab> {
                     return [
                       PopupMenuItem(
                         value: 'tools',
-                        child: getPopTools(url),
+                        child: getPopTools(tc.url.value),
                       ),
                       PopupMenuItem(
                         value: 'refresh',
@@ -242,6 +240,14 @@ class _WebviewTabState extends State<WebviewTab> {
                   },
                   icon: const Icon(Icons.more_horiz),
                 ),
+                IconButton(
+                    onPressed: () {
+                      if (Get.isBottomSheetOpen ?? false) {
+                        Get.back();
+                      }
+                      Get.back(); // exit page
+                    },
+                    icon: const Icon(Icons.power_settings_new_rounded)),
               ]),
           body: SafeArea(
               bottom: GetPlatform.isAndroid,
@@ -250,22 +256,30 @@ class _WebviewTabState extends State<WebviewTab> {
                     child: Stack(children: [
                   InAppWebView(
                     key: PageStorageKey(widget.uniqueKey),
-                    // keepAlive: keepAlive,
-                    webViewEnvironment: Get.find<SettingController>().webViewEnvironment,
-                    initialUrlRequest: URLRequest(url: WebUri(widget.initUrl)),
+                    keepAlive:
+                        GetPlatform.isMobile ? InAppWebViewKeepAlive() : null,
+                    webViewEnvironment: controller.webViewEnvironment,
+                    initialUrlRequest: URLRequest(url: WebUri(tc.url.value)),
                     initialSettings: tc.settings,
                     pullToRefreshController: tc.pullToRefreshController,
-                    
-                    onWebViewCreated: (controller) {
+                    onWebViewCreated: (controller) async {
                       tc.webViewController = controller;
+                      await controller.evaluateJavascript(source: """
+                        window.print = function(){};
+                      """);
                       controller.addJavaScriptHandler(
                           handlerName: 'keychat', callback: javascriptHandler);
                     },
                     onLoadStart: (controller, uri) async {
                       if (uri == null) return;
-                      if (uri.toString() == url) return;
-                      updateTabInfo(
-                          widget.uniqueKey, uri.toString(), title, favicon);
+                      if (uri.toString() == tc.url.value) return;
+                      updateTabInfo(widget.uniqueKey, uri.toString(),
+                          tc.title.value, tc.favicon);
+                    },
+                    onPrintRequest:
+                        (controller, url, printJobController) async {
+                      await printJobController?.cancel();
+                      return false;
                     },
                     onPermissionRequest: (controller, request) async {
                       return PermissionResponse(
@@ -366,9 +380,8 @@ class _WebviewTabState extends State<WebviewTab> {
                       if (data == 100) {
                         tc.pullToRefreshController?.endRefreshing();
                       }
-                      setState(() {
-                        progress = data / 100;
-                      });
+
+                      tc.progress.value = data / 100;
                     },
                     onReceivedError: (controller, request, error) async {
                       var isForMainFrame = request.isForMainFrame ?? false;
@@ -432,15 +445,16 @@ class _WebviewTabState extends State<WebviewTab> {
                     },
                     onTitleChanged: (controller, title) async {
                       if (title == null) return;
-                      updateTabInfo(widget.uniqueKey, url, title, favicon);
+                      updateTabInfo(
+                          widget.uniqueKey, tc.url.value, title, tc.favicon);
                     },
                     onUpdateVisitedHistory: (controller, url, androidIsReload) {
                       onUpdateVisitedHistory(url);
                     },
                   ),
-                  progress < 1.0
-                      ? LinearProgressIndicator(value: progress)
-                      : Container()
+                  Obx(() => tc.progress.value < 1.0
+                      ? LinearProgressIndicator(value: tc.progress.value)
+                      : Container())
                 ]))
               ])),
         )));
@@ -497,7 +511,8 @@ class _WebviewTabState extends State<WebviewTab> {
     }
 
     WebUri? uri = await tc.webViewController?.getUrl();
-    String host = uri?.host ?? url;
+    String? host = uri?.host;
+    if (host == null) return;
     Identity? identity = await getOrSelectIdentity(host);
     if (identity == null) {
       return null;
@@ -651,7 +666,7 @@ class _WebviewTabState extends State<WebviewTab> {
           String? favicon = await controller
               .getFavicon(tc.webViewController!, uri.host)
               .timeout(const Duration(seconds: 10));
-          String siteTitle = await tc.webViewController?.getTitle() ?? title;
+          String? siteTitle = await tc.webViewController?.getTitle();
           await BrowserBookmark.add(
               url: uri.toString(), favicon: favicon, title: siteTitle);
           EasyLoading.showSuccess('Added');
@@ -665,7 +680,7 @@ class _WebviewTabState extends State<WebviewTab> {
           String? favicon = await controller
               .getFavicon(tc.webViewController!, uri.host)
               .timeout(const Duration(seconds: 10));
-          String siteTitle = await tc.webViewController?.getTitle() ?? title;
+          String? siteTitle = await tc.webViewController?.getTitle();
           await BrowserFavorite.add(
               url: uri.toString(), favicon: favicon, title: siteTitle);
           EasyLoading.showSuccess('Added');
@@ -714,8 +729,9 @@ class _WebviewTabState extends State<WebviewTab> {
       String? newTitle = await tc.webViewController?.getTitle();
       String? favicon =
           await controller.getFavicon(tc.webViewController!, uri!.host);
-      updateTabInfo(widget.uniqueKey, url, newTitle ?? title, favicon);
-      controller.addHistory(uri.toString(), newTitle ?? title, favicon);
+      String title = newTitle ?? tc.title.value;
+      updateTabInfo(widget.uniqueKey, uri.toString(), title, favicon);
+      controller.addHistory(uri.toString(), title, favicon);
     });
   }
 
@@ -725,10 +741,8 @@ class _WebviewTabState extends State<WebviewTab> {
         title: title0,
         url: url0,
         favicon: favicon0);
-    setState(() {
-      title = title0;
-      favicon = favicon0;
-      url = url0;
-    });
+    tc.title.value = title0;
+    tc.url.value = url0;
+    tc.favicon = favicon0;
   }
 }

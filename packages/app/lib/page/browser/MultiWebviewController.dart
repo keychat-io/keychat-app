@@ -6,6 +6,7 @@ import 'package:app/global.dart';
 import 'package:app/models/browser/browser_favorite.dart';
 import 'package:app/models/browser/browser_history.dart';
 import 'package:app/models/db_provider.dart';
+import 'package:app/page/browser/BrowserTabController.dart';
 import 'package:app/page/browser/WebviewTab.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
@@ -51,12 +52,38 @@ class MultiWebviewController extends GetxController {
   }
 
   void addNewTab() {
-    final String uniqueId = _generateUniqueId();
+    String uniqueId = _generateUniqueId();
+
+    // use new tab if exist
+    if (GetPlatform.isMobile) {
+      for (var i = 0; i < tabs.length; i++) {
+        var item = tabs[i];
+        if (item.tab.initTitle == KeychatGlobal.newTab) {
+          setCurrentTabIndex(i);
+          return;
+        }
+      }
+    }
+    // allow multi new_tabs on desktop
     final tab = WebviewTab(
       uniqueKey: uniqueId,
       initUrl: KeychatGlobal.newTab,
       key: GlobalObjectKey(uniqueId),
-      windowId: 0,
+      windowId: getLastWindowId(),
+    );
+
+    tabs.add(WebviewTabData(tab: tab, uniqueKey: uniqueId, url: tab.initUrl));
+    setCurrentTabIndex(tabs.length - 1);
+  }
+
+  // for mobile
+  void addOrSelectNewTab() {
+    String uniqueId = _generateUniqueId();
+    final tab = WebviewTab(
+      uniqueKey: uniqueId,
+      initUrl: KeychatGlobal.newTab,
+      key: GlobalObjectKey(uniqueId),
+      windowId: getLastWindowId(),
     );
 
     tabs.add(WebviewTabData(tab: tab, uniqueKey: uniqueId, url: tab.initUrl));
@@ -125,9 +152,7 @@ class MultiWebviewController extends GetxController {
     }
     uri = Uri.tryParse(content);
     if (uri == null) return;
-
     final String uniqueId = _generateUniqueId();
-
     if (GetPlatform.isMobile) {
       Get.to(() => WebviewTab(
             initUrl: content,
@@ -148,16 +173,14 @@ class MultiWebviewController extends GetxController {
     if (Get.find<DesktopController>().sidebarXController.selectedIndex != 1) {
       Get.find<DesktopController>().sidebarXController.selectIndex(1);
     }
-    if (tabs.isNotEmpty) {
-      if (tabs.last.url == KeychatGlobal.newTab) {
-        tabs.insert(tabs.length - 1,
-            WebviewTabData(tab: tab, uniqueKey: uniqueId, url: tab.initUrl));
-        setCurrentTabIndex(tabs.length - 2);
-        return;
-      }
+    if (tabs.isNotEmpty && tabs.last.url == KeychatGlobal.newTab) {
+      tabs.insert(tabs.length - 1,
+          WebviewTabData(tab: tab, uniqueKey: uniqueId, url: tab.initUrl));
+      setCurrentTabIndex(tabs.length - 2);
+    } else {
+      tabs.add(WebviewTabData(tab: tab, uniqueKey: uniqueId, url: tab.initUrl));
+      setCurrentTabIndex(tabs.length - 1);
     }
-    tabs.add(WebviewTabData(tab: tab, uniqueKey: uniqueId, url: tab.initUrl));
-    setCurrentTabIndex(tabs.length - 1);
   }
 
   Function(int) setCurrentTabIndex = (p0) {};
@@ -345,6 +368,24 @@ class MultiWebviewController extends GetxController {
   }
 
   void updateTabData({required String uniqueId, required String url}) {}
+
+  WebviewTabController getOrCreateController(
+      String initUrl, String? initTitle, String uniqueKey) {
+    // multi window on desktop
+    if (GetPlatform.isDesktop) {
+      return Get.put(WebviewTabController(initUrl, initTitle), tag: uniqueKey);
+    }
+    // for mobile
+    String host = Uri.parse(initUrl).host;
+    try {
+      var controller = Get.find<WebviewTabController>(tag: host);
+      return controller;
+    } catch (e) {
+      // permanent. manaul to delete
+      return Get.put(WebviewTabController(initUrl, initTitle),
+          tag: host, permanent: true);
+    }
+  }
 }
 
 const String defaultSearchEngine = 'searXNG';

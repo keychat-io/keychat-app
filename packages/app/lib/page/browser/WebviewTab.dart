@@ -273,6 +273,7 @@ class _WebviewTabState extends State<WebviewTab> {
                     child: Stack(children: [
                   InAppWebView(
                     key: PageStorageKey(widget.uniqueKey),
+                    keepAlive: tc.keepAlive,
                     webViewEnvironment: controller.webViewEnvironment,
                     initialUrlRequest: URLRequest(url: WebUri(tc.url.value)),
                     initialSettings: tc.settings,

@@ -12,7 +12,7 @@ class WebviewTabController extends GetxController {
   PullToRefreshController? pullToRefreshController;
   RxString title = ''.obs;
   RxString url = ''.obs;
-  RxDouble progress = 0.2.obs;
+  RxDouble progress = 1.0.obs;
   String? favicon;
   InAppWebViewKeepAlive? keepAlive;
   WebviewTabController(String initUrl, String? initTitle) {

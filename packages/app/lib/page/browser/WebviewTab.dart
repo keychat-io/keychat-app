@@ -449,6 +449,12 @@ class _WebviewTabState extends State<WebviewTab> {
       <p>Could not load web pages at <strong>$errorUrl</strong> because:</p>
       <p>${error.description}</p>
     </div>
+    <button onclick="window.location.reload(true);"  style="
+      padding: 10px 30px;
+      font-size: 18px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;">Refresh</button>
 </body>
     """, baseUrl: errorUrl, historyUrl: errorUrl);
                     },

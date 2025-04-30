@@ -159,12 +159,14 @@ class MultiWebviewController extends GetxController {
     uri = Uri.tryParse(content);
     if (uri == null) return;
     if (GetPlatform.isMobile) {
-      Get.to(() => WebviewTab(
-            initUrl: content,
-            initTitle: title.value,
-            uniqueKey: uri!.host, // for close controller
-            windowId: 0,
-          ));
+      Get.to(
+          () => WebviewTab(
+                initUrl: content,
+                initTitle: title.value,
+                uniqueKey: uri!.host, // for close controller
+                windowId: 0,
+              ),
+          transition: Transition.downToUp);
       return;
     }
 

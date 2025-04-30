@@ -39,8 +39,7 @@ class RelayService {
     await ws.addChannel(relay, connectedCallback: () async {
       NotifyService.syncPubkeysToServer(); // sub new relay
       RelayService.instance.initRelayFeeInfo([relay]);
-      await MlsGroupService.instance
-          .uploadKeyPackages(toRelays: [relay.url], forceUpload: true);
+      await MlsGroupService.instance.uploadKeyPackages(toRelay: relay.url);
     });
     return true;
   }

@@ -165,7 +165,7 @@ class RelayWebsocket {
       // init mls keypackages
       EasyDebounce.debounce(
           'connectSuccess:${relay.url}', const Duration(seconds: 3), () async {
-        await MlsGroupService.instance.uploadKeyPackages(toRelays: [relay.url]);
+        await MlsGroupService.instance.uploadKeyPackages(toRelay: relay.url);
       });
       _proccessFailedEvents();
       // nwc reconnect

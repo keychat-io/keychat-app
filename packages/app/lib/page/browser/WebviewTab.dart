@@ -119,19 +119,18 @@ class _WebviewTabState extends State<WebviewTab> {
                                   }
                                 },
                                 icon: const Icon(Icons.close)),
-                            tc.canGoForward.value
-                                ? IconButton(
-                                    onPressed: () {
-                                      tc.webViewController?.goForward();
-                                    },
-                                    icon: const Icon(Icons.arrow_forward))
-                                : Container(),
-                            if (GetPlatform.isDesktop)
-                              IconButton(
-                                  onPressed: () {
-                                    tc.webViewController?.reload();
-                                  },
-                                  icon: const Icon(Icons.refresh)),
+                            IconButton(
+                                onPressed: tc.canGoForward.value
+                                    ? () {
+                                        tc.webViewController?.goForward();
+                                      }
+                                    : null,
+                                icon: const Icon(Icons.arrow_forward)),
+                            IconButton(
+                                onPressed: () {
+                                  tc.webViewController?.reload();
+                                },
+                                icon: const Icon(Icons.refresh)),
                           ])),
                       Expanded(
                           child: Center(

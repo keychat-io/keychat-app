@@ -114,7 +114,7 @@ class GroupInviteAction extends StatelessWidget {
           msg =
               'Your KeyPackage is invalid, Please contact the group admin, resend the invitation';
           await MlsGroupService.instance
-              .uploadKeyPackages(identities: [identity]);
+              .uploadKeyPackages(identities: [identity], forceUpload: true);
           message.requestConfrim = RequestConfrimEnum.expired;
           await MessageService.instance.updateMessageAndRefresh(message);
         }

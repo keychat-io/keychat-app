@@ -4,7 +4,7 @@ import 'package:isar/isar.dart';
 
 part 'identity.g.dart';
 
-@Collection(ignore: {'props', 'displayName', 'mainMykey', 'mlsInit'})
+@Collection(ignore: {'props', 'displayName', 'mainMykey'})
 // ignore: must_be_immutable
 class Identity extends Equatable {
   Id id = Isar.autoIncrement;
@@ -39,7 +39,6 @@ class Identity extends Equatable {
   bool enableChat = true;
   bool enableBrowser = true;
   bool isFromSigner = false;
-  bool mlsInit = false;
 
   Identity({
     required this.name,

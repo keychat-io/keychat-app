@@ -14,6 +14,7 @@ class WebviewTabController extends GetxController {
   RxString url = ''.obs;
   RxDouble progress = 0.2.obs;
   String? favicon;
+  InAppWebViewKeepAlive? keepAlive;
   WebviewTabController(String initUrl, String? initTitle) {
     url.value = initUrl;
     title.value = initTitle ?? initUrl;
@@ -45,6 +46,10 @@ class WebviewTabController extends GetxController {
 
   @override
   void onInit() {
+    if (GetPlatform.isMobile) {
+      keepAlive = InAppWebViewKeepAlive();
+    }
+
     pullToRefreshController = kIsWeb ||
             ![TargetPlatform.iOS, TargetPlatform.android]
                 .contains(defaultTargetPlatform)

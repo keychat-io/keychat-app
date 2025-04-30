@@ -88,10 +88,6 @@ class _ChatPage2State extends State<ChatPage> {
 
   @override
   void dispose() {
-    // Get.delete<ChatController>(tag: controller.roomObs.value.id.toString());
-    // if (GetPlatform.isDesktop) {
-    //   Get.find<DesktopController>().resetRoom();
-    // }
     super.dispose();
   }
 
@@ -366,7 +362,8 @@ class _ChatPage2State extends State<ChatPage> {
                                     .instance.logicalKeysPressed
                                     .contains(LogicalKeyboardKey.shiftLeft) ||
                                 HardwareKeyboard.instance.logicalKeysPressed
-                                    .contains(LogicalKeyboardKey.altLeft) || HardwareKeyboard.instance.logicalKeysPressed
+                                    .contains(LogicalKeyboardKey.altLeft) ||
+                                HardwareKeyboard.instance.logicalKeysPressed
                                     .contains(LogicalKeyboardKey.controlLeft);
 
                             if (event.logicalKey == LogicalKeyboardKey.enter &&

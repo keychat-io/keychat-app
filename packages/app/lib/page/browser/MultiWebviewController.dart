@@ -126,7 +126,7 @@ class MultiWebviewController extends GetxController {
       }
       return;
     }
-
+    String uniqueId = _generateUniqueId();
     Uri? uri;
     if (content.startsWith('http') == false) {
       // try: domain.com
@@ -148,16 +148,21 @@ class MultiWebviewController extends GetxController {
             content = 'https://searx.tiekoetter.com/search?q=$content';
             break;
         }
+        if (GetPlatform.isMobile) {
+          String? host = Uri.tryParse(content)?.host;
+          if (host != null) {
+            Get.delete<WebviewTabController>(tag: host, force: true);
+          }
+        }
       }
     }
     uri = Uri.tryParse(content);
     if (uri == null) return;
-    final String uniqueId = _generateUniqueId();
     if (GetPlatform.isMobile) {
       Get.to(() => WebviewTab(
             initUrl: content,
             initTitle: title.value,
-            uniqueKey: uniqueId,
+            uniqueKey: uri!.host, // for close controller
             windowId: 0,
           ));
       return;
@@ -376,14 +381,13 @@ class MultiWebviewController extends GetxController {
       return Get.put(WebviewTabController(initUrl, initTitle), tag: uniqueKey);
     }
     // for mobile
-    String host = Uri.parse(initUrl).host;
     try {
-      var controller = Get.find<WebviewTabController>(tag: host);
+      var controller = Get.find<WebviewTabController>(tag: uniqueKey);
       return controller;
     } catch (e) {
-      // permanent. manaul to delete
+      // permanent. manaully to delete
       return Get.put(WebviewTabController(initUrl, initTitle),
-          tag: host, permanent: true);
+          tag: uniqueKey, permanent: true);
     }
   }
 }

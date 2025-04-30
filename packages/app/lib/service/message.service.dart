@@ -61,9 +61,8 @@ class MessageService {
     await RoomService.getController(model.roomId)?.addMessage(model);
     var hc = Get.find<HomeController>();
     hc.roomLastMessage[model.roomId] = model;
-    if (model.isRead == false) {
-      hc.loadIdentityRoomList(model.identityId);
-    }
+    hc.loadIdentityRoomList(model.identityId);
+
     // show snackbar in other page
     if (!model.isRead && !isCurrentPage && Get.currentRoute != '/') {
       String contenet = model.mediaType == MessageMediaType.text

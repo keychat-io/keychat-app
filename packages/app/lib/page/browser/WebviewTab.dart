@@ -66,6 +66,11 @@ class _WebviewTabState extends State<WebviewTab> {
     super.initState();
   }
 
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
   void menuOpened() async {
     var uri = await tc.webViewController?.getUrl();
     if (uri == null) return;
@@ -236,18 +241,28 @@ class _WebviewTabState extends State<WebviewTab> {
                                 style: Theme.of(context).textTheme.bodyLarge)
                           ]),
                         ),
+                      if (GetPlatform.isMobile)
+                        PopupMenuItem(
+                          value: 'close',
+                          child: Row(spacing: 12, children: [
+                            const Icon(Icons.exit_to_app),
+                            Text('Close',
+                                style: Theme.of(context).textTheme.bodyLarge)
+                          ]),
+                        ),
                     ];
                   },
                   icon: const Icon(Icons.more_horiz),
                 ),
-                IconButton(
-                    onPressed: () {
-                      if (Get.isBottomSheetOpen ?? false) {
-                        Get.back();
-                      }
-                      Get.back(); // exit page
-                    },
-                    icon: const Icon(Icons.power_settings_new_rounded)),
+                if (GetPlatform.isMobile)
+                  IconButton(
+                      onPressed: () {
+                        if (Get.isBottomSheetOpen ?? false) {
+                          Get.back();
+                        }
+                        Get.back(); // exit page
+                      },
+                      icon: const Icon(Icons.power_settings_new_rounded)),
               ]),
           body: SafeArea(
               bottom: GetPlatform.isAndroid,
@@ -256,8 +271,7 @@ class _WebviewTabState extends State<WebviewTab> {
                     child: Stack(children: [
                   InAppWebView(
                     key: PageStorageKey(widget.uniqueKey),
-                    keepAlive:
-                        GetPlatform.isMobile ? InAppWebViewKeepAlive() : null,
+                    keepAlive: tc.keepAlive,
                     webViewEnvironment: controller.webViewEnvironment,
                     initialUrlRequest: URLRequest(url: WebUri(tc.url.value)),
                     initialSettings: tc.settings,
@@ -713,6 +727,10 @@ class _WebviewTabState extends State<WebviewTab> {
         tc.canGoBack.value = false;
         tc.canGoForward.value = false;
         tc.webViewController?.reload();
+        break;
+      case 'close':
+        Get.delete<WebviewTabController>(tag: widget.uniqueKey, force: true);
+        Get.back();
         break;
     }
   }

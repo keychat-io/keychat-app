@@ -71,7 +71,8 @@ class _ChatPage2State extends State<ChatPage> {
               decorationColor: Colors.white)),
       const PConfig(textStyle: TextStyle(color: Colors.white, fontSize: 16)),
       PreConfig.darkConfig
-          .copy(textStyle: const TextStyle(color: Colors.white, fontSize: 16))
+          .copy(textStyle: const TextStyle(color: Colors.white, fontSize: 16)),
+      BlockquoteConfig(textColor: const Color(0xFFFFFFFF))
     ]);
     markdownLightConfig = MarkdownConfig.defaultConfig.copy(configs: [
       LinkConfig(
@@ -87,10 +88,6 @@ class _ChatPage2State extends State<ChatPage> {
 
   @override
   void dispose() {
-    // Get.delete<ChatController>(tag: controller.roomObs.value.id.toString());
-    // if (GetPlatform.isDesktop) {
-    //   Get.find<DesktopController>().resetRoom();
-    // }
     super.dispose();
   }
 
@@ -350,15 +347,44 @@ class _ChatPage2State extends State<ChatPage> {
                               controller.handleSubmitted();
                               return;
                             }
-                            final isCmdPressed = HardwareKeyboard
+                            logger.d('${event.logicalKey}');
+                            // final isCmdPressed = HardwareKeyboard
+                            //         .instance.logicalKeysPressed
+                            //         .contains(LogicalKeyboardKey.metaLeft) ||
+                            //     HardwareKeyboard.instance.logicalKeysPressed
+                            //         .contains(LogicalKeyboardKey.metaRight);
+                            // if (event.logicalKey == LogicalKeyboardKey.keyV &&
+                            //     isCmdPressed) {
+                            //   controller.handlePasteboard();
+                            //   return;
+                            // }
+                            final isShiftPressed = HardwareKeyboard
                                     .instance.logicalKeysPressed
-                                    .contains(LogicalKeyboardKey.metaLeft) ||
+                                    .contains(LogicalKeyboardKey.shiftLeft) ||
                                 HardwareKeyboard.instance.logicalKeysPressed
-                                    .contains(LogicalKeyboardKey.metaRight);
-                            if (event.logicalKey == LogicalKeyboardKey.keyV &&
-                                isCmdPressed) {
-                              controller.handlePasteboard();
-                              return;
+                                    .contains(LogicalKeyboardKey.altLeft) ||
+                                HardwareKeyboard.instance.logicalKeysPressed
+                                    .contains(LogicalKeyboardKey.controlLeft);
+
+                            if (event.logicalKey == LogicalKeyboardKey.enter &&
+                                isShiftPressed) {
+                              final text =
+                                  controller.textEditingController.text;
+                              final selection =
+                                  controller.textEditingController.selection;
+
+                              controller.textEditingController.value =
+                                  controller.textEditingController.value
+                                      .copyWith(
+                                text: text.replaceRange(
+                                  selection.start,
+                                  selection.end,
+                                  '\n',
+                                ),
+                                selection: TextSelection.collapsed(
+                                  offset: selection.start + 1,
+                                ),
+                              );
                             }
                           }
                         },
@@ -386,6 +412,7 @@ class _ChatPage2State extends State<ChatPage> {
                                 contentPadding: EdgeInsets.all(0)),
                             textInputAction: TextInputAction.send,
                             onEditingComplete: controller.handleSubmitted,
+                            enableInteractiveSelection: true,
                             maxLines: 8,
                             minLines: 1,
                             scrollController:

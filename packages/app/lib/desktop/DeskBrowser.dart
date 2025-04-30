@@ -16,7 +16,7 @@ class _DeskBrowserState extends State<DeskBrowser> {
   late MultiWebviewController controller;
   late DesktopController desktopController;
   int currentTabIndex = 0;
-  final stackKey = GlobalObjectKey('browser_stack');
+  final stackKey = GlobalObjectKey('browser_stack_desktop');
 
   @override
   void initState() {

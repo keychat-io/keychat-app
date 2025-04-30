@@ -44,6 +44,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        resizeToAvoidBottomInset: false,
         appBar: AppBar(
             leading: GestureDetector(
                 onTap: () {
@@ -60,9 +61,10 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                     ))),
             centerTitle: true,
             title: const Text("Add Contact")),
-        body: Padding(
+        body: SafeArea(
+            child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 20),
-          child: Column(
+          child: ListView(
             children: [
               TextField(
                 textInputAction: TextInputAction.done,
@@ -164,6 +166,6 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
               )
             ],
           ),
-        ));
+        )));
   }
 }

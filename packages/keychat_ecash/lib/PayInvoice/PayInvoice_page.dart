@@ -70,7 +70,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                             child: TextField(
                               controller: controller.textController,
                               textInputAction: TextInputAction.done,
-                              maxLines: 3,
+                              maxLines: 2,
                               style: const TextStyle(fontSize: 14),
                               decoration: InputDecoration(
                                   labelText: 'Lightning Invoice or address',
@@ -92,7 +92,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                   )),
                             ),
                           ),
-                        if (widget.showScanButton)
+                        if (widget.showScanButton && GetPlatform.isMobile)
                           OutlinedButton.icon(
                               onPressed: () async {
                                 String? result = await QrScanService.instance

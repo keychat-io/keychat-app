@@ -24,11 +24,11 @@ import '../models/message.dart';
 import '../models/room.dart';
 
 AwsS3 s3 = AwsS3(
-    accessKey: dotenv.get('AWS_ACCESSKEY'),
-    secretKey: dotenv.get('AWS_SECRETKEY'),
-    bucket: dotenv.get('AWS_BUCKET'),
-    region: dotenv.get('AWS_REGION'))
-  ..host = dotenv.get('AWS_HOST');
+    accessKey: dotenv.get('AWS_ACCESSKEY',fallback: ""),
+    secretKey: dotenv.get('AWS_SECRETKEY',fallback: ""),
+    bucket: dotenv.get('AWS_BUCKET',fallback: ""),
+    region: dotenv.get('AWS_REGION',fallback: ""))
+  ..host = dotenv.get('AWS_HOST',fallback: "");
 
 class FileUtils {
   static String getAbsolutelyFilePath(String appFolder, String localPath) {

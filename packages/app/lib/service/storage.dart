@@ -26,6 +26,7 @@ class StorageKeyString {
   static String taskCreateRoom = "taskCreateRoom";
 
   static String dbBackupPwd = "dbBackupPwd";
+  static String mlsStates = "mlsStates";
 
   static const String desktopBrowserSidebarWidth =
       'desktop_browser_sidebar_width';

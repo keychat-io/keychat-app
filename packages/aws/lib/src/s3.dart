@@ -167,7 +167,7 @@ class AwsS3 {
       required String filename,
       required Map<dynamic, dynamic> uploadParams}) async {
     final dio = Dio();
-
+    logger.d(uploadParams);
     String endpoint = uploadParams['url']!;
     Map<String, dynamic> headers = uploadParams['headers']!;
     headers["Content-Type"] = "multipart/form-data";
@@ -187,11 +187,11 @@ class AwsS3 {
         logger.e(e.response?.data, stackTrace: s);
       } else {
         // Something happened in setting up or sending the request that triggered an Error
-        logger.e(e.message, stackTrace: s);
-        throw Exception('File_upload_faild: ${e.message ?? ''}');
+        logger.e(e.message ?? e.toString(), stackTrace: s);
+        throw Exception('File_upload_faild1: ${e.message ?? e.toString()}');
       }
     }
 
-    throw Exception('File_upload_faild');
+    throw Exception('File_upload_faild2');
   }
 }

@@ -13,8 +13,8 @@ import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 
-class BrowserHome extends GetView<MultiWebviewController> {
-  const BrowserHome({super.key});
+class BrowserNewTab extends GetView<MultiWebviewController> {
+  const BrowserNewTab({super.key});
 
   @override
   Widget build(BuildContext context) {

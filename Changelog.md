@@ -4,6 +4,13 @@ https://keepachangelog.com/zh-CN/1.1.0
 
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
+## 1.31.12+6368
+- [browser] Save the status of the tab unless it is closed manually
+- [browser] Remove btcnav.org from mini app
+- [message] Automatically refresh the homepage when a new message is added
+- [desktop] Support packaging exe for windows platform. Optimize cmd+shift line break operation
+- other bugs fix
+
 ## 1.31.1+6353
 1. Fix bugs in MLS Group
 2. Support desktop layout

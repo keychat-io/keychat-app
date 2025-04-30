@@ -9,6 +9,11 @@ function generateUniqueId() {
   return Math.random().toString(36).substring(2, 15);
 }
 
+window.print = function () {
+  console.error('Printing is disabled in this application');
+  return false;
+};
+
 window.addEventListener('flutterInAppWebViewPlatformReady', function (event) {
   // console.log('flutterInAppWebViewPlatformReady');
   // const args = [1, true, ['bar', 5], { foo: 'baz' }];

@@ -144,7 +144,7 @@ Future<SettingController> initServices() async {
   Get.put(EcashController(dbPath), permanent: true);
   Get.put(MultiWebviewController(), permanent: true);
   Get.putAsync(() => ChatxService().init(dbPath));
-  Get.putAsync(() => WebsocketService().init());
+  await Get.putAsync(() => WebsocketService().init());
   Get.put(HomeController(), permanent: true);
   Get.lazyPut(() => DesktopController(), fenix: true);
   return sc;

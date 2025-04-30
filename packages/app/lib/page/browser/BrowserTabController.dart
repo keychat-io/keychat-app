@@ -10,20 +10,36 @@ class WebviewTabController extends GetxController {
   RxBool canGoForward = false.obs;
   InAppWebViewController? webViewController;
   PullToRefreshController? pullToRefreshController;
-  // RxString title = ''.obs;
-  // RxString url = ''.obs;
+  RxString title = ''.obs;
+  RxString url = ''.obs;
+  RxDouble progress = 1.0.obs;
+  String? favicon;
+  InAppWebViewKeepAlive? keepAlive;
+  WebviewTabController(String initUrl, String? initTitle) {
+    url.value = initUrl;
+    title.value = initTitle ?? initUrl;
+  }
 
   InAppWebViewSettings settings = InAppWebViewSettings(
       isInspectable: kDebugMode,
       mediaPlaybackRequiresUserGesture: false,
       allowsInlineMediaPlayback: true,
       useShouldOverrideUrlLoading: true,
-      supportMultipleWindows: GetPlatform.isDesktop,
+      useOnLoadResource: true,
+      safeBrowsingEnabled: true,
+      disableDefaultErrorPage: true,
+      allowsLinkPreview: true,
+      isFraudulentWebsiteWarningEnabled: true,
+      useOnDownloadStart: true,
+      supportMultipleWindows: false,
       transparentBackground: Get.isDarkMode,
       cacheEnabled: true,
       iframeAllow: "camera; microphone",
       algorithmicDarkeningAllowed: true,
       iframeAllowFullscreen: true);
+
+  RxInt scrollX = 0.obs;
+  RxInt scrollY = 0.obs;
 
   @override
   void onClose() {
@@ -33,6 +49,10 @@ class WebviewTabController extends GetxController {
 
   @override
   void onInit() {
+    if (GetPlatform.isMobile) {
+      keepAlive = InAppWebViewKeepAlive();
+    }
+
     pullToRefreshController = kIsWeb ||
             ![TargetPlatform.iOS, TargetPlatform.android]
                 .contains(defaultTargetPlatform)

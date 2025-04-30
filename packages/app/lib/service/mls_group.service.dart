@@ -17,6 +17,7 @@ import 'package:app/service/notify.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/signal_chat_util.dart';
+import 'package:app/service/storage.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/foundation.dart' show Uint8List;
@@ -600,7 +601,6 @@ $error ''';
     if (gim.pubkey == identity.secp256k1PKHex) {
       throw Exception('You are already in this group');
     }
-    // String mlkPK = await createKeyMessages(identity.secp256k1PKHex);
     GroupInvitationRequestModel girm = GroupInvitationRequestModel(
         name: gim.name,
         roomPubkey: gim.pubkey,
@@ -713,18 +713,26 @@ $error ''';
 
   Future uploadKeyPackages(
       {List<Identity>? identities,
-      List<String>? toRelays,
+      String? toRelay,
       bool forceUpload = false}) async {
     List<String> onlineRelays = await Utils.waitRelayOnline();
     if (onlineRelays.isEmpty) {
       throw Exception('No relays available');
     }
     identities ??= Get.find<HomeController>().allIdentities.values.toList();
+
     await Future.wait(identities.map((identity) async {
-      if (!forceUpload) {
-        if (Get.find<HomeController>().allIdentities[identity.id]?.mlsInit ==
-            true) {
-          return;
+      String stateKey =
+          '${StorageKeyString.mlsStates}:${identity.secp256k1PKHex}';
+      if (forceUpload) {
+        await Storage.removeString(stateKey);
+      } else {
+        if (toRelay != null) {
+          List mlsStates = await Storage.getStringList(stateKey);
+          if (mlsStates.contains(toRelay)) {
+            loggerNoLine.d('Already uploaded to $toRelay');
+            return;
+          }
         }
       }
       logger.d(
@@ -745,13 +753,19 @@ $error ''';
             ["client", KeychatGlobal.appName],
             ["relay", ...onlineRelays]
           ]);
-      Get.find<WebsocketService>()
-          .sendMessageWithCallback(event, relays: toRelays, callback: (
+      Get.find<WebsocketService>().sendMessageWithCallback(event,
+          relays: toRelay == null ? null : [toRelay], callback: (
               {required String relay,
               required String eventId,
               required bool status,
-              String? errorMessage}) {
-        Get.find<HomeController>().allIdentities[identity.id]?.mlsInit = true;
+              String? errorMessage}) async {
+        List mlsStates = await Storage.getStringList(stateKey);
+        if (status) {
+          var set = Set.from(mlsStates);
+          set.add(relay);
+          // cache state
+          await Storage.setStringList(stateKey, List.from(set));
+        }
         NostrAPI.instance.removeOKCallback(eventId);
         var map = {
           'relay': relay,

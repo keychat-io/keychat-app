@@ -4,6 +4,7 @@ import 'package:app/global.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/foundation.dart'
     show FlutterError, FlutterErrorDetails, PlatformDispatcher;
+
 import 'package:get/get.dart';
 import '../service/storage.dart';
 
@@ -18,10 +19,10 @@ class SettingController extends GetxController with StateMixin<Type> {
   Directory appFolder = Directory('/');
   late String avatarsFolder;
   late String browserCacheFolder;
+  late String browserUserDataFolder;
 
   @override
   void onInit() async {
-    super.onInit();
     appFolder = await Utils.getAppFolder();
 
     // viewKeychatFutures.value = await getViewKeychatFutures();
@@ -31,15 +32,20 @@ class SettingController extends GetxController with StateMixin<Type> {
     // avatar folder
     avatarsFolder = '${appFolder.path}/avatars';
     browserCacheFolder = '${appFolder.path}/browserCache';
+    browserUserDataFolder = '${appFolder.path}/browserUserData';
     String errorsFolder = '${appFolder.path}/errors';
 
-    for (var folder in [avatarsFolder, browserCacheFolder, errorsFolder]) {
+    for (var folder in [
+      avatarsFolder,
+      browserCacheFolder,
+      browserUserDataFolder,
+      errorsFolder
+    ]) {
       Directory(folder).exists().then((res) {
         if (res) return;
         Directory(folder).createSync(recursive: true);
       });
     }
-
     // Catch uncaught Flutter errors
     FlutterError.onError = (FlutterErrorDetails details) {
       FlutterError.presentError(details);
@@ -64,6 +70,7 @@ class SettingController extends GetxController with StateMixin<Type> {
       Utils.logErrorToFile(errorDetails.toString());
       return true; // Return true to prevent the error from propagating
     };
+    super.onInit();
 
     // file server
     initDefaultFileServerConfig();

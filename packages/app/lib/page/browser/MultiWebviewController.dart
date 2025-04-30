@@ -78,6 +78,12 @@ class MultiWebviewController extends GetxController {
 
   // for mobile
   void addOrSelectNewTab() {
+    for (var i = 0; i < tabs.length; i++) {
+      if (tabs[i].url == KeychatGlobal.newTab) {
+        setCurrentTabIndex(i);
+        return;
+      }
+    }
     String uniqueId = _generateUniqueId();
     final tab = WebviewTab(
       uniqueKey: uniqueId,
@@ -176,9 +182,10 @@ class MultiWebviewController extends GetxController {
       key: GlobalObjectKey(uniqueId),
       windowId: getLastWindowId(),
     );
-
-    if (Get.find<DesktopController>().sidebarXController.selectedIndex != 1) {
-      Get.find<DesktopController>().sidebarXController.selectIndex(1);
+    if (GetPlatform.isDesktop) {
+      if (Get.find<DesktopController>().sidebarXController.selectedIndex != 1) {
+        Get.find<DesktopController>().sidebarXController.selectIndex(1);
+      }
     }
     if (tabs.isNotEmpty && tabs.last.url == KeychatGlobal.newTab) {
       tabs.insert(tabs.length - 1,
@@ -385,6 +392,7 @@ class MultiWebviewController extends GetxController {
     // for mobile
     try {
       var controller = Get.find<WebviewTabController>(tag: uniqueKey);
+      logger.d('found controller $uniqueKey');
       return controller;
     } catch (e) {
       // permanent. manaully to delete

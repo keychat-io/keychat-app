@@ -31,12 +31,15 @@ class WebviewTabController extends GetxController {
       allowsLinkPreview: true,
       isFraudulentWebsiteWarningEnabled: true,
       useOnDownloadStart: true,
-      supportMultipleWindows: GetPlatform.isDesktop,
+      supportMultipleWindows: false,
       transparentBackground: Get.isDarkMode,
       cacheEnabled: true,
       iframeAllow: "camera; microphone",
       algorithmicDarkeningAllowed: true,
       iframeAllowFullscreen: true);
+
+  RxInt scrollX = 0.obs;
+  RxInt scrollY = 0.obs;
 
   @override
   void onClose() {

@@ -261,7 +261,10 @@ class _WebviewTabState extends State<WebviewTab> {
                         }
                         Get.back(); // exit page
                       },
-                      icon: const Icon(Icons.power_settings_new_rounded)),
+                      icon: const Icon(
+                        CupertinoIcons.smallcircle_fill_circle,
+                        weight: 1000,
+                      )),
               ]),
           body: SafeArea(
               bottom: GetPlatform.isAndroid,
@@ -270,11 +273,14 @@ class _WebviewTabState extends State<WebviewTab> {
                     child: Stack(children: [
                   InAppWebView(
                     key: PageStorageKey(widget.uniqueKey),
-                    keepAlive: tc.keepAlive,
                     webViewEnvironment: controller.webViewEnvironment,
                     initialUrlRequest: URLRequest(url: WebUri(tc.url.value)),
                     initialSettings: tc.settings,
                     pullToRefreshController: tc.pullToRefreshController,
+                    onScrollChanged: (controller, x, y) {
+                      tc.scrollX.value = x;
+                      tc.scrollY.value = y;
+                    },
                     onWebViewCreated: (controller) async {
                       tc.webViewController = controller;
                       await controller.evaluateJavascript(source: """
@@ -360,6 +366,10 @@ class _WebviewTabState extends State<WebviewTab> {
                       controller.injectJavascriptFileFromAsset(
                           assetFilePath: "assets/js/nostr.js");
                       tc.pullToRefreshController?.endRefreshing();
+                      if (tc.scrollX.value != 0 || tc.scrollY.value != 0) {
+                        controller.scrollTo(
+                            x: tc.scrollX.value, y: tc.scrollY.value);
+                      }
                     },
                     onReceivedServerTrustAuthRequest: (_, challenge) async {
                       var sslError = challenge.protectionSpace.sslError;

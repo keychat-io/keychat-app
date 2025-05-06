@@ -40,13 +40,14 @@ class WebviewTab extends StatefulWidget {
   final String initUrl;
   final String? initTitle;
   final int windowId;
-  const WebviewTab({
-    super.key,
-    required this.windowId,
-    required this.uniqueKey,
-    required this.initUrl,
-    this.initTitle,
-  });
+  final InAppWebViewKeepAlive? keepAlive;
+  const WebviewTab(
+      {super.key,
+      required this.windowId,
+      required this.uniqueKey,
+      required this.initUrl,
+      this.initTitle,
+      this.keepAlive});
   @override
   _WebviewTabState createState() => _WebviewTabState();
 }
@@ -91,6 +92,7 @@ class _WebviewTabState extends State<WebviewTab> {
     return Obx(() => PopScope(
         canPop: !tc.canGoBack.value,
         onPopInvokedWithResult: (didPop, d) {
+          if (didPop) return;
           goBackOrPop();
         },
         child: Scaffold(
@@ -273,17 +275,14 @@ class _WebviewTabState extends State<WebviewTab> {
                     child: Stack(children: [
                   InAppWebView(
                     key: PageStorageKey(widget.uniqueKey),
-                    keepAlive: tc.keepAlive,
+                    keepAlive: widget.keepAlive,
                     webViewEnvironment: controller.webViewEnvironment,
                     initialUrlRequest: URLRequest(url: WebUri(tc.url.value)),
                     initialSettings: tc.settings,
                     pullToRefreshController: tc.pullToRefreshController,
-                    onScrollChanged: (controller, x, y) {
-                      tc.scrollX.value = x;
-                      tc.scrollY.value = y;
-                    },
+                    onScrollChanged: (controller, x, y) {},
                     onWebViewCreated: (controller) async {
-                      tc.webViewController = controller;
+                      tc.setWebViewController(controller, widget.initUrl);
                       await controller.evaluateJavascript(source: """
                         window.print = function(){};
                       """);
@@ -363,14 +362,14 @@ class _WebviewTabState extends State<WebviewTab> {
                       return NavigationActionPolicy.ALLOW;
                     },
                     onLoadStop: (controller, url) async {
-                      onUpdateVisitedHistory(url);
+                      // onUpdateVisitedHistory(url);
                       controller.injectJavascriptFileFromAsset(
                           assetFilePath: "assets/js/nostr.js");
                       tc.pullToRefreshController?.endRefreshing();
-                      if (tc.scrollX.value != 0 || tc.scrollY.value != 0) {
-                        controller.scrollTo(
-                            x: tc.scrollX.value, y: tc.scrollY.value);
-                      }
+                      // if (tc.scrollX.value != 0 || tc.scrollY.value != 0) {
+                      //   controller.scrollTo(
+                      //       x: tc.scrollX.value, y: tc.scrollY.value);
+                      // }
                     },
                     onReceivedServerTrustAuthRequest: (_, challenge) async {
                       var sslError = challenge.protectionSpace.sslError;
@@ -479,6 +478,7 @@ class _WebviewTabState extends State<WebviewTab> {
                           widget.uniqueKey, tc.url.value, title, tc.favicon);
                     },
                     onUpdateVisitedHistory: (controller, url, androidIsReload) {
+                      logger.d('${url.toString()} $androidIsReload');
                       onUpdateVisitedHistory(url);
                     },
                   ),
@@ -745,7 +745,7 @@ class _WebviewTabState extends State<WebviewTab> {
         tc.webViewController?.reload();
         break;
       case 'close':
-        Get.delete<WebviewTabController>(tag: widget.uniqueKey, force: true);
+        controller.removeKeepAliveObject(widget.uniqueKey);
         Get.back();
         break;
     }
@@ -753,11 +753,13 @@ class _WebviewTabState extends State<WebviewTab> {
 
   Future onUpdateVisitedHistory(WebUri? uri) async {
     if (tc.webViewController == null) return;
-    EasyDebounce.debounce(uri.toString(), Duration(milliseconds: 200),
+    EasyDebounce.debounce(
+        'onUpdateVisitedHistory:${uri.toString()}', Duration(milliseconds: 200),
         () async {
       bool? canGoBack = await tc.webViewController?.canGoBack();
       bool? canGoForward = await tc.webViewController?.canGoForward();
-      logger.d('canGoBack: $canGoBack, canGoForward: $canGoForward');
+      logger.d(
+          '${uri.toString()} canGoBack: $canGoBack, canGoForward: $canGoForward');
       tc.canGoBack.value = canGoBack ?? false;
       tc.canGoForward.value = canGoForward ?? false;
       String? newTitle = await tc.webViewController?.getTitle();

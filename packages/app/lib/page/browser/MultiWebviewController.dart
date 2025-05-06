@@ -41,6 +41,7 @@ class MultiWebviewController extends GetxController {
   RxSet<String> enableSearchEngine = <String>{}.obs;
   RxList<BrowserFavorite> favorites = <BrowserFavorite>[].obs;
   RxMap<String, dynamic> config = <String, dynamic>{}.obs;
+  Map<String, InAppWebViewKeepAlive?> mobileKeepAlive = {};
   static const maxHistoryInHome = 12;
 
   late Function(String url) urlChangeCallBack;
@@ -132,7 +133,7 @@ class MultiWebviewController extends GetxController {
       }
       return;
     }
-    String uniqueId = _generateUniqueId();
+    String uniqueKey = _generateUniqueId();
     Uri? uri;
     if (content.startsWith('http') == false) {
       // try: domain.com
@@ -157,7 +158,7 @@ class MultiWebviewController extends GetxController {
         if (GetPlatform.isMobile) {
           String? host = Uri.tryParse(content)?.host;
           if (host != null) {
-            Get.delete<WebviewTabController>(tag: host, force: true);
+            mobileKeepAlive.remove(host); // remove keep alive
           }
         }
       }
@@ -165,21 +166,23 @@ class MultiWebviewController extends GetxController {
     uri = Uri.tryParse(content);
     if (uri == null) return;
     if (GetPlatform.isMobile) {
+      uniqueKey = uri.host;
       Get.to(
           () => WebviewTab(
                 initUrl: content,
                 initTitle: title.value,
-                uniqueKey: uri!.host, // for close controller
+                uniqueKey: uniqueKey, // for close controller
                 windowId: 0,
+                keepAlive: _getKeepAliveObject(uniqueKey),
               ),
-          transition: Transition.downToUp);
+          transition: Transition.fadeIn);
       return;
     }
 
     final tab = WebviewTab(
-      uniqueKey: uniqueId,
+      uniqueKey: uniqueKey,
       initUrl: content,
-      key: GlobalObjectKey(uniqueId),
+      key: GlobalObjectKey(uniqueKey),
       windowId: getLastWindowId(),
     );
     if (GetPlatform.isDesktop) {
@@ -189,12 +192,26 @@ class MultiWebviewController extends GetxController {
     }
     if (tabs.isNotEmpty && tabs.last.url == KeychatGlobal.newTab) {
       tabs.insert(tabs.length - 1,
-          WebviewTabData(tab: tab, uniqueKey: uniqueId, url: tab.initUrl));
+          WebviewTabData(tab: tab, uniqueKey: uniqueKey, url: tab.initUrl));
       setCurrentTabIndex(tabs.length - 2);
     } else {
-      tabs.add(WebviewTabData(tab: tab, uniqueKey: uniqueId, url: tab.initUrl));
+      tabs.add(
+          WebviewTabData(tab: tab, uniqueKey: uniqueKey, url: tab.initUrl));
       setCurrentTabIndex(tabs.length - 1);
     }
+  }
+
+  InAppWebViewKeepAlive? _getKeepAliveObject(String uniqueKey) {
+    if (!GetPlatform.isMobile) return null;
+
+    if (!mobileKeepAlive.containsKey(uniqueKey)) {
+      mobileKeepAlive[uniqueKey] = InAppWebViewKeepAlive();
+    }
+    return mobileKeepAlive[uniqueKey];
+  }
+
+  removeKeepAliveObject(String uniqueKey) {
+    mobileKeepAlive.remove(uniqueKey);
   }
 
   Function(int) setCurrentTabIndex = (p0) {};
@@ -338,7 +355,7 @@ class MultiWebviewController extends GetxController {
     }
     try {
       List<Favicon> favicons = await controller.getFavicons().timeout(
-        const Duration(seconds: 3),
+        const Duration(seconds: 1),
         onTimeout: () {
           debugPrint('Favicon request timed out');
           return [];
@@ -396,8 +413,7 @@ class MultiWebviewController extends GetxController {
       return controller;
     } catch (e) {
       // permanent. manaully to delete
-      return Get.put(WebviewTabController(initUrl, initTitle),
-          tag: uniqueKey, permanent: true);
+      return Get.put(WebviewTabController(initUrl, initTitle), tag: uniqueKey);
     }
   }
 }

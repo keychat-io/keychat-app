@@ -47,9 +47,8 @@ class _RedPocketState extends State<RedPocket> {
         }
       },
       child: Container(
-          width: 300,
+          constraints: const BoxConstraints(maxWidth: 350),
           height: 70,
-          // margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
             gradient: const LinearGradient(
@@ -62,11 +61,8 @@ class _RedPocketState extends State<RedPocket> {
             ),
           ),
           child: ListTile(
-              leading: const Icon(
-                Icons.currency_bitcoin,
-                color: Colors.white,
-                size: 34,
-              ),
+              leading:
+                  Image.asset('assets/images/BTC.png', fit: BoxFit.contain),
               title: Text(
                 _cashuInfoModel.amount > 0
                     ? 'Send ${_cashuInfoModel.amount} ${EcashTokenSymbol.sat.name}'
@@ -77,10 +73,8 @@ class _RedPocketState extends State<RedPocket> {
                 _cashuInfoModel.token,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withOpacity(0.6)),
+                    color:
+                        Theme.of(context).colorScheme.onSurface.withAlpha(100)),
               ),
               trailing: CashuStatus.getStatusIcon(_cashuInfoModel.amount == 0
                   ? TransactionStatus.success

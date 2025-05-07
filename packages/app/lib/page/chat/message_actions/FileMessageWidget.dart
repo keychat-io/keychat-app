@@ -3,7 +3,6 @@ import 'dart:convert' show jsonDecode;
 import 'package:app/app.dart';
 import 'package:app/page/components.dart';
 import 'package:app/service/file_util.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -49,29 +48,36 @@ class _FileMessageWidgetState extends State<FileMessageWidget> {
           text: '[File Decode Error]: ${widget.message.content}');
     }
     return Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: ListTile(
-          title: Text(msgFileInfo?.fileName ??
+      constraints: const BoxConstraints(maxWidth: 350),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: ListTile(
+        title: Text(
+          msgFileInfo?.fileName ??
               msgFileInfo?.suffix?.toUpperCase() ??
-              '[File]'),
-          subtitle: textSmallGray(context,
-              'Size: ${FileUtils.getFileSizeDisplay(msgFileInfo?.size ?? 0)}'),
-          trailing: IconButton(
-            onPressed: handleOnTap,
-            icon: SizedBox(
-              width: 36,
-              height: 36,
-              child: msgFileInfo?.localPath == null
-                  ? Image.asset('assets/images/file-download.png',
-                      fit: BoxFit.contain)
-                  : Image.asset('assets/images/file.png', fit: BoxFit.contain),
-            ),
+              '[File]',
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: textSmallGray(
+          context,
+          'Size: ${FileUtils.getFileSizeDisplay(msgFileInfo?.size ?? 0)}',
+        ),
+        trailing: IconButton(
+          onPressed: handleOnTap,
+          icon: SizedBox(
+            width: 36,
+            height: 36,
+            child: msgFileInfo?.localPath == null
+                ? Image.asset('assets/images/file-download.png',
+                    fit: BoxFit.contain)
+                : Image.asset('assets/images/file.png', fit: BoxFit.contain),
           ),
-          onTap: handleOnTap,
-        ));
+        ),
+        onTap: handleOnTap,
+      ),
+    );
   }
 
   handleOnTap() {

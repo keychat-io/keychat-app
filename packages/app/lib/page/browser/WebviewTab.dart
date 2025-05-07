@@ -752,7 +752,7 @@ class _WebviewTabState extends State<WebviewTab> {
   }
 
   Future onUpdateVisitedHistory(WebUri? uri) async {
-    if (tc.webViewController == null) return;
+    if (tc.webViewController == null || uri == null) return;
     EasyDebounce.debounce(
         'onUpdateVisitedHistory:${uri.toString()}', Duration(milliseconds: 200),
         () async {
@@ -764,14 +764,18 @@ class _WebviewTabState extends State<WebviewTab> {
       tc.canGoForward.value = canGoForward ?? false;
       String? newTitle = await tc.webViewController?.getTitle();
       String? favicon =
-          await controller.getFavicon(tc.webViewController!, uri!.host);
+          await controller.getFavicon(tc.webViewController!, uri.host);
       String title = newTitle ?? tc.title.value;
+      if (title.isEmpty) {
+        title = tc.title.value;
+      }
       updateTabInfo(widget.uniqueKey, uri.toString(), title, favicon);
       controller.addHistory(uri.toString(), title, favicon);
     });
   }
 
   updateTabInfo(String key, String url0, String title0, String? favicon0) {
+    logger.d('updateTabInfo: $key, $url0, $title0, $favicon0');
     controller.setTabData(
         uniqueId: widget.uniqueKey,
         title: title0,

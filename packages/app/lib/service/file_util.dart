@@ -250,7 +250,7 @@ class FileUtils {
               : '';
 
           // Generate random string for filename
-          String randomString = Utils.randomString(4);
+          int randomString = Utils.randomInt(4);
           String newFileName = '${fileNameWithoutExt}_$randomString$extension';
 
           // Re-download the file

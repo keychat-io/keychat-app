@@ -355,7 +355,7 @@ class MultiWebviewController extends GetxController {
     }
     try {
       List<Favicon> favicons = await controller.getFavicons().timeout(
-        const Duration(seconds: 1),
+        const Duration(seconds: 2),
         onTimeout: () {
           debugPrint('Favicon request timed out');
           return [];

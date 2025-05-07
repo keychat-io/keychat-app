@@ -1,7 +1,7 @@
 import 'dart:ui' show Color;
 
 class KeychatGlobal {
-  static const Color primaryColor = Color(0xff8700ED);
+  static const Color primaryColor = Color(0xff7748FF); // 0xff8700ED
   static const Color secondaryColor = Color(0xff7748FF);
   static const String appName = 'Keychat';
   static const String newTab = 'New Tab';

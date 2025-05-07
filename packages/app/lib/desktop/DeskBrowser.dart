@@ -129,9 +129,11 @@ class _HoverCloseListTileState extends State<HoverCloseListTile> {
       onExit: (_) => setState(() => _isHovered = false),
       child: ListTile(
         leading: widget.leading,
+        horizontalTitleGap: 8,
         selectedTileColor: KeychatGlobal.primaryColor.withValues(alpha: 200),
         contentPadding: EdgeInsets.only(left: 16, right: 4),
-        title: Text(widget.title, maxLines: 1),
+        title: Text(widget.title,
+            style: Theme.of(context).textTheme.bodyMedium, maxLines: 1),
         selected: widget.selected,
         onTap: widget.onTap,
         trailing: AnimatedOpacity(

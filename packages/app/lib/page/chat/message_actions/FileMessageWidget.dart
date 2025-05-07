@@ -54,19 +54,20 @@ class _FileMessageWidgetState extends State<FileMessageWidget> {
           borderRadius: BorderRadius.circular(4),
         ),
         child: ListTile(
-          title: Text(
-              'File: ${msgFileInfo?.fileName.substring(0, 8)}.${msgFileInfo?.suffix}'),
+          title: Text(msgFileInfo?.fileName ??
+              msgFileInfo?.suffix?.toUpperCase() ??
+              '[File]'),
           subtitle: textSmallGray(context,
               'Size: ${FileUtils.getFileSizeDisplay(msgFileInfo?.size ?? 0)}'),
           trailing: IconButton(
             onPressed: handleOnTap,
-            icon: Icon(
-              CupertinoIcons.doc_chart_fill,
-              size: 36,
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurface
-                  .withValues(alpha: 0.7),
+            icon: SizedBox(
+              width: 36,
+              height: 36,
+              child: msgFileInfo?.localPath == null
+                  ? Image.asset('assets/images/file-download.png',
+                      fit: BoxFit.contain)
+                  : Image.asset('assets/images/file.png', fit: BoxFit.contain),
             ),
           ),
           onTap: handleOnTap,

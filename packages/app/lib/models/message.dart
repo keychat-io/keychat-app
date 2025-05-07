@@ -147,6 +147,7 @@ class Message extends Equatable {
         ..key = query['key']
         ..size = int.parse(query['size'] ?? 0)
         ..hash = query['hash']
+        ..sourceName = query['sourceName']
         ..status = FileStatus.init;
     }
     return null;

@@ -577,6 +577,7 @@ class RoomService extends BaseChatService {
       ..hash = fileInfo.hash
       ..updateAt = DateTime.now()
       ..ecashToken = fileInfo.ecashToken
+      ..sourceName = fileInfo.sourceName
       ..status = FileStatus.decryptSuccess;
     return await RoomService.instance.sendMessage(
         room, mfi.getUriString(type.name, fileInfo),

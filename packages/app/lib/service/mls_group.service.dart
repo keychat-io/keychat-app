@@ -733,7 +733,8 @@ $error ''';
         if (toRelay != null) {
           List mlsStates = await Storage.getStringList(stateKey);
           if (mlsStates.contains(toRelay)) {
-            loggerNoLine.d('Already uploaded to $toRelay');
+            loggerNoLine
+                .d('Already uploaded to $toRelay ${identity.secp256k1PKHex}');
             return;
           }
         }

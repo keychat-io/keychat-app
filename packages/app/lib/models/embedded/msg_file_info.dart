@@ -24,13 +24,15 @@ class MsgFileInfo {
   String? key;
   String? ecashToken;
   String? hash; // sha256
+  String? sourceName;
 
   MsgFileInfo();
 
   @override
   toString() => jsonEncode(toJson());
 
-  String get fileName => url?.split('/').last ?? '';
+  String get fileName =>
+      (localPath ?? sourceName ?? url)?.split('/').last ?? '';
 
   factory MsgFileInfo.fromJson(Map<String, dynamic> json) =>
       _$MsgFileInfoFromJson(json);
@@ -45,6 +47,7 @@ class MsgFileInfo {
       'iv': data.iv,
       'size': data.size,
       'hash': data.hash,
+      'sourceName': data.sourceName
     };
     Uri base = Uri.parse(data.url!);
     Uri uri = Uri.https(base.host, base.path,

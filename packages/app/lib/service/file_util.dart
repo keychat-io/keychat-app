@@ -212,17 +212,8 @@ class FileUtils {
   static Future downloadForMessage(Message message, MsgFileInfo mfi,
       {Function(MsgFileInfo fi)? callback,
       Function(int count, int total)? onReceiveProgress}) async {
-    String dir = await getRoomFolder(
-        identityId: message.identityId,
-        roomId: message.roomId,
-        type: message.mediaType);
     Uri uri = Uri.parse(message.content);
-    String outputFilePath = '$dir${uri.path.split('/').last}';
-
-    if (mfi.suffix != null) {
-      outputFilePath += mfi.suffix!;
-    }
-
+    String outputFilePath = await getOutputFilePath(message, mfi, uri);
     File newFile = File(outputFilePath);
     bool exist = await newFile.exists();
     try {
@@ -240,9 +231,10 @@ class FileUtils {
             key: mfi.key!,
             iv: mfi.iv!,
             type: message.mediaType,
+            fileName: mfi.sourceName,
             onReceiveProgress: onReceiveProgress);
       } else {
-        // file exist, check the hash
+        // file exist, check the hash, then save the file using a new name
         List<int> bytes = await newFile.readAsBytes();
         String existFileHash = FileService.calculateFileHash(bytes);
         // not the same file, check hash first
@@ -293,15 +285,32 @@ class FileUtils {
         getOrCreateThumbForVideo(newFile.path);
       }
       await updateMessageAndCallback(message, mfi, callback);
-      return;
     } catch (e, s) {
+      // mark as failed
       logger.e(e.toString(), error: e, stackTrace: s);
       mfi.status = FileStatus.failed;
       mfi.updateAt = DateTime.now();
       message.realMessage = mfi.toString();
       await updateMessageAndCallback(message, mfi, callback);
-      return;
     }
+  }
+
+  static Future<String> getOutputFilePath(
+      Message message, MsgFileInfo mfi, Uri uri) async {
+    String dir = await getRoomFolder(
+        identityId: message.identityId,
+        roomId: message.roomId,
+        type: message.mediaType);
+    late String outputFilePath;
+    if (mfi.sourceName != null) {
+      outputFilePath = '$dir${mfi.sourceName}';
+    } else {
+      outputFilePath = '$dir${uri.path.split('/').last}';
+      if (mfi.suffix != null) {
+        outputFilePath += mfi.suffix!;
+      }
+    }
+    return outputFilePath;
   }
 
   static Future<void> updateMessageAndCallback(Message message, MsgFileInfo mfi,

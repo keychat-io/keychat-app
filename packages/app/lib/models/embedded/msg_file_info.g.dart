@@ -23,49 +23,54 @@ const MsgFileInfoSchema = Schema(
       name: r'fileName',
       type: IsarType.string,
     ),
-    r'iv': PropertySchema(
+    r'hash': PropertySchema(
       id: 2,
+      name: r'hash',
+      type: IsarType.string,
+    ),
+    r'iv': PropertySchema(
+      id: 3,
       name: r'iv',
       type: IsarType.string,
     ),
     r'key': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'key',
       type: IsarType.string,
     ),
     r'localPath': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'localPath',
       type: IsarType.string,
     ),
     r'size': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'size',
       type: IsarType.long,
     ),
     r'status': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'status',
       type: IsarType.int,
       enumMap: _MsgFileInfostatusEnumValueMap,
     ),
     r'suffix': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'suffix',
       type: IsarType.string,
     ),
     r'type': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'type',
       type: IsarType.string,
     ),
     r'updateAt': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'updateAt',
       type: IsarType.dateTime,
     ),
     r'url': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'url',
       type: IsarType.string,
     )
@@ -89,6 +94,12 @@ int _msgFileInfoEstimateSize(
     }
   }
   bytesCount += 3 + object.fileName.length * 3;
+  {
+    final value = object.hash;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   {
     final value = object.iv;
     if (value != null) {
@@ -136,15 +147,16 @@ void _msgFileInfoSerialize(
 ) {
   writer.writeString(offsets[0], object.ecashToken);
   writer.writeString(offsets[1], object.fileName);
-  writer.writeString(offsets[2], object.iv);
-  writer.writeString(offsets[3], object.key);
-  writer.writeString(offsets[4], object.localPath);
-  writer.writeLong(offsets[5], object.size);
-  writer.writeInt(offsets[6], object.status.index);
-  writer.writeString(offsets[7], object.suffix);
-  writer.writeString(offsets[8], object.type);
-  writer.writeDateTime(offsets[9], object.updateAt);
-  writer.writeString(offsets[10], object.url);
+  writer.writeString(offsets[2], object.hash);
+  writer.writeString(offsets[3], object.iv);
+  writer.writeString(offsets[4], object.key);
+  writer.writeString(offsets[5], object.localPath);
+  writer.writeLong(offsets[6], object.size);
+  writer.writeInt(offsets[7], object.status.index);
+  writer.writeString(offsets[8], object.suffix);
+  writer.writeString(offsets[9], object.type);
+  writer.writeDateTime(offsets[10], object.updateAt);
+  writer.writeString(offsets[11], object.url);
 }
 
 MsgFileInfo _msgFileInfoDeserialize(
@@ -155,17 +167,18 @@ MsgFileInfo _msgFileInfoDeserialize(
 ) {
   final object = MsgFileInfo();
   object.ecashToken = reader.readStringOrNull(offsets[0]);
-  object.iv = reader.readStringOrNull(offsets[2]);
-  object.key = reader.readStringOrNull(offsets[3]);
-  object.localPath = reader.readStringOrNull(offsets[4]);
-  object.size = reader.readLong(offsets[5]);
+  object.hash = reader.readStringOrNull(offsets[2]);
+  object.iv = reader.readStringOrNull(offsets[3]);
+  object.key = reader.readStringOrNull(offsets[4]);
+  object.localPath = reader.readStringOrNull(offsets[5]);
+  object.size = reader.readLong(offsets[6]);
   object.status =
-      _MsgFileInfostatusValueEnumMap[reader.readIntOrNull(offsets[6])] ??
+      _MsgFileInfostatusValueEnumMap[reader.readIntOrNull(offsets[7])] ??
           FileStatus.init;
-  object.suffix = reader.readStringOrNull(offsets[7]);
-  object.type = reader.readStringOrNull(offsets[8]);
-  object.updateAt = reader.readDateTimeOrNull(offsets[9]);
-  object.url = reader.readStringOrNull(offsets[10]);
+  object.suffix = reader.readStringOrNull(offsets[8]);
+  object.type = reader.readStringOrNull(offsets[9]);
+  object.updateAt = reader.readDateTimeOrNull(offsets[10]);
+  object.url = reader.readStringOrNull(offsets[11]);
   return object;
 }
 
@@ -187,17 +200,19 @@ P _msgFileInfoDeserializeProp<P>(
     case 4:
       return (reader.readStringOrNull(offset)) as P;
     case 5:
-      return (reader.readLong(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 6:
+      return (reader.readLong(offset)) as P;
+    case 7:
       return (_MsgFileInfostatusValueEnumMap[reader.readIntOrNull(offset)] ??
           FileStatus.init) as P;
-    case 7:
-      return (reader.readStringOrNull(offset)) as P;
     case 8:
       return (reader.readStringOrNull(offset)) as P;
     case 9:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 10:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 11:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -505,6 +520,154 @@ extension MsgFileInfoQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'fileName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition> hashIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'hash',
+      ));
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition>
+      hashIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'hash',
+      ));
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition> hashEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'hash',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition> hashGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'hash',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition> hashLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'hash',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition> hashBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'hash',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition> hashStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'hash',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition> hashEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'hash',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition> hashContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'hash',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition> hashMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'hash',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition> hashIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'hash',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<MsgFileInfo, MsgFileInfo, QAfterFilterCondition>
+      hashIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'hash',
         value: '',
       ));
     });
@@ -1603,7 +1766,8 @@ MsgFileInfo _$MsgFileInfoFromJson(Map<String, dynamic> json) => MsgFileInfo()
       : DateTime.parse(json['updateAt'] as String)
   ..iv = json['iv'] as String?
   ..key = json['key'] as String?
-  ..ecashToken = json['ecashToken'] as String?;
+  ..ecashToken = json['ecashToken'] as String?
+  ..hash = json['hash'] as String?;
 
 Map<String, dynamic> _$MsgFileInfoToJson(MsgFileInfo instance) =>
     <String, dynamic>{
@@ -1618,6 +1782,7 @@ Map<String, dynamic> _$MsgFileInfoToJson(MsgFileInfo instance) =>
       if (instance.iv case final value?) 'iv': value,
       if (instance.key case final value?) 'key': value,
       if (instance.ecashToken case final value?) 'ecashToken': value,
+      if (instance.hash case final value?) 'hash': value,
     };
 
 const _$FileStatusEnumMap = {

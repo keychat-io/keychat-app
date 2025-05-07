@@ -724,8 +724,11 @@ $error ''';
     await Future.wait(identities.map((identity) async {
       String stateKey =
           '${StorageKeyString.mlsStates}:${identity.secp256k1PKHex}';
+      String statePK =
+          '${StorageKeyString.mlsPKIdentity}:${identity.secp256k1PKHex}';
       if (forceUpload) {
         await Storage.removeString(stateKey);
+        await Storage.removeString(statePK);
       } else {
         if (toRelay != null) {
           List mlsStates = await Storage.getStringList(stateKey);
@@ -737,22 +740,8 @@ $error ''';
       }
       logger.d(
           '${EventKinds.mlsNipKeypackages} start: ${identity.secp256k1PKHex}');
+      String event = await _getOrCreateEvent(identity, statePK, onlineRelays);
 
-      var pkRes =
-          await rust_mls.createKeyPackage(nostrId: identity.secp256k1PKHex);
-
-      String event = await NostrAPI.instance.signEventByIdentity(
-          identity: identity,
-          content: pkRes.keyPackage,
-          createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-          kind: EventKinds.mlsNipKeypackages,
-          tags: [
-            ["mls_protocol_version", pkRes.mlsProtocolVersion],
-            ["ciphersuite", pkRes.ciphersuite],
-            ["extensions", pkRes.extensions],
-            ["client", KeychatGlobal.appName],
-            ["relay", ...onlineRelays]
-          ]);
       Get.find<WebsocketService>().sendMessageWithCallback(event,
           relays: toRelay == null ? null : [toRelay], callback: (
               {required String relay,
@@ -1027,5 +1016,33 @@ $error ''';
       subEventEosed = NostrAPI.instance.subscriptionIdEose.contains(subId);
     }
     logger.d('done for Eose: $subId');
+  }
+
+  // cache event for 10443
+  Future<String> _getOrCreateEvent(
+      Identity identity, String stateKey, List<String> onlineRelays) async {
+    String? state = await Storage.getString(stateKey);
+    if (state != null) {
+      logger.d(
+          'Keypackage already exists: ${identity.secp256k1PKHex}, use cached');
+      return state;
+    }
+    var pkRes =
+        await rust_mls.createKeyPackage(nostrId: identity.secp256k1PKHex);
+
+    String event = await NostrAPI.instance.signEventByIdentity(
+        identity: identity,
+        content: pkRes.keyPackage,
+        createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        kind: EventKinds.mlsNipKeypackages,
+        tags: [
+          ["mls_protocol_version", pkRes.mlsProtocolVersion],
+          ["ciphersuite", pkRes.ciphersuite],
+          ["extensions", pkRes.extensions],
+          ["client", KeychatGlobal.appName],
+          ["relay", ...onlineRelays]
+        ]);
+    await Storage.setString(stateKey, event);
+    return event;
   }
 }

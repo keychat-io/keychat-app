@@ -27,6 +27,7 @@ class StorageKeyString {
 
   static String dbBackupPwd = "dbBackupPwd";
   static String mlsStates = "mlsStates";
+  static String mlsPKIdentity = "mlsPKIdentity";
 
   static const String desktopBrowserSidebarWidth =
       'desktop_browser_sidebar_width';

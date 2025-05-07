@@ -574,6 +574,7 @@ class RoomService extends BaseChatService {
       ..key = fileInfo.key
       ..iv = fileInfo.iv
       ..size = fileInfo.size
+      ..hash = fileInfo.hash
       ..updateAt = DateTime.now()
       ..ecashToken = fileInfo.ecashToken
       ..status = FileStatus.decryptSuccess;

@@ -23,6 +23,7 @@ class MsgFileInfo {
   String? iv;
   String? key;
   String? ecashToken;
+  String? hash; // sha256
 
   MsgFileInfo();
 
@@ -42,7 +43,8 @@ class MsgFileInfo {
       'suffix': data.suffix,
       'key': data.key,
       'iv': data.iv,
-      'size': data.size
+      'size': data.size,
+      'hash': data.hash,
     };
     Uri base = Uri.parse(data.url!);
     Uri uri = Uri.https(base.host, base.path,

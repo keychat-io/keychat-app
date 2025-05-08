@@ -118,13 +118,11 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
           if ((file.path.endsWith('.txt') || file.path.endsWith('.log')) &&
               file is File) {
             return ListTile(
-              leading: const Icon(
-                Icons.note,
-                color: Colors.black,
-              ),
+              leading: const Icon(CupertinoIcons.doc),
               title: Text(file.path.substring(widget.dir.path.length + 1)),
               subtitle: Text(FileUtils.getFileSizeDisplay(stat.size)),
               trailing: _getDownloadButton(file),
+              dense: true,
               onTap: () {
                 Get.to(() => LogViewer(path: file.path));
               },
@@ -140,6 +138,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                 showClickDialog(file);
               }
             },
+            dense: true,
             onTap: () {
               if (isDirectory) {
                 bool isLogFile =
@@ -172,10 +171,13 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
 
               showClickDialog(file);
             },
-            leading: Icon(
-              isDirectory ? Icons.file_copy_sharp : Icons.storage,
-              color: isDirectory ? Colors.blue : Colors.black,
-            ),
+            leading: isDirectory
+                ? SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: Image.asset('assets/images/file.png',
+                        fit: BoxFit.contain))
+                : Icon(CupertinoIcons.doc),
             title: Text(file.path.substring(widget.dir.path.length + 1)),
             subtitle: isDirectory
                 ? null

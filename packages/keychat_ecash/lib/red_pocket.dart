@@ -48,7 +48,8 @@ class _RedPocketState extends State<RedPocket> {
       },
       child: Container(
           constraints: const BoxConstraints(maxWidth: 350),
-          height: 70,
+          height: 80,
+          alignment: Alignment.center,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
             gradient: const LinearGradient(

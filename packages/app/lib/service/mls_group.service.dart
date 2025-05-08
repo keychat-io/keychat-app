@@ -545,6 +545,7 @@ $error ''';
 
   Future<Room> selfUpdateKey(Room room,
       {Map<String, dynamic>? extension}) async {
+    // waiting for the old pubkey to be Eosed. means that all events proccessed
     await waitingForEose(
         recevingKey: room.onetimekey, relays: room.sendingRelays);
     var queuedMsg = await _selfUpdateKeyLocal(room, extension);

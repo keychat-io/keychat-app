@@ -347,7 +347,7 @@ class _ChatPage2State extends State<ChatPage> {
                               controller.handleSubmitted();
                               return;
                             }
-                            logger.d('${event.logicalKey}');
+                            // logger.d('${event.logicalKey}');
                             // final isCmdPressed = HardwareKeyboard
                             //         .instance.logicalKeysPressed
                             //         .contains(LogicalKeyboardKey.metaLeft) ||

@@ -4,6 +4,13 @@ https://keepachangelog.com/zh-CN/1.1.0
 
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
+## 1.31.15+6372
+- [Browser] Optimize keepAlive functionality; update desktop version styling.
+- [Desktop] Opening folders in Finder.
+- [Media] Ensure uploaded and downloaded files retain their original filenames.
+- Update the app description text.
+- Cache MLK PK event data to reduce the number of signature requests.
+
 ## 1.31.12+6368
 - [browser] Save the status of the tab unless it is closed manually
 - [browser] Remove btcnav.org from mini app

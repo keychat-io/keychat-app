@@ -8,6 +8,8 @@ git log -n 5 --pretty=format:"%h - %s (%ci)"
 - [Browser] Optimize keepAlive functionality; update desktop version styling.
 - [Desktop] Opening folders in Finder.
 - [Media] Ensure uploaded and downloaded files retain their original filenames.
+- [Ecash] Fix: Restore ecash from mint server.
+- [App Settings] Add `Startup Tab` setting Options
 - Update the app description text.
 - Cache MLK PK event data to reduce the number of signature requests.
 

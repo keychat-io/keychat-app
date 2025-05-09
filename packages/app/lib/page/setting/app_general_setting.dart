@@ -35,6 +35,7 @@ class AppGeneralSetting extends GetView<SettingController> {
 
   @override
   Widget build(BuildContext context) {
+    HomeController hc = Get.find<HomeController>();
     return Scaffold(
         appBar: AppBar(
           centerTitle: true,
@@ -114,6 +115,36 @@ class AppGeneralSetting extends GetView<SettingController> {
                         ]));
                   },
                   title: const Text("Dark Mode")),
+              SettingsTile.navigation(
+                leading: const Icon(CupertinoIcons.home),
+                title: const Text("Startup Tab"),
+                onPressed: (context) async {
+                  Get.bottomSheet(
+                      clipBehavior: Clip.antiAlias,
+                      shape: const RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(4))),
+                      Scaffold(
+                          appBar: AppBar(
+                            title: Text('Default startup tab'),
+                          ),
+                          body: Column(
+                            children: hc.defaultTabConfig.entries.map((entry) {
+                              return RadioListTile<dynamic>(
+                                title: Text(entry.key),
+                                value: entry.value,
+                                groupValue: hc.defaultSelectedTab.value,
+                                onChanged: (value) {
+                                  if (value == null) return;
+                                  hc.setDefaultSelectedTab(value);
+                                  EasyLoading.showSuccess('Set successfully');
+                                  Get.back();
+                                },
+                              );
+                            }).toList(),
+                          )));
+                },
+              ),
               SettingsTile.navigation(
                 leading: const Icon(CupertinoIcons.doc),
                 title: const Text("App File Explore"),

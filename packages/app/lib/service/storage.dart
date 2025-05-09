@@ -35,6 +35,9 @@ class StorageKeyString {
   static String getSignalAliceKey(String myPubkey, String bobPubkey) {
     return "aliceKey:$myPubkey-$bobPubkey";
   }
+
+  static String defaultSelectedTabIndex = 'defaultSelectedTabIndex';
+  static String selectedTabIndex = 'selectedTabIndex';
 }
 
 class Storage {
@@ -60,6 +63,11 @@ class Storage {
   static Future<void> setInt(String key, int value) async {
     SharedPreferences sp = await SharedPreferences.getInstance();
     sp.setInt(key, value);
+  }
+
+  static Future<int?> getInt(String key) async {
+    SharedPreferences sp = await SharedPreferences.getInstance();
+    return sp.getInt(key);
   }
 
   static Future<int> getIntOrZero(String key) async {

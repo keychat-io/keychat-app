@@ -13,6 +13,7 @@ import 'package:app/service/secure_storage.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
+import 'package:flutter/cupertino.dart' show CupertinoTabController;
 import 'package:flutter_new_badger/flutter_new_badger.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
@@ -42,9 +43,6 @@ class HomeController extends GetxController
   RxMap<int, TabData> tabBodyDatas = <int, TabData>{}.obs;
   RxMap<int, Message?> roomLastMessage = <int, Message?>{}.obs;
 
-  RxInt defaultSelectedTab = 0.obs;
-  RxInt selectedIndex = 0.obs; // main bottom tab index
-
   RxString displayName = ''.obs;
   late TabController tabController;
   late StreamSubscription<List<ConnectivityResult>> subscription;
@@ -66,6 +64,38 @@ class HomeController extends GetxController
   DateTime? pausedTime;
 
   List<AppLifecycleState> appstates = [];
+
+  RxInt defaultSelectedTab =
+      (-1).obs; // 0: chat, 1: browser, -1: last opened tab
+  int selectedTabIndex = 0; // main bottom tab index
+  Map defaultTabConfig = {'Chat': 0, 'Browser': 1, 'Last opened tab': -1};
+  late CupertinoTabController cupertinoTabController;
+  Future setDefaultSelectedTab(int index) async {
+    defaultSelectedTab.value = index;
+    await Storage.setInt(
+        StorageKeyString.defaultSelectedTabIndex, defaultSelectedTab.value);
+  }
+
+  Future setSelectedTab(int index) async {
+    if (index < 0) {
+      index = 0;
+    }
+    selectedTabIndex = index;
+    await Storage.setInt(StorageKeyString.selectedTabIndex, selectedTabIndex);
+  }
+
+  // run when app start
+  loadSelectedTab() async {
+    int? res = await Storage.getInt(StorageKeyString.defaultSelectedTabIndex);
+    if (res != null && res > -1) {
+      await setSelectedTab(res);
+      return;
+    }
+    // undefined tab or last opened tab
+    res = await Storage.getIntOrZero(StorageKeyString.selectedTabIndex);
+    logger.d('not set or use last opened: $res');
+    await setSelectedTab(res);
+  }
 
   // add identity AI and add AI contacts
   Future createAIIdentity(List<Identity> existsIdentity, String idName) async {
@@ -404,8 +434,14 @@ class HomeController extends GetxController
 
   @override
   void onInit() async {
-    super.onInit();
     tabController = TabController(vsync: this, length: 0);
+    await loadSelectedTab();
+    cupertinoTabController =
+        CupertinoTabController(initialIndex: selectedTabIndex);
+    cupertinoTabController.addListener(() {
+      setSelectedTab(cupertinoTabController.index);
+    });
+    super.onInit();
 
     List<Identity> mys = await loadRoomList(init: true);
     isAppBadgeSupported =

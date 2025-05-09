@@ -14,7 +14,6 @@ class WebviewTabController extends GetxController {
   RxString url = ''.obs;
   RxDouble progress = 1.0.obs;
   String? favicon;
-  InAppWebViewKeepAlive? keepAlive;
   WebviewTabController(String initUrl, String? initTitle) {
     url.value = initUrl;
     title.value = initTitle ?? initUrl;
@@ -38,9 +37,6 @@ class WebviewTabController extends GetxController {
       algorithmicDarkeningAllowed: true,
       iframeAllowFullscreen: true);
 
-  RxInt scrollX = 0.obs;
-  RxInt scrollY = 0.obs;
-
   @override
   void onClose() {
     webViewController?.dispose();
@@ -49,10 +45,6 @@ class WebviewTabController extends GetxController {
 
   @override
   void onInit() {
-    if (GetPlatform.isMobile) {
-      keepAlive = InAppWebViewKeepAlive();
-    }
-
     pullToRefreshController = kIsWeb ||
             ![TargetPlatform.iOS, TargetPlatform.android]
                 .contains(defaultTargetPlatform)
@@ -69,6 +61,40 @@ class WebviewTabController extends GetxController {
               }
             });
     super.onInit();
+  }
+
+  setWebViewController(InAppWebViewController controller, String initUrl) {
+    webViewController = controller;
+    if (GetPlatform.isDesktop) return;
+    // Init data for keep alive on mobile
+    controller.getTitle().then((value) {
+      if (value != null) {
+        title.value = value;
+      }
+    });
+
+    controller.getUrl().then((value) {
+      if (value != null) {
+        url.value = value.toString();
+        Uri? current = Uri.tryParse(url.value);
+        Uri? init = Uri.tryParse(initUrl);
+        if (init != null && current != null) {
+          if (init.path != '/' && init.path != current.path) {
+            controller.loadUrl(
+              urlRequest: URLRequest(url: WebUri.uri(init)),
+            );
+          }
+        }
+      }
+    });
+
+    controller.canGoBack().then((value) {
+      canGoBack.value = value;
+    });
+
+    controller.canGoForward().then((value) {
+      canGoForward.value = value;
+    });
   }
 
   void setBrowserConnect(BrowserConnect? value) {

@@ -79,7 +79,7 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: const Text(''),
+          title: const Text('File'),
           actions: [
             if (fileStatus == FileStatus.decryptSuccess &&
                 msgFileInfo.localPath != null)
@@ -98,64 +98,45 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
                   icon: const Icon(CupertinoIcons.delete))
           ],
         ),
-        body: Center(
-            child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+        body: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Center(
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Icon(CupertinoIcons.doc_chart_fill,
-                        size: 58,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.5)),
-                    const SizedBox(
-                      height: 10,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(msgFileInfo.fileName,
+                    style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 16),
+                Text('Size: ${FileUtils.getFileSizeDisplay(msgFileInfo.size)}'),
+                textSmallGray(
+                    context, 'Encrypted by AES-256-CTR with one-time key'),
+                if (downloadProgress > 0 && downloadProgress < 100)
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: LinearProgressIndicator(
+                      value: downloadProgress / 100,
                     ),
-                    Text(
-                      msgFileInfo.localPath == null
-                          ? msgFileInfo.fileName
-                          : msgFileInfo.localPath!.split('/').last,
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                    const SizedBox(
-                      height: 10,
-                    ),
-                    Text(
-                        'Size: ${FileUtils.getFileSizeDisplay(msgFileInfo.size)}'),
-                    textSmallGray(
-                        context, 'Encrypted by AES-256-CTR with one-time key'),
-                    if (downloadProgress > 0 && downloadProgress < 100)
-                      Padding(
-                        padding: const EdgeInsets.only(
-                            top: 20, bottom: 10, left: 16, right: 16),
-                        child: LinearProgressIndicator(
-                          value: downloadProgress / 100,
-                        ),
-                      ),
-                    const SizedBox(
-                      height: 50,
-                    ),
-                    getStatusButton(),
-                    if (fileStatus == FileStatus.decryptSuccess &&
-                        msgFileInfo.localPath != null)
-                      Padding(
-                          padding: const EdgeInsets.only(top: 30),
-                          child: OutlinedButton.icon(
-                              onPressed: () async {
-                                String filePath =
-                                    '${Get.find<SettingController>().appFolder.path}${msgFileInfo.localPath!}';
+                  ),
+                const SizedBox(height: 16),
+                getStatusButton(),
+                if (fileStatus == FileStatus.decryptSuccess &&
+                    msgFileInfo.localPath != null)
+                  Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: OutlinedButton.icon(
+                          onPressed: () async {
+                            String filePath =
+                                '${Get.find<SettingController>().appFolder.path}${msgFileInfo.localPath!}';
 
-                                await Share.shareXFiles([XFile(filePath)],
-                                    subject: FileUtils.getDisplayFileName(
-                                        msgFileInfo.localPath!));
-                              },
-                              icon: const Icon(CupertinoIcons.share),
-                              label: const Text('More'))),
-                  ],
-                ))));
+                            await Share.shareXFiles([XFile(filePath)],
+                                subject: FileUtils.getDisplayFileName(
+                                    msgFileInfo.localPath!));
+                          },
+                          icon: const Icon(CupertinoIcons.share),
+                          label: const Text('More'))),
+              ],
+            ))));
   }
 
   Widget getStatusButton() {
@@ -180,7 +161,10 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
                       OpenFilex.open(filePath);
                     }
                   },
-                  child: const Text('Open in Other APP',
+                  child: Text(
+                      GetPlatform.isDesktop
+                          ? 'View in Finder'
+                          : 'Open in Other APP',
                       style: TextStyle(color: Colors.white))),
               OutlinedButton(
                   onPressed: () async {

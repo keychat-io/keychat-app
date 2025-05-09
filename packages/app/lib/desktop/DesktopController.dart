@@ -1,3 +1,4 @@
+import 'package:app/controller/home.controller.dart';
 import 'package:app/models/room.dart';
 import 'package:app/service/storage.dart';
 import 'package:flutter/material.dart';
@@ -6,16 +7,21 @@ import 'package:sidebarx/sidebarx.dart';
 
 class DesktopController extends GetxController {
   Rx<Room> selectedRoom = Room(identityId: -1, toMainPubkey: '', npub: '').obs;
-  final sidebarXController =
-      SidebarXController(selectedIndex: 0, extended: false);
+  late SidebarXController sidebarXController;
   final globalKey = GlobalKey<ScaffoldState>();
 
   final roomListWidth = 260.0.obs;
   final browserSidebarWidth =
       260.0.obs; // Add this line for browser sidebar width
-
+  late HomeController hc;
   @override
   void onInit() {
+    hc = Get.find<HomeController>();
+    sidebarXController =
+        SidebarXController(selectedIndex: hc.selectedTabIndex, extended: false);
+    sidebarXController.addListener(() {
+      hc.setSelectedTab(sidebarXController.selectedIndex);
+    });
     super.onInit();
     _loadRoomListWidth();
     _loadBrowserSidebarWidth(); // Add this line to load browser sidebar width

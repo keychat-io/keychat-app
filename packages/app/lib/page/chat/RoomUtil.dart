@@ -761,6 +761,10 @@ Let's start an encrypted chat.''';
     }
   }
 
+  /// Returns a Widget for displaying text based on the specified parameters.
+  ///
+  /// This method creates and configures a text display widget with appropriate
+  /// styling and formatting options.
   static Widget getTextViewWidget(
       Message message,
       ChatController cc,

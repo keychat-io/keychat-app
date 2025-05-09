@@ -167,7 +167,7 @@ class AwsS3 {
       required String filename,
       required Map<dynamic, dynamic> uploadParams}) async {
     final dio = Dio();
-    logger.d(uploadParams);
+    logger.i('upload params: $uploadParams');
     String endpoint = uploadParams['url']!;
     Map<String, dynamic> headers = uploadParams['headers']!;
     headers["Content-Type"] = "multipart/form-data";

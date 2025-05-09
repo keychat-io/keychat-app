@@ -1,11 +1,10 @@
 import 'dart:convert' show jsonDecode;
-import 'dart:io' show File, Platform, Process;
+import 'dart:io' show File;
 import 'package:app/app.dart';
 import 'package:app/bot/bot_client_message_model.dart';
 import 'package:app/controller/chat.controller.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/controller/setting.controller.dart';
-import 'package:app/models/nostr_event_status.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/LongTextPreviewPage.dart';
 import 'package:app/page/chat/RoomUtil.dart';
@@ -26,6 +25,7 @@ import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 import 'package:markdown_widget/markdown_widget.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:settings_ui/settings_ui.dart';
 
 import '../../service/file_util.dart';
@@ -902,7 +902,7 @@ class MessageWidget extends StatelessWidget {
             mouseCursor: SystemMouseCursors.click,
             child: Row(
               children: const [
-                Icon(Icons.photo, size: 18),
+                Icon(CupertinoIcons.folder_open, size: 18),
                 SizedBox(width: 8),
                 Text('View in Finder'),
               ],
@@ -923,23 +923,7 @@ class MessageWidget extends StatelessWidget {
 
               // Get the directory of the file
               String fileDir = File(filePath).parent.path;
-
-              // Open the directory containing the file
-              try {
-                if (Platform.isWindows) {
-                  Process.run('explorer.exe', [fileDir]);
-                } else if (Platform.isMacOS) {
-                  Process.run('open', [fileDir]);
-                } else if (Platform.isLinux) {
-                  Process.run('xdg-open', [fileDir]);
-                } else {
-                  EasyLoading.showToast(
-                      'Opening directories not supported on this platform');
-                }
-              } catch (e) {
-                EasyLoading.showError(
-                    'Error opening directory: ${e.toString()}');
-              }
+              OpenFilex.open(fileDir);
             },
           ),
         PopupMenuItem(

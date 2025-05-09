@@ -16,6 +16,7 @@ class FileEncryptInfo {
   late String suffix;
   late String key;
   late String hash; // sha256
+  late String sourceName;
   String? ecashToken;
   String? url;
   int size = 0;
@@ -24,13 +25,15 @@ class FileEncryptInfo {
       required this.output,
       required this.iv,
       required this.suffix,
-      required this.hash});
+      required this.hash,
+      required this.sourceName});
   FileEncryptInfo.fromJson(Map<String, dynamic> json) {
     output = json['output'];
     iv = json['iv'];
     suffix = json['suffix'];
     key = json['key'];
     hash = json['hash'];
+    sourceName = json['sourceName'] ?? json['hash'];
   }
 }
 
@@ -62,8 +65,9 @@ class FileService {
       'output': encryptedBytes.bytes,
       'iv': iv.base64,
       'key': key.base64,
-      'suffix': fileName.split('.').last,
-      'hash': calculateFileHash(encryptedBytes.bytes)
+      'suffix': fileName.contains('.') ? fileName.split('.').last : '',
+      'hash': calculateFileHash(encryptedBytes.bytes),
+      'sourceName': fileName,
     });
   }
 

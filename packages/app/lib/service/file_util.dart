@@ -24,11 +24,11 @@ import '../models/message.dart';
 import '../models/room.dart';
 
 AwsS3 s3 = AwsS3(
-    accessKey: dotenv.get('AWS_ACCESSKEY',fallback: ""),
-    secretKey: dotenv.get('AWS_SECRETKEY',fallback: ""),
-    bucket: dotenv.get('AWS_BUCKET',fallback: ""),
-    region: dotenv.get('AWS_REGION',fallback: ""))
-  ..host = dotenv.get('AWS_HOST',fallback: "");
+    accessKey: dotenv.get('AWS_ACCESSKEY', fallback: ""),
+    secretKey: dotenv.get('AWS_SECRETKEY', fallback: ""),
+    bucket: dotenv.get('AWS_BUCKET', fallback: ""),
+    region: dotenv.get('AWS_REGION', fallback: ""))
+  ..host = dotenv.get('AWS_HOST', fallback: "");
 
 class FileUtils {
   static String getAbsolutelyFilePath(String appFolder, String localPath) {
@@ -198,13 +198,13 @@ class FileUtils {
     if (fileBytes.isEmpty) {
       fileBytes = await xfile.readAsBytes();
     }
-    await File(newPath).writeAsBytes(fileBytes);
-    File localFile = File(newPath);
-    FileEncryptInfo fileInfo = await s3.encryptAndUploadByRelay(localFile,
+    File newFile = File(newPath);
+    await newFile.writeAsBytes(fileBytes);
+    FileEncryptInfo fileInfo = await s3.encryptAndUploadByRelay(newFile,
         onSendProgress: onSendProgress);
 
     Directory appFolder = await Utils.getAppFolder();
-    String relativePath = localFile.path.replaceAll(appFolder.path, '');
+    String relativePath = newFile.path.replaceAll(appFolder.path, '');
     await RoomService.instance.sendFileMessage(
         relativePath: relativePath, fileInfo: fileInfo, room: room, type: type);
   }
@@ -212,20 +212,12 @@ class FileUtils {
   static Future downloadForMessage(Message message, MsgFileInfo mfi,
       {Function(MsgFileInfo fi)? callback,
       Function(int count, int total)? onReceiveProgress}) async {
-    String dir = await getRoomFolder(
-        identityId: message.identityId,
-        roomId: message.roomId,
-        type: message.mediaType);
     Uri uri = Uri.parse(message.content);
-    String outputFilePath = '$dir${uri.path.split('/').last}';
-
-    if (mfi.suffix != null) {
-      outputFilePath += mfi.suffix!;
-    }
-
+    String outputFilePath = await getOutputFilePath(message, mfi, uri);
     File newFile = File(outputFilePath);
     bool exist = await newFile.exists();
     try {
+      // file not exist
       if (exist == false) {
         mfi.status = FileStatus.downloading;
         mfi.updateAt = DateTime.now();
@@ -239,7 +231,44 @@ class FileUtils {
             key: mfi.key!,
             iv: mfi.iv!,
             type: message.mediaType,
+            fileName: mfi.sourceName,
             onReceiveProgress: onReceiveProgress);
+      } else {
+        // file exist, check the hash, then save the file using a new name
+        List<int> bytes = await newFile.readAsBytes();
+        String existFileHash = FileService.calculateFileHash(bytes);
+        // not the same file, check hash first
+        if (existFileHash != mfi.hash) {
+          // If the hash doesn't match, rename the file and re-download
+          logger.i('File hash mismatch: $existFileHash != ${mfi.hash}');
+          String fileName = newFile.path.split('/').last;
+          String fileNameWithoutExt = fileName.contains('.')
+              ? fileName.substring(0, fileName.lastIndexOf('.'))
+              : fileName;
+          String extension = fileName.contains('.')
+              ? fileName.substring(fileName.lastIndexOf('.'))
+              : '';
+
+          // Generate random string for filename
+          int randomString = Utils.randomInt(4);
+          String newFileName = '${fileNameWithoutExt}_$randomString$extension';
+
+          // Re-download the file
+          mfi.status = FileStatus.downloading;
+          mfi.updateAt = DateTime.now();
+          message.realMessage = mfi.toString();
+          await updateMessageAndCallback(message, mfi, callback);
+          newFile = await downloadAndDecrypt(
+              identityId: message.identityId,
+              url: '${uri.origin}${uri.path}',
+              suffix: mfi.suffix ?? '',
+              roomId: message.roomId,
+              key: mfi.key!,
+              iv: mfi.iv!,
+              type: message.mediaType,
+              fileName: newFileName,
+              onReceiveProgress: onReceiveProgress);
+        }
       }
 
       Directory appFolder = await Utils.getAppFolder();
@@ -256,15 +285,32 @@ class FileUtils {
         getOrCreateThumbForVideo(newFile.path);
       }
       await updateMessageAndCallback(message, mfi, callback);
-      return;
     } catch (e, s) {
+      // mark as failed
       logger.e(e.toString(), error: e, stackTrace: s);
       mfi.status = FileStatus.failed;
       mfi.updateAt = DateTime.now();
       message.realMessage = mfi.toString();
       await updateMessageAndCallback(message, mfi, callback);
-      return;
     }
+  }
+
+  static Future<String> getOutputFilePath(
+      Message message, MsgFileInfo mfi, Uri uri) async {
+    String dir = await getRoomFolder(
+        identityId: message.identityId,
+        roomId: message.roomId,
+        type: message.mediaType);
+    late String outputFilePath;
+    if (mfi.sourceName != null) {
+      outputFilePath = '$dir${mfi.sourceName}';
+    } else {
+      outputFilePath = '$dir${uri.path.split('/').last}';
+      if (mfi.suffix != null) {
+        outputFilePath += mfi.suffix!;
+      }
+    }
+    return outputFilePath;
   }
 
   static Future<void> updateMessageAndCallback(Message message, MsgFileInfo mfi,
@@ -466,9 +512,31 @@ class FileUtils {
 
 Future<String> getNewFilePath(String appDocPath, String sourceFilePath) async {
   String fileName = sourceFilePath.split('/').last;
-  String fileSuffix = fileName.split('.').last;
-  String newFileName = '${DateTime.now().millisecondsSinceEpoch}.$fileSuffix';
-  return appDocPath + newFileName;
+  String newFilePath = appDocPath + fileName;
+  File newFile = File(newFilePath);
+  bool exist = await newFile.exists();
+  if (!exist) {
+    return newFilePath;
+  }
+
+  // Split the filename and extension
+  String fileNameWithoutExt = fileName.contains('.')
+      ? fileName.substring(0, fileName.lastIndexOf('.'))
+      : fileName;
+  String extension = fileName.contains('.')
+      ? fileName.substring(fileName.lastIndexOf('.'))
+      : '';
+
+  int counter = 1;
+  while (await newFile.exists()) {
+    // Create a new filename with counter
+    String newFileName = '${fileNameWithoutExt}_$counter$extension';
+    newFilePath = appDocPath + newFileName;
+    newFile = File(newFilePath);
+    counter++;
+  }
+
+  return newFilePath;
 }
 
 // pick image only
@@ -517,14 +585,20 @@ Future<File> downloadAndDecrypt(
     required String key,
     required String iv,
     required MessageMediaType type,
+    String? fileName,
     Function(int count, int total)? onReceiveProgress}) async {
   File? input = await downloadFile(url, onReceiveProgress);
   if (input == null) throw Exception('File_download_faild');
   String dir = await FileUtils.getRoomFolder(
       identityId: identityId, roomId: roomId, type: type);
-  String outputFile = '$dir${input.path.split('/').last}';
-  if (suffix.isNotEmpty) {
-    outputFile += '.$suffix';
+  late String outputFile;
+  if (fileName != null) {
+    outputFile = '$dir$fileName';
+  } else {
+    outputFile = '$dir${input.path.split('/').last}';
+    if (suffix.isNotEmpty) {
+      outputFile += '.$suffix';
+    }
   }
 
   final output = File(outputFile);

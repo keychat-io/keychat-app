@@ -70,10 +70,10 @@ class HomeController extends GetxController
   int selectedTabIndex = 0; // main bottom tab index
   Map defaultTabConfig = {'Chat': 0, 'Browser': 1, 'Last opened tab': -1};
   late CupertinoTabController cupertinoTabController;
+
   Future setDefaultSelectedTab(int index) async {
     defaultSelectedTab.value = index;
-    await Storage.setInt(
-        StorageKeyString.defaultSelectedTabIndex, defaultSelectedTab.value);
+    await Storage.setInt(StorageKeyString.defaultSelectedTabIndex, index);
   }
 
   Future setSelectedTab(int index) async {
@@ -81,20 +81,21 @@ class HomeController extends GetxController
       index = 0;
     }
     selectedTabIndex = index;
-    await Storage.setInt(StorageKeyString.selectedTabIndex, selectedTabIndex);
+    await Storage.setInt(StorageKeyString.selectedTabIndex, index);
   }
 
   // run when app start
-  loadSelectedTab() async {
+  Future loadSelectedTab() async {
     int? res = await Storage.getInt(StorageKeyString.defaultSelectedTabIndex);
-    if (res != null && res > -1) {
-      await setSelectedTab(res);
+    res ??= -1;
+    defaultSelectedTab.value = res;
+    if (res > -1) {
+      selectedTabIndex = res;
       return;
     }
-    // undefined tab or last opened tab
+    // use the last opened tab
     res = await Storage.getIntOrZero(StorageKeyString.selectedTabIndex);
-    logger.d('not set or use last opened: $res');
-    await setSelectedTab(res);
+    selectedTabIndex = res;
   }
 
   // add identity AI and add AI contacts

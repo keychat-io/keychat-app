@@ -175,7 +175,7 @@ class MultiWebviewController extends GetxController {
                 windowId: 0,
                 keepAlive: _getKeepAliveObject(uniqueKey),
               ),
-          transition: Transition.fadeIn);
+          transition: Transition.cupertino);
       return;
     }
 

@@ -12,6 +12,7 @@ git log -n 5 --pretty=format:"%h - %s (%ci)"
 - [App Settings] Add `Startup Tab` setting Options
 - Update the app description text.
 - Cache MLK PK event data to reduce the number of signature requests.
+- Update NDK version to 29.0.13113456
 
 ## 1.31.12+6368
 - [browser] Save the status of the tab unless it is closed manually

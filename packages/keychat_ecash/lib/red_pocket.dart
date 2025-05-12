@@ -72,9 +72,11 @@ class _RedPocketState extends State<RedPocket> {
                       fontSize: 12,
                       fontWeight: FontWeight.w400),
                 ),
-                trailing: CashuStatus.getStatusIcon(_cashuInfoModel.amount == 0
-                    ? TransactionStatus.success
-                    : _cashuInfoModel.status)),
+                trailing: _cashuInfoModel.status == TransactionStatus.pending
+                    ? null
+                    : CashuStatus.getStatusIcon(_cashuInfoModel.amount == 0
+                        ? TransactionStatus.success
+                        : _cashuInfoModel.status)),
             if (_cashuInfoModel.status == TransactionStatus.pending)
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,

@@ -25,7 +25,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 import 'package:get/get.dart';
 import 'package:markdown_widget/markdown_widget.dart';
-import 'package:pull_to_refresh/pull_to_refresh.dart';
+import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:settings_ui/settings_ui.dart';
 
@@ -189,81 +189,84 @@ class _ChatPage2State extends State<ChatPage> {
                               ? const Color(0xFF000000)
                               : const Color(0xffededed),
                           padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: SmartRefresher(
-                            reverse: true,
-                            enablePullDown: false,
-                            enablePullUp: true,
-                            controller: controller.refreshController,
-                            onLoading: controller.loadMoreChatHistory,
-                            child: Obx(() => Listener(
-                                onPointerMove: (event) {
-                                  if (event.delta.dy < -10 && isFromSearch) {
-                                    List<Message> msgs = controller
-                                        .loadMoreChatFromSearchSroll();
-                                    if (msgs.isNotEmpty) {
-                                      controller.messages.addAll(
-                                          controller.sortMessageById(msgs));
-                                      controller.messages.value =
-                                          controller.messages.toSet().toList();
-                                      controller.messages.sort(((a, b) =>
-                                          b.createdAt.compareTo(a.createdAt)));
-                                    }
+                          child: Listener(
+                              onPointerMove: (event) {
+                                if (event.delta.dy < -10 && isFromSearch) {
+                                  List<Message> msgs =
+                                      controller.loadMoreChatFromSearchSroll();
+                                  if (msgs.isNotEmpty) {
+                                    controller.messages.addAll(
+                                        controller.sortMessageById(msgs));
+                                    controller.messages.value =
+                                        controller.messages.toSet().toList();
+                                    controller.messages.sort(((a, b) =>
+                                        b.createdAt.compareTo(a.createdAt)));
                                   }
-                                },
-                                child: ListView.builder(
-                                  key: ObjectKey(
-                                      'room:${controller.roomObs.value.id}'),
-                                  reverse: true,
-                                  shrinkWrap: true,
-                                  controller: controller.autoScrollController,
-                                  itemCount: controller.messages.length,
-                                  itemBuilder:
-                                      (BuildContext context, int index) {
-                                    Message message =
-                                        controller.messages[index];
+                                }
+                              },
+                              child: Obx(
+                                () => SmartRefresher(
+                                    reverse: true,
+                                    enablePullDown: false,
+                                    enablePullUp: true,
+                                    controller: controller.refreshController,
+                                    onLoading: controller.loadMoreChatHistory,
+                                    child: ListView.builder(
+                                      key: ObjectKey(
+                                          'room:${controller.roomObs.value.id}'),
+                                      reverse: true,
+                                      shrinkWrap: true,
+                                      controller:
+                                          controller.autoScrollController,
+                                      itemCount: controller.messages.length,
+                                      itemBuilder:
+                                          (BuildContext context, int index) {
+                                        Message message =
+                                            controller.messages[index];
 
-                                    RoomMember? rm;
-                                    if (!message.isMeSend &&
-                                        controller.roomObs.value.type ==
-                                            RoomType.group) {
-                                      rm = controller.getMemberByIdPubkey(
-                                          message.idPubkey);
-                                      if (rm != null) {
-                                        message.senderName = rm.name;
-                                      }
-                                    }
+                                        RoomMember? rm;
+                                        if (!message.isMeSend &&
+                                            controller.roomObs.value.type ==
+                                                RoomType.group) {
+                                          rm = controller.getMemberByIdPubkey(
+                                              message.idPubkey);
+                                          if (rm != null) {
+                                            message.senderName = rm.name;
+                                          }
+                                        }
 
-                                    return AutoScrollTag(
-                                        key: ValueKey(index),
-                                        controller:
-                                            controller.autoScrollController,
-                                        index: index,
-                                        highlightColor: Theme.of(context)
-                                            .colorScheme
-                                            .inversePrimary,
-                                        child: MessageWidget(
-                                          key: ObjectKey('msg:${message.id}'),
-                                          myAavtar: myAavtar,
-                                          index: index,
-                                          isGroup: isGroup,
-                                          roomMember: rm,
-                                          cc: controller,
-                                          screenWidth: Get.width,
-                                          toDisplayNameColor: Get.isDarkMode
-                                              ? Colors.white54
-                                              : Colors.black54,
-                                          backgroundColor: message.isMeSend
-                                              ? KeychatGlobal.secondaryColor
-                                              : toBackgroundColor,
-                                          fontColor: fontColor,
-                                          markdownConfig:
-                                              Get.isDarkMode || message.isMeSend
+                                        return AutoScrollTag(
+                                            key: ValueKey(index),
+                                            controller:
+                                                controller.autoScrollController,
+                                            index: index,
+                                            highlightColor: Theme.of(context)
+                                                .colorScheme
+                                                .inversePrimary,
+                                            child: MessageWidget(
+                                              key: ObjectKey(
+                                                  'msg:${message.id}'),
+                                              myAavtar: myAavtar,
+                                              index: index,
+                                              isGroup: isGroup,
+                                              roomMember: rm,
+                                              cc: controller,
+                                              screenWidth: Get.width,
+                                              toDisplayNameColor: Get.isDarkMode
+                                                  ? Colors.white54
+                                                  : Colors.black54,
+                                              backgroundColor: message.isMeSend
+                                                  ? KeychatGlobal.secondaryColor
+                                                  : toBackgroundColor,
+                                              fontColor: fontColor,
+                                              markdownConfig: Get.isDarkMode ||
+                                                      message.isMeSend
                                                   ? markdownDarkConfig
                                                   : markdownLightConfig,
-                                        ));
-                                  },
-                                ))),
-                          ))),
+                                            ));
+                                      },
+                                    )),
+                              )))),
                   Obx(() => getSendMessageInput(context, controller))
                 ],
               ),

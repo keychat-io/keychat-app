@@ -29,7 +29,7 @@ import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:pull_to_refresh/pull_to_refresh.dart';
+import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 
 class HomeController extends GetxController
     with GetTickerProviderStateMixin, WidgetsBindingObserver {

@@ -6,13 +6,12 @@ import 'package:keychat_ecash/Bills/lightning_bill_controller.dart';
 import 'package:keychat_ecash/Bills/lightning_transaction.dart';
 import 'package:keychat_ecash/utils.dart';
 import 'package:app/page/components.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:pull_to_refresh/pull_to_refresh.dart';
+import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 
 class LightningBillPage extends GetView<LightningBillController> {
   const LightningBillPage({super.key});

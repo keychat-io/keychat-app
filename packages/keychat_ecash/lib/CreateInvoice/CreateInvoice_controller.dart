@@ -29,7 +29,7 @@ class CreateInvoiceController extends GetxController {
     super.onClose();
   }
 
-  void handleReceiveInvoice() async {
+  void handleCreateInvoice() async {
     if (GetPlatform.isMobile) {
       HapticFeedback.lightImpact();
     }

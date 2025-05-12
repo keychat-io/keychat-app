@@ -51,7 +51,7 @@ class _WebStorePageState extends State<WebStorePage> {
     return Scaffold(
         appBar: AppBar(
           centerTitle: true,
-          title: const Text('Mini APP'),
+          title: const Text('Mini App'),
         ),
         body: Obx(() => homeController.recommendWebstore.entries.isEmpty
             ? pageLoadingSpinKit()

@@ -26,7 +26,7 @@ class CashuUtil {
     var ec = Get.find<EcashController>();
 
     if (!retry) {
-      EasyLoading.show(status: 'Receiving...');
+      EasyLoading.show(status: 'Redeeming...');
     }
     late rust_cashu.TokenInfo decoded;
     try {

@@ -285,7 +285,7 @@ class BrowserNewTab extends GetView<MultiWebviewController> {
     var features = [
       {
         'icon': 'assets/images/recommend.png',
-        'title': 'Mini APP',
+        'title': 'Mini App',
         'onTap': () async {
           if (GetPlatform.isDesktop) {
             await Get.bottomSheet(const WebStorePage());

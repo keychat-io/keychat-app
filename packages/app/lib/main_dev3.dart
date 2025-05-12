@@ -139,7 +139,7 @@ Future<SettingController> initServices() async {
   String dbPath = '${appFolder.path}/$env/database/';
   Directory dbDirectory = Directory(dbPath);
   dbDirectory.createSync(recursive: true);
-  logger.i('APP Folder: $dbPath');
+  logger.i('App Folder: $dbPath');
   await DBProvider.initDB(dbPath);
   SettingController sc = Get.put(SettingController(), permanent: true);
   Get.put(EcashController(dbPath), permanent: true);

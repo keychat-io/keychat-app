@@ -169,13 +169,16 @@ class EcashController extends GetxController {
       return {};
     }
     Map<String, int> result = {};
+    // {https://8333.space:3338/: 0, https://mint.minibits.cash/Bitcoin/: 5}
     logger.i('cashu balance: $resMap');
     int total = 0;
     List<MintBalanceClass> localMints = <MintBalanceClass>[];
-    bool existLastestMint = false;
+    bool existLatestMint = false;
+    int latestMintBalance = 0;
     for (String item in resMap.keys) {
       if (latestMintUrl.value == item) {
-        existLastestMint = true;
+        latestMintBalance = resMap[item] as int;
+        existLatestMint = true;
       }
       localMints
           .add(MintBalanceClass(item, EcashTokenSymbol.sat.name, resMap[item]));
@@ -188,7 +191,7 @@ class EcashController extends GetxController {
     mintBalances.value = localMints.toList();
 
     // set latest mint url
-    if (existLastestMint == false) {
+    if (existLatestMint == false || latestMintBalance == 0) {
       for (var mb in localMints) {
         if (mb.balance > 0) {
           latestMintUrl.value = mb.mint;

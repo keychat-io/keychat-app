@@ -92,9 +92,12 @@ class ContactPage extends StatelessWidget {
             Room? room = snapshot.data;
             return FilledButton(
               onPressed: () async {
+                if (room != null) {
+                  await SignalChatService.instance.resetSignalSession(room);
+                  return;
+                }
                 EasyThrottle.throttle('Add_contact', const Duration(seconds: 2),
                     () async {
-                  // bool roomIsNull = room == null;
                   late Room room0;
                   try {
                     EasyLoading.show(status: 'Processing...');

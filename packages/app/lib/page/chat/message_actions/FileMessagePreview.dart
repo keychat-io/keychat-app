@@ -164,7 +164,7 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
                   child: Text(
                       GetPlatform.isDesktop
                           ? 'View in Finder'
-                          : 'Open in Other APP',
+                          : 'Open in Other App',
                       style: TextStyle(color: Colors.white))),
               OutlinedButton(
                   onPressed: () async {

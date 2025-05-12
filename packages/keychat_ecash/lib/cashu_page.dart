@@ -23,29 +23,27 @@ class CashuPage extends GetView<EcashController> {
   Widget bottomBarWidget(BuildContext context) {
     return SafeArea(
         bottom: true,
-        child: Padding(
-            padding: EdgeInsets.only(bottom: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Wrap(
-                    spacing: 16,
-                    runAlignment: WrapAlignment.center,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      FilledButton(onPressed: _handleSend, child: Text('Send')),
-                      IconButton(
-                          color: Theme.of(context).colorScheme.primary,
-                          onPressed: () {
-                            QrScanService.instance.handleQRScan();
-                          },
-                          icon: const Icon(CupertinoIcons.qrcode_viewfinder,
-                              size: 24)),
-                      FilledButton(
-                          onPressed: _handleReceive, child: Text('Receive')),
-                    ])
-              ],
-            )));
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Wrap(
+                spacing: 16,
+                runAlignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  FilledButton(onPressed: _handleSend, child: Text('Send')),
+                  IconButton(
+                      color: Theme.of(context).colorScheme.primary,
+                      onPressed: () {
+                        QrScanService.instance.handleQRScan();
+                      },
+                      icon: const Icon(CupertinoIcons.qrcode_viewfinder,
+                          size: 24)),
+                  FilledButton(
+                      onPressed: _handleReceive, child: Text('Receive')),
+                ])
+          ],
+        ));
   }
 
   @override

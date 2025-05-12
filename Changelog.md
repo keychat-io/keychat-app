@@ -4,14 +4,16 @@ https://keepachangelog.com/zh-CN/1.1.0
 
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
-## 1.32.1+6375
-- [Browser] Optimize keepAlive functionality; update desktop version styling.
+## 1.32.2+6377
+- [Browser] Optimize keepAlive; update desktop version styling.
 - [Desktop] Opening folders in Finder.
 - [Media] Ensure uploaded and downloaded files retain their original filenames.
 - [Ecash] Fix: Restore ecash from mint server.
+- [Ecash] Fix: Double click to receive token.
+- [Ecash] Style of red pocket
 - [App Settings] Add `Startup Tab` setting Options
 - Update the app description text.
-- Cache MLK PK event data to reduce the number of signature requests.
+- Cache MLS PK event data to reduce the number of signature requests.
 - Update NDK version to 29.0.13113456
 
 ## 1.31.12+6368

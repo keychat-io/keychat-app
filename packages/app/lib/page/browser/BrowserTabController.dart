@@ -33,7 +33,6 @@ class WebviewTabController extends GetxController {
 
   @override
   void onInit() {
-    logger.d(multiWebviewController.kInitialTextSize.value);
     settings = InAppWebViewSettings(
         isInspectable: kDebugMode,
         mediaPlaybackRequiresUserGesture: false,

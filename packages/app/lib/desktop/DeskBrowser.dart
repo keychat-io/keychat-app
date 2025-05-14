@@ -23,7 +23,7 @@ class _DeskBrowserState extends State<DeskBrowser> {
     super.initState();
     controller = Get.find<MultiWebviewController>();
     desktopController = Get.find<DesktopController>();
-    controller.setCurrentTabIndex = (int index) {
+    controller.updatePageTabIndex = (int index) {
       setState(() {
         currentTabIndex = index;
       });
@@ -49,14 +49,14 @@ class _DeskBrowserState extends State<DeskBrowser> {
                         },
                         label: Icon(Icons.add)));
               }
+              var tab = controller.tabs[index];
               return HoverCloseListTile(
                 leading: Utils.getNetworkImage(controller.tabs[index].favicon,
                     size: 24),
-                title: controller.tabs[index].title == null ||
-                        controller.tabs[index].title!.isEmpty
-                    ? controller.tabs[index].url
-                    : (controller.tabs[index].title ??
-                        controller.tabs[index].url),
+                title: controller.removeHttpPrefix(
+                    tab.title == null || tab.title!.isEmpty
+                        ? tab.url
+                        : (tab.title ?? tab.url)),
                 selected: currentTabIndex == index,
                 onTap: () {
                   controller.setCurrentTabIndex(index);

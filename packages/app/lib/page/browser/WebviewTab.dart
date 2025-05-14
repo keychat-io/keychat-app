@@ -138,9 +138,10 @@ class _WebviewTabState extends State<WebviewTab> {
                       Expanded(
                           child: Center(
                               child: AutoSizeText(
-                                  tc.title.value.isEmpty
-                                      ? tc.url.value
-                                      : tc.title.value,
+                                  controller.removeHttpPrefix(
+                                      tc.title.value.isEmpty
+                                          ? tc.url.value
+                                          : tc.title.value),
                                   minFontSize: 10,
                                   stepGranularity: 2,
                                   maxFontSize: 16,
@@ -148,7 +149,9 @@ class _WebviewTabState extends State<WebviewTab> {
                                   overflow: TextOverflow.clip)))
                     ])
                   : AutoSizeText(
-                      tc.title.value.isEmpty ? tc.url.value : tc.title.value,
+                      controller.removeHttpPrefix(tc.title.value.isEmpty
+                          ? tc.url.value
+                          : tc.title.value),
                       minFontSize: 10,
                       stepGranularity: 2,
                       maxFontSize: 16,

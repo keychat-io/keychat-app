@@ -98,14 +98,20 @@ class MultiWebviewController extends GetxController {
   }
 
   void removeByIndex(int removeIndex) {
+    logger.d('remove tab $removeIndex');
     if (removeIndex >= 0) {
       tabs.remove(tabs[removeIndex]);
       if (tabs.isEmpty) {
         addNewTab();
+        setCurrentTabIndex(0);
+        return;
       }
     }
-    if (removeIndex >= currentIndex) {
-      setCurrentTabIndex(tabs.length - 1);
+    logger.d('currentIndex tab $currentIndex');
+    if (removeIndex <= currentIndex) {
+      setCurrentTabIndex(currentIndex - 1);
+    } else {
+      setCurrentTabIndex(currentIndex);
     }
   }
 
@@ -214,7 +220,15 @@ class MultiWebviewController extends GetxController {
     mobileKeepAlive.remove(uniqueKey);
   }
 
-  Function(int) setCurrentTabIndex = (p0) {};
+  setCurrentTabIndex(index) {
+    if (index < 0 || index >= tabs.length) {
+      index = 0;
+    }
+    currentIndex = index;
+    updatePageTabIndex(index);
+  }
+
+  Function(int) updatePageTabIndex = (index) {};
 
   int getLastWindowId() {
     int windowId = 0;
@@ -361,7 +375,7 @@ class MultiWebviewController extends GetxController {
     }
     try {
       List<Favicon> favicons = await controller.getFavicons().timeout(
-        const Duration(seconds: 2),
+        const Duration(seconds: 3),
         onTimeout: () {
           debugPrint('Favicon request timed out');
           return [];
@@ -452,6 +466,16 @@ window.addEventListener('DOMContentLoaded', function(event) {
               document.body.style.webkitTextSizeAdjust = '$textSize%';
             """;
     await Storage.setInt(KeychatGlobal.browserTextSize, textSize);
+  }
+
+  String removeHttpPrefix(String url) {
+    if (url.startsWith('http://')) {
+      return url.replaceFirst('http://', '');
+    }
+    if (url.startsWith('https://')) {
+      return url.replaceFirst('https://', '');
+    }
+    return url;
   }
 }
 

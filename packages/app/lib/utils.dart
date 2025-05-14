@@ -488,12 +488,19 @@ class Utils {
     return '$days days';
   }
 
-  static getErrorMessage(Object e) {
+  static String getErrorMessage(Object e) {
     if (e is! AnyhowException) return e.toString();
 
     int index = e.message.indexOf('Stack backtrace:');
-    if (index == -1) return e.message;
-    return e.message.substring(0, index).trim();
+    String message = e.message;
+    if (index != -1) {
+      message = e.message.substring(0, index).trim();
+    }
+    int causedByIndex = message.indexOf('Caused by:');
+    if (causedByIndex != -1) {
+      return message.substring(0, causedByIndex).trim();
+    }
+    return message;
   }
 
   static String getFormatTimeForMessage(DateTime formatDt) {

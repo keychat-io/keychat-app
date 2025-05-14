@@ -30,7 +30,6 @@ class WebviewTabController extends GetxController {
       allowsLinkPreview: true,
       isFraudulentWebsiteWarningEnabled: true,
       useOnDownloadStart: true,
-      supportMultipleWindows: false,
       transparentBackground: Get.isDarkMode,
       cacheEnabled: true,
       iframeAllow: "camera; microphone",

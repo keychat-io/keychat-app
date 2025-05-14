@@ -416,6 +416,14 @@ class MultiWebviewController extends GetxController {
       return Get.put(WebviewTabController(initUrl, initTitle), tag: uniqueKey);
     }
   }
+
+  void setTabDataFavicon({required String uniqueId, required String favicon}) {
+    int tabIndex = tabs.indexWhere((tab) => tab.uniqueKey == uniqueId);
+    if (tabIndex >= 0) {
+      tabs[tabIndex].favicon = favicon;
+      tabs.refresh();
+    }
+  }
 }
 
 const String defaultSearchEngine = 'searXNG';

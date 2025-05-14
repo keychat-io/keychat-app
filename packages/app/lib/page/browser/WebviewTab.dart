@@ -56,9 +56,13 @@ class _WebviewTabState extends State<WebviewTab> {
   late EcashController ecashController;
   late MultiWebviewController controller;
   late WebviewTabController tc;
+  bool pageFailed = false;
+  bool pageLoaded = false;
+  InAppWebViewKeepAlive? ka;
 
   @override
   void initState() {
+    ka = widget.keepAlive;
     controller = Get.find<MultiWebviewController>();
     tc = controller.getOrCreateController(
         widget.initUrl, widget.initTitle, widget.uniqueKey);
@@ -114,11 +118,7 @@ class _WebviewTabState extends State<WebviewTab> {
                                 padding:
                                     const EdgeInsets.symmetric(horizontal: 2),
                                 onPressed: () {
-                                  if (GetPlatform.isMobile) {
-                                    Get.back();
-                                  } else {
-                                    controller.removeTab(widget.uniqueKey);
-                                  }
+                                  controller.removeTab(widget.uniqueKey);
                                 },
                                 icon: const Icon(Icons.close)),
                             IconButton(
@@ -136,14 +136,23 @@ class _WebviewTabState extends State<WebviewTab> {
                           ])),
                       Expanded(
                           child: Center(
-                              child: AutoSizeText(tc.title.value,
+                              child: AutoSizeText(
+                                  tc.title.value.isEmpty
+                                      ? tc.url.value
+                                      : tc.title.value,
                                   minFontSize: 10,
                                   stepGranularity: 2,
                                   maxFontSize: 16,
                                   maxLines: 1,
                                   overflow: TextOverflow.clip)))
                     ])
-                  : Text(tc.title.value),
+                  : AutoSizeText(
+                      tc.title.value.isEmpty ? tc.url.value : tc.title.value,
+                      minFontSize: 10,
+                      stepGranularity: 2,
+                      maxFontSize: 16,
+                      maxLines: 1,
+                      overflow: TextOverflow.clip),
               actions: [
                 PopupMenuButton<String>(
                   onOpened: menuOpened,
@@ -258,14 +267,21 @@ class _WebviewTabState extends State<WebviewTab> {
                 if (GetPlatform.isMobile)
                   IconButton(
                       onPressed: () {
+                        if (pageFailed || !pageLoaded) {
+                          controller.removeKeepAliveObject(widget.uniqueKey);
+                        }
                         if (Get.isBottomSheetOpen ?? false) {
                           Get.back();
                         }
                         Get.back(); // exit page
                       },
-                      icon: const Icon(
-                        CupertinoIcons.smallcircle_fill_circle,
-                        weight: 1000,
+                      icon: SvgPicture.asset(
+                        'assets/images/miniapp-exit.svg',
+                        height: 24,
+                        width: 24,
+                        colorFilter: ColorFilter.mode(
+                            Theme.of(context).iconTheme.color!,
+                            BlendMode.srcIn),
                       )),
               ]),
           body: SafeArea(
@@ -275,7 +291,7 @@ class _WebviewTabState extends State<WebviewTab> {
                     child: Stack(children: [
                   InAppWebView(
                     key: PageStorageKey(widget.uniqueKey),
-                    keepAlive: widget.keepAlive,
+                    keepAlive: ka,
                     webViewEnvironment: controller.webViewEnvironment,
                     initialUrlRequest: URLRequest(url: WebUri(tc.url.value)),
                     initialSettings: tc.settings,
@@ -292,8 +308,8 @@ class _WebviewTabState extends State<WebviewTab> {
                     onLoadStart: (controller, uri) async {
                       if (uri == null) return;
                       if (uri.toString() == tc.url.value) return;
-                      updateTabInfo(widget.uniqueKey, uri.toString(),
-                          tc.title.value, tc.favicon);
+                      updateTabInfo(
+                          widget.uniqueKey, uri.toString(), tc.title.value);
                     },
                     onPrintRequest:
                         (controller, url, printJobController) async {
@@ -304,6 +320,9 @@ class _WebviewTabState extends State<WebviewTab> {
                       return PermissionResponse(
                           resources: request.resources,
                           action: PermissionResponseAction.GRANT);
+                    },
+                    onReceivedIcon: (controller, icon) {
+                      logger.d('onReceivedIcon: ${icon.toString()}');
                     },
                     shouldOverrideUrlLoading:
                         (controller, NavigationAction navigationAction) async {
@@ -386,7 +405,7 @@ class _WebviewTabState extends State<WebviewTab> {
                       return ServerTrustAuthResponse(
                           action: ServerTrustAuthResponseAction.PROCEED);
                     },
-                    onDownloadStartRequest: (controller, url) async {
+                    onDownloadStarting: (controller, url) async {
                       String path = url.url.path;
                       String fileName =
                           path.substring(path.lastIndexOf('/') + 1);
@@ -398,15 +417,18 @@ class _WebviewTabState extends State<WebviewTab> {
                         showNotification: true,
                         openFileFromNotification: true,
                       );
+                      return null;
                     },
                     onProgressChanged: (controller, data) {
                       if (data == 100) {
+                        pageLoaded = true;
                         tc.pullToRefreshController?.endRefreshing();
                       }
-
                       tc.progress.value = data / 100;
                     },
                     onReceivedError: (controller, request, error) async {
+                      logger.d(
+                          'onReceivedError: ${request.url.toString()} ${error.description}');
                       var isForMainFrame = request.isForMainFrame ?? false;
                       if (!isForMainFrame) {
                         return;
@@ -429,7 +451,7 @@ class _WebviewTabState extends State<WebviewTab> {
                       }
 
                       var errorUrl = request.url;
-
+                      pageFailed = true;
                       tc.webViewController?.loadData(data: """
 <!DOCTYPE html>
 <html lang="en">
@@ -441,6 +463,13 @@ class _WebviewTabState extends State<WebviewTab> {
     ${await InAppWebViewController.tRexRunnerCss}
     </style>
     <style>
+    body {
+        background-color: #f5f5f5;
+        color: #333;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-size: 16px;
+        line-height: 1.5;
+    }
     .interstitial-wrapper {
         box-sizing: border-box;
         font-size: 1em;
@@ -458,7 +487,7 @@ class _WebviewTabState extends State<WebviewTab> {
       <p>Could not load web pages at <strong>$errorUrl</strong> because:</p>
       <p>${error.description}</p>
     </div>
-    <button onclick="window.location.reload(true);"  style="
+    <button onclick="window.pageFailedToRefresh();"  style="
       padding: 10px 30px;
       font-size: 18px;
       cursor: pointer;
@@ -474,8 +503,7 @@ class _WebviewTabState extends State<WebviewTab> {
                     },
                     onTitleChanged: (controller, title) async {
                       if (title == null) return;
-                      updateTabInfo(
-                          widget.uniqueKey, tc.url.value, title, tc.favicon);
+                      updateTabInfo(widget.uniqueKey, tc.url.value, title);
                     },
                     onUpdateVisitedHistory: (controller, url, androidIsReload) {
                       logger.d('${url.toString()} $androidIsReload');
@@ -483,7 +511,9 @@ class _WebviewTabState extends State<WebviewTab> {
                     },
                   ),
                   Obx(() => tc.progress.value < 1.0
-                      ? LinearProgressIndicator(value: tc.progress.value)
+                      ? LinearProgressIndicator(
+                          value:
+                              tc.progress.value < 0.1 ? 0.1 : tc.progress.value)
                       : Container())
                 ]))
               ])),
@@ -521,13 +551,16 @@ class _WebviewTabState extends State<WebviewTab> {
     tc.webViewController?.canGoBack().then((canGoBack) {
       if (canGoBack) {
         tc.webViewController?.goBack();
-      } else {
-        if (GetPlatform.isDesktop) {
-          controller.removeTab(widget.uniqueKey);
-        } else {
-          Get.back();
-        }
+        return;
       }
+      if (GetPlatform.isDesktop) {
+        controller.removeTab(widget.uniqueKey);
+        return;
+      }
+      if (pageFailed || !pageLoaded) {
+        controller.removeKeepAliveObject(widget.uniqueKey);
+      }
+      Get.back();
     });
   }
 
@@ -538,6 +571,15 @@ class _WebviewTabState extends State<WebviewTab> {
     if (method == 'getRelays') {
       var relays = await RelayService.instance.getEnableList();
       return relays;
+    }
+
+    if (method == 'pageFailedToRefresh') {
+      controller.removeKeepAliveObject(widget.uniqueKey);
+      setState(() {
+        ka = null;
+      });
+      tc.webViewController?.reload();
+      return;
     }
 
     WebUri? uri = await tc.webViewController?.getUrl();
@@ -756,6 +798,7 @@ class _WebviewTabState extends State<WebviewTab> {
     EasyDebounce.debounce(
         'onUpdateVisitedHistory:${uri.toString()}', Duration(milliseconds: 200),
         () async {
+      pageLoaded = true;
       bool? canGoBack = await tc.webViewController?.canGoBack();
       bool? canGoForward = await tc.webViewController?.canGoForward();
       logger.d(
@@ -763,26 +806,26 @@ class _WebviewTabState extends State<WebviewTab> {
       tc.canGoBack.value = canGoBack ?? false;
       tc.canGoForward.value = canGoForward ?? false;
       String? newTitle = await tc.webViewController?.getTitle();
-      String? favicon =
-          await controller.getFavicon(tc.webViewController!, uri.host);
       String title = newTitle ?? tc.title.value;
       if (title.isEmpty) {
         title = tc.title.value;
       }
-      updateTabInfo(widget.uniqueKey, uri.toString(), title, favicon);
-      controller.addHistory(uri.toString(), title, favicon);
+      updateTabInfo(widget.uniqueKey, uri.toString(), title);
+      controller.addHistory(uri.toString(), title);
+      controller.getFavicon(tc.webViewController!, uri.host).then((favicon) {
+        if (favicon != null) {
+          tc.favicon = favicon;
+          controller.setTabDataFavicon(
+              uniqueId: widget.uniqueKey, favicon: favicon);
+        }
+      });
     });
   }
 
-  updateTabInfo(String key, String url0, String title0, String? favicon0) {
-    logger.d('updateTabInfo: $key, $url0, $title0, $favicon0');
-    controller.setTabData(
-        uniqueId: widget.uniqueKey,
-        title: title0,
-        url: url0,
-        favicon: favicon0);
+  updateTabInfo(String key, String url0, String title0) {
+    logger.d('updateTabInfo: $key, $url0, $title0');
+    controller.setTabData(uniqueId: widget.uniqueKey, title: title0, url: url0);
     tc.title.value = title0;
     tc.url.value = url0;
-    tc.favicon = favicon0;
   }
 }

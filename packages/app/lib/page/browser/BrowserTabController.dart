@@ -1,4 +1,6 @@
 import 'package:app/app.dart';
+import 'package:app/controller/setting.controller.dart';
+import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kDebugMode, kIsWeb;
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
@@ -14,27 +16,14 @@ class WebviewTabController extends GetxController {
   RxString url = ''.obs;
   RxDouble progress = 1.0.obs;
   String? favicon;
+  late MultiWebviewController multiWebviewController;
   WebviewTabController(String initUrl, String? initTitle) {
     url.value = initUrl;
     title.value = initTitle ?? initUrl;
+    multiWebviewController = Get.find<MultiWebviewController>();
   }
 
-  InAppWebViewSettings settings = InAppWebViewSettings(
-      isInspectable: kDebugMode,
-      mediaPlaybackRequiresUserGesture: false,
-      allowsInlineMediaPlayback: true,
-      useShouldOverrideUrlLoading: true,
-      useOnLoadResource: true,
-      safeBrowsingEnabled: true,
-      disableDefaultErrorPage: true,
-      allowsLinkPreview: true,
-      isFraudulentWebsiteWarningEnabled: true,
-      useOnDownloadStart: true,
-      transparentBackground: Get.isDarkMode,
-      cacheEnabled: true,
-      iframeAllow: "camera; microphone",
-      algorithmicDarkeningAllowed: true,
-      iframeAllowFullscreen: true);
+  late InAppWebViewSettings settings;
 
   @override
   void onClose() {
@@ -44,6 +33,26 @@ class WebviewTabController extends GetxController {
 
   @override
   void onInit() {
+    logger.d(multiWebviewController.kInitialTextSize.value);
+    settings = InAppWebViewSettings(
+        isInspectable: kDebugMode,
+        mediaPlaybackRequiresUserGesture: false,
+        allowsInlineMediaPlayback: true,
+        useShouldOverrideUrlLoading: true,
+        useOnLoadResource: true,
+        safeBrowsingEnabled: true,
+        disableDefaultErrorPage: true,
+        allowsLinkPreview: true,
+        isFraudulentWebsiteWarningEnabled: true,
+        useOnDownloadStart: true,
+        transparentBackground: Get.isDarkMode,
+        cacheEnabled: true,
+        textZoom: multiWebviewController.kInitialTextSize.value,
+        appCachePath: Get.find<SettingController>().browserCacheFolder,
+        iframeAllow: "camera; microphone",
+        algorithmicDarkeningAllowed: true,
+        iframeAllowFullscreen: true);
+
     pullToRefreshController = kIsWeb ||
             ![TargetPlatform.iOS, TargetPlatform.android]
                 .contains(defaultTargetPlatform)
@@ -60,6 +69,30 @@ class WebviewTabController extends GetxController {
               }
             });
     super.onInit();
+  }
+
+  updateTextSize(int textSize) async {
+    await multiWebviewController.setTextsize(textSize);
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      settings.textZoom = textSize;
+      await webViewController?.setSettings(settings: settings);
+    } else {
+      // update current text size
+      await webViewController?.evaluateJavascript(
+          source: multiWebviewController.kTextSizeSourceJS);
+
+      // update the User Script for the next page load
+      await webViewController?.removeUserScript(
+          userScript: multiWebviewController.textSizeUserScript);
+      multiWebviewController.textSizeUserScript = UserScript(source: """
+window.addEventListener('DOMContentLoaded', function(event) {
+  document.body.style.textSizeAdjust = '$textSize%';
+  document.body.style.webkitTextSizeAdjust = '$textSize%';
+});
+""", injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START);
+      await webViewController?.addUserScript(
+          userScript: multiWebviewController.textSizeUserScript);
+    }
   }
 
   setWebViewController(InAppWebViewController controller, String initUrl) {

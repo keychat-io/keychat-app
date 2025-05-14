@@ -1,3 +1,4 @@
+import 'dart:collection' show UnmodifiableListView;
 import 'dart:convert' show jsonDecode;
 
 import 'package:app/controller/home.controller.dart';
@@ -233,6 +234,14 @@ class _WebviewTabState extends State<WebviewTab> {
                               style: Theme.of(context).textTheme.bodyLarge)
                         ]),
                       ),
+                      PopupMenuItem(
+                        value: 'zoom',
+                        child: Row(spacing: 16, children: [
+                          const Icon(CupertinoIcons.zoom_in),
+                          Text('Zoom Text',
+                              style: Theme.of(context).textTheme.bodyLarge)
+                        ]),
+                      ),
                       if (tc.browserConnect.value.host == "")
                         PopupMenuItem(
                           value: 'clear',
@@ -277,8 +286,8 @@ class _WebviewTabState extends State<WebviewTab> {
                       },
                       icon: SvgPicture.asset(
                         'assets/images/miniapp-exit.svg',
-                        height: 24,
-                        width: 24,
+                        height: 28,
+                        width: 28,
                         colorFilter: ColorFilter.mode(
                             Theme.of(context).iconTheme.color!,
                             BlendMode.srcIn),
@@ -296,6 +305,8 @@ class _WebviewTabState extends State<WebviewTab> {
                     initialUrlRequest: URLRequest(url: WebUri(tc.url.value)),
                     initialSettings: tc.settings,
                     pullToRefreshController: tc.pullToRefreshController,
+                    initialUserScripts:
+                        UnmodifiableListView([controller.textSizeUserScript]),
                     onScrollChanged: (controller, x, y) {},
                     onWebViewCreated: (controller) async {
                       tc.setWebViewController(controller, widget.initUrl);
@@ -474,9 +485,9 @@ class _WebviewTabState extends State<WebviewTab> {
         box-sizing: border-box;
         font-size: 1em;
         line-height: 1.6em;
-        margin: 0 auto 0;
+        margin: 0 auto;
         max-width: 600px;
-        width: 100%;
+        width: 90%;
     }
     </style>
 </head>
@@ -486,13 +497,14 @@ class _WebviewTabState extends State<WebviewTab> {
       <h1>Website not available</h1>
       <p>Could not load web pages at <strong>$errorUrl</strong> because:</p>
       <p>${error.description}</p>
+      <button onclick="window.pageFailedToRefresh();"  style="
+        padding: 10px 30px;
+        margin:0 auto;
+        font-size: 18px;
+        cursor: pointer;
+        border: none;
+        border-radius: 5px;">Refresh</button>
     </div>
-    <button onclick="window.pageFailedToRefresh();"  style="
-      padding: 10px 30px;
-      font-size: 18px;
-      cursor: pointer;
-      border: none;
-      border-radius: 5px;">Refresh</button>
 </body>
     """, baseUrl: errorUrl, historyUrl: errorUrl);
                     },
@@ -789,6 +801,27 @@ class _WebviewTabState extends State<WebviewTab> {
       case 'close':
         controller.removeKeepAliveObject(widget.uniqueKey);
         Get.back();
+        break;
+      case 'zoom':
+        Get.bottomSheet(
+          clipBehavior: Clip.antiAlias,
+          shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
+          Scaffold(
+              appBar: AppBar(title: Text('Zoom Text')),
+              body: Container(
+                  padding: const EdgeInsets.all(16),
+                  child: Obx(() => Slider(
+                      value: double.parse(
+                          controller.kInitialTextSize.value.toString()),
+                      min: 50,
+                      max: 300,
+                      divisions: 10,
+                      label: '${controller.kInitialTextSize.value}',
+                      onChanged: (value) {
+                        tc.updateTextSize(value.toInt());
+                      })))),
+        );
         break;
     }
   }

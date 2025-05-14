@@ -226,8 +226,8 @@ class MultiWebviewController extends GetxController {
     return windowId;
   }
 
-  loadConfig() async {
-    String? localConfig = await Storage.getString('browserConfig');
+  Future loadConfig() async {
+    String? localConfig = await Storage.getString(KeychatGlobal.browserConfig);
     if (localConfig == null) {
       localConfig = jsonEncode({
         "enableHistory": true,
@@ -238,6 +238,12 @@ class MultiWebviewController extends GetxController {
       Storage.setString('browserConfig', localConfig);
     }
     config.value = jsonDecode(localConfig);
+
+    // text zoom
+    int? textSize = await Storage.getInt(KeychatGlobal.browserTextSize);
+    if (textSize != null) {
+      kInitialTextSize.value = textSize;
+    }
   }
 
   setConfig(String key, dynamic value) async {
@@ -303,7 +309,7 @@ class MultiWebviewController extends GetxController {
     initWebview();
     deleteOldHistories();
 
-    if (tabs.isEmpty) {
+    if (tabs.isEmpty && GetPlatform.isDesktop) {
       addNewTab();
     }
 
@@ -423,6 +429,29 @@ class MultiWebviewController extends GetxController {
       tabs[tabIndex].favicon = favicon;
       tabs.refresh();
     }
+  }
+
+  RxInt kInitialTextSize = 100.obs;
+  String kTextSizePlaceholder = 'TEXT_SIZE_PLACEHOLDER';
+  late String kTextSizeSourceJS = """
+window.addEventListener('DOMContentLoaded', function(event) {
+  document.body.style.textSizeAdjust = '$kTextSizePlaceholder%';
+  document.body.style.webkitTextSizeAdjust = '$kTextSizePlaceholder%';
+});
+""";
+
+  late UserScript textSizeUserScript = UserScript(
+      source: kTextSizeSourceJS.replaceAll(
+          kTextSizePlaceholder, '${kInitialTextSize.value}'),
+      injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START);
+
+  Future setTextsize(int textSize) async {
+    kInitialTextSize.value = textSize;
+    kTextSizeSourceJS = """
+              document.body.style.textSizeAdjust = '$textSize%';
+              document.body.style.webkitTextSizeAdjust = '$textSize%';
+            """;
+    await Storage.setInt(KeychatGlobal.browserTextSize, textSize);
   }
 }
 

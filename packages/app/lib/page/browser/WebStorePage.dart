@@ -6,7 +6,7 @@ import 'package:app/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:pull_to_refresh/pull_to_refresh.dart';
+import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 
 class WebStorePage extends StatefulWidget {
   const WebStorePage({super.key});
@@ -51,7 +51,7 @@ class _WebStorePageState extends State<WebStorePage> {
     return Scaffold(
         appBar: AppBar(
           centerTitle: true,
-          title: const Text('Mini APP'),
+          title: const Text('Mini App'),
         ),
         body: Obx(() => homeController.recommendWebstore.entries.isEmpty
             ? pageLoadingSpinKit()
@@ -69,7 +69,7 @@ class _WebStorePageState extends State<WebStorePage> {
                           .elementAt(index);
                       return Padding(
                           padding: const EdgeInsets.only(
-                              left: 16, right: 16, bottom: 16),
+                              left: 16, right: 16, bottom: 8),
                           child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [

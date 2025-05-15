@@ -153,15 +153,14 @@ RoomMember _roomMemberDeserialize(
     idPubkey: reader.readString(offsets[3]),
     name: reader.readString(offsets[6]),
     roomId: reader.readLong(offsets[7]),
+    status: _RoomMemberstatusValueEnumMap[reader.readIntOrNull(offsets[8])] ??
+        UserStatusType.invited,
   );
   object.createdAt = reader.readDateTimeOrNull(offsets[0]);
   object.curve25519PkHex = reader.readStringOrNull(offsets[1]);
   object.id = id;
   object.isAdmin = reader.readBool(offsets[4]);
   object.messageCount = reader.readLong(offsets[5]);
-  object.status =
-      _RoomMemberstatusValueEnumMap[reader.readIntOrNull(offsets[8])] ??
-          UserStatusType.inviting;
   object.updatedAt = reader.readDateTimeOrNull(offsets[10]);
   return object;
 }
@@ -191,7 +190,7 @@ P _roomMemberDeserializeProp<P>(
       return (reader.readLong(offset)) as P;
     case 8:
       return (_RoomMemberstatusValueEnumMap[reader.readIntOrNull(offset)] ??
-          UserStatusType.inviting) as P;
+          UserStatusType.invited) as P;
     case 9:
       return (reader.readBoolOrNull(offset)) as P;
     case 10:
@@ -1850,6 +1849,8 @@ RoomMember _$RoomMemberFromJson(Map<String, dynamic> json) => RoomMember(
       idPubkey: json['idPubkey'] as String,
       roomId: (json['roomId'] as num).toInt(),
       name: json['name'] as String,
+      status: $enumDecodeNullable(_$UserStatusTypeEnumMap, json['status']) ??
+          UserStatusType.invited,
     )
       ..createdAt = json['createdAt'] == null
           ? null
@@ -1857,8 +1858,7 @@ RoomMember _$RoomMemberFromJson(Map<String, dynamic> json) => RoomMember(
       ..updatedAt = json['updatedAt'] == null
           ? null
           : DateTime.parse(json['updatedAt'] as String)
-      ..isAdmin = json['isAdmin'] as bool
-      ..status = $enumDecode(_$UserStatusTypeEnumMap, json['status']);
+      ..isAdmin = json['isAdmin'] as bool;
 
 Map<String, dynamic> _$RoomMemberToJson(RoomMember instance) =>
     <String, dynamic>{

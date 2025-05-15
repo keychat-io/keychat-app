@@ -24,7 +24,7 @@ import 'package:isar/isar.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 // import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
 import 'package:permission_handler/permission_handler.dart';
-import 'package:pull_to_refresh/pull_to_refresh.dart';
+import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 // import 'package:super_clipboard/super_clipboard.dart';
 
@@ -122,11 +122,13 @@ class ChatController extends GetxController {
 
     if (!autoScrollController.hasClients) {
       messages.insert(index, message);
+      jumpToBottom(100);
       return;
     }
     try {
       if (autoScrollController.position.pixels <= 300) {
         messages.insert(index, message);
+        jumpToBottom(100);
         return;
       }
       // ignore: empty_catches
@@ -251,7 +253,6 @@ class ChatController extends GetxController {
       // hideSend.value = true;
       inputText.value = '';
       inputTextIsAdd.value = true;
-      jumpToBottom(100);
       RoomService.instance.markAllReadSimple(roomObs.value);
     } catch (e, s) {
       textEditingController.text = text;
@@ -411,11 +412,6 @@ class ChatController extends GetxController {
     chatContentFocus = FocusNode();
     keyboardFocus = FocusNode();
     refreshController = RefreshController();
-    chatContentFocus.addListener(() {
-      if (GetPlatform.isMobile) {
-        jumpToBottom2(10);
-      }
-    });
     if (GetPlatform.isDesktop) {
       chatContentFocus.requestFocus();
       messageLimitPerPage = 100;

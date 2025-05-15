@@ -8,7 +8,7 @@ class CashuStatus {
     switch (status) {
       case TransactionStatus.success:
         return Icon(CupertinoIcons.check_mark_circled,
-            color: Colors.green, size: size);
+            color: Colors.lightGreen, size: size);
       case TransactionStatus.failed:
       case TransactionStatus.expired:
         return Icon(Icons.error, color: Colors.red, size: size);

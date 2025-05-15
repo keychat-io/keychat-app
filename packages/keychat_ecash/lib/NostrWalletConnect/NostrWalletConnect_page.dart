@@ -81,7 +81,7 @@ class _NostrWalletConnectPageState extends State<NostrWalletConnectPage> {
                   ListTile(
                     title: Text('WalletConnect URI'),
                     subtitle: textSmallGray(context, controller.nwcUri.value,
-                        maxLines: 5),
+                        maxLines: 2),
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,

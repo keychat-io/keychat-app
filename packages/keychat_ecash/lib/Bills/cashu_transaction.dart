@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
+import 'package:easy_debounce/easy_throttle.dart';
 
 class CashuTransactionPage extends StatefulWidget {
   final CashuTransaction transaction;
@@ -80,7 +81,7 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                 Center(child: Utils.genQRImage(tx.token, size: maxWidth)),
               textSmallGray(context, tx.mint, textAlign: TextAlign.center),
               Text(tx.token,
-                  maxLines: 3,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center),
               SizedBox(height: 16),
@@ -109,33 +110,36 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                               minimumSize:
                                   WidgetStateProperty.all(Size(maxWidth, 48))),
                           onPressed: () async {
-                            try {
-                              EasyLoading.show(status: 'Receiving...');
-                              CashuInfoModel cm = await RustAPI.receiveToken(
-                                  encodedToken: tx.token);
-                              if (cm.status == TransactionStatus.success) {
-                                EasyLoading.showSuccess('Success');
-                                CashuTransaction tx1 = CashuTransaction(
-                                    id: tx.id,
-                                    status: cm.status,
-                                    io: tx.io,
-                                    time: tx.time,
-                                    amount: tx.amount,
-                                    mint: tx.mint,
-                                    token: tx.token);
-                                Get.find<EcashController>().getBalance();
-                                Utils.getGetxController<EcashBillController>()
-                                    ?.getTransactions();
-                                setState(() {
-                                  tx = tx1;
-                                });
-                              }
-                            } catch (e) {
-                              EasyLoading.dismiss();
-                              String msg = Utils.getErrorMessage(e);
+                            EasyThrottle.throttle('Receiving_ecash',
+                                const Duration(milliseconds: 2000), () async {
+                              try {
+                                EasyLoading.show(status: 'Receiving...');
+                                CashuInfoModel cm = await RustAPI.receiveToken(
+                                    encodedToken: tx.token);
+                                if (cm.status == TransactionStatus.success) {
+                                  EasyLoading.showSuccess('Success');
+                                  CashuTransaction tx1 = CashuTransaction(
+                                      id: tx.id,
+                                      status: cm.status,
+                                      io: tx.io,
+                                      time: tx.time,
+                                      amount: tx.amount,
+                                      mint: tx.mint,
+                                      token: tx.token);
+                                  Get.find<EcashController>().getBalance();
+                                  Utils.getGetxController<EcashBillController>()
+                                      ?.getTransactions();
+                                  setState(() {
+                                    tx = tx1;
+                                  });
+                                }
+                              } catch (e) {
+                                EasyLoading.dismiss();
+                                String msg = Utils.getErrorMessage(e);
 
-                              EasyLoading.showToast(msg);
-                            }
+                                EasyLoading.showToast(msg);
+                              }
+                            });
                           },
                           label: const Text('Receive')),
                   ],

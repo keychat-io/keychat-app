@@ -26,7 +26,7 @@ class CashuUtil {
     var ec = Get.find<EcashController>();
 
     if (!retry) {
-      EasyLoading.show(status: 'Receiving...');
+      EasyLoading.show(status: 'Redeeming...');
     }
     late rust_cashu.TokenInfo decoded;
     try {
@@ -87,7 +87,7 @@ class CashuUtil {
 
   static bool isValidEcashToken(String unit) => unit == 'sat' || unit == 'usdt';
 
-  static _processReceive(
+  static Future<CashuInfoModel?> _processReceive(
       {required String token, bool retry = false, int? messageId}) async {
     try {
       CashuInfoModel model = await RustAPI.receiveToken(encodedToken: token);
@@ -108,7 +108,7 @@ class CashuUtil {
         }
       } else {
         EasyLoading.showError('Error! $message',
-            duration: const Duration(seconds: 2));
+            duration: const Duration(seconds: 3));
       }
       logger.e('receive error: $message', error: e, stackTrace: s);
     }

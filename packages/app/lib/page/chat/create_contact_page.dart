@@ -154,14 +154,15 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                     },
                     trailing: const Icon(CupertinoIcons.right_chevron),
                   ),
-                  ListTile(
-                    leading: const Icon(CupertinoIcons.qrcode_viewfinder),
-                    title: const Text('Scan QR Code'),
-                    onTap: () {
-                      QrScanService.instance.handleQRScan();
-                    },
-                    trailing: const Icon(CupertinoIcons.right_chevron),
-                  )
+                  if (GetPlatform.isMobile)
+                    ListTile(
+                      leading: const Icon(CupertinoIcons.qrcode_viewfinder),
+                      title: const Text('Scan QR Code'),
+                      onTap: () {
+                        QrScanService.instance.handleQRScan();
+                      },
+                      trailing: const Icon(CupertinoIcons.right_chevron),
+                    )
                 ]),
               )
             ],

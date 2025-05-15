@@ -574,6 +574,9 @@ class _WebviewTabState extends State<WebviewTab> {
         updateTabInfo(widget.uniqueKey, tc.url.value, title);
       },
       onUpdateVisitedHistory: (controller, url, androidIsReload) {
+        if (url.toString() == 'about:blank') {
+          return;
+        }
         logger.d('onUpdateVisitedHistory: ${url.toString()} $androidIsReload');
         onUpdateVisitedHistory(url);
       },
@@ -634,11 +637,14 @@ class _WebviewTabState extends State<WebviewTab> {
 
     if (method == 'pageFailedToRefresh') {
       controller.removeKeepAliveObject(widget.uniqueKey);
+      if (ka == null) {
+        tc.webViewController?.reload();
+        return;
+      }
+
       setState(() {
         ka = null;
       });
-      tc.webViewController?.reload();
-      return;
     }
 
     WebUri? uri = await tc.webViewController?.getUrl();
@@ -875,10 +881,6 @@ class _WebviewTabState extends State<WebviewTab> {
 
   Future onUpdateVisitedHistory(WebUri? uri) async {
     if (tc.webViewController == null || uri == null) return;
-    if (uri.toString() == 'about:blank') {
-      logger.d('url == about:blank');
-      return;
-    }
     EasyDebounce.debounce(
         'onUpdateVisitedHistory:${uri.toString()}', Duration(milliseconds: 200),
         () async {

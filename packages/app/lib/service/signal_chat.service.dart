@@ -17,6 +17,8 @@ import 'package:app/service/signalId.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:convert/convert.dart';
+import 'package:easy_debounce/easy_throttle.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
@@ -501,5 +503,24 @@ ${relays.join('\n')}
       return await RoomService.instance.getRoomByReceiveKey(to);
     }
     return await RoomService.instance.getRoomByIdOrFail(roomId);
+  }
+
+  Future resetSignalSession(Room room) async {
+    EasyThrottle.throttle('ResetSessionStatus', const Duration(seconds: 3),
+        () async {
+      try {
+        await Get.find<ChatxService>()
+            .deleteSignalSessionKPA(room); // delete old session
+        await SignalChatService.instance.sendHelloMessage(
+            room, room.getIdentity(),
+            greeting: 'Reset signal session status');
+
+        EasyLoading.showInfo('Request sent successfully.');
+      } catch (e) {
+        String msg = Utils.getErrorMessage(e);
+        logger.e(msg, error: e);
+        EasyLoading.showToast('Failed to send request');
+      }
+    });
   }
 }

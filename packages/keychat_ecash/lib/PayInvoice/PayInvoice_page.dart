@@ -10,6 +10,7 @@ import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart';
 import './PayInvoice_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
+import 'package:easy_debounce/easy_throttle.dart';
 
 class PayInvoicePage extends StatefulWidget {
   final String? invoce;
@@ -166,28 +167,32 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                   minimumSize: WidgetStateProperty.all(
                                       const Size(double.infinity, 44))),
                               onPressed: () async {
-                                if (GetPlatform.isMobile) {
-                                  HapticFeedback.lightImpact();
-                                }
-                                if (isEmail(controller.textController.text) ||
-                                    controller.textController.text
-                                        .toLowerCase()
-                                        .startsWith('LNURL')) {
-                                  var tx = controller.lnurlPayFirst(
-                                      controller.textController.text);
+                                EasyThrottle.throttle('payinvoice',
+                                    const Duration(milliseconds: 2000),
+                                    () async {
+                                  if (GetPlatform.isMobile) {
+                                    HapticFeedback.lightImpact();
+                                  }
+                                  if (isEmail(controller.textController.text) ||
+                                      controller.textController.text
+                                          .toLowerCase()
+                                          .startsWith('LNURL')) {
+                                    var tx = controller.lnurlPayFirst(
+                                        controller.textController.text);
+                                    if (tx != null) {
+                                      Get.back(result: tx);
+                                    }
+                                    return;
+                                  }
+                                  var tx = await controller.confirmToPayInvoice(
+                                      invoice:
+                                          controller.textController.text.trim(),
+                                      mint: controller.selectedMint.value,
+                                      isPay: widget.isPay);
                                   if (tx != null) {
                                     Get.back(result: tx);
                                   }
-                                  return;
-                                }
-                                var tx = await controller.confirmToPayInvoice(
-                                    invoice:
-                                        controller.textController.text.trim(),
-                                    mint: controller.selectedMint.value,
-                                    isPay: widget.isPay);
-                                if (tx != null) {
-                                  Get.back(result: tx);
-                                }
+                                });
                               },
                               child: const Text('Pay Invoice'),
                             )

@@ -488,12 +488,19 @@ class Utils {
     return '$days days';
   }
 
-  static getErrorMessage(Object e) {
+  static String getErrorMessage(Object e) {
     if (e is! AnyhowException) return e.toString();
 
     int index = e.message.indexOf('Stack backtrace:');
-    if (index == -1) return e.message;
-    return e.message.substring(0, index).trim();
+    String message = e.message;
+    if (index != -1) {
+      message = e.message.substring(0, index).trim();
+    }
+    int causedByIndex = message.indexOf('Caused by:');
+    if (causedByIndex != -1) {
+      return message.substring(0, causedByIndex).trim();
+    }
+    return message;
   }
 
   static String getFormatTimeForMessage(DateTime formatDt) {
@@ -622,7 +629,7 @@ class Utils {
     }
     Widget child = ClipRRect(
         borderRadius: BorderRadius.circular(radius),
-        child: Icon(Icons.image, size: size));
+        child: Icon(CupertinoIcons.compass, size: size));
     return CachedNetworkImage(
       imageUrl: imageUrl,
       width: size,
@@ -651,7 +658,7 @@ class Utils {
     if (imageUrl == null) {
       return ClipRRect(
           borderRadius: BorderRadius.circular(radius),
-          child: Icon(Icons.image, size: size));
+          child: Icon(CupertinoIcons.photo, size: size));
     }
     return getNetworkImage(imageUrl, size: size, radius: radius)!;
   }
@@ -780,11 +787,19 @@ class Utils {
     return domainRegExp.hasMatch(str);
   }
 
-  static String randomString(int i) {
+  static String randomString(int length) {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
     final random = Random.secure();
-    return List.generate(i, (index) => chars[random.nextInt(chars.length)])
+    return List.generate(length, (index) => chars[random.nextInt(chars.length)])
         .join();
+  }
+
+  static int randomInt(int length) {
+    const chars = '0123456789';
+    final random = Random.secure();
+    return int.parse(
+        List.generate(length, (index) => chars[random.nextInt(chars.length)])
+            .join());
   }
 
   static String regrexLetter(String account, [int length = 2]) {

@@ -5,6 +5,7 @@ import 'package:keychat_ecash/components/SelectMint.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:easy_debounce/easy_throttle.dart';
 import './CreateInvoice_controller.dart';
 
 class CreateInvoicePage extends StatelessWidget {
@@ -22,7 +23,7 @@ class CreateInvoicePage extends StatelessWidget {
           leading: Container(),
           centerTitle: true,
           title: Text(
-            'Receive From Lightning Network',
+            'Receive From Lightning Wallet',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
         ),
@@ -57,7 +58,13 @@ class CreateInvoicePage extends StatelessWidget {
                       style: ButtonStyle(
                           minimumSize: WidgetStateProperty.all(
                               const Size(double.infinity, 44))),
-                      onPressed: controller.handleReceiveInvoice,
+                      onPressed: () {
+                        EasyThrottle.throttle(
+                            'createInvoice', const Duration(milliseconds: 2000),
+                            () async {
+                          controller.handleCreateInvoice();
+                        });
+                      },
                       child: const Text('Create Invoice'))
                   : FilledButton(
                       onPressed: null,

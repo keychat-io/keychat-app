@@ -1,13 +1,14 @@
+import 'package:flutter/services.dart';
 import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 
 import 'package:app/models/embedded/cashu_info.dart';
 import 'package:app/models/message.dart';
-import 'package:keychat_ecash/cashu_receive.dart';
 import 'package:keychat_ecash/status_enum.dart';
 import 'package:app/service/message.service.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:easy_debounce/easy_throttle.dart';
 
 class RedPocket extends StatefulWidget {
   final Message message;
@@ -30,61 +31,105 @@ class _RedPocketState extends State<RedPocket> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () async {
-        CashuInfoModel? model = await Get.dialog(CashuReceiveWidget(
-          cashuinfo: widget.message.cashuInfo!,
-          messageId: widget.message.id,
-        ));
-        if (model != null) {
-          if (model.status != _cashuInfoModel.status) {
-            widget.message.cashuInfo = model;
-            await MessageService.instance.updateMessage(widget.message);
-            setState(() {
-              _cashuInfoModel = model;
-            });
-          }
-        }
-      },
-      child: Container(
-          width: 300,
-          height: 70,
-          // margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color.fromARGB(255, 245, 67, 39),
-                Color.fromARGB(255, 255, 149, 0)
-              ],
-            ),
+    return Container(
+        constraints: const BoxConstraints(maxWidth: 350),
+        alignment: Alignment.center,
+        padding: EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color.fromARGB(255, 245, 67, 39),
+              Color.fromARGB(255, 255, 149, 0)
+            ],
           ),
-          child: ListTile(
-              leading: const Icon(
-                Icons.currency_bitcoin,
-                color: Colors.white,
-                size: 34,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            ListTile(
+                leading: SizedBox(
+                    width: 32,
+                    child: Image.asset('assets/images/BTC.png',
+                        fit: BoxFit.contain)),
+                title: Text(
+                    _cashuInfoModel.amount > 0
+                        ? '${_cashuInfoModel.amount} ${EcashTokenSymbol.sat.name}'
+                        : 'Token spent',
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(color: Colors.white)),
+                subtitle: Text(
+                  _cashuInfoModel.token,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.white38,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400),
+                ),
+                trailing: _cashuInfoModel.status == TransactionStatus.pending
+                    ? null
+                    : CashuStatus.getStatusIcon(_cashuInfoModel.amount == 0
+                        ? TransactionStatus.success
+                        : _cashuInfoModel.status)),
+            if (_cashuInfoModel.status == TransactionStatus.pending)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                spacing: 24,
+                children: [
+                  OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.white70),
+                      ),
+                      onPressed: () async {
+                        EasyThrottle.throttle(
+                            'handleReceiveToken', const Duration(seconds: 2),
+                            () async {
+                          if (_cashuInfoModel.status !=
+                              TransactionStatus.pending) {
+                            return;
+                          }
+                          CashuInfoModel? model =
+                              await CashuUtil.handleReceiveToken(
+                                  token: _cashuInfoModel.token,
+                                  messageId: widget.message.id,
+                                  retry: true);
+
+                          if (model != null) {
+                            if (model.status != _cashuInfoModel.status) {
+                              widget.message.cashuInfo = model;
+                              await MessageService.instance
+                                  .updateMessage(widget.message);
+                              setState(() {
+                                _cashuInfoModel = model;
+                              });
+                            }
+                          }
+                        });
+                      },
+                      child: Text('Redeem',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(color: Colors.white))),
+                  OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.white70),
+                      ),
+                      onPressed: () {
+                        Clipboard.setData(
+                            ClipboardData(text: _cashuInfoModel.token));
+                        EasyLoading.showSuccess('Token copied to clipboard');
+                      },
+                      child: Icon(Icons.copy, color: Colors.white, size: 16)),
+                ],
               ),
-              title: Text(
-                _cashuInfoModel.amount > 0
-                    ? 'Send ${_cashuInfoModel.amount} ${EcashTokenSymbol.sat.name}'
-                    : 'Token spent',
-                style: const TextStyle(color: Colors.white),
-              ),
-              subtitle: Text(
-                _cashuInfoModel.token,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withOpacity(0.6)),
-              ),
-              trailing: CashuStatus.getStatusIcon(_cashuInfoModel.amount == 0
-                  ? TransactionStatus.success
-                  : _cashuInfoModel.status))),
-    );
+          ],
+        ));
   }
 }

@@ -9,6 +9,8 @@ import 'package:keychat_ecash/Bills/cashu_transaction.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:easy_debounce/easy_throttle.dart';
+
 import 'package:get/get.dart';
 
 class CashuSendPage extends StatefulWidget {
@@ -81,71 +83,75 @@ class _CashuSendPageState extends State<CashuSendPage> {
                             const Size(double.infinity, 44))),
                     child: const Text('Send'),
                     onPressed: () async {
-                      if (GetPlatform.isMobile) {
-                        HapticFeedback.lightImpact();
-                      }
-                      String amountString =
-                          cashuController.nameController.text.trim();
-                      if (amountString.isEmpty) {
-                        EasyLoading.showToast('Please input amount');
-                        return;
-                      }
-                      int amount = 0;
-                      try {
-                        amount = int.parse(amountString);
-                      } catch (e) {
-                        EasyLoading.showToast('Invalid amount');
-                        return;
-                      }
-                      if (amount == 0) {
-                        EasyLoading.showToast('Amount should > 0');
-                        return;
-                      }
-                      int balance =
-                          cashuController.getBalanceByMint(selectedMint);
-                      if (balance < amount) {
-                        EasyLoading.showToast('Insufficient balance');
-                        return;
-                      }
-                      try {
-                        EasyLoading.show(status: 'Generating...');
-                        CashuInfoModel? cashuInfoModel =
-                            await CashuUtil.getCashuA(
-                                amount: amount, mints: [selectedMint]);
+                      EasyThrottle.throttle(
+                          'send_ecash', const Duration(milliseconds: 2000),
+                          () async {
+                        if (GetPlatform.isMobile) {
+                          HapticFeedback.lightImpact();
+                        }
+                        String amountString =
+                            cashuController.nameController.text.trim();
+                        if (amountString.isEmpty) {
+                          EasyLoading.showToast('Please input amount');
+                          return;
+                        }
+                        int amount = 0;
+                        try {
+                          amount = int.parse(amountString);
+                        } catch (e) {
+                          EasyLoading.showToast('Invalid amount');
+                          return;
+                        }
+                        if (amount == 0) {
+                          EasyLoading.showToast('Amount should > 0');
+                          return;
+                        }
+                        int balance =
+                            cashuController.getBalanceByMint(selectedMint);
+                        if (balance < amount) {
+                          EasyLoading.showToast('Insufficient balance');
+                          return;
+                        }
+                        try {
+                          EasyLoading.show(status: 'Generating...');
+                          CashuInfoModel? cashuInfoModel =
+                              await CashuUtil.getCashuA(
+                                  amount: amount, mints: [selectedMint]);
 
-                        EasyLoading.showToast('Success',
-                            duration: const Duration(seconds: 2));
-                        cashuController.getBalance();
-                        Utils.getGetxController<EcashBillController>()
-                            ?.getTransactions();
-                        EasyLoading.dismiss();
-                        if (widget.isRoom) {
-                          Get.back(result: cashuInfoModel);
-                          return;
-                        }
-                        if (Get.isBottomSheetOpen ?? false) {
-                          Get.back();
-                        }
-                        Get.to(
-                            () => CashuTransactionPage(
-                                transaction:
-                                    cashuInfoModel.toCashuTransaction()),
-                            id: GetPlatform.isDesktop
-                                ? GetXNestKey.ecash
-                                : null);
-                      } catch (e, s) {
-                        String msg = Utils.getErrorMessage(e);
-                        if (msg.startsWith('11001')) {
-                          await rust_cashu.checkProofs();
-                          EasyLoading.showError(
-                              'Exception: Token already spent. Please retry',
+                          EasyLoading.showToast('Success',
+                              duration: const Duration(seconds: 2));
+                          cashuController.getBalance();
+                          Utils.getGetxController<EcashBillController>()
+                              ?.getTransactions();
+                          EasyLoading.dismiss();
+                          if (widget.isRoom) {
+                            Get.back(result: cashuInfoModel);
+                            return;
+                          }
+                          if (Get.isBottomSheetOpen ?? false) {
+                            Get.back();
+                          }
+                          Get.to(
+                              () => CashuTransactionPage(
+                                  transaction:
+                                      cashuInfoModel.toCashuTransaction()),
+                              id: GetPlatform.isDesktop
+                                  ? GetXNestKey.ecash
+                                  : null);
+                        } catch (e, s) {
+                          String msg = Utils.getErrorMessage(e);
+                          if (msg.startsWith('11001')) {
+                            await rust_cashu.checkProofs();
+                            EasyLoading.showError(
+                                'Exception: Token already spent. Please retry',
+                                duration: const Duration(seconds: 3));
+                            return;
+                          }
+                          EasyLoading.showError(msg,
                               duration: const Duration(seconds: 3));
-                          return;
+                          logger.e(msg, error: e, stackTrace: s);
                         }
-                        EasyLoading.showError(msg,
-                            duration: const Duration(seconds: 3));
-                        logger.e(msg, error: e, stackTrace: s);
-                      }
+                      });
                     },
                   ))
             ])));

@@ -41,6 +41,7 @@ class MultiWebviewController extends GetxController {
   RxSet<String> enableSearchEngine = <String>{}.obs;
   RxList<BrowserFavorite> favorites = <BrowserFavorite>[].obs;
   RxMap<String, dynamic> config = <String, dynamic>{}.obs;
+  Map<String, InAppWebViewKeepAlive?> mobileKeepAlive = {};
   static const maxHistoryInHome = 12;
 
   late Function(String url) urlChangeCallBack;
@@ -101,10 +102,14 @@ class MultiWebviewController extends GetxController {
       tabs.remove(tabs[removeIndex]);
       if (tabs.isEmpty) {
         addNewTab();
+        setCurrentTabIndex(0);
+        return;
       }
     }
-    if (removeIndex >= currentIndex) {
-      setCurrentTabIndex(tabs.length - 1);
+    if (removeIndex <= currentIndex) {
+      setCurrentTabIndex(currentIndex - 1);
+    } else {
+      setCurrentTabIndex(currentIndex);
     }
   }
 
@@ -132,7 +137,7 @@ class MultiWebviewController extends GetxController {
       }
       return;
     }
-    String uniqueId = _generateUniqueId();
+    String uniqueKey = _generateUniqueId();
     Uri? uri;
     if (content.startsWith('http') == false) {
       // try: domain.com
@@ -157,7 +162,7 @@ class MultiWebviewController extends GetxController {
         if (GetPlatform.isMobile) {
           String? host = Uri.tryParse(content)?.host;
           if (host != null) {
-            Get.delete<WebviewTabController>(tag: host, force: true);
+            mobileKeepAlive.remove(host); // remove keep alive
           }
         }
       }
@@ -165,21 +170,24 @@ class MultiWebviewController extends GetxController {
     uri = Uri.tryParse(content);
     if (uri == null) return;
     if (GetPlatform.isMobile) {
+      uniqueKey = uri.host;
       Get.to(
           () => WebviewTab(
                 initUrl: content,
                 initTitle: title.value,
-                uniqueKey: uri!.host, // for close controller
+                uniqueKey: uniqueKey, // for close controller
                 windowId: 0,
+                isCache: mobileKeepAlive.containsKey(uniqueKey),
+                keepAlive: _getKeepAliveObject(uniqueKey),
               ),
-          transition: Transition.downToUp);
+          transition: Transition.cupertino);
       return;
     }
 
     final tab = WebviewTab(
-      uniqueKey: uniqueId,
+      uniqueKey: uniqueKey,
       initUrl: content,
-      key: GlobalObjectKey(uniqueId),
+      key: GlobalObjectKey(uniqueKey),
       windowId: getLastWindowId(),
     );
     if (GetPlatform.isDesktop) {
@@ -187,17 +195,47 @@ class MultiWebviewController extends GetxController {
         Get.find<DesktopController>().sidebarXController.selectIndex(1);
       }
     }
+    if (tabs[currentIndex].url == KeychatGlobal.newTab &&
+        currentIndex != tabs.length - 1) {
+      tabs.removeAt(currentIndex);
+      tabs.insert(currentIndex,
+          WebviewTabData(tab: tab, uniqueKey: uniqueKey, url: tab.initUrl));
+      setCurrentTabIndex(currentIndex);
+      return;
+    }
     if (tabs.isNotEmpty && tabs.last.url == KeychatGlobal.newTab) {
       tabs.insert(tabs.length - 1,
-          WebviewTabData(tab: tab, uniqueKey: uniqueId, url: tab.initUrl));
+          WebviewTabData(tab: tab, uniqueKey: uniqueKey, url: tab.initUrl));
       setCurrentTabIndex(tabs.length - 2);
     } else {
-      tabs.add(WebviewTabData(tab: tab, uniqueKey: uniqueId, url: tab.initUrl));
+      tabs.add(
+          WebviewTabData(tab: tab, uniqueKey: uniqueKey, url: tab.initUrl));
       setCurrentTabIndex(tabs.length - 1);
     }
   }
 
-  Function(int) setCurrentTabIndex = (p0) {};
+  InAppWebViewKeepAlive? _getKeepAliveObject(String uniqueKey) {
+    if (!GetPlatform.isMobile) return null;
+
+    if (!mobileKeepAlive.containsKey(uniqueKey)) {
+      mobileKeepAlive[uniqueKey] = InAppWebViewKeepAlive();
+    }
+    return mobileKeepAlive[uniqueKey];
+  }
+
+  removeKeepAliveObject(String uniqueKey) {
+    mobileKeepAlive.remove(uniqueKey);
+  }
+
+  setCurrentTabIndex(index) {
+    if (index < 0 || index >= tabs.length) {
+      index = 0;
+    }
+    currentIndex = index;
+    updatePageTabIndex(index);
+  }
+
+  Function(int) updatePageTabIndex = (index) {};
 
   int getLastWindowId() {
     int windowId = 0;
@@ -209,8 +247,8 @@ class MultiWebviewController extends GetxController {
     return windowId;
   }
 
-  loadConfig() async {
-    String? localConfig = await Storage.getString('browserConfig');
+  Future loadConfig() async {
+    String? localConfig = await Storage.getString(KeychatGlobal.browserConfig);
     if (localConfig == null) {
       localConfig = jsonEncode({
         "enableHistory": true,
@@ -221,6 +259,12 @@ class MultiWebviewController extends GetxController {
       Storage.setString('browserConfig', localConfig);
     }
     config.value = jsonDecode(localConfig);
+
+    // text zoom
+    int? textSize = await Storage.getInt(KeychatGlobal.browserTextSize);
+    if (textSize != null) {
+      kInitialTextSize.value = textSize;
+    }
   }
 
   setConfig(String key, dynamic value) async {
@@ -286,7 +330,7 @@ class MultiWebviewController extends GetxController {
     initWebview();
     deleteOldHistories();
 
-    if (tabs.isEmpty) {
+    if (tabs.isEmpty && GetPlatform.isDesktop) {
       addNewTab();
     }
 
@@ -396,9 +440,49 @@ class MultiWebviewController extends GetxController {
       return controller;
     } catch (e) {
       // permanent. manaully to delete
-      return Get.put(WebviewTabController(initUrl, initTitle),
-          tag: uniqueKey, permanent: true);
+      return Get.put(WebviewTabController(initUrl, initTitle), tag: uniqueKey);
     }
+  }
+
+  void setTabDataFavicon({required String uniqueId, required String favicon}) {
+    int tabIndex = tabs.indexWhere((tab) => tab.uniqueKey == uniqueId);
+    if (tabIndex >= 0) {
+      tabs[tabIndex].favicon = favicon;
+      tabs.refresh();
+    }
+  }
+
+  RxInt kInitialTextSize = 100.obs;
+  late String kTextSizeSourceJS = """
+window.addEventListener('DOMContentLoaded', function(event) {
+  document.body.style.textSizeAdjust = '$kInitialTextSize%';
+  document.body.style.webkitTextSizeAdjust = '$kInitialTextSize%';
+  document.body.style.fontSize = '$kInitialTextSize%';
+});
+""";
+
+  late UserScript textSizeUserScript = UserScript(
+      source: kTextSizeSourceJS,
+      injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START);
+
+  Future setTextsize(int textSize) async {
+    kInitialTextSize.value = textSize;
+    kTextSizeSourceJS = """
+              document.body.style.textSizeAdjust = '$textSize%';
+              document.body.style.webkitTextSizeAdjust = '$textSize%';
+              document.body.style.fontSize = '$textSize%';
+            """;
+    await Storage.setInt(KeychatGlobal.browserTextSize, textSize);
+  }
+
+  String removeHttpPrefix(String url) {
+    if (url.startsWith('http://')) {
+      return url.replaceFirst('http://', '');
+    }
+    if (url.startsWith('https://')) {
+      return url.replaceFirst('https://', '');
+    }
+    return url;
   }
 }
 

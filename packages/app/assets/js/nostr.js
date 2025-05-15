@@ -88,6 +88,13 @@ window.nostr.nip44.decrypt = async function (pubkey, ciphertext) {
   );
 };
 
+window.pageFailedToRefresh = async function () {
+  return await window.flutter_inappwebview.callHandler(
+    'keychat',
+    'pageFailedToRefresh'
+  );
+};
+
 window.nostr.main = async function () {
   console.log('nostr.main');
   // const args = [1, true, ['bar', 5], { foo: 'baz' }];

@@ -35,6 +35,7 @@ class _CupertinoRootPageState extends State<CupertinoRootPage> {
   Widget build(BuildContext context) {
     return CupertinoTabScaffold(
         resizeToAvoidBottomInset: true,
+        controller: homeController.cupertinoTabController,
         tabBar: CupertinoTabBar(
           onTap: (int index) {
             setState(() {

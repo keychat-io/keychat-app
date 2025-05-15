@@ -7,6 +7,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:open_filex/open_filex.dart';
 
 import 'package:share_plus/share_plus.dart';
 
@@ -23,9 +24,13 @@ class FileExplorerPage extends StatefulWidget {
 class _FileExplorerPageState extends State<FileExplorerPage> {
   List<FileSystemEntity> _files = [];
   // final int _totalFileSize = 0;
-
+  late String folderName;
   @override
   void initState() {
+    folderName = widget.dir.path.split('/').last;
+    if (folderName.startsWith('com.keychat')) {
+      folderName = 'Files Explorer';
+    }
     super.initState();
     _getFilesAndFolders(widget.dir);
   }
@@ -60,7 +65,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: const Text('File Explorer'),
+        title: Text(folderName),
         actions: widget.showDeleteButton
             ? [
                 IconButton(
@@ -93,7 +98,16 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                     },
                     icon: const Icon(Icons.delete)),
               ]
-            : null,
+            : GetPlatform.isDesktop
+                ? [
+                    TextButton(
+                      onPressed: () {
+                        OpenFilex.open(widget.dir.path);
+                      },
+                      child: const Text('Open'),
+                    )
+                  ]
+                : null,
       ),
       body: ListView.builder(
         itemCount: _files.length,
@@ -101,15 +115,14 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
           FileSystemEntity file = _files[index];
           FileStat stat = file.statSync();
 
-          if (file.path.endsWith('.txt') && file is File) {
+          if ((file.path.endsWith('.txt') || file.path.endsWith('.log')) &&
+              file is File) {
             return ListTile(
-              leading: const Icon(
-                Icons.note,
-                color: Colors.black,
-              ),
+              leading: const Icon(CupertinoIcons.doc),
               title: Text(file.path.substring(widget.dir.path.length + 1)),
               subtitle: Text(FileUtils.getFileSizeDisplay(stat.size)),
               trailing: _getDownloadButton(file),
+              dense: true,
               onTap: () {
                 Get.to(() => LogViewer(path: file.path));
               },
@@ -125,9 +138,11 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                 showClickDialog(file);
               }
             },
+            dense: true,
             onTap: () {
               if (isDirectory) {
-                bool isLogFile = file.path.endsWith('logs');
+                bool isLogFile =
+                    file.path.endsWith('logs') || file.path.endsWith('errors');
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -139,17 +154,30 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                 );
                 return;
               }
-              if (file.path.endsWith('.isar') ||
-                  file.path.endsWith('.lock') ||
-                  file.path.endsWith('.db')) {
-                return;
+              if (file.path.contains('.')) {
+                Set suffixs = {
+                  'db',
+                  'db3',
+                  '.isar',
+                  '.lock',
+                  'db-wal',
+                  'db-shm'
+                };
+                String suffix = file.path.split('.').last;
+                if (suffixs.contains(suffix)) {
+                  return;
+                }
               }
+
               showClickDialog(file);
             },
-            leading: Icon(
-              isDirectory ? Icons.file_copy_sharp : Icons.storage,
-              color: isDirectory ? Colors.blue : Colors.black,
-            ),
+            leading: isDirectory
+                ? SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: Image.asset('assets/images/file.png',
+                        fit: BoxFit.contain))
+                : Icon(CupertinoIcons.doc),
             title: Text(file.path.substring(widget.dir.path.length + 1)),
             subtitle: isDirectory
                 ? null
@@ -164,45 +192,15 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
   _getDownloadButton(FileSystemEntity sourceFile) {
     return IconButton(
         onPressed: () async {
+          if (GetPlatform.isDesktop) {
+            String dir =
+                sourceFile.path.substring(0, sourceFile.path.lastIndexOf('/'));
+            OpenFilex.open(dir);
+            return;
+          }
           Share.shareXFiles([XFile(sourceFile.path)],
               subject: FileUtils.getDisplayFileName(
                   sourceFile.path.split('/').last));
-
-          // PermissionStatus permissionStatus =
-          //     await Utils.getStoragePermission();
-          // if (!permissionStatus.isGranted) {
-          //   EasyLoading.showError('Permission denied',
-          //       duration: const Duration(seconds: 2));
-          //   return;
-          // }
-
-          // String filename =
-          //     sourceFile.path.substring(widget.dir.path.length + 1);
-          // try {
-          //   if (!await FlutterFileDialog.isPickDirectorySupported()) {
-          //     EasyLoading.showToast("Picking directory not supported");
-          //     return;
-          //   }
-
-          //   final pickedDirectory = await FlutterFileDialog.pickDirectory();
-
-          //   if (pickedDirectory == null) return;
-          //   String mimeType = lookupMimeType(sourceFile.path) ?? "text/plain";
-
-          //   final filePath = await FlutterFileDialog.saveFileToDirectory(
-          //     directory: pickedDirectory,
-          //     data: (sourceFile as File).readAsBytesSync(),
-          //     mimeType: mimeType,
-          //     fileName: filename,
-          //     replace: true,
-          //   );
-          //   logger.d('saved to $filePath');
-          //   EasyLoading.showSuccess('Downloaded');
-          // } catch (e, s) {
-          //   logger.e(e.toString(), error: e, stackTrace: s);
-          //   EasyLoading.showError('Failed to download',
-          //       duration: const Duration(seconds: 2));
-          // }
         },
         icon: const Icon(CupertinoIcons.share));
   }

@@ -207,7 +207,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
             Get.dialog(CupertinoAlertDialog(
                 title: const Text('Not upload MLS keys'),
                 content: const Text(
-                    '''1. Add a relay with support nip104.\n2. Restart app to upload KeyPackage'''),
+                    'Notify your friend to restart the app, and the key will be uploaded automatically'),
                 actions: <Widget>[
                   CupertinoDialogAction(
                       child: const Text('OK'),

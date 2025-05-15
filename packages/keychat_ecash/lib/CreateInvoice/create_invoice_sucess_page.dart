@@ -63,7 +63,7 @@ class CreateInvoiceSucessPageState extends State<CreateInvoiceSucessPage> {
                   size: 240, embeddedImageSize: 60, embeddedImage: null),
               Expanded(
                   child: Text(
-                maxLines: 3,
+                maxLines: 2,
                 widget.transaction.pr,
                 overflow: TextOverflow.ellipsis,
               )),

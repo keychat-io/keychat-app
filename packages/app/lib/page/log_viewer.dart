@@ -18,7 +18,7 @@ class _LogViewerState extends State<LogViewer> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Log Viewer'),
+        title: Text(widget.path.split('/').last),
       ),
       body: FutureBuilder<String>(
         future: readLogFile(widget.path),

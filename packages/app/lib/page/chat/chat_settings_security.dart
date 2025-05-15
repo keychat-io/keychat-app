@@ -1,9 +1,7 @@
 import 'package:app/page/chat/SelectRoomRelay.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/contact.service.dart';
-import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:app/service/chatx.service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
@@ -51,20 +49,8 @@ class ChatSettingSecurity extends StatelessWidget {
                               child: const Text('OK'),
                               onPressed: () async {
                                 Get.back();
-                                EasyThrottle.throttle('ResetSessionStatus',
-                                    const Duration(seconds: 3), () async {
-                                  await Get.find<ChatxService>()
-                                      .deleteSignalSessionKPA(cc
-                                          .roomObs.value); // delete old session
-                                  await SignalChatService.instance
-                                      .sendHelloMessage(cc.roomObs.value,
-                                          cc.roomObs.value.getIdentity(),
-                                          greeting:
-                                              'Reset signal session status');
-
-                                  EasyLoading.showInfo(
-                                      'Request sent successfully.');
-                                });
+                                await SignalChatService.instance
+                                    .resetSignalSession(cc.roomObs.value);
                               },
                             )
                           ],

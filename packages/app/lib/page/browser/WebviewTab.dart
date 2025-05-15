@@ -1,3 +1,4 @@
+import 'dart:collection' show UnmodifiableListView;
 import 'dart:convert' show jsonDecode;
 
 import 'package:app/controller/home.controller.dart';
@@ -35,18 +36,23 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
+enum WebviewTabState { start, success, failed, error }
+
 class WebviewTab extends StatefulWidget {
   final String uniqueKey;
   final String initUrl;
   final String? initTitle;
   final int windowId;
-  const WebviewTab({
-    super.key,
-    required this.windowId,
-    required this.uniqueKey,
-    required this.initUrl,
-    this.initTitle,
-  });
+  final InAppWebViewKeepAlive? keepAlive;
+  final bool? isCache;
+  const WebviewTab(
+      {super.key,
+      required this.windowId,
+      required this.uniqueKey,
+      required this.initUrl,
+      this.isCache,
+      this.initTitle,
+      this.keepAlive});
   @override
   _WebviewTabState createState() => _WebviewTabState();
 }
@@ -55,15 +61,29 @@ class _WebviewTabState extends State<WebviewTab> {
   late EcashController ecashController;
   late MultiWebviewController controller;
   late WebviewTabController tc;
+  bool pageFailed = false;
+  WebviewTabState state = WebviewTabState.start;
+  InAppWebViewKeepAlive? ka;
 
   @override
   void initState() {
+    ka = widget.keepAlive;
     controller = Get.find<MultiWebviewController>();
     tc = controller.getOrCreateController(
         widget.initUrl, widget.initTitle, widget.uniqueKey);
     ecashController = Get.find<EcashController>();
     initBrowserConnect(WebUri(widget.initUrl));
     super.initState();
+    Future.delayed(Duration(seconds: 2)).then((_) {
+      if (state == WebviewTabState.start) {
+        logger.d('${widget.initUrl} : WebviewTabState.start');
+        controller.removeKeepAliveObject(widget.uniqueKey);
+        setState(() {
+          ka = null;
+          state = WebviewTabState.failed;
+        });
+      }
+    });
   }
 
   @override
@@ -91,6 +111,7 @@ class _WebviewTabState extends State<WebviewTab> {
     return Obx(() => PopScope(
         canPop: !tc.canGoBack.value,
         onPopInvokedWithResult: (didPop, d) {
+          if (didPop) return;
           goBackOrPop();
         },
         child: Scaffold(
@@ -112,11 +133,7 @@ class _WebviewTabState extends State<WebviewTab> {
                                 padding:
                                     const EdgeInsets.symmetric(horizontal: 2),
                                 onPressed: () {
-                                  if (GetPlatform.isMobile) {
-                                    Get.back();
-                                  } else {
-                                    controller.removeTab(widget.uniqueKey);
-                                  }
+                                  controller.removeTab(widget.uniqueKey);
                                 },
                                 icon: const Icon(Icons.close)),
                             IconButton(
@@ -134,14 +151,26 @@ class _WebviewTabState extends State<WebviewTab> {
                           ])),
                       Expanded(
                           child: Center(
-                              child: AutoSizeText(tc.title.value,
+                              child: AutoSizeText(
+                                  controller.removeHttpPrefix(
+                                      tc.title.value.isEmpty
+                                          ? tc.url.value
+                                          : tc.title.value),
                                   minFontSize: 10,
                                   stepGranularity: 2,
                                   maxFontSize: 16,
                                   maxLines: 1,
                                   overflow: TextOverflow.clip)))
                     ])
-                  : Text(tc.title.value),
+                  : AutoSizeText(
+                      controller.removeHttpPrefix(tc.title.value.isEmpty
+                          ? tc.url.value
+                          : tc.title.value),
+                      minFontSize: 10,
+                      stepGranularity: 2,
+                      maxFontSize: 16,
+                      maxLines: 1,
+                      overflow: TextOverflow.clip),
               actions: [
                 PopupMenuButton<String>(
                   onOpened: menuOpened,
@@ -222,6 +251,14 @@ class _WebviewTabState extends State<WebviewTab> {
                               style: Theme.of(context).textTheme.bodyLarge)
                         ]),
                       ),
+                      PopupMenuItem(
+                        value: 'zoom',
+                        child: Row(spacing: 16, children: [
+                          const Icon(CupertinoIcons.zoom_in),
+                          Text('Zoom Text',
+                              style: Theme.of(context).textTheme.bodyLarge)
+                        ]),
+                      ),
                       if (tc.browserConnect.value.host == "")
                         PopupMenuItem(
                           value: 'clear',
@@ -256,14 +293,21 @@ class _WebviewTabState extends State<WebviewTab> {
                 if (GetPlatform.isMobile)
                   IconButton(
                       onPressed: () {
+                        if (pageFailed || state != WebviewTabState.success) {
+                          controller.removeKeepAliveObject(widget.uniqueKey);
+                        }
                         if (Get.isBottomSheetOpen ?? false) {
                           Get.back();
                         }
                         Get.back(); // exit page
                       },
-                      icon: const Icon(
-                        CupertinoIcons.smallcircle_fill_circle,
-                        weight: 1000,
+                      icon: SvgPicture.asset(
+                        'assets/images/miniapp-exit.svg',
+                        height: 28,
+                        width: 28,
+                        colorFilter: ColorFilter.mode(
+                            Theme.of(context).iconTheme.color!,
+                            BlendMode.srcIn),
                       )),
               ]),
           body: SafeArea(
@@ -271,167 +315,202 @@ class _WebviewTabState extends State<WebviewTab> {
               child: Column(children: <Widget>[
                 Expanded(
                     child: Stack(children: [
-                  InAppWebView(
-                    key: PageStorageKey(widget.uniqueKey),
-                    keepAlive: tc.keepAlive,
-                    webViewEnvironment: controller.webViewEnvironment,
-                    initialUrlRequest: URLRequest(url: WebUri(tc.url.value)),
-                    initialSettings: tc.settings,
-                    pullToRefreshController: tc.pullToRefreshController,
-                    onScrollChanged: (controller, x, y) {
-                      tc.scrollX.value = x;
-                      tc.scrollY.value = y;
-                    },
-                    onWebViewCreated: (controller) async {
-                      tc.webViewController = controller;
-                      await controller.evaluateJavascript(source: """
+                  // create a new webview when not start
+                  state == WebviewTabState.failed
+                      ? _getWebview()
+                      : _getWebview(PageStorageKey(widget.uniqueKey), ka),
+                  Obx(() => tc.progress.value < 1.0
+                      ? LinearProgressIndicator(
+                          value:
+                              tc.progress.value < 0.1 ? 0.1 : tc.progress.value)
+                      : Container())
+                ]))
+              ])),
+        )));
+  }
+
+  Widget _getWebview([PageStorageKey? key, InAppWebViewKeepAlive? keepAlive]) {
+    return InAppWebView(
+      key: key,
+      keepAlive: keepAlive,
+      webViewEnvironment: controller.webViewEnvironment,
+      initialUrlRequest: URLRequest(url: WebUri(tc.url.value)),
+      initialSettings: tc.settings,
+      pullToRefreshController: tc.pullToRefreshController,
+      initialUserScripts: UnmodifiableListView([controller.textSizeUserScript]),
+      onScrollChanged: (controller, x, y) {},
+      onCreateWindow: GetPlatform.isDesktop
+          ? (controller, createWindowAction) {
+              if (createWindowAction.request.url == null) return false;
+              this.controller.lanuchWebview(
+                  content: createWindowAction.request.url.toString());
+              return true;
+            }
+          : null,
+      onWebViewCreated: (controller) async {
+        tc.setWebViewController(controller, widget.initUrl);
+        await controller.evaluateJavascript(source: """
                         window.print = function(){};
                       """);
-                      controller.addJavaScriptHandler(
-                          handlerName: 'keychat', callback: javascriptHandler);
-                    },
-                    onLoadStart: (controller, uri) async {
-                      if (uri == null) return;
-                      if (uri.toString() == tc.url.value) return;
-                      updateTabInfo(widget.uniqueKey, uri.toString(),
-                          tc.title.value, tc.favicon);
-                    },
-                    onPrintRequest:
-                        (controller, url, printJobController) async {
-                      await printJobController?.cancel();
-                      return false;
-                    },
-                    onPermissionRequest: (controller, request) async {
-                      return PermissionResponse(
-                          resources: request.resources,
-                          action: PermissionResponseAction.GRANT);
-                    },
-                    shouldOverrideUrlLoading:
-                        (controller, NavigationAction navigationAction) async {
-                      WebUri? uri = navigationAction.request.url;
-                      logger.d('shouldOverrideUrlLoading: ${uri?.toString()}');
-                      if (uri == null) return NavigationActionPolicy.ALLOW;
-                      try {
-                        var str = uri.toString();
-                        if (str.startsWith('cashu')) {
-                          ecashController.proccessCashuAString(str);
-                          return NavigationActionPolicy.CANCEL;
-                        }
-                        // lightning invoice
-                        if (str.startsWith('lightning:')) {
-                          str = str.replaceFirst('lightning:', '');
-                          var tx = await ecashController
-                              .proccessPayLightningBill(str, isPay: true);
-                          if (tx != null) {
-                            var lnTx = tx.field0 as LNTransaction;
-                            logger.d('LN Transaction:   Amount=${lnTx.amount}, '
-                                'INfo=${lnTx.info}, Description=${lnTx.fee}, '
-                                'Hash=${lnTx.hash}, NodeId=${lnTx.status.name}');
-                          }
-                          return NavigationActionPolicy.CANCEL;
-                        }
-                        if (str.startsWith('lnbc')) {
-                          var tx = await ecashController
-                              .proccessPayLightningBill(str, isPay: true);
-                          if (tx != null) {
-                            logger.d((tx.field0 as LNTransaction).pr);
-                          }
 
-                          return NavigationActionPolicy.CANCEL;
-                        }
+        controller.evaluateJavascript(source: "1 + 1").then((value) {
+          if (value == 2) {
+            state = WebviewTabState.success;
+          }
+        });
 
-                        if (![
-                          "http",
-                          "https",
-                          "file",
-                          "chrome",
-                          "data",
-                          "javascript",
-                          "about"
-                        ].contains(uri.scheme)) {
-                          if (await canLaunchUrl(uri)) {
-                            // Launch the App
-                            await launchUrl(uri);
-                            // and cancel the request
-                            return NavigationActionPolicy.CANCEL;
-                          }
-                        }
-                        return NavigationActionPolicy.ALLOW;
-                      } catch (e) {
-                        logger.d(e.toString(), error: e);
-                      }
-                      return NavigationActionPolicy.ALLOW;
-                    },
-                    onLoadStop: (controller, url) async {
-                      onUpdateVisitedHistory(url);
-                      controller.injectJavascriptFileFromAsset(
-                          assetFilePath: "assets/js/nostr.js");
-                      tc.pullToRefreshController?.endRefreshing();
-                      if (tc.scrollX.value != 0 || tc.scrollY.value != 0) {
-                        controller.scrollTo(
-                            x: tc.scrollX.value, y: tc.scrollY.value);
-                      }
-                    },
-                    onReceivedServerTrustAuthRequest: (_, challenge) async {
-                      var sslError = challenge.protectionSpace.sslError;
-                      if (sslError != null && (sslError.code != null)) {
-                        if ((GetPlatform.isIOS || GetPlatform.isMacOS) &&
-                            sslError.code == SslErrorType.UNSPECIFIED) {
-                          return ServerTrustAuthResponse(
-                              action: ServerTrustAuthResponseAction.PROCEED);
-                        }
+        controller.addJavaScriptHandler(
+            handlerName: 'keychat', callback: javascriptHandler);
+        // hide the progress bar
+        if (widget.isCache == true) {
+          tc.progress.value = 1.0;
+        }
+      },
+      onLoadStart: (controller, uri) async {
+        if (uri == null) return;
+        if (uri.toString() == tc.url.value) return;
+        updateTabInfo(widget.uniqueKey, uri.toString(), tc.title.value);
+      },
+      onPrintRequest: (controller, url, printJobController) async {
+        await printJobController?.cancel();
+        return false;
+      },
+      onPermissionRequest: (controller, request) async {
+        return PermissionResponse(
+            resources: request.resources,
+            action: PermissionResponseAction.GRANT);
+      },
+      onReceivedIcon: (controller, icon) {
+        logger.d('onReceivedIcon: ${icon.toString()}');
+      },
+      shouldOverrideUrlLoading:
+          (controller, NavigationAction navigationAction) async {
+        WebUri? uri = navigationAction.request.url;
+        logger.d('shouldOverrideUrlLoading: ${uri?.toString()}');
+        if (uri == null) return NavigationActionPolicy.ALLOW;
+        try {
+          var str = uri.toString();
+          if (str.startsWith('cashu')) {
+            ecashController.proccessCashuAString(str);
+            return NavigationActionPolicy.CANCEL;
+          }
+          // lightning invoice
+          if (str.startsWith('lightning:')) {
+            str = str.replaceFirst('lightning:', '');
+            var tx = await ecashController.proccessPayLightningBill(str,
+                isPay: true);
+            if (tx != null) {
+              var lnTx = tx.field0 as LNTransaction;
+              logger.d('LN Transaction:   Amount=${lnTx.amount}, '
+                  'INfo=${lnTx.info}, Description=${lnTx.fee}, '
+                  'Hash=${lnTx.hash}, NodeId=${lnTx.status.name}');
+            }
+            return NavigationActionPolicy.CANCEL;
+          }
+          if (str.startsWith('lnbc')) {
+            var tx = await ecashController.proccessPayLightningBill(str,
+                isPay: true);
+            if (tx != null) {
+              logger.d((tx.field0 as LNTransaction).pr);
+            }
 
-                        return ServerTrustAuthResponse(
-                            action: ServerTrustAuthResponseAction.CANCEL);
-                      }
-                      return ServerTrustAuthResponse(
-                          action: ServerTrustAuthResponseAction.PROCEED);
-                    },
-                    onDownloadStartRequest: (controller, url) async {
-                      String path = url.url.path;
-                      String fileName =
-                          path.substring(path.lastIndexOf('/') + 1);
+            return NavigationActionPolicy.CANCEL;
+          }
 
-                      await FlutterDownloader.enqueue(
-                        url: url.toString(),
-                        fileName: fileName,
-                        savedDir: (await getTemporaryDirectory()).path,
-                        showNotification: true,
-                        openFileFromNotification: true,
-                      );
-                    },
-                    onProgressChanged: (controller, data) {
-                      if (data == 100) {
-                        tc.pullToRefreshController?.endRefreshing();
-                      }
+          if (![
+            "http",
+            "https",
+            "file",
+            "chrome",
+            "data",
+            "javascript",
+            "about"
+          ].contains(uri.scheme)) {
+            if (await canLaunchUrl(uri)) {
+              bool res = await launchUrl(uri);
+              if (res) {
+                return NavigationActionPolicy.CANCEL;
+              }
+              return NavigationActionPolicy.ALLOW;
+            }
+          }
+          return NavigationActionPolicy.ALLOW;
+        } catch (e) {
+          logger.d(e.toString(), error: e);
+        }
+        return NavigationActionPolicy.ALLOW;
+      },
+      onLoadStop: (controller, url) async {
+        // onUpdateVisitedHistory(url);
+        controller.injectJavascriptFileFromAsset(
+            assetFilePath: "assets/js/nostr.js");
+        tc.pullToRefreshController?.endRefreshing();
+        // if (tc.scrollX.value != 0 || tc.scrollY.value != 0) {
+        //   controller.scrollTo(
+        //       x: tc.scrollX.value, y: tc.scrollY.value);
+        // }
+      },
+      onReceivedServerTrustAuthRequest: (_, challenge) async {
+        var sslError = challenge.protectionSpace.sslError;
+        if (sslError != null && (sslError.code != null)) {
+          if ((GetPlatform.isIOS || GetPlatform.isMacOS) &&
+              sslError.code == SslErrorType.UNSPECIFIED) {
+            return ServerTrustAuthResponse(
+                action: ServerTrustAuthResponseAction.PROCEED);
+          }
 
-                      tc.progress.value = data / 100;
-                    },
-                    onReceivedError: (controller, request, error) async {
-                      var isForMainFrame = request.isForMainFrame ?? false;
-                      if (!isForMainFrame) {
-                        return;
-                      }
+          return ServerTrustAuthResponse(
+              action: ServerTrustAuthResponseAction.CANCEL);
+        }
+        return ServerTrustAuthResponse(
+            action: ServerTrustAuthResponseAction.PROCEED);
+      },
+      onDownloadStarting: (controller, url) async {
+        String path = url.url.path;
+        String fileName = path.substring(path.lastIndexOf('/') + 1);
 
-                      tc.pullToRefreshController?.endRefreshing();
+        await FlutterDownloader.enqueue(
+          url: url.toString(),
+          fileName: fileName,
+          savedDir: (await getTemporaryDirectory()).path,
+          showNotification: true,
+          openFileFromNotification: true,
+        );
+        return null;
+      },
+      onProgressChanged: (controller, data) {
+        if (data == 100) {
+          state = WebviewTabState.success;
+          tc.pullToRefreshController?.endRefreshing();
+        }
+        tc.progress.value = data / 100;
+      },
+      onReceivedError: (controller, request, error) async {
+        logger.d(
+            'onReceivedError: ${request.url.toString()} ${error.description}');
+        var isForMainFrame = request.isForMainFrame ?? false;
+        if (!isForMainFrame) {
+          return;
+        }
 
-                      if ((GetPlatform.isIOS ||
-                              GetPlatform.isMacOS ||
-                              GetPlatform.isWindows) &&
-                          error.type == WebResourceErrorType.CANCELLED) {
-                        // NSURLErrorDomain
-                        return;
-                      }
-                      if (GetPlatform.isWindows &&
-                          error.type ==
-                              WebResourceErrorType.CONNECTION_ABORTED) {
-                        // CONNECTION_ABORTED
-                        return;
-                      }
+        tc.pullToRefreshController?.endRefreshing();
 
-                      var errorUrl = request.url;
+        if ((GetPlatform.isIOS ||
+                GetPlatform.isMacOS ||
+                GetPlatform.isWindows) &&
+            error.type == WebResourceErrorType.CANCELLED) {
+          // NSURLErrorDomain
+          return;
+        }
+        if (GetPlatform.isWindows &&
+            error.type == WebResourceErrorType.CONNECTION_ABORTED) {
+          // CONNECTION_ABORTED
+          return;
+        }
 
-                      tc.webViewController?.loadData(data: """
+        var errorUrl = request.url;
+        pageFailed = true;
+        tc.webViewController?.loadData(data: """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -442,13 +521,20 @@ class _WebviewTabState extends State<WebviewTab> {
     ${await InAppWebViewController.tRexRunnerCss}
     </style>
     <style>
+    body {
+        background-color: #f5f5f5;
+        color: #333;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-size: 16px;
+        line-height: 1.5;
+    }
     .interstitial-wrapper {
         box-sizing: border-box;
         font-size: 1em;
         line-height: 1.6em;
-        margin: 0 auto 0;
+        margin: 0 auto;
         max-width: 600px;
-        width: 100%;
+        width: 90%;
     }
     </style>
 </head>
@@ -458,36 +544,31 @@ class _WebviewTabState extends State<WebviewTab> {
       <h1>Website not available</h1>
       <p>Could not load web pages at <strong>$errorUrl</strong> because:</p>
       <p>${error.description}</p>
+      <button onclick="window.pageFailedToRefresh();"  style="
+        padding: 10px 30px;
+        margin:0 auto;
+        font-size: 18px;
+        cursor: pointer;
+        border: none;
+        border-radius: 5px;">Refresh</button>
     </div>
-    <button onclick="window.location.reload(true);"  style="
-      padding: 10px 30px;
-      font-size: 18px;
-      cursor: pointer;
-      border: none;
-      border-radius: 5px;">Refresh</button>
 </body>
     """, baseUrl: errorUrl, historyUrl: errorUrl);
-                    },
-                    onConsoleMessage: (controller, consoleMessage) {
-                      if (kDebugMode) {
-                        print('console: ${consoleMessage.message}');
-                      }
-                    },
-                    onTitleChanged: (controller, title) async {
-                      if (title == null) return;
-                      updateTabInfo(
-                          widget.uniqueKey, tc.url.value, title, tc.favicon);
-                    },
-                    onUpdateVisitedHistory: (controller, url, androidIsReload) {
-                      onUpdateVisitedHistory(url);
-                    },
-                  ),
-                  Obx(() => tc.progress.value < 1.0
-                      ? LinearProgressIndicator(value: tc.progress.value)
-                      : Container())
-                ]))
-              ])),
-        )));
+      },
+      onConsoleMessage: (controller, consoleMessage) {
+        if (kDebugMode) {
+          print('console: ${consoleMessage.message}');
+        }
+      },
+      onTitleChanged: (controller, title) async {
+        if (title == null) return;
+        updateTabInfo(widget.uniqueKey, tc.url.value, title);
+      },
+      onUpdateVisitedHistory: (controller, url, androidIsReload) {
+        logger.d('onUpdateVisitedHistory: ${url.toString()} $androidIsReload');
+        onUpdateVisitedHistory(url);
+      },
+    );
   }
 
   Widget getPopTools(String url) {
@@ -521,13 +602,16 @@ class _WebviewTabState extends State<WebviewTab> {
     tc.webViewController?.canGoBack().then((canGoBack) {
       if (canGoBack) {
         tc.webViewController?.goBack();
-      } else {
-        if (GetPlatform.isDesktop) {
-          controller.removeTab(widget.uniqueKey);
-        } else {
-          Get.back();
-        }
+        return;
       }
+      if (GetPlatform.isDesktop) {
+        controller.removeTab(widget.uniqueKey);
+        return;
+      }
+      if (pageFailed || state != WebviewTabState.success) {
+        controller.removeKeepAliveObject(widget.uniqueKey);
+      }
+      Get.back();
     });
   }
 
@@ -538,6 +622,15 @@ class _WebviewTabState extends State<WebviewTab> {
     if (method == 'getRelays') {
       var relays = await RelayService.instance.getEnableList();
       return relays;
+    }
+
+    if (method == 'pageFailedToRefresh') {
+      controller.removeKeepAliveObject(widget.uniqueKey);
+      setState(() {
+        ka = null;
+      });
+      tc.webViewController?.reload();
+      return;
     }
 
     WebUri? uri = await tc.webViewController?.getUrl();
@@ -745,38 +838,65 @@ class _WebviewTabState extends State<WebviewTab> {
         tc.webViewController?.reload();
         break;
       case 'close':
-        Get.delete<WebviewTabController>(tag: widget.uniqueKey, force: true);
+        controller.removeKeepAliveObject(widget.uniqueKey);
         Get.back();
+        break;
+      case 'zoom':
+        Get.bottomSheet(
+          clipBehavior: Clip.antiAlias,
+          shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
+          Scaffold(
+              appBar: AppBar(title: Text('Zoom Text')),
+              body: Container(
+                  padding: const EdgeInsets.all(16),
+                  child: Obx(() => Slider(
+                      value: double.parse(
+                          controller.kInitialTextSize.value.toString()),
+                      min: 50,
+                      max: 300,
+                      divisions: 10,
+                      label: '${controller.kInitialTextSize.value}',
+                      onChanged: (value) {
+                        tc.updateTextSize(value.toInt());
+                      })))),
+        );
         break;
     }
   }
 
   Future onUpdateVisitedHistory(WebUri? uri) async {
-    if (tc.webViewController == null) return;
-    EasyDebounce.debounce(uri.toString(), Duration(milliseconds: 200),
+    if (tc.webViewController == null || uri == null) return;
+    EasyDebounce.debounce(
+        'onUpdateVisitedHistory:${uri.toString()}', Duration(milliseconds: 200),
         () async {
       bool? canGoBack = await tc.webViewController?.canGoBack();
       bool? canGoForward = await tc.webViewController?.canGoForward();
-      logger.d('canGoBack: $canGoBack, canGoForward: $canGoForward');
+      logger.d(
+          '${uri.toString()} canGoBack: $canGoBack, canGoForward: $canGoForward');
       tc.canGoBack.value = canGoBack ?? false;
       tc.canGoForward.value = canGoForward ?? false;
       String? newTitle = await tc.webViewController?.getTitle();
-      String? favicon =
-          await controller.getFavicon(tc.webViewController!, uri!.host);
       String title = newTitle ?? tc.title.value;
-      updateTabInfo(widget.uniqueKey, uri.toString(), title, favicon);
-      controller.addHistory(uri.toString(), title, favicon);
+      if (title.isEmpty) {
+        title = tc.title.value;
+      }
+      updateTabInfo(widget.uniqueKey, uri.toString(), title);
+      controller.addHistory(uri.toString(), title);
+      controller.getFavicon(tc.webViewController!, uri.host).then((favicon) {
+        if (favicon != null) {
+          tc.favicon = favicon;
+          controller.setTabDataFavicon(
+              uniqueId: widget.uniqueKey, favicon: favicon);
+        }
+      });
     });
   }
 
-  updateTabInfo(String key, String url0, String title0, String? favicon0) {
-    controller.setTabData(
-        uniqueId: widget.uniqueKey,
-        title: title0,
-        url: url0,
-        favicon: favicon0);
+  updateTabInfo(String key, String url0, String title0) {
+    logger.d('updateTabInfo: $key, $url0, $title0');
+    controller.setTabData(uniqueId: widget.uniqueKey, title: title0, url: url0);
     tc.title.value = title0;
     tc.url.value = url0;
-    tc.favicon = favicon0;
   }
 }

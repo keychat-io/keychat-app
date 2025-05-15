@@ -1,7 +1,7 @@
 import 'dart:ui' show Color;
 
 class KeychatGlobal {
-  static const Color primaryColor = Color(0xff8700ED);
+  static const Color primaryColor = Color(0xff7748FF); // 0xff8700ED
   static const Color secondaryColor = Color(0xff7748FF);
   static const String appName = 'Keychat';
   static const String newTab = 'New Tab';
@@ -49,10 +49,9 @@ class KeychatGlobal {
     },
   ];
   static const List<String> keychatIntros = [
-    'Keychat is a chat app, built on Bitcoin ecash, Nostr protocol and Signal/MLS protocol.',
-    'Keychat is inspired by the postal system — stamps, post offices, letters.',
-    'Keychat uses Bitcoin ecash as stamps and Nostr relays as post offices.',
-    'Keychat uses Signal protocol to ensure message encryption security and meta-data privacy.'
+    'Keychat is the super app for Bitcoiners.',
+    'Autonomous IDs, Bitcoin ecash wallet, secure chat, and rich mini apps — all in Keychat.',
+    'Autonomy. Security. Richness.'
   ];
   static const String keychatIntro2 =
       '''Keychat is a chat app, built on Bitcoin ecash, Nostr protocol and Signal/MLS protocol.
@@ -75,6 +74,8 @@ Like the postal system, Keychat requires no registration. Users just generate No
 
   static int kdfGroupPrekeyMessageCount = 3;
   static int kdfGroupKeysExpired = 7;
+  static String browserConfig = 'browserConfig';
+  static String browserTextSize = 'browserTextSize';
 }
 
 // for desktop nest routing

@@ -24,71 +24,67 @@ class BrowserNewTab extends GetView<MultiWebviewController> {
             onTap: () {
               Utils.hideKeyboard(Get.context!);
             },
-            child: SafeArea(
-                child: Container(
-                    padding: const EdgeInsets.only(left: 16, right: 16),
-                    child: Obx(() => ListView(children: [
-                          SizedBox(height: 32),
-                          Form(
-                            key: PageStorageKey(
-                                'input:${controller.defaultSearchEngineObx.value}'),
-                            child: TextFormField(
-                              textInputAction: TextInputAction.go,
-                              maxLines: 1,
-                              controller: controller.textController,
-                              decoration: InputDecoration(
-                                labelText: Utils.capitalizeFirstLetter(
-                                    controller.defaultSearchEngineObx.value),
-                                border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(100.0)),
-                                isDense: true,
-                                contentPadding: const EdgeInsets.all(2),
-                                prefixIcon: Padding(
-                                  padding: const EdgeInsets.all(12.0),
-                                  child: SvgPicture.asset(
-                                    'assets/images/logo/${controller.defaultSearchEngineObx.value}.svg',
-                                    fit: BoxFit.contain,
-                                    width: 20,
-                                    height: 20,
-                                  ),
-                                ),
-                                suffixIcon: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (controller.input.isNotEmpty)
-                                      IconButton(
-                                        icon: const Icon(CupertinoIcons.clear,
-                                            size: 20),
-                                        onPressed: () {
-                                          controller.textController.clear();
-                                        },
-                                      ),
-                                    IconButton(
-                                      icon: const Icon(CupertinoIcons.search,
-                                          size: 20),
-                                      onPressed: () async {
-                                        if (controller
-                                            .textController.text.isEmpty) {
-                                          return;
-                                        }
-                                        submitSearchForm(controller
-                                            .textController.text
-                                            .trim());
-                                      },
-                                    ),
-                                  ],
-                                ),
+            child: Container(
+                padding: const EdgeInsets.only(left: 16, right: 16),
+                child: Obx(() => ListView(children: [
+                      SizedBox(height: 32),
+                      Form(
+                        child: TextFormField(
+                          textInputAction: TextInputAction.go,
+                          maxLines: 1,
+                          controller: controller.textController,
+                          decoration: InputDecoration(
+                            labelText:
+                                'Search ${Utils.capitalizeFirstLetter(controller.defaultSearchEngineObx.value)} or Type a URL',
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(100.0)),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.all(2),
+                            prefixIcon: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: SvgPicture.asset(
+                                'assets/images/logo/${controller.defaultSearchEngineObx.value}.svg',
+                                fit: BoxFit.contain,
+                                width: 20,
+                                height: 20,
                               ),
-                              onFieldSubmitted: submitSearchForm,
+                            ),
+                            suffixIcon: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (controller.input.isNotEmpty)
+                                  IconButton(
+                                    icon: const Icon(CupertinoIcons.clear,
+                                        size: 20),
+                                    onPressed: () {
+                                      controller.textController.clear();
+                                    },
+                                  ),
+                                IconButton(
+                                  icon: const Icon(CupertinoIcons.search,
+                                      size: 20),
+                                  onPressed: () async {
+                                    if (controller
+                                        .textController.text.isEmpty) {
+                                      return;
+                                    }
+                                    submitSearchForm(
+                                        controller.textController.text.trim());
+                                  },
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 32),
-                          if (controller.favorites.isNotEmpty)
-                            quickSection(context),
-                          const SizedBox(height: 16),
-                          functionSection(context),
-                          const SizedBox(height: 48)
-                        ]))))));
+                          onFieldSubmitted: submitSearchForm,
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      if (controller.favorites.isNotEmpty)
+                        quickSection(context),
+                      const SizedBox(height: 16),
+                      functionSection(context),
+                      const SizedBox(height: 32),
+                    ])))));
   }
 
   void submitSearchForm(value) {
@@ -289,7 +285,7 @@ class BrowserNewTab extends GetView<MultiWebviewController> {
     var features = [
       {
         'icon': 'assets/images/recommend.png',
-        'title': 'Mini APP',
+        'title': 'Mini App',
         'onTap': () async {
           if (GetPlatform.isDesktop) {
             await Get.bottomSheet(const WebStorePage());

@@ -1,28 +1,51 @@
 import 'package:app/app.dart';
 import 'package:app/page/components.dart';
 import 'package:app/service/qrscan.service.dart';
-import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:keychat_ecash/Bills/cashu_transaction.dart';
-import 'package:keychat_ecash/Bills/lightning_transaction.dart';
-import 'package:keychat_ecash/EcashSetting/EcashSetting_bindings.dart';
-import 'package:keychat_ecash/receive_ecash_page.dart';
-import 'package:keychat_ecash/keychat_ecash.dart';
-import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
-import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:settings_ui/settings_ui.dart';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
-
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/get.dart';
+import 'package:keychat_ecash/Bills/cashu_transaction.dart';
+import 'package:keychat_ecash/Bills/lightning_transaction.dart';
+import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
+import 'package:keychat_ecash/EcashSetting/EcashSetting_bindings.dart';
+import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
+import 'package:keychat_ecash/keychat_ecash.dart';
+import 'package:keychat_ecash/receive_ecash_page.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
+import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
+import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
+import 'package:settings_ui/settings_ui.dart';
 
 class CashuPage extends GetView<EcashController> {
   const CashuPage({super.key});
+  Widget bottomBarWidget(BuildContext context) {
+    return SafeArea(
+        bottom: true,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Wrap(
+                spacing: 16,
+                runAlignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  FilledButton(onPressed: _handleSend, child: Text('Send')),
+                  IconButton(
+                      color: Theme.of(context).colorScheme.primary,
+                      onPressed: () {
+                        QrScanService.instance.handleQRScan();
+                      },
+                      icon: const Icon(CupertinoIcons.qrcode_viewfinder,
+                          size: 24)),
+                  FilledButton(
+                      onPressed: _handleReceive, child: Text('Receive')),
+                ])
+          ],
+        ));
+  }
+
   @override
   Widget build(context) {
     int billLimit = GetPlatform.isDesktop ? 5 : 3;
@@ -577,30 +600,41 @@ class CashuPage extends GetView<EcashController> {
         ));
   }
 
-  Widget bottomBarWidget(BuildContext context) {
-    return Padding(
-        padding: EdgeInsets.only(bottom: 16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Wrap(
-                spacing: 16,
-                runAlignment: WrapAlignment.center,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  FilledButton(onPressed: _handleSend, child: Text('Send')),
-                  IconButton(
-                      color: Theme.of(context).colorScheme.primary,
-                      onPressed: () {
-                        QrScanService.instance.handleQRScan();
-                      },
-                      icon: const Icon(CupertinoIcons.qrcode_viewfinder,
-                          size: 24)),
-                  FilledButton(
-                      onPressed: _handleReceive, child: Text('Receive')),
-                ])
-          ],
-        ));
+  _handleReceive() {
+    Get.bottomSheet(
+        clipBehavior: Clip.antiAlias,
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
+        SettingsList(platform: DevicePlatform.iOS, sections: [
+          SettingsSection(tiles: [
+            SettingsTile.navigation(
+              title: const Text('Receive Ecash'),
+              onPressed: (context) async {
+                Get.back();
+                await Get.bottomSheet(
+                    clipBehavior: Clip.antiAlias,
+                    shape: const RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(4))),
+                    const ReceiveEcash());
+                controller.ecashBillController.getTransactions();
+              },
+            ),
+            SettingsTile.navigation(
+              title: const Text('Receive from Lightning Wallet'),
+              onPressed: (context) async {
+                Get.back();
+                await Get.bottomSheet(
+                    clipBehavior: Clip.antiAlias,
+                    shape: const RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(4))),
+                    const CreateInvoicePage());
+                controller.lightningBillController.getTransactions();
+              },
+            ),
+          ])
+        ]));
   }
 
   _handleSend() {
@@ -639,42 +673,5 @@ class CashuPage extends GetView<EcashController> {
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
     );
-  }
-
-  _handleReceive() {
-    Get.bottomSheet(
-        clipBehavior: Clip.antiAlias,
-        shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
-        SettingsList(platform: DevicePlatform.iOS, sections: [
-          SettingsSection(tiles: [
-            SettingsTile.navigation(
-              title: const Text('Receive Ecash'),
-              onPressed: (context) async {
-                Get.back();
-                await Get.bottomSheet(
-                    clipBehavior: Clip.antiAlias,
-                    shape: const RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.vertical(top: Radius.circular(4))),
-                    const ReceiveEcash());
-                controller.ecashBillController.getTransactions();
-              },
-            ),
-            SettingsTile.navigation(
-              title: const Text('Receive from Lightning Network'),
-              onPressed: (context) async {
-                Get.back();
-                await Get.bottomSheet(
-                    clipBehavior: Clip.antiAlias,
-                    shape: const RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.vertical(top: Radius.circular(4))),
-                    const CreateInvoicePage());
-                controller.lightningBillController.getTransactions();
-              },
-            ),
-          ])
-        ]));
   }
 }

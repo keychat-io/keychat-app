@@ -8,7 +8,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:pull_to_refresh/pull_to_refresh.dart';
+import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import 'package:app/models/models.dart';
 
 class CreateGroupSelectMember extends StatefulWidget {
@@ -186,7 +186,7 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
             Get.dialog(CupertinoAlertDialog(
                 title: const Text('Not upload MLS keys'),
                 content: const Text(
-                    '''1. Add a relay with support nip104.\n2. Restart app to upload KeyPackage'''),
+                    'Notify your friend to restart the app, and the key will be uploaded automatically.'),
                 actions: <Widget>[
                   CupertinoDialogAction(
                       child: const Text('OK'),

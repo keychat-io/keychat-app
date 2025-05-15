@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:easy_debounce/easy_throttle.dart';
 
 class ReceiveEcash extends StatefulWidget {
   const ReceiveEcash({super.key});
@@ -70,7 +71,7 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
                         controller: receiveTextController,
                         textInputAction: TextInputAction.done,
                         autofocus: true,
-                        maxLines: 5,
+                        maxLines: 2,
                         minLines: 1,
                         decoration: InputDecoration(
                             labelText: 'Paste Cashu Token',
@@ -97,13 +98,14 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
                             '+${decodedModel?.amount} ${decodedModel!.unit?.toUpperCase() ?? EcashTokenSymbol.sat.name}'),
                         subtitle: Text(decodedModel!.mint),
                       ),
-                    const SizedBox(height: 30),
-                    OutlinedButton.icon(
-                        onPressed: () async {
-                          QrScanService.instance.handleQRScan();
-                        },
-                        icon: const Icon(Icons.qr_code_scanner),
-                        label: const Text('Scan'))
+                    const SizedBox(height: 8),
+                    if (GetPlatform.isMobile)
+                      OutlinedButton.icon(
+                          onPressed: () async {
+                            QrScanService.instance.handleQRScan();
+                          },
+                          icon: const Icon(Icons.qr_code_scanner),
+                          label: const Text('Scan'))
                   ],
                 )),
               ),
@@ -113,28 +115,32 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
                         const Size(double.infinity, 44))),
                 child: const Text('Receive'),
                 onPressed: () async {
-                  if (GetPlatform.isMobile) {
-                    HapticFeedback.lightImpact();
-                  }
-                  String encodedToken = receiveTextController.text.trim();
-                  if (encodedToken.isEmpty) {
-                    EasyLoading.showToast('Please input token');
-                    return;
-                  }
-                  try {
-                    await CashuUtil.handleReceiveToken(
-                        token: encodedToken, retry: true);
-                    receiveTextController.clear();
-                    controller.requestPageRefresh();
-                    setState(() {
-                      decodedModel = null;
-                    });
-                    // Get.back();
-                  } catch (e, s) {
-                    String msg = Utils.getErrorMessage(e);
-                    EasyLoading.showToast(msg);
-                    logger.e('Receive token failed', error: e, stackTrace: s);
-                  }
+                  EasyThrottle.throttle(
+                      'receive_ecash', const Duration(milliseconds: 2000),
+                      () async {
+                    if (GetPlatform.isMobile) {
+                      HapticFeedback.lightImpact();
+                    }
+                    String encodedToken = receiveTextController.text.trim();
+                    if (encodedToken.isEmpty) {
+                      EasyLoading.showToast('Please input token');
+                      return;
+                    }
+                    try {
+                      await CashuUtil.handleReceiveToken(
+                          token: encodedToken, retry: true);
+                      receiveTextController.clear();
+                      controller.requestPageRefresh();
+                      setState(() {
+                        decodedModel = null;
+                      });
+                      // Get.back();
+                    } catch (e, s) {
+                      String msg = Utils.getErrorMessage(e);
+                      EasyLoading.showToast(msg);
+                      logger.e('Receive token failed', error: e, stackTrace: s);
+                    }
+                  });
                 },
               )
             ])));

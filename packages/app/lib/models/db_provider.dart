@@ -42,7 +42,7 @@ class DBProvider {
 
   static Future<void> performMigrationIfNeeded(Isar isar) async {
     int currentVersion = await Storage.getIntOrZero(StorageKeyString.dbVersion);
-    logger.i('current db version: $currentVersion');
+    // logger.i('current db version: $currentVersion');
     if (currentVersion < 30) {
       currentVersion = 34; // skip old versions for new users
       await _migrateToVersion30();
@@ -63,6 +63,7 @@ class DBProvider {
       currentVersion = 34;
       await _migrateToVersion34();
     }
+    logger.i('db version: $currentVersion');
     await Storage.setInt(StorageKeyString.dbVersion, currentVersion);
   }
 

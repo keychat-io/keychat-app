@@ -36,17 +36,21 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
+enum WebviewTabState { start, success, failed, error }
+
 class WebviewTab extends StatefulWidget {
   final String uniqueKey;
   final String initUrl;
   final String? initTitle;
   final int windowId;
   final InAppWebViewKeepAlive? keepAlive;
+  final bool? isCache;
   const WebviewTab(
       {super.key,
       required this.windowId,
       required this.uniqueKey,
       required this.initUrl,
+      this.isCache,
       this.initTitle,
       this.keepAlive});
   @override
@@ -58,7 +62,7 @@ class _WebviewTabState extends State<WebviewTab> {
   late MultiWebviewController controller;
   late WebviewTabController tc;
   bool pageFailed = false;
-  bool pageLoaded = false;
+  WebviewTabState state = WebviewTabState.start;
   InAppWebViewKeepAlive? ka;
 
   @override
@@ -70,6 +74,16 @@ class _WebviewTabState extends State<WebviewTab> {
     ecashController = Get.find<EcashController>();
     initBrowserConnect(WebUri(widget.initUrl));
     super.initState();
+    Future.delayed(Duration(seconds: 2)).then((_) {
+      if (state == WebviewTabState.start) {
+        logger.d('${widget.initUrl} : WebviewTabState.start');
+        controller.removeKeepAliveObject(widget.uniqueKey);
+        setState(() {
+          ka = null;
+          state = WebviewTabState.failed;
+        });
+      }
+    });
   }
 
   @override
@@ -279,7 +293,7 @@ class _WebviewTabState extends State<WebviewTab> {
                 if (GetPlatform.isMobile)
                   IconButton(
                       onPressed: () {
-                        if (pageFailed || !pageLoaded) {
+                        if (pageFailed || state != WebviewTabState.success) {
                           controller.removeKeepAliveObject(widget.uniqueKey);
                         }
                         if (Get.isBottomSheetOpen ?? false) {
@@ -301,172 +315,202 @@ class _WebviewTabState extends State<WebviewTab> {
               child: Column(children: <Widget>[
                 Expanded(
                     child: Stack(children: [
-                  InAppWebView(
-                    key: PageStorageKey(widget.uniqueKey),
-                    keepAlive: ka,
-                    webViewEnvironment: controller.webViewEnvironment,
-                    initialUrlRequest: URLRequest(url: WebUri(tc.url.value)),
-                    initialSettings: tc.settings,
-                    pullToRefreshController: tc.pullToRefreshController,
-                    initialUserScripts:
-                        UnmodifiableListView([controller.textSizeUserScript]),
-                    onScrollChanged: (controller, x, y) {},
-                    onWebViewCreated: (controller) async {
-                      tc.setWebViewController(controller, widget.initUrl);
-                      await controller.evaluateJavascript(source: """
+                  // create a new webview when not start
+                  state == WebviewTabState.failed
+                      ? _getWebview()
+                      : _getWebview(PageStorageKey(widget.uniqueKey), ka),
+                  Obx(() => tc.progress.value < 1.0
+                      ? LinearProgressIndicator(
+                          value:
+                              tc.progress.value < 0.1 ? 0.1 : tc.progress.value)
+                      : Container())
+                ]))
+              ])),
+        )));
+  }
+
+  Widget _getWebview([PageStorageKey? key, InAppWebViewKeepAlive? keepAlive]) {
+    return InAppWebView(
+      key: key,
+      keepAlive: keepAlive,
+      webViewEnvironment: controller.webViewEnvironment,
+      initialUrlRequest: URLRequest(url: WebUri(tc.url.value)),
+      initialSettings: tc.settings,
+      pullToRefreshController: tc.pullToRefreshController,
+      initialUserScripts: UnmodifiableListView([controller.textSizeUserScript]),
+      onScrollChanged: (controller, x, y) {},
+      onCreateWindow: GetPlatform.isDesktop
+          ? (controller, createWindowAction) {
+              if (createWindowAction.request.url == null) return false;
+              this.controller.lanuchWebview(
+                  content: createWindowAction.request.url.toString());
+              return true;
+            }
+          : null,
+      onWebViewCreated: (controller) async {
+        tc.setWebViewController(controller, widget.initUrl);
+        await controller.evaluateJavascript(source: """
                         window.print = function(){};
                       """);
-                      controller.addJavaScriptHandler(
-                          handlerName: 'keychat', callback: javascriptHandler);
-                    },
-                    onLoadStart: (controller, uri) async {
-                      if (uri == null) return;
-                      if (uri.toString() == tc.url.value) return;
-                      updateTabInfo(
-                          widget.uniqueKey, uri.toString(), tc.title.value);
-                    },
-                    onPrintRequest:
-                        (controller, url, printJobController) async {
-                      await printJobController?.cancel();
-                      return false;
-                    },
-                    onPermissionRequest: (controller, request) async {
-                      return PermissionResponse(
-                          resources: request.resources,
-                          action: PermissionResponseAction.GRANT);
-                    },
-                    onReceivedIcon: (controller, icon) {
-                      logger.d('onReceivedIcon: ${icon.toString()}');
-                    },
-                    shouldOverrideUrlLoading:
-                        (controller, NavigationAction navigationAction) async {
-                      WebUri? uri = navigationAction.request.url;
-                      logger.d('shouldOverrideUrlLoading: ${uri?.toString()}');
-                      if (uri == null) return NavigationActionPolicy.ALLOW;
-                      try {
-                        var str = uri.toString();
-                        if (str.startsWith('cashu')) {
-                          ecashController.proccessCashuAString(str);
-                          return NavigationActionPolicy.CANCEL;
-                        }
-                        // lightning invoice
-                        if (str.startsWith('lightning:')) {
-                          str = str.replaceFirst('lightning:', '');
-                          var tx = await ecashController
-                              .proccessPayLightningBill(str, isPay: true);
-                          if (tx != null) {
-                            var lnTx = tx.field0 as LNTransaction;
-                            logger.d('LN Transaction:   Amount=${lnTx.amount}, '
-                                'INfo=${lnTx.info}, Description=${lnTx.fee}, '
-                                'Hash=${lnTx.hash}, NodeId=${lnTx.status.name}');
-                          }
-                          return NavigationActionPolicy.CANCEL;
-                        }
-                        if (str.startsWith('lnbc')) {
-                          var tx = await ecashController
-                              .proccessPayLightningBill(str, isPay: true);
-                          if (tx != null) {
-                            logger.d((tx.field0 as LNTransaction).pr);
-                          }
 
-                          return NavigationActionPolicy.CANCEL;
-                        }
+        controller.evaluateJavascript(source: "1 + 1").then((value) {
+          if (value == 2) {
+            state = WebviewTabState.success;
+          }
+        });
 
-                        if (![
-                          "http",
-                          "https",
-                          "file",
-                          "chrome",
-                          "data",
-                          "javascript",
-                          "about"
-                        ].contains(uri.scheme)) {
-                          if (await canLaunchUrl(uri)) {
-                            // Launch the App
-                            await launchUrl(uri);
-                            // and cancel the request
-                            return NavigationActionPolicy.CANCEL;
-                          }
-                        }
-                        return NavigationActionPolicy.ALLOW;
-                      } catch (e) {
-                        logger.d(e.toString(), error: e);
-                      }
-                      return NavigationActionPolicy.ALLOW;
-                    },
-                    onLoadStop: (controller, url) async {
-                      // onUpdateVisitedHistory(url);
-                      controller.injectJavascriptFileFromAsset(
-                          assetFilePath: "assets/js/nostr.js");
-                      tc.pullToRefreshController?.endRefreshing();
-                      // if (tc.scrollX.value != 0 || tc.scrollY.value != 0) {
-                      //   controller.scrollTo(
-                      //       x: tc.scrollX.value, y: tc.scrollY.value);
-                      // }
-                    },
-                    onReceivedServerTrustAuthRequest: (_, challenge) async {
-                      var sslError = challenge.protectionSpace.sslError;
-                      if (sslError != null && (sslError.code != null)) {
-                        if ((GetPlatform.isIOS || GetPlatform.isMacOS) &&
-                            sslError.code == SslErrorType.UNSPECIFIED) {
-                          return ServerTrustAuthResponse(
-                              action: ServerTrustAuthResponseAction.PROCEED);
-                        }
+        controller.addJavaScriptHandler(
+            handlerName: 'keychat', callback: javascriptHandler);
+        // hide the progress bar
+        if (widget.isCache == true) {
+          tc.progress.value = 1.0;
+        }
+      },
+      onLoadStart: (controller, uri) async {
+        if (uri == null) return;
+        if (uri.toString() == tc.url.value) return;
+        updateTabInfo(widget.uniqueKey, uri.toString(), tc.title.value);
+      },
+      onPrintRequest: (controller, url, printJobController) async {
+        await printJobController?.cancel();
+        return false;
+      },
+      onPermissionRequest: (controller, request) async {
+        return PermissionResponse(
+            resources: request.resources,
+            action: PermissionResponseAction.GRANT);
+      },
+      onReceivedIcon: (controller, icon) {
+        logger.d('onReceivedIcon: ${icon.toString()}');
+      },
+      shouldOverrideUrlLoading:
+          (controller, NavigationAction navigationAction) async {
+        WebUri? uri = navigationAction.request.url;
+        logger.d('shouldOverrideUrlLoading: ${uri?.toString()}');
+        if (uri == null) return NavigationActionPolicy.ALLOW;
+        try {
+          var str = uri.toString();
+          if (str.startsWith('cashu')) {
+            ecashController.proccessCashuAString(str);
+            return NavigationActionPolicy.CANCEL;
+          }
+          // lightning invoice
+          if (str.startsWith('lightning:')) {
+            str = str.replaceFirst('lightning:', '');
+            var tx = await ecashController.proccessPayLightningBill(str,
+                isPay: true);
+            if (tx != null) {
+              var lnTx = tx.field0 as LNTransaction;
+              logger.d('LN Transaction:   Amount=${lnTx.amount}, '
+                  'INfo=${lnTx.info}, Description=${lnTx.fee}, '
+                  'Hash=${lnTx.hash}, NodeId=${lnTx.status.name}');
+            }
+            return NavigationActionPolicy.CANCEL;
+          }
+          if (str.startsWith('lnbc')) {
+            var tx = await ecashController.proccessPayLightningBill(str,
+                isPay: true);
+            if (tx != null) {
+              logger.d((tx.field0 as LNTransaction).pr);
+            }
 
-                        return ServerTrustAuthResponse(
-                            action: ServerTrustAuthResponseAction.CANCEL);
-                      }
-                      return ServerTrustAuthResponse(
-                          action: ServerTrustAuthResponseAction.PROCEED);
-                    },
-                    onDownloadStarting: (controller, url) async {
-                      String path = url.url.path;
-                      String fileName =
-                          path.substring(path.lastIndexOf('/') + 1);
+            return NavigationActionPolicy.CANCEL;
+          }
 
-                      await FlutterDownloader.enqueue(
-                        url: url.toString(),
-                        fileName: fileName,
-                        savedDir: (await getTemporaryDirectory()).path,
-                        showNotification: true,
-                        openFileFromNotification: true,
-                      );
-                      return null;
-                    },
-                    onProgressChanged: (controller, data) {
-                      if (data == 100) {
-                        pageLoaded = true;
-                        tc.pullToRefreshController?.endRefreshing();
-                      }
-                      tc.progress.value = data / 100;
-                    },
-                    onReceivedError: (controller, request, error) async {
-                      logger.d(
-                          'onReceivedError: ${request.url.toString()} ${error.description}');
-                      var isForMainFrame = request.isForMainFrame ?? false;
-                      if (!isForMainFrame) {
-                        return;
-                      }
+          if (![
+            "http",
+            "https",
+            "file",
+            "chrome",
+            "data",
+            "javascript",
+            "about"
+          ].contains(uri.scheme)) {
+            if (await canLaunchUrl(uri)) {
+              bool res = await launchUrl(uri);
+              if (res) {
+                return NavigationActionPolicy.CANCEL;
+              }
+              return NavigationActionPolicy.ALLOW;
+            }
+          }
+          return NavigationActionPolicy.ALLOW;
+        } catch (e) {
+          logger.d(e.toString(), error: e);
+        }
+        return NavigationActionPolicy.ALLOW;
+      },
+      onLoadStop: (controller, url) async {
+        // onUpdateVisitedHistory(url);
+        controller.injectJavascriptFileFromAsset(
+            assetFilePath: "assets/js/nostr.js");
+        tc.pullToRefreshController?.endRefreshing();
+        // if (tc.scrollX.value != 0 || tc.scrollY.value != 0) {
+        //   controller.scrollTo(
+        //       x: tc.scrollX.value, y: tc.scrollY.value);
+        // }
+      },
+      onReceivedServerTrustAuthRequest: (_, challenge) async {
+        var sslError = challenge.protectionSpace.sslError;
+        if (sslError != null && (sslError.code != null)) {
+          if ((GetPlatform.isIOS || GetPlatform.isMacOS) &&
+              sslError.code == SslErrorType.UNSPECIFIED) {
+            return ServerTrustAuthResponse(
+                action: ServerTrustAuthResponseAction.PROCEED);
+          }
 
-                      tc.pullToRefreshController?.endRefreshing();
+          return ServerTrustAuthResponse(
+              action: ServerTrustAuthResponseAction.CANCEL);
+        }
+        return ServerTrustAuthResponse(
+            action: ServerTrustAuthResponseAction.PROCEED);
+      },
+      onDownloadStarting: (controller, url) async {
+        String path = url.url.path;
+        String fileName = path.substring(path.lastIndexOf('/') + 1);
 
-                      if ((GetPlatform.isIOS ||
-                              GetPlatform.isMacOS ||
-                              GetPlatform.isWindows) &&
-                          error.type == WebResourceErrorType.CANCELLED) {
-                        // NSURLErrorDomain
-                        return;
-                      }
-                      if (GetPlatform.isWindows &&
-                          error.type ==
-                              WebResourceErrorType.CONNECTION_ABORTED) {
-                        // CONNECTION_ABORTED
-                        return;
-                      }
+        await FlutterDownloader.enqueue(
+          url: url.toString(),
+          fileName: fileName,
+          savedDir: (await getTemporaryDirectory()).path,
+          showNotification: true,
+          openFileFromNotification: true,
+        );
+        return null;
+      },
+      onProgressChanged: (controller, data) {
+        if (data == 100) {
+          state = WebviewTabState.success;
+          tc.pullToRefreshController?.endRefreshing();
+        }
+        tc.progress.value = data / 100;
+      },
+      onReceivedError: (controller, request, error) async {
+        logger.d(
+            'onReceivedError: ${request.url.toString()} ${error.description}');
+        var isForMainFrame = request.isForMainFrame ?? false;
+        if (!isForMainFrame) {
+          return;
+        }
 
-                      var errorUrl = request.url;
-                      pageFailed = true;
-                      tc.webViewController?.loadData(data: """
+        tc.pullToRefreshController?.endRefreshing();
+
+        if ((GetPlatform.isIOS ||
+                GetPlatform.isMacOS ||
+                GetPlatform.isWindows) &&
+            error.type == WebResourceErrorType.CANCELLED) {
+          // NSURLErrorDomain
+          return;
+        }
+        if (GetPlatform.isWindows &&
+            error.type == WebResourceErrorType.CONNECTION_ABORTED) {
+          // CONNECTION_ABORTED
+          return;
+        }
+
+        var errorUrl = request.url;
+        pageFailed = true;
+        tc.webViewController?.loadData(data: """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -510,29 +554,21 @@ class _WebviewTabState extends State<WebviewTab> {
     </div>
 </body>
     """, baseUrl: errorUrl, historyUrl: errorUrl);
-                    },
-                    onConsoleMessage: (controller, consoleMessage) {
-                      if (kDebugMode) {
-                        print('console: ${consoleMessage.message}');
-                      }
-                    },
-                    onTitleChanged: (controller, title) async {
-                      if (title == null) return;
-                      updateTabInfo(widget.uniqueKey, tc.url.value, title);
-                    },
-                    onUpdateVisitedHistory: (controller, url, androidIsReload) {
-                      logger.d('${url.toString()} $androidIsReload');
-                      onUpdateVisitedHistory(url);
-                    },
-                  ),
-                  Obx(() => tc.progress.value < 1.0
-                      ? LinearProgressIndicator(
-                          value:
-                              tc.progress.value < 0.1 ? 0.1 : tc.progress.value)
-                      : Container())
-                ]))
-              ])),
-        )));
+      },
+      onConsoleMessage: (controller, consoleMessage) {
+        if (kDebugMode) {
+          print('console: ${consoleMessage.message}');
+        }
+      },
+      onTitleChanged: (controller, title) async {
+        if (title == null) return;
+        updateTabInfo(widget.uniqueKey, tc.url.value, title);
+      },
+      onUpdateVisitedHistory: (controller, url, androidIsReload) {
+        logger.d('onUpdateVisitedHistory: ${url.toString()} $androidIsReload');
+        onUpdateVisitedHistory(url);
+      },
+    );
   }
 
   Widget getPopTools(String url) {
@@ -572,7 +608,7 @@ class _WebviewTabState extends State<WebviewTab> {
         controller.removeTab(widget.uniqueKey);
         return;
       }
-      if (pageFailed || !pageLoaded) {
+      if (pageFailed || state != WebviewTabState.success) {
         controller.removeKeepAliveObject(widget.uniqueKey);
       }
       Get.back();
@@ -834,7 +870,6 @@ class _WebviewTabState extends State<WebviewTab> {
     EasyDebounce.debounce(
         'onUpdateVisitedHistory:${uri.toString()}', Duration(milliseconds: 200),
         () async {
-      pageLoaded = true;
       bool? canGoBack = await tc.webViewController?.canGoBack();
       bool? canGoForward = await tc.webViewController?.canGoForward();
       logger.d(

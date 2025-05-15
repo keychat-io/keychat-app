@@ -3,6 +3,7 @@ import 'package:app/global.dart';
 import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 class DeskBrowser extends StatefulWidget {
@@ -17,6 +18,7 @@ class _DeskBrowserState extends State<DeskBrowser> {
   late DesktopController desktopController;
   int currentTabIndex = 0;
   final stackKey = GlobalObjectKey('browser_stack_desktop');
+  final FocusNode _focusNode = FocusNode();
 
   @override
   void initState() {
@@ -28,6 +30,50 @@ class _DeskBrowserState extends State<DeskBrowser> {
         currentTabIndex = index;
       });
     };
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  // ignore: unused_element
+  KeyEventResult _handleKeyEvent(KeyEvent event) {
+    logger.d(
+        'KeyEvent detected: ${event.logicalKey.keyLabel}, type: ${event.runtimeType}');
+
+    if (event is KeyDownEvent) {
+      // Check for Cmd+W (Mac) or Ctrl+W (other platforms)
+      if (event.logicalKey == LogicalKeyboardKey.keyW) {
+        final bool isModifierPressed = GetPlatform.isMacOS
+            ? HardwareKeyboard.instance.isMetaPressed
+            : HardwareKeyboard.instance.isControlPressed;
+
+        if (isModifierPressed) {
+          logger.d('Detected Cmd/Ctrl+W combination');
+          if (controller.tabs.isNotEmpty &&
+              currentTabIndex < controller.tabs.length) {
+            controller.removeByIndex(currentTabIndex);
+          }
+          return KeyEventResult.handled;
+        }
+      }
+
+      // Check for Cmd+N (Mac) or Ctrl+N (other platforms)
+      if (event.logicalKey == LogicalKeyboardKey.keyN) {
+        final bool isModifierPressed = GetPlatform.isMacOS
+            ? HardwareKeyboard.instance.isMetaPressed
+            : HardwareKeyboard.instance.isControlPressed;
+
+        if (isModifierPressed) {
+          logger.d('Detected Cmd/Ctrl+N combination');
+          controller.addNewTab();
+          return KeyEventResult.handled;
+        }
+      }
+    }
+    return KeyEventResult.ignored;
   }
 
   @override
@@ -52,7 +98,7 @@ class _DeskBrowserState extends State<DeskBrowser> {
               var tab = controller.tabs[index];
               return HoverCloseListTile(
                 leading: Utils.getNetworkImage(controller.tabs[index].favicon,
-                    size: 24),
+                    size: 20),
                 title: controller.removeHttpPrefix(
                     tab.title == null || tab.title!.isEmpty
                         ? tab.url
@@ -129,7 +175,7 @@ class _HoverCloseListTileState extends State<HoverCloseListTile> {
       onExit: (_) => setState(() => _isHovered = false),
       child: ListTile(
         leading: widget.leading,
-        horizontalTitleGap: 8,
+        horizontalTitleGap: 10,
         selectedTileColor: KeychatGlobal.primaryColor.withValues(alpha: 200),
         contentPadding: EdgeInsets.only(left: 16, right: 4),
         title: Text(widget.title,

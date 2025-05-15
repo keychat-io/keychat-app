@@ -14,7 +14,7 @@ class WebviewTabController extends GetxController {
   PullToRefreshController? pullToRefreshController;
   RxString title = ''.obs;
   RxString url = ''.obs;
-  RxDouble progress = 1.0.obs;
+  RxDouble progress = 0.1.obs;
   String? favicon;
   late MultiWebviewController multiWebviewController;
   WebviewTabController(String initUrl, String? initTitle) {
@@ -41,10 +41,9 @@ class WebviewTabController extends GetxController {
         useOnLoadResource: true,
         safeBrowsingEnabled: true,
         disableDefaultErrorPage: true,
-        allowsLinkPreview: true,
-        isFraudulentWebsiteWarningEnabled: true,
         useOnDownloadStart: true,
         transparentBackground: Get.isDarkMode,
+        supportMultipleWindows: GetPlatform.isDesktop,
         cacheEnabled: true,
         textZoom: multiWebviewController.kInitialTextSize.value,
         appCachePath: Get.find<SettingController>().browserCacheFolder,
@@ -77,6 +76,8 @@ class WebviewTabController extends GetxController {
       await webViewController?.setSettings(settings: settings);
     } else {
       // update current text size
+      logger.d(
+          'updateTextSize: $textSize, ${multiWebviewController.kTextSizeSourceJS}');
       await webViewController?.evaluateJavascript(
           source: multiWebviewController.kTextSizeSourceJS);
 
@@ -87,6 +88,7 @@ class WebviewTabController extends GetxController {
 window.addEventListener('DOMContentLoaded', function(event) {
   document.body.style.textSizeAdjust = '$textSize%';
   document.body.style.webkitTextSizeAdjust = '$textSize%';
+  document.body.style.fontSize = '$textSize%';
 });
 """, injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START);
       await webViewController?.addUserScript(

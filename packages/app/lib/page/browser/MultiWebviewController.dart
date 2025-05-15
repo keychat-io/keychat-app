@@ -98,7 +98,6 @@ class MultiWebviewController extends GetxController {
   }
 
   void removeByIndex(int removeIndex) {
-    logger.d('remove tab $removeIndex');
     if (removeIndex >= 0) {
       tabs.remove(tabs[removeIndex]);
       if (tabs.isEmpty) {
@@ -107,7 +106,6 @@ class MultiWebviewController extends GetxController {
         return;
       }
     }
-    logger.d('currentIndex tab $currentIndex');
     if (removeIndex <= currentIndex) {
       setCurrentTabIndex(currentIndex - 1);
     } else {
@@ -179,6 +177,7 @@ class MultiWebviewController extends GetxController {
                 initTitle: title.value,
                 uniqueKey: uniqueKey, // for close controller
                 windowId: 0,
+                isCache: mobileKeepAlive.containsKey(uniqueKey),
                 keepAlive: _getKeepAliveObject(uniqueKey),
               ),
           transition: Transition.cupertino);
@@ -195,6 +194,14 @@ class MultiWebviewController extends GetxController {
       if (Get.find<DesktopController>().sidebarXController.selectedIndex != 1) {
         Get.find<DesktopController>().sidebarXController.selectIndex(1);
       }
+    }
+    if (tabs[currentIndex].url == KeychatGlobal.newTab &&
+        currentIndex != tabs.length - 1) {
+      tabs.removeAt(currentIndex);
+      tabs.insert(currentIndex,
+          WebviewTabData(tab: tab, uniqueKey: uniqueKey, url: tab.initUrl));
+      setCurrentTabIndex(currentIndex);
+      return;
     }
     if (tabs.isNotEmpty && tabs.last.url == KeychatGlobal.newTab) {
       tabs.insert(tabs.length - 1,
@@ -446,17 +453,16 @@ class MultiWebviewController extends GetxController {
   }
 
   RxInt kInitialTextSize = 100.obs;
-  String kTextSizePlaceholder = 'TEXT_SIZE_PLACEHOLDER';
   late String kTextSizeSourceJS = """
 window.addEventListener('DOMContentLoaded', function(event) {
-  document.body.style.textSizeAdjust = '$kTextSizePlaceholder%';
-  document.body.style.webkitTextSizeAdjust = '$kTextSizePlaceholder%';
+  document.body.style.textSizeAdjust = '$kInitialTextSize%';
+  document.body.style.webkitTextSizeAdjust = '$kInitialTextSize%';
+  document.body.style.fontSize = '$kInitialTextSize%';
 });
 """;
 
   late UserScript textSizeUserScript = UserScript(
-      source: kTextSizeSourceJS.replaceAll(
-          kTextSizePlaceholder, '${kInitialTextSize.value}'),
+      source: kTextSizeSourceJS,
       injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START);
 
   Future setTextsize(int textSize) async {
@@ -464,6 +470,7 @@ window.addEventListener('DOMContentLoaded', function(event) {
     kTextSizeSourceJS = """
               document.body.style.textSizeAdjust = '$textSize%';
               document.body.style.webkitTextSizeAdjust = '$textSize%';
+              document.body.style.fontSize = '$textSize%';
             """;
     await Storage.setInt(KeychatGlobal.browserTextSize, textSize);
   }

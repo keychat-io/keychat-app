@@ -4,8 +4,8 @@ https://keepachangelog.com/zh-CN/1.1.0
 
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
-## 1.32.2+6377
-- [Browser] Optimize keepAlive; update desktop version styling.
+## 1.32.4+6380
+- [Browser] Optimize keepAlive; update desktop version styling; Zoom text;
 - [Desktop] Opening folders in Finder.
 - [Media] Ensure uploaded and downloaded files retain their original filenames.
 - [Ecash] Fix: Restore ecash from mint server.
@@ -15,6 +15,7 @@ git log -n 5 --pretty=format:"%h - %s (%ci)"
 - Update the app description text.
 - Cache MLS PK event data to reduce the number of signature requests.
 - Update NDK version to 29.0.13113456
+- Update flutter verstion to 3.29.3
 
 ## 1.31.12+6368
 - [browser] Save the status of the tab unless it is closed manually

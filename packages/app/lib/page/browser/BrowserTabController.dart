@@ -39,7 +39,7 @@ class WebviewTabController extends GetxController {
         allowsInlineMediaPlayback: true,
         useShouldOverrideUrlLoading: true,
         useOnLoadResource: true,
-        safeBrowsingEnabled: true,
+        safeBrowsingEnabled: false,
         disableDefaultErrorPage: true,
         useOnDownloadStart: true,
         transparentBackground: Get.isDarkMode,
@@ -69,7 +69,7 @@ class WebviewTabController extends GetxController {
     super.onInit();
   }
 
-  updateTextSize(int textSize) async {
+  Future updateTextSize(int textSize) async {
     await multiWebviewController.setTextsize(textSize);
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       settings.textZoom = textSize;

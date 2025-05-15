@@ -77,11 +77,7 @@ class _WebviewTabState extends State<WebviewTab> {
     Future.delayed(Duration(seconds: 2)).then((_) {
       if (state == WebviewTabState.start) {
         logger.d('${widget.initUrl} : WebviewTabState.start');
-        controller.removeKeepAliveObject(widget.uniqueKey);
-        setState(() {
-          ka = null;
-          state = WebviewTabState.failed;
-        });
+        callPageFailed();
       }
     });
   }
@@ -89,6 +85,15 @@ class _WebviewTabState extends State<WebviewTab> {
   @override
   void dispose() {
     super.dispose();
+  }
+
+  callPageFailed() {
+    logger.d('${widget.initUrl} : WebviewTabState.start');
+    controller.removeKeepAliveObject(widget.uniqueKey);
+    setState(() {
+      ka = null;
+      state = WebviewTabState.failed;
+    });
   }
 
   void menuOpened() async {
@@ -488,6 +493,10 @@ class _WebviewTabState extends State<WebviewTab> {
       onReceivedError: (controller, request, error) async {
         logger.d(
             'onReceivedError: ${request.url.toString()} ${error.description}');
+        if (error.description.contains('-999')) {
+          callPageFailed();
+          return;
+        }
         var isForMainFrame = request.isForMainFrame ?? false;
         if (!isForMainFrame) {
           return;
@@ -565,6 +574,9 @@ class _WebviewTabState extends State<WebviewTab> {
         updateTabInfo(widget.uniqueKey, tc.url.value, title);
       },
       onUpdateVisitedHistory: (controller, url, androidIsReload) {
+        if (url.toString() == 'about:blank') {
+          return;
+        }
         logger.d('onUpdateVisitedHistory: ${url.toString()} $androidIsReload');
         onUpdateVisitedHistory(url);
       },
@@ -605,7 +617,6 @@ class _WebviewTabState extends State<WebviewTab> {
         return;
       }
       if (GetPlatform.isDesktop) {
-        controller.removeTab(widget.uniqueKey);
         return;
       }
       if (pageFailed || state != WebviewTabState.success) {
@@ -626,11 +637,14 @@ class _WebviewTabState extends State<WebviewTab> {
 
     if (method == 'pageFailedToRefresh') {
       controller.removeKeepAliveObject(widget.uniqueKey);
+      if (ka == null) {
+        tc.webViewController?.reload();
+        return;
+      }
+
       setState(() {
         ka = null;
       });
-      tc.webViewController?.reload();
-      return;
     }
 
     WebUri? uri = await tc.webViewController?.getUrl();

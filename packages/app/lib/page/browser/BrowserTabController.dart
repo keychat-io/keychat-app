@@ -17,9 +17,13 @@ class WebviewTabController extends GetxController {
   RxDouble progress = 0.1.obs;
   String? favicon;
   late MultiWebviewController multiWebviewController;
-  WebviewTabController(String initUrl, String? initTitle) {
+  late String uniqueKey;
+  WebviewTabController(String key, String initUrl, String? initTitle) {
+    uniqueKey = key;
     url.value = initUrl;
-    title.value = initTitle ?? initUrl;
+    if (initTitle != null && initTitle.isNotEmpty) {
+      title.value = initTitle;
+    }
     multiWebviewController = Get.find<MultiWebviewController>();
   }
 
@@ -27,6 +31,9 @@ class WebviewTabController extends GetxController {
 
   @override
   void onClose() {
+    if (title.value == url.value) {
+      multiWebviewController.removeKeepAliveObject(uniqueKey);
+    }
     webViewController?.dispose();
     super.onClose();
   }

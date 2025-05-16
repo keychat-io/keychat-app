@@ -74,7 +74,7 @@ class _WebviewTabState extends State<WebviewTab> {
     ecashController = Get.find<EcashController>();
     initBrowserConnect(WebUri(widget.initUrl));
     super.initState();
-    Future.delayed(Duration(seconds: 2)).then((_) {
+    Future.delayed(Duration(seconds: 3)).then((_) {
       if (state == WebviewTabState.start) {
         logger.d('${widget.initUrl} : WebviewTabState.start');
         callPageFailed();
@@ -90,8 +90,10 @@ class _WebviewTabState extends State<WebviewTab> {
   callPageFailed() {
     logger.d('${widget.initUrl} : WebviewTabState.start');
     controller.removeKeepAliveObject(widget.uniqueKey);
+    InAppWebViewKeepAlive newKa =
+        controller.addKeepAliveObject(widget.uniqueKey);
     setState(() {
-      ka = null;
+      ka = newKa;
       state = WebviewTabState.failed;
     });
   }
@@ -322,7 +324,7 @@ class _WebviewTabState extends State<WebviewTab> {
                     child: Stack(children: [
                   // create a new webview when not start
                   state == WebviewTabState.failed
-                      ? _getWebview()
+                      ? _getWebview(null, ka)
                       : _getWebview(PageStorageKey(widget.uniqueKey), ka),
                   Obx(() => tc.progress.value < 1.0
                       ? LinearProgressIndicator(
@@ -337,7 +339,7 @@ class _WebviewTabState extends State<WebviewTab> {
   Widget _getWebview([PageStorageKey? key, InAppWebViewKeepAlive? keepAlive]) {
     return InAppWebView(
       key: key,
-      keepAlive: keepAlive,
+      keepAlive: GetPlatform.isDesktop ? null : keepAlive,
       webViewEnvironment: controller.webViewEnvironment,
       initialUrlRequest: URLRequest(url: WebUri(tc.url.value)),
       initialSettings: tc.settings,
@@ -465,10 +467,23 @@ class _WebviewTabState extends State<WebviewTab> {
           }
 
           return ServerTrustAuthResponse(
-              action: ServerTrustAuthResponseAction.CANCEL);
+              action: ServerTrustAuthResponseAction.PROCEED);
         }
         return ServerTrustAuthResponse(
             action: ServerTrustAuthResponseAction.PROCEED);
+      },
+      onReceivedHttpError: (controller, request, error) async {
+        logger.d(
+            'onReceivedHttpError: ${request.url.toString()} ${error.statusCode}');
+      },
+      onDidReceiveServerRedirectForProvisionalNavigation: (controller) {
+        logger.d(
+            'onDidReceiveServerRedirectForProvisionalNavigation: ${controller.getUrl()}');
+      },
+      onReceivedClientCertRequest: (controller, challenge) {
+        logger.d(
+            'onReceivedClientCertRequest: ${challenge.protectionSpace.host}');
+        return ClientCertResponse(action: ClientCertResponseAction.PROCEED);
       },
       onDownloadStarting: (controller, url) async {
         String path = url.url.path;
@@ -491,17 +506,13 @@ class _WebviewTabState extends State<WebviewTab> {
         tc.progress.value = data / 100;
       },
       onReceivedError: (controller, request, error) async {
-        logger.d(
-            'onReceivedError: ${request.url.toString()} ${error.description}');
-        if (error.description.contains('-999')) {
-          callPageFailed();
-          return;
-        }
+        String url = request.url.toString();
+        logger.d('onReceivedError: $url ${error.description}');
         var isForMainFrame = request.isForMainFrame ?? false;
         if (!isForMainFrame) {
           return;
         }
-
+        await _checkGoBackState(url);
         tc.pullToRefreshController?.endRefreshing();
 
         if ((GetPlatform.isIOS ||
@@ -574,9 +585,6 @@ class _WebviewTabState extends State<WebviewTab> {
         updateTabInfo(widget.uniqueKey, tc.url.value, title);
       },
       onUpdateVisitedHistory: (controller, url, androidIsReload) {
-        if (url.toString() == 'about:blank') {
-          return;
-        }
         logger.d('onUpdateVisitedHistory: ${url.toString()} $androidIsReload');
         onUpdateVisitedHistory(url);
       },
@@ -884,12 +892,10 @@ class _WebviewTabState extends State<WebviewTab> {
     EasyDebounce.debounce(
         'onUpdateVisitedHistory:${uri.toString()}', Duration(milliseconds: 200),
         () async {
-      bool? canGoBack = await tc.webViewController?.canGoBack();
-      bool? canGoForward = await tc.webViewController?.canGoForward();
-      logger.d(
-          '${uri.toString()} canGoBack: $canGoBack, canGoForward: $canGoForward');
-      tc.canGoBack.value = canGoBack ?? false;
-      tc.canGoForward.value = canGoForward ?? false;
+      await _checkGoBackState(uri.toString());
+      if (uri.toString() == 'about:blank') {
+        return;
+      }
       String? newTitle = await tc.webViewController?.getTitle();
       String title = newTitle ?? tc.title.value;
       if (title.isEmpty) {
@@ -905,6 +911,14 @@ class _WebviewTabState extends State<WebviewTab> {
         }
       });
     });
+  }
+
+  Future _checkGoBackState(String url) async {
+    bool? canGoBack = await tc.webViewController?.canGoBack();
+    bool? canGoForward = await tc.webViewController?.canGoForward();
+    logger.d('$url canGoBack: $canGoBack, canGoForward: $canGoForward');
+    tc.canGoBack.value = canGoBack ?? false;
+    tc.canGoForward.value = canGoForward ?? false;
   }
 
   updateTabInfo(String key, String url0, String title0) {

@@ -1,5 +1,5 @@
 display_name: Keychat
-package_name: keychat
+package_name: com.keychat.io
 
 maintainer:
   name: Keychat
@@ -21,6 +21,8 @@ icon: linux/assets/logo.png
 
 postuninstall_scripts:
   - echo "Sorry to see you go."
+postinstall_scripts:
+  - echo "Installed! Keychat is the super app for Bitcoiners."
 
 keywords:
   - Keychat

@@ -15,7 +15,7 @@ window.print = function () {
 };
 
 window.addEventListener('flutterInAppWebViewPlatformReady', function (event) {
-  // console.log('flutterInAppWebViewPlatformReady');
+  console.log('flutterInAppWebViewPlatformReady');
   // const args = [1, true, ['bar', 5], { foo: 'baz' }];
   // window.flutter_inappwebview.callHandler('keychat', ...args);
 });
@@ -95,8 +95,8 @@ window.pageFailedToRefresh = async function () {
   );
 };
 
-window.nostr.main = async function () {
-  console.log('nostr.main');
+window.nostr.test = async function () {
+  // console.log('nostr.test');
   // const args = [1, true, ['bar', 5], { foo: 'baz' }];
   // const res = await window.flutter_inappwebview.callHandler('keychat', ...args);
   // console.log('res', res);
@@ -113,4 +113,4 @@ window.nostr.main = async function () {
   // const res = await window.nostr.getRelays();
   // console.log('getRelays:', JSON.stringify(res));
 };
-window.nostr.main();
+// window.nostr.test();

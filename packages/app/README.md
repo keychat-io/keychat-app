@@ -34,7 +34,7 @@ flutter run -d divce_name
 
 ## relays
 
-curl -H "Accept: application/nostr+json" https://relay.keychat.io
+curl -H "Accept: application/nostr+json" <https://relay.keychat.io>
 
 ## build db
 
@@ -58,11 +58,10 @@ flutter test test/test_test.dart
 
 The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.
 
-
 ## Linux
 
 install protoc 29.0
-https://github.com/protocolbuffers/protobuf/releases/
+<https://github.com/protocolbuffers/protobuf/releases/>
 
 ```sh
 sudo apt-get install -y libsecret-1-dev libjsoncpp-dev libsecret-1-0
@@ -74,7 +73,7 @@ cargo build --target x86_64-unknown-linux-gnu --release --target-dir target
 
 ## deb
 
-https://medium.com/@fluttergems/packaging-and-distributing-flutter-desktop-apps-the-missing-guide-part-3-linux-24ef8d30a5b4
+<https://medium.com/@fluttergems/packaging-and-distributing-flutter-desktop-apps-the-missing-guide-part-3-linux-24ef8d30a5b4>
 
 ```sh
 sudo apt install -y rpm patchelf locate
@@ -82,6 +81,12 @@ dart pub global activate flutter_distributor
 
 chmod +x ./app-1.27.2+6327-linux.deb
 sudo dpkg -i ./app-1.27.2+6327-linux.deb
+```
+
+```sh
+dart pub global activate fastforge
+flutter_distributor release --name=dev --jobs=release-dev-linux-deb
+sudo apt --fix-broken  install keychat.deb
 ```
 
 ### appimage

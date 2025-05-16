@@ -223,8 +223,13 @@ class MultiWebviewController extends GetxController {
     return mobileKeepAlive[uniqueKey];
   }
 
-  removeKeepAliveObject(String uniqueKey) {
+  void removeKeepAliveObject(String uniqueKey) {
     mobileKeepAlive.remove(uniqueKey);
+  }
+
+  InAppWebViewKeepAlive addKeepAliveObject(String uniqueKey) {
+    mobileKeepAlive[uniqueKey] = InAppWebViewKeepAlive();
+    return mobileKeepAlive[uniqueKey]!;
   }
 
   setCurrentTabIndex(index) {
@@ -431,7 +436,8 @@ class MultiWebviewController extends GetxController {
       String initUrl, String? initTitle, String uniqueKey) {
     // multi window on desktop
     if (GetPlatform.isDesktop) {
-      return Get.put(WebviewTabController(initUrl, initTitle), tag: uniqueKey);
+      return Get.put(WebviewTabController(uniqueKey, initUrl, initTitle),
+          tag: uniqueKey);
     }
     // for mobile
     try {
@@ -440,7 +446,8 @@ class MultiWebviewController extends GetxController {
       return controller;
     } catch (e) {
       // permanent. manaully to delete
-      return Get.put(WebviewTabController(initUrl, initTitle), tag: uniqueKey);
+      return Get.put(WebviewTabController(uniqueKey, initUrl, initTitle),
+          tag: uniqueKey);
     }
   }
 

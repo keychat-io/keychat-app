@@ -78,7 +78,13 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                 ],
               ),
               if (tx.token.length < 4000)
-                Center(child: Utils.genQRImage(tx.token, size: maxWidth)),
+                Padding(
+                    padding: EdgeInsetsDirectional.symmetric(vertical: 16),
+                    child: Center(
+                        child: Utils.genQRImage(tx.token, size: maxWidth))),
+              if (tx.fee != null)
+                Text('Fee: ${tx.fee.toString()} ${tx.unit}',
+                    textAlign: TextAlign.center),
               textSmallGray(context, tx.mint, textAlign: TextAlign.center),
               Text(tx.token,
                   maxLines: 2,

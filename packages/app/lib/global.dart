@@ -18,7 +18,8 @@ class KeychatGlobal {
   static const String notifycationServer = 'https://notify.keychat.io/v2';
   static const int cashuPrepareAmount = 32;
   static const int messageFailedAfterSeconds = 4;
-  static const String defaultCashuMintURL = 'https://8333.space:3338/';
+  static const String defaultCashuMintURL =
+      'https://mint.minibits.cash/Bitcoin';
   // token: /api/v1/object, fee: /api/v1/info
   static const String defaultFileServer = 'wss://relay.keychat.io';
   static const Set<String> feeFileServers = {

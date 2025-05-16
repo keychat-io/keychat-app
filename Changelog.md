@@ -4,6 +4,9 @@ https://keepachangelog.com/zh-CN/1.1.0
 
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
+## 1.32.5+6382
+[Ecash] Supports paid mint servers
+
 ## 1.32.4+6380
 - [Browser] Optimize keepAlive; update desktop version styling; Zoom text;
 - [Desktop] Opening folders in Finder.

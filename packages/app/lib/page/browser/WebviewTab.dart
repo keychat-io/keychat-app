@@ -452,10 +452,9 @@ class _WebviewTabState extends State<WebviewTab> {
         controller.injectJavascriptFileFromAsset(
             assetFilePath: "assets/js/nostr.js");
         tc.pullToRefreshController?.endRefreshing();
-        // if (tc.scrollX.value != 0 || tc.scrollY.value != 0) {
-        //   controller.scrollTo(
-        //       x: tc.scrollX.value, y: tc.scrollY.value);
-        // }
+      },
+      onPageCommitVisible: (controller, url) {
+        logger.i('onPageCommitVisible:${url.toString()}');
       },
       onReceivedServerTrustAuthRequest: (_, challenge) async {
         var sslError = challenge.protectionSpace.sslError;
@@ -512,7 +511,6 @@ class _WebviewTabState extends State<WebviewTab> {
         if (!isForMainFrame) {
           return;
         }
-        await _checkGoBackState(url);
         tc.pullToRefreshController?.endRefreshing();
 
         if ((GetPlatform.isIOS ||
@@ -530,7 +528,7 @@ class _WebviewTabState extends State<WebviewTab> {
 
         var errorUrl = request.url;
         pageFailed = true;
-        tc.webViewController?.loadData(data: """
+        await tc.webViewController?.loadData(data: """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -573,7 +571,8 @@ class _WebviewTabState extends State<WebviewTab> {
         border-radius: 5px;">Refresh</button>
     </div>
 </body>
-    """, baseUrl: errorUrl, historyUrl: errorUrl);
+    """, baseUrl: errorUrl, historyUrl: WebUri(widget.initUrl));
+        await _checkGoBackState(url);
       },
       onConsoleMessage: (controller, consoleMessage) {
         if (kDebugMode) {
@@ -653,6 +652,7 @@ class _WebviewTabState extends State<WebviewTab> {
       setState(() {
         ka = null;
       });
+      return;
     }
 
     WebUri? uri = await tc.webViewController?.getUrl();

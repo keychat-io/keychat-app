@@ -133,17 +133,6 @@ dart pub global activate fastforge
 - [melos](https://melos.invertase.dev/): Melos is a CLI tool used to help manage Dart projects with multiple packages
 - [rust-nostr](https://github.com/rust-nostr/nostr): Nostr protocol implementation, SDK and FFI
 
-
-## Star History
-
-The easiest way to support developers is to click on the star (⭐) at the top of the page.
-
-<p style="text-align: center;">
-    <a href="https://api.star-history.com/svg?repos=keychat-io/keychat-app&Date">
-        <img alt="start" width=80% src="https://api.star-history.com/svg?repos=keychat-io/keychat-app"/>
-    </a>
-</p>
-
 ## License
 
 Licensed under the GNU AGPLv3: [https://www.gnu.org/licenses/agpl-3.0.html](https://www.gnu.org/licenses/agpl-3.0.html)

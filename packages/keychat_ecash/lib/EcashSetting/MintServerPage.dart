@@ -87,6 +87,7 @@ class _MintServerPageState extends State<MintServerPage> {
   MintInfo? mintInfo;
   bool isLoading = true;
   String? errorMessage;
+  Set<String> currency = {};
 
   @override
   void initState() {
@@ -105,9 +106,27 @@ class _MintServerPageState extends State<MintServerPage> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         logger.d('Mint info: $data');
+        MintInfo? info;
+        try {
+          info = MintInfo.fromJson(data);
+          if (info.nuts != null) {
+            info.nuts!.forEach((key, value) {
+              if (key == '4') {
+                if (value['disabled'] == false) {
+                  for (var item in value['methods']) {
+                    if (item['unit'] != null && item['description'] == true) {
+                      currency.add(item['unit']);
+                    }
+                  }
+                }
+              }
+            });
+          }
+        } catch (e) {}
         setState(() {
-          mintInfo = MintInfo.fromJson(data);
+          mintInfo = info;
           isLoading = false;
+          currency = currency;
         });
       } else {
         setState(() {
@@ -169,6 +188,11 @@ class _MintServerPageState extends State<MintServerPage> {
                               SettingsTile(
                                 title: Text('Version'),
                                 value: Text(mintInfo!.version!),
+                              ),
+                            if (currency.isNotEmpty)
+                              SettingsTile(
+                                title: Text('Currencies'),
+                                value: Text(currency.join(', ')),
                               ),
                             if (mintInfo?.pubkey != null)
                               SettingsTile(

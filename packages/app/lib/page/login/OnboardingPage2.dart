@@ -1,7 +1,6 @@
-import 'package:app/global.dart';
-import 'package:app/page/login/OnboardingPage2Detail.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:get/utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class OnboardingPage2 extends StatelessWidget {
@@ -15,35 +14,47 @@ class OnboardingPage2 extends StatelessWidget {
         ),
         body: SafeArea(
             child: Padding(
-          padding: const EdgeInsets.only(left: 16, bottom: 16, right: 16),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
                   child: Column(
-                children: KeychatGlobal.keychatIntros
-                    .map((e) => Padding(
-                        padding: const EdgeInsets.only(top: 10),
-                        child: Text(e,
-                            style:
-                                Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                      height: 1.4,
-                                    ))))
-                    .toList(),
+                crossAxisAlignment: GetPlatform.isDesktop
+                    ? CrossAxisAlignment.center
+                    : CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text('Keychat is the super app for Bitcoiners.',
+                      style: Theme.of(context).textTheme.titleLarge),
+                  SizedBox(height: 16),
+                  Text(
+                      'Autonomous IDs, Bitcoin ecash wallet, secure chat, and rich mini apps — all in Keychat.'),
+                  SizedBox(height: 16),
+                  Row(
+                    spacing: 8,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Chip(
+                          label: Text('Autonomy'),
+                          avatar: SvgPicture.asset('assets/images/wallet.svg',
+                              width: 16, height: 16)),
+                      Chip(
+                          label: Text('Security'),
+                          avatar: SvgPicture.asset('assets/images/security.svg',
+                              width: 16, height: 16)),
+                      Chip(
+                          label: Text('Richness'),
+                          avatar: Image.asset('assets/images/recommend.png',
+                              width: 16, height: 16)),
+                    ],
+                  )
+                ],
               )),
-              OutlinedButton(
-                  onPressed: () => Get.to(() => const OnboardingPage2Detail()),
-                  child: const Text(
-                    "More >",
-                  )),
-              const SizedBox(
-                height: 10,
-              ),
-              TextButton(
+              FilledButton(
                   onPressed: () {
                     launchUrl(Uri.parse('https://www.keychat.io'));
                   },
-                  child: const Text('HomePage')),
+                  child: const Text("More")),
             ],
           ),
         )));

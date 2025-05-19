@@ -10,10 +10,10 @@ import 'package:keychat_ecash/Bills/cashu_transaction.dart';
 import 'package:keychat_ecash/Bills/lightning_transaction.dart';
 import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/EcashSetting/EcashSetting_bindings.dart';
+import 'package:keychat_ecash/EcashSetting/MintServerPage.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_ecash/receive_ecash_page.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import 'package:settings_ui/settings_ui.dart';
@@ -80,7 +80,6 @@ class CashuPage extends GetView<EcashController> {
                   : const EdgeInsets.all(0),
               child: SmartRefresher(
                 enablePullDown: true,
-                header: const WaterDropHeader(),
                 onRefresh: controller.requestPageRefresh,
                 controller: controller.refreshController,
                 child: ListView(
@@ -229,75 +228,8 @@ class CashuPage extends GetView<EcashController> {
                             return Builder(
                               builder: (BuildContext context) {
                                 return GestureDetector(
-                                    onLongPress: () {
-                                      // delete item
-                                      Get.bottomSheet(
-                                          clipBehavior: Clip.antiAlias,
-                                          shape: const RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.vertical(
-                                                      top: Radius.circular(4))),
-                                          SettingsList(
-                                            platform: DevicePlatform.iOS,
-                                            sections: [
-                                              SettingsSection(
-                                                title: Text(server.mint),
-                                                tiles: [
-                                                  SettingsTile(
-                                                    title: const Text(
-                                                        'Delete Mint',
-                                                        style: TextStyle(
-                                                            color: Colors.red)),
-                                                    onPressed: (context) async {
-                                                      try {
-                                                        EcashController ec =
-                                                            Get.find<
-                                                                EcashController>();
-                                                        if (ec.mintBalances
-                                                                .length ==
-                                                            1) {
-                                                          EasyLoading.showError(
-                                                              'Can\'t delete the last mint');
-                                                          return;
-                                                        }
-                                                        EasyLoading.show(
-                                                            status:
-                                                                'Proccessing');
-
-                                                        int balance =
-                                                            ec.getBalanceByMint(
-                                                                server.mint);
-                                                        if (balance > 0) {
-                                                          EasyLoading.showError(
-                                                              'Please withdraw first');
-                                                          return;
-                                                        }
-                                                        if (balance == 0) {
-                                                          await rust_cashu
-                                                              .removeMint(
-                                                                  url: server
-                                                                      .mint);
-                                                        }
-                                                        await ec.getBalance();
-                                                        EasyLoading.showToast(
-                                                            'Successfully');
-                                                      } catch (e, s) {
-                                                        EasyLoading.dismiss();
-                                                        String msg = Utils
-                                                            .getErrorMessage(e);
-
-                                                        logger.e(e.toString(),
-                                                            error: e,
-                                                            stackTrace: s);
-                                                        EasyLoading.showError(
-                                                            msg);
-                                                      }
-                                                    },
-                                                  )
-                                                ],
-                                              )
-                                            ],
-                                          ));
+                                    onTap: () {
+                                      mintTap(server);
                                     },
                                     child: Container(
                                       margin: const EdgeInsets.symmetric(
@@ -315,27 +247,12 @@ class CashuPage extends GetView<EcashController> {
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
                                             children: [
-                                              const Expanded(
-                                                  child: Wrap(
-                                                runAlignment:
-                                                    WrapAlignment.start,
-                                                crossAxisAlignment:
-                                                    WrapCrossAlignment.center,
-                                                children: [
-                                                  Icon(
+                                              Expanded(
+                                                  child: Icon(
                                                       CupertinoIcons
                                                           .bitcoin_circle,
                                                       color: Color(0xfff2a900),
-                                                      size: 42),
-                                                  // SizedBox(
-                                                  //   width: 5,
-                                                  // ),
-                                                  // Text(server.token.toUpperCase(),
-                                                  //     style: Theme.of(context)
-                                                  //         .textTheme
-                                                  //         .titleMedium)
-                                                ],
-                                              )),
+                                                      size: 42)),
                                               Text(
                                                 server.mint,
                                                 style: Theme.of(context)
@@ -350,28 +267,42 @@ class CashuPage extends GetView<EcashController> {
                                                             ?.withAlpha(160)),
                                                 overflow: TextOverflow.ellipsis,
                                               ),
-                                              RichText(
-                                                  text: TextSpan(
-                                                text: server.balance.toString(),
-                                                children: <TextSpan>[
-                                                  TextSpan(
-                                                    text:
-                                                        ' ${EcashTokenSymbol.sat.name}',
-                                                    style: const TextStyle(
-                                                      fontSize: 14,
-                                                    ),
-                                                  ),
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  RichText(
+                                                      text: TextSpan(
+                                                    text: server.balance
+                                                        .toString(),
+                                                    children: <TextSpan>[
+                                                      TextSpan(
+                                                        text:
+                                                            ' ${EcashTokenSymbol.sat.name}',
+                                                        style: const TextStyle(
+                                                          fontSize: 14,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                    style: TextStyle(
+                                                        height: 1.3,
+                                                        fontSize: 28,
+                                                        color: Theme.of(context)
+                                                            .textTheme
+                                                            .bodyLarge!
+                                                            .color,
+                                                        fontWeight:
+                                                            FontWeight.bold),
+                                                  )),
+                                                  IconButton(
+                                                      onPressed: () {
+                                                        mintTap(server);
+                                                      },
+                                                      icon: Icon(CupertinoIcons
+                                                          .right_chevron))
                                                 ],
-                                                style: TextStyle(
-                                                    height: 1.3,
-                                                    fontSize: 28,
-                                                    color: Theme.of(context)
-                                                        .textTheme
-                                                        .bodyLarge!
-                                                        .color,
-                                                    fontWeight:
-                                                        FontWeight.bold),
-                                              )),
+                                              )
                                             ],
                                           )),
                                     ));
@@ -440,6 +371,8 @@ class CashuPage extends GetView<EcashController> {
                                   .map((CashuTransaction transaction) {
                                   bool isSend = transaction.io ==
                                       TransactionDirection.out;
+                                  String feeString =
+                                      'Fee: ${transaction.fee ?? BigInt.from(0)} ${transaction.unit}';
                                   return ListTile(
                                     key: Key(transaction.id +
                                         transaction.time.toString()),
@@ -452,11 +385,8 @@ class CashuPage extends GetView<EcashController> {
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodyLarge),
-                                    subtitle: textSmallGray(
-                                        Get.context!,
-                                        DateTime.fromMillisecondsSinceEpoch(
-                                                transaction.time.toInt())
-                                            .toString()),
+                                    subtitle: textSmallGray(Get.context!,
+                                        '$feeString - ${formatTime(transaction.time.toInt())}'),
                                     trailing: CashuUtil.getStatusIcon(
                                         transaction.status),
                                     onTap: () {
@@ -673,5 +603,10 @@ class CashuPage extends GetView<EcashController> {
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
     );
+  }
+
+  void mintTap(MintBalanceClass server) {
+    Get.to(() => MintServerPage(server),
+        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null);
   }
 }

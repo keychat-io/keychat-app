@@ -1,7 +1,5 @@
 import 'dart:collection' show UnmodifiableListView;
 import 'dart:convert' show jsonDecode;
-import 'dart:isolate' show ReceivePort, SendPort;
-import 'dart:ui' show IsolateNameServer;
 
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
@@ -20,21 +18,21 @@ import 'package:app/service/identity.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/utils.dart';
 import 'package:auto_size_text_plus/auto_size_text_plus.dart';
+import 'package:background_downloader/background_downloader.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:easy_debounce/easy_throttle.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -68,7 +66,6 @@ class _WebviewTabState extends State<WebviewTab> {
   bool pageFailed = false;
   WebviewTabState state = WebviewTabState.start;
   InAppWebViewKeepAlive? ka;
-  final ReceivePort _port = ReceivePort();
 
   @override
   void initState() {
@@ -85,36 +82,10 @@ class _WebviewTabState extends State<WebviewTab> {
         callPageFailed();
       }
     });
-
-    IsolateNameServer.registerPortWithName(
-        _port.sendPort, 'downloader_send_port');
-    _port.listen((dynamic data) {
-      String id = data[0];
-      DownloadTaskStatus status = data[1];
-      int progress = data[2];
-      if (kDebugMode) {
-        print("Download progress: $progress%");
-      }
-      if (status == DownloadTaskStatus.complete) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("Download $id completed!"),
-        ));
-      }
-    });
-    FlutterDownloader.registerCallback(downloadCallback);
-  }
-
-  @pragma('vm:entry-point')
-  static void downloadCallback(String id, int status, int progress,
-      {int step = 10}) {
-    final SendPort? send =
-        IsolateNameServer.lookupPortByName('downloader_send_port');
-    send?.send([id, status, progress]);
   }
 
   @override
   void dispose() {
-    IsolateNameServer.removePortNameMapping('downloader_send_port');
     super.dispose();
   }
 
@@ -424,17 +395,9 @@ class _WebviewTabState extends State<WebviewTab> {
       shouldOverrideUrlLoading:
           (controller, NavigationAction navigationAction) async {
         WebUri? uri = navigationAction.request.url;
-        logger.d('shouldOverrideUrlLoading: ${uri?.toString()}');
+        logger.d(
+            'shouldOverrideUrlLoading: ${uri?.toString()} download: ${navigationAction.shouldPerformDownload}');
         if (uri == null) return NavigationActionPolicy.ALLOW;
-
-        // download file
-        final shouldPerformDownload =
-            navigationAction.shouldPerformDownload ?? false;
-        final url = navigationAction.request.url;
-        if (shouldPerformDownload && url != null) {
-          await downloadFile(url.toString());
-          return NavigationActionPolicy.DOWNLOAD;
-        }
 
         try {
           var str = uri.toString();
@@ -474,6 +437,16 @@ class _WebviewTabState extends State<WebviewTab> {
               urlRequest: URLRequest(url: WebUri.uri(Uri.parse(googleDocsUrl))),
             );
             return NavigationActionPolicy.CANCEL;
+          }
+
+          // download file
+          final shouldPerformDownload =
+              navigationAction.shouldPerformDownload ?? false;
+          final url = navigationAction.request.url;
+          if ((shouldPerformDownload && url != null) ||
+              url.toString().startsWith("blob:") == true) {
+            await downloadFile(url.toString());
+            return NavigationActionPolicy.DOWNLOAD;
           }
 
           if (![
@@ -528,9 +501,9 @@ class _WebviewTabState extends State<WebviewTab> {
         logger.d(
             'onReceivedHttpError: ${request.url.toString()} ${error.statusCode}');
       },
-      onDidReceiveServerRedirectForProvisionalNavigation: (controller) {
+      onDidReceiveServerRedirectForProvisionalNavigation: (controller) async {
         logger.d(
-            'onDidReceiveServerRedirectForProvisionalNavigation: ${controller.getUrl()}');
+            'onDidReceiveServerRedirectForProvisionalNavigation: ${await controller.getUrl()}');
       },
       onReceivedClientCertRequest: (controller, challenge) {
         logger.d(
@@ -548,13 +521,15 @@ class _WebviewTabState extends State<WebviewTab> {
         }
         tc.progress.value = data / 100;
       },
-      onReceivedError: (controller, WebResourceRequest request, error) async {
+      onReceivedError: (InAppWebViewController controller,
+          WebResourceRequest request, error) async {
         String url = request.url.toString();
         logger.d('onReceivedError: $url ${error.type} ${error.description}');
         var isForMainFrame = request.isForMainFrame ?? false;
         if (!isForMainFrame) {
           return;
         }
+        this.controller.removeKeepAliveObject(widget.uniqueKey);
         tc.pullToRefreshController?.endRefreshing();
         if (error.description ==
             'domain=WebKitErrorDomain, code=102, Frame load interrupted') {
@@ -977,32 +952,36 @@ class _WebviewTabState extends State<WebviewTab> {
 
   Future<void> downloadFile(String url, [String? filename]) async {
     EasyThrottle.throttle('downloadFile', Duration(seconds: 3), () async {
-      if (GetPlatform.isDesktop) {
-        EasyLoading.showToast('Download not supported on desktop');
-        return;
-      }
-      bool hasStoragePermission = false;
-      if (!hasStoragePermission) {
-        hasStoragePermission = await Permission.storage.isGranted;
-        if (!hasStoragePermission) {
-          final status = await Permission.storage.request();
-          hasStoragePermission = status.isGranted;
-        }
-      }
+      var permissionStatus = await Utils.getStoragePermission();
+      bool hasStoragePermission = permissionStatus.isGranted;
 
       if (!hasStoragePermission) {
         EasyLoading.showToast('Storage permission not granted');
         return;
       }
 
-      logger.d('Start download: $url');
-      await FlutterDownloader.enqueue(
+      String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
+      if (selectedDirectory == null) {
+        EasyLoading.showToast('No directory selected');
+        return;
+      }
+      filename ??= url.split('/').last;
+      final task = DownloadTask(
           url: url,
-          headers: {},
-          // optional: header send with url (auth token etc)
-          savedDir: (await getTemporaryDirectory()).path,
-          saveInPublicStorage: true,
-          fileName: filename);
+          filename: filename,
+          directory: selectedDirectory,
+          updates: Updates.statusAndProgress,
+          retries: 2,
+          allowPause: false);
+      EasyLoading.showToast('Downloading $filename...');
+
+      await FileDownloader().download(task, onProgress: (progress) {
+        if (progress == 1.0) {
+          EasyLoading.showToast('Download completed');
+        }
+      }, onStatus: (status) {
+        logger.i('Status: $status');
+      });
     });
   }
 
@@ -1014,19 +993,22 @@ class _WebviewTabState extends State<WebviewTab> {
 <style>
 html, body {
   height: 100%;
-  margin: 0;
-  padding: 0;
+  padding:16px;
+  margin:0;
   background: #0e0e0e;
 }
 body {
   display: flex;
   justify-content: center;
   align-items: center;
+
 }
 </style>
 </head>
   <body>
-    <img src="${request.url.toString()}" style="padding:16px;margin:16px; object-fit:contain;"/>
+  <div style="width: 90%;">
+    <img src="${request.url.toString()}" style="object-fit:contain;"/>
+  </div>
   </body>
 </html>
 ''';

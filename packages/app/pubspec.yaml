@@ -86,7 +86,6 @@ dependencies:
   async_queue: ^2.0.2
   url_launcher: ^6.3.1
   flutter_inappwebview: ^6.2.0-beta.2
-  flutter_downloader: ^1.12.0
   encrypt: ^5.0.3
   file_picker: ^10.0.0
   image: ^4.5.2
@@ -99,6 +98,7 @@ dependencies:
   web_socket_client: ^0.2.0
   path: ^1.9.0
   sidebarx: ^0.17.1
+  background_downloader: ^9.2.2
   # super_clipboard: ^0.8.24
 
 dev_dependencies:

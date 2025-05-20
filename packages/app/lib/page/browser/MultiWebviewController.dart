@@ -12,7 +12,6 @@ import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart'
     hide Storage, WebResourceError;
 import 'package:get/get.dart';
@@ -372,7 +371,6 @@ class MultiWebviewController extends GetxController {
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       await InAppWebViewController.setWebContentsDebuggingEnabled(kDebugMode);
     }
-    await FlutterDownloader.initialize(debug: kDebugMode, ignoreSsl: true);
   }
 
   removeSearchEngine(String engine) async {

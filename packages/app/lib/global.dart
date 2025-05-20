@@ -51,7 +51,7 @@ class KeychatGlobal {
   ];
   static const List<String> keychatIntros = [
     'Keychat is the super app for Bitcoiners.',
-    'Autonomous IDs, Bitcoin ecash wallet, secure chat, and rich mini apps — all in Keychat.',
+    'Autonomous IDs, Bitcoin ecash wallet, secure chat, and rich Mini Apps — all in Keychat.',
     'Autonomy. Security. Richness.'
   ];
   static const String keychatIntro2 =

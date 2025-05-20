@@ -37,7 +37,7 @@ class Login extends StatelessWidget {
                     Padding(
                         padding: EdgeInsets.symmetric(vertical: 16),
                         child: Text(
-                            'Autonomous IDs, Bitcoin ecash wallet, secure chat, and rich mini apps — all in Keychat')),
+                            'Autonomous IDs, Bitcoin ecash wallet, secure chat, and rich Mini Apps — all in Keychat')),
                     Row(
                       spacing: 8,
                       mainAxisAlignment: GetPlatform.isMobile

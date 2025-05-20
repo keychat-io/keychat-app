@@ -28,7 +28,7 @@ class OnboardingPage2 extends StatelessWidget {
                       style: Theme.of(context).textTheme.titleLarge),
                   SizedBox(height: 16),
                   Text(
-                      'Autonomous IDs, Bitcoin ecash wallet, secure chat, and rich mini apps — all in Keychat.'),
+                      'Autonomous IDs, Bitcoin ecash wallet, secure chat, and rich Mini Apps — all in Keychat.'),
                   SizedBox(height: 16),
                   Row(
                     spacing: 8,

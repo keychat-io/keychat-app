@@ -155,6 +155,11 @@ bool isGiphyFile(String url) {
   return domainRegex.hasMatch(url) && imageExtensionRegex.hasMatch(url);
 }
 
+bool isPdfUrl(String url) {
+  final regex = RegExp(r'\.pdf($|[\?#])', caseSensitive: false);
+  return regex.hasMatch(url);
+}
+
 List<List<T>> listToGroupList<T>(List<T> source, int groupSize) {
   List<List<T>> groups = [];
 

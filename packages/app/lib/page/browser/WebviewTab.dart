@@ -1,5 +1,7 @@
 import 'dart:collection' show UnmodifiableListView;
 import 'dart:convert' show jsonDecode;
+import 'dart:isolate' show ReceivePort, SendPort;
+import 'dart:ui' show IsolateNameServer;
 
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
@@ -19,6 +21,7 @@ import 'package:app/service/relay.service.dart';
 import 'package:app/utils.dart';
 import 'package:auto_size_text_plus/auto_size_text_plus.dart';
 import 'package:easy_debounce/easy_debounce.dart';
+import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -32,6 +35,7 @@ import 'package:isar/isar.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
+import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
@@ -64,6 +68,7 @@ class _WebviewTabState extends State<WebviewTab> {
   bool pageFailed = false;
   WebviewTabState state = WebviewTabState.start;
   InAppWebViewKeepAlive? ka;
+  final ReceivePort _port = ReceivePort();
 
   @override
   void initState() {
@@ -80,10 +85,36 @@ class _WebviewTabState extends State<WebviewTab> {
         callPageFailed();
       }
     });
+
+    IsolateNameServer.registerPortWithName(
+        _port.sendPort, 'downloader_send_port');
+    _port.listen((dynamic data) {
+      String id = data[0];
+      DownloadTaskStatus status = data[1];
+      int progress = data[2];
+      if (kDebugMode) {
+        print("Download progress: $progress%");
+      }
+      if (status == DownloadTaskStatus.complete) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Download $id completed!"),
+        ));
+      }
+    });
+    FlutterDownloader.registerCallback(downloadCallback);
+  }
+
+  @pragma('vm:entry-point')
+  static void downloadCallback(String id, int status, int progress,
+      {int step = 10}) {
+    final SendPort? send =
+        IsolateNameServer.lookupPortByName('downloader_send_port');
+    send?.send([id, status, progress]);
   }
 
   @override
   void dispose() {
+    IsolateNameServer.removePortNameMapping('downloader_send_port');
     super.dispose();
   }
 
@@ -395,6 +426,16 @@ class _WebviewTabState extends State<WebviewTab> {
         WebUri? uri = navigationAction.request.url;
         logger.d('shouldOverrideUrlLoading: ${uri?.toString()}');
         if (uri == null) return NavigationActionPolicy.ALLOW;
+
+        // download file
+        final shouldPerformDownload =
+            navigationAction.shouldPerformDownload ?? false;
+        final url = navigationAction.request.url;
+        if (shouldPerformDownload && url != null) {
+          await downloadFile(url.toString());
+          return NavigationActionPolicy.DOWNLOAD;
+        }
+
         try {
           var str = uri.toString();
           if (str.startsWith('cashu')) {
@@ -424,6 +465,17 @@ class _WebviewTabState extends State<WebviewTab> {
             return NavigationActionPolicy.CANCEL;
           }
 
+          if (isPdfUrl(str) &&
+              !str.startsWith('https://docs.google.com/gview')) {
+            final googleDocsUrl =
+                'https://docs.google.com/gview?embedded=true&url=${Uri.encodeFull(str)}';
+            logger.d('load pdf: $googleDocsUrl');
+            await controller.loadUrl(
+              urlRequest: URLRequest(url: WebUri.uri(Uri.parse(googleDocsUrl))),
+            );
+            return NavigationActionPolicy.CANCEL;
+          }
+
           if (![
             "http",
             "https",
@@ -445,6 +497,7 @@ class _WebviewTabState extends State<WebviewTab> {
         } catch (e) {
           logger.d(e.toString(), error: e);
         }
+
         return NavigationActionPolicy.ALLOW;
       },
       onLoadStop: (controller, url) async {
@@ -485,16 +538,7 @@ class _WebviewTabState extends State<WebviewTab> {
         return ClientCertResponse(action: ClientCertResponseAction.PROCEED);
       },
       onDownloadStarting: (controller, url) async {
-        String path = url.url.path;
-        String fileName = path.substring(path.lastIndexOf('/') + 1);
-
-        await FlutterDownloader.enqueue(
-          url: url.toString(),
-          fileName: fileName,
-          savedDir: (await getTemporaryDirectory()).path,
-          showNotification: true,
-          openFileFromNotification: true,
-        );
+        await downloadFile(url.url.toString(), url.suggestedFilename);
         return null;
       },
       onProgressChanged: (controller, data) {
@@ -504,15 +548,18 @@ class _WebviewTabState extends State<WebviewTab> {
         }
         tc.progress.value = data / 100;
       },
-      onReceivedError: (controller, request, error) async {
+      onReceivedError: (controller, WebResourceRequest request, error) async {
         String url = request.url.toString();
-        logger.d('onReceivedError: $url ${error.description}');
+        logger.d('onReceivedError: $url ${error.type} ${error.description}');
         var isForMainFrame = request.isForMainFrame ?? false;
         if (!isForMainFrame) {
           return;
         }
         tc.pullToRefreshController?.endRefreshing();
-
+        if (error.description ==
+            'domain=WebKitErrorDomain, code=102, Frame load interrupted') {
+          return renderAssetAsHtml(controller, request);
+        }
         if ((GetPlatform.isIOS ||
                 GetPlatform.isMacOS ||
                 GetPlatform.isWindows) &&
@@ -926,5 +973,64 @@ class _WebviewTabState extends State<WebviewTab> {
     controller.setTabData(uniqueId: widget.uniqueKey, title: title0, url: url0);
     tc.title.value = title0;
     tc.url.value = url0;
+  }
+
+  Future<void> downloadFile(String url, [String? filename]) async {
+    EasyThrottle.throttle('downloadFile', Duration(seconds: 3), () async {
+      if (GetPlatform.isDesktop) {
+        EasyLoading.showToast('Download not supported on desktop');
+        return;
+      }
+      bool hasStoragePermission = false;
+      if (!hasStoragePermission) {
+        hasStoragePermission = await Permission.storage.isGranted;
+        if (!hasStoragePermission) {
+          final status = await Permission.storage.request();
+          hasStoragePermission = status.isGranted;
+        }
+      }
+
+      if (!hasStoragePermission) {
+        EasyLoading.showToast('Storage permission not granted');
+        return;
+      }
+
+      logger.d('Start download: $url');
+      await FlutterDownloader.enqueue(
+          url: url,
+          headers: {},
+          // optional: header send with url (auth token etc)
+          savedDir: (await getTemporaryDirectory()).path,
+          saveInPublicStorage: true,
+          fileName: filename);
+    });
+  }
+
+  Future renderAssetAsHtml(
+      InAppWebViewController controller, WebResourceRequest request) async {
+    String htmlContent = '''
+<html>
+<head>
+<style>
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: #0e0e0e;
+}
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+</style>
+</head>
+  <body>
+    <img src="${request.url.toString()}" style="padding:16px;margin:16px; object-fit:contain;"/>
+  </body>
+</html>
+''';
+
+    await controller.loadData(data: htmlContent, baseUrl: request.url);
   }
 }

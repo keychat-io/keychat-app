@@ -21,7 +21,6 @@ import 'package:get/get.dart';
 
 import 'package:settings_ui/settings_ui.dart';
 
-import '../components.dart';
 import 'NostrEvents/NostrEvents_bindings.dart';
 import 'NostrEvents/NostrEvents_page.dart';
 

@@ -3,7 +3,6 @@
 import 'dart:io' show File, exit;
 
 import 'package:app/global.dart';
-import 'package:app/page/components.dart';
 import 'package:app/page/dbSetup/db_setting.dart';
 
 import 'package:app/controller/home.controller.dart';

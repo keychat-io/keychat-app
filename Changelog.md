@@ -4,6 +4,11 @@ https://keepachangelog.com/zh-CN/1.1.0
 
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
+## 1.32.6+6383
+- [Ecash] 1. Update keychat_rust lib. 2. Add mint info page 
+- [Browser] View image in webview. view pdf on desktop.
+- Re-design login page
+
 ## 1.32.5+6382
 [Ecash] Supports paid mint servers
 

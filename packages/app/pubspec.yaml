@@ -22,7 +22,7 @@ platforms:
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.2
+  cupertino_icons: ^1.0.8
   get: ^4.7.2
   flutter_easyloading: ^3.0.5
   path_provider: ^2.1.5
@@ -48,9 +48,8 @@ dependencies:
   search_page: ^2.3.0
   app_settings: ^6.1.1
   flutter_native_splash: ^2.4.4
-  package_info_plus: ^8.1.1
+  package_info_plus: ^8.3.0
   flutter_spinkit: ^5.2.0 # loading
-  modal_bottom_sheet: ^3.0.0
   dio: ^5.7.0
   photo_view: ^0.15.0
   image_picker: ^1.0.7 # select image
@@ -80,7 +79,7 @@ dependencies:
   avatar_plus: ^0.0.5
   freezed_annotation: ^3.0.0
   barcode_scan2: ^4.5.1
-  intl: ^0.19.0
+  intl: ^0.20.2
   firebase_core: ^3.13.0
   firebase_messaging: ^15.2.5
   async_queue: ^2.0.2

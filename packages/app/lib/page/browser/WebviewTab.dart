@@ -18,20 +18,22 @@ import 'package:app/service/identity.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/utils.dart';
 import 'package:auto_size_text_plus/auto_size_text_plus.dart';
+import 'package:background_downloader/background_downloader.dart';
 import 'package:easy_debounce/easy_debounce.dart';
+import 'package:easy_debounce/easy_throttle.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
+import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
@@ -393,8 +395,10 @@ class _WebviewTabState extends State<WebviewTab> {
       shouldOverrideUrlLoading:
           (controller, NavigationAction navigationAction) async {
         WebUri? uri = navigationAction.request.url;
-        logger.d('shouldOverrideUrlLoading: ${uri?.toString()}');
+        logger.d(
+            'shouldOverrideUrlLoading: ${uri?.toString()} download: ${navigationAction.shouldPerformDownload}');
         if (uri == null) return NavigationActionPolicy.ALLOW;
+
         try {
           var str = uri.toString();
           if (str.startsWith('cashu')) {
@@ -424,6 +428,27 @@ class _WebviewTabState extends State<WebviewTab> {
             return NavigationActionPolicy.CANCEL;
           }
 
+          if (isPdfUrl(str) &&
+              !str.startsWith('https://docs.google.com/gview')) {
+            final googleDocsUrl =
+                'https://docs.google.com/gview?embedded=true&url=${Uri.encodeFull(str)}';
+            logger.d('load pdf: $googleDocsUrl');
+            await controller.loadUrl(
+              urlRequest: URLRequest(url: WebUri.uri(Uri.parse(googleDocsUrl))),
+            );
+            return NavigationActionPolicy.CANCEL;
+          }
+
+          // download file
+          final shouldPerformDownload =
+              navigationAction.shouldPerformDownload ?? false;
+          final url = navigationAction.request.url;
+          if ((shouldPerformDownload && url != null) ||
+              url.toString().startsWith("blob:") == true) {
+            await downloadFile(url.toString());
+            return NavigationActionPolicy.DOWNLOAD;
+          }
+
           if (![
             "http",
             "https",
@@ -445,6 +470,7 @@ class _WebviewTabState extends State<WebviewTab> {
         } catch (e) {
           logger.d(e.toString(), error: e);
         }
+
         return NavigationActionPolicy.ALLOW;
       },
       onLoadStop: (controller, url) async {
@@ -475,9 +501,9 @@ class _WebviewTabState extends State<WebviewTab> {
         logger.d(
             'onReceivedHttpError: ${request.url.toString()} ${error.statusCode}');
       },
-      onDidReceiveServerRedirectForProvisionalNavigation: (controller) {
+      onDidReceiveServerRedirectForProvisionalNavigation: (controller) async {
         logger.d(
-            'onDidReceiveServerRedirectForProvisionalNavigation: ${controller.getUrl()}');
+            'onDidReceiveServerRedirectForProvisionalNavigation: ${await controller.getUrl()}');
       },
       onReceivedClientCertRequest: (controller, challenge) {
         logger.d(
@@ -485,16 +511,7 @@ class _WebviewTabState extends State<WebviewTab> {
         return ClientCertResponse(action: ClientCertResponseAction.PROCEED);
       },
       onDownloadStarting: (controller, url) async {
-        String path = url.url.path;
-        String fileName = path.substring(path.lastIndexOf('/') + 1);
-
-        await FlutterDownloader.enqueue(
-          url: url.toString(),
-          fileName: fileName,
-          savedDir: (await getTemporaryDirectory()).path,
-          showNotification: true,
-          openFileFromNotification: true,
-        );
+        await downloadFile(url.url.toString(), url.suggestedFilename);
         return null;
       },
       onProgressChanged: (controller, data) {
@@ -504,15 +521,20 @@ class _WebviewTabState extends State<WebviewTab> {
         }
         tc.progress.value = data / 100;
       },
-      onReceivedError: (controller, request, error) async {
+      onReceivedError: (InAppWebViewController controller,
+          WebResourceRequest request, error) async {
         String url = request.url.toString();
-        logger.d('onReceivedError: $url ${error.description}');
+        logger.d('onReceivedError: $url ${error.type} ${error.description}');
         var isForMainFrame = request.isForMainFrame ?? false;
         if (!isForMainFrame) {
           return;
         }
+        this.controller.removeKeepAliveObject(widget.uniqueKey);
         tc.pullToRefreshController?.endRefreshing();
-
+        if (error.description ==
+            'domain=WebKitErrorDomain, code=102, Frame load interrupted') {
+          return renderAssetAsHtml(controller, request);
+        }
         if ((GetPlatform.isIOS ||
                 GetPlatform.isMacOS ||
                 GetPlatform.isWindows) &&
@@ -926,5 +948,71 @@ class _WebviewTabState extends State<WebviewTab> {
     controller.setTabData(uniqueId: widget.uniqueKey, title: title0, url: url0);
     tc.title.value = title0;
     tc.url.value = url0;
+  }
+
+  Future<void> downloadFile(String url, [String? filename]) async {
+    EasyThrottle.throttle('downloadFile', Duration(seconds: 3), () async {
+      var permissionStatus = await Utils.getStoragePermission();
+      bool hasStoragePermission = permissionStatus.isGranted;
+
+      if (!hasStoragePermission) {
+        EasyLoading.showToast('Storage permission not granted');
+        return;
+      }
+
+      String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
+      if (selectedDirectory == null) {
+        EasyLoading.showToast('No directory selected');
+        return;
+      }
+      filename ??= url.split('/').last;
+      final task = DownloadTask(
+          url: url,
+          filename: filename,
+          directory: selectedDirectory,
+          updates: Updates.statusAndProgress,
+          retries: 2,
+          allowPause: false);
+      EasyLoading.showToast('Downloading $filename...');
+
+      await FileDownloader().download(task, onProgress: (progress) {
+        if (progress == 1.0) {
+          EasyLoading.showToast('Download completed');
+        }
+      }, onStatus: (status) {
+        logger.i('Status: $status');
+      });
+    });
+  }
+
+  Future renderAssetAsHtml(
+      InAppWebViewController controller, WebResourceRequest request) async {
+    String htmlContent = '''
+<html>
+<head>
+<style>
+html, body {
+  height: 100%;
+  padding:16px;
+  margin:0;
+  background: #0e0e0e;
+}
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+}
+</style>
+</head>
+  <body>
+  <div style="width: 90%;">
+    <img src="${request.url.toString()}" style="object-fit:contain;"/>
+  </div>
+  </body>
+</html>
+''';
+
+    await controller.loadData(data: htmlContent, baseUrl: request.url);
   }
 }

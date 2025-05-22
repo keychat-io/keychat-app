@@ -10,7 +10,7 @@ workspace:
   - packages/keychat_rust_ffi_plugin
 
 dev_dependencies:
-  melos: ^7.0.0-dev.7
+  melos: ^7.0.0-dev.8
   flutter_lints: ^5.0.0
   test: ^1.21.0
 
@@ -118,7 +118,9 @@ melos:
     pod:install:
       name: pod_install_app
       description: "pod install"
-      run: cd packages/app/ios && pod install
+      steps:
+        - cd packages/app/ios && pod update && pod install --repo-update
+        - cd ../macos && pod update && pod install --repo-update
 
     core:intl:generate:
       name: core_intl
@@ -160,22 +162,26 @@ melos:
       name: build_windows
       description: "build windows exe"
       steps:
+        - git pull origin
+        - git submodule update
         - cd packages/app
         - fastforge package --platform windows --targets exe --flutter-build-args=verbose
         - explorer ".\build\dist\"
-    rust:ios:
-      name: rust_api_2_dart
-      run: bash scripts/rust_generate_ios.sh
-    rust:ios_sim:
-      name: rust:ios_sim
-      run: bash scripts/rust_generate_ios_sim.sh
-    rust:macos:
-      name: rust_macos
-      run: bash scripts/rust_generate_macos.sh
-    macos_rust_lib:
-      name: macos_rust_lib
-      run: sudo cp -f packages/app/build/macos/Build/Products/Debug/rust.dylib /usr/local/lib/
-
+    build:linux:
+      name: build_linux
+      description: "build linux app"
+      steps:
+        - git pull origin
+        - git submodule update
+        - cd packages/app
+        - fastforge package --platform linux --flutter-build-args=verbose
+        - explorer ".\build\dist\"
+    sha256:
+      name: sha256
+      description: "generate sha256"
+      steps:
+        - cd packages/app/build/dist
+        - for file in $(find . -type f -not -name "*.sha256"); do sha256sum "$file" > "${file}.sha256"; done
     ide:
       intellij:
         enabled: false

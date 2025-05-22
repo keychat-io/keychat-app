@@ -39,72 +39,79 @@ class _ImportSeedPhrase extends State<ImportSeedPhrase> {
           child: Padding(
               padding:
                   const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
-              child: Column(children: [
-                Form(
-                    autovalidateMode: AutovalidateMode.onUserInteraction,
-                    child: Expanded(
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                          const SizedBox(height: 16),
-                          TextField(
-                              controller: _privateKeyController,
-                              textInputAction: TextInputAction.done,
-                              minLines: 1,
-                              maxLines: 6,
-                              focusNode: focusNode2,
-                              decoration: InputDecoration(
-                                  labelText: 'Seed Phrase',
-                                  hintText: '12 or 24 words',
-                                  border: const OutlineInputBorder(),
-                                  suffixIcon: IconButton(
-                                      icon: const Icon(Icons.paste),
-                                      onPressed: () async {
-                                        final clipboardData =
-                                            await Clipboard.getData(
-                                                'text/plain');
-                                        if (clipboardData != null) {
-                                          final pastedText = clipboardData.text;
-                                          if (pastedText != null &&
-                                              pastedText != '') {
-                                            _privateKeyController.text =
-                                                pastedText;
-                                            _privateKeyController.selection =
-                                                TextSelection.fromPosition(
-                                                    TextPosition(
-                                                        offset:
-                                                            _privateKeyController
-                                                                .text.length));
-                                          }
-                                        }
-                                      }))),
-                        ]))),
-                FilledButton(
-                  style: ButtonStyle(
-                      minimumSize: WidgetStateProperty.all(
-                          const Size(double.infinity, 44))),
-                  child: const Text('Next'),
-                  onPressed: () async {
-                    String input = _privateKeyController.text.trim();
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Form(
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
+                        child: Expanded(
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                              const SizedBox(height: 16),
+                              TextField(
+                                  controller: _privateKeyController,
+                                  textInputAction: TextInputAction.done,
+                                  minLines: 1,
+                                  maxLines: 6,
+                                  focusNode: focusNode2,
+                                  decoration: InputDecoration(
+                                      labelText: 'Seed Phrase',
+                                      hintText: '12 or 24 words',
+                                      border: const OutlineInputBorder(),
+                                      suffixIcon: IconButton(
+                                          icon: const Icon(Icons.paste),
+                                          onPressed: () async {
+                                            final clipboardData =
+                                                await Clipboard.getData(
+                                                    'text/plain');
+                                            if (clipboardData != null) {
+                                              final pastedText =
+                                                  clipboardData.text;
+                                              if (pastedText != null &&
+                                                  pastedText != '') {
+                                                _privateKeyController.text =
+                                                    pastedText;
+                                                _privateKeyController
+                                                        .selection =
+                                                    TextSelection.fromPosition(
+                                                        TextPosition(
+                                                            offset:
+                                                                _privateKeyController
+                                                                    .text
+                                                                    .length));
+                                              }
+                                            }
+                                          }))),
+                            ]))),
+                    Center(
+                        child: Container(
+                            constraints: BoxConstraints(maxWidth: 400),
+                            width: double.infinity,
+                            child: FilledButton(
+                              child: const Text('Next'),
+                              onPressed: () async {
+                                String input =
+                                    _privateKeyController.text.trim();
 
-                    if (input.isEmpty) {
-                      EasyLoading.showError(
-                          'Please enter your seed phrase (12 or 24 words)');
-                      return;
-                    }
-                    List<String> words = input.split(' ');
-                    if (words.length != 24 && words.length != 12) {
-                      EasyLoading.showError(
-                          'Seed phrase must be exactly 24 words');
-                      return;
-                    }
-                    var res =
-                        await Get.to(() => CreateAccount(mnemonic: input));
-                    Get.back(result: res);
-                  },
-                )
-              ])),
+                                if (input.isEmpty) {
+                                  EasyLoading.showError(
+                                      'Please enter your seed phrase (12 or 24 words)');
+                                  return;
+                                }
+                                List<String> words = input.split(' ');
+                                if (words.length != 24 && words.length != 12) {
+                                  EasyLoading.showError(
+                                      'Seed phrase must be exactly 24 words');
+                                  return;
+                                }
+                                var res = await Get.to(
+                                    () => CreateAccount(mnemonic: input));
+                                Get.back(result: res);
+                              },
+                            )))
+                  ])),
         ));
   }
 }

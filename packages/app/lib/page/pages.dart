@@ -5,7 +5,6 @@ import 'package:app/page/chat/chat_settings_security.dart';
 import 'package:app/page/chat/message_bill/pay_to_relay_page.dart';
 import 'package:app/page/login/OnboardingPage2.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
-import 'package:app/page/login/import_key.dart';
 import 'package:app/page/root_page_cupertino.dart';
 import 'package:get/get.dart';
 
@@ -32,7 +31,6 @@ class Pages {
         name: Routes.login,
         page: () => const Login(),
         transition: Transition.fadeIn),
-    GetPage(name: Routes.importKey, page: () => const ImportKey()),
     GetPage(
         name: Routes.home,
         page: () => const RoomList(),

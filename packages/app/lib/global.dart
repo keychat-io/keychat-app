@@ -54,24 +54,6 @@ class KeychatGlobal {
     'Autonomous IDs, Bitcoin ecash wallet, secure chat, and rich Mini Apps — all in Keychat.',
     'Autonomy. Security. Richness.'
   ];
-  static const String keychatIntro2 =
-      '''Keychat is a chat app, built on Bitcoin ecash, Nostr protocol and Signal/MLS protocol.
-
-Keychat is inspired by the postal system — stamps, post offices, letters.
-
-Keychat uses Bitcoin ecash as stamps and Nostr relays as post offices. 
-
-Senders send messages stamped with Bitcoin ecash to Nostr relays. The Nostr relays collect the Bitcoin ecash, then deliver messages to receivers. 
-
-Unlike the centralized postal system, Keychat can use multiple Bitcoin ecash issuers and Nostr relays, each maintained by distinct operators.
-
-Keychat uses Signal protocol to ensure message encryption security and meta-data privacy.
-
-The content of the letter can be exposed easily by opening the envelope. Keychat messages are end-to-end encrypted via Signal protocol, with a unique encryption key generated for each message. Only the sender and receiver can decrypt the message.
-
-The addresses of both parties on the envelope can be tracked. In theory, this problem is solved if they change addresses daily. So Keychat reuses Signal protocol to update sending and receiving addresses for nearly every message.
-
-Like the postal system, Keychat requires no registration. Users just generate Nostr keys as ID.''';
 
   static int kdfGroupPrekeyMessageCount = 3;
   static int kdfGroupKeysExpired = 7;

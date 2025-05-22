@@ -65,31 +65,41 @@ class Login extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    FilledButton(
-                        onPressed: () async {
-                          try {
-                            await SecureStorage.instance.clearAll();
-                            var res = await Get.to(() => const CreateAccount());
-                            if (res != null) {
-                              Get.offAllNamed(Routes.root, arguments: true);
-                            }
-                          } catch (e, s) {
-                            EasyLoading.showError(e.toString());
-                            logger.e(e.toString(), stackTrace: s);
-                          }
-                        },
-                        child: const Text("Create ID")),
+                    Center(
+                        child: Container(
+                            constraints: BoxConstraints(maxWidth: 400),
+                            width: double.infinity,
+                            child: FilledButton(
+                                onPressed: () async {
+                                  try {
+                                    await SecureStorage.instance.clearAll();
+                                    var res = await Get.to(
+                                        () => const CreateAccount());
+                                    if (res != null) {
+                                      Get.offAllNamed(Routes.root,
+                                          arguments: true);
+                                    }
+                                  } catch (e, s) {
+                                    EasyLoading.showError(e.toString());
+                                    logger.e(e.toString(), stackTrace: s);
+                                  }
+                                },
+                                child: const Text("Create ID")))),
                     SizedBox(height: 16),
-                    OutlinedButton(
-                        onPressed: () async {
-                          Get.bottomSheet(
-                              clipBehavior: Clip.antiAlias,
-                              shape: const RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.vertical(
-                                      top: Radius.circular(4))),
-                              getRecoverPage());
-                        },
-                        child: const Text("Recover ID")),
+                    Center(
+                        child: Container(
+                            constraints: BoxConstraints(maxWidth: 400),
+                            width: double.infinity,
+                            child: OutlinedButton(
+                                onPressed: () async {
+                                  Get.bottomSheet(
+                                      clipBehavior: Clip.antiAlias,
+                                      shape: const RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.vertical(
+                                              top: Radius.circular(4))),
+                                      getRecoverPage());
+                                },
+                                child: const Text("Recover ID")))),
                   ])
             ])));
   }

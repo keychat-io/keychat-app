@@ -11,6 +11,7 @@ class OnboardingPage2 extends StatelessWidget {
     return Scaffold(
         appBar: AppBar(
           title: const Text('About Keychat'),
+          centerTitle: true,
         ),
         body: SafeArea(
             child: Padding(
@@ -50,11 +51,17 @@ class OnboardingPage2 extends StatelessWidget {
                   )
                 ],
               )),
-              FilledButton(
-                  onPressed: () {
-                    launchUrl(Uri.parse('https://www.keychat.io'));
-                  },
-                  child: const Text("More")),
+              Center(
+                child: Container(
+                  constraints: BoxConstraints(maxWidth: 400),
+                  width: double.infinity,
+                  child: FilledButton(
+                      onPressed: () {
+                        launchUrl(Uri.parse('https://www.keychat.io'));
+                      },
+                      child: const Text("More")),
+                ),
+              ),
             ],
           ),
         )));

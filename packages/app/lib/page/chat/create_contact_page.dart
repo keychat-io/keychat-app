@@ -103,43 +103,45 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
               ),
               Padding(
                 padding: const EdgeInsets.only(top: 40.0, bottom: 40),
-                child: FilledButton(
-                  onPressed: () async {
-                    String input = _controller.text.trim();
-                    if (input.length > 70) {
-                      bool isBase = isBase64(input);
-                      if (isBase) {
-                        QRUserModel model;
-                        try {
-                          model = QRUserModel.fromShortString(input);
-                        } catch (e, s) {
-                          String msg = Utils.getErrorMessage(e);
-                          logger.e(msg, stackTrace: s);
-                          EasyLoading.showToast('Invalid Input');
-                          return;
-                        }
-                        await RoomUtil.processUserQRCode(model, true);
-                      }
-                      return;
-                    }
+                child: Center(
+                    child: Container(
+                        constraints: BoxConstraints(maxWidth: 400),
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: () async {
+                            String input = _controller.text.trim();
+                            if (input.length > 70) {
+                              bool isBase = isBase64(input);
+                              if (isBase) {
+                                QRUserModel model;
+                                try {
+                                  model = QRUserModel.fromShortString(input);
+                                } catch (e, s) {
+                                  String msg = Utils.getErrorMessage(e);
+                                  logger.e(msg, stackTrace: s);
+                                  EasyLoading.showToast('Invalid Input');
+                                  return;
+                                }
+                                await RoomUtil.processUserQRCode(model, true);
+                              }
+                              return;
+                            }
 
-                    // common private chat
-                    try {
-                      await RoomService.instance.createRoomAndsendInvite(input,
-                          greeting: _helloController.text.trim(),
-                          identity: identity);
-                    } catch (e, s) {
-                      String msg = Utils.getErrorMessage(e);
-                      logger.e(msg, stackTrace: s);
-                      EasyLoading.showToast(
-                          'Failed to create room and send invite');
-                    }
-                  },
-                  style: ButtonStyle(
-                      minimumSize: WidgetStateProperty.all(
-                          const Size(double.infinity, 44))),
-                  child: const Text('Confirm'),
-                ),
+                            // common private chat
+                            try {
+                              await RoomService.instance
+                                  .createRoomAndsendInvite(input,
+                                      greeting: _helloController.text.trim(),
+                                      identity: identity);
+                            } catch (e, s) {
+                              String msg = Utils.getErrorMessage(e);
+                              logger.e(msg, stackTrace: s);
+                              EasyLoading.showToast(
+                                  'Failed to create room and send invite');
+                            }
+                          },
+                          child: const Text('Confirm'),
+                        ))),
               ),
               const SizedBox(height: 50),
               Card(

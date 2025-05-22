@@ -16,8 +16,8 @@ class EcashBillController extends GetxController {
   @override
   void onInit() async {
     refreshController = RefreshController();
-    super.onInit();
     initPageData();
+    super.onInit();
   }
 
   @override

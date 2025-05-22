@@ -58,13 +58,14 @@ In Browser, Me uses the IDs to log in to Mini Apps and pays in Bitcoin with the 
 - [iOS](https://apps.apple.com/us/app/keychat-io/id6447493752)
 - GooglePlay: Coming
 - [Windows-x86_64](https://github.com/keychat-io/keychat-app/releases)
-- Linux: Coming
+- [Linux](https://github.com/keychat-io/keychat-app/releases)
 
 ## Install Requirements
 - Android: >= 12
 - iOS: >= 15
 - MacOS: >= 13
 - Windows: Lack of signature and notary for now, turn off anti-virus software before installation
+- Linux: `sudo dpkg -i ./xx.deb`
 
 ## Follow Us
 [npub1h0uj825jgcr9lzxyp37ehasuenq070707pj63je07n8mkcsg3u0qnsrwx8](https://jumble.social/users/npub1h0uj825jgcr9lzxyp37ehasuenq070707pj63je07n8mkcsg3u0qnsrwx8)

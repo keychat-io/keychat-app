@@ -83,7 +83,8 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                     child: Center(
                         child: Utils.genQRImage(tx.token, size: maxWidth))),
               if (tx.fee != null)
-                Text('Fee: ${tx.fee.toString()} ${tx.unit}',
+                Text(
+                    '${tx.io == TransactionDirection.out ? "Mint Send" : "Mint Receive"} Fee: ${tx.fee.toString()} ${tx.unit}',
                     textAlign: TextAlign.center),
               textSmallGray(context, formatTime(tx.time.toInt()),
                   textAlign: TextAlign.center),

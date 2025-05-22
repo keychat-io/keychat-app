@@ -21,7 +21,6 @@ import 'package:get/get.dart';
 
 import 'package:settings_ui/settings_ui.dart';
 
-import '../components.dart';
 import 'NostrEvents/NostrEvents_bindings.dart';
 import 'NostrEvents/NostrEvents_page.dart';
 
@@ -115,54 +114,50 @@ class MoreChatSetting extends StatelessWidget {
   handleNotificationSettting() async {
     HomeController homeController = Get.find<HomeController>();
     bool permission = await NotifyService.hasNotifyPermission();
-    show300hSheetWidget(
-        Get.context!,
-        'Notifications',
-        Obx(
-          () => SettingsList(platform: DevicePlatform.iOS, sections: [
-            SettingsSection(title: const Text('Notification setting'), tiles: [
-              SettingsTile.switchTile(
-                  initialValue:
-                      homeController.notificationStatus.value && permission,
-                  description: NoticeTextWidget.warning(
-                      'When the notification function is turned on, receiving addresses will be uploaded to the notification server.'),
-                  onToggle: (res) async {
-                    bool? result = await (res
-                        ? enableNotification()
-                        : disableNotification());
-                    if (result != null && result) {
-                      // close bottomsheet
-                      Get.back();
-                    }
-                  },
-                  title: const Text('Notification status')),
-              SettingsTile.navigation(
-                title: const Text("FCMToken"),
-                onPressed: (context) {
-                  Clipboard.setData(
-                      ClipboardData(text: NotifyService.fcmToken ?? ''));
-                  logger.d('FCMToken: ${NotifyService.fcmToken}');
-                  EasyLoading.showSuccess('Copied');
-                },
-                value: Text(
-                    '${(NotifyService.fcmToken ?? '').substring(0, NotifyService.fcmToken != null ? 5 : 0)}...',
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1),
-              ),
-              SettingsTile.navigation(
-                  title: const Text('Open System Settings'),
-                  onPressed: (context) async {
-                    await AppSettings.openAppSettings(
-                        type: AppSettingsType.notification);
-                  }),
-              SettingsTile.navigation(
-                  title: const Text('Listening Pubkey Stats'),
-                  onPressed: (context) async {
-                    Get.to(() => const UploadedPubkeys());
-                  }),
-            ])
-          ]),
-        ));
+    Get.bottomSheet(Obx(
+      () => SettingsList(platform: DevicePlatform.iOS, sections: [
+        SettingsSection(title: const Text('Notification setting'), tiles: [
+          SettingsTile.switchTile(
+              initialValue:
+                  homeController.notificationStatus.value && permission,
+              description: NoticeTextWidget.warning(
+                  'When the notification function is turned on, receiving addresses will be uploaded to the notification server.'),
+              onToggle: (res) async {
+                bool? result =
+                    await (res ? enableNotification() : disableNotification());
+                if (result != null && result) {
+                  // close bottomsheet
+                  Get.back();
+                }
+              },
+              title: const Text('Notification status')),
+          SettingsTile.navigation(
+            title: const Text("FCMToken"),
+            onPressed: (context) {
+              Clipboard.setData(
+                  ClipboardData(text: NotifyService.fcmToken ?? ''));
+              logger.d('FCMToken: ${NotifyService.fcmToken}');
+              EasyLoading.showSuccess('Copied');
+            },
+            value: Text(
+                '${(NotifyService.fcmToken ?? '').substring(0, NotifyService.fcmToken != null ? 5 : 0)}...',
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1),
+          ),
+          SettingsTile.navigation(
+              title: const Text('Open System Settings'),
+              onPressed: (context) async {
+                await AppSettings.openAppSettings(
+                    type: AppSettingsType.notification);
+              }),
+          SettingsTile.navigation(
+              title: const Text('Listening Pubkey Stats'),
+              onPressed: (context) async {
+                Get.to(() => const UploadedPubkeys());
+              }),
+        ])
+      ]),
+    ));
   }
 
   disableNotification() {

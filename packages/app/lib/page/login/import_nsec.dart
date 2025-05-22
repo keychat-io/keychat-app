@@ -94,48 +94,54 @@ class _ImportNsec extends State<ImportNsec> {
                                         }
                                       }))),
                         ]))),
-                FilledButton(
-                  style: ButtonStyle(
-                      minimumSize: WidgetStateProperty.all(
-                          const Size(double.infinity, 44))),
-                  child: const Text('Confirm'),
-                  onPressed: () async {
-                    String name = nameController.text.trim();
-                    String input = _privateKeyController.text.trim();
-                    if (name.isEmpty) {
-                      EasyLoading.showError('Please enter a nickname');
-                      return;
-                    }
-                    if (input.isEmpty) {
-                      EasyLoading.showError(
-                          'Please enter a Nsec / Hex Private Key');
-                      return;
-                    }
-                    try {
-                      if (input.startsWith('nsec')) {
-                        input = rust_nostr.getHexPrikeyByBech32(bech32: input);
-                      }
-                      String hexPubkey =
-                          rust_nostr.getHexPubkeyByPrikey(prikey: input);
-                      Identity? exist = await IdentityService.instance
-                          .getIdentityByNostrPubkey(hexPubkey);
-                      if (exist != null) {
-                        EasyLoading.showError('This prikey already exists');
-                        return;
-                      }
-                      var newIdentity = await IdentityService.instance
-                          .createIdentityByPrikey(
-                              name: name, prikey: input, hexPubkey: hexPubkey);
+                Center(
+                    child: Container(
+                        constraints: BoxConstraints(maxWidth: 400),
+                        width: double.infinity,
+                        child: FilledButton(
+                          child: const Text('Confirm'),
+                          onPressed: () async {
+                            String name = nameController.text.trim();
+                            String input = _privateKeyController.text.trim();
+                            if (name.isEmpty) {
+                              EasyLoading.showError('Please enter a nickname');
+                              return;
+                            }
+                            if (input.isEmpty) {
+                              EasyLoading.showError(
+                                  'Please enter a Nsec / Hex Private Key');
+                              return;
+                            }
+                            try {
+                              if (input.startsWith('nsec')) {
+                                input = rust_nostr.getHexPrikeyByBech32(
+                                    bech32: input);
+                              }
+                              String hexPubkey = rust_nostr
+                                  .getHexPubkeyByPrikey(prikey: input);
+                              Identity? exist = await IdentityService.instance
+                                  .getIdentityByNostrPubkey(hexPubkey);
+                              if (exist != null) {
+                                EasyLoading.showError(
+                                    'This prikey already exists');
+                                return;
+                              }
+                              var newIdentity = await IdentityService.instance
+                                  .createIdentityByPrikey(
+                                      name: name,
+                                      prikey: input,
+                                      hexPubkey: hexPubkey);
 
-                      EasyLoading.showSuccess('Import successfully');
-                      Get.back(result: newIdentity);
-                    } catch (e, s) {
-                      String msg = Utils.getErrorMessage(e);
-                      logger.e('Import failed', error: e, stackTrace: s);
-                      EasyLoading.showToast('Import failed: $msg');
-                    }
-                  },
-                )
+                              EasyLoading.showSuccess('Import successfully');
+                              Get.back(result: newIdentity);
+                            } catch (e, s) {
+                              String msg = Utils.getErrorMessage(e);
+                              logger.e('Import failed',
+                                  error: e, stackTrace: s);
+                              EasyLoading.showToast('Import failed: $msg');
+                            }
+                          },
+                        )))
               ])),
         ));
   }

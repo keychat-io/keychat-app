@@ -4,6 +4,14 @@ https://keepachangelog.com/zh-CN/1.1.0
 
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
+## 1.32.6+6383
+- [Ecash] Updated Keychat_rust_ffi library.
+- [Ecash] Added mint information page.
+- [Ecash] Added fee for Ecash billing.
+- [Browser] Enabled viewing of image URLs in WebView.
+- [Browser] Enabled PDF viewing on desktop.
+- Redesign the login page.
+
 ## 1.32.5+6382
 [Ecash] Supports paid mint servers
 

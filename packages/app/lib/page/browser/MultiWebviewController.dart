@@ -338,7 +338,6 @@ class MultiWebviewController extends GetxController {
     if (tabs.isEmpty && GetPlatform.isDesktop) {
       addNewTab();
     }
-
     super.onInit();
   }
 
@@ -357,7 +356,7 @@ class MultiWebviewController extends GetxController {
     });
   }
 
-  initWebview() async {
+  Future initWebview() async {
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
       final availableVersion = await WebViewEnvironment.getAvailableVersion();
       assert(availableVersion != null,

@@ -45,7 +45,6 @@ class WebviewTabController extends GetxController {
         mediaPlaybackRequiresUserGesture: false,
         allowsInlineMediaPlayback: true,
         useShouldOverrideUrlLoading: true,
-        useOnLoadResource: true,
         safeBrowsingEnabled: false,
         disableDefaultErrorPage: true,
         useOnDownloadStart: true,

@@ -18,7 +18,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
-import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:search_page/search_page.dart';
 import 'package:settings_ui/settings_ui.dart';
 
@@ -169,9 +168,9 @@ showModalBottomSheetKeyChatFetures(BuildContext context) {
 showModalBottomSheetWidget(BuildContext context, String title, Widget body,
     {bool showAppBar = true, Function? callback}) {
   if (!showAppBar) {
-    showCupertinoModalBottomSheet(
+    showCupertinoSheet(
         context: context,
-        builder: (context) => Scaffold(
+        pageBuilder: (context) => Scaffold(
               body: Center(
                 child: Stack(
                   children: [
@@ -192,9 +191,9 @@ showModalBottomSheetWidget(BuildContext context, String title, Widget body,
             ));
     return;
   }
-  showCupertinoModalBottomSheet(
+  showCupertinoSheet(
       context: context,
-      builder: (context) => Scaffold(
+      pageBuilder: (context) => Scaffold(
           appBar: getSheetAppBar(context, title, callback), body: body));
 }
 
@@ -207,8 +206,6 @@ getSheetAppBar(BuildContext context, String title, [Function? callback]) {
       IconButton(
         icon: const Icon(Icons.close),
         onPressed: () {
-          logger.d('xxx');
-
           Get.back();
           if (callback != null) callback();
         },
@@ -217,29 +214,12 @@ getSheetAppBar(BuildContext context, String title, [Function? callback]) {
   );
 }
 
-// Half height, suitable for content with Obx, modal without appBar
-Future show300hSheetWidget(BuildContext context, String title, Widget body) {
-  return showCupertinoModalBottomSheet(
-    context: context,
-    barrierColor: Get.isDarkMode
-        ? Colors.black.withValues(alpha: 0.65)
-        : Colors.black.withValues(alpha: 0.35),
-    builder: (context) => Container(
-      constraints: BoxConstraints(maxHeight: Get.height / 2, minHeight: 200),
-      child: body,
-    ),
-  );
-}
-
 // Adaptive height, not suitable for content with OBX
 showFitSheetWidget(BuildContext context, String title, List<Widget> bodys,
     {bool showAppBar = true, Function? callback}) {
-  showCupertinoModalBottomSheet(
+  showCupertinoSheet(
     context: context,
-    barrierColor: Get.isDarkMode
-        ? Colors.black.withValues(alpha: 0.65)
-        : Colors.black.withValues(alpha: 0.35),
-    builder: (context) => SafeArea(
+    pageBuilder: (context) => SafeArea(
         top: false,
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           if (showAppBar) getSheetAppBar(context, title, callback),

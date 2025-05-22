@@ -35,7 +35,7 @@ Then Me can chat and browse.
 
 In Chat, Me uses the IDs and pays for relays per message with the wallets.
 
-In Browser, Me uses the IDs to log in to mini apps and pays in Bitcoin with the wallets.
+In Browser, Me uses the IDs to log in to Mini Apps and pays in Bitcoin with the wallets.
 
 
 ### Mobile Screenshot

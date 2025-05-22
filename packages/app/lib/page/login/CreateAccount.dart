@@ -61,36 +61,41 @@ class _CreateAccountState extends State<CreateAccount> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  FilledButton(
-                    onPressed: () async {
-                      String name = textEditingController.text.trim();
-                      if (name.isEmpty) {
-                        EasyLoading.showError("Please input your nickname");
-                        return;
-                      }
-                      if (selected == -1) {
-                        EasyLoading.showError("Please select a avatar");
-                        return;
-                      }
-                      try {
-                        bool isFirstAccount =
-                            await IdentityService.instance.count() == 0;
+                  Center(
+                      child: Container(
+                          constraints: BoxConstraints(maxWidth: 400),
+                          width: double.infinity,
+                          child: FilledButton(
+                            onPressed: () async {
+                              String name = textEditingController.text.trim();
+                              if (name.isEmpty) {
+                                EasyLoading.showError(
+                                    "Please input your nickname");
+                                return;
+                              }
+                              if (selected == -1) {
+                                EasyLoading.showError("Please select a avatar");
+                                return;
+                              }
+                              try {
+                                bool isFirstAccount =
+                                    await IdentityService.instance.count() == 0;
 
-                        var identity = await IdentityService.instance
-                            .createIdentity(
-                                name: name,
-                                account: accounts[selected],
-                                index: selected,
-                                isFirstAccount: isFirstAccount);
-                        textEditingController.clear();
-                        Get.back(result: identity);
-                      } catch (e, s) {
-                        logger.e(e.toString(), error: e, stackTrace: s);
-                        EasyLoading.showToast(e.toString());
-                      }
-                    },
-                    child: const Text('Confirm'),
-                  )
+                                var identity = await IdentityService.instance
+                                    .createIdentity(
+                                        name: name,
+                                        account: accounts[selected],
+                                        index: selected,
+                                        isFirstAccount: isFirstAccount);
+                                textEditingController.clear();
+                                Get.back(result: identity);
+                              } catch (e, s) {
+                                logger.e(e.toString(), error: e, stackTrace: s);
+                                EasyLoading.showToast(e.toString());
+                              }
+                            },
+                            child: const Text('Confirm'),
+                          )))
                 ])),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         body: SafeArea(

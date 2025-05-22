@@ -440,6 +440,7 @@ class _WebviewTabState extends State<WebviewTab> {
           }
 
           // download file
+
           final shouldPerformDownload =
               navigationAction.shouldPerformDownload ?? false;
           final url = navigationAction.request.url;
@@ -510,10 +511,10 @@ class _WebviewTabState extends State<WebviewTab> {
             'onReceivedClientCertRequest: ${challenge.protectionSpace.host}');
         return ClientCertResponse(action: ClientCertResponseAction.PROCEED);
       },
-      onDownloadStarting: (controller, url) async {
-        await downloadFile(url.url.toString(), url.suggestedFilename);
-        return null;
-      },
+      // onDownloadStarting: (controller, url) async {
+      //   await downloadFile(url.url.toString(), url.suggestedFilename);
+      //   return null;
+      // },
       onProgressChanged: (controller, data) {
         if (data == 100) {
           state = WebviewTabState.success;
@@ -531,8 +532,7 @@ class _WebviewTabState extends State<WebviewTab> {
         }
         this.controller.removeKeepAliveObject(widget.uniqueKey);
         tc.pullToRefreshController?.endRefreshing();
-        if (error.description ==
-            'domain=WebKitErrorDomain, code=102, Frame load interrupted') {
+        if (error.description.contains('domain=WebKitErrorDomain, code=102')) {
           return renderAssetAsHtml(controller, request);
         }
         if ((GetPlatform.isIOS ||
@@ -993,23 +993,36 @@ class _WebviewTabState extends State<WebviewTab> {
 <style>
 html, body {
   height: 100%;
-  padding:16px;
-  margin:0;
+  margin: 0;
+  padding: 0;
   background: #0e0e0e;
 }
-body {
+.container {
   display: flex;
   justify-content: center;
   align-items: center;
-
+  min-height: 100vh;
+  padding: 16px;
+  box-sizing: border-box;
+}
+.img-wrapper {
+  max-width: 100%;
+  text-align: center;
+}
+img {
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
 }
 </style>
 </head>
-  <body>
-  <div style="width: 90%;">
-    <img src="${request.url.toString()}" style="object-fit:contain;"/>
+<body>
+  <div class="container">
+    <div class="img-wrapper">
+      <img src="${request.url.toString()}" alt="Image"/>
+    </div>
   </div>
-  </body>
+</body>
 </html>
 ''';
 

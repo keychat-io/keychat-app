@@ -163,7 +163,7 @@ melos:
       description: "build windows exe"
       steps:
         - git pull origin
-        - git submodule update --remote
+        - git submodule update
         - cd packages/app
         - fastforge package --platform windows --targets exe --flutter-build-args=verbose
         - explorer ".\build\dist\"
@@ -172,7 +172,7 @@ melos:
       description: "build linux app"
       steps:
         - git pull origin
-        - git submodule update --remote
+        - git submodule update
         - cd packages/app
         - fastforge package --platform linux --flutter-build-args=verbose
         - explorer ".\build\dist\"

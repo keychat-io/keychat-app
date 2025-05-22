@@ -1,6 +1,6 @@
 output: build/dist/
 releases:
-  - name: dev
+  - name: release
     jobs:
       - name: release-dev-linux-deb
         package:
@@ -20,11 +20,17 @@ releases:
           target: appimage
           build_args:
             enable-experiment: records
+      - name: release-dev-windows-msix
+        package:
+          platform: windows
+          target: msix
+# fastforge release --name=release --platform linux --targets deb,rpm,appimage
+# fastforge release --name=release --platform windows --targets msix
 
-
-# flutter_distributor release --name=dev
-# flutter_distributor release --name=dev --jobs=release-dev-linux-deb
+# fastforge release --name=release --jobs=release-dev-linux-deb
 
 # https://fastforge.dev/zh/getting-started
 # fastforge package --platform windows --targets exe --flutter-build-args=verbose
 
+# for windows
+# fastforge package --platform windows --targets msix --skip-clean true

@@ -115,7 +115,21 @@ class SignerService {
         kind: 1059);
   }
 
-  Future<NostrEventModel> nip44Decrypt(NostrEventModel event) async {
+  Future<String> nip44Decrypt(
+      String ciphertext, String pubkey, String currentUser) async {
+    var res = await SignerService.instance.amber.nip44Decrypt(
+        ciphertext: ciphertext, currentUser: currentUser, pubKey: pubkey);
+    return res['event'];
+  }
+
+  Future<String> nip44Encrypt(
+      String plaintext, String pubkey, String currentUser) async {
+    var res = await SignerService.instance.amber.nip44Encrypt(
+        plaintext: plaintext, currentUser: currentUser, pubKey: pubkey);
+    return res['event'];
+  }
+
+  Future<NostrEventModel> nip44DecryptEvent(NostrEventModel event) async {
     String to = event.tags[0][1];
     var res = await SignerService.instance.amber.nip44Decrypt(
         ciphertext: event.content,

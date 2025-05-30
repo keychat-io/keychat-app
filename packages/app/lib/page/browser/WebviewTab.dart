@@ -736,33 +736,29 @@ class _WebviewTabState extends State<WebviewTab> {
       case 'nip44Encrypt':
         String to = data[1];
         String plaintext = data[2];
-        String encryptedEvent;
+        String ciphertext;
         if (identity.isFromSigner) {
-          encryptedEvent = await SignerService.instance.getNip59EventString(
-              from: identity.secp256k1PKHex, to: to, content: plaintext);
-          logger.d(encryptedEvent);
+          ciphertext = await SignerService.instance
+              .nip44Encrypt(plaintext, to, identity.secp256k1PKHex);
         } else {
-          encryptedEvent = await rust_nostr.createGiftJson(
+          ciphertext = await rust_nostr.encryptNip44(
               senderKeys: await identity.getSecp256k1SKHex(),
               receiverPubkey: to,
-              kind: 14,
               content: plaintext);
         }
-        var model = NostrEventModel.fromJson(jsonDecode(encryptedEvent));
-        return model.content;
+        return ciphertext;
       case 'nip44Decrypt':
         String to = data[1];
         String ciphertext = data[2];
         if (identity.isFromSigner) {
-          var subEvent = await SignerService.instance
-              .nip44Decrypt(NostrEventModel.fromJson(jsonDecode(ciphertext)));
-          return subEvent.content;
+          var plaintext = await SignerService.instance
+              .nip44Decrypt(ciphertext, to, identity.secp256k1PKHex);
+          return plaintext;
         }
-        rust_nostr.NostrEvent event = await rust_nostr.decryptGift(
-            senderKeys: await identity.getSecp256k1SKHex(),
-            receiver: to,
+        return await rust_nostr.decryptNip44(
+            secretKey: await identity.getSecp256k1SKHex(),
+            publicKey: to,
             content: ciphertext);
-        return event.content;
       default:
     }
     // return data to the JavaScript side!

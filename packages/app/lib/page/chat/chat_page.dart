@@ -209,15 +209,13 @@ class _ChatPage2State extends State<ChatPage> {
                                     reverse: true,
                                     enablePullDown: false,
                                     enablePullUp: true,
+                                    scrollController:
+                                        controller.autoScrollController,
                                     controller: controller.refreshController,
                                     onLoading: controller.loadMoreChatHistory,
                                     child: ListView.builder(
-                                      key: ObjectKey(
-                                          'room:${controller.roomObs.value.id}'),
                                       reverse: true,
                                       shrinkWrap: true,
-                                      controller:
-                                          controller.autoScrollController,
                                       itemCount: controller.messages.length,
                                       itemBuilder:
                                           (BuildContext context, int index) {

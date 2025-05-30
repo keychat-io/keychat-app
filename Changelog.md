@@ -4,6 +4,11 @@ https://keepachangelog.com/zh-CN/1.1.0
 
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
+## 1.32.7+6384
+1. Fix: mint 32 sat for chat
+2. Fix: pull to load more data in chat page
+3. Implement nip44 encrypt and decrypt in browser
+
 ## 1.32.6+6383
 - [Ecash] Updated Keychat_rust_ffi library.
 - [Ecash] Added mint information page.

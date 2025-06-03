@@ -101,7 +101,7 @@ jobs:
           cargo install flutter_rust_bridge_codegen@2.9.0
           rustup target add x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu
           cd packages/app
-          fastforge release --name=release --platform linux --targets deb
+          fastforge release --name=release --platform=linux --targets=deb
 
       - name: Upload
         uses: actions/upload-artifact@v4

@@ -24,7 +24,8 @@ releases:
         package:
           platform: windows
           target: msix
-# fastforge release --name=release --platform linux --targets deb,rpm,appimage
+# fastforge release --name=release --platform=linux --targets=deb,rpm,appimage
+
 # fastforge release --name=release --platform windows --targets msix
 
 # fastforge release --name=release --jobs=release-dev-linux-deb

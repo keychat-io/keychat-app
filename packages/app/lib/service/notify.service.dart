@@ -137,7 +137,7 @@ class NotifyService {
     }
   }
 
-  static requestPremissionAndInit() async {
+  static Future requestPremissionAndInit() async {
     await FirebaseMessaging.instance.requestPermission(
       alert: true,
       announcement: false,
@@ -147,7 +147,7 @@ class NotifyService {
       provisional: true,
       sound: true,
     );
-    init();
+    await init();
   }
 
   static Future init() async {

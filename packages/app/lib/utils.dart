@@ -396,6 +396,7 @@ class Utils {
         directory = await getApplicationDocumentsDirectory();
         break;
     }
+    loggerNoLine.d('App base Folder: ${directory.path}');
     return directory;
   }
 

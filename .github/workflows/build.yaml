@@ -96,7 +96,7 @@ jobs:
         run: |
           echo "PROJECT_NAME=Keychat" > .env
           ls -la
-          fastforge package --platform=linux --flutter-build-args=verbose
+          fastforge package --platform=linux --targets=deb --flutter-build-args=verbose
       - name: Upload
         uses: actions/upload-artifact@v4
         with:

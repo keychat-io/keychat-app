@@ -101,10 +101,12 @@ jobs:
         run: |
           export PATH="$PATH":"$HOME/.pub-cache/bin"
           melos bootstrap
-      - name: Build-Linux
+      - name: Build-Linux-APP
         if: ${{matrix.platform == 'linux'}}
+        working-directory: ./packages/app/
         run: |
-          cd packages/app && fastforge release --name=release-dev-linux-deb,release-dev-linux-rpm,release-dev-linux-appimage
+          ls -la
+          fastforge release --name=release-dev-linux-deb,release-dev-linux-rpm,release-dev-linux-appimage
       - name: Upload
         uses: actions/upload-artifact@v4
         with:

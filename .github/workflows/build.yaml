@@ -62,11 +62,6 @@ jobs:
       #     echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/local.properties
       #     echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> android/local.properties
       #     echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/local.properties
-      - name: Setup Dart
-        uses: dart-lang/setup-dart@v2
-        with:
-          sdk: "3.8.1"
-          cache: true
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:

@@ -104,7 +104,7 @@ jobs:
       - name: Build-Linux
         if: ${{matrix.platform == 'linux'}}
         run: |
-          cd packages/app && fastforge release --name=release --platform=linux --targets=deb
+          cd packages/app && fastforge release --name=release-dev-linux-deb,release-dev-linux-rpm,release-dev-linux-appimage
       - name: Upload
         uses: actions/upload-artifact@v4
         with:

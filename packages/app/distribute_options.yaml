@@ -1,4 +1,4 @@
-output: build/dist/
+output: ../../dist/
 releases:
   - name: release
     jobs:

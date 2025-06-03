@@ -1,0 +1,115 @@
+name: build
+on:
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: "Log level"
+        required: true
+        default: "warning"
+        type: choice
+        options:
+          - info
+          - warning
+          - debug
+      environment:
+        description: "Deployment environment"
+        required: false
+        type: string
+  push:
+    branches:
+      - "workflow"
+    tags:
+      - "v*"
+env:
+  IS_STABLE: ${{ !contains(github.ref, '-') }}
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          # - platform: android
+          #   os: ubuntu-latest
+          # - platform: windows
+          #   os: windows-latest
+          #   arch: amd64
+          - platform: linux
+            os: ubuntu-22.04
+            arch: amd64
+          # - platform: macos
+          #   os: macos-latest
+          #   arch: arm64
+
+    steps:
+      - name: Setup rust
+        if: startsWith(matrix.os, 'windows-11-arm')
+        run: |
+          Invoke-WebRequest -Uri "https://win.rustup.rs/aarch64" -OutFile rustup-init.exe
+          .\rustup-init.exe -y --default-toolchain stable
+          $cargoPath = "$env:USERPROFILE\.cargo\bin"
+          Add-Content $env:GITHUB_PATH $cargoPath
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # - name: Setup Android Signing
+      #   if: startsWith(matrix.platform,'android')
+      #   run: |
+      #     echo "${{ secrets.KEYSTORE }}" | base64 --decode > android/app/keystore.jks
+      #     echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/local.properties
+      #     echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> android/local.properties
+      #     echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/local.properties
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v2
+        with:
+          sdk: "3.8.1"
+          cache: true
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.32.1"
+          cache: true
+      - name: Install melos
+        run: dart pub global activate melos@7.0.0-dev.9
+      - name: Install protoc
+        run: |
+          PROTOC_VERSION=24.4
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            curl -LO "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip"
+            unzip "protoc-${PROTOC_VERSION}-linux-x86_64.zip" -d $HOME/.local
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            curl -LO "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-osx-x86_64.zip"
+            unzip "protoc-${PROTOC_VERSION}-osx-x86_64.zip" -d $HOME/.local
+          elif [ "$RUNNER_OS" == "Windows" ]; then
+            curl -LO "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-win64.zip"
+            Expand-Archive "protoc-${PROTOC_VERSION}-win64.zip" -DestinationPath $HOME/.local
+          fi
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+        shell: bash
+      - name: Run melos bootstrap
+        run: |
+          export PATH="$PATH":"$HOME/.pub-cache/bin"
+          melos bootstrap
+      - name: Setup-fastforge
+        run: |
+          dart pub global activate fastforge
+      - name: Setup-Linux
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            sudo apt-get update
+            sudo apt-get install -y libgtk-3-dev libnss3 libasound2 libgbm-dev
+            cargo install flutter_rust_bridge_codegen@2.9.0
+            rustup target add x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu
+            cd packages/app
+            fastforge release --name=release --platform linux --targets deb
+          fi
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifact-${{ matrix.platform }}${{ matrix.arch && format('-{0}', matrix.arch) }}
+          path: ./dist
+          overwrite: true

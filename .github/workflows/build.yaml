@@ -68,20 +68,10 @@ jobs:
         with:
           flutter-version: "3.32.1"
           cache: true
-      - name: Install protoc
-        run: |
-          if [ "$RUNNER_OS" == "Linux" ]; then
-            sudo apt install -y protobuf-compiler
-            echo "PROTOC=$(which protoc)" >> $GITHUB_ENV
-          elif [ "$RUNNER_OS" == "macOS" ]; then
-            brew install protobuf
-            echo "PROTOC=$(which protoc)" >> $GITHUB_ENV
-          elif [ "$RUNNER_OS" == "Windows" ]; then
-            winget install protobuf
-            echo "PROTOC=$(where.exe protoc)" >> $GITHUB_ENV
-          fi
-          protoc --version
-        shell: bash
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: "29.3"
       - name: Install melos
         run: dart pub global activate melos 7.0.0-dev.9
       - name: Setup-fastforge
@@ -110,8 +100,8 @@ jobs:
           fi
           echo "PROJECT_NAME=Keychat" > .env
           ls -la
-          fastforge --help
-          fastforge release --name=release --jobs=release-dev-linux-deb,release-dev-linux-rpm,release-dev-linux-appimage --flutter-build-args=verbose
+          fastforge release --help
+          fastforge release --name=release --jobs=release-dev-linux-deb,release-dev-linux-rpm,release-dev-linux-appimage
       - name: Upload
         uses: actions/upload-artifact@v4
         with:

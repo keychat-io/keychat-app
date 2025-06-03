@@ -72,16 +72,13 @@ jobs:
         run: |
           PROTOC_VERSION=29.3
           if [ "$RUNNER_OS" == "Linux" ]; then
-            curl -LO "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip"
-            unzip "protoc-${PROTOC_VERSION}-linux-x86_64.zip" -d $HOME/.local
+            sudo apt install -y protobuf-compiler
           elif [ "$RUNNER_OS" == "macOS" ]; then
-            curl -LO "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-osx-x86_64.zip"
-            unzip "protoc-${PROTOC_VERSION}-osx-x86_64.zip" -d $HOME/.local
+            brew install protobuf
           elif [ "$RUNNER_OS" == "Windows" ]; then
-            curl -LO "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-win64.zip"
-            Expand-Archive "protoc-${PROTOC_VERSION}-win64.zip" -DestinationPath $HOME/.local
+            winget install protobuf
           fi
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          protoc --version
         shell: bash
       - name: Install melos
         run: dart pub global activate melos 7.0.0-dev.9
@@ -105,6 +102,7 @@ jobs:
         if: ${{matrix.platform == 'linux'}}
         working-directory: ./packages/app/
         run: |
+          echo "PROJECT_NAME=Keychat" > .env
           ls -la
           fastforge --help
           fastforge release --name=release --jobs=release-dev-linux-deb,release-dev-linux-rpm,release-dev-linux-appimage

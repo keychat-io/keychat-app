@@ -99,7 +99,7 @@ Keychat implements the following nips:
 
 ```
 git submodule update --init --recursive
-dart pub global activate melos
+dart pub global activate melos 7.0.0-dev.9
 melos bootstrap
 
 # build rust lib: packages\keychat_rust_ffi_plugin\README.md

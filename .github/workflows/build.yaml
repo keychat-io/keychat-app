@@ -33,9 +33,9 @@ jobs:
         include:
           # - platform: android
           #   os: ubuntu-latest
-          - platform: windows
-            os: windows-latest
-            arch: amd64
+          # - platform: windows
+          #   os: windows-latest
+          #   arch: amd64
           - platform: linux
             os: ubuntu-22.04
             arch: amd64
@@ -55,19 +55,9 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 2
-      - name: Set sha
-        id: sha_step
-        run: |
-          SHA=$(git rev-parse HEAD)
-          echo "SHA: $SHA."
-
-          SHA_SHORT=$(git rev-parse --short=8 HEAD)
-          echo "SHA_SHORT: $SHA_SHORT."
-
-          echo "sha=$SHA" >> $GITHUB_OUTPUT
-          echo "sha_short=$SHA_SHORT" >> $GITHUB_OUTPUT
       - name: Set version
         id: version_step
+        if: ${{ matrix.platform == 'linux' }}
         working-directory: ./packages/app/
         run: |
           VERSION=$(yq '.version' pubspec.yaml)
@@ -181,7 +171,7 @@ jobs:
           overwrite: true
 
       - name: Clean up
-        if: ${{ always() }}
+        if: ${{ matrix.platform == 'linux' }}
         run: |
           rm -f .env
           cd ./packages/app/ && rm -f .env

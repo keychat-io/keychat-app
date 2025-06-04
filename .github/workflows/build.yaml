@@ -108,15 +108,10 @@ jobs:
         uses: arduino/setup-protoc@v3
         with:
           version: "29.3"
-      - name: Install melos
-        run: dart pub global activate melos 7.0.0-dev.9
-      - name: Setup-fastforge
+      - name: Install melos-fastforge
         run: |
+          dart pub global activate melos 7.0.0-dev.9
           dart pub global activate fastforge
-          fastforge --version
-      - name: Run melos bootstrap
-        run: |
-          export PATH="$PATH":"$HOME/.pub-cache/bin"
           melos bootstrap
       - name: Install appimage
         if: ${{ matrix.platform == 'linux' }}

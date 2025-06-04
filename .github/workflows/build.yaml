@@ -24,7 +24,7 @@ env:
   IS_STABLE: ${{ !contains(github.ref, '-') }}
 
 jobs:
-  build:
+  create-release:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -40,8 +40,61 @@ jobs:
           # - platform: macos
           #   os: macos-latest
           #   arch: arm64
-
+    outputs:
+      sha: ${{ steps.sha_step.outputs.sha }}
+      version: ${{ steps.version_step.outputs.version }}
+      version_short: ${{ steps.version_step.outputs.version_short }}
+      build_number: ${{ steps.version_step.outputs.build_number }}
+      release: ${{ steps.version_step.outputs.release }}
+      tag_name: ${{ steps.version_step.outputs.tag_name }}
     steps:
+      - name: Set sha
+        id: sha_step
+        run: |
+          SHA=$(git rev-parse HEAD)
+          echo "SHA: $SHA."
+
+          SHA_SHORT=$(git rev-parse --short=8 HEAD)
+          echo "SHA_SHORT: $SHA_SHORT."
+
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
+          echo "sha_short=$SHA_SHORT" >> $GITHUB_OUTPUT
+
+      - name: Set version
+        id: version_step
+        run: |
+          VERSION=$(yq '.version' pubspec.yaml)
+          echo "VERSION: $VERSION."
+
+          VERSION_SHORT=$(echo "$VERSION" | sed -e "s/+.*//")
+          echo "VERSION_SHORT: $VERSION_SHORT."
+
+          BUILD_NUMBER=$(echo "$VERSION" | sed -e "s/.*+//")
+          echo "BUILD_NUMBER: $BUILD_NUMBER."
+
+          if [ "$ENV" == "staging" ]; then
+            SUFFIX=".pre"
+          elif [[ "$ENV" == "production" && "$IS_LATEST" == "false" ]]; then
+            SUFFIX=".rc"
+          else
+            SUFFIX=""
+          fi
+          echo "SUFFIX: $SUFFIX"
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version_short=$VERSION_SHORT" >> $GITHUB_OUTPUT
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+          echo "release=$VERSION_SHORT.$BUILD_NUMBER$SUFFIX" >> $GITHUB_OUTPUT
+          echo "tag_name=v$VERSION$SUFFIX" >> $GITHUB_OUTPUT
+      - name: Setup-Linux
+        if: ${{matrix.platform == 'linux'}}
+        run: |
+          echo "Building for platform: ${{ matrix.platform }}"
+          sudo apt-get update -y && sudo apt-get upgrade -y
+          sudo apt-get install -y curl libcurl4-openssl-dev git unzip xz-utils zip libglu1-mesa
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
+          cargo install flutter_rust_bridge_codegen@2.9.0
+          rustup target add x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu
       - name: Setup rust
         if: startsWith(matrix.os, 'windows-11-arm')
         run: |
@@ -78,14 +131,6 @@ jobs:
         run: |
           dart pub global activate fastforge
           fastforge --version
-      - name: Setup-Linux
-        if: ${{matrix.platform == 'linux'}}
-        run: |
-          echo "Building for platform: ${{ matrix.platform }}"
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libnss3 libasound2 libgbm-dev
-          cargo install flutter_rust_bridge_codegen@2.9.0
-          rustup target add x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu
       - name: Run melos bootstrap
         run: |
           export PATH="$PATH":"$HOME/.pub-cache/bin"
@@ -95,14 +140,20 @@ jobs:
         working-directory: ./packages/app/
         run: |
           echo "PROJECT_NAME=Keychat" > .env
-          ls -la
           export PROTOC=$(which protoc)
-          protoc --version
-          fastforge package --platform=linux --targets=deb 
-          # --flutter-build-args=verbose
+          fastforge package \
+            --flutter-build-args "dart-define-from-file=.env,target=lib/main.dart" \
+            --platform linux \
+            --targets deb \
+            --artifact-name '{{name}}-{{build_name}}+{{build_number}}-{{platform}}-amd64.{{ext}}'
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: artifact-${{ matrix.platform }}${{ matrix.arch && format('-{0}', matrix.arch) }}
+          name: Keychat-${{ needs.create-release.outputs.version_short}}-${{ matrix.platform }}${{ matrix.arch && format('-{0}', matrix.arch) }}
           path: ./dist
           overwrite: true
+        env:
+          VERSION_SHORT: ${{ needs.create-release.outputs.version_short }}
+          BUILD_NUMBER: ${{ needs.create-release.outputs.build_number }}
+          SHA: ${{ needs.create-release.outputs.sha }}
+          TAG_NAME: ${{ needs.create-release.outputs.tag_name }}

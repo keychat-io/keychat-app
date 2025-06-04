@@ -131,16 +131,15 @@ jobs:
             --flutter-build-args "dart-define-from-file=.env,target=lib/main.dart" \
             --platform linux \
             --targets deb,rpm,appimage \
-            --artifact-name '{{name}}-{{build_name}}+{{build_number}}-{{platform}}-amd64.{{ext}}'
+            --artifact-name 'Keychat-{{build_name}}+{{build_number}}-{{platform}}-amd64.{{ext}}'
       - name: Build-Linux-APP
         if: ${{matrix.platform == 'windows'}}
         working-directory: ./packages/app/
         run: |
-          fastforge package \
-            --flutter-build-args "dart-define-from-file=.env,target=lib/main.dart" \
-            --platform windows \
-            --targets msix\
-            --artifact-name '{{name}}-{{build_name}}+{{build_number}}-{{platform}}-x86_64.{{ext}}'
+          fastforge package `
+            --platform windows `
+            --targets msix `
+            --artifact-name 'Keychat-{{build_name}}+{{build_number}}-{{platform}}-x86_64-setup.{{ext}}'
 
       - name: Generate sha256
         run: |

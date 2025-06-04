@@ -127,6 +127,11 @@ jobs:
         env:
           BUILD_NAME: ${{ needs.get-version.outputs.version_short }}
           BUILD_NUMBER: ${{ needs.get-version.outputs.build_number }}
+
+      - name: Add MSBuild to PATH
+        if: ${{matrix.platform == 'windows'}}
+        uses: microsoft/setup-msbuild@v2
+
       - name: Build-Windows-APP
         if: ${{matrix.platform == 'windows'}}
         working-directory: ./packages/app/

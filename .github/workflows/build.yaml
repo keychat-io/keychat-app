@@ -26,8 +26,34 @@ env:
   IS_STABLE: ${{ !contains(github.ref, '-') }}
 
 jobs:
+  get-version:
+    name: Create release
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{ steps.version_step.outputs.version }}
+      version_short: ${{ steps.version_step.outputs.version_short }}
+      build_number: ${{ steps.version_step.outputs.build_number }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set version
+        id: version_step
+        working-directory: ./packages/app/
+        run: |
+          VERSION=$(yq '.version' pubspec.yaml)
+          echo "VERSION: $VERSION."
+
+          VERSION_SHORT=$(echo "$VERSION" | sed -e "s/+.*//")
+          echo "VERSION_SHORT: $VERSION_SHORT."
+
+          BUILD_NUMBER=$(echo "$VERSION" | sed -e "s/.*+//")
+          echo "BUILD_NUMBER: $BUILD_NUMBER."
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version_short=$VERSION_SHORT" >> $GITHUB_OUTPUT
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
   create-release:
     runs-on: ${{ matrix.os }}
+    needs: get-version
     strategy:
       matrix:
         include:
@@ -42,46 +68,12 @@ jobs:
           # - platform: macos
           #   os: macos-latest
           #   arch: arm64
-    outputs:
-      sha: ${{ steps.sha_step.outputs.sha }}
-      version: ${{ steps.version_step.outputs.version }}
-      version_short: ${{ steps.version_step.outputs.version_short }}
-      build_number: ${{ steps.version_step.outputs.build_number }}
-      release: ${{ steps.version_step.outputs.release }}
-      tag_name: ${{ steps.version_step.outputs.tag_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 2
-      - name: Set version
-        id: version_step
-        if: ${{ matrix.platform == 'linux' }}
-        working-directory: ./packages/app/
-        run: |
-          VERSION=$(yq '.version' pubspec.yaml)
-          echo "VERSION: $VERSION."
-
-          VERSION_SHORT=$(echo "$VERSION" | sed -e "s/+.*//")
-          echo "VERSION_SHORT: $VERSION_SHORT."
-
-          BUILD_NUMBER=$(echo "$VERSION" | sed -e "s/.*+//")
-          echo "BUILD_NUMBER: $BUILD_NUMBER."
-
-          if [ "$ENV" == "staging" ]; then
-            SUFFIX=".pre"
-          elif [[ "$ENV" == "production" && "$IS_LATEST" == "false" ]]; then
-            SUFFIX=".rc"
-          else
-            SUFFIX=""
-          fi
-          echo "SUFFIX: $SUFFIX"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "version_short=$VERSION_SHORT" >> $GITHUB_OUTPUT
-          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
-          echo "release=$VERSION_SHORT.$BUILD_NUMBER$SUFFIX" >> $GITHUB_OUTPUT
-          echo "tag_name=v$VERSION$SUFFIX" >> $GITHUB_OUTPUT
       - name: Setup-Linux
         if: ${{matrix.platform == 'linux'}}
         run: |
@@ -132,16 +124,18 @@ jobs:
             --platform linux \
             --targets deb,rpm,appimage \
             --artifact-name 'Keychat-{{build_name}}+{{build_number}}-{{platform}}-amd64.{{ext}}'
-      - name: Build-Linux-APP
+        env:
+          BUILD_NAME: ${{ needs.get-version.outputs.version_short }}
+          BUILD_NUMBER: ${{ needs.get-version.outputs.build_number }}
+      - name: Build-Windows-APP
         if: ${{matrix.platform == 'windows'}}
         working-directory: ./packages/app/
         run: |
-          fastforge package `
-            --platform windows `
-            --targets msix `
-            --artifact-name 'Keychat-{{build_name}}+{{build_number}}-{{platform}}-x86_64-setup.{{ext}}'
+          echo "PROJECT_NAME=Keychat" | Out-File -FilePath .env -Encoding utf8
+          fastforge package --platform windows --targets msix
 
       - name: Generate sha256
+        if: ${{matrix.platform != 'windows'}}
         run: |
           cd ./dist
           for file in $(find . -type f -not -name "*.sha256"); do
@@ -165,7 +159,7 @@ jobs:
           overwrite: true
 
       - name: Clean up
-        if: ${{ matrix.platform == 'linux' }}
+        if: ${{ matrix.platform != 'windows' }}
         run: |
           rm -f .env
           cd ./packages/app/ && rm -f .env

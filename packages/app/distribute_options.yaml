@@ -1,6 +1,6 @@
 output: ../../dist/
 releases:
-  - name: release
+  - name: release-linux
     jobs:
       - name: release-dev-linux-deb
         package:
@@ -20,10 +20,14 @@ releases:
           target: appimage
           build_args:
             enable-experiment: records
+  - name: release-windows
+    jobs:
       - name: release-dev-windows-msix
         package:
           platform: windows
           target: msix
+          build_args:
+            enable-experiment: records
 # fastforge release --name=release --platform=linux --targets=deb,rpm,appimage
 
 # fastforge release --name=release --platform windows --targets msix

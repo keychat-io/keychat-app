@@ -21,6 +21,8 @@ on:
     tags:
       - "v*"
 env:
+  # .ref == refs/heads/feature/new-login
+  # .ref_name == new-login
   IS_STABLE: ${{ !contains(github.ref, '-') }}
 
 jobs:
@@ -31,9 +33,9 @@ jobs:
         include:
           # - platform: android
           #   os: ubuntu-latest
-          # - platform: windows
-          #   os: windows-latest
-          #   arch: amd64
+          - platform: windows
+            os: windows-latest
+            arch: amd64
           - platform: linux
             os: ubuntu-22.04
             arch: amd64
@@ -126,6 +128,14 @@ jobs:
         run: |
           export PATH="$PATH":"$HOME/.pub-cache/bin"
           melos bootstrap
+      - name: Install appimage
+        if: ${{ matrix.platform == 'linux' }}
+        run: |
+          sudo apt install locate
+          wget -O appimagetool "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
+          chmod +x appimagetool
+          mv appimagetool /usr/local/bin/
+
       - name: Build-Linux-APP
         if: ${{matrix.platform == 'linux'}}
         working-directory: ./packages/app/
@@ -137,6 +147,15 @@ jobs:
             --platform linux \
             --targets deb,rpm,appimage \
             --artifact-name '{{name}}-{{build_name}}+{{build_number}}-{{platform}}-amd64.{{ext}}'
+      - name: Build-Linux-APP
+        if: ${{matrix.platform == 'windows'}}
+        working-directory: ./packages/app/
+        run: |
+          fastforge package \
+            --flutter-build-args "dart-define-from-file=.env,target=lib/main.dart" \
+            --platform windows \
+            --targets msix\
+            --artifact-name '{{name}}-{{build_name}}+{{build_number}}-{{platform}}-x86_64.{{ext}}'
 
       - name: Generate sha256
         run: |

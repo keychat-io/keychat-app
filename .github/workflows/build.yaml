@@ -48,6 +48,11 @@ jobs:
       release: ${{ steps.version_step.outputs.release }}
       tag_name: ${{ steps.version_step.outputs.tag_name }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 2
       - name: Set sha
         id: sha_step
         run: |
@@ -58,8 +63,7 @@ jobs:
           echo "SHA_SHORT: $SHA_SHORT."
 
           echo "sha=$SHA" >> $GITHUB_OUTPUT
-          echo "sha_short=$SHA_SHORT" >> $GITHUB_OUTPUT
-
+          echo "sha_short=$SHA_SHORT" >> $GITHUB_OUTPU
       - name: Set version
         id: version_step
         run: |
@@ -80,7 +84,6 @@ jobs:
             SUFFIX=""
           fi
           echo "SUFFIX: $SUFFIX"
-
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "version_short=$VERSION_SHORT" >> $GITHUB_OUTPUT
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
@@ -102,12 +105,6 @@ jobs:
           .\rustup-init.exe -y --default-toolchain stable
           $cargoPath = "$env:USERPROFILE\.cargo\bin"
           Add-Content $env:GITHUB_PATH $cargoPath
-
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 2
 
       # - name: Setup Android Signing
       #   if: startsWith(matrix.platform,'android')

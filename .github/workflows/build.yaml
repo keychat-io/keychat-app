@@ -63,7 +63,7 @@ jobs:
           echo "SHA_SHORT: $SHA_SHORT."
 
           echo "sha=$SHA" >> $GITHUB_OUTPUT
-          echo "sha_short=$SHA_SHORT" >> $GITHUB_OUTPU
+          echo "sha_short=$SHA_SHORT" >> $GITHUB_OUTPUT
       - name: Set version
         id: version_step
         run: |

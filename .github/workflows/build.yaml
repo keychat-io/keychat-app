@@ -33,12 +33,12 @@ jobs:
         include:
           # - platform: android
           #   os: ubuntu-latest
-          # - platform: windows
-          #   os: windows-latest
-          #   arch: amd64
-          - platform: linux
-            os: ubuntu-22.04
+          - platform: windows
+            os: windows-latest
             arch: amd64
+          # - platform: linux
+          #   os: ubuntu-22.04
+          #   arch: amd64
           # - platform: macos
           #   os: macos-latest
           #   arch: arm64

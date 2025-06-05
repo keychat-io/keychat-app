@@ -51,23 +51,10 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "version_short=$VERSION_SHORT" >> $GITHUB_OUTPUT
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
-  create-release:
-    runs-on: ${{ matrix.os }}
+  build-linux:
+    if: false # Temporarily disabled for testing
+    runs-on: ubuntu-22.04
     needs: get-version
-    strategy:
-      matrix:
-        include:
-          # - platform: android
-          #   os: ubuntu-latest
-          - platform: windows
-            os: windows-latest
-            arch: amd64
-          # - platform: linux
-          #   os: ubuntu-22.04
-          #   arch: amd64
-          # - platform: macos
-          #   os: macos-latest
-          #   arch: arm64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -75,22 +62,13 @@ jobs:
           submodules: recursive
           fetch-depth: 2
       - name: Setup-Linux
-        if: ${{matrix.platform == 'linux'}}
         run: |
-          echo "Building for platform: ${{ matrix.platform }}"
+          echo "Building for platform: linux"
           sudo apt-get update -y && sudo apt-get upgrade -y
           sudo apt-get install -y curl libcurl4-openssl-dev git unzip xz-utils zip libglu1-mesa
           sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
           cargo install flutter_rust_bridge_codegen@2.9.0
           rustup target add x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu
-
-      # - name: Setup Android Signing
-      #   if: startsWith(matrix.platform,'android')
-      #   run: |
-      #     echo "${{ secrets.KEYSTORE }}" | base64 --decode > android/app/keystore.jks
-      #     echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/local.properties
-      #     echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> android/local.properties
-      #     echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/local.properties
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -106,15 +84,12 @@ jobs:
           dart pub global activate fastforge
           melos bootstrap
       - name: Install appimage
-        if: ${{ matrix.platform == 'linux' }}
         run: |
           sudo apt install locate
           wget -O appimagetool "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
           chmod +x appimagetool
           mv appimagetool /usr/local/bin/
-
       - name: Build-Linux-APP
-        if: ${{matrix.platform == 'linux'}}
         working-directory: ./packages/app/
         run: |
           echo "PROJECT_NAME=Keychat" > .env
@@ -127,44 +102,127 @@ jobs:
         env:
           BUILD_NAME: ${{ needs.get-version.outputs.version_short }}
           BUILD_NUMBER: ${{ needs.get-version.outputs.build_number }}
-
-      - name: Add MSBuild to PATH
-        if: ${{matrix.platform == 'windows'}}
-        uses: microsoft/setup-msbuild@v2
-
-      - name: Build-Windows-APP
-        if: ${{matrix.platform == 'windows'}}
-        working-directory: ./packages/app/
-        run: |
-          echo "PROJECT_NAME=Keychat" | Out-File -FilePath .env -Encoding utf8
-          fastforge package --platform windows --targets exe
-
       - name: Generate sha256
-        if: ${{matrix.platform != 'windows'}}
         run: |
           cd ./dist
           for file in $(find . -type f -not -name "*.sha256"); do
             sha256sum "$file" > "${file}.sha256"
           done
-      # - name: Patch release.md
-      #   run: |
-      #     version=$(echo "${{ github.ref_name }}" | sed 's/^v//')
-      #     sed "s|VERSION|$version|g" ./.github/release_template.md >> release.md
-
-      # - name: Release
-      #   uses: softprops/action-gh-release@v2
-      #   with:
-      #     files: ./dist/*
-      #     body_path: "./release.md"
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: artifact-${{ matrix.platform }}${{ matrix.arch && format('-{0}', matrix.arch) }}
+          name: artifact-linux-amd64
+          path: ./dist
+          overwrite: true
+      - name: Clean up
+        run: |
+          rm -f .env
+          cd ./packages/app/ && rm -f .env
+
+  build-windows:
+    if: false # Temporarily disabled for testing
+    runs-on: windows-latest
+    needs: get-version
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 2
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.32.1"
+          cache: true
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: "29.3"
+      - name: Install melos-fastforge
+        run: |
+          dart pub global activate melos 7.0.0-dev.9
+          dart pub global activate fastforge
+          melos bootstrap
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+      - name: Build-Windows-APP
+        working-directory: ./packages/app/
+        run: |
+          echo "PROJECT_NAME=Keychat" | Out-File -FilePath .env -Encoding utf8
+          fastforge package --platform windows --targets exe
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifact-windows-amd64
           path: ./dist
           overwrite: true
 
+  build-android:
+    runs-on: ubuntu-22.04
+    needs: get-version
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 2
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install NDK
+        run: sdkmanager "ndk;29.0.13113456"
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.32.1"
+          cache: true
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: "29.3"
+      - name: Install melos-fastforge
+        run: |
+          dart pub global activate melos 7.0.0-dev.9
+          dart pub global activate fastforge
+          melos bootstrap
+      - name: Setup Google Services
+        working-directory: ./packages/app/android/app/
+        run: |
+          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > google-services.json
+      - name: Setup Android Signing
+        working-directory: ./packages/app/android/
+        run: |
+          echo "${{ secrets.KEYSTORE }}" | base64 --decode > keystore.jks
+          echo "storeFile=keystore.jks" >> local.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> local.properties
+          echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> local.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> local.properties
+      - name: Build-Android-APP
+        working-directory: ./packages/app/
+        run: |
+          echo "PROJECT_NAME=Keychat" > .env
+          export PROTOC=$(which protoc)
+          fastforge package \
+            --flutter-build-args "dart-define-from-file=.env,target=lib/main.dart,split-per-abi,obfuscate,split-debug-info=./build/obfuscate/apk/" \
+            --platform android \
+            --targets apk
+      - name: Generate sha256
+        run: |
+          cd ./dist
+          for file in $(find . -type f -not -name "*.sha256"); do
+            sha256sum "$file" > "${file}.sha256"
+          done
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifact-android
+          path: ./dist
+          overwrite: true
       - name: Clean up
-        if: ${{ matrix.platform != 'windows' }}
         run: |
           rm -f .env
           cd ./packages/app/ && rm -f .env

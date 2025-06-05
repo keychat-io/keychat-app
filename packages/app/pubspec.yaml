@@ -145,11 +145,10 @@ flutter_native_splash:
 msix_config:
   display_name: Keychat
   publisher: CN=Keychat, O=Keychat, L=Singapore, S=Singapore, C=SG
+  publisher_display_name: KEYME PTE. LTD.
   identity_name: Keychat
   description: Keychat is the super app for Bitcoiners. Autonomous IDs, Bitcoin ecash wallet, secure chat, and rich mini apps — all in Keychat.
   logo: assets/images/logo.png
-  background_color: "#ffffff"
-  background_color_dark: "#121212"
   capabilities:
     - internetClient
     - privateNetworkClientServer

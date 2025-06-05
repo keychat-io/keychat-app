@@ -22,10 +22,10 @@ releases:
             enable-experiment: records
   - name: release-windows
     jobs:
-      - name: release-dev-windows-msix
+      - name: release-dev-windows-exe
         package:
           platform: windows
-          target: msix
+          target: exe
           build_args:
             enable-experiment: records
 # fastforge release --name=release --platform=linux --targets=deb,rpm,appimage

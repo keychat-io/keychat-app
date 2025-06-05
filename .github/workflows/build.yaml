@@ -137,7 +137,7 @@ jobs:
         working-directory: ./packages/app/
         run: |
           echo "PROJECT_NAME=Keychat" | Out-File -FilePath .env -Encoding utf8
-          fastforge package --platform windows --targets msix
+          fastforge package --platform windows --targets exe
 
       - name: Generate sha256
         if: ${{matrix.platform != 'windows'}}

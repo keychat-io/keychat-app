@@ -174,12 +174,21 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
       - name: Install NDK
-        run: sdkmanager "ndk;29.0.13113456"
+        id: install-ndk
+        run: |
+          sdkmanager "ndk;29.0.13113456"
+          export ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/29.0.13113456
+          echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME" >> $GITHUB_ENV
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.32.1"
           cache: true
+      - name: Add Android target
+        run: |
+          rustup target add aaarch64-linux-android
+          rustup target add armv7-linux-androideabi
+          rustup target add x86_64-linux-android
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
         with:
@@ -209,12 +218,18 @@ jobs:
       - name: Build-Android-APP
         working-directory: ./packages/app/
         run: |
+          export android_tools=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/darwin-x86_64/bin
+          export CC_aarch64_linux_android=$android_tools/aarch64-linux-android31-clang                           
+          export AR_aarch64_linux_android=$android_tools/llvm-ar
+          export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$android_tools/aarch64-linux-android31-clang
           echo "PROJECT_NAME=Keychat" > .env
           export PROTOC=$(which protoc)
           fastforge package \
             --flutter-build-args "dart-define-from-file=.env,target=lib/main.dart,split-per-abi,obfuscate,split-debug-info=./build/obfuscate/apk/" \
             --platform android \
             --targets apk
+        env:
+          ANDROID_NDK_HOME: ${{ steps.install-ndk.outputs.ANDROID_NDK_HOME }}
       - name: Generate sha256
         run: |
           cd ./dist

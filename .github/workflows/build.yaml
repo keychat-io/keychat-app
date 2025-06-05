@@ -197,10 +197,15 @@ jobs:
         working-directory: ./packages/app/android/
         run: |
           echo "${{ secrets.KEYSTORE }}" | base64 --decode > keystore.jks
-          echo "storeFile=keystore.jks" >> local.properties
-          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> local.properties
-          echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> local.properties
-          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> local.properties
+          echo "storeFile=keystore.jks" >> key.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> key.properties
+          echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> key.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> key.properties
+
+          echo "app=Keychat" >> local.properties
+          echo "flutter.minSdkVersion=31" >> local.properties
+          echo "flutter.targetSdkVersion=35" >> local.properties
+          echo "flutter.compileSdkVersion=35" >> local.properties
       - name: Build-Android-APP
         working-directory: ./packages/app/
         run: |

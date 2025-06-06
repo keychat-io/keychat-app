@@ -31,7 +31,8 @@ class BrowserFavorite extends Equatable {
   static Future<List<BrowserFavorite>> getAll() async {
     return await DBProvider.database.browserFavorites
         .where()
-        .sortByUpdatedAtDesc()
+        .sortByWeight()
+        .thenByUpdatedAtDesc()
         .findAll();
   }
 
@@ -72,11 +73,21 @@ class BrowserFavorite extends Equatable {
     });
   }
 
-  static setPin(BrowserFavorite bf) async {
-    bf.isPin = true;
+  static updateWeight(BrowserFavorite bf, int newWeight) async {
+    bf.weight = newWeight;
     bf.updatedAt = DateTime.now();
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.browserFavorites.put(bf);
+    });
+  }
+
+  static batchUpdateWeights(List<BrowserFavorite> favorites) async {
+    await DBProvider.database.writeTxn(() async {
+      for (int i = 0; i < favorites.length; i++) {
+        favorites[i].weight = i;
+        favorites[i].updatedAt = DateTime.now();
+        await DBProvider.database.browserFavorites.put(favorites[i]);
+      }
     });
   }
 }

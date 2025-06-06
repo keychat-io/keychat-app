@@ -58,12 +58,6 @@ class LightningBillPage extends GetView<LightningBillController> {
                     itemBuilder: (BuildContext context, int index) {
                       LNTransaction transaction =
                           controller.transactions[index];
-                      bool isSend = transaction.io == TransactionDirection.out;
-
-                      String amount = (isSend ? "-" : "+") +
-                          (transaction.amount +
-                                  (transaction.fee ?? BigInt.from(0)))
-                              .toString();
 
                       return ListTile(
                           key: Key(index.toString()),
@@ -83,8 +77,8 @@ class LightningBillPage extends GetView<LightningBillController> {
                             Get.to(() => LightningTransactionPage(
                                 transaction: transaction));
                           },
-                          leading: CashuUtil.getTransactionIcon(isSend),
-                          title: Text(amount,
+                          leading: CashuUtil.getTransactionIcon(transaction.io),
+                          title: Text(CashuUtil.getLNAmount(transaction),
                               style: Theme.of(context).textTheme.bodyLarge),
                           subtitle: Column(
                             mainAxisAlignment: MainAxisAlignment.start,

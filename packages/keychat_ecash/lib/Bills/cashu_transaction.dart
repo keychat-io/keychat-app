@@ -51,7 +51,7 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
     double maxWidth = Get.width * (Get.width > 500 ? 0.4 : 1) - 32;
     return Scaffold(
         appBar:
-            AppBar(centerTitle: true, title: const Text('Ecash Transaction')),
+            AppBar(centerTitle: true, title: const Text('Cashu Transaction')),
         body: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: ListView(children: [
@@ -84,7 +84,7 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                         child: Utils.genQRImage(tx.token, size: maxWidth))),
               if (tx.fee != null)
                 Text(
-                    '${tx.io == TransactionDirection.out ? "Mint Send" : "Mint Receive"} Fee: ${tx.fee.toString()} ${tx.unit}',
+                    '${tx.io == TransactionDirection.out ? "Mint Send" : (tx.io == TransactionDirection.split ? "Split" : "Mint Receive")} Fee: ${tx.fee.toString()} ${tx.unit}',
                     textAlign: TextAlign.center),
               textSmallGray(context, formatTime(tx.time.toInt()),
                   textAlign: TextAlign.center),

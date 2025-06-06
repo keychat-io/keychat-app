@@ -318,7 +318,7 @@ class CashuPage extends GetView<EcashController> {
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Text(
-                                'Ecash Bills',
+                                'Cashu Bills',
                                 style: Theme.of(context).textTheme.titleMedium,
                               ),
                               TextButton(
@@ -369,19 +369,16 @@ class CashuPage extends GetView<EcashController> {
                                           : controller.ecashBillController
                                               .transactions.length)
                                   .map((CashuTransaction transaction) {
-                                  bool isSend = transaction.io ==
-                                      TransactionDirection.out;
                                   String feeString =
                                       'Fee: ${transaction.fee ?? BigInt.from(0)} ${transaction.unit}';
                                   return ListTile(
                                     key: Key(transaction.id +
                                         transaction.time.toString()),
                                     dense: true,
-                                    leading:
-                                        CashuUtil.getTransactionIcon(isSend),
+                                    leading: CashuUtil.getTransactionIcon(
+                                        transaction.io),
                                     title: Text(
-                                        (isSend ? "-" : "+") +
-                                            (transaction.amount).toString(),
+                                        CashuUtil.getCashuAmount(transaction),
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodyLarge),
@@ -464,20 +461,14 @@ class CashuPage extends GetView<EcashController> {
                                           : controller.lightningBillController
                                               .transactions.length)
                                   .map((LNTransaction transaction) {
-                                  bool isSend = transaction.io ==
-                                      TransactionDirection.out;
-                                  String amount = (isSend ? "-" : "+") +
-                                      (transaction.amount +
-                                              (transaction.fee ??
-                                                  BigInt.from(0)))
-                                          .toString();
                                   return ListTile(
                                     key: Key(transaction.hash +
                                         transaction.time.toString()),
                                     dense: true,
-                                    leading:
-                                        CashuUtil.getTransactionIcon(isSend),
-                                    title: Text(amount,
+                                    leading: CashuUtil.getTransactionIcon(
+                                        transaction.io),
+                                    title: Text(
+                                        CashuUtil.getLNAmount(transaction),
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodyMedium),

@@ -142,6 +142,9 @@ flutter_native_splash:
   color_dark: "#121212"
   image_dark: assets/images/logo.png
 
+module:
+  androidX: true
+
 msix_config:
   display_name: Keychat
   publisher: CN=Keychat, O=Keychat, L=Singapore, S=Singapore, C=SG

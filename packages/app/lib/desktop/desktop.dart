@@ -118,7 +118,9 @@ class HomeSidebarX extends GetView<DesktopController> {
           onTap: () {
             EasyThrottle.throttle(
                 'loadCashuABalance', const Duration(seconds: 3), () {
-              Utils.getGetxController<EcashController>()?.getBalance();
+              Utils.getGetxController<EcashController>()
+                  ?.refreshController
+                  .requestRefresh();
             });
           },
         ),

@@ -182,12 +182,6 @@ jobs:
         id: install-ndk
         run: |
           sdkmanager "ndk;29.0.13113456"
-          echo "ANDROID_NDK_HOME: $ANDROID_NDK_HOME"
-          echo "ANDROID_HOME: $ANDROID_HOME"
-          export ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/29.0.13113456
-          echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME" >> $GITHUB_ENV
-          echo "ANDROID_NDK_HOME: $ANDROID_NDK_HOME"
-
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -222,30 +216,14 @@ jobs:
       - name: Build-Android-APP
         working-directory: ./packages/app/
         run: |
-          echo "ANDROID_NDK_HOME: $ANDROID_NDK_HOME"          
-          export android_tools=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin
-          export CC_aarch64_linux_android=$android_tools/aarch64-linux-android31-clang                           
-          export AR_aarch64_linux_android=$android_tools/llvm-ar
-          export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$android_tools/aarch64-linux-android31-clang
           echo "PROJECT_NAME=Keychat" > .env
           export PROTOC=$(which protoc)
-          fastforge package \
-            --flutter-build-args "dart-define-from-file=.env,target=lib/main.dart,split-per-abi,obfuscate,split-debug-info=./build/obfuscate/apk/" \
-            --platform android \
-            --targets apk
-        env:
-          ANDROID_NDK_HOME: ${{ steps.install-ndk.outputs.ANDROID_NDK_HOME }}
-      - name: Generate sha256
-        run: |
-          cd ./dist
-          for file in $(find . -type f -not -name "*.sha256"); do
-            sha256sum "$file" > "${file}.sha256"
-          done
+          flutter build apk --release -t lib/main.dart --dart-define=dart.vm.product=true --split-per-abi --obfuscate --split-debug-info=./build/obfuscate/apk/
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: artifact-android
-          path: ./dist
+          path: ./packages/app/build/app/outputs/flutter-apk/
           overwrite: true
       - name: Clean up
         run: |

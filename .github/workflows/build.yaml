@@ -102,16 +102,10 @@ jobs:
         env:
           BUILD_NAME: ${{ needs.get-version.outputs.version_short }}
           BUILD_NUMBER: ${{ needs.get-version.outputs.build_number }}
-      - name: Generate sha256
-        run: |
-          cd ./dist
-          for file in $(find . -type f -not -name "*.sha256"); do
-            sha256sum "$file" > "${file}.sha256"
-          done
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: artifact-linux-amd64
+          name: artifact-linux-x86_64
           path: ./dist
           overwrite: true
       - name: Clean up
@@ -163,7 +157,7 @@ jobs:
           overwrite: true
 
   build-android:
-    # if: false # Temporarily disabled for testing
+    if: false # Temporarily disabled for testing
     runs-on: ubuntu-22.04
     needs: get-version
     steps:
@@ -220,19 +214,13 @@ jobs:
           echo "PROJECT_NAME=Keychat" > .env
           export PROTOC=$(which protoc)
           flutter build apk --release
-      - name: Generate sha256
-        working-directory: ./packages/app/build/app/outputs/apk/release/
-        run: |
-          for file in $(find . -type f -not -name "*.sha256"); do
-            sha256sum "$file" > "${file}.sha256"
-          done
+          mkdir ../../dist
+          cp -r ./packages/app/build/app/outputs/apk/release/*.apk ../../dist/
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: artifact-android
-          path: |
-            ./packages/app/build/app/outputs/apk/release/*.apk
-            ./packages/app/build/app/outputs/apk/release/*.apk.sha256
+          path: ./dist
           overwrite: true
       - name: Clean up
         run: |
@@ -241,3 +229,41 @@ jobs:
           rm -f android/app/keystore.jks
           rm -f android/key.properties
           rm -f .env
+  upload:
+    permissions: write-all
+    needs: [build-linux, build-windows, build-android]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download
+        uses: actions/download-artifact@v4
+        with:
+          path: ./dist/
+          patterns: |
+            artifact-*
+          merge-multiple: true
+      - name: Display structure of downloaded files
+        run: ls -R ./dist/
+
+      - name: Patch release.md
+        run: |
+          version=$(echo "${{ github.ref_name }}" | sed 's/^v//')
+          sed "s|VERSION|$version|g" ./.github/release_template.md >> release.md
+
+      - name: Generate sha256
+        run: |
+          cd ./dist
+          for file in $(find . -type f -not -name "*.sha256"); do
+            sha256sum "$file" > "${file}.sha256"
+          done
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./dist/*
+          body_path: "./release.md"
+          draft: true

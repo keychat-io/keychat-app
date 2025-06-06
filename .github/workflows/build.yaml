@@ -52,7 +52,7 @@ jobs:
           echo "version_short=$VERSION_SHORT" >> $GITHUB_OUTPUT
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
   build-linux:
-    # if: false # Temporarily disabled for testing
+    if: false # Temporarily disabled for testing
     runs-on: ubuntu-22.04
     needs: get-version
     steps:
@@ -114,7 +114,7 @@ jobs:
           cd ./packages/app/ && rm -f .env
 
   build-windows:
-    if: false # Temporarily disabled for testing
+    # if: false # Temporarily disabled for testing
     runs-on: windows-latest
     needs: get-version
     steps:
@@ -231,7 +231,7 @@ jobs:
           rm -f .env
   upload:
     permissions: write-all
-    needs: [build-linux, build-windows, build-android]
+    needs: [build-windows]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

@@ -218,12 +218,20 @@ jobs:
         run: |
           echo "PROJECT_NAME=Keychat" > .env
           export PROTOC=$(which protoc)
-          flutter build apk --release -t lib/main.dart --dart-define=dart.vm.product=true --split-per-abi --obfuscate --split-debug-info=./build/obfuscate/apk/
+          flutter build apk --release
+      - name: Generate sha256
+        working-directory: ./packages/app/build/app/outputs/apk/release/
+        run: |
+          for file in $(find . -type f -not -name "*.sha256"); do
+            sha256sum "$file" > "${file}.sha256"
+          done
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: artifact-android
-          path: ./packages/app/build/app/outputs/flutter-apk/
+          path: |
+            ./packages/app/build/app/outputs/apk/release/*.apk
+            ./packages/app/build/app/outputs/apk/release/*.apk.sha256
           overwrite: true
       - name: Clean up
         run: |

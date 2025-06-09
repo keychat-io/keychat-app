@@ -119,9 +119,9 @@ Future<SettingController> initServices() async {
             name: GetPlatform.isAndroid ? 'keychat' : null,
             options: DefaultFirebaseOptions.currentPlatform)
         .then((_) {
+      logger.i('Firebase initialized in main');
       FirebaseMessaging.onBackgroundMessage(
           _firebaseMessagingBackgroundHandler);
-      logger.i('Firebase initialized in main');
     }, onError: (error) {
       logger.e('Firebase initialize failed: $error');
     });

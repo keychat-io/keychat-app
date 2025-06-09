@@ -76,7 +76,7 @@ class _WebviewTabState extends State<WebviewTab> {
     ecashController = Get.find<EcashController>();
     initBrowserConnect(WebUri(widget.initUrl));
     super.initState();
-    Future.delayed(Duration(seconds: 3)).then((_) {
+    Future.delayed(Duration(seconds: 1)).then((_) {
       if (state == WebviewTabState.start) {
         logger.d('${widget.initUrl} : WebviewTabState.start');
         callPageFailed();
@@ -691,7 +691,24 @@ class _WebviewTabState extends State<WebviewTab> {
         return identity.secp256k1PKHex;
       case 'signEvent':
         var event = data[1];
-
+        try {
+          bool confirm = await Get.bottomSheet(
+              clipBehavior: Clip.antiAlias,
+              shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
+              signEventConfirm(
+                  content: event['content'] as String,
+                  kind: event['kind'] as int,
+                  tags: (event['tags'] as List)
+                      .map((e) => List<String>.from(e))
+                      .toList()));
+          if (confirm != true) {
+            return;
+          }
+        } catch (e, s) {
+          logger.e('Failed to parse event: $event', stackTrace: s);
+          return;
+        }
         var res = await NostrAPI.instance.signEventByIdentity(
             identity: identity,
             content: event['content'] as String,
@@ -1023,5 +1040,191 @@ img {
 ''';
 
     await controller.loadData(data: htmlContent, baseUrl: request.url);
+  }
+
+  Widget signEventConfirm(
+      {required String content,
+      required int kind,
+      required List<dynamic> tags}) {
+    return Scaffold(
+        appBar: AppBar(
+          title: Text('Sign Event Confirmation'),
+          backgroundColor: Theme.of(Get.context!).colorScheme.surface,
+          elevation: 0,
+        ),
+        body: Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Event details
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Kind section
+                      _buildDetailSection(
+                        title: 'Event Kind',
+                        content: kind.toString(),
+                        icon: Icons.category_outlined,
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Content section
+                      _buildDetailSection(
+                        title: 'Content',
+                        content: content.isEmpty ? '(Empty)' : content,
+                        icon: Icons.description_outlined,
+                        isExpandable: content.length > 100,
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Tags section
+                      _buildDetailSection(
+                        title: 'Tags',
+                        content: tags.isEmpty ? '(No tags)' : tags.toString(),
+                        icon: Icons.label_outline,
+                        isExpandable: tags.toString().length > 100,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Action buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        Get.back(result: false);
+                      },
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        side: BorderSide(color: Colors.grey.shade400),
+                      ),
+                      child: Text(
+                        'Decline',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () {
+                        Get.back(result: true);
+                      },
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: Theme.of(Get.context!).primaryColor,
+                      ),
+                      child: Text(
+                        'Sign Event',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ));
+  }
+
+  Widget _buildDetailSection({
+    required String title,
+    required String content,
+    required IconData icon,
+    bool isExpandable = false,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(Get.context!).colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color:
+              Theme.of(Get.context!).colorScheme.outline.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Theme.of(Get.context!)
+                  .colorScheme
+                  .surfaceContainerHighest
+                  .withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              isExpandable && content.length > 100
+                  ? '${content.substring(0, 100)}...'
+                  : content,
+              style: TextStyle(
+                fontSize: 14,
+                fontFamily: 'monospace',
+                color: Theme.of(Get.context!).colorScheme.onSurface,
+              ),
+            ),
+          ),
+          if (isExpandable && content.length > 100)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: TextButton(
+                onPressed: () {
+                  // Show full content in a dialog
+                  Get.dialog(
+                    AlertDialog(
+                      title: Text(title),
+                      content: SingleChildScrollView(
+                        child: Text(
+                          content,
+                          style: TextStyle(fontFamily: 'monospace'),
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Get.back(),
+                          child: Text('Close'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                child: Text('Show full content'),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }

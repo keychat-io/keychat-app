@@ -49,10 +49,9 @@ class _CupertinoRootPageState extends State<CupertinoRootPage> {
             }
             if (index == pages.length - 1) {
               EasyThrottle.throttle(
-                  'loadCashuABalance', const Duration(seconds: 3), () {
+                  'loadCashuABalance', const Duration(seconds: 1), () {
                 Utils.getGetxController<EcashController>()
-                    ?.refreshController
-                    .requestRefresh();
+                    ?.requestPageRefresh();
               });
             }
           },

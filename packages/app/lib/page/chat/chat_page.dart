@@ -274,7 +274,7 @@ class _ChatPage2State extends State<ChatPage> {
   Widget getSendMessageInput(BuildContext context, ChatController controller) {
     if (controller.roomObs.value.isMLSGroup &&
         !controller.roomObs.value.sentHelloToMLS) {
-      return Container(
+      return _inputSectionContainer(Container(
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           child: FilledButton(
               onPressed: () async {
@@ -300,7 +300,7 @@ class _ChatPage2State extends State<ChatPage> {
                   }
                 });
               },
-              child: Text('Send Greeting')));
+              child: Text('Send Greeting'))));
     }
     switch (controller.roomObs.value.status) {
       case RoomStatus.requesting:

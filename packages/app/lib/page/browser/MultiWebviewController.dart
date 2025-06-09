@@ -496,9 +496,11 @@ window.addEventListener('DOMContentLoaded', function(event) {
   Widget quickSectionItem(Widget icon, String title, String url,
       {required BuildContext context,
       required VoidCallback onTap,
+      Key? key,
       VoidCallback? onLongPress,
       Future Function(TapDownDetails e)? onSecondaryTapDown}) {
     return GestureDetector(
+      key: key,
       onTap: onTap,
       onLongPress: onLongPress,
       onSecondaryTapDown: onSecondaryTapDown,

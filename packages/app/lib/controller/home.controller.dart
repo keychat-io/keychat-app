@@ -144,8 +144,7 @@ class HomeController extends GetxController
 
         // if app running background > 20s, then reconnect. Otherwise check status first
         bool isPaused = false;
-        if (GetPlatform.isMobile &&
-            appstates.contains(AppLifecycleState.paused)) {
+        if (appstates.contains(AppLifecycleState.paused)) {
           if (pausedTime != null) {
             isPaused = DateTime.now()
                 .subtract(const Duration(seconds: 10))
@@ -153,9 +152,7 @@ class HomeController extends GetxController
           }
         }
         appstates.clear();
-        if (GetPlatform.isMobile) {
-          removeBadge();
-        }
+        removeBadge();
         EasyThrottle.throttle(
             'AppLifecycleState.resumed', const Duration(seconds: 3), () {
           Get.find<WebsocketService>().checkOnlineAndConnect();
@@ -452,8 +449,10 @@ class HomeController extends GetxController
       Get.find<EcashController>().initIdentity(mys[0]);
 
       // init notify service when identity exists
-      NotifyService.init().catchError((e, s) {
-        logger.e('initNotifycation error', error: e, stackTrace: s);
+      Future.delayed(Duration(seconds: 3)).then((_) {
+        NotifyService.init().catchError((e, s) {
+          logger.e('initNotifycation error', error: e, stackTrace: s);
+        });
       });
     } else {
       Get.find<EcashController>().initWithoutIdentity();

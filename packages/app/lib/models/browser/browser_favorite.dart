@@ -31,7 +31,7 @@ class BrowserFavorite extends Equatable {
   static Future<List<BrowserFavorite>> getAll() async {
     return await DBProvider.database.browserFavorites
         .where()
-        .sortByWeight()
+        .sortByWeightDesc()
         .thenByUpdatedAtDesc()
         .findAll();
   }

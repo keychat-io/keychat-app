@@ -180,7 +180,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.32.1"
+          flutter-version: "3.32.2"
           cache: true
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
@@ -244,24 +244,31 @@ jobs:
         with:
           path: ./dist/
           pattern: artifact-*
+          merge-multiple: true
       - name: Display structure of downloaded files
         run: ls -R ./dist/
-
       - name: Patch release.md
         run: |
-          version=$(echo "${{ github.ref_name }}" | sed 's/^v//')
+          version=$BUILD_NAME
           sed "s|VERSION|$version|g" ./.github/release_template.md >> release.md
-
+        env:
+          BUILD_NAME: ${{ needs.get-version.outputs.version_short }}
       - name: Generate sha256
         run: |
-          cd ./dist
+          cd ./dist/$BUILD_NAME+$BUILD_NUMBER
           for file in $(find . -type f -not -name "*.sha256"); do
             sha256sum "$file" > "${file}.sha256"
           done
+        env:
+          BUILD_NAME: ${{ needs.get-version.outputs.version_short }}
+          BUILD_NUMBER: ${{ needs.get-version.outputs.build_number }}
 
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          files: ./dist/*
+          files: ./dist/$BUILD_NAME+$BUILD_NUMBER/*
           body_path: "./release.md"
           draft: true
+        env:
+          BUILD_NAME: ${{ needs.get-version.outputs.version_short }}
+          BUILD_NUMBER: ${{ needs.get-version.outputs.build_number }}

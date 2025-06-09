@@ -13,7 +13,6 @@ import 'package:app/page/browser/FavoriteEdit.dart';
 import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/page/browser/SelectIdentityForBrowser.dart';
 import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/page/components.dart' show showModalBottomSheetWidget;
 import 'package:app/service/SignerService.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/relay.service.dart';

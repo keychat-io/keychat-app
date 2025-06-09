@@ -253,22 +253,32 @@ jobs:
           sed "s|VERSION|$version|g" ./.github/release_template.md >> release.md
         env:
           BUILD_NAME: ${{ needs.get-version.outputs.version_short }}
-      - name: Generate sha256
+      - name: Copy artifacts to dist root
         run: |
-          cd ./dist/$BUILD_NAME+$BUILD_NUMBER
-          for file in $(find . -type f -not -name "*.sha256"); do
-            sha256sum "$file" > "${file}.sha256"
-          done
+          BUILD_DIR="./dist/${BUILD_NAME}+${BUILD_NUMBER}"
+          if [ -d "$BUILD_DIR" ]; then
+          echo "Moving files from $BUILD_DIR to ./dist/"
+          mv "$BUILD_DIR"/* ./dist/
+          rm -rf "$BUILD_DIR"
+          echo "Files moved successfully."
+          else
+          echo "Directory $BUILD_DIR not found. Current structure:"
+          find ./dist -type d | sort
+          fi
         env:
           BUILD_NAME: ${{ needs.get-version.outputs.version_short }}
           BUILD_NUMBER: ${{ needs.get-version.outputs.build_number }}
 
+      - name: Generate sha256
+        working-directory: ./dist/
+        run: |
+          for file in $(find . -type f -not -name "*.sha256"); do
+            sha256sum "$file" > "${file}.sha256"
+          done
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          files: ./dist/$BUILD_NAME+$BUILD_NUMBER/*
+          files: ./dist/*
           body_path: "./release.md"
           draft: true
-        env:
-          BUILD_NAME: ${{ needs.get-version.outputs.version_short }}
-          BUILD_NUMBER: ${{ needs.get-version.outputs.build_number }}

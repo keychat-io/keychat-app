@@ -232,6 +232,7 @@ class Utils {
             borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
         widget,
         isScrollControlled: true,
+        ignoreSafeArea: false,
         enterBottomSheetDuration: Duration.zero,
         exitBottomSheetDuration: Duration.zero);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge,

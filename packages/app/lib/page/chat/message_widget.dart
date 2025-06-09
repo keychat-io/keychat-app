@@ -669,6 +669,7 @@ class MessageWidget extends StatelessWidget {
     BuildContext buildContext = Get.context!;
     return Get.bottomSheet(
         isScrollControlled: true,
+        ignoreSafeArea: false,
         SafeArea(
             child: Scaffold(
                 appBar: AppBar(

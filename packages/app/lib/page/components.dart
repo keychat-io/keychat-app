@@ -233,6 +233,7 @@ showFitSheetWidget(BuildContext context, String title, List<Widget> bodys,
 
 getGroupInfoBottomSheetWidget(BuildContext context) {
   Get.bottomSheet(
+      ignoreSafeArea: false,
       clipBehavior: Clip.antiAlias,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
@@ -251,8 +252,7 @@ getGroupInfoBottomSheetWidget(BuildContext context) {
             subtitle: Text(RoomUtil.getGroupModeDescription(GroupType.sendAll)),
           ),
         ],
-      ))),
-      isScrollControlled: true);
+      ))));
 }
 
 Widget codeSnippet(String text) {

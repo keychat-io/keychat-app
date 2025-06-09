@@ -231,7 +231,7 @@ jobs:
           rm -f .env
   upload:
     permissions: write-all
-    needs: [build-windows]
+    needs: [get-version, build-windows, build-linux]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

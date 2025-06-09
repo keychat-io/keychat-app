@@ -114,8 +114,7 @@ class MoreChatSetting extends StatelessWidget {
   handleNotificationSettting() async {
     HomeController homeController = Get.find<HomeController>();
     bool permission = await NotifyService.hasNotifyPermission();
-    Get.bottomSheet(SafeArea(
-        child: Obx(
+    Get.bottomSheet(Obx(
       () => SettingsList(platform: DevicePlatform.iOS, sections: [
         SettingsSection(title: const Text('Notification setting'), tiles: [
           SettingsTile.switchTile(
@@ -158,7 +157,7 @@ class MoreChatSetting extends StatelessWidget {
               }),
         ])
       ]),
-    )));
+    ));
   }
 
   disableNotification() {

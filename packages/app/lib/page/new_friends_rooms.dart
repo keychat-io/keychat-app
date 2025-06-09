@@ -54,8 +54,7 @@ class _AnonymousRoomsState extends State<AnonymousRooms> {
     DateTime messageExpired =
         DateTime.now().subtract(const Duration(seconds: 5));
     HomeController homeController = Get.find<HomeController>();
-    return SafeArea(
-        child: Scaffold(
+    return Scaffold(
       appBar: AppBar(
         title: const Text('New Friends'),
       ),
@@ -105,6 +104,6 @@ class _AnonymousRoomsState extends State<AnonymousRooms> {
                           : null,
                 );
               })),
-    ));
+    );
   }
 }

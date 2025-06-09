@@ -448,16 +448,15 @@ Future showMyQrCode(
       clipBehavior: Clip.antiAlias,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
-      SafeArea(
-          child: MyQRCode(
-              title: identity.displayName,
-              identity: identity,
-              oneTimeKey: oneTimeKeys.first.pubkey,
-              signalId: signalId,
-              showMore: showMore,
-              time: expiredTime,
-              isOneTime: true,
-              onTap: Get.back)),
+      MyQRCode(
+          title: identity.displayName,
+          identity: identity,
+          oneTimeKey: oneTimeKeys.first.pubkey,
+          signalId: signalId,
+          showMore: showMore,
+          time: expiredTime,
+          isOneTime: true,
+          onTap: Get.back),
       ignoreSafeArea: false,
       isScrollControlled: true);
 }

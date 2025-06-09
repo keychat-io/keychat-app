@@ -670,96 +670,91 @@ class MessageWidget extends StatelessWidget {
     return Get.bottomSheet(
         isScrollControlled: true,
         ignoreSafeArea: false,
-        SafeArea(
-            child: Scaffold(
-                appBar: AppBar(
-                  title: Text('RawData'),
-                  centerTitle: true,
-                  leading: Container(),
-                  actions: [
-                    IconButton(
-                        onPressed: Get.back, icon: const Icon(Icons.close))
-                  ],
-                ),
-                body: Container(
-                    padding: const EdgeInsets.all(16),
-                    child: SingleChildScrollView(
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                          relayStatusList(buildContext, ess),
-                          const SizedBox(height: 10),
-                          if (message.mediaType == MessageMediaType.file ||
-                              message.mediaType == MessageMediaType.image ||
-                              message.mediaType == MessageMediaType.video)
-                            getFileTable(buildContext, message),
-                          if (botClientMessageModel != null &&
-                              botClientMessageModel.priceModel != null)
-                            Container(
-                                padding: const EdgeInsets.all(8),
-                                child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Pay To Chat',
-                                          style: Theme.of(buildContext)
-                                              .textTheme
-                                              .titleMedium),
-                                      Card(
-                                        child: Table(
-                                          columnWidths: const {
-                                            0: FixedColumnWidth(100.0)
-                                          },
-                                          children: [
-                                            tableRow(
-                                                "Model",
-                                                botClientMessageModel
-                                                        .priceModel ??
-                                                    ''),
-                                            tableRow("Amount",
-                                                '${payToken?.amount.toString() ?? 0} ${payToken?.unit ?? 'sat'}'),
-                                            tableRow(
-                                                "Mint", payToken?.mint ?? ''),
-                                          ],
-                                        ),
-                                      )
-                                    ])),
-                          const SizedBox(height: 10),
-                          Padding(
-                              padding: const EdgeInsets.only(left: 4),
-                              child: NoticeTextWidget.success(
-                                  'Encrypted by ${encryptText[message.encryptType.name]}')),
-                          if (event != null)
-                            Card(
-                                child: Table(
-                                    // defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                                    // mainAxisAlignment: MainAxisAlignment.,
-                                    columnWidths: const {
-                                  0: FixedColumnWidth(100.0),
-                                },
-                                    // border:
-                                    //     TableBorder.all(width: 0.5, color: Colors.grey.shade400),
-                                    children: [
-                                  // tableRow('Encrypt',
-                                  //     encryptText[message.encryptType.name]),
-                                  tableRow("ID", event.id),
-                                  tableRow("Kind", event.kind.toString()),
-                                  tableRow("From", event.pubkey),
-                                  tableRow("To", event.tags[0][1]),
-                                  tableRow(
-                                      "Time",
-                                      timestampToDateTime(event.createdAt)
-                                          .toString()),
-                                  tableRow("Source Content", message.content),
-                                  if (message.subEvent != null)
-                                    tableRow("Sub Event", message.subEvent!),
-                                  tableRow("Encrypted Content", event.content),
-                                  if (message.msgKeyHash != null)
-                                    tableRow("Encryption Keys Hash",
-                                        message.msgKeyHash ?? ''),
-                                  tableRow("Sig", event.sig),
+        Scaffold(
+            appBar: AppBar(
+              title: Text('RawData'),
+              centerTitle: true,
+              leading: Container(),
+              actions: [
+                IconButton(onPressed: Get.back, icon: const Icon(Icons.close))
+              ],
+            ),
+            body: Container(
+                padding: const EdgeInsets.all(16),
+                child: SingleChildScrollView(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                      relayStatusList(buildContext, ess),
+                      const SizedBox(height: 10),
+                      if (message.mediaType == MessageMediaType.file ||
+                          message.mediaType == MessageMediaType.image ||
+                          message.mediaType == MessageMediaType.video)
+                        getFileTable(buildContext, message),
+                      if (botClientMessageModel != null &&
+                          botClientMessageModel.priceModel != null)
+                        Container(
+                            padding: const EdgeInsets.all(8),
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Pay To Chat',
+                                      style: Theme.of(buildContext)
+                                          .textTheme
+                                          .titleMedium),
+                                  Card(
+                                    child: Table(
+                                      columnWidths: const {
+                                        0: FixedColumnWidth(100.0)
+                                      },
+                                      children: [
+                                        tableRow(
+                                            "Model",
+                                            botClientMessageModel.priceModel ??
+                                                ''),
+                                        tableRow("Amount",
+                                            '${payToken?.amount.toString() ?? 0} ${payToken?.unit ?? 'sat'}'),
+                                        tableRow("Mint", payToken?.mint ?? ''),
+                                      ],
+                                    ),
+                                  )
                                 ])),
-                        ]))))));
+                      const SizedBox(height: 10),
+                      Padding(
+                          padding: const EdgeInsets.only(left: 4),
+                          child: NoticeTextWidget.success(
+                              'Encrypted by ${encryptText[message.encryptType.name]}')),
+                      if (event != null)
+                        Card(
+                            child: Table(
+                                // defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                                // mainAxisAlignment: MainAxisAlignment.,
+                                columnWidths: const {
+                              0: FixedColumnWidth(100.0),
+                            },
+                                // border:
+                                //     TableBorder.all(width: 0.5, color: Colors.grey.shade400),
+                                children: [
+                              // tableRow('Encrypt',
+                              //     encryptText[message.encryptType.name]),
+                              tableRow("ID", event.id),
+                              tableRow("Kind", event.kind.toString()),
+                              tableRow("From", event.pubkey),
+                              tableRow("To", event.tags[0][1]),
+                              tableRow(
+                                  "Time",
+                                  timestampToDateTime(event.createdAt)
+                                      .toString()),
+                              tableRow("Source Content", message.content),
+                              if (message.subEvent != null)
+                                tableRow("Sub Event", message.subEvent!),
+                              tableRow("Encrypted Content", event.content),
+                              if (message.msgKeyHash != null)
+                                tableRow("Encryption Keys Hash",
+                                    message.msgKeyHash ?? ''),
+                              tableRow("Sig", event.sig),
+                            ])),
+                    ])))));
   }
 
   // for small group message, send to multi members
@@ -791,64 +786,61 @@ class MessageWidget extends StatelessWidget {
     Get.bottomSheet(
         isScrollControlled: true,
         ignoreSafeArea: false,
-        SafeArea(
-            child: Scaffold(
-                appBar: AppBar(
-                  leading: Container(),
-                  title: Text('RawData'),
-                  centerTitle: true,
-                  actions: [
-                    IconButton(onPressed: Get.back, icon: Icon(Icons.close))
-                  ],
-                ),
-                body: Container(
-                    padding: const EdgeInsets.all(16),
-                    child: SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 4, horizontal: 10),
-                        child: Column(
-                          children: [
-                            // getFileTable(buildContext, message),
-                            ListView.builder(
-                                physics: const NeverScrollableScrollPhysics(),
-                                shrinkWrap: true,
-                                itemCount: result.length,
-                                itemBuilder: (context, index) {
-                                  Map map = result[index];
-                                  // String idPubkey = maps.keys.toList()[index];
-                                  RoomMember? rm = map['to'];
-                                  List<NostrEventStatus> eventSendStatus =
-                                      map['ess'] ?? [];
-                                  NostrEventModel? eventModel =
-                                      map['eventModel'];
-                                  List<NostrEventStatus> success =
-                                      eventSendStatus
-                                          .where((element) =>
-                                              element.sendStatus ==
-                                              EventSendEnum.success)
-                                          .toList();
-                                  String idPubkey = eventModel?.toIdPubkey ??
-                                      eventModel?.tags[0][1] ??
-                                      '';
-                                  return ExpansionTile(
-                                    leading: RoomUtil.getStatusCheckIcon(
-                                        eventSendStatus.length, success.length),
-                                    title: Text(
-                                      'To: ${rm?.name ?? idPubkey}',
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 2,
-                                    ),
-                                    subtitle: Text(idPubkey),
-                                    children: <Widget>[
-                                      relayStatusList(context, eventSendStatus),
-                                      if (eventModel != null)
-                                        ListTile(
-                                            title: Text(eventModel.toString())),
-                                    ],
-                                  );
-                                })
-                          ],
-                        ))))));
+        Scaffold(
+            appBar: AppBar(
+              leading: Container(),
+              title: Text('RawData'),
+              centerTitle: true,
+              actions: [
+                IconButton(onPressed: Get.back, icon: Icon(Icons.close))
+              ],
+            ),
+            body: Container(
+                padding: const EdgeInsets.all(16),
+                child: SingleChildScrollView(
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
+                    child: Column(
+                      children: [
+                        // getFileTable(buildContext, message),
+                        ListView.builder(
+                            physics: const NeverScrollableScrollPhysics(),
+                            shrinkWrap: true,
+                            itemCount: result.length,
+                            itemBuilder: (context, index) {
+                              Map map = result[index];
+                              // String idPubkey = maps.keys.toList()[index];
+                              RoomMember? rm = map['to'];
+                              List<NostrEventStatus> eventSendStatus =
+                                  map['ess'] ?? [];
+                              NostrEventModel? eventModel = map['eventModel'];
+                              List<NostrEventStatus> success = eventSendStatus
+                                  .where((element) =>
+                                      element.sendStatus ==
+                                      EventSendEnum.success)
+                                  .toList();
+                              String idPubkey = eventModel?.toIdPubkey ??
+                                  eventModel?.tags[0][1] ??
+                                  '';
+                              return ExpansionTile(
+                                leading: RoomUtil.getStatusCheckIcon(
+                                    eventSendStatus.length, success.length),
+                                title: Text(
+                                  'To: ${rm?.name ?? idPubkey}',
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 2,
+                                ),
+                                subtitle: Text(idPubkey),
+                                children: <Widget>[
+                                  relayStatusList(context, eventSendStatus),
+                                  if (eventModel != null)
+                                    ListTile(
+                                        title: Text(eventModel.toString())),
+                                ],
+                              );
+                            })
+                      ],
+                    )))));
   }
 
   _handleForward(BuildContext context) {
@@ -1014,69 +1006,68 @@ class MessageWidget extends StatelessWidget {
   void _handleTextLongPress() async {
     await HapticFeedback.lightImpact();
     Get.bottomSheet(
-        clipBehavior: Clip.antiAlias,
-        shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
-        SafeArea(
-          child: SettingsList(sections: [
-            SettingsSection(
-                title: message.mediaType == MessageMediaType.text
-                    ? Text(
-                        '「${message.realMessage ?? message.content}」',
-                        maxLines: 5,
-                        overflow: TextOverflow.ellipsis,
-                      )
-                    : Text('「${message.mediaType.name.toUpperCase()}」'),
-                tiles: [
-                  SettingsTile.navigation(
-                      title: const Text('Copy'),
-                      leading: const Icon(Icons.copy),
-                      onPressed: (context) async {
-                        String conent = message.content;
-                        if (message.realMessage != null &&
-                            cc.roomObs.value.type == RoomType.bot) {
-                          conent = message.realMessage!;
-                        }
-                        Clipboard.setData(ClipboardData(text: conent));
-                        EasyLoading.showToast('Copied');
-                        Get.back();
-                      }),
-                  SettingsTile.navigation(
-                      onPressed: _handleReply,
-                      leading: const Icon(CupertinoIcons.reply),
-                      title: const Text('Reply')),
-                  if (message.isSystem == false &&
-                      (message.mediaType == MessageMediaType.text ||
-                          message.mediaType == MessageMediaType.image ||
-                          message.mediaType == MessageMediaType.video ||
-                          message.mediaType == MessageMediaType.file))
-                    SettingsTile.navigation(
-                        onPressed: _handleForward,
-                        leading:
-                            const Icon(CupertinoIcons.arrowshape_turn_up_right),
-                        title: const Text('Forward')),
-                  SettingsTile.navigation(
-                      leading: const Icon(Icons.code),
-                      onPressed: _handleShowRawdata,
-                      title: const Text('Raw Data')),
-                  SettingsTile.navigation(
-                      leading: const Icon(
-                        Icons.delete,
-                        color: Colors.red,
-                      ),
-                      onPressed: (BuildContext context) {
-                        Get.back();
-                        _showDeleteDialog(message);
-                      },
-                      title: Text(
-                        'Delete',
-                        style: Theme.of(Get.context!)
-                            .textTheme
-                            .bodyLarge
-                            ?.copyWith(color: Colors.red),
-                      ))
-                ]),
-          ]),
-        ));
+      clipBehavior: Clip.antiAlias,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
+      SettingsList(sections: [
+        SettingsSection(
+            title: message.mediaType == MessageMediaType.text
+                ? Text(
+                    '「${message.realMessage ?? message.content}」',
+                    maxLines: 5,
+                    overflow: TextOverflow.ellipsis,
+                  )
+                : Text('「${message.mediaType.name.toUpperCase()}」'),
+            tiles: [
+              SettingsTile.navigation(
+                  title: const Text('Copy'),
+                  leading: const Icon(Icons.copy),
+                  onPressed: (context) async {
+                    String conent = message.content;
+                    if (message.realMessage != null &&
+                        cc.roomObs.value.type == RoomType.bot) {
+                      conent = message.realMessage!;
+                    }
+                    Clipboard.setData(ClipboardData(text: conent));
+                    EasyLoading.showToast('Copied');
+                    Get.back();
+                  }),
+              SettingsTile.navigation(
+                  onPressed: _handleReply,
+                  leading: const Icon(CupertinoIcons.reply),
+                  title: const Text('Reply')),
+              if (message.isSystem == false &&
+                  (message.mediaType == MessageMediaType.text ||
+                      message.mediaType == MessageMediaType.image ||
+                      message.mediaType == MessageMediaType.video ||
+                      message.mediaType == MessageMediaType.file))
+                SettingsTile.navigation(
+                    onPressed: _handleForward,
+                    leading:
+                        const Icon(CupertinoIcons.arrowshape_turn_up_right),
+                    title: const Text('Forward')),
+              SettingsTile.navigation(
+                  leading: const Icon(Icons.code),
+                  onPressed: _handleShowRawdata,
+                  title: const Text('Raw Data')),
+              SettingsTile.navigation(
+                  leading: const Icon(
+                    Icons.delete,
+                    color: Colors.red,
+                  ),
+                  onPressed: (BuildContext context) {
+                    Get.back();
+                    _showDeleteDialog(message);
+                  },
+                  title: Text(
+                    'Delete',
+                    style: Theme.of(Get.context!)
+                        .textTheme
+                        .bodyLarge
+                        ?.copyWith(color: Colors.red),
+                  ))
+            ]),
+      ]),
+    );
   }
 }

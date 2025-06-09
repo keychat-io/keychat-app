@@ -27,53 +27,51 @@ class _SelectRoomRelayState extends State<SelectRoomRelay> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-        child: Scaffold(
-            appBar: AppBar(
-              leading: IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () {
-                  Get.back();
-                },
-              ),
-              centerTitle: true,
-              title: const Text('Select Receving Relays'),
-              actions: [
-                FilledButton(
-                  child: const Text('Done'),
-                  onPressed: () {
-                    Get.back(result: selectedRelays.toList());
-                  },
-                ),
-              ],
+    return Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () {
+              Get.back();
+            },
+          ),
+          centerTitle: true,
+          title: const Text('Select Receving Relays'),
+          actions: [
+            FilledButton(
+              child: const Text('Done'),
+              onPressed: () {
+                Get.back(result: selectedRelays.toList());
+              },
             ),
-            body: SafeArea(
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-                child: relays.isEmpty
-                    ? const Text('No any connected relay')
-                    : ListView.builder(
-                        itemCount: relays.length,
-                        itemBuilder: (context, index) {
-                          return CheckboxListTile(
-                            title: Text(relays[index]),
-                            value: selectedRelays.contains(relays[index]),
-                            onChanged: (bool? value) {
-                              if (value == null) return;
+          ],
+        ),
+        body: SafeArea(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            child: relays.isEmpty
+                ? const Text('No any connected relay')
+                : ListView.builder(
+                    itemCount: relays.length,
+                    itemBuilder: (context, index) {
+                      return CheckboxListTile(
+                        title: Text(relays[index]),
+                        value: selectedRelays.contains(relays[index]),
+                        onChanged: (bool? value) {
+                          if (value == null) return;
 
-                              setState(() {
-                                if (value) {
-                                  selectedRelays.add(relays[index]);
-                                } else {
-                                  selectedRelays.remove(relays[index]);
-                                }
-                              });
-                            },
-                          );
+                          setState(() {
+                            if (value) {
+                              selectedRelays.add(relays[index]);
+                            } else {
+                              selectedRelays.remove(relays[index]);
+                            }
+                          });
                         },
-                      ),
-              ),
-            )));
+                      );
+                    },
+                  ),
+          ),
+        ));
   }
 }

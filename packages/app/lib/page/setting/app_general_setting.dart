@@ -52,76 +52,73 @@ class AppGeneralSetting extends GetView<SettingController> {
                         shape: const RoundedRectangleBorder(
                             borderRadius:
                                 BorderRadius.vertical(top: Radius.circular(4))),
-                        SafeArea(
-                            child: Obx(() => SettingsList(
-                                    platform: DevicePlatform.iOS,
-                                    sections: [
-                                      SettingsSection(
-                                          title:
-                                              const Text('Select theme mode'),
-                                          tiles: [
-                                            SettingsTile(
-                                              onPressed: (value) async {
-                                                Get.changeThemeMode(
-                                                    ThemeMode.system);
-                                                controller.themeMode.value =
-                                                    ThemeMode.system.name;
-                                                await Storage.setString(
-                                                    StorageKeyString.themeMode,
-                                                    ThemeMode.system.name);
-                                              },
-                                              title: const Text("System Mode"),
-                                              trailing:
-                                                  controller.themeMode.value ==
-                                                          ThemeMode.system.name
-                                                      ? const Icon(
-                                                          Icons.done,
-                                                          color: Colors.green,
-                                                        )
-                                                      : null,
-                                            ),
-                                            SettingsTile(
-                                              onPressed: (value) async {
-                                                Get.changeThemeMode(
-                                                    ThemeMode.light);
-                                                controller.themeMode.value =
-                                                    ThemeMode.light.name;
-                                                await Storage.setString(
-                                                    StorageKeyString.themeMode,
-                                                    ThemeMode.light.name);
-                                              },
-                                              title: const Text("Light Mode"),
-                                              trailing:
-                                                  controller.themeMode.value ==
-                                                          ThemeMode.light.name
-                                                      ? const Icon(
-                                                          Icons.done,
-                                                          color: Colors.green,
-                                                        )
-                                                      : null,
-                                            ),
-                                            SettingsTile(
-                                              onPressed: (value) async {
-                                                Get.changeThemeMode(
-                                                    ThemeMode.dark);
-                                                controller.themeMode.value =
-                                                    ThemeMode.dark.name;
-                                                await Storage.setString(
-                                                    StorageKeyString.themeMode,
-                                                    ThemeMode.dark.name);
-                                              },
-                                              title: const Text("Dark Mode"),
-                                              trailing:
-                                                  controller.themeMode.value ==
-                                                          ThemeMode.dark.name
-                                                      ? const Icon(
-                                                          Icons.done,
-                                                          color: Colors.green,
-                                                        )
-                                                      : null,
-                                            ),
-                                          ])
-                                    ]))));
+                        Obx(() => SettingsList(
+                                platform: DevicePlatform.iOS,
+                                sections: [
+                                  SettingsSection(
+                                      title: const Text('Select theme mode'),
+                                      tiles: [
+                                        SettingsTile(
+                                          onPressed: (value) async {
+                                            Get.changeThemeMode(
+                                                ThemeMode.system);
+                                            controller.themeMode.value =
+                                                ThemeMode.system.name;
+                                            await Storage.setString(
+                                                StorageKeyString.themeMode,
+                                                ThemeMode.system.name);
+                                          },
+                                          title: const Text("System Mode"),
+                                          trailing:
+                                              controller.themeMode.value ==
+                                                      ThemeMode.system.name
+                                                  ? const Icon(
+                                                      Icons.done,
+                                                      color: Colors.green,
+                                                    )
+                                                  : null,
+                                        ),
+                                        SettingsTile(
+                                          onPressed: (value) async {
+                                            Get.changeThemeMode(
+                                                ThemeMode.light);
+                                            controller.themeMode.value =
+                                                ThemeMode.light.name;
+                                            await Storage.setString(
+                                                StorageKeyString.themeMode,
+                                                ThemeMode.light.name);
+                                          },
+                                          title: const Text("Light Mode"),
+                                          trailing:
+                                              controller.themeMode.value ==
+                                                      ThemeMode.light.name
+                                                  ? const Icon(
+                                                      Icons.done,
+                                                      color: Colors.green,
+                                                    )
+                                                  : null,
+                                        ),
+                                        SettingsTile(
+                                          onPressed: (value) async {
+                                            Get.changeThemeMode(ThemeMode.dark);
+                                            controller.themeMode.value =
+                                                ThemeMode.dark.name;
+                                            await Storage.setString(
+                                                StorageKeyString.themeMode,
+                                                ThemeMode.dark.name);
+                                          },
+                                          title: const Text("Dark Mode"),
+                                          trailing:
+                                              controller.themeMode.value ==
+                                                      ThemeMode.dark.name
+                                                  ? const Icon(
+                                                      Icons.done,
+                                                      color: Colors.green,
+                                                    )
+                                                  : null,
+                                        ),
+                                      ])
+                                ])));
                   },
                   title: const Text("Dark Mode")),
               SettingsTile.navigation(
@@ -133,28 +130,25 @@ class AppGeneralSetting extends GetView<SettingController> {
                       shape: const RoundedRectangleBorder(
                           borderRadius:
                               BorderRadius.vertical(top: Radius.circular(4))),
-                      SafeArea(
-                          child: Scaffold(
-                              appBar: AppBar(
-                                title: Text('Default startup tab'),
-                              ),
-                              body: Column(
-                                children:
-                                    hc.defaultTabConfig.entries.map((entry) {
-                                  return RadioListTile<dynamic>(
-                                    title: Text(entry.key),
-                                    value: entry.value,
-                                    groupValue: hc.defaultSelectedTab.value,
-                                    onChanged: (value) {
-                                      if (value == null) return;
-                                      hc.setDefaultSelectedTab(value);
-                                      EasyLoading.showSuccess(
-                                          'Set successfully');
-                                      Get.back();
-                                    },
-                                  );
-                                }).toList(),
-                              ))));
+                      Scaffold(
+                          appBar: AppBar(
+                            title: Text('Default startup tab'),
+                          ),
+                          body: Column(
+                            children: hc.defaultTabConfig.entries.map((entry) {
+                              return RadioListTile<dynamic>(
+                                title: Text(entry.key),
+                                value: entry.value,
+                                groupValue: hc.defaultSelectedTab.value,
+                                onChanged: (value) {
+                                  if (value == null) return;
+                                  hc.setDefaultSelectedTab(value);
+                                  EasyLoading.showSuccess('Set successfully');
+                                  Get.back();
+                                },
+                              );
+                            }).toList(),
+                          )));
                 },
               ),
               SettingsTile.navigation(
@@ -192,8 +186,7 @@ class AppGeneralSetting extends GetView<SettingController> {
         clipBehavior: Clip.antiAlias,
         shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
-        SafeArea(
-            child: Obx(
+        Obx(
           () => SettingsList(platform: DevicePlatform.iOS, sections: [
             SettingsSection(title: const Text('Database Setting'), tiles: [
               SettingsTile.switchTile(
@@ -247,7 +240,7 @@ class AppGeneralSetting extends GetView<SettingController> {
                   }),
             ])
           ]),
-        )));
+        ));
   }
 
   void _showSetEncryptionPwdDialog(BuildContext context) {

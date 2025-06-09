@@ -45,80 +45,78 @@ class _BrowserBookmarkPageState extends State<BrowserBookmarkPage> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-        child: Scaffold(
-            appBar: AppBar(title: const Text('Bookmark')),
-            body: SmartRefresher(
-                enablePullUp: true,
-                enablePullDown: false,
-                onLoading: () async {
-                  await loadData(limit: 20, offset: bookmarks.length);
-                  refreshController.loadComplete();
-                },
-                controller: refreshController,
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: bookmarks.length,
-                  itemBuilder: (context, index) {
-                    final site = bookmarks[index];
-                    String url = site.url;
-                    return ListTile(
-                      dense: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                          vertical: 1.0, horizontal: 16.0),
-                      leading: Utils.getNetworkImage(site.favicon, radius: 100),
-                      minVerticalPadding: 0,
-                      minTileHeight: 56,
-                      title: site.title == null
-                          ? null
-                          : Text(site.title!, maxLines: 1),
-                      subtitle: Text(site.url,
-                          maxLines: 1, overflow: TextOverflow.ellipsis),
-                      trailing: Wrap(
-                        children: [
-                          exists.contains(url)
-                              ? IconButton(
-                                  onPressed: () async {
-                                    await BrowserFavorite.deleteByUrl(url);
-                                    setState(() {
-                                      exists = exists..remove(url);
-                                    });
+    return Scaffold(
+        appBar: AppBar(title: const Text('Bookmark')),
+        body: SmartRefresher(
+            enablePullUp: true,
+            enablePullDown: false,
+            onLoading: () async {
+              await loadData(limit: 20, offset: bookmarks.length);
+              refreshController.loadComplete();
+            },
+            controller: refreshController,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: bookmarks.length,
+              itemBuilder: (context, index) {
+                final site = bookmarks[index];
+                String url = site.url;
+                return ListTile(
+                  dense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                      vertical: 1.0, horizontal: 16.0),
+                  leading: Utils.getNetworkImage(site.favicon, radius: 100),
+                  minVerticalPadding: 0,
+                  minTileHeight: 56,
+                  title: site.title == null
+                      ? null
+                      : Text(site.title!, maxLines: 1),
+                  subtitle: Text(site.url,
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  trailing: Wrap(
+                    children: [
+                      exists.contains(url)
+                          ? IconButton(
+                              onPressed: () async {
+                                await BrowserFavorite.deleteByUrl(url);
+                                setState(() {
+                                  exists = exists..remove(url);
+                                });
 
-                                    EasyLoading.showSuccess(
-                                        'Remved from Favorites');
-                                  },
-                                  icon: const Icon(Icons.check,
-                                      color: Colors.green))
-                              : IconButton(
-                                  onPressed: () async {
-                                    await BrowserFavorite.add(
-                                        url: url,
-                                        title: site.title,
-                                        favicon: site.favicon);
-                                    setState(() {
-                                      exists = exists..add(url);
-                                    });
+                                EasyLoading.showSuccess(
+                                    'Remved from Favorites');
+                              },
+                              icon:
+                                  const Icon(Icons.check, color: Colors.green))
+                          : IconButton(
+                              onPressed: () async {
+                                await BrowserFavorite.add(
+                                    url: url,
+                                    title: site.title,
+                                    favicon: site.favicon);
+                                setState(() {
+                                  exists = exists..add(url);
+                                });
 
-                                    EasyLoading.showSuccess(
-                                        'Added to Favorites');
-                                  },
-                                  icon: const Icon(Icons.add)),
-                          IconButton(
-                            icon: const Icon(Icons.more_horiz),
-                            onPressed: () async {
-                              await Get.to(() => BookmarkEdit(model: site));
-                              init();
-                            },
-                          )
-                        ],
-                      ),
-                      onTap: () {
-                        Get.find<MultiWebviewController>().lanuchWebview(
-                            content: site.url, defaultTitle: site.title);
-                      },
-                    );
+                                EasyLoading.showSuccess('Added to Favorites');
+                              },
+                              icon: const Icon(Icons.add)),
+                      IconButton(
+                        icon: const Icon(Icons.more_horiz),
+                        onPressed: () async {
+                          await Get.to(() => BookmarkEdit(model: site));
+                          init();
+                        },
+                      )
+                    ],
+                  ),
+                  onTap: () {
+                    Get.find<MultiWebviewController>().lanuchWebview(
+                        content: site.url, defaultTitle: site.title);
                   },
-                ))));
+                );
+              },
+            )));
   }
 
   Future loadData({required int limit, required int offset}) async {

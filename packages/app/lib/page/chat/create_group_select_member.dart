@@ -128,7 +128,8 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SafeArea(
+        child: Scaffold(
       appBar: AppBar(
         centerTitle: true,
         title: const Text("Select Members"),
@@ -154,7 +155,7 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
                     trailing: getAddMemeberCheckBox(widget.groupType, user));
               },
             ),
-    );
+    ));
   }
 
   Widget getAddMemeberCheckBox(GroupType groupType, Map<String, dynamic> user) {

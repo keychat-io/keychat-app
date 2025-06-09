@@ -13,6 +13,7 @@ import 'package:app/page/browser/FavoriteEdit.dart';
 import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/page/browser/SelectIdentityForBrowser.dart';
 import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app/page/components.dart' show showModalBottomSheetWidget;
 import 'package:app/service/SignerService.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/relay.service.dart';
@@ -692,16 +693,12 @@ class _WebviewTabState extends State<WebviewTab> {
       case 'signEvent':
         var event = data[1];
         try {
-          bool confirm = await Get.bottomSheet(
-              clipBehavior: Clip.antiAlias,
-              shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
-              signEventConfirm(
-                  content: event['content'] as String,
-                  kind: event['kind'] as int,
-                  tags: (event['tags'] as List)
-                      .map((e) => List<String>.from(e))
-                      .toList()));
+          bool confirm = await Get.bottomSheet(signEventConfirm(
+              content: event['content'] as String,
+              kind: event['kind'] as int,
+              tags: (event['tags'] as List)
+                  .map((e) => List<String>.from(e))
+                  .toList()));
           if (confirm != true) {
             return;
           }
@@ -900,24 +897,25 @@ class _WebviewTabState extends State<WebviewTab> {
         break;
       case 'zoom':
         Get.bottomSheet(
-          clipBehavior: Clip.antiAlias,
-          shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
-          Scaffold(
-              appBar: AppBar(title: Text('Zoom Text')),
-              body: Container(
-                  padding: const EdgeInsets.all(16),
-                  child: Obx(() => Slider(
-                      value: double.parse(
-                          controller.kInitialTextSize.value.toString()),
-                      min: 50,
-                      max: 300,
-                      divisions: 10,
-                      label: '${controller.kInitialTextSize.value}',
-                      onChanged: (value) {
-                        tc.updateTextSize(value.toInt());
-                      })))),
-        );
+            clipBehavior: Clip.antiAlias,
+            shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
+            SafeArea(
+              child: Scaffold(
+                  appBar: AppBar(title: Text('Zoom Text')),
+                  body: Container(
+                      padding: const EdgeInsets.all(16),
+                      child: Obx(() => Slider(
+                          value: double.parse(
+                              controller.kInitialTextSize.value.toString()),
+                          min: 50,
+                          max: 300,
+                          divisions: 10,
+                          label: '${controller.kInitialTextSize.value}',
+                          onChanged: (value) {
+                            tc.updateTextSize(value.toInt());
+                          })))),
+            ));
         break;
     }
   }
@@ -1046,102 +1044,79 @@ img {
       {required String content,
       required int kind,
       required List<dynamic> tags}) {
-    return Scaffold(
-        appBar: AppBar(
-          title: Text('Sign Event Confirmation'),
-          backgroundColor: Theme.of(Get.context!).colorScheme.surface,
-          elevation: 0,
-        ),
-        body: Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Event details
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+    return SafeArea(
+        child: Scaffold(
+            appBar: AppBar(title: Text('Sign Event')),
+            body: Container(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Event details
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Kind section
+                          _buildDetailSection(
+                            title: 'Event Kind',
+                            content: kind.toString(),
+                            icon: Icons.category_outlined,
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // Content section
+                          _buildDetailSection(
+                            title: 'Content',
+                            content: content.isEmpty ? '(Empty)' : content,
+                            icon: Icons.description_outlined,
+                            isExpandable: content.length > 100,
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // Tags section
+                          _buildDetailSection(
+                            title: 'Tags',
+                            content:
+                                tags.isEmpty ? '(No tags)' : tags.toString(),
+                            icon: Icons.label_outline,
+                            isExpandable: tags.toString().length > 100,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Action buttons
+                  Row(
                     children: [
-                      // Kind section
-                      _buildDetailSection(
-                        title: 'Event Kind',
-                        content: kind.toString(),
-                        icon: Icons.category_outlined,
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            Get.back(result: false);
+                          },
+                          child: Text('Decline'),
+                        ),
                       ),
-
-                      const SizedBox(height: 20),
-
-                      // Content section
-                      _buildDetailSection(
-                        title: 'Content',
-                        content: content.isEmpty ? '(Empty)' : content,
-                        icon: Icons.description_outlined,
-                        isExpandable: content.length > 100,
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // Tags section
-                      _buildDetailSection(
-                        title: 'Tags',
-                        content: tags.isEmpty ? '(No tags)' : tags.toString(),
-                        icon: Icons.label_outline,
-                        isExpandable: tags.toString().length > 100,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: () {
+                            Get.back(result: true);
+                          },
+                          child: Text('Sign Event'),
+                        ),
                       ),
                     ],
                   ),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Action buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () {
-                        Get.back(result: false);
-                      },
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        side: BorderSide(color: Colors.grey.shade400),
-                      ),
-                      child: Text(
-                        'Decline',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: () {
-                        Get.back(result: true);
-                      },
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        backgroundColor: Theme.of(Get.context!).primaryColor,
-                      ),
-                      child: Text(
-                        'Sign Event',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
                 ],
               ),
-            ],
-          ),
-        ));
+            )));
   }
 
   Widget _buildDetailSection({

@@ -332,7 +332,8 @@ class AccountSettingPage extends GetView<AccountSettingController> {
   }
 
   _idKeysWidget() {
-    return SettingsList(platform: DevicePlatform.iOS, sections: [
+    return SafeArea(
+        child: SettingsList(platform: DevicePlatform.iOS, sections: [
       SettingsSection(
         tiles: [
           if (kDebugMode)
@@ -380,7 +381,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
           ),
         ],
       )
-    ]);
+    ]));
   }
 
   _updateIdentityNameDialog(BuildContext context, Identity identity) async {

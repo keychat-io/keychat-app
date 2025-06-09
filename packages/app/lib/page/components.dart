@@ -236,8 +236,9 @@ getGroupInfoBottomSheetWidget(BuildContext context) {
       clipBehavior: Clip.antiAlias,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
-      Scaffold(
-          body: ListView(
+      SafeArea(
+          child: Scaffold(
+              body: ListView(
         children: [
           ListTile(
             title: Text('Large Group - MLS Protocol',
@@ -250,9 +251,8 @@ getGroupInfoBottomSheetWidget(BuildContext context) {
             subtitle: Text(RoomUtil.getGroupModeDescription(GroupType.sendAll)),
           ),
         ],
-      )),
-      isScrollControlled: true,
-      ignoreSafeArea: false);
+      ))),
+      isScrollControlled: true);
 }
 
 Widget codeSnippet(String text) {
@@ -448,15 +448,16 @@ Future showMyQrCode(
       clipBehavior: Clip.antiAlias,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
-      MyQRCode(
-          title: identity.displayName,
-          identity: identity,
-          oneTimeKey: oneTimeKeys.first.pubkey,
-          signalId: signalId,
-          showMore: showMore,
-          time: expiredTime,
-          isOneTime: true,
-          onTap: Get.back),
+      SafeArea(
+          child: MyQRCode(
+              title: identity.displayName,
+              identity: identity,
+              oneTimeKey: oneTimeKeys.first.pubkey,
+              signalId: signalId,
+              showMore: showMore,
+              time: expiredTime,
+              isOneTime: true,
+              onTap: Get.back)),
       ignoreSafeArea: false,
       isScrollControlled: true);
 }

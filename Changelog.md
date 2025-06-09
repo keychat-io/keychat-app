@@ -4,6 +4,12 @@ https://keepachangelog.com/zh-CN/1.1.0
 
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
+## 1.32.9+6387
+1. Fix: set fee field for 1 sat
+2. Add `ignoreSafeArea: false` for bottomSheet
+3. Fix other bugs
+
+
 ## 1.32.8+6386
 1. Fix: mint 32 sat for chat
 2. Fix: pull to load more data in chat page

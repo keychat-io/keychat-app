@@ -105,7 +105,8 @@ class Login extends StatelessWidget {
   }
 
   Widget getRecoverPage() {
-    return SettingsList(platform: DevicePlatform.iOS, sections: [
+    return SafeArea(
+        child: SettingsList(platform: DevicePlatform.iOS, sections: [
       SettingsSection(title: const Text('Recover ID'), tiles: [
         SettingsTile.navigation(
           leading: const Icon(Icons.file_open),
@@ -149,6 +150,6 @@ class Login extends StatelessWidget {
             },
           )
         ]),
-    ]);
+    ]));
   }
 }

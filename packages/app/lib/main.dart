@@ -4,6 +4,7 @@ import 'package:app/desktop/DesktopController.dart';
 import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/service/chatx.service.dart';
+import 'package:app/service/notify.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:app/utils/MyCustomScrollBehavior.dart';
@@ -70,6 +71,12 @@ void main() async {
     stopwatch.stop();
     logger.i("app launched: ${stopwatch.elapsedMilliseconds} ms");
   });
+
+  RemoteMessage? initialMessage =
+      await FirebaseMessaging.instance.getInitialMessage();
+  if (initialMessage != null) {
+    NotifyService.handleMessage(initialMessage);
+  }
 }
 
 Future<String> getInitRoute(bool isLogin) async {

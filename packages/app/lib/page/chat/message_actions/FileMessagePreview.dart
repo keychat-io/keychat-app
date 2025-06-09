@@ -77,66 +77,68 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-          title: const Text('File'),
-          actions: [
-            if (fileStatus == FileStatus.decryptSuccess &&
-                msgFileInfo.localPath != null)
-              IconButton(
-                  onPressed: () async {
-                    String filePath =
-                        '${Get.find<SettingController>().appFolder.path}${msgFileInfo.localPath!}';
-                    bool fileExists = File(filePath).existsSync();
-
-                    if (fileExists) {
-                      await File(filePath).delete();
-                    }
-                    EasyLoading.showToast('File deleted');
-                    _init(msgFileInfo);
-                  },
-                  icon: const Icon(CupertinoIcons.delete))
-          ],
-        ),
-        body: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Center(
-                child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(msgFileInfo.fileName,
-                    style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 16),
-                Text('Size: ${FileUtils.getFileSizeDisplay(msgFileInfo.size)}'),
-                textSmallGray(
-                    context, 'Encrypted by AES-256-CTR with one-time key'),
-                if (downloadProgress > 0 && downloadProgress < 100)
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: LinearProgressIndicator(
-                      value: downloadProgress / 100,
-                    ),
-                  ),
-                const SizedBox(height: 16),
-                getStatusButton(),
+    return SafeArea(
+        child: Scaffold(
+            appBar: AppBar(
+              title: const Text('File'),
+              actions: [
                 if (fileStatus == FileStatus.decryptSuccess &&
                     msgFileInfo.localPath != null)
-                  Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: OutlinedButton.icon(
-                          onPressed: () async {
-                            String filePath =
-                                '${Get.find<SettingController>().appFolder.path}${msgFileInfo.localPath!}';
+                  IconButton(
+                      onPressed: () async {
+                        String filePath =
+                            '${Get.find<SettingController>().appFolder.path}${msgFileInfo.localPath!}';
+                        bool fileExists = File(filePath).existsSync();
 
-                            await Share.shareXFiles([XFile(filePath)],
-                                subject: FileUtils.getDisplayFileName(
-                                    msgFileInfo.localPath!));
-                          },
-                          icon: const Icon(CupertinoIcons.share),
-                          label: const Text('More'))),
+                        if (fileExists) {
+                          await File(filePath).delete();
+                        }
+                        EasyLoading.showToast('File deleted');
+                        _init(msgFileInfo);
+                      },
+                      icon: const Icon(CupertinoIcons.delete))
               ],
-            ))));
+            ),
+            body: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Center(
+                    child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(msgFileInfo.fileName,
+                        style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 16),
+                    Text(
+                        'Size: ${FileUtils.getFileSizeDisplay(msgFileInfo.size)}'),
+                    textSmallGray(
+                        context, 'Encrypted by AES-256-CTR with one-time key'),
+                    if (downloadProgress > 0 && downloadProgress < 100)
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: LinearProgressIndicator(
+                          value: downloadProgress / 100,
+                        ),
+                      ),
+                    const SizedBox(height: 16),
+                    getStatusButton(),
+                    if (fileStatus == FileStatus.decryptSuccess &&
+                        msgFileInfo.localPath != null)
+                      Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: OutlinedButton.icon(
+                              onPressed: () async {
+                                String filePath =
+                                    '${Get.find<SettingController>().appFolder.path}${msgFileInfo.localPath!}';
+
+                                await Share.shareXFiles([XFile(filePath)],
+                                    subject: FileUtils.getDisplayFileName(
+                                        msgFileInfo.localPath!));
+                              },
+                              icon: const Icon(CupertinoIcons.share),
+                              label: const Text('More'))),
+                  ],
+                )))));
   }
 
   Widget getStatusButton() {

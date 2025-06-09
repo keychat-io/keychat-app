@@ -224,6 +224,11 @@ Fix:
         logger.d('onMessage done');
       });
 
+      // fcm onMessageOpenedApp listen
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        NotifyService.handleMessage(message);
+      });
+
       logger.i('fcmToken: $fcmToken');
       // fcm onTokenRefresh listen
       FirebaseMessaging.instance.onTokenRefresh.listen((fcmToken) {
@@ -276,6 +281,11 @@ Fix:
     } else {
       await NotifyService.clearAll();
     }
+  }
+
+  static void handleMessage(RemoteMessage message) {
+    if (message.data.isEmpty) return;
+    logger.d('handleMessage ${message.toMap()}');
   }
 }
 

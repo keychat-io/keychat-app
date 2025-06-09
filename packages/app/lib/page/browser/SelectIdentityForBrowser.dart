@@ -34,7 +34,8 @@ class _SelectIdentityForBrowserState extends State<SelectIdentityForBrowser> {
 
   @override
   Widget build(BuildContext context) {
-    return SettingsList(platform: DevicePlatform.iOS, sections: [
+    return SafeArea(
+        child: SettingsList(platform: DevicePlatform.iOS, sections: [
       if (identities.isNotEmpty)
         SettingsSection(
             title: Text('Request login to: ${widget.host}',
@@ -68,6 +69,6 @@ class _SelectIdentityForBrowserState extends State<SelectIdentityForBrowser> {
               init();
             })
       ])
-    ]);
+    ]));
   }
 }

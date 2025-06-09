@@ -33,7 +33,8 @@ class _SelectIdentityForwardState extends State<SelectIdentityForward> {
   @override
   Widget build(BuildContext context) {
     return identities.isNotEmpty
-        ? SettingsList(platform: DevicePlatform.iOS, sections: [
+        ? SafeArea(
+            child: SettingsList(platform: DevicePlatform.iOS, sections: [
             SettingsSection(
                 title: Text(widget.title,
                     style: Theme.of(context).textTheme.titleMedium),
@@ -47,7 +48,7 @@ class _SelectIdentityForwardState extends State<SelectIdentityForward> {
                           Get.back(result: iden);
                         }))
                     .toList()),
-          ])
+          ]))
         : pageLoadingSpinKit();
   }
 }

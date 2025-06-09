@@ -523,16 +523,19 @@ class CashuPage extends GetView<EcashController> {
 
   _handleReceive() {
     Get.bottomSheet(
+        ignoreSafeArea: false,
         clipBehavior: Clip.antiAlias,
         shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
-        SettingsList(platform: DevicePlatform.iOS, sections: [
+        SafeArea(
+            child: SettingsList(platform: DevicePlatform.iOS, sections: [
           SettingsSection(tiles: [
             SettingsTile.navigation(
               title: const Text('Receive Ecash'),
               onPressed: (context) async {
                 Get.back();
                 await Get.bottomSheet(
+                    ignoreSafeArea: false,
                     clipBehavior: Clip.antiAlias,
                     shape: const RoundedRectangleBorder(
                         borderRadius:
@@ -546,6 +549,7 @@ class CashuPage extends GetView<EcashController> {
               onPressed: (context) async {
                 Get.back();
                 await Get.bottomSheet(
+                    ignoreSafeArea: false,
                     clipBehavior: Clip.antiAlias,
                     shape: const RoundedRectangleBorder(
                         borderRadius:
@@ -555,12 +559,13 @@ class CashuPage extends GetView<EcashController> {
               },
             ),
           ])
-        ]));
+        ])));
   }
 
   _handleSend() {
     Get.bottomSheet(
-      SettingsList(platform: DevicePlatform.iOS, sections: [
+      SafeArea(
+          child: SettingsList(platform: DevicePlatform.iOS, sections: [
         SettingsSection(tiles: [
           SettingsTile.navigation(
             title: const Text('Send Ecash'),
@@ -589,7 +594,7 @@ class CashuPage extends GetView<EcashController> {
             },
           ),
         ])
-      ]),
+      ])),
       clipBehavior: Clip.antiAlias,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(4))),

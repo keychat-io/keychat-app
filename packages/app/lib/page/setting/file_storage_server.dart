@@ -65,9 +65,10 @@ class _FileStorageSettingState extends State<FileStorageSetting> {
                                 shape: const RoundedRectangleBorder(
                                     borderRadius: BorderRadius.vertical(
                                         top: Radius.circular(4))),
-                                SettingsList(
-                                    platform: DevicePlatform.iOS,
-                                    sections: [
+                                SafeArea(
+                                    child: SettingsList(
+                                        platform: DevicePlatform.iOS,
+                                        sections: [
                                       SettingsSection(
                                           title: const Text(
                                               'Select File Storage Server'),
@@ -100,7 +101,7 @@ class _FileStorageSettingState extends State<FileStorageSetting> {
                                                 ),
                                               )
                                               .toList())
-                                    ]));
+                                    ])));
                           },
                         ),
                       ],

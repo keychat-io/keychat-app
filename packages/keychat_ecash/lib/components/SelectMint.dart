@@ -54,8 +54,8 @@ class _SelectMintState extends State<SelectMint> {
       EasyLoading.showError('No mint available');
       return;
     }
-    String? mint = await Get.bottomSheet(
-        SettingsList(platform: DevicePlatform.iOS, sections: [
+    String? mint = await Get.bottomSheet(SafeArea(
+        child: SettingsList(platform: DevicePlatform.iOS, sections: [
       SettingsSection(
           tiles: ecashController.mintBalances
               .map((e) => SettingsTile(
@@ -66,7 +66,7 @@ class _SelectMintState extends State<SelectMint> {
                     },
                   ))
               .toList())
-    ]));
+    ])));
     if (mint != null) {
       setState(() {
         selected = mint;

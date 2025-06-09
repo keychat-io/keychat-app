@@ -274,33 +274,31 @@ class _ChatPage2State extends State<ChatPage> {
   Widget getSendMessageInput(BuildContext context, ChatController controller) {
     if (controller.roomObs.value.isMLSGroup &&
         !controller.roomObs.value.sentHelloToMLS) {
-      return _inputSectionContainer(Container(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          child: FilledButton(
-              onPressed: () async {
-                EasyThrottle.throttle('sendGreeting', Duration(seconds: 3),
-                    () async {
-                  try {
-                    EasyLoading.show(
-                        status:
-                            '1. Receving all messages... \n2. Sending greeting...');
-                    while (DateTime.now()
-                            .difference(controller.lastMessageAddedAt)
-                            .inMilliseconds <
-                        1500) {
-                      logger.d('wait for 300ms, then send greeting');
-                      await Future.delayed(const Duration(milliseconds: 300));
-                    }
-                    await MlsGroupService.instance
-                        .sendGreetingMessage(controller.roomObs.value);
-                    EasyLoading.dismiss();
-                  } catch (e) {
-                    String msg = Utils.getErrorMessage(e);
-                    EasyLoading.showError(msg);
-                  }
-                });
-              },
-              child: Text('Send Greeting'))));
+      return _inputSectionContainer(FilledButton(
+          onPressed: () async {
+            EasyThrottle.throttle('sendGreeting', Duration(seconds: 3),
+                () async {
+              try {
+                EasyLoading.show(
+                    status:
+                        '1. Receving all messages... \n2. Sending greeting...');
+                while (DateTime.now()
+                        .difference(controller.lastMessageAddedAt)
+                        .inMilliseconds <
+                    1500) {
+                  logger.d('wait for 300ms, then send greeting');
+                  await Future.delayed(const Duration(milliseconds: 300));
+                }
+                await MlsGroupService.instance
+                    .sendGreetingMessage(controller.roomObs.value);
+                EasyLoading.dismiss();
+              } catch (e) {
+                String msg = Utils.getErrorMessage(e);
+                EasyLoading.showError(msg);
+              }
+            });
+          },
+          child: Text('Send Greeting')));
     }
     switch (controller.roomObs.value.status) {
       case RoomStatus.requesting:
@@ -493,7 +491,9 @@ class _ChatPage2State extends State<ChatPage> {
                   shape: const RoundedRectangleBorder(
                       borderRadius:
                           BorderRadius.vertical(top: Radius.circular(4))),
-                  SettingsList(platform: DevicePlatform.iOS, sections: [
+                  SafeArea(
+                      child:
+                          SettingsList(platform: DevicePlatform.iOS, sections: [
                     SettingsSection(
                         title: const Text('Commands'),
                         tiles: controller.botCommands
@@ -525,7 +525,7 @@ class _ChatPage2State extends State<ChatPage> {
                               })
                         ],
                       )
-                  ]));
+                  ])));
             },
             child: Icon(
               size: 26,
@@ -724,40 +724,42 @@ class _ChatPage2State extends State<ChatPage> {
       if (lastChar == '@' && controller.inputTextIsAdd.value) {
         var members = controller.enableMembers.values.toList();
         RoomMember? roomMember = await Get.bottomSheet(
+            ignoreSafeArea: false,
             clipBehavior: Clip.antiAlias,
             shape: const RoundedRectangleBorder(
                 borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
-            Scaffold(
-                appBar: AppBar(
-                  leading: Container(),
-                  title: const Text('Select member to alert'),
-                ),
-                body: ListView.separated(
-                    controller: ScrollController(),
-                    separatorBuilder: (BuildContext context, int index) =>
-                        Divider(
-                            color: Theme.of(context)
-                                .dividerTheme
-                                .color
-                                ?.withValues(alpha: 0.05)),
-                    itemCount: members.length,
-                    itemBuilder: (context, index) {
-                      RoomMember rm = members[index];
-                      return ListTile(
-                          onTap: () {
-                            Get.back(result: members[index]);
-                          },
-                          leading: Utils.getRandomAvatar(rm.idPubkey,
-                              height: 36, width: 36),
-                          title: Text(
-                            rm.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 18,
-                            ),
-                          ));
-                    })));
+            SafeArea(
+                child: Scaffold(
+                    appBar: AppBar(
+                      leading: Container(),
+                      title: const Text('Select member to alert'),
+                    ),
+                    body: ListView.separated(
+                        controller: ScrollController(),
+                        separatorBuilder: (BuildContext context, int index) =>
+                            Divider(
+                                color: Theme.of(context)
+                                    .dividerTheme
+                                    .color
+                                    ?.withValues(alpha: 0.05)),
+                        itemCount: members.length,
+                        itemBuilder: (context, index) {
+                          RoomMember rm = members[index];
+                          return ListTile(
+                              onTap: () {
+                                Get.back(result: members[index]);
+                              },
+                              leading: Utils.getRandomAvatar(rm.idPubkey,
+                                  height: 36, width: 36),
+                              title: Text(
+                                rm.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                ),
+                              ));
+                        }))));
         if (roomMember != null) {
           controller.addMetionName(roomMember.name);
           controller.chatContentFocus.requestFocus();
@@ -798,7 +800,7 @@ class _ChatPage2State extends State<ChatPage> {
   Widget _inputSectionContainer(Widget child) {
     return SafeArea(
         child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20), child: child));
+            padding: const EdgeInsets.symmetric(vertical: 16), child: child));
   }
 
   Widget _exitInputSection() {

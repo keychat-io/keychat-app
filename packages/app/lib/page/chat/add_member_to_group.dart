@@ -146,7 +146,8 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SafeArea(
+        child: Scaffold(
       appBar:
           AppBar(centerTitle: true, title: const Text("Add Members"), actions: [
         FilledButton(
@@ -175,7 +176,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
                         trailing:
                             getAddMemeberCheckBox(widget.room.groupType, user));
                   })),
-    );
+    ));
   }
 
   Widget getAddMemeberCheckBox(GroupType groupType, Map<String, dynamic> user) {

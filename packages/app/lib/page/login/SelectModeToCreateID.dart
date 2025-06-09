@@ -20,7 +20,8 @@ class SelectModeToCreateId extends StatefulWidget {
 class _SelectModeToCreateIdState extends State<SelectModeToCreateId> {
   @override
   Widget build(BuildContext context) {
-    return SettingsList(platform: DevicePlatform.iOS, sections: [
+    return SafeArea(
+        child: SettingsList(platform: DevicePlatform.iOS, sections: [
       SettingsSection(title: const Text('Create ID'), tiles: [
         SettingsTile.navigation(
           leading: const Icon(Icons.local_activity),
@@ -65,6 +66,6 @@ class _SelectModeToCreateIdState extends State<SelectModeToCreateId> {
             },
           )
       ]),
-    ]);
+    ]));
   }
 }

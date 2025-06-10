@@ -294,7 +294,7 @@ jobs:
       - name: Remove provisioning profile specifier
         working-directory: ./packages/app/macos/Runner.xcodeproj
         run: |
-          sed -i '/"PROVISIONING_PROFILE_SPECIFIER\[sdk=macosx\*\]" = "keyme-mac";/d' project.pbxproj
+          sed -i '' '/"PROVISIONING_PROFILE_SPECIFIER\[sdk=macosx\*\]" = "keyme-mac";/d' project.pbxproj
       - name: Build-Mac-app
         working-directory: ./packages/app/
         run: |

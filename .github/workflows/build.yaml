@@ -182,6 +182,8 @@ jobs:
         with:
           flutter-version: "3.32.2"
           cache: true
+      - name: Flutter doctor -v
+        run: flutter doctor -v
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
         with:
@@ -191,6 +193,11 @@ jobs:
           dart pub global activate melos 7.0.0-dev.9
           dart pub global activate fastforge
           melos bootstrap
+      - name: Configure .env
+        working-directory: ./packages/app/
+        run: echo "$ENV_KEY" | base64 --decode > .env
+        env:
+          ENV_KEY: ${{ secrets.ENV_STG_BASE64 }}
       - name: Setup Google Services
         working-directory: ./packages/app/android/app/
         run: |
@@ -211,11 +218,10 @@ jobs:
       - name: Build-Android-APP
         working-directory: ./packages/app/
         run: |
-          echo "PROJECT_NAME=Keychat" > .env
           export PROTOC=$(which protoc)
           flutter build apk --release
-          mkdir ../../dist
-          cp -r ./packages/app/build/app/outputs/apk/release/*.apk ../../dist/
+          mkdir -p ../../dist
+          find build/app/outputs/apk/release/ -name "*.apk" -exec cp {} ../../dist/ \;
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
@@ -228,6 +234,155 @@ jobs:
           cd ./packages/app/ && rm -f .env
           rm -f android/app/keystore.jks
           rm -f android/key.properties
+          rm -f .env
+  build-macos:
+    if: false # Temporarily disabled for testing
+    runs-on: macos-15
+    needs: get-version
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 2
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.32.2"
+          cache: true
+      - name: Flutter doctor -v
+        run: flutter doctor -v
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: "29.3"
+      - name: Install melos-fastforge
+        run: |
+          dart pub global activate melos 7.0.0-dev.9
+          dart pub global activate fastforge
+          melos bootstrap
+      - name: Configure .env
+        working-directory: ./packages/app/
+        run: echo "$ENV_KEY" | base64 --decode > .env
+        env:
+          ENV_KEY: ${{ secrets.ENV_STG_BASE64 }}
+      - name: Setup Google Services
+        working-directory: ./packages/app/macos/Runner
+        run: |
+          echo "${{ secrets.GOOGLE_SERVICES_INFO }}" | base64 --decode > GoogleService-Info.plist
+      - name: Resolving macos dependencies
+        working-directory: ./packages/app/macos
+        run: pod install --repo-update
+      - name: Remove build cache
+        working-directory: ./packages/app/macos
+        run: |
+          echo "╠ Removing build products and intermediate files from the build root..."
+          xcodebuild clean
+      - name: Build-Mac-app
+        working-directory: ./packages/app/
+        run: |
+          export PROTOC=$(which protoc)
+          flutter build macos --release
+          mkdir ../../dist
+          cp -r ./packages/app/build/macos/Build/Products/Release/*.app ../../dist/
+
+      - name: Install certificates
+        env:
+          DEVELOPER_ID_APPLICATION_P12_BASE64_MAC: ${{ secrets.DEVELOPER_ID_APPLICATION_P12_BASE64_MAC }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          # create variables
+          DEVELOPER_ID_APPLICATION_CERTIFICATE_PATH=$RUNNER_TEMP/build_developerID_application_certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/pg-signing.keychain-db
+
+          # import certificate and provisioning profile from secrets
+          echo -n "$DEVELOPER_ID_APPLICATION_P12_BASE64_MAC" | base64 --decode --output $DEVELOPER_ID_APPLICATION_CERTIFICATE_PATH
+
+          # create temporary keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          # security default-keychain -s $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          # import certificate to keychain
+          security import $DEVELOPER_ID_APPLICATION_CERTIFICATE_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+      - name: Code Signing
+        run: /usr/bin/codesign --deep --force -s "$DEVELOPER_ID_APPLICATION_SIGNING_IDENTITY" --options runtime Keychat.app -v
+        working-directory: build/macos/Build/Products/Release-free
+        env:
+          DEVELOPER_ID_APPLICATION_SIGNING_IDENTITY: ${{ secrets.DEVELOPER_ID_APPLICATION_SIGNING_IDENTITY }}
+
+      - name: Notarize app
+        run: |
+          # We can't notarize an app bundle directly, but we need to compress it as an archive.
+          # Therefore, we create a zip file containing our app bundle, so that we can send it to the
+          # notarization service
+          echo "Creating temp notarization archive"
+          ditto -c -k --keepParent "Keychat.app" "Keychat.zip"
+
+          # Here we send the notarization request to the Apple's Notarization service, waiting for the result.
+          # This typically takes a few seconds inside a CI environment, but it might take more depending on the App
+          # characteristics. Visit the Notarization docs for more information and strategies on how to optimize it if
+          # you're curious
+          echo "Notarize app"
+          xcrun notarytool submit "Keychat.zip" --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_PASSWORD" --wait
+
+          # Finally, we need to "attach the staple" to our executable, which will allow our app to be
+          # validated by macOS even when an internet connection is not available.
+          echo "Attach staple"
+          xcrun stapler staple "Keychat.app"
+        working-directory: build/macos/Build/Products/Release-free
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+
+      - name: Build DMG
+        run: bash scripts/build-dmg.sh
+
+      - name: Set version
+        id: version_step
+        run: |
+          VERSION=$(yq '.version' pubspec.yaml)
+          echo "VERSION: $VERSION."
+
+          VERSION_SHORT=$(echo "$VERSION" | sed -e "s/+.*//")
+          echo "VERSION_SHORT: $VERSION_SHORT."
+
+          BUILD_NUMBER=$(echo "$VERSION" | sed -e "s/.*+//")
+          echo "BUILD_NUMBER: $BUILD_NUMBER."
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version_short=$VERSION_SHORT" >> $GITHUB_OUTPUT
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+
+      # Package the build.
+      - name: Copy build for dmg
+        run: |
+          echo "VERSION: $VERSION_SHORT.$BUILD_NUMBER"
+          ls -la *.dmg
+          mv Keychat.dmg Keychat-"$VERSION_SHORT.$BUILD_NUMBER"-macos-universal.dmg
+        env:
+          VERSION_SHORT: ${{ steps.version_step.outputs.version_short }}
+          BUILD_NUMBER: ${{ steps.version_step.outputs.build_number }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg-artifact
+          path: ./*.dmg
+
+      - name: Clean up
+        if: ${{ always() }}
+        run: |
+          if [ -f "$RUNNER_TEMP/pg-signing.keychain-db" ]; then
+            echo "$RUNNER_TEMP/pg-signing.keychain-db"
+            security delete-keychain $RUNNER_TEMP/pg-signing.keychain-db
+          fi
           rm -f .env
   upload:
     if: false # Temporarily disabled for testing

@@ -19,14 +19,14 @@
         <td>Android</td>
             <td>
                 <a href="https://github.com/keychat-io/keychat-app/releases/download/vVERSION/Keychat-VERSION-android-arm64-v8a.apk"><img src="https://img.shields.io/badge/APK-ARMv8-168039.svg?logo=android"></a><br>
-                <a href="https://github.com/keychat-io/keychat-app/releases/download/vVERSION/Keychat-VERSION-android-armeabi-v7a.apk"><img src="https://img.shields.io/badge/APK-ARMv7-45bf55.svg?logo=android"></a><br>
+                <a href="https://github.com/keychat-io/keychat-app/releases/download/vVERSION/Keychat-VERSION-android-universal.apk"><img src="https://img.shields.io/badge/APK-Universal-45bf55.svg?logo=android"></a><br>
                 <a href="https://github.com/keychat-io/keychat-app/releases/download/vVERSION/Keychat-VERSION-android-x86_64.apk"><img src="https://img.shields.io/badge/APK-x64-96ed89.svg?logo=android"></a>
             </td>
         </tr>
         <tr>
             <td>Windows</td>
             <td>
-                <a href="https://github.com/keychat-io/keychat-app/releases/download/vVERSION/Keychat-VERSION-windows-amd64-setup.exe"><img src="https://img.shields.io/badge/Setup-x64-2d7d9a.svg?logo=windows"></a><br>
+                <a href="https://github.com/keychat-io/keychat-app/releases/download/vVERSION/Keychat-VERSION-windows-x86_64-setup.exe"><img src="https://img.shields.io/badge/Setup-x64-2d7d9a.svg?logo=windows"></a><br>
             </td>
         </tr>
         <tr>

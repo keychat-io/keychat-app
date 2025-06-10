@@ -1,6 +1,6 @@
 <div align=center>
 
-[![Release Downloads](https://img.shields.io/github/downloads/keychat-io/keychat-app/vVERSION/total?style=flat-square&logo=github)](https://img.shields.io/github/downloads/keychat-io/keychat-app/vVERSION/)
+[![Downloads](https://img.shields.io/github/downloads/keychat-io/keychat-app/total?style=flat-square&logo=github)](https://github.com/keychat-io/keychat-apph/releases/)[![License](https://img.shields.io/github/license/keychat-io/keychat-app)](LICENSE)
 
 </div>
 

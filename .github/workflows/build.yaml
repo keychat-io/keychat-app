@@ -52,7 +52,7 @@ jobs:
           echo "version_short=$VERSION_SHORT" >> $GITHUB_OUTPUT
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
   build-linux:
-    # if: false # Temporarily disabled for testing
+    if: false # Temporarily disabled for testing
     runs-on: ubuntu-22.04
     needs: get-version
     steps:
@@ -114,7 +114,7 @@ jobs:
           cd ./packages/app/ && rm -f .env
 
   build-windows:
-    # if: false # Temporarily disabled for testing
+    if: false # Temporarily disabled for testing
     runs-on: windows-latest
     needs: get-version
     steps:
@@ -148,7 +148,7 @@ jobs:
         working-directory: ./packages/app/
         run: |
           echo "PROJECT_NAME=Keychat" | Out-File -FilePath .env -Encoding utf8
-          fastforge package --platform windows --targets exe
+          fastforge package --platform windows --targets exe --artifact-name 'Keychat-{{build_name}}+{{build_number}}-{{platform}}-x86_64.{{ext}}'
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
@@ -230,6 +230,7 @@ jobs:
           rm -f android/key.properties
           rm -f .env
   upload:
+    if: false # Temporarily disabled for testing
     permissions: write-all
     needs: [get-version, build-windows, build-linux]
     runs-on: ubuntu-latest

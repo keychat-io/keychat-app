@@ -351,7 +351,7 @@ jobs:
           # validated by macOS even when an internet connection is not available.
           echo "Attach staple"
           xcrun stapler staple "Keychat.app"
-        working-directory: build/macos/Build/Products/Release
+        working-directory: ./packages/app/build/macos/Build/Products/Release
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
@@ -368,7 +368,7 @@ jobs:
           echo "VERSION: $BUILD_NAME+$BUILD_NUMBER"
           ls -la *.dmg
           mkdir -p ../../dist
-          mv Keychat.dmg ../../dist/Keychat-"$BUILD_NAME+$BUILD_NUMBER"-macos-arm64.dmg
+          cp ./macos/Build/Products/Release/Keychat.dmg ../../dist/Keychat-"$BUILD_NAME+$BUILD_NUMBER"-macos-arm64.dmg
         env:
           BUILD_NAME: ${{ needs.get-version.outputs.version_short }}
           BUILD_NUMBER: ${{ needs.get-version.outputs.build_number }}

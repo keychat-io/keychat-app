@@ -291,18 +291,6 @@ jobs:
       #   run: |
       #     echo "╠ Removing build products and intermediate files from the build root..."
       #     xcodebuild clean
-      - name: Remove provisioning profile specifier
-        working-directory: ./packages/app/macos/Runner.xcodeproj
-        run: |
-          sed -i '' '/"PROVISIONING_PROFILE_SPECIFIER\[sdk=macosx\*\]" = "keyme-mac";/d' project.pbxproj
-      - name: Build-Mac-app
-        working-directory: ./packages/app/
-        run: |
-          export PROTOC=$(which protoc)
-          flutter build macos --release
-          mkdir ../../dist
-          cp -r ./packages/app/build/macos/Build/Products/Release/*.app ../../dist/
-
       - name: Install certificates
         env:
           DEVELOPER_ID_APPLICATION_P12_BASE64_MAC: ${{ secrets.DEVELOPER_ID_APPLICATION_P12_BASE64_MAC }}
@@ -311,7 +299,7 @@ jobs:
         run: |
           # create variables
           DEVELOPER_ID_APPLICATION_CERTIFICATE_PATH=$RUNNER_TEMP/build_developerID_application_certificate.p12
-          KEYCHAIN_PATH=$RUNNER_TEMP/pg-signing.keychain-db
+          KEYCHAIN_PATH=$RUNNER_TEMP/keyme-mac.keychain-db
 
           # import certificate and provisioning profile from secrets
           echo -n "$DEVELOPER_ID_APPLICATION_P12_BASE64_MAC" | base64 --decode --output $DEVELOPER_ID_APPLICATION_CERTIFICATE_PATH
@@ -327,9 +315,16 @@ jobs:
           security list-keychain -d user -s $KEYCHAIN_PATH
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
 
+      - name: Build-Mac-app
+        working-directory: ./packages/app/
+        run: |
+          export PROTOC=$(which protoc)
+          flutter build macos --release 
+          # mkdir ../../dist
+          # cp -r ./packages/app/build/macos/Build/Products/Release/*.app ../../dist/
       - name: Code Signing
         run: /usr/bin/codesign --deep --force -s "$DEVELOPER_ID_APPLICATION_SIGNING_IDENTITY" --options runtime Keychat.app -v
-        working-directory: build/macos/Build/Products/Release
+        working-directory: ./packages/app/build/macos/Build/Products/Release
         env:
           DEVELOPER_ID_APPLICATION_SIGNING_IDENTITY: ${{ secrets.DEVELOPER_ID_APPLICATION_SIGNING_IDENTITY }}
 
@@ -384,9 +379,9 @@ jobs:
         working-directory: ./packages/app
         if: ${{ always() }}
         run: |
-          if [ -f "$RUNNER_TEMP/pg-signing.keychain-db" ]; then
-            echo "$RUNNER_TEMP/pg-signing.keychain-db"
-            security delete-keychain $RUNNER_TEMP/pg-signing.keychain-db
+          if [ -f "$RUNNER_TEMP/keyme-mac.keychain-db" ]; then
+            echo "$RUNNER_TEMP/keyme-mac.keychain-db"
+            security delete-keychain $RUNNER_TEMP/keyme-mac.keychain-db
           fi
           rm -f .env
   upload:

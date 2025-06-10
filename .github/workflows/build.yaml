@@ -317,7 +317,8 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
 
           # import provisioning profile
-          echo $MACOS_PROVISIONING_PROFILE_BASE64 | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/keyme-mac.provisionprofile
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo $MACOS_PROVISIONING_PROFILE_BASE64 | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/b4d153f3-08ed-42a2-8b2e-1b930b592df0.provisionprofile
       - name: Build-Mac-app
         working-directory: ./packages/app/
         run: |

@@ -254,10 +254,15 @@ jobs:
         with:
           xcode-version: "16.2"
       - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+        uses: flutter-actions/setup-flutter@v4
         with:
           flutter-version: "3.32.2"
           cache: true
+      - name: Install melos-fastforge
+        run: |
+          dart pub global activate melos 7.0.0-dev.9
+          dart pub global activate fastforge
+          melos bootstrap
       - name: Flutter doctor -v
         run: flutter doctor -v
       - name: Install Protoc
@@ -265,11 +270,6 @@ jobs:
         with:
           version: "29.3"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Install melos-fastforge
-        run: |
-          dart pub global activate melos 7.0.0-dev.9
-          dart pub global activate fastforge
-          melos bootstrap
       - name: Configure .env
         working-directory: ./packages/app/
         run: echo "$ENV_KEY" | base64 --decode > .env

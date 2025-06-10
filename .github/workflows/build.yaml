@@ -20,6 +20,10 @@ on:
       - "workflow"
     tags:
       - "v*"
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   # .ref == refs/heads/feature/new-login
   # .ref_name == new-login
@@ -279,14 +283,14 @@ jobs:
         working-directory: ./packages/app/macos/Runner
         run: |
           echo "${{ secrets.GOOGLE_SERVICES_INFO }}" | base64 --decode > GoogleService-Info.plist
-      - name: Resolving macos dependencies
-        working-directory: ./packages/app/macos
-        run: pod install --repo-update
-      - name: Remove build cache
-        working-directory: ./packages/app/macos
-        run: |
-          echo "╠ Removing build products and intermediate files from the build root..."
-          xcodebuild clean
+      # - name: Resolving macos dependencies
+      #   working-directory: ./packages/app/macos
+      #   run: pod install --repo-update
+      # - name: Remove build cache
+      #   working-directory: ./packages/app/macos
+      #   run: |
+      #     echo "╠ Removing build products and intermediate files from the build root..."
+      #     xcodebuild clean
       - name: Build-Mac-app
         working-directory: ./packages/app/
         run: |

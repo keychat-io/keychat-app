@@ -5,6 +5,5 @@
 # Xcode-related
 **/dgph
 **/xcuserdata/
-**/*project.pbxproj
 **/GoogleService-Info.plist
 *.p12

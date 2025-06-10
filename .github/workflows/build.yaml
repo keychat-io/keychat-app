@@ -291,6 +291,10 @@ jobs:
       #   run: |
       #     echo "╠ Removing build products and intermediate files from the build root..."
       #     xcodebuild clean
+      - name: Remove provisioning profile specifier
+        working-directory: ./packages/app/macos/Runner.xcodeproj
+        run: |
+          sed -i '/"PROVISIONING_PROFILE_SPECIFIER\[sdk=macosx\*\]" = "keyme-mac";/d' project.pbxproj
       - name: Build-Mac-app
         working-directory: ./packages/app/
         run: |

@@ -839,9 +839,10 @@ class _WebviewTabState extends State<WebviewTab> {
             .urlEqualTo(uri.toString())
             .findFirst();
         if (exist == null) {
+          logger.d('add bookmark: ${uri.toString()}');
           String? favicon = await controller
               .getFavicon(tc.webViewController!, uri.host)
-              .timeout(const Duration(seconds: 10));
+              .timeout(const Duration(seconds: 3));
           String? siteTitle = await tc.webViewController?.getTitle();
           await BrowserBookmark.add(
               url: uri.toString(), favicon: favicon, title: siteTitle);

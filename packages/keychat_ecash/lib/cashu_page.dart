@@ -31,7 +31,11 @@ class CashuPage extends GetView<EcashController> {
                 runAlignment: WrapAlignment.center,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  FilledButton(onPressed: _handleSend, child: Text('Send')),
+                  SizedBox(
+                    width: 120,
+                    child: FilledButton(
+                        onPressed: _handleSend, child: Text('Send')),
+                  ),
                   IconButton(
                       color: Theme.of(context).colorScheme.primary,
                       onPressed: () {
@@ -39,8 +43,11 @@ class CashuPage extends GetView<EcashController> {
                       },
                       icon: const Icon(CupertinoIcons.qrcode_viewfinder,
                           size: 24)),
-                  FilledButton(
-                      onPressed: _handleReceive, child: Text('Receive')),
+                  SizedBox(
+                    width: 120,
+                    child: FilledButton(
+                        onPressed: _handleReceive, child: Text('Receive')),
+                  ),
                 ])
           ],
         ));

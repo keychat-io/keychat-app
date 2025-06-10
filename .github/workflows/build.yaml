@@ -114,7 +114,7 @@ jobs:
           cd ./packages/app/ && rm -f .env
 
   build-windows:
-    if: false # Temporarily disabled for testing
+    # if: false # Temporarily disabled for testing
     runs-on: windows-latest
     needs: get-version
     steps:

@@ -7,3 +7,4 @@
 **/xcuserdata/
 **/*project.pbxproj
 **/GoogleService-Info.plist
+*.p12

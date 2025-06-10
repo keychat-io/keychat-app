@@ -52,7 +52,7 @@ jobs:
           echo "version_short=$VERSION_SHORT" >> $GITHUB_OUTPUT
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
   build-linux:
-    if: false # Temporarily disabled for testing
+    # if: false # Temporarily disabled for testing
     runs-on: ubuntu-22.04
     needs: get-version
     steps:
@@ -114,7 +114,7 @@ jobs:
           cd ./packages/app/ && rm -f .env
 
   build-windows:
-    if: false # Temporarily disabled for testing
+    # if: false # Temporarily disabled for testing
     runs-on: windows-latest
     needs: get-version
     steps:
@@ -222,6 +222,7 @@ jobs:
           flutter build apk --release
           mkdir -p ../../dist
           find build/app/outputs/apk/release/ -name "*.apk" -exec cp {} ../../dist/ \;
+          rm -rf build/
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
@@ -312,7 +313,7 @@ jobs:
 
       - name: Code Signing
         run: /usr/bin/codesign --deep --force -s "$DEVELOPER_ID_APPLICATION_SIGNING_IDENTITY" --options runtime Keychat.app -v
-        working-directory: build/macos/Build/Products/Release-free
+        working-directory: build/macos/Build/Products/Release
         env:
           DEVELOPER_ID_APPLICATION_SIGNING_IDENTITY: ${{ secrets.DEVELOPER_ID_APPLICATION_SIGNING_IDENTITY }}
 
@@ -335,7 +336,7 @@ jobs:
           # validated by macOS even when an internet connection is not available.
           echo "Attach staple"
           xcrun stapler staple "Keychat.app"
-        working-directory: build/macos/Build/Products/Release-free
+        working-directory: build/macos/Build/Products/Release
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
@@ -345,38 +346,26 @@ jobs:
       - name: Build DMG
         run: bash scripts/build-dmg.sh
 
-      - name: Set version
-        id: version_step
-        run: |
-          VERSION=$(yq '.version' pubspec.yaml)
-          echo "VERSION: $VERSION."
-
-          VERSION_SHORT=$(echo "$VERSION" | sed -e "s/+.*//")
-          echo "VERSION_SHORT: $VERSION_SHORT."
-
-          BUILD_NUMBER=$(echo "$VERSION" | sed -e "s/.*+//")
-          echo "BUILD_NUMBER: $BUILD_NUMBER."
-
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "version_short=$VERSION_SHORT" >> $GITHUB_OUTPUT
-          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
-
       # Package the build.
       - name: Copy build for dmg
+        working-directory: ./packages/app
         run: |
-          echo "VERSION: $VERSION_SHORT.$BUILD_NUMBER"
+          echo "VERSION: $BUILD_NAME+$BUILD_NUMBER"
           ls -la *.dmg
-          mv Keychat.dmg Keychat-"$VERSION_SHORT.$BUILD_NUMBER"-macos-universal.dmg
+          mkdir -p ../../dist
+          mv Keychat.dmg ../../dist/Keychat-"$BUILD_NAME+$BUILD_NUMBER"-macos-arm64.dmg
         env:
-          VERSION_SHORT: ${{ steps.version_step.outputs.version_short }}
-          BUILD_NUMBER: ${{ steps.version_step.outputs.build_number }}
+          BUILD_NAME: ${{ needs.get-version.outputs.version_short }}
+          BUILD_NUMBER: ${{ needs.get-version.outputs.build_number }}
 
       - uses: actions/upload-artifact@v4
         with:
           name: macos-dmg-artifact
-          path: ./*.dmg
+          path: ./dist
+          overwrite: true
 
       - name: Clean up
+        working-directory: ./packages/app
         if: ${{ always() }}
         run: |
           if [ -f "$RUNNER_TEMP/pg-signing.keychain-db" ]; then
@@ -385,9 +374,9 @@ jobs:
           fi
           rm -f .env
   upload:
-    if: false # Temporarily disabled for testing
+    # if: false # Temporarily disabled for testing
     permissions: write-all
-    needs: [get-version, build-windows, build-linux]
+    needs: [get-version, build-windows, build-linux, build-android]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

@@ -275,6 +275,9 @@ jobs:
         working-directory: ./packages/app/macos/Runner
         run: |
           echo "${{ secrets.GOOGLE_SERVICES_INFO }}" | base64 --decode > GoogleService-Info.plist
+      - name: Pub get
+        working-directory: ./packages/app
+        run: flutter pub get
       - name: Resolving macos dependencies
         working-directory: ./packages/app/macos
         run: pod install --repo-update

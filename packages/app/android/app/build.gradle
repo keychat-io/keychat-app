@@ -90,7 +90,7 @@ android {
             
             def abiSuffix = abiName ? "-${abiName}" : "-universal"
             
-            outputFileName = "Keychat-${flutterVersionName}-android${abiSuffix}.apk"
+            outputFileName = "Keychat-${flutterVersionName}+${flutterVersionCode}-android${abiSuffix}.apk"
         }
     }
 }

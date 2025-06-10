@@ -410,6 +410,7 @@ jobs:
           echo "Directory $BUILD_DIR not found. Current structure:"
           find ./dist -type d | sort
           fi
+          ls
         env:
           BUILD_NAME: ${{ needs.get-version.outputs.version_short }}
           BUILD_NUMBER: ${{ needs.get-version.outputs.build_number }}

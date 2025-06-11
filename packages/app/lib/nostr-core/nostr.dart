@@ -656,7 +656,7 @@ class NostrAPI {
         await IdentityService.instance.getIdentityByNostrPubkey(to);
     if (identity != null) {
       if (identity.isFromSigner) {
-        return await SignerService.instance.nip44Decrypt(event);
+        return await SignerService.instance.nip44DecryptEvent(event);
       }
       myPrivateKey = await SecureStorage.instance
           .readPrikeyOrFail(identity.secp256k1PKHex);

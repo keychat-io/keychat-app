@@ -471,6 +471,8 @@ window.addEventListener('DOMContentLoaded', function(event) {
       source: kTextSizeSourceJS,
       injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START);
 
+  RxBool isFavoriteEditMode = false.obs;
+
   Future setTextsize(int textSize) async {
     kInitialTextSize.value = textSize;
     kTextSizeSourceJS = """
@@ -489,6 +491,31 @@ window.addEventListener('DOMContentLoaded', function(event) {
       return url.replaceFirst('https://', '');
     }
     return url;
+  }
+
+  Widget quickSectionItem(Widget icon, String title, String url,
+      {required BuildContext context,
+      required VoidCallback onTap,
+      Key? key,
+      VoidCallback? onLongPress,
+      Future Function(TapDownDetails e)? onSecondaryTapDown}) {
+    return GestureDetector(
+      key: key,
+      onTap: onTap,
+      onLongPress: onLongPress,
+      onSecondaryTapDown: onSecondaryTapDown,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        spacing: 8,
+        children: [
+          icon,
+          Text(title,
+              maxLines: 1,
+              style: Theme.of(context).textTheme.bodySmall,
+              overflow: TextOverflow.ellipsis)
+        ],
+      ),
+    );
   }
 }
 

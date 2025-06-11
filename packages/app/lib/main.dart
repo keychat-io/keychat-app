@@ -4,6 +4,7 @@ import 'package:app/desktop/DesktopController.dart';
 import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/service/chatx.service.dart';
+import 'package:app/service/notify.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:app/utils/MyCustomScrollBehavior.dart';
@@ -70,6 +71,12 @@ void main() async {
     stopwatch.stop();
     logger.i("app launched: ${stopwatch.elapsedMilliseconds} ms");
   });
+
+  RemoteMessage? initialMessage =
+      await FirebaseMessaging.instance.getInitialMessage();
+  if (initialMessage != null) {
+    NotifyService.handleMessage(initialMessage);
+  }
 }
 
 Future<String> getInitRoute(bool isLogin) async {
@@ -119,9 +126,9 @@ Future<SettingController> initServices() async {
             name: GetPlatform.isAndroid ? 'keychat' : null,
             options: DefaultFirebaseOptions.currentPlatform)
         .then((_) {
+      logger.i('Firebase initialized in main');
       FirebaseMessaging.onBackgroundMessage(
           _firebaseMessagingBackgroundHandler);
-      logger.i('Firebase initialized in main');
     }, onError: (error) {
       logger.e('Firebase initialize failed: $error');
     });

@@ -233,11 +233,13 @@ showFitSheetWidget(BuildContext context, String title, List<Widget> bodys,
 
 getGroupInfoBottomSheetWidget(BuildContext context) {
   Get.bottomSheet(
+      ignoreSafeArea: false,
       clipBehavior: Clip.antiAlias,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
-      Scaffold(
-          body: ListView(
+      SafeArea(
+          child: Scaffold(
+              body: ListView(
         children: [
           ListTile(
             title: Text('Large Group - MLS Protocol',
@@ -250,9 +252,7 @@ getGroupInfoBottomSheetWidget(BuildContext context) {
             subtitle: Text(RoomUtil.getGroupModeDescription(GroupType.sendAll)),
           ),
         ],
-      )),
-      isScrollControlled: true,
-      ignoreSafeArea: false);
+      ))));
 }
 
 Widget codeSnippet(String text) {

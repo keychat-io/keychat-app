@@ -171,7 +171,8 @@ Expire At: ${DateFormat("yyyy-MM-ddTHH:mm:ss").format(DateTime.fromMillisecondsS
       if (Get.isBottomSheetOpen ?? false) {
         return null;
       }
-      return await Get.bottomSheet<Transaction>(PayToLnurl(data));
+      return await Get.bottomSheet<Transaction>(
+          ignoreSafeArea: false, PayToLnurl(data));
     }
     return null;
   }

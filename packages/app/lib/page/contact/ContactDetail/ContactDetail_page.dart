@@ -72,7 +72,8 @@ class ContactDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     ContactDetailController controller =
         Get.put(ContactDetailController(contact));
-    return Scaffold(
+    return SafeArea(
+        child: Scaffold(
       body: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
@@ -155,7 +156,7 @@ class ContactDetailPage extends StatelessWidget {
                       ]))),
         ],
       ),
-    );
+    ));
   }
 
   Future handleUpdateContact(

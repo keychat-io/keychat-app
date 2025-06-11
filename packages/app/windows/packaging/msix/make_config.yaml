@@ -1,5 +1,6 @@
 display_name: Keychat
-publisher_display_name: KEYME
+publisher: KEYME PTE. LTD.
+publisher_display_name: KEYME PTE. LTD.
 identity_name: com.keychat.io
 logo_path: assets/images/logo.png
 capabilities: internetClient, webcam, documentsLibrary

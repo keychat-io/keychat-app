@@ -64,7 +64,8 @@ class Identity extends Equatable {
 
   Future<String?> getCurve25519SkHex() async {
     if (curve25519PkHex == null) return null;
-    return await SecureStorage.instance.readPrikeyOrFail(curve25519PkHex!);
+    return await SecureStorage.instance
+        .readCurve25519PrikeyOrFail(curve25519PkHex!);
   }
 
   Future<String?> getMnemonic() async {

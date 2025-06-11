@@ -368,7 +368,7 @@ jobs:
           echo "VERSION: $BUILD_NAME+$BUILD_NUMBER"
           ls -la *.dmg
           mkdir -p ../../dist
-          cp ./macos/Build/Products/Release/Keychat.dmg ../../dist/Keychat-"$BUILD_NAME+$BUILD_NUMBER"-macos-arm64.dmg
+          cp Keychat.dmg ../../dist/Keychat-"$BUILD_NAME+$BUILD_NUMBER"-macos-arm64.dmg
         env:
           BUILD_NAME: ${{ needs.get-version.outputs.version_short }}
           BUILD_NUMBER: ${{ needs.get-version.outputs.build_number }}
@@ -388,6 +388,7 @@ jobs:
             security delete-keychain $RUNNER_TEMP/pg-signing.keychain-db
           fi
           rm -f .env
+          rm -f macos/Runner/GoogleService-Info.plist
   upload:
     if: false # Temporarily disabled for testing
     permissions: write-all

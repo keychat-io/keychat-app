@@ -359,7 +359,6 @@ jobs:
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
 
       - name: Build DMG
-        working-directory: ./packages/app
         run: bash scripts/build-dmg.sh
 
       # Package the build.

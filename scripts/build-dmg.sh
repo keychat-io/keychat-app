@@ -9,6 +9,8 @@ fi
 
 create-dmg --version
 
+cd packages/app
+
 if [ ! -d "./macos/Build/Products/Release" ]; then
   echo "🟨 No build found, please run 'flutter build macos --release' first."
   exit 1

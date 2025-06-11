@@ -137,8 +137,12 @@ class NotifyService {
     }
   }
 
-  static Future requestPremissionAndInit() async {
-    await FirebaseMessaging.instance.requestPermission(
+  static Future init() async {
+    if (GetPlatform.isLinux || GetPlatform.isWindows) {
+      logger.d('Notification not working on windows and linux');
+      return;
+    }
+    var settings = await FirebaseMessaging.instance.requestPermission(
       alert: true,
       announcement: false,
       badge: true,
@@ -147,15 +151,6 @@ class NotifyService {
       provisional: true,
       sound: true,
     );
-    await init();
-  }
-
-  static Future init() async {
-    if (GetPlatform.isLinux || GetPlatform.isWindows) {
-      logger.d('Notification not working on windows and linux');
-      return;
-    }
-    var settings = await FirebaseMessaging.instance.getNotificationSettings();
     logger.i('Notification Status: ${settings.authorizationStatus.name}');
     // app setting
     if (settings.authorizationStatus == AuthorizationStatus.denied) return;
@@ -207,11 +202,16 @@ Fix:
       });
       // end get fcm timeout
       if (fcmToken != null) {
-        Storage.setString(StorageKeyString.notificationFCMToken, fcmToken);
+        await Storage.setString(
+            StorageKeyString.notificationFCMToken, fcmToken);
+        RemoteMessage? initialMessage =
+            await FirebaseMessaging.instance.getInitialMessage();
+        if (initialMessage != null) {
+          NotifyService.handleMessage(initialMessage);
+        }
       }
 
       // fcm onMessage listen
-      loggerNoLine.d('fcm onMessage listen');
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
         logger.d('notification: ${message.data}');
 
@@ -234,6 +234,7 @@ Fix:
       FirebaseMessaging.instance.onTokenRefresh.listen((fcmToken) {
         logger.i('onTokenRefresh: $fcmToken');
         NotifyService.fcmToken = fcmToken;
+        Storage.setString(StorageKeyString.notificationFCMToken, fcmToken);
         NotifyService.syncPubkeysToServer(checkUpload: false);
       }).onError((err) {
         logger.e('onTokenRefresh', error: err);

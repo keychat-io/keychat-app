@@ -459,7 +459,6 @@ class ChatController extends GetxController {
 
   @override
   onReady() {
-    logger.d('ChatController onReady: ${roomObs.value.id}');
     // jump to bottom after 200ms
     Future.delayed(const Duration(milliseconds: 200), () {
       Timer(const Duration(milliseconds: 300), () {

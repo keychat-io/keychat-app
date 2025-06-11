@@ -148,7 +148,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                         builder: (context, snapshot) {
                           if (snapshot.data == null) {
                             return Padding(
-                                padding: EdgeInsetsGeometry.only(top: 8),
+                                padding: EdgeInsets.only(top: 8),
                                 child: NoticeTextWidget.error(
                                     'Private key not found',
                                     fontSize: 12,

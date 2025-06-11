@@ -20,6 +20,7 @@ import 'package:app/service/signal_chat_util.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
+import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/foundation.dart' show Uint8List;
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
@@ -720,52 +721,53 @@ $error ''';
     if (onlineRelays.isEmpty) {
       throw Exception('No relays available');
     }
-    identities ??= Get.find<HomeController>().allIdentities.values.toList();
-
-    await Future.wait(identities.map((identity) async {
-      String stateKey =
-          '${StorageKeyString.mlsStates}:${identity.secp256k1PKHex}';
-      String statePK =
-          '${StorageKeyString.mlsPKIdentity}:${identity.secp256k1PKHex}';
-      if (forceUpload) {
-        await Storage.removeString(stateKey);
-        await Storage.removeString(statePK);
-      } else {
-        if (toRelay != null) {
-          List mlsStates = await Storage.getStringList(stateKey);
-          if (mlsStates.contains(toRelay)) {
-            loggerNoLine
-                .d('Already uploaded to $toRelay ${identity.secp256k1PKHex}');
-            return;
+    EasyThrottle.throttle('uploadKeyPackages$toRelay', Duration(seconds: 1),
+        () async {
+      identities ??= Get.find<HomeController>().allIdentities.values.toList();
+      if (identities == null) return;
+      await Future.wait(identities!.map((identity) async {
+        String stateKey =
+            '${StorageKeyString.mlsStates}:${identity.secp256k1PKHex}';
+        String statePK =
+            '${StorageKeyString.mlsPKIdentity}:${identity.secp256k1PKHex}';
+        if (forceUpload) {
+          await Storage.removeString(stateKey);
+          await Storage.removeString(statePK);
+        } else {
+          if (toRelay != null) {
+            List mlsStates = await Storage.getStringList(stateKey);
+            if (mlsStates.contains(toRelay)) {
+              return;
+            }
           }
         }
-      }
-      logger.d(
-          '${EventKinds.mlsNipKeypackages} start: ${identity.secp256k1PKHex}');
-      String event = await _getOrCreateEvent(identity, statePK, onlineRelays);
+        logger.d(
+            '${EventKinds.mlsNipKeypackages} start: ${identity.secp256k1PKHex}');
+        String event = await _getOrCreateEvent(identity, statePK, onlineRelays);
 
-      Get.find<WebsocketService>().sendMessageWithCallback(event,
-          relays: toRelay == null ? null : [toRelay], callback: (
-              {required String relay,
-              required String eventId,
-              required bool status,
-              String? errorMessage}) async {
-        List mlsStates = await Storage.getStringList(stateKey);
-        if (status) {
-          var set = Set.from(mlsStates);
-          set.add(relay);
-          // cache state
-          await Storage.setStringList(stateKey, List.from(set));
-        }
-        NostrAPI.instance.removeOKCallback(eventId);
-        var map = {
-          'relay': relay,
-          'status': status,
-          'errorMessage': errorMessage,
-        };
-        loggerNoLine.i('Kind: ${EventKinds.mlsNipKeypackages}, relay: $map');
-      });
-    }));
+        Get.find<WebsocketService>().sendMessageWithCallback(event,
+            relays: toRelay == null ? null : [toRelay], callback: (
+                {required String relay,
+                required String eventId,
+                required bool status,
+                String? errorMessage}) async {
+          List mlsStates = await Storage.getStringList(stateKey);
+          if (status) {
+            var set = Set.from(mlsStates);
+            set.add(relay);
+            // cache state
+            await Storage.setStringList(stateKey, List.from(set));
+          }
+          NostrAPI.instance.removeOKCallback(eventId);
+          var map = {
+            'relay': relay,
+            'status': status,
+            'errorMessage': errorMessage,
+          };
+          loggerNoLine.i('Kind: ${EventKinds.mlsNipKeypackages}, relay: $map');
+        });
+      }));
+    });
   }
 
   Future<(Room, String?)> _handleGroupInfo(

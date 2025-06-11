@@ -227,7 +227,7 @@ class MoreChatSetting extends StatelessWidget {
               if (setting.authorizationStatus ==
                       AuthorizationStatus.notDetermined ||
                   NotifyService.fcmToken == null) {
-                await NotifyService.requestPremissionAndInit();
+                await NotifyService.init();
               }
 
               await NotifyService.updateUserSetting(true);

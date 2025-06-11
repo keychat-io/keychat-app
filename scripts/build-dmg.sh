@@ -10,8 +10,7 @@ fi
 create-dmg --version
 
 cd packages/app
-
-if [ ! -d "./macos/Build/Products/Release" ]; then
+if [ ! -d "./build/macos/Build/Products/Release" ]; then
   echo "🟨 No build found, please run 'flutter build macos --release' first."
   exit 1
 fi
@@ -20,7 +19,7 @@ APP_NAME="Keychat"
 BASE_APP_DIR="$APP_NAME.app"
 APP_FILE_NAME="$APP_NAME.dmg"
 PACK_DIR="./macos/packaging"
-TARGET_DIR="./macos/Build/Products/Release"
+TARGET_DIR="./build/macos/Build/Products/Release"
 
 test -f "$APP_FILE_NAME" && rm -f "$APP_FILE_NAME"
 

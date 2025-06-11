@@ -271,7 +271,7 @@ class ChatxService extends GetxService {
       throw Exception('curve25519PkHex_is_null');
     }
     var prikey = await SecureStorage.instance
-        .readPrikeyOrFail(identity.curve25519PkHex!);
+        .readCurve25519PrikeyOrFail(identity.curve25519PkHex!);
     return _getKeyPair(identity.curve25519PkHex!, prikey);
   }
 

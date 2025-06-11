@@ -418,7 +418,6 @@ jobs:
           version=$BUILD_NAME+$BUILD_NUMBER
           echo "Patching release.md with version: $version"
           echo "## Keychat $version" > release.md
-          echo "Release date: $(date -u +'%Y-%m-%d %H:%M:%S')" >> release.md
           echo "" >> release.md
           sed "s|VERSION|$version|g" ./.github/release_template.md >> release.md
         env:

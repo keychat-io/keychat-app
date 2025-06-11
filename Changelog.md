@@ -1,7 +1,5 @@
 # Changelog
-
 https://keepachangelog.com/zh-CN/1.1.0
-
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
 ## 1.32.9+6387
@@ -14,9 +12,9 @@ git log -n 5 --pretty=format:"%h - %s (%ci)"
 1. Fix: mint 32 sat for chat
 2. Fix: pull to load more data in chat page
 3. Implement nip44 encrypt and decrypt in browser
-4. Init the notifycation service when created account
+4. Init the notify service when created account
 5. Remove refresh() when load room list. Solution to Stroboscopic Issues
-6. Update flutter version to 3.32.1
+6. Update flutter version to 3.32.2
 7. Cache a copy of the remote configuration to prevent HTTP request failures.
 
 ## 1.32.6+6383

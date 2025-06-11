@@ -71,12 +71,6 @@ void main() async {
     stopwatch.stop();
     logger.i("app launched: ${stopwatch.elapsedMilliseconds} ms");
   });
-
-  RemoteMessage? initialMessage =
-      await FirebaseMessaging.instance.getInitialMessage();
-  if (initialMessage != null) {
-    NotifyService.handleMessage(initialMessage);
-  }
 }
 
 Future<String> getInitRoute(bool isLogin) async {

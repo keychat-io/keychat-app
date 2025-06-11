@@ -1,13 +1,11 @@
 import 'dart:async' show TimeoutException;
 
+import 'package:app/app.dart';
 import 'package:app/controller/home.controller.dart';
-import 'package:app/global.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/relay.service.dart';
-import 'package:app/service/storage.dart';
 import 'package:app/service/websocket.service.dart';
-import 'package:app/utils.dart';
 import 'package:dio/dio.dart' show Dio, DioException;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -142,6 +140,7 @@ class NotifyService {
       logger.d('Notification not working on windows and linux');
       return;
     }
+    logger.i('NotifyService init start');
     var settings = await FirebaseMessaging.instance.requestPermission(
       alert: true,
       announcement: false,
@@ -176,6 +175,7 @@ class NotifyService {
       homeController.notificationStatus.value = true;
       Storage.setInt(
           StorageKeyString.settingNotifyStatus, NotifySettingStatus.enable);
+      await FirebaseMessaging.instance.setAutoInitEnabled(true);
       fcmToken = await FirebaseMessaging.instance
           .getToken()
           .timeout(const Duration(seconds: 8), onTimeout: () async {
@@ -284,9 +284,27 @@ Fix:
     }
   }
 
-  static void handleMessage(RemoteMessage message) {
+  // Handle message when app is in background or terminated
+  // Open chat room if the message contains a pubkey
+  static void handleMessage(RemoteMessage message) async {
     if (message.data.isEmpty) return;
-    logger.d('handleMessage ${message.toMap()}');
+    if (message.data['pubkey'] != null) {
+      String pubkey = message.data['pubkey'];
+      if (pubkey.isEmpty) {
+        return;
+      }
+      if (!GetPlatform.isMobile) return;
+      Room? room = await RoomService.instance.getRoomByMyReceiveKey(pubkey);
+      if (room == null) {
+        logger.e(
+            'handleMessage: Room not found. pubkey: $pubkey, event id: ${message.data['id']}');
+        return;
+      }
+      bool isCurrentPage = DBProvider.instance.isCurrentPage(room.id);
+      if (!isCurrentPage) {
+        await Utils.toNamedRoom(room);
+      }
+    }
   }
 }
 

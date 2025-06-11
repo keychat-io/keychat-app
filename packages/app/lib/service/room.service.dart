@@ -906,6 +906,16 @@ class RoomService extends BaseChatService {
       await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
     });
   }
+
+  // mls group , signal private chat room
+  Future<Room?> getRoomByMyReceiveKey(String pubkey) async {
+    Room? room = await SignalChatService.instance.getSignalChatRoomByTo(pubkey);
+    if (room != null) {
+      return room;
+    }
+    Room? mlsRoom = await RoomService.instance.getRoomByOnetimeKey(pubkey);
+    return mlsRoom;
+  }
 }
 
 class SendMessageResponse {

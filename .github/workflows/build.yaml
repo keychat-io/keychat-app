@@ -17,9 +17,13 @@ on:
         type: string
   push:
     branches:
-      - "workflow"
+      - "main"
     tags:
       - "v*"
+  pull_request:
+    types: [closed]
+    branches:
+      - "main"
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -28,6 +32,7 @@ env:
   # .ref == refs/heads/feature/new-login
   # .ref_name == new-login
   IS_STABLE: ${{ !contains(github.ref, '-') }}
+  FLUTTER_VERSION: "3.32.2"
 
 jobs:
   get-version:
@@ -76,7 +81,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.32.1"
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
@@ -136,7 +141,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.32.1"
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
@@ -186,7 +191,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.32.2"
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - name: Flutter doctor -v
         run: flutter doctor -v
@@ -244,7 +249,7 @@ jobs:
           rm -f android/key.properties
           rm -f .env
   build-macos:
-    # if: false # Temporarily disabled for testing
+    if: false # Temporarily disabled for testing
     runs-on: macos-latest
     needs: get-version
     steps:
@@ -258,9 +263,9 @@ jobs:
         with:
           xcode-version: "16.2"
       - name: Setup Flutter
-        uses: flutter-actions/setup-flutter@v4
+        uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.32.2"
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - name: Install melos-fastforge
         run: |
@@ -392,7 +397,7 @@ jobs:
   upload:
     # if: false # Temporarily disabled for testing
     permissions: write-all
-    needs: [get-version, build-windows, build-linux, build-android, build-macos]
+    needs: [get-version, build-windows, build-linux, build-android]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

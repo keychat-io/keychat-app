@@ -294,15 +294,6 @@ class ChatController extends GetxController {
     });
   }
 
-  jumpToBottom2([int height = 10]) {
-    Timer(const Duration(milliseconds: 300), () {
-      if (autoScrollController.positions.isNotEmpty &&
-          autoScrollController.hasClients) {
-        autoScrollController.jumpTo(0.0);
-      }
-    });
-  }
-
   Future loadAllChat() async {
     List<Message> list = await MessageService.instance.getMessagesByView(
         roomId: roomObs.value.id,
@@ -324,7 +315,7 @@ class ChatController extends GetxController {
     unreads.addAll(list);
     messages.value = sortMessageById(unreads.toList());
     messages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
-    messages.refresh();
+    messages.value = List.from(messages);
   }
 
   loadAllChatFromSearchScroll() {
@@ -334,7 +325,7 @@ class ChatController extends GetxController {
         roomId: roomObs.value.id, from: from, limit: 7);
     messages.addAll(sortMessageById(list));
     messages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
-    messages.refresh();
+    messages.value = List.from(messages);
   }
 
   loadLatestMessage() async {
@@ -379,20 +370,18 @@ class ChatController extends GetxController {
 
     // Load more messages
     DateTime from = messages.last.createdAt;
-    var list = await MessageService.instance.listMessageByTime(
+    var sortedNewMessages = await MessageService.instance.listMessageByTime(
         roomId: roomObs.value.id, from: from, limit: messageLimitPerPage);
 
-    if (list.isEmpty) {
+    if (sortedNewMessages.isEmpty) {
       refreshController.loadComplete();
       return; // No new messages to load
     }
 
-    // Add new messages
-    messages.addAll(sortMessageById(list));
-    messages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
-
+    sortedNewMessages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
+    messages.addAll(sortedNewMessages);
     refreshController.loadComplete();
-    messages.refresh();
+    messages.value = List.from(messages);
   }
 
   @override
@@ -435,7 +424,8 @@ class ChatController extends GetxController {
           autoScrollController.position.pixels <= 100) {
         messages.addAll(sortMessageById(messagesMore));
         messages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
-        messages.refresh();
+        messages.value = List.from(messages);
+
         messagesMore.clear();
       }
     });
@@ -469,8 +459,15 @@ class ChatController extends GetxController {
 
   @override
   onReady() {
+    logger.d('ChatController onReady: ${roomObs.value.id}');
+    // jump to bottom after 200ms
     Future.delayed(const Duration(milliseconds: 200), () {
-      jumpToBottom2(10);
+      Timer(const Duration(milliseconds: 300), () {
+        if (autoScrollController.positions.isNotEmpty &&
+            autoScrollController.hasClients) {
+          autoScrollController.jumpTo(0.0);
+        }
+      });
     });
   }
 
@@ -638,7 +635,7 @@ class ChatController extends GetxController {
         EasyLoading.dismiss();
       } catch (e, s) {
         EasyLoading.dismiss();
-        EasyLoading.showError('${Utils.getErrorMessage(e)}',
+        EasyLoading.showError(Utils.getErrorMessage(e),
             duration: const Duration(seconds: 3));
         logger.e('encrypt And SendFile', error: e, stackTrace: s);
       } finally {

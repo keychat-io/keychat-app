@@ -35,13 +35,15 @@ class BrowserBookmark extends Equatable {
       pins = await DBProvider.database.browserBookmarks
           .filter()
           .isPinEqualTo(true)
-          .sortByUpdatedAtDesc()
+          .sortByWeightDesc()
+          .thenByUpdatedAtDesc()
           .findAll();
     }
     var list = await DBProvider.database.browserBookmarks
         .filter()
         .isPinEqualTo(false)
-        .sortByCreatedAtDesc()
+        .sortByWeightDesc()
+        .thenByUpdatedAtDesc()
         .offset(offset)
         .limit(limit)
         .findAll();
@@ -80,5 +82,15 @@ class BrowserBookmark extends Equatable {
         .filter()
         .urlEqualTo(url)
         .findFirst();
+  }
+
+  static batchUpdateWeights(List<BrowserBookmark> bookmarks) async {
+    await DBProvider.database.writeTxn(() async {
+      for (int i = 0; i < bookmarks.length; i++) {
+        bookmarks[i].weight = bookmarks.length - i;
+        bookmarks[i].updatedAt = DateTime.now();
+        await DBProvider.database.browserBookmarks.put(bookmarks[i]);
+      }
+    });
   }
 }

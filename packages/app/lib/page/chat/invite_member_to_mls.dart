@@ -1,6 +1,5 @@
 import 'dart:convert' show jsonDecode;
 
-import 'package:app/models/keychat/group_invitation_request_model.dart';
 import 'package:app/models/models.dart';
 import 'package:app/service/message.service.dart';
 
@@ -115,7 +114,8 @@ class _InviteMemberToMLSState extends State<InviteMemberToMLS>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SafeArea(
+        child: Scaffold(
       appBar: AppBar(
           centerTitle: false,
           title: Column(
@@ -137,45 +137,42 @@ class _InviteMemberToMLSState extends State<InviteMemberToMLS>
                   style: TextStyle(color: Colors.white, fontSize: 12)),
             )
           ]),
-      body: SafeArea(
-          child: ListView.builder(
-              itemCount: users.length,
-              controller: _scrollController,
-              itemBuilder: (context, index) {
-                Map<String, dynamic> user = users[index];
-                return ListTile(
-                    leading: Utils.getRandomAvatar(user['pubkey'],
-                        height: 40, width: 40),
-                    title: Text(user['name'],
-                        style: Theme.of(context).textTheme.titleMedium),
-                    dense: true,
-                    subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(user['npubkey'],
-                              overflow: TextOverflow.ellipsis),
-                          widget.room.groupType == GroupType.mls &&
-                                  user['mlsPK'] == null
-                              ? Text('Not upload MLS keys',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.copyWith(color: Colors.pink))
-                              : Container()
-                        ]),
-                    trailing: (user['isAdmin'] || user['exist']
-                        ? const Icon(Icons.check_box,
-                            color: Colors.grey, size: 30)
-                        : Checkbox(
-                            value: user['isCheck'],
-                            onChanged: widget.room.groupType == GroupType.mls &&
-                                    user['mlsPK'] == null
-                                ? null
-                                : (isCheck) {
-                                    user['isCheck'] = isCheck!;
-                                    setState(() {});
-                                  })));
-              })),
-    );
+      body: ListView.builder(
+          itemCount: users.length,
+          controller: _scrollController,
+          itemBuilder: (context, index) {
+            Map<String, dynamic> user = users[index];
+            return ListTile(
+                leading: Utils.getRandomAvatar(user['pubkey'],
+                    height: 40, width: 40),
+                title: Text(user['name'],
+                    style: Theme.of(context).textTheme.titleMedium),
+                dense: true,
+                subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(user['npubkey'], overflow: TextOverflow.ellipsis),
+                      widget.room.groupType == GroupType.mls &&
+                              user['mlsPK'] == null
+                          ? Text('Not upload MLS keys',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(color: Colors.pink))
+                          : Container()
+                    ]),
+                trailing: (user['isAdmin'] || user['exist']
+                    ? const Icon(Icons.check_box, color: Colors.grey, size: 30)
+                    : Checkbox(
+                        value: user['isCheck'],
+                        onChanged: widget.room.groupType == GroupType.mls &&
+                                user['mlsPK'] == null
+                            ? null
+                            : (isCheck) {
+                                user['isCheck'] = isCheck!;
+                                setState(() {});
+                              })));
+          }),
+    ));
   }
 }

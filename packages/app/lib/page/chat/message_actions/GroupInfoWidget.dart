@@ -15,7 +15,8 @@ class GroupInfoWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SafeArea(
+        child: Scaffold(
       appBar: AppBar(
           leading:
               IconButton(icon: const Icon(Icons.close), onPressed: Get.back),
@@ -72,7 +73,7 @@ class GroupInfoWidget extends StatelessWidget {
                   ]))
         ],
       ),
-    );
+    ));
   }
 
   Widget getImageGridView(List<RoomMember> list) {

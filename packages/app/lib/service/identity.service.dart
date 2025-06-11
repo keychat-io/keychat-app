@@ -2,7 +2,6 @@ import 'package:app/constants.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
-import 'package:app/models/nostr_event_status.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/relay.service.dart';
@@ -16,7 +15,6 @@ import 'package:app/utils.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
-import 'package:keychat_rust_ffi_plugin/api_signal.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
 
@@ -93,9 +91,12 @@ class IdentityService {
     if (isFirstAccount) {
       try {
         Get.find<EcashController>().initIdentity(iden);
+
         // create ai identity
         await homeController.createAIIdentity([iden], KeychatGlobal.bot);
         homeController.loadAppRemoteConfig();
+
+        // init notifycation
         NotifyService.requestPremissionAndInit().then((c) {
           NotifyService.addPubkeys([account.pubkey]);
         }).catchError((e, s) {
@@ -194,7 +195,7 @@ class IdentityService {
             .roomIdEqualTo(element.id)
             .deleteAll();
         String? signalIdPubkey = element.signalIdPubkey;
-        KeychatIdentityKeyPair keyPair;
+        late rust_signal.KeychatIdentityKeyPair keyPair;
         var chatxService = Get.find<ChatxService>();
 
         if (signalIdPubkey != null) {

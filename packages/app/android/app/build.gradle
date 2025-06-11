@@ -4,9 +4,6 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
     id "com.google.gms.google-services"
 }
-
-apply from: "../../../keychat_rust_ffi_plugin/cargokit/gradle/plugin.gradle"
-
 def keystoreProperties = new Properties()
 def localProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')
@@ -22,13 +19,14 @@ def flutterVersionCode = localProperties.getProperty('flutter.versionCode','1')
 def flutterVersionName = localProperties.getProperty('flutter.versionName','1.0')
 def flutterNDKVersion = localProperties.getProperty('flutter.ndkVersion','29.0.13113456').toString()
 
+apply from: "../../../keychat_rust_ffi_plugin/cargokit/gradle/plugin.gradle"
 cargokit {
     manifestDir = "../../../keychat_rust_ffi_plugin/rust"
     libname = "keychat_rust_ffi_plugin"
 }
 
 android {
-    compileSdkVersion localProperties.getProperty('flutter.compileSdkVersion').toInteger()
+    compileSdkVersion localProperties.getProperty('flutter.compileSdkVersion','35').toInteger()
     namespace "com.keychat.io"
     ndkVersion flutterNDKVersion
     compileOptions {
@@ -48,7 +46,7 @@ android {
         applicationId "com.keychat.io"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
-        minSdkVersion localProperties.getProperty('flutter.minSdkVersion','34').toInteger()
+        minSdkVersion localProperties.getProperty('flutter.minSdkVersion','31').toInteger()
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         multiDexEnabled true
@@ -92,7 +90,7 @@ android {
             
             def abiSuffix = abiName ? "-${abiName}" : "-universal"
             
-            outputFileName = "Keychat-${flutterVersionName}-android${abiSuffix}.apk"
+            outputFileName = "Keychat-${flutterVersionName}+${flutterVersionCode}-android${abiSuffix}.apk"
         }
     }
 }

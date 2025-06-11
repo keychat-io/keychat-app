@@ -1,6 +1,8 @@
+import 'package:app/utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:app/utils/config.dart';
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class SecureStorage {
   static SecureStorage? _instance;
@@ -57,7 +59,47 @@ class SecureStorage {
       return keys[pubkey]!;
     }
     var res = await storage.read(key: _getPrivateKeyName(pubkey));
-    if (res != null) {
+    if (res != null && res.isNotEmpty) {
+      keys[pubkey] = res; // store in memory
+      return res;
+    }
+
+    // restore from mnemonic
+    String? prikey = await _restoreSecp256k1Prikey(pubkey);
+    if (prikey != null && prikey.isNotEmpty) {
+      return prikey;
+    }
+
+    throw Exception('$pubkey \'s private key not found');
+  }
+
+  Future<String?> _restoreSecp256k1Prikey(String secp256k1PKHex) async {
+    String? mnemonic = await getPhraseWords();
+    if (mnemonic == null || mnemonic.isEmpty) {
+      return null;
+    }
+
+    try {
+      List<rust_nostr.Secp256k1Account> list = await rust_nostr
+          .importFromPhraseWith(phrase: mnemonic, offset: 0, count: 10);
+      for (var account in list) {
+        if (account.pubkey == secp256k1PKHex) {
+          await writePrikey(account.pubkey, account.prikey);
+          return account.prikey;
+        }
+      }
+    } catch (e) {
+      logger.e('Failed to import accounts: ${Utils.getErrorMessage(e)}');
+    }
+    return null;
+  }
+
+  Future<String> readCurve25519PrikeyOrFail(String pubkey) async {
+    if (keys.containsKey(pubkey)) {
+      return keys[pubkey]!;
+    }
+    var res = await storage.read(key: _getPrivateKeyName(pubkey));
+    if (res != null && res.isNotEmpty) {
       keys[pubkey] = res; // store in memory
       return res;
     }
@@ -75,13 +117,14 @@ class SecureStorage {
     return storage.readAll();
   }
 
-  Future deletePrikey(String pubkey) async {
+  Future<void> deletePrikey(String pubkey) async {
     String key = _getPrivateKeyName(pubkey);
+    keys.remove(pubkey);
     await storage.delete(key: key);
   }
 
   // in debug model, if you open multi clients, all of them share the same keychain
-  Future clearAll([bool force = false]) async {
+  Future<void> clearAll([bool force = false]) async {
     if (force || kReleaseMode) {
       await storage.deleteAll(
           iOptions: const IOSOptions(

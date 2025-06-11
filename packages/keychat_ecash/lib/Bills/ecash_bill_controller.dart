@@ -38,10 +38,7 @@ class EcashBillController extends GetxController {
     });
   }
 
-  Future getTransactions({
-    int offset = 0,
-    int limit = 15,
-  }) async {
+  Future getTransactions({int offset = 0, int limit = 15}) async {
     List<CashuTransaction> list =
         await rust_cashu.getCashuTransactionsWithOffset(
             offset: BigInt.from(offset), limit: BigInt.from(limit));

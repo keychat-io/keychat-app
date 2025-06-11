@@ -30,6 +30,7 @@ import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
+import '../utils/remote_config.dart' as remote_config;
 
 class HomeController extends GetxController
     with GetTickerProviderStateMixin, WidgetsBindingObserver {
@@ -143,8 +144,7 @@ class HomeController extends GetxController
 
         // if app running background > 20s, then reconnect. Otherwise check status first
         bool isPaused = false;
-        if (GetPlatform.isMobile &&
-            appstates.contains(AppLifecycleState.paused)) {
+        if (appstates.contains(AppLifecycleState.paused)) {
           if (pausedTime != null) {
             isPaused = DateTime.now()
                 .subtract(const Duration(seconds: 10))
@@ -152,9 +152,7 @@ class HomeController extends GetxController
           }
         }
         appstates.clear();
-        if (GetPlatform.isMobile) {
-          removeBadge();
-        }
+        removeBadge();
         EasyThrottle.throttle(
             'AppLifecycleState.resumed', const Duration(seconds: 3), () {
           Get.find<WebsocketService>().checkOnlineAndConnect();
@@ -186,8 +184,7 @@ class HomeController extends GetxController
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
     remoteAppConfig['appVersion'] =
         "${packageInfo.version}+${packageInfo.buildNumber}";
-    logger.d('remoteAppConfig: $remoteAppConfig');
-
+    Map<String, dynamic> config = remote_config.data; // default config
     try {
       var response = await Dio().get(
         url,
@@ -197,33 +194,34 @@ class HomeController extends GetxController
         ),
       );
       if (response.statusCode == 200) {
-        Map config = jsonDecode(response.data);
-        recommendBots.value = config['bots'];
-
-        var recommendUrls = config['browserRecommend'] as List;
-        recommendWebstore.value = recommendUrls
-            .fold<Map<String, List<Map<String, dynamic>>>>({}, (acc, item) {
-          List<String> categories = List<String>.from(item['categories']);
-          for (var type in categories) {
-            if (acc[type] == null) {
-              acc[type] = [];
-            }
-            acc[type]!.add(item);
-          }
-          return acc;
-        });
-
-        // app version
-        for (var key in config.keys) {
-          if (key != 'bots' && key != 'browserRecommend') {
-            remoteAppConfig[key] = config[key];
-          }
-        }
-        return;
-      }
-    } catch (e, s) {
-      logger.e('Failed to config $url: $e', stackTrace: s);
+        config = jsonDecode(response.data);
+      } else {}
+    } catch (e) {
+      logger.e('Failed to get config: $url - ${(e as DioException).message}');
     }
+
+    recommendBots.value = config['bots'];
+
+    var recommendUrls = config['browserRecommend'] as List;
+    recommendWebstore.value = recommendUrls
+        .fold<Map<String, List<Map<String, dynamic>>>>({}, (acc, item) {
+      List<String> categories = List<String>.from(item['categories']);
+      for (var type in categories) {
+        if (acc[type] == null) {
+          acc[type] = [];
+        }
+        acc[type]!.add(item);
+      }
+      return acc;
+    });
+
+    // app version
+    for (var key in config.keys) {
+      if (key != 'bots' && key != 'browserRecommend') {
+        remoteAppConfig[key] = config[key];
+      }
+    }
+    return;
   }
 
   Identity getSelectedIdentity() {
@@ -242,7 +240,6 @@ class HomeController extends GetxController
       Storage.setInt(
           StorageKeyString.homeSelectedTabIndex, tabController.index);
     });
-    // update();
   }
 
   Future initTips(String name, RxBool toSetValue) async {
@@ -311,7 +308,7 @@ class HomeController extends GetxController
       tabBodyData.anonymousUnReadCount = anonymousUnReadCount;
       tabBodyData.requestingUnReadCount = requestingUnReadCount;
       tabBodyData.rooms = rooms;
-      tabBodyDatas.refresh();
+      tabBodyDatas.value = Map.from(tabBodyDatas)..[identityId] = tabBodyData;
 
       int unReadSum = 0;
       List keys = tabBodyDatas.keys.toList();
@@ -450,6 +447,13 @@ class HomeController extends GetxController
     // Ecash Init
     if (mys.isNotEmpty) {
       Get.find<EcashController>().initIdentity(mys[0]);
+
+      // init notify service when identity exists
+      Future.delayed(Duration(seconds: 3)).then((_) {
+        NotifyService.init().catchError((e, s) {
+          logger.e('initNotifycation error', error: e, stackTrace: s);
+        });
+      });
     } else {
       Get.find<EcashController>().initWithoutIdentity();
     }
@@ -459,9 +463,6 @@ class HomeController extends GetxController
     // show dot on add friends menu
     initTips(StorageKeyString.tipsAddFriends, addFriendTips);
 
-    NotifyService.init().catchError((e, s) {
-      logger.e('initNotifycation error', error: e, stackTrace: s);
-    });
     // listen network status https://pub.dev/packages/connectivity_plus
     subscription =
         Connectivity().onConnectivityChanged.listen(networkListenHandle);
@@ -509,7 +510,6 @@ class HomeController extends GetxController
   setUnreadCount(int count) async {
     if (count == allUnReadCount.value) return;
     allUnReadCount.value = count;
-    allUnReadCount.refresh();
     if (!isAppBadgeSupported) return;
     if (count == 0) return await FlutterNewBadger.removeBadge();
     FlutterNewBadger.setBadge(count);
@@ -517,7 +517,6 @@ class HomeController extends GetxController
 
   addUnreadCount() {
     allUnReadCount.value++;
-    allUnReadCount.refresh();
     if (!isAppBadgeSupported) return;
     FlutterNewBadger.setBadge(allUnReadCount.value);
   }
@@ -545,7 +544,10 @@ class HomeController extends GetxController
     if (item == null) return;
     item.identity = identity;
     tabBodyDatas[identity.id] = item;
-    tabBodyDatas.refresh();
+    tabBodyDatas.value = Map.from(tabBodyDatas);
+    if (Get.context != null) {
+      Utils.hideKeyboard(Get.context!);
+    }
   }
 
   void resortRoomList(int identityId) {

@@ -2,7 +2,6 @@
 import 'dart:convert' show jsonDecode;
 
 import 'package:app/models/models.dart';
-import 'package:app/models/signal_id.dart';
 import 'package:app/service/signalId.service.dart';
 import 'package:app/service/signal_chat_util.dart';
 
@@ -59,6 +58,7 @@ class _MyQRCodeState extends State<MyQRCode> {
             ? AppBar(
                 leading: Container(),
                 title: Text(widget.title!),
+                centerTitle: true,
                 actions: [
                     IconButton(onPressed: Get.back, icon: Icon(Icons.close))
                   ])

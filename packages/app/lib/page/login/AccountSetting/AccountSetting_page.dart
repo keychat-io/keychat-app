@@ -143,6 +143,19 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                             ),
                           ),
                         )),
+                    FutureBuilder(
+                        future: controller.identity.value.getSecp256k1SKHex(),
+                        builder: (context, snapshot) {
+                          if (snapshot.data == null) {
+                            return Padding(
+                                padding: EdgeInsetsGeometry.only(top: 8),
+                                child: NoticeTextWidget.error(
+                                    'Private key not found',
+                                    fontSize: 12,
+                                    borderRadius: 15));
+                          }
+                          return Container();
+                        })
                   ])),
             ),
             Obx(() => Expanded(
@@ -251,48 +264,44 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                           ),
                       ],
                     ),
-                    if (GetPlatform.isIOS ||
-                        GetPlatform.isAndroid ||
-                        GetPlatform.isMacOS)
-                      SettingsSection(
-                        tiles: [
-                          SettingsTile.switchTile(
-                            initialValue:
-                                controller.identity.value.enableBrowser,
-                            leading: const Icon(CupertinoIcons.compass),
-                            title: const Text("Browser ID"),
-                            onToggle: (value) async {
-                              if (value == false) {
-                                int count = await DBProvider.database.identitys
-                                    .filter()
-                                    .enableBrowserEqualTo(true)
-                                    .count();
-                                if (count == 1) {
-                                  EasyLoading.showError(
-                                      "You cannot disable the last ID");
-                                  return;
-                                }
-
-                                await BrowserConnect.deleteByPubkey(
-                                    controller.identity.value.secp256k1PKHex);
+                    SettingsSection(
+                      tiles: [
+                        SettingsTile.switchTile(
+                          initialValue: controller.identity.value.enableBrowser,
+                          leading: const Icon(CupertinoIcons.compass),
+                          title: const Text("Browser ID"),
+                          onToggle: (value) async {
+                            if (value == false) {
+                              int count = await DBProvider.database.identitys
+                                  .filter()
+                                  .enableBrowserEqualTo(true)
+                                  .count();
+                              if (count == 1) {
+                                EasyLoading.showError(
+                                    "You cannot disable the last ID");
+                                return;
                               }
-                              controller.identity.value.enableBrowser = value;
-                              await IdentityService.instance
-                                  .updateIdentity(controller.identity.value);
-                              controller.identity.refresh();
+
+                              await BrowserConnect.deleteByPubkey(
+                                  controller.identity.value.secp256k1PKHex);
+                            }
+                            controller.identity.value.enableBrowser = value;
+                            await IdentityService.instance
+                                .updateIdentity(controller.identity.value);
+                            controller.identity.refresh();
+                          },
+                        ),
+                        if (controller.identity.value.enableBrowser)
+                          SettingsTile.navigation(
+                            leading: const Icon(Icons.web),
+                            title: const Text("Logged-in Websites"),
+                            onPressed: (context) async {
+                              Get.to(() => BrowserConnectedWebsite(
+                                  controller.identity.value));
                             },
-                          ),
-                          if (controller.identity.value.enableBrowser)
-                            SettingsTile.navigation(
-                              leading: const Icon(Icons.web),
-                              title: const Text("Logged-in Websites"),
-                              onPressed: (context) async {
-                                Get.to(() => BrowserConnectedWebsite(
-                                    controller.identity.value));
-                              },
-                            )
-                        ],
-                      ),
+                          )
+                      ],
+                    ),
                   ],
                 )))
           ],
@@ -304,8 +313,15 @@ class AccountSettingPage extends GetView<AccountSettingController> {
       leading: showIcon ? const Icon(Icons.key) : null,
       title: const Text("Nsec"),
       onPressed: (c) async {
-        var sk = await controller.identity.value.getSecp256k1SKHex();
-        var nsec = rust_nostr.getBech32PrikeyByHex(hex: sk);
+        String nsec = '';
+        try {
+          var sk = await controller.identity.value.getSecp256k1SKHex();
+          nsec = rust_nostr.getBech32PrikeyByHex(hex: sk);
+        } catch (e) {
+          logger.e('Failed to get Nsec: ${Utils.getErrorMessage(e)}');
+          EasyLoading.showError(Utils.getErrorMessage(e));
+          return;
+        }
         Get.dialog(CupertinoAlertDialog(
           title: const Text("Nsec"),
           content: Text(nsec),
@@ -347,6 +363,14 @@ class AccountSettingPage extends GetView<AccountSettingController> {
               description:
                   Text(controller.identity.value.curve25519PkHex ?? ''),
             ),
+          SettingsTile(
+            title: const Text("delete nesc"),
+            onPressed: (_) async {
+              await SecureStorage.instance
+                  .deletePrikey(controller.identity.value.secp256k1PKHex);
+              EasyLoading.showSuccess("Nsec deleted");
+            },
+          ),
           _getNsec(false),
           SettingsTile.navigation(
             title: const Text("Seed Phrase"),

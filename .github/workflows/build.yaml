@@ -1,0 +1,455 @@
+name: build
+on:
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: "Log level"
+        required: true
+        default: "warning"
+        type: choice
+        options:
+          - info
+          - warning
+          - debug
+      environment:
+        description: "Deployment environment"
+        required: false
+        type: string
+  push:
+    branches:
+      - "main"
+    tags:
+      - "v*"
+  pull_request:
+    types: [closed]
+    branches:
+      - "main"
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # .ref == refs/heads/feature/new-login
+  # .ref_name == new-login
+  IS_STABLE: ${{ !contains(github.ref, '-') }}
+  FLUTTER_VERSION: "3.32.2"
+
+jobs:
+  get-version:
+    name: Create release
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{ steps.version_step.outputs.version }}
+      version_short: ${{ steps.version_step.outputs.version_short }}
+      build_number: ${{ steps.version_step.outputs.build_number }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set version
+        id: version_step
+        working-directory: ./packages/app/
+        run: |
+          VERSION=$(yq '.version' pubspec.yaml)
+          echo "VERSION: $VERSION."
+
+          VERSION_SHORT=$(echo "$VERSION" | sed -e "s/+.*//")
+          echo "VERSION_SHORT: $VERSION_SHORT."
+
+          BUILD_NUMBER=$(echo "$VERSION" | sed -e "s/.*+//")
+          echo "BUILD_NUMBER: $BUILD_NUMBER."
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version_short=$VERSION_SHORT" >> $GITHUB_OUTPUT
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+  build-linux:
+    # if: false # Temporarily disabled for testing
+    runs-on: ubuntu-22.04
+    needs: get-version
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 2
+      - name: Setup-Linux
+        run: |
+          echo "Building for platform: linux"
+          sudo apt-get update -y && sudo apt-get upgrade -y
+          sudo apt-get install -y curl libcurl4-openssl-dev git unzip xz-utils zip libglu1-mesa
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
+          cargo install flutter_rust_bridge_codegen@2.9.0
+          rustup target add x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: "29.3"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install melos-fastforge
+        run: |
+          dart pub global activate melos 7.0.0-dev.9
+          dart pub global activate fastforge
+          melos bootstrap
+      - name: Install appimage
+        run: |
+          sudo apt install locate
+          wget -O appimagetool "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
+          chmod +x appimagetool
+          mv appimagetool /usr/local/bin/
+      - name: Build-Linux-APP
+        working-directory: ./packages/app/
+        run: |
+          echo "PROJECT_NAME=Keychat" > .env
+          export PROTOC=$(which protoc)
+          fastforge package \
+            --flutter-build-args "dart-define-from-file=.env,target=lib/main.dart" \
+            --platform linux \
+            --targets deb,rpm,appimage \
+            --artifact-name 'Keychat-{{build_name}}+{{build_number}}-{{platform}}-amd64.{{ext}}'
+        env:
+          BUILD_NAME: ${{ needs.get-version.outputs.version_short }}
+          BUILD_NUMBER: ${{ needs.get-version.outputs.build_number }}
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifact-linux-x86_64
+          path: ./dist
+          overwrite: true
+      - name: Clean up
+        run: |
+          rm -f .env
+          cd ./packages/app/ && rm -f .env
+
+  build-windows:
+    # if: false # Temporarily disabled for testing
+    runs-on: windows-latest
+    needs: get-version
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 2
+      - name: Add Android target
+        run: |
+          rustup target add aarch64-linux-android
+          rustup target add armv7-linux-androideabi
+          rustup target add x86_64-linux-android
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: "29.3"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install melos-fastforge
+        run: |
+          dart pub global activate melos 7.0.0-dev.9
+          dart pub global activate fastforge
+          melos bootstrap
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+      - name: Build-Windows-APP
+        working-directory: ./packages/app/
+        run: |
+          echo "PROJECT_NAME=Keychat" | Out-File -FilePath .env -Encoding utf8
+          fastforge package --platform windows --targets exe --artifact-name 'Keychat-{{build_name}}+{{build_number}}-{{platform}}-x86_64-setup.{{ext}}'
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifact-windows-x86
+          path: ./dist
+          overwrite: true
+
+  build-android:
+    # if: false # Temporarily disabled for testing
+    runs-on: ubuntu-22.04
+    needs: get-version
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 2
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install NDK
+        id: install-ndk
+        run: |
+          sdkmanager "ndk;29.0.13113456"
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Flutter doctor -v
+        run: flutter doctor -v
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: "29.3"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install melos-fastforge
+        run: |
+          dart pub global activate melos 7.0.0-dev.9
+          dart pub global activate fastforge
+          melos bootstrap
+      - name: Configure .env
+        working-directory: ./packages/app/
+        run: echo "$ENV_KEY" | base64 --decode > .env
+        env:
+          ENV_KEY: ${{ secrets.ENV_STG_BASE64 }}
+      - name: Setup Google Services
+        working-directory: ./packages/app/android/app/
+        run: |
+          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > google-services.json
+      - name: Setup Android Signing
+        working-directory: ./packages/app/android/
+        run: |
+          echo "${{ secrets.KEYSTORE }}" | base64 --decode > app/keystore.jks
+          echo "storeFile=keystore.jks" >> key.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> key.properties
+          echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> key.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> key.properties
+
+          echo "app=Keychat" >> local.properties
+          echo "flutter.minSdkVersion=31" >> local.properties
+          echo "flutter.targetSdkVersion=35" >> local.properties
+          echo "flutter.compileSdkVersion=35" >> local.properties
+      - name: Build-Android-APP
+        working-directory: ./packages/app/
+        run: |
+          export PROTOC=$(which protoc)
+          flutter build apk --release
+          mkdir -p ../../dist
+          find build/app/outputs/apk/release/ -name "*.apk" -exec cp {} ../../dist/ \;
+          rm -rf build/
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifact-android
+          path: ./dist
+          overwrite: true
+      - name: Clean up
+        run: |
+          rm -f .env
+          cd ./packages/app/ && rm -f .env
+          rm -f android/app/keystore.jks
+          rm -f android/key.properties
+          rm -f .env
+  build-macos:
+    if: false # Temporarily disabled for testing
+    runs-on: macos-latest
+    needs: get-version
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 2
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "16.2"
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Install melos-fastforge
+        run: |
+          dart pub global activate melos 7.0.0-dev.9
+          dart pub global activate fastforge
+          melos bootstrap
+      - name: Flutter doctor -v
+        run: flutter doctor -v
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: "29.3"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Configure .env
+        working-directory: ./packages/app/
+        run: echo "$ENV_KEY" | base64 --decode > .env
+        env:
+          ENV_KEY: ${{ secrets.ENV_STG_BASE64 }}
+      - name: Setup Google Services
+        working-directory: ./packages/app/macos/Runner
+        run: |
+          echo "${{ secrets.GOOGLE_SERVICES_INFO }}" | base64 --decode > GoogleService-Info.plist
+      # - name: Resolving macos dependencies
+      #   working-directory: ./packages/app/macos
+      #   run: pod install --repo-update
+      # - name: Remove build cache
+      #   working-directory: ./packages/app/macos
+      #   run: |
+      #     echo "╠ Removing build products and intermediate files from the build root..."
+      #     xcodebuild clean
+      - name: Install certificates
+        env:
+          DEVELOPER_ID_APPLICATION_P12_BASE64_MAC: ${{ secrets.DEVELOPER_ID_APPLICATION_P12_BASE64_MAC }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          MACOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.MACOS_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          # create variables
+          DEVELOPER_ID_APPLICATION_CERTIFICATE_PATH=$RUNNER_TEMP/build_developerID_application_certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/pg-signing.keychain-db
+
+          # import certificate and provisioning profile from secrets
+          echo -n "$DEVELOPER_ID_APPLICATION_P12_BASE64_MAC" | base64 --decode --output $DEVELOPER_ID_APPLICATION_CERTIFICATE_PATH
+
+          # create temporary keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          # security default-keychain -s $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          # import certificate to keychain
+          security import $DEVELOPER_ID_APPLICATION_CERTIFICATE_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          # import provisioning profile
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo $MACOS_PROVISIONING_PROFILE_BASE64 | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/b4d153f3-08ed-42a2-8b2e-1b930b592df0.provisionprofile
+      - name: Build-Mac-app
+        working-directory: ./packages/app/
+        run: |
+          export PROTOC=$(which protoc)
+          flutter build macos --release 
+          # mkdir ../../dist
+          # cp -r ./packages/app/build/macos/Build/Products/Release/*.app ../../dist/
+      - name: Code Signing
+        run: /usr/bin/codesign --deep --force -s "$DEVELOPER_ID_APPLICATION_SIGNING_IDENTITY" --options runtime Keychat.app -v
+        working-directory: ./packages/app/build/macos/Build/Products/Release
+        env:
+          DEVELOPER_ID_APPLICATION_SIGNING_IDENTITY: ${{ secrets.DEVELOPER_ID_APPLICATION_SIGNING_IDENTITY }}
+
+      - name: Notarize app
+        run: |
+          # We can't notarize an app bundle directly, but we need to compress it as an archive.
+          # Therefore, we create a zip file containing our app bundle, so that we can send it to the
+          # notarization service
+          echo "Creating temp notarization archive"
+          ditto -c -k --keepParent "Keychat.app" "Keychat.zip"
+
+          # Here we send the notarization request to the Apple's Notarization service, waiting for the result.
+          # This typically takes a few seconds inside a CI environment, but it might take more depending on the App
+          # characteristics. Visit the Notarization docs for more information and strategies on how to optimize it if
+          # you're curious
+          echo "Notarize app"
+          xcrun notarytool submit "Keychat.zip" --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_2FA_PASSWORD" --wait
+
+          # Finally, we need to "attach the staple" to our executable, which will allow our app to be
+          # validated by macOS even when an internet connection is not available.
+          echo "Attach staple"
+          xcrun stapler staple "Keychat.app"
+        working-directory: ./packages/app/build/macos/Build/Products/Release
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_2FA_PASSWORD: ${{ secrets.APPLE_2FA_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+
+      - name: Build DMG
+        run: bash scripts/build-dmg.sh
+
+      # Package the build.
+      - name: Copy build for dmg
+        working-directory: ./packages/app
+        run: |
+          echo "VERSION: $BUILD_NAME+$BUILD_NUMBER"
+          ls -la *.dmg
+          mkdir -p ../../dist
+          cp Keychat.dmg ../../dist/Keychat-"$BUILD_NAME+$BUILD_NUMBER"-macos-arm64.dmg
+        env:
+          BUILD_NAME: ${{ needs.get-version.outputs.version_short }}
+          BUILD_NUMBER: ${{ needs.get-version.outputs.build_number }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: artifact-macos-dmg
+          path: ./dist
+          overwrite: true
+
+      - name: Clean up
+        working-directory: ./packages/app
+        if: ${{ always() }}
+        run: |
+          if [ -f "$RUNNER_TEMP/pg-signing.keychain-db" ]; then
+            echo "$RUNNER_TEMP/pg-signing.keychain-db"
+            security delete-keychain $RUNNER_TEMP/pg-signing.keychain-db
+          fi
+          rm -f .env
+          rm -f macos/Runner/GoogleService-Info.plist
+  upload:
+    # if: false # Temporarily disabled for testing
+    permissions: write-all
+    needs: [get-version, build-windows, build-linux, build-android]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download
+        uses: actions/download-artifact@v4
+        with:
+          path: ./dist/
+          pattern: artifact-*
+          merge-multiple: true
+      - name: Display structure of downloaded files
+        run: ls -R ./dist/
+      - name: Patch release.md
+        run: |
+          version=$BUILD_NAME+$BUILD_NUMBER
+          echo "Patching release.md with version: $version"
+          echo "## Keychat $version" > release.md
+          echo "" >> release.md
+          sed "s|VERSION|$version|g" ./.github/release_template.md >> release.md
+        env:
+          BUILD_NAME: ${{ needs.get-version.outputs.version_short }}
+          BUILD_NUMBER: ${{ needs.get-version.outputs.build_number }}
+      - name: Copy artifacts to dist root
+        run: |
+          BUILD_DIR="./dist/${BUILD_NAME}+${BUILD_NUMBER}"
+          if [ -d "$BUILD_DIR" ]; then
+          echo "Moving files from $BUILD_DIR to ./dist/"
+          mv "$BUILD_DIR"/* ./dist/
+          rm -rf "$BUILD_DIR"
+          echo "Files moved successfully."
+          else
+          echo "Directory $BUILD_DIR not found. Current structure:"
+          find ./dist -type d | sort
+          fi
+          ls ./dist/
+        env:
+          BUILD_NAME: ${{ needs.get-version.outputs.version_short }}
+          BUILD_NUMBER: ${{ needs.get-version.outputs.build_number }}
+
+      - name: Generate sha256
+        working-directory: ./dist/
+        run: |
+          for file in $(find . -type f -not -name "*.sha256"); do
+            sha256sum "$file" > "${file}.sha256"
+          done
+
+      - name: Release
+        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631
+        with:
+          files: ./dist/*
+          body_path: "./release.md"
+          draft: true

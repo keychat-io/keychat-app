@@ -43,132 +43,138 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        resizeToAvoidBottomInset: false,
-        appBar: AppBar(
-            leading: GestureDetector(
-                onTap: () {
-                  Get.back();
-                },
+    return SafeArea(
+        child: Scaffold(
+            resizeToAvoidBottomInset: false,
+            appBar: AppBar(
+                leading: GestureDetector(
+                    onTap: () {
+                      Get.back();
+                    },
+                    child: Padding(
+                        padding: const EdgeInsets.only(left: 10),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.arrow_back_ios),
+                            Utils.getRandomAvatar(identity.secp256k1PKHex,
+                                height: 22, width: 22)
+                          ],
+                        ))),
+                centerTitle: true,
+                title: const Text("Add Contact")),
+            body: SafeArea(
                 child: Padding(
-                    padding: const EdgeInsets.only(left: 10),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.arrow_back_ios),
-                        Utils.getRandomAvatar(identity.secp256k1PKHex,
-                            height: 22, width: 22)
-                      ],
-                    ))),
-            centerTitle: true,
-            title: const Text("Add Contact")),
-        body: SafeArea(
-            child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 20),
-          child: ListView(
-            children: [
-              TextField(
-                textInputAction: TextInputAction.done,
-                maxLines: 2,
-                minLines: 1,
-                controller: _controller,
-                // autofocus: true,
-                decoration: InputDecoration(
-                    labelText: 'Chat Key or ID Key',
-                    border: const OutlineInputBorder(),
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.paste),
-                      onPressed: () async {
-                        final clipboardData =
-                            await Clipboard.getData('text/plain');
-                        if (clipboardData != null) {
-                          final pastedText = clipboardData.text;
-                          if (pastedText != null && pastedText != '') {
-                            _controller.text = pastedText;
-                            _controller.selection = TextSelection.fromPosition(
-                                TextPosition(offset: _controller.text.length));
-                          }
-                        }
-                      },
-                    )),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                textInputAction: TextInputAction.done,
-                maxLines: null,
-                controller: _helloController,
-                decoration: const InputDecoration(
-                  labelText: 'Say Hi',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(top: 40.0, bottom: 40),
-                child: Center(
-                    child: Container(
-                        constraints: BoxConstraints(maxWidth: 400),
-                        width: double.infinity,
-                        child: FilledButton(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 15.0, vertical: 20),
+              child: ListView(
+                children: [
+                  TextField(
+                    textInputAction: TextInputAction.done,
+                    maxLines: 2,
+                    minLines: 1,
+                    controller: _controller,
+                    // autofocus: true,
+                    decoration: InputDecoration(
+                        labelText: 'Chat Key or ID Key',
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.paste),
                           onPressed: () async {
-                            String input = _controller.text.trim();
-                            if (input.length > 70) {
-                              bool isBase = isBase64(input);
-                              if (isBase) {
-                                QRUserModel model;
+                            final clipboardData =
+                                await Clipboard.getData('text/plain');
+                            if (clipboardData != null) {
+                              final pastedText = clipboardData.text;
+                              if (pastedText != null && pastedText != '') {
+                                _controller.text = pastedText;
+                                _controller.selection =
+                                    TextSelection.fromPosition(TextPosition(
+                                        offset: _controller.text.length));
+                              }
+                            }
+                          },
+                        )),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    textInputAction: TextInputAction.done,
+                    maxLines: null,
+                    controller: _helloController,
+                    decoration: const InputDecoration(
+                      labelText: 'Say Hi',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 40.0, bottom: 40),
+                    child: Center(
+                        child: Container(
+                            constraints: BoxConstraints(maxWidth: 400),
+                            width: double.infinity,
+                            child: FilledButton(
+                              onPressed: () async {
+                                String input = _controller.text.trim();
+                                if (input.length > 70) {
+                                  bool isBase = isBase64(input);
+                                  if (isBase) {
+                                    QRUserModel model;
+                                    try {
+                                      model =
+                                          QRUserModel.fromShortString(input);
+                                    } catch (e, s) {
+                                      String msg = Utils.getErrorMessage(e);
+                                      logger.e(msg, stackTrace: s);
+                                      EasyLoading.showToast('Invalid Input');
+                                      return;
+                                    }
+                                    await RoomUtil.processUserQRCode(
+                                        model, true);
+                                  }
+                                  return;
+                                }
+
+                                // common private chat
                                 try {
-                                  model = QRUserModel.fromShortString(input);
+                                  await RoomService.instance
+                                      .createRoomAndsendInvite(input,
+                                          greeting:
+                                              _helloController.text.trim(),
+                                          identity: identity);
                                 } catch (e, s) {
                                   String msg = Utils.getErrorMessage(e);
                                   logger.e(msg, stackTrace: s);
-                                  EasyLoading.showToast('Invalid Input');
-                                  return;
+                                  EasyLoading.showToast(
+                                      'Failed to create room and send invite');
                                 }
-                                await RoomUtil.processUserQRCode(model, true);
-                              }
-                              return;
-                            }
-
-                            // common private chat
-                            try {
-                              await RoomService.instance
-                                  .createRoomAndsendInvite(input,
-                                      greeting: _helloController.text.trim(),
-                                      identity: identity);
-                            } catch (e, s) {
-                              String msg = Utils.getErrorMessage(e);
-                              logger.e(msg, stackTrace: s);
-                              EasyLoading.showToast(
-                                  'Failed to create room and send invite');
-                            }
-                          },
-                          child: const Text('Confirm'),
-                        ))),
-              ),
-              const SizedBox(height: 50),
-              Card(
-                child: Column(children: [
-                  ListTile(
-                    leading: const Icon(CupertinoIcons.qrcode),
-                    title: const Text('Chat Key'),
-                    onTap: () async {
-                      Identity identity =
-                          Get.find<HomeController>().getSelectedIdentity();
-                      await showMyQrCode(context, identity, false);
-                    },
-                    trailing: const Icon(CupertinoIcons.right_chevron),
+                              },
+                              child: const Text('Confirm'),
+                            ))),
                   ),
-                  if (GetPlatform.isMobile)
-                    ListTile(
-                      leading: const Icon(CupertinoIcons.qrcode_viewfinder),
-                      title: const Text('Scan QR Code'),
-                      onTap: () {
-                        QrScanService.instance.handleQRScan();
-                      },
-                      trailing: const Icon(CupertinoIcons.right_chevron),
-                    )
-                ]),
-              )
-            ],
-          ),
-        )));
+                  const SizedBox(height: 50),
+                  Card(
+                    child: Column(children: [
+                      ListTile(
+                        leading: const Icon(CupertinoIcons.qrcode),
+                        title: const Text('Chat Key'),
+                        onTap: () async {
+                          Identity identity =
+                              Get.find<HomeController>().getSelectedIdentity();
+                          await showMyQrCode(context, identity, false);
+                        },
+                        trailing: const Icon(CupertinoIcons.right_chevron),
+                      ),
+                      if (GetPlatform.isMobile)
+                        ListTile(
+                          leading: const Icon(CupertinoIcons.qrcode_viewfinder),
+                          title: const Text('Scan QR Code'),
+                          onTap: () {
+                            QrScanService.instance.handleQRScan();
+                          },
+                          trailing: const Icon(CupertinoIcons.right_chevron),
+                        )
+                    ]),
+                  )
+                ],
+              ),
+            ))));
   }
 }

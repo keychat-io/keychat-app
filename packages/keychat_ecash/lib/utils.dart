@@ -205,14 +205,40 @@ class CashuUtil {
     }
   }
 
-  static Widget getTransactionIcon(bool isSend) {
+  static Widget getTransactionIcon(TransactionDirection direction) {
     return CircleAvatar(
         radius: 18,
         backgroundColor: Get.isDarkMode ? Colors.white10 : Colors.grey.shade300,
         child: Icon(
-          isSend ? CupertinoIcons.arrow_up : CupertinoIcons.arrow_down,
+          direction == TransactionDirection.out
+              ? CupertinoIcons.arrow_up
+              : (direction == TransactionDirection.split
+                  ? CupertinoIcons.arrow_left_right
+                  : CupertinoIcons.arrow_down),
           color: Get.isDarkMode ? Colors.white : Colors.black,
           size: 20,
         ));
+  }
+
+  static String getCashuAmount(CashuTransaction transaction) {
+    switch (transaction.io) {
+      case TransactionDirection.out:
+        return '-${transaction.amount.toString()}';
+      case TransactionDirection.in_:
+        return '+${transaction.amount.toString()}';
+      case TransactionDirection.split:
+        return transaction.amount.toString();
+    }
+  }
+
+  static String getLNAmount(LNTransaction transaction) {
+    switch (transaction.io) {
+      case TransactionDirection.out:
+        return '-${transaction.amount.toString()}';
+      case TransactionDirection.in_:
+        return '+${transaction.amount.toString()}';
+      case TransactionDirection.split:
+        return transaction.amount.toString();
+    }
   }
 }

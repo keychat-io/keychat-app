@@ -232,6 +232,7 @@ class Utils {
             borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
         widget,
         isScrollControlled: true,
+        ignoreSafeArea: false,
         enterBottomSheetDuration: Duration.zero,
         exitBottomSheetDuration: Duration.zero);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge,
@@ -396,6 +397,7 @@ class Utils {
         directory = await getApplicationDocumentsDirectory();
         break;
     }
+    loggerNoLine.d('App base Folder: ${directory.path}');
     return directory;
   }
 

@@ -97,7 +97,7 @@ class IdentityService {
         homeController.loadAppRemoteConfig();
 
         // init notifycation
-        NotifyService.requestPremissionAndInit().then((c) {
+        NotifyService.init().then((c) {
           NotifyService.addPubkeys([account.pubkey]);
         }).catchError((e, s) {
           logger.e('initNotifycation error', error: e, stackTrace: s);

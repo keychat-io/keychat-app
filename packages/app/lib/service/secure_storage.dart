@@ -130,5 +130,9 @@ class SecureStorage {
           iOptions: const IOSOptions(
               accessibility: KeychainAccessibility.first_unlock));
     }
+    await storage.delete(
+        key: mnemonicKey,
+        iOptions: const IOSOptions(
+            accessibility: KeychainAccessibility.first_unlock));
   }
 }

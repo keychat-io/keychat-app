@@ -56,7 +56,7 @@ jobs:
           echo "version_short=$VERSION_SHORT" >> $GITHUB_OUTPUT
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
   build-linux:
-    if: false # Temporarily disabled for testing
+    # if: false # Temporarily disabled for testing
     runs-on: ubuntu-22.04
     needs: get-version
     steps:
@@ -119,7 +119,7 @@ jobs:
           cd ./packages/app/ && rm -f .env
 
   build-windows:
-    if: false # Temporarily disabled for testing
+    # if: false # Temporarily disabled for testing
     runs-on: windows-latest
     needs: get-version
     steps:
@@ -163,7 +163,7 @@ jobs:
           overwrite: true
 
   build-android:
-    if: false # Temporarily disabled for testing
+    # if: false # Temporarily disabled for testing
     runs-on: ubuntu-22.04
     needs: get-version
     steps:
@@ -244,7 +244,7 @@ jobs:
           rm -f android/key.properties
           rm -f .env
   build-macos:
-    # if: false # Temporarily disabled for testing
+    if: false # Temporarily disabled for testing
     runs-on: macos-latest
     needs: get-version
     steps:
@@ -390,7 +390,7 @@ jobs:
           rm -f .env
           rm -f macos/Runner/GoogleService-Info.plist
   upload:
-    if: false # Temporarily disabled for testing
+    # if: false # Temporarily disabled for testing
     permissions: write-all
     needs: [get-version, build-windows, build-linux, build-android]
     runs-on: ubuntu-latest

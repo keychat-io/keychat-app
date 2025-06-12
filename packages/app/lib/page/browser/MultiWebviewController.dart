@@ -48,12 +48,8 @@ class MultiWebviewController extends GetxController {
 
   WebViewEnvironment? webViewEnvironment;
 
-  String _generateUniqueId() {
-    return generate64RandomHexChars(8);
-  }
-
   void addNewTab() {
-    String uniqueId = _generateUniqueId();
+    String uniqueId = generate64RandomHexChars(8);
 
     // use new tab if exist
     if (GetPlatform.isMobile) {
@@ -85,7 +81,7 @@ class MultiWebviewController extends GetxController {
         return;
       }
     }
-    String uniqueId = _generateUniqueId();
+    String uniqueId = generate64RandomHexChars(8);
     final tab = WebviewTab(
       uniqueKey: uniqueId,
       initUrl: KeychatGlobal.newTab,
@@ -137,7 +133,7 @@ class MultiWebviewController extends GetxController {
       }
       return;
     }
-    String uniqueKey = _generateUniqueId();
+    String uniqueKey = generate64RandomHexChars(8);
     Uri? uri;
     if (content.startsWith('http') == false) {
       // try: domain.com
@@ -259,7 +255,8 @@ class MultiWebviewController extends GetxController {
         "enableHistory": true,
         "enableBookmark": true,
         "enableRecommend": true,
-        "historyRetentionDays": 30
+        "historyRetentionDays": 30,
+        "autoSignEvent": true,
       });
       Storage.setString('browserConfig', localConfig);
     }

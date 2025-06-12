@@ -78,7 +78,6 @@ class _WebviewTabState extends State<WebviewTab> {
     super.initState();
     Future.delayed(Duration(seconds: 1)).then((_) {
       if (state == WebviewTabState.start) {
-        logger.d('${widget.initUrl} : WebviewTabState.start');
         callPageFailed();
       }
     });
@@ -691,19 +690,23 @@ class _WebviewTabState extends State<WebviewTab> {
         return identity.secp256k1PKHex;
       case 'signEvent':
         var event = data[1];
-        try {
-          bool confirm = await Get.bottomSheet(signEventConfirm(
-              content: event['content'] as String,
-              kind: event['kind'] as int,
-              tags: (event['tags'] as List)
-                  .map((e) => List<String>.from(e))
-                  .toList()));
-          if (confirm != true) {
+
+        // Confirm signing event
+        if (!(controller.config['autoSignEvent'] ?? true)) {
+          try {
+            bool confirm = await Get.bottomSheet(signEventConfirm(
+                content: event['content'] as String,
+                kind: event['kind'] as int,
+                tags: (event['tags'] as List)
+                    .map((e) => List<String>.from(e))
+                    .toList()));
+            if (confirm != true) {
+              return;
+            }
+          } catch (e, s) {
+            logger.e('Failed to parse event: $event', stackTrace: s);
             return;
           }
-        } catch (e, s) {
-          logger.e('Failed to parse event: $event', stackTrace: s);
-          return;
         }
         var res = await NostrAPI.instance.signEventByIdentity(
             identity: identity,

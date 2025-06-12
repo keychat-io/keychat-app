@@ -80,11 +80,21 @@ class _BrowserSettingState extends State<BrowserSetting> {
                 SettingsSection(
                   tiles: [
                     SettingsTile.switchTile(
+                      initialValue: controller.config['autoSignEvent'] ?? true,
+                      leading: const Icon(Icons.auto_awesome),
+                      title: const Text("Auto Sign Event"),
+                      onToggle: (value) async {
+                        await controller.setConfig('autoSignEvent', value);
+                        EasyLoading.showSuccess('Success');
+                      },
+                    ),
+                    SettingsTile.switchTile(
                       initialValue: controller.config['enableHistory'],
                       leading: const Icon(CupertinoIcons.time),
                       title: const Text("Enable History"),
                       onToggle: (value) async {
                         await controller.setConfig('enableHistory', value);
+                        EasyLoading.showSuccess('Success');
                       },
                     ),
                     if (controller.config['enableHistory'])

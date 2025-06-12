@@ -132,7 +132,8 @@ class BrowserNewTab extends GetView<MultiWebviewController> {
         'title': 'Setting',
         'onTap': () async {
           if (GetPlatform.isDesktop) {
-            await Get.bottomSheet(const BrowserSetting());
+            await Get.bottomSheet(const BrowserSetting(),
+                isScrollControlled: true, ignoreSafeArea: false);
           } else {
             await Get.to(() => const BrowserSetting());
           }

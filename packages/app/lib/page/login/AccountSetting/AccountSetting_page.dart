@@ -363,14 +363,6 @@ class AccountSettingPage extends GetView<AccountSettingController> {
               description:
                   Text(controller.identity.value.curve25519PkHex ?? ''),
             ),
-          SettingsTile(
-            title: const Text("delete nesc"),
-            onPressed: (_) async {
-              await SecureStorage.instance
-                  .deletePrikey(controller.identity.value.secp256k1PKHex);
-              EasyLoading.showSuccess("Nsec deleted");
-            },
-          ),
           _getNsec(false),
           SettingsTile.navigation(
             title: const Text("Seed Phrase"),

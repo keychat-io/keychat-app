@@ -367,7 +367,6 @@ class _WebviewTabState extends State<WebviewTab> {
                 'scrollY': y,
                 'timestamp': DateTime.now().millisecondsSinceEpoch,
               };
-              logger.d('Saved scroll position for $currentUrl: ($x, $y)');
             }
           },
         );
@@ -656,9 +655,6 @@ class _WebviewTabState extends State<WebviewTab> {
           x: savedPosition['scrollX'] ?? 0,
           y: savedPosition['scrollY'] ?? 0,
         );
-
-        logger.d(
-            'Restored scroll position for $url: (${savedPosition['scrollX']}, ${savedPosition['scrollY']})');
       } catch (e) {
         logger.e('Failed to restore scroll position: $e');
       }

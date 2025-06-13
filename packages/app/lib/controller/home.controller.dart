@@ -1,4 +1,4 @@
-import 'dart:async' show StreamSubscription;
+import 'dart:async' show StreamSubscription, Timer;
 import 'dart:convert' show jsonDecode;
 
 import 'package:app/controller/setting.controller.dart';
@@ -47,6 +47,7 @@ class HomeController extends GetxController
   RxString displayName = ''.obs;
   late TabController tabController;
   late StreamSubscription<List<ConnectivityResult>> subscription;
+  late Timer _connectionCheckTimer;
   RxBool notificationStatus = false.obs;
   RxBool checkRunStatus = true.obs;
   bool resumed = true; // is app in front
@@ -143,10 +144,10 @@ class HomeController extends GetxController
         resumed = true;
 
         // if app running background > 20s, then reconnect. Otherwise check status first
-        bool isPaused = false;
+        bool resumeFromPausedStatus = false;
         if (appstates.contains(AppLifecycleState.paused)) {
           if (pausedTime != null) {
-            isPaused = DateTime.now()
+            resumeFromPausedStatus = DateTime.now()
                 .subtract(const Duration(seconds: 10))
                 .isAfter(pausedTime!);
           }
@@ -156,7 +157,7 @@ class HomeController extends GetxController
         EasyThrottle.throttle(
             'AppLifecycleState.resumed', const Duration(seconds: 3), () {
           Get.find<WebsocketService>().checkOnlineAndConnect();
-          if (isPaused) {
+          if (resumeFromPausedStatus) {
             NostrAPI.instance.okCallback.clear();
             Utils.initLoggger(Get.find<SettingController>().appFolder);
             NotifyService.syncPubkeysToServer(checkUpload: true);
@@ -420,6 +421,7 @@ class HomeController extends GetxController
     WidgetsBinding.instance.removeObserver(this);
     rust_cashu.closeDb();
     subscription.cancel();
+    _connectionCheckTimer.cancel();
     refreshControllers.forEach((key, value) {
       value.dispose();
     });
@@ -466,6 +468,16 @@ class HomeController extends GetxController
     // listen network status https://pub.dev/packages/connectivity_plus
     subscription =
         Connectivity().onConnectivityChanged.listen(networkListenHandle);
+
+    // Start periodic connection check timer (every minute)
+    if (GetPlatform.isDesktop) {
+      _connectionCheckTimer = Timer.periodic(Duration(minutes: 1), (timer) {
+        if (isConnectedNetwork.value) {
+          Get.find<WebsocketService>().checkOnlineAndConnect();
+        }
+      });
+    }
+
     removeBadge();
     try {
       RoomUtil.executeAutoDelete();

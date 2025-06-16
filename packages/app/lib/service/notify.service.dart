@@ -109,7 +109,6 @@ class NotifyService {
       await removePubkeys(toRemovePubkeys);
     }
     if (checkUpload) {
-      // OneSignal.Notifications.clearAll();
       String hashcode = await NotifyService.calculateHash(
           [...idPubkeys, ...pubkeys2, ...relays]);
       bool hasUploaded = await NotifyService.checkHashcode(fcmToken!, hashcode);

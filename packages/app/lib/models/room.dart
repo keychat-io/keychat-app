@@ -282,11 +282,16 @@ class Room extends Equatable {
   Future<String?> getAdmin() async {
     Isar database = DBProvider.database;
     if (isMLSGroup) {
-      var info = await MlsGroupService.instance.getGroupExtension(this);
-      if (info.admins.isEmpty) {
+      try {
+        var info = await MlsGroupService.instance.getGroupExtension(this);
+        if (info.admins.isEmpty) {
+          return null;
+        } else {
+          return info.admins[0];
+        }
+      } catch (e) {
+        logger.e('getAdmin error: $e');
         return null;
-      } else {
-        return info.admins[0];
       }
     }
     RoomMember? rm = await database.roomMembers

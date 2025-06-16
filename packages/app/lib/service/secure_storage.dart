@@ -19,10 +19,6 @@ class SecureStorage {
   String mnemonicKey = kReleaseMode ? 'mnemonic' : '${Config.env}:mnemonic';
   static Map<String, String> keys = {};
 
-  Future writePhraseWords(String words) async {
-    await storage.write(key: mnemonicKey, value: words);
-  }
-
   Future write(String key, String value) async {
     return storage.write(key: key, value: value);
   }

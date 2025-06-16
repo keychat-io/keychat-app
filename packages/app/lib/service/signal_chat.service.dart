@@ -2,9 +2,7 @@ import 'dart:convert' show base64, base64Decode, jsonDecode, jsonEncode, utf8;
 import 'dart:typed_data' show Uint8List;
 
 import 'package:app/controller/home.controller.dart';
-import 'package:app/models/keychat/prekey_message_model.dart';
 import 'package:app/models/models.dart';
-import 'package:app/models/signal_id.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 
@@ -399,7 +397,7 @@ ${relays.join('\n')}
     KeychatMessage sm = await KeychatMessage(c: MessageType.signal, type: type)
         .setHelloMessagge(signalId: signalId, identity, greeting: greeting);
     await NostrAPI.instance.sendNip17Message(room, sm.toString(), identity,
-        toPubkey: onetimekey, realMessage: sm.msg);
+        toPubkey: onetimekey, realMessage: sm.msg, isSystem: true);
   }
 
   Future _processReject(Room room, NostrEventModel event, KeychatMessage km,

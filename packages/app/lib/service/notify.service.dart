@@ -139,7 +139,6 @@ class NotifyService {
       logger.d('Notification not working on windows and linux');
       return;
     }
-    logger.i('NotifyService init start');
     var settings = await FirebaseMessaging.instance.requestPermission(
       alert: true,
       announcement: false,

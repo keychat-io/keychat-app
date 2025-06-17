@@ -354,22 +354,24 @@ class _WebviewTabState extends State<WebviewTab> {
       initialUserScripts: UnmodifiableListView([controller.textSizeUserScript]),
       onScrollChanged: (controller, x, y) async {
         // Save scroll position by current URL
-        EasyDebounce.debounce(
-          'saveScroll:${tc.url.value}',
-          Duration(milliseconds: 500),
-          () async {
-            WebUri? uri = await controller.getUrl();
-            if (uri == null) return;
-            String currentUrl = uri.toString();
-            if (currentUrl.isNotEmpty) {
-              urlScrollPositions[currentUrl] = {
-                'scrollX': x,
-                'scrollY': y,
-                'timestamp': DateTime.now().millisecondsSinceEpoch,
-              };
-            }
-          },
-        );
+        if (GetPlatform.isAndroid) {
+          EasyDebounce.debounce(
+            'saveScroll:${tc.url.value}',
+            Duration(milliseconds: 500),
+            () async {
+              WebUri? uri = await controller.getUrl();
+              if (uri == null) return;
+              String currentUrl = uri.toString();
+              if (currentUrl.isNotEmpty) {
+                urlScrollPositions[currentUrl] = {
+                  'scrollX': x,
+                  'scrollY': y,
+                  'timestamp': DateTime.now().millisecondsSinceEpoch,
+                };
+              }
+            },
+          );
+        }
       },
       onCreateWindow: GetPlatform.isDesktop
           ? (controller, createWindowAction) {
@@ -501,7 +503,7 @@ class _WebviewTabState extends State<WebviewTab> {
         tc.pullToRefreshController?.endRefreshing();
 
         // Restore scroll position if needed
-        if (GetPlatform.isMobile && needRestorePosition) {
+        if (GetPlatform.isAndroid && needRestorePosition) {
           needRestorePosition = false;
           restoreScrollPosition(url.toString());
         }

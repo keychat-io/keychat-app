@@ -47,34 +47,32 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static FirebaseOptions android = FirebaseOptions(
-    apiKey: dotenv.get('FCMapiKey'),
-    appId: dotenv.get('FCMAndroidappId'),
-    messagingSenderId: dotenv.get('FCMmessagingSenderId'),
-    projectId: dotenv.get('FCMmessagingSenderId'),
-    databaseURL: dotenv.get('FCMdatabaseURL'),
-    storageBucket: dotenv.get('FCMstorageBucket'),
-  );
+  static FirebaseOptions get android => FirebaseOptions(
+        apiKey: dotenv.get('FCM_ANDROID_API_KEY'),
+        appId: dotenv.get('FCM_ANDROID_APP_ID'),
+        messagingSenderId: dotenv.get('FCM_MESSAGING_SENDER_ID'),
+        projectId: dotenv.get('FCM_PROJECT_ID'),
+        databaseURL: dotenv.get('FCM_DATABASE_URL'),
+        storageBucket: dotenv.get('FCM_STORAGE_BUCKET'),
+      );
 
-  static FirebaseOptions ios = FirebaseOptions(
-    apiKey: dotenv.get('FCMapiKey'),
-    appId: dotenv.get('FCMAndroidappId'),
-    messagingSenderId: dotenv.get('FCMmessagingSenderId'),
-    projectId: dotenv.get('FCMmessagingSenderId'),
-    databaseURL: dotenv.get('FCMdatabaseURL'),
-    storageBucket: dotenv.get('FCMstorageBucket'),
-    iosClientId: dotenv.get('FCMiosClientId'),
-    iosBundleId: dotenv.get('FCMiosBundleId'),
-  );
+  static FirebaseOptions get ios => FirebaseOptions(
+        apiKey: dotenv.get('FCM_API_KEY'),
+        appId: dotenv.get('FCM_IOS_APP_ID'),
+        messagingSenderId: dotenv.get('FCM_MESSAGING_SENDER_ID'),
+        projectId: dotenv.get('FCM_PROJECT_ID'),
+        databaseURL: dotenv.get('FCM_DATABASE_URL'),
+        storageBucket: dotenv.get('FCM_STORAGE_BUCKET'),
+        iosBundleId: dotenv.get('FCM_IOS_BUNDLE_ID'),
+      );
 
-  static FirebaseOptions macos = FirebaseOptions(
-    apiKey: dotenv.get('FCMapiKey'),
-    appId: dotenv.get('FCMAndroidappId'),
-    messagingSenderId: dotenv.get('FCMmessagingSenderId'),
-    projectId: dotenv.get('FCMmessagingSenderId'),
-    databaseURL: dotenv.get('FCMdatabaseURL'),
-    storageBucket: dotenv.get('FCMstorageBucket'),
-    iosClientId: dotenv.get('FCMiosClientId'),
-    iosBundleId: dotenv.get('FCMiosBundleId'),
-  );
+  static FirebaseOptions get macos => FirebaseOptions(
+        apiKey: dotenv.get('FCM_API_KEY'),
+        appId: dotenv.get('FCM_IOS_APP_ID'),
+        messagingSenderId: dotenv.get('FCM_MESSAGING_SENDER_ID'),
+        projectId: dotenv.get('FCM_PROJECT_ID'),
+        databaseURL: dotenv.get('FCM_DATABASE_URL'),
+        storageBucket: dotenv.get('FCM_STORAGE_BUCKET'),
+        iosBundleId: dotenv.get('FCM_IOS_BUNDLE_ID'),
+      );
 }

@@ -2,6 +2,10 @@
 https://keepachangelog.com/zh-CN/1.1.0
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
+## 1.32.10+6388
+1. [Browser]Add config for auto_sign_event
+2. Fix other bugs
+
 ## 1.32.9+6387
 1. Fix: set fee field for 1 sat
 2. Add `ignoreSafeArea: false` for bottomSheet

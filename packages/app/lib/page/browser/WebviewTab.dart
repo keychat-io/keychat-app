@@ -66,6 +66,11 @@ class _WebviewTabState extends State<WebviewTab> {
   bool pageFailed = false;
   WebviewTabState state = WebviewTabState.start;
   InAppWebViewKeepAlive? ka;
+  late String initDomain;
+
+  // Add scroll position tracking
+  Map<String, Map<String, dynamic>> urlScrollPositions = {};
+  bool needRestorePosition = false;
 
   @override
   void initState() {
@@ -74,11 +79,11 @@ class _WebviewTabState extends State<WebviewTab> {
     tc = controller.getOrCreateController(
         widget.initUrl, widget.initTitle, widget.uniqueKey);
     ecashController = Get.find<EcashController>();
+    initDomain = WebUri(widget.initUrl).host;
     initBrowserConnect(WebUri(widget.initUrl));
     super.initState();
     Future.delayed(Duration(seconds: 1)).then((_) {
       if (state == WebviewTabState.start) {
-        logger.d('${widget.initUrl} : WebviewTabState.start');
         callPageFailed();
       }
     });
@@ -347,7 +352,27 @@ class _WebviewTabState extends State<WebviewTab> {
       initialSettings: tc.settings,
       pullToRefreshController: tc.pullToRefreshController,
       initialUserScripts: UnmodifiableListView([controller.textSizeUserScript]),
-      onScrollChanged: (controller, x, y) {},
+      onScrollChanged: (controller, x, y) async {
+        // Save scroll position by current URL
+        if (GetPlatform.isAndroid) {
+          EasyDebounce.debounce(
+            'saveScroll:${tc.url.value}',
+            Duration(milliseconds: 500),
+            () async {
+              WebUri? uri = await controller.getUrl();
+              if (uri == null) return;
+              String currentUrl = uri.toString();
+              if (currentUrl.isNotEmpty) {
+                urlScrollPositions[currentUrl] = {
+                  'scrollX': x,
+                  'scrollY': y,
+                  'timestamp': DateTime.now().millisecondsSinceEpoch,
+                };
+              }
+            },
+          );
+        }
+      },
       onCreateWindow: GetPlatform.isDesktop
           ? (controller, createWindowAction) {
               if (createWindowAction.request.url == null) return false;
@@ -375,11 +400,7 @@ class _WebviewTabState extends State<WebviewTab> {
           tc.progress.value = 1.0;
         }
       },
-      onLoadStart: (controller, uri) async {
-        if (uri == null) return;
-        if (uri.toString() == tc.url.value) return;
-        updateTabInfo(widget.uniqueKey, uri.toString(), tc.title.value);
-      },
+      onLoadStart: (controller, uri) async {},
       onPrintRequest: (controller, url, printJobController) async {
         await printJobController?.cancel();
         return false;
@@ -390,7 +411,7 @@ class _WebviewTabState extends State<WebviewTab> {
             action: PermissionResponseAction.GRANT);
       },
       onReceivedIcon: (controller, icon) {
-        logger.d('onReceivedIcon: ${icon.toString()}');
+        // logger.d('onReceivedIcon: ${icon.toString()}');
       },
       shouldOverrideUrlLoading:
           (controller, NavigationAction navigationAction) async {
@@ -475,10 +496,20 @@ class _WebviewTabState extends State<WebviewTab> {
         return NavigationActionPolicy.ALLOW;
       },
       onLoadStop: (controller, url) async {
-        // onUpdateVisitedHistory(url);
+        if (url == null) return;
+
         controller.injectJavascriptFileFromAsset(
             assetFilePath: "assets/js/nostr.js");
         tc.pullToRefreshController?.endRefreshing();
+
+        // Restore scroll position if needed
+        if (GetPlatform.isAndroid && needRestorePosition) {
+          needRestorePosition = false;
+          restoreScrollPosition(url.toString());
+        }
+        if (url.host != initDomain) {
+          needRestorePosition = true;
+        }
       },
       onPageCommitVisible: (controller, url) {
         logger.i('onPageCommitVisible:${url.toString()}');
@@ -612,6 +643,26 @@ class _WebviewTabState extends State<WebviewTab> {
     );
   }
 
+  // Add method to restore scroll position
+  Future<void> restoreScrollPosition(String url) async {
+    if (tc.webViewController == null || url.isEmpty) return;
+
+    var savedPosition = urlScrollPositions[url];
+    if (savedPosition != null) {
+      try {
+        // Wait for page to load before scrolling
+        await Future.delayed(Duration(milliseconds: 500));
+
+        await tc.webViewController!.scrollTo(
+          x: savedPosition['scrollX'] ?? 0,
+          y: savedPosition['scrollY'] ?? 0,
+        );
+      } catch (e) {
+        logger.e('Failed to restore scroll position: $e');
+      }
+    }
+  }
+
   Widget getPopTools(String url) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -691,19 +742,23 @@ class _WebviewTabState extends State<WebviewTab> {
         return identity.secp256k1PKHex;
       case 'signEvent':
         var event = data[1];
-        try {
-          bool confirm = await Get.bottomSheet(signEventConfirm(
-              content: event['content'] as String,
-              kind: event['kind'] as int,
-              tags: (event['tags'] as List)
-                  .map((e) => List<String>.from(e))
-                  .toList()));
-          if (confirm != true) {
+
+        // Confirm signing event
+        if (!(controller.config['autoSignEvent'] ?? true)) {
+          try {
+            bool confirm = await Get.bottomSheet(signEventConfirm(
+                content: event['content'] as String,
+                kind: event['kind'] as int,
+                tags: (event['tags'] as List)
+                    .map((e) => List<String>.from(e))
+                    .toList()));
+            if (confirm != true) {
+              return;
+            }
+          } catch (e, s) {
+            logger.e('Failed to parse event: $event', stackTrace: s);
             return;
           }
-        } catch (e, s) {
-          logger.e('Failed to parse event: $event', stackTrace: s);
-          return;
         }
         var res = await NostrAPI.instance.signEventByIdentity(
             identity: identity,

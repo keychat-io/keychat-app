@@ -267,8 +267,12 @@ class MessageWidget extends StatelessWidget {
     return IconButton(
         splashColor: Colors.transparent,
         onPressed: () {
-          if (message.isSystem || message.mediaType != MessageMediaType.text) {
+          if (message.mediaType != MessageMediaType.text) {
             EasyLoading.showToast('Message sent failed');
+            return;
+          }
+          if (message.isSystem) {
+            EasyLoading.showToast('Please retry the previous operation.');
             return;
           }
           Get.dialog(
@@ -283,8 +287,7 @@ class MessageWidget extends StatelessWidget {
                     Get.back();
                   },
                 ),
-                if (!message.isSystem &&
-                    message.mediaType == MessageMediaType.text)
+                if (message.mediaType == MessageMediaType.text)
                   CupertinoDialogAction(
                     child: const Text('Resend'),
                     onPressed: () async {

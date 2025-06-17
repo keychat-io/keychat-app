@@ -15,11 +15,6 @@ on:
         description: "Deployment environment"
         required: false
         type: string
-  push:
-    branches:
-      - "main"
-    tags:
-      - "v*"
   pull_request:
     types: [closed]
     branches:
@@ -448,7 +443,7 @@ jobs:
           done
 
       - name: Release
-        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631
+        uses: softprops/action-gh-release@v2
         with:
           files: ./dist/*
           body_path: "./release.md"

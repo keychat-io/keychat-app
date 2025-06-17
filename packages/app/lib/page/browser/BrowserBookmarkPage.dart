@@ -90,13 +90,7 @@ class _BrowserBookmarkPageState extends State<BrowserBookmarkPage> {
         actions: [
           TextButton(
             onPressed: _toggleEditMode,
-            child: Text(
-              _isEditMode ? 'Done' : 'Edit',
-              style: TextStyle(
-                color:
-                    _isEditMode ? Colors.blue : Theme.of(context).primaryColor,
-              ),
-            ),
+            child: Text(_isEditMode ? 'Done' : 'Edit'),
           ),
         ],
       ),

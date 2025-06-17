@@ -1,7 +1,9 @@
 import 'package:app/models/models.dart';
 import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/utils.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
@@ -73,6 +75,63 @@ Widget _buildQuickSectionItem(BrowserFavorite favorite, int index,
                 onTap: () {
                   controller.lanuchWebview(
                       content: favorite.url, defaultTitle: favorite.title);
+                },
+                onLongPress: () async {
+                  if (GetPlatform.isMobile) {
+                    HapticFeedback.lightImpact();
+                  }
+                  BrowserBookmark? bb =
+                      await BrowserBookmark.getByUrl(favorite.url);
+                  String title = favorite.title == null
+                      ? favorite.url
+                      : '${favorite.title} - ${favorite.url}';
+                  showCupertinoModalPopup(
+                    context: Get.context!,
+                    builder: (BuildContext context) => CupertinoActionSheet(
+                      title: Text(title),
+                      actions: <CupertinoActionSheetAction>[
+                        if (index != 0)
+                          CupertinoActionSheetAction(
+                            onPressed: () async {
+                              await BrowserFavorite.setPin(favorite);
+                              EasyLoading.showSuccess('Success');
+                              controller.loadFavorite();
+                              Get.back();
+                            },
+                            child: const Text('Move to Top'),
+                          ),
+                        if (bb == null)
+                          CupertinoActionSheetAction(
+                            child: const Text('Add to bookmark'),
+                            onPressed: () async {
+                              await BrowserBookmark.add(
+                                  url: favorite.url,
+                                  title: favorite.title,
+                                  favicon: favorite.favicon);
+                              EasyLoading.showSuccess('Added');
+                              controller.loadFavorite();
+                              Get.back();
+                            },
+                          ),
+                        CupertinoActionSheetAction(
+                          isDestructiveAction: true,
+                          onPressed: () async {
+                            await BrowserFavorite.delete(favorite.id);
+                            EasyLoading.showSuccess('Removed');
+                            controller.loadFavorite();
+                            Get.back();
+                          },
+                          child: const Text('Remove'),
+                        ),
+                      ],
+                      cancelButton: CupertinoActionSheetAction(
+                        child: const Text('Cancel'),
+                        onPressed: () {
+                          Get.back();
+                        },
+                      ),
+                    ),
+                  );
                 },
                 context: context,
                 onSecondaryTapDown: (e) async {

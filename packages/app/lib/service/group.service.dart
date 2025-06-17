@@ -142,7 +142,11 @@ class GroupService extends BaseChatService {
       throw Exception('admin can not exit group');
     }
     if (room.isMLSGroup) {
-      await MlsGroupService.instance.sendSelfLeaveMessage(room);
+      try {
+        await MlsGroupService.instance.sendSelfLeaveMessage(room);
+      } catch (e) {
+        logger.e('sendSelfLeaveMessage error: $e');
+      }
       await roomService.deleteRoom(room);
       return;
     }

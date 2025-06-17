@@ -4,7 +4,6 @@ import 'package:app/desktop/DesktopController.dart';
 import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/service/chatx.service.dart';
-import 'package:app/service/notify.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:app/utils/MyCustomScrollBehavior.dart';
@@ -71,12 +70,6 @@ void main() async {
     stopwatch.stop();
     logger.i("app launched: ${stopwatch.elapsedMilliseconds} ms");
   });
-
-  RemoteMessage? initialMessage =
-      await FirebaseMessaging.instance.getInitialMessage();
-  if (initialMessage != null) {
-    NotifyService.handleMessage(initialMessage);
-  }
 }
 
 Future<String> getInitRoute(bool isLogin) async {
@@ -104,7 +97,7 @@ void initEasyLoading() {
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // If you're going to use other Firebase services in the background, such as Firestore,
   // make sure you call `initializeApp` before using other Firebase services.
-  if (dotenv.get('FCMapiKey', fallback: '') != '') {
+  if (dotenv.get('FCM_API_KEY', fallback: '') != '') {
     if (Firebase.apps.isEmpty) {
       var app = await Firebase.initializeApp(
           name: GetPlatform.isAndroid ? 'keychat-bg' : null,
@@ -121,7 +114,7 @@ Future<SettingController> initServices() async {
   await SystemChrome.setPreferredOrientations(
       [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   await dotenv.load(fileName: ".env");
-  if (dotenv.get('FCMapiKey', fallback: '') != '') {
+  if (dotenv.get('FCM_API_KEY', fallback: '') != '') {
     await Firebase.initializeApp(
             name: GetPlatform.isAndroid ? 'keychat' : null,
             options: DefaultFirebaseOptions.currentPlatform)

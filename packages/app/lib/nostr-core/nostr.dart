@@ -306,6 +306,7 @@ class NostrAPI {
     bool save = true,
     int nip17Kind = EventKinds.nip17,
     List<List<String>>? additionalTags,
+    bool? isSystem,
   }) async {
     String? encryptedEvent;
     if (identity.isFromSigner) {
@@ -331,6 +332,7 @@ class NostrAPI {
         mediaType: mediaType,
         reply: reply,
         realMessage: realMessage,
+        isSystem: isSystem,
         save: save);
   }
 

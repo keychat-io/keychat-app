@@ -97,7 +97,8 @@ class BrowserNewTab extends GetView<MultiWebviewController> {
         'title': 'Mini App',
         'onTap': () async {
           if (GetPlatform.isDesktop) {
-            await Get.bottomSheet(const WebStorePage());
+            await Get.bottomSheet(const WebStorePage(),
+                isScrollControlled: true, ignoreSafeArea: false);
           } else {
             await Get.to(() => const WebStorePage());
           }
@@ -109,7 +110,8 @@ class BrowserNewTab extends GetView<MultiWebviewController> {
         'title': 'Bookmark',
         'onTap': () async {
           if (GetPlatform.isDesktop) {
-            await Get.bottomSheet(const BrowserBookmarkPage());
+            await Get.bottomSheet(const BrowserBookmarkPage(),
+                isScrollControlled: true, ignoreSafeArea: false);
           } else {
             await Get.to(() => const BrowserBookmarkPage());
           }
@@ -121,7 +123,8 @@ class BrowserNewTab extends GetView<MultiWebviewController> {
         'title': 'History',
         'onTap': () async {
           if (GetPlatform.isDesktop) {
-            await Get.bottomSheet(const BrowserHistoryPage());
+            await Get.bottomSheet(const BrowserHistoryPage(),
+                isScrollControlled: true, ignoreSafeArea: false);
           } else {
             await Get.to(() => const BrowserHistoryPage());
           }
@@ -132,7 +135,8 @@ class BrowserNewTab extends GetView<MultiWebviewController> {
         'title': 'Setting',
         'onTap': () async {
           if (GetPlatform.isDesktop) {
-            await Get.bottomSheet(const BrowserSetting());
+            await Get.bottomSheet(const BrowserSetting(),
+                isScrollControlled: true, ignoreSafeArea: false);
           } else {
             await Get.to(() => const BrowserSetting());
           }

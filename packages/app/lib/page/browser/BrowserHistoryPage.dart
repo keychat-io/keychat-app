@@ -108,7 +108,7 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
                                   maxLines: 1, overflow: TextOverflow.ellipsis),
                           dense: true,
                           onTap: () => Get.find<MultiWebviewController>()
-                              .lanuchWebview(
+                              .launchWebview(
                                   content: site.url, defaultTitle: site.title),
                           trailing: IconButton(
                               onPressed: () async {

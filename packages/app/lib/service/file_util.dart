@@ -357,35 +357,41 @@ class FileUtils {
     }
   }
 
-  static Future<FileEncryptInfo> signEventAndUpload(File input,
-      {void Function(int, int)? onSendProgress}) async {
-    FileEncryptInfo res = await FileService.encryptFile(input);
-    res.size = res.output.length;
-
-    rust_nostr.Secp256k1Account randomId = await rust_nostr.generateSecp256K1();
-
+  static Future<FileEncryptInfo> uploadToBlossom(
+      {required File input,
+      required String prikey,
+      required String server,
+      void Function(int, int)? onSendProgress}) async {
+    FileEncryptInfo fe = await FileService.encryptFile(input);
+    fe.size = fe.output.length;
     String eventString = await rust_nostr.signEvent(
-        senderKeys: randomId.prikey,
-        content: res.hash,
+        senderKeys: prikey,
+        content: fe.hash,
         createdAt: BigInt.from(DateTime.now().millisecondsSinceEpoch ~/ 1000),
         kind: 24242,
         tags: [
           ["t", "upload"],
-          ["x", res.hash]
+          ["x", fe.hash],
+          [
+            "expiration",
+            (DateTime.now().add(Duration(days: 30)).millisecondsSinceEpoch ~/
+                    1000)
+                .toString()
+          ],
         ]);
+    logger.d(eventString);
     FormData formData = FormData.fromMap({
-      'file': MultipartFile.fromBytes(res.output, filename: res.hash),
+      'file': MultipartFile.fromBytes(fe.output, filename: fe.hash),
     });
-
     try {
       Dio dio = Dio();
-      Response response = await dio.post(
-        'https://nostrmedia.com/upload',
+      Response response = await dio.put(
+        server,
         data: formData,
         onSendProgress: onSendProgress,
         options: Options(
           headers: {
-            'Content-Type': 'multipart/form-data',
+            'Content-Type': 'application/octet-stream',
             'Authorization': 'Nostr ${base64Encode(utf8.encode(eventString))}',
           },
         ),
@@ -393,7 +399,9 @@ class FileUtils {
 
       if (response.statusCode == 200) {
         logger.i('Upload successful ${response.data}');
-        return res;
+        fe.url = response.data['url'] ?? '';
+        fe.size = response.data['size'] ?? fe.size;
+        return fe;
       }
     } on DioException catch (e, s) {
       // The request was made and the server responded with a status code

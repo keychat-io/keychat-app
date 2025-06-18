@@ -1,5 +1,3 @@
-// AES 256 CTR encrypt file and decode
-import 'dart:convert' show base64Encode;
 import 'dart:io' show File;
 import 'dart:math' show Random;
 import 'dart:typed_data' show Uint8List;
@@ -34,6 +32,15 @@ class FileEncryptInfo {
     key = json['key'];
     hash = json['hash'];
     sourceName = json['sourceName'] ?? json['hash'];
+  }
+  Map<String, dynamic> toJson() {
+    return {
+      'iv': iv,
+      'suffix': suffix,
+      'key': key,
+      'hash': hash,
+      'sourceName': sourceName,
+    };
   }
 }
 
@@ -73,7 +80,7 @@ class FileService {
 
   static String calculateFileHash(List<int> fileBytes) {
     final digest = sha256.convert(fileBytes);
-    return base64Encode(digest.bytes);
+    return digest.toString();
   }
 
   // check text is image

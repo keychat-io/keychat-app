@@ -8,6 +8,12 @@ import 'package:flutter/foundation.dart'
 import 'package:get/get.dart';
 import '../service/storage.dart';
 
+enum MediaServerType {
+  blossom,
+  keychatS3,
+  nip94,
+}
+
 class SettingController extends GetxController with StateMixin<Type> {
   RxString displayName = ''.obs;
 
@@ -15,6 +21,7 @@ class SettingController extends GetxController with StateMixin<Type> {
   RxInt autoCleanMessageDays = 0.obs;
   RxString themeMode = 'system'.obs;
   RxString defaultFileServer = KeychatGlobal.defaultFileServer.obs;
+  RxString defaultFileMediaType = MediaServerType.blossom.name.obs;
 
   Directory appFolder = Directory('/');
   late String avatarsFolder;
@@ -73,7 +80,7 @@ class SettingController extends GetxController with StateMixin<Type> {
     super.onInit();
 
     // file server
-    initDefaultFileServerConfig();
+    initRelayFileServerConfig();
   }
 
   getViewKeychatFutures() async {
@@ -87,7 +94,7 @@ class SettingController extends GetxController with StateMixin<Type> {
     viewKeychatFutures.value = true;
   }
 
-  Future<void> initDefaultFileServerConfig() async {
+  Future<void> initRelayFileServerConfig() async {
     String? res = await Storage.getString(StorageKeyString.defaultFileServer);
     if (res != null) {
       defaultFileServer.value = res;
@@ -98,9 +105,22 @@ class SettingController extends GetxController with StateMixin<Type> {
     defaultFileServer.value = KeychatGlobal.defaultFileServer;
   }
 
-  Future setDefaultFileServer(String value) async {
+  Future setDefaultRelayFileServer(String value) async {
     await Storage.setString(StorageKeyString.defaultFileServer, value);
     defaultFileServer.value = value;
+  }
+
+  Future<void> initMediaServerConfig() async {
+    String? res =
+        await Storage.getString(StorageKeyString.defaultFileMediaType);
+    if (res != null) {
+      defaultFileMediaType.value = res;
+    }
+  }
+
+  Future<void> seteFileMediaType(String value) async {
+    await Storage.setString(StorageKeyString.defaultFileMediaType, value);
+    defaultFileMediaType.value = value;
   }
 
   String getHttpDefaultFileApi() {

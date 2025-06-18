@@ -120,7 +120,7 @@ class MultiWebviewController extends GetxController {
     removeByIndex(removeIndex);
   }
 
-  lanuchWebview(
+  Future launchWebview(
       {required String content,
       String engine = 'google',
       String? defaultTitle}) async {

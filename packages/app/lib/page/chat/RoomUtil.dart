@@ -658,7 +658,7 @@ Let's start an encrypted chat.''';
         link: content,
         onTap: () {
           Utils.hideKeyboard(Get.context!);
-          Get.find<MultiWebviewController>().lanuchWebview(content: content);
+          Get.find<MultiWebviewController>().launchWebview(content: content);
         },
         placeholderWidget:
             errorCallback(child: getMarkdownView(content, markdownConfig)),

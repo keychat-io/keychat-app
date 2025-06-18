@@ -18,6 +18,7 @@ class StorageKeyString {
   static String lastMessageAt = "lastMessageAt";
   static String defaultWebRTCServers = "defaultWebRTCServers";
   static String defaultFileServer = "defaultFileServer";
+  static String defaultFileMediaType = "defaultFileMediaType";
   static String relayMessageFeeConfig = "relayMessageFeeConfig";
   static String relayFileFeeConfig = "relayFileFeeConfig";
 
@@ -38,6 +39,7 @@ class StorageKeyString {
 
   static String defaultSelectedTabIndex = 'defaultSelectedTabIndex';
   static String selectedTabIndex = 'selectedTabIndex';
+  static String blossomProtocolServers = 'blossomProtocolServers';
 }
 
 class Storage {

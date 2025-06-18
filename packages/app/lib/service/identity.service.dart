@@ -75,10 +75,9 @@ class IdentityService {
       await SecureStorage.instance
           .writePhraseWordsWhenNotExist(account.mnemonic!);
 
+      await SecureStorage.instance.write(iden.secp256k1PKHex, account.prikey);
       await SecureStorage.instance
-          .writePrikey(iden.secp256k1PKHex, account.prikey);
-      await SecureStorage.instance
-          .writePrikey(iden.curve25519PkHex!, account.curve25519SkHex!);
+          .write(iden.curve25519PkHex!, account.curve25519SkHex!);
     });
     await homeController.loadRoomList(init: true);
     try {
@@ -126,7 +125,7 @@ class IdentityService {
       ..index = -1;
     await database.writeTxn(() async {
       await database.identitys.put(iden);
-      await SecureStorage.instance.writePrikey(hexPubkey, prikey);
+      await SecureStorage.instance.write(hexPubkey, prikey);
     });
 
     await Get.find<HomeController>().loadRoomList(init: true);

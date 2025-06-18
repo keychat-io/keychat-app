@@ -376,7 +376,7 @@ class _WebviewTabState extends State<WebviewTab> {
       onCreateWindow: GetPlatform.isDesktop
           ? (controller, createWindowAction) {
               if (createWindowAction.request.url == null) return false;
-              this.controller.lanuchWebview(
+              this.controller.launchWebview(
                   content: createWindowAction.request.url.toString());
               return true;
             }

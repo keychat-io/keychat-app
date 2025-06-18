@@ -1,4 +1,3 @@
-import 'package:app/models/nostr_event_status.dart';
 import 'package:app/nostr-core/close.dart';
 import 'package:app/nostr-core/subscribe_result.dart';
 import 'package:app/service/SignerService.dart';

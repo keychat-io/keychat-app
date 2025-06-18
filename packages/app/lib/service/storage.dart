@@ -40,6 +40,7 @@ class StorageKeyString {
   static String defaultSelectedTabIndex = 'defaultSelectedTabIndex';
   static String selectedTabIndex = 'selectedTabIndex';
   static String blossomProtocolServers = 'blossomProtocolServers';
+  static String selectedPaymentPubkey = 'selectedPaymentPubkey';
 }
 
 class Storage {

@@ -6,7 +6,6 @@ import 'package:app/controller/chat.controller.dart';
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/page/widgets/image_slide_widget.dart';
 import 'package:app/service/file.service.dart';
-import 'package:app/service/FileService.instance.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';

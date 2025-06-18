@@ -9,7 +9,6 @@ import 'package:app/page/chat/RoomDraft.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/file.service.dart';
-import 'package:app/service/FileService.instance.dart' as file_util;
 import 'package:app/service/message.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/room.service.dart';

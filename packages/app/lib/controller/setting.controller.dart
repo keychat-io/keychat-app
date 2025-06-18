@@ -28,6 +28,14 @@ class SettingController extends GetxController with StateMixin<Type> {
   late String browserCacheFolder;
   late String browserUserDataFolder;
 
+  List<String> builtInMedias = [
+    "https://void.cat",
+    "https://cdn.nostrcheck.me",
+    "https://nostr.download",
+    "https://nostrmedia.com",
+    "https://cdn.satellite.earth",
+  ];
+
   @override
   void onInit() async {
     appFolder = await Utils.getAppFolder();

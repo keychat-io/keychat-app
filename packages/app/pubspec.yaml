@@ -31,7 +31,6 @@ dependencies:
   badges: ^3.1.2
   equatable: ^2.0.6
   json_annotation: ^4.9.0
-  aws: 1.0.0
   keychat_rust_ffi_plugin: 1.0.0
   keychat_ecash: 1.0.0
   isar:

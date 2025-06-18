@@ -750,7 +750,8 @@ class _WebviewTabState extends State<WebviewTab> {
                 content: event['content'] as String,
                 kind: event['kind'] as int,
                 tags: (event['tags'] as List)
-                    .map((e) => List<String>.from(e))
+                    .map((e) =>
+                        List<String>.from((e.map((item) => item.toString()))))
                     .toList()));
             if (confirm != true) {
               return;
@@ -766,7 +767,8 @@ class _WebviewTabState extends State<WebviewTab> {
             createdAt: event['created_at'],
             kind: event['kind'] as int,
             tags: (event['tags'] as List)
-                .map((e) => List<String>.from(e))
+                .map((e) =>
+                    List<String>.from((e.map((item) => item.toString()))))
                 .toList());
 
         return res;

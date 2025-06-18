@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/page/browser/BrowserSetting.dart';
@@ -9,9 +7,7 @@ import 'package:app/page/routes.dart';
 import 'package:app/page/setting/RelaySetting.dart';
 import 'package:app/page/setting/app_general_setting.dart';
 import 'package:app/page/setting/more_chat_setting.dart';
-import 'package:app/service/file_util.dart';
 import 'package:app/service/websocket.service.dart';
-import 'package:flutter/foundation.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:app/controller/home.controller.dart';
 
@@ -151,31 +147,6 @@ class MinePage extends GetView<SettingController> {
                       ),
                     ],
                   ),
-                  if (kDebugMode)
-                    SettingsSection(
-                      margin: const EdgeInsetsDirectional.symmetric(
-                          horizontal: 16, vertical: 16),
-                      tiles: [
-                        SettingsTile(
-                          leading: const Icon(Icons.upload),
-                          title: const Text("Blossom Upload"),
-                          onPressed: (context) async {
-                            Identity identity = Get.find<HomeController>()
-                                .getSelectedIdentity();
-                            String prikey = await identity.getSecp256k1SKHex();
-                            Directory appFolder = await Utils.getAppFolder();
-                            await FileUtils.uploadToBlossom(
-                              input: File('${appFolder.path}/2.png'),
-                              prikey: prikey,
-                              server: 'https://void.cat/upload',
-                              onSendProgress: (sent, total) {
-                                // Handle progress
-                              },
-                            );
-                          },
-                        ),
-                      ],
-                    ),
                 ],
               )),
         ));

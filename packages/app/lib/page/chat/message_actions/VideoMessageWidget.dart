@@ -5,7 +5,8 @@ import 'package:app/app.dart';
 import 'package:app/controller/chat.controller.dart';
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/page/widgets/image_slide_widget.dart';
-import 'package:app/service/file_util.dart';
+import 'package:app/service/file.service.dart';
+import 'package:app/service/FileService.instance.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
@@ -69,7 +70,7 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
         return;
       }
 
-      FileUtils.getOrCreateThumbForVideo(filePath).then((value) {
+      FileService.instance.getOrCreateThumbForVideo(filePath).then((value) {
         setState(() {
           fileStatus = FileStatus.decryptSuccess;
           msgFileInfo = mfi;
@@ -87,13 +88,14 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
         children: [
           widget.errorCallback(
               text:
-                  '[Video File]: ${fileStatus == FileStatus.failed ? 'Download Failed' : FileUtils.getFileSizeDisplay(msgFileInfo?.size ?? 0)}'),
+                  '[Video File]: ${fileStatus == FileStatus.failed ? 'Download Failed' : FileService.instance.getFileSizeDisplay(msgFileInfo?.size ?? 0)}'),
           IconButton(
             onPressed: () {
               if (msgFileInfo == null) return;
               EasyLoading.showToast('Start downloading');
-              FileUtils.downloadForMessage(widget.message, msgFileInfo!,
-                  callback: _init, onReceiveProgress: (int count, int total) {
+              FileService.instance.downloadForMessage(
+                  widget.message, msgFileInfo!, callback: _init,
+                  onReceiveProgress: (int count, int total) {
                 setState(() {
                   downloadProgress = (count / total * 100).toStringAsFixed(2);
                 });
@@ -144,8 +146,9 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
                         ChatController? cc =
                             RoomService.getController(widget.message.roomId);
                         if (cc == null || videoPath == null) return;
-                        List<File> files = await FileUtils.getRoomImageAndVideo(
-                            cc.roomObs.value.identityId, cc.roomObs.value.id);
+                        List<File> files = await FileService.instance
+                            .getRoomImageAndVideo(cc.roomObs.value.identityId,
+                                cc.roomObs.value.id);
                         Get.to(
                             () => SlidesImageViewWidget(
                                 files: files.reversed.toList(),

@@ -8,7 +8,8 @@ import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/RoomDraft.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/contact.service.dart';
-import 'package:app/service/file_util.dart' as file_util;
+import 'package:app/service/file.service.dart';
+import 'package:app/service/FileService.instance.dart' as file_util;
 import 'package:app/service/message.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/room.service.dart';
@@ -183,7 +184,7 @@ class ChatController extends GetxController {
     List<FileSystemEntity> files = directory.listSync(recursive: true);
     List<File> imageFiles = [];
     for (var file in files) {
-      if (file is File && file_util.isImageFile(file.path)) {
+      if (file is File && FileService.instance.isImageFile(file.path)) {
         imageFiles.add(file);
       }
     }
@@ -496,7 +497,7 @@ class ChatController extends GetxController {
     Get.dialog(CupertinoAlertDialog(
       content: SizedBox(
         width: 300,
-        child: file_util.FileUtils.getImageView(File(xfile.path)),
+        child: FileService.instance.getImageView(File(xfile.path)),
       ),
       actions: [
         CupertinoDialogAction(
@@ -532,11 +533,11 @@ class ChatController extends GetxController {
     if (xfile == null) return;
     try {
       EasyLoading.showProgress(0.2, status: 'Encrypting and Uploading...');
-      await file_util.FileUtils.encryptAndSendFile(
+      await FileService.instance.encryptAndSendFile(
           roomObs.value, xfile, MessageMediaType.video,
           compress: true,
-          onSendProgress: (count, total) => file_util.FileUtils.onSendProgress(
-              'Encrypting and Uploading...', count, total));
+          onSendProgress: (count, total) => FileService.instance
+              .onSendProgress('Encrypting and Uploading...', count, total));
       hideAdd.value = true; // close features section
       EasyLoading.dismiss();
     } catch (e, s) {
@@ -603,11 +604,11 @@ class ChatController extends GetxController {
     if (result == null) return;
     XFile xfile = result.files.first.xFile;
 
-    if (file_util.isImageFile(xfile.path)) {
+    if (FileService.instance.isImageFile(xfile.path)) {
       return handleSendMediaFile(xfile, MessageMediaType.image, true);
     }
 
-    if (file_util.isVideoFile(xfile.path)) {
+    if (FileService.instance.isVideoFile(xfile.path)) {
       return handleSendMediaFile(xfile, MessageMediaType.video, true);
     }
     handleSendMediaFile(xfile, MessageMediaType.file, false);
@@ -624,12 +625,11 @@ class ChatController extends GetxController {
 2. Encrypting 
 3. Uploading''';
         EasyLoading.showProgress(0.2, status: statusMessage);
-        await file_util.FileUtils.encryptAndSendFile(
+        await FileService.instance.encryptAndSendFile(
             roomObs.value, xfile, mediaType,
             compress: compress,
-            onSendProgress: (count, total) =>
-                file_util.FileUtils.onSendProgress(
-                    statusMessage, count, total));
+            onSendProgress: (count, total) => FileService.instance
+                .onSendProgress(statusMessage, count, total));
         hideAdd.value = true; // close features section
         EasyLoading.dismiss();
       } catch (e, s) {

@@ -1,37 +1,153 @@
 import 'dart:convert' show base64Encode, utf8;
-import 'dart:io' show Directory, File, FileSystemEntity;
+import 'dart:io' show File, Directory, FileSystemEntity;
+import 'dart:math' show Random;
 import 'dart:typed_data' show Uint8List;
+import 'package:app/controller/home.controller.dart';
+import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/db_provider.dart';
 import 'package:app/models/embedded/msg_file_info.dart';
+import 'package:app/models/message.dart';
+import 'package:app/models/room.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/room.service.dart';
+import 'package:app/service/s3.dart';
+import 'package:app/service/secure_storage.dart';
+import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
-import 'package:app/utils/config.dart';
-import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' hide Key;
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:get/get.dart' hide Response;
+import 'package:dio/dio.dart';
+import 'package:encrypt/encrypt.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:image/image.dart' as img;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
-
-import 'package:aws/aws.dart';
+import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
+import 'package:share_plus/share_plus.dart';
 import 'package:video_compress/video_compress.dart';
-import '../models/message.dart';
-import '../models/room.dart';
+import 'package:image/image.dart' as img;
+import 'package:app/utils/config.dart';
 
-AwsS3 s3 = AwsS3(
-    accessKey: dotenv.get('AWS_ACCESSKEY', fallback: ""),
-    secretKey: dotenv.get('AWS_SECRETKEY', fallback: ""),
-    bucket: dotenv.get('AWS_BUCKET', fallback: ""),
-    region: dotenv.get('AWS_REGION', fallback: ""))
-  ..host = dotenv.get('AWS_HOST', fallback: "");
+class FileEncryptInfo {
+  late Uint8List output;
+  late String iv;
+  late String suffix;
+  late String key;
+  late String hash; // sha256
+  late String sourceName;
+  String? ecashToken;
+  String? url;
+  int size = 0;
+  FileEncryptInfo(
+      {required this.key,
+      required this.output,
+      required this.iv,
+      required this.suffix,
+      required this.hash,
+      required this.sourceName});
+  FileEncryptInfo.fromJson(Map<String, dynamic> json) {
+    output = json['output'];
+    iv = json['iv'];
+    suffix = json['suffix'];
+    key = json['key'];
+    hash = json['hash'];
+    sourceName = json['sourceName'] ?? json['hash'];
+  }
+  Map<String, dynamic> toJson() {
+    return {
+      'iv': iv,
+      'suffix': suffix,
+      'key': key,
+      'hash': hash,
+      'sourceName': sourceName,
+    };
+  }
+}
 
-class FileUtils {
-  static String getAbsolutelyFilePath(String appFolder, String localPath) {
+class FileService {
+  static FileService? _instance;
+  static FileService get instance => _instance ??= FileService._();
+  // Avoid self instance
+  FileService._();
+  Future<File> decryptFile(
+      {required File input,
+      required File output,
+      required String key,
+      required String iv}) async {
+    final encrypter = Encrypter(AES(Key.fromBase64(key), mode: AESMode.ctr));
+
+    final encryptedBytes = Encrypted(await input.readAsBytes());
+    final decryptedBytes =
+        encrypter.decryptBytes(encryptedBytes, iv: IV.fromBase64(iv));
+    await output.writeAsBytes(decryptedBytes);
+    return output;
+  }
+
+  Future<FileEncryptInfo> encryptFile(File input) async {
+    final iv = IV.fromSecureRandom(16);
+    final salt = SecureRandom(16).bytes;
+    final key =
+        Key.fromUtf8(Random(16).nextInt(10).toString()).stretch(32, salt: salt);
+    final encrypter = Encrypter(AES(key, mode: AESMode.ctr));
+    String fileName = input.path.split('/').last;
+    final encryptedBytes = encrypter
+        .encryptBytes(Uint8List.fromList(await input.readAsBytes()), iv: iv);
+    var sha256 = await rust_nostr.sha256HashBytes(data: encryptedBytes.bytes);
+    return FileEncryptInfo.fromJson({
+      'output': encryptedBytes.bytes,
+      'iv': iv.base64,
+      'key': key.base64,
+      'suffix': fileName.contains('.') ? fileName.split('.').last : '',
+      'hash': sha256,
+      'sourceName': fileName,
+    });
+  }
+
+  // check text is image
+  isImage(String text) {
+    final regex = RegExp(
+        r'(https?://\S+\.(?:jpg|bmp|gif|ico|pcx|jpeg|tif|png|raw))',
+        caseSensitive: false);
+    return regex.hasMatch(text);
+  }
+
+  Future<Map> getUploadParams(
+      {required String cashu,
+      required int length,
+      required String sha256}) async {
+    try {
+      final dio = Dio();
+      final headers = {'Content-type': 'application/json'};
+      String url = Get.find<SettingController>().getHttpDefaultFileApi();
+      final response = await dio.post(
+        url,
+        data: {
+          'cashu': cashu,
+          'length': length,
+          'sha256': sha256,
+        },
+        options: Options(headers: headers),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+    } on DioException catch (e, s) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx and is also not 304.
+      if (e.response != null) {
+        logger.e(e.response?.data, stackTrace: s);
+      } else {
+        // Something happened in setting up or sending the request that triggered an Error
+        logger.e(e.message, stackTrace: s);
+        throw Exception('Fetch_upload_params_failed: ${e.message ?? ''}');
+      }
+    }
+    throw Exception('Fetch upload params failed');
+  }
+
+  String getAbsolutelyFilePath(String appFolder, String localPath) {
     if (localPath.startsWith('/var/mobile')) {
       String file = localPath.split(KeychatGlobal.baseFilePath).last;
       return '$appFolder/${KeychatGlobal.baseFilePath}$file';
@@ -39,14 +155,14 @@ class FileUtils {
     return appFolder + localPath;
   }
 
-  static String getVideoThumbPath(String videoFilePath) {
+  String getVideoThumbPath(String videoFilePath) {
     String fullFileName = videoFilePath.split('/').last;
     String fileDir = videoFilePath.replaceAll(fullFileName, '');
     String fileName = fullFileName.split('.').first;
     return '$fileDir${fileName}_thumb.jpg';
   }
 
-  static Future<File> getOrCreateThumbForVideo(String videoFilePath) async {
+  Future<File> getOrCreateThumbForVideo(String videoFilePath) async {
     String thumbnailFilePath = getVideoThumbPath(videoFilePath);
     var thumbnailFile = File(thumbnailFilePath);
     bool exist = await thumbnailFile.exists();
@@ -65,7 +181,7 @@ class FileUtils {
     return File(thumbnailFilePath);
   }
 
-  static onSendProgress(String status, int count, int total) {
+  onSendProgress(String status, int count, int total) {
     if (count == total && total != 0) {
       EasyLoading.showSuccess('Upload success');
       return;
@@ -76,8 +192,7 @@ class FileUtils {
     }
   }
 
-  static Widget getImageView(File file,
-      [double width = 150, double height = 150]) {
+  Widget getImageView(File file, [double width = 150, double height = 150]) {
     bool isSVG = file.path.endsWith('.svg');
 
     if (isSVG) {
@@ -96,7 +211,7 @@ class FileUtils {
     );
   }
 
-  static Future<String> getRoomFolder(
+  Future<String> getRoomFolder(
       {required int identityId,
       required int roomId,
       MessageMediaType? type}) async {
@@ -114,9 +229,8 @@ class FileUtils {
     return outputPath;
   }
 
-  static Future<List<File>> getRoomImageAndVideo(
-      int identityId, int roomId) async {
-    String imageDirectory = await FileUtils.getRoomFolder(
+  Future<List<File>> getRoomImageAndVideo(int identityId, int roomId) async {
+    String imageDirectory = await getRoomFolder(
         identityId: identityId, roomId: roomId, type: MessageMediaType.image);
 
     List<FileSystemEntity> files =
@@ -129,7 +243,7 @@ class FileUtils {
     }
 
     // video
-    String videoDirectory = await FileUtils.getRoomFolder(
+    String videoDirectory = await getRoomFolder(
         identityId: identityId, roomId: roomId, type: MessageMediaType.video);
     List<FileSystemEntity> files2 =
         Directory(videoDirectory).listSync(recursive: true);
@@ -144,7 +258,7 @@ class FileUtils {
     return res;
   }
 
-  static deleteFilesByTime(String path, DateTime fromAt) {
+  deleteFilesByTime(String path, DateTime fromAt) {
     Directory directory = Directory(path);
     if (directory.existsSync()) {
       directory.listSync().forEach((element) {
@@ -159,7 +273,7 @@ class FileUtils {
     }
   }
 
-  static encryptAndSendFile(
+  encryptAndSendFile(
     Room room,
     XFile xfile,
     MessageMediaType type, {
@@ -200,8 +314,38 @@ class FileUtils {
     }
     File newFile = File(newPath);
     await newFile.writeAsBytes(fileBytes);
-    FileEncryptInfo fileInfo = await s3.encryptAndUploadByRelay(newFile,
-        onSendProgress: onSendProgress);
+    String mediaServerType =
+        Get.find<SettingController>().defaultFileMediaType.value;
+    late FileEncryptInfo fileInfo;
+    if (mediaServerType == MediaServerType.keychatS3.name) {
+      fileInfo = await AwsS3.instance
+          .encryptAndUploadByRelay(newFile, onSendProgress: onSendProgress);
+    } else if (mediaServerType == MediaServerType.blossom.name) {
+      try {
+        fileInfo = await uploadToBlossom(
+            input: newFile, onSendProgress: onSendProgress);
+      } catch (e) {
+        Get.dialog(CupertinoAlertDialog(
+          title: Text('Upload Failed'),
+          content: Column(
+            children: [
+              Text(e.toString(), maxLines: 3, overflow: TextOverflow.ellipsis),
+              Text(
+                  'Check your blossom servers, make sure your subscription is valid.'),
+            ],
+          ),
+          actions: [
+            CupertinoDialogAction(
+              child: Text('OK'),
+              onPressed: () {
+                Get.back();
+              },
+            ),
+          ],
+        ));
+        return;
+      }
+    }
 
     Directory appFolder = await Utils.getAppFolder();
     String relativePath = newFile.path.replaceAll(appFolder.path, '');
@@ -209,7 +353,7 @@ class FileUtils {
         relativePath: relativePath, fileInfo: fileInfo, room: room, type: type);
   }
 
-  static Future downloadForMessage(Message message, MsgFileInfo mfi,
+  Future downloadForMessage(Message message, MsgFileInfo mfi,
       {Function(MsgFileInfo fi)? callback,
       Function(int count, int total)? onReceiveProgress}) async {
     Uri uri = Uri.parse(message.content);
@@ -236,7 +380,8 @@ class FileUtils {
       } else {
         // file exist, check the hash, then save the file using a new name
         List<int> bytes = await newFile.readAsBytes();
-        String existFileHash = FileService.calculateFileHash(bytes);
+        String existFileHash = await rust_nostr.sha256HashBytes(data: bytes);
+
         // not the same file, check hash first
         if (existFileHash != mfi.hash) {
           // If the hash doesn't match, rename the file and re-download
@@ -295,7 +440,7 @@ class FileUtils {
     }
   }
 
-  static Future<String> getOutputFilePath(
+  Future<String> getOutputFilePath(
       Message message, MsgFileInfo mfi, Uri uri) async {
     String dir = await getRoomFolder(
         identityId: message.identityId,
@@ -323,7 +468,7 @@ class FileUtils {
     }
   }
 
-  static String getFileSizeDisplay(int size) {
+  String getFileSizeDisplay(int size) {
     const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB'];
     int digitGroups = 0;
     while (size >= 1024) {
@@ -333,7 +478,7 @@ class FileUtils {
     return '$size ${units[digitGroups]}';
   }
 
-  static String getDisplayFileName(String filePath, [int maxLength = 10]) {
+  String getDisplayFileName(String filePath, [int maxLength = 10]) {
     String fullName = filePath;
     if (filePath.length < maxLength) return filePath;
     if (filePath.contains('/')) {
@@ -349,7 +494,7 @@ class FileUtils {
     return '$name.$suffix';
   }
 
-  static Future deleteFolderByRoomId(int identity, int roomId) async {
+  Future deleteFolderByRoomId(int identity, int roomId) async {
     String path = await getRoomFolder(identityId: identity, roomId: roomId);
     Directory directory = Directory(path);
     if (directory.existsSync()) {
@@ -357,12 +502,30 @@ class FileUtils {
     }
   }
 
-  static Future<FileEncryptInfo> uploadToBlossom(
-      {required File input,
-      required String prikey,
-      required String server,
-      void Function(int, int)? onSendProgress}) async {
-    FileEncryptInfo fe = await FileService.encryptFile(input);
+  Future<List<String>> getBlossomServers() async {
+    List<String> savedServers =
+        await Storage.getStringList(StorageKeyString.blossomProtocolServers);
+    if (savedServers.isNotEmpty) {
+      return savedServers;
+    }
+    return Get.find<SettingController>().builtInMedias;
+  }
+
+  Future<FileEncryptInfo> uploadToBlossom(
+      {required File input, void Function(int, int)? onSendProgress}) async {
+    String? selectedPaymentPubkey =
+        await Storage.getString(StorageKeyString.selectedPaymentPubkey);
+    // If not set, use the first identity's pubkey
+    selectedPaymentPubkey ??=
+        Get.find<HomeController>().allIdentities.values.first.secp256k1PKHex;
+    String? prikey =
+        await SecureStorage.instance.readPrikey(selectedPaymentPubkey);
+    if (prikey == null) {
+      throw Exception(
+          'The payment prikey not found for $selectedPaymentPubkey');
+    }
+    FileEncryptInfo fe = await FileService.instance.encryptFile(input);
+
     fe.size = fe.output.length;
     String eventString = await rust_nostr.signEvent(
         senderKeys: prikey,
@@ -379,43 +542,50 @@ class FileUtils {
                 .toString()
           ],
         ]);
-    logger.d(eventString);
-    FormData formData = FormData.fromMap({
-      'file': MultipartFile.fromBytes(fe.output, filename: fe.hash),
-    });
-    try {
-      Dio dio = Dio();
-      Response response = await dio.put(
-        server,
-        data: formData,
-        onSendProgress: onSendProgress,
-        options: Options(
-          headers: {
-            'Content-Type': 'application/octet-stream',
-            'Authorization': 'Nostr ${base64Encode(utf8.encode(eventString))}',
-          },
-        ),
-      );
 
-      if (response.statusCode == 200) {
-        logger.i('Upload successful ${response.data}');
-        fe.url = response.data['url'] ?? '';
-        fe.size = response.data['size'] ?? fe.size;
-        return fe;
-      }
-    } on DioException catch (e, s) {
-      // The request was made and the server responded with a status code
-      // that falls out of the range of 2xx and is also not 304.
-      if (e.response != null) {
-        logger.e(e.response?.data, stackTrace: s);
-      } else {
-        // Something happened in setting up or sending the request that triggered an Error
-        logger.e(e.message, stackTrace: s);
-        throw Exception('File_upload_faild: ${e.message ?? ''}');
+    List<String> servers = await getBlossomServers();
+    for (String server in servers) {
+      try {
+        Dio dio = Dio();
+        Response response = await dio.put(
+          '$server/upload',
+          data: Stream.fromIterable(fe.output.map((e) => [e])),
+          onSendProgress: onSendProgress,
+          options: Options(
+            headers: {
+              'Content-Type': 'application/octet-stream',
+              'Authorization':
+                  'Nostr ${base64Encode(utf8.encode(eventString))}',
+            },
+          ),
+        );
+
+        if (response.statusCode == 200) {
+          logger.i('Success $selectedPaymentPubkey: ${response.data}');
+          fe.url = response.data['url'] ?? '';
+          fe.size = response.data['size'] ?? fe.size;
+          return fe;
+        }
+      } on DioException catch (e, s) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx and is also not 304.
+        if (e.response != null) {
+          logger.e('Server $server failed: ${e.response?.data}', stackTrace: s);
+        } else {
+          // Something happened in setting up or sending the request that triggered an Error
+          logger.e('Server $server failed: ${e.message}', stackTrace: s);
+        }
+        // Continue to next server if this one fails
+        continue;
+      } catch (e, s) {
+        // Handle any other exceptions
+        logger.e('Server $server failed: ${e.toString()}', stackTrace: s);
+        continue;
       }
     }
 
-    throw Exception('File_upload_faild');
+    // If all servers fail, throw an exception
+    throw Exception('All servers failed to upload file');
   }
 
   static String getFileTypeFromBytes(Uint8List bytes) {
@@ -516,132 +686,133 @@ class FileUtils {
     }
     return 'application/octet-stream';
   }
-}
 
-Future<String> getNewFilePath(String appDocPath, String sourceFilePath) async {
-  String fileName = sourceFilePath.split('/').last;
-  String newFilePath = appDocPath + fileName;
-  File newFile = File(newFilePath);
-  bool exist = await newFile.exists();
-  if (!exist) {
+  Future<String> getNewFilePath(
+      String appDocPath, String sourceFilePath) async {
+    String fileName = sourceFilePath.split('/').last;
+    String newFilePath = appDocPath + fileName;
+    File newFile = File(newFilePath);
+    bool exist = await newFile.exists();
+    if (!exist) {
+      return newFilePath;
+    }
+
+    // Split the filename and extension
+    String fileNameWithoutExt = fileName.contains('.')
+        ? fileName.substring(0, fileName.lastIndexOf('.'))
+        : fileName;
+    String extension = fileName.contains('.')
+        ? fileName.substring(fileName.lastIndexOf('.'))
+        : '';
+
+    int counter = 1;
+    while (await newFile.exists()) {
+      // Create a new filename with counter
+      String newFileName = '${fileNameWithoutExt}_$counter$extension';
+      newFilePath = appDocPath + newFileName;
+      newFile = File(newFilePath);
+      counter++;
+    }
+
     return newFilePath;
   }
 
-  // Split the filename and extension
-  String fileNameWithoutExt = fileName.contains('.')
-      ? fileName.substring(0, fileName.lastIndexOf('.'))
-      : fileName;
-  String extension = fileName.contains('.')
-      ? fileName.substring(fileName.lastIndexOf('.'))
-      : '';
-
-  int counter = 1;
-  while (await newFile.exists()) {
-    // Create a new filename with counter
-    String newFileName = '${fileNameWithoutExt}_$counter$extension';
-    newFilePath = appDocPath + newFileName;
-    newFile = File(newFilePath);
-    counter++;
-  }
-
-  return newFilePath;
-}
-
 // pick image only
-Future<XFile?> pickImage(ImageSource imageSource) async {
-  final ImagePicker picker = ImagePicker();
-  return await picker.pickImage(source: imageSource, imageQuality: 75);
-}
+  Future<XFile?> pickImage(ImageSource imageSource) async {
+    final ImagePicker picker = ImagePicker();
+    return await picker.pickImage(source: imageSource, imageQuality: 75);
+  }
 
 // Pick singe image or video.
-Future<XFile?> pickMedia() async {
-  final ImagePicker picker = ImagePicker();
-  return await picker.pickMedia(imageQuality: 50);
-}
+  Future<XFile?> pickMedia() async {
+    final ImagePicker picker = ImagePicker();
+    return await picker.pickMedia(imageQuality: 50);
+  }
 
 // Pick a video only
-Future<XFile?> pickVideo(ImageSource imageSource) async {
-  final ImagePicker picker = ImagePicker();
-  return await picker.pickVideo(
-      source: imageSource, maxDuration: const Duration(minutes: 1));
-}
+  Future<XFile?> pickVideo(ImageSource imageSource) async {
+    final ImagePicker picker = ImagePicker();
+    return await picker.pickVideo(
+        source: imageSource, maxDuration: const Duration(minutes: 1));
+  }
 
-Future<File?> downloadFile(String url,
-    [Function(int count, int total)? onReceiveProgress]) async {
-  Dio dio = Dio();
-  Directory outputDir = await getTemporaryDirectory();
-  String fileName = url.split('/').last;
-  String output = outputDir.path + fileName;
-  try {
-    await dio.download(url, output, onReceiveProgress: onReceiveProgress);
-    return File(output);
-  } on DioException catch (e) {
-    if (e.response != null) {
-      logger.e('repsponse: ${e.response?.toString()}', error: e);
+  Future<File?> downloadFile(String url,
+      [Function(int count, int total)? onReceiveProgress]) async {
+    Dio dio = Dio();
+    Directory outputDir = await getTemporaryDirectory();
+    String fileName = url.split('/').last;
+    String output = outputDir.path + fileName;
+    try {
+      await dio.download(url, output, onReceiveProgress: onReceiveProgress);
+      return File(output);
+    } on DioException catch (e) {
+      if (e.response != null) {
+        logger.e('repsponse: ${e.response?.toString()}', error: e);
+      } else {
+        logger.e('error no repsponse', error: e);
+      }
+    }
+    return null;
+  }
+
+  Future<File> downloadAndDecrypt(
+      {required String url,
+      required String suffix,
+      required int identityId,
+      required int roomId,
+      required String key,
+      required String iv,
+      required MessageMediaType type,
+      String? fileName,
+      Function(int count, int total)? onReceiveProgress}) async {
+    File? input = await downloadFile(url, onReceiveProgress);
+    if (input == null) throw Exception('File_download_faild');
+    String dir =
+        await getRoomFolder(identityId: identityId, roomId: roomId, type: type);
+    late String outputFile;
+    if (fileName != null) {
+      outputFile = '$dir$fileName';
     } else {
-      logger.e('error no repsponse', error: e);
+      outputFile = '$dir${input.path.split('/').last}';
+      if (suffix.isNotEmpty) {
+        outputFile += '.$suffix';
+      }
     }
-  }
-  return null;
-}
 
-Future<File> downloadAndDecrypt(
-    {required String url,
-    required String suffix,
-    required int identityId,
-    required int roomId,
-    required String key,
-    required String iv,
-    required MessageMediaType type,
-    String? fileName,
-    Function(int count, int total)? onReceiveProgress}) async {
-  File? input = await downloadFile(url, onReceiveProgress);
-  if (input == null) throw Exception('File_download_faild');
-  String dir = await FileUtils.getRoomFolder(
-      identityId: identityId, roomId: roomId, type: type);
-  late String outputFile;
-  if (fileName != null) {
-    outputFile = '$dir$fileName';
-  } else {
-    outputFile = '$dir${input.path.split('/').last}';
-    if (suffix.isNotEmpty) {
-      outputFile += '.$suffix';
+    final output = File(outputFile);
+    return await FileService.instance.decryptFile(
+      input: input,
+      output: output,
+      key: key,
+      iv: iv,
+    );
+  }
+
+  Future deleteAllByIdentity(int identity) async {
+    Directory appFolder = await Utils.getAppFolder();
+    Directory dir =
+        Directory('${appFolder.path}/${KeychatGlobal.baseFilePath}/$identity');
+    if (dir.existsSync()) {
+      await dir.delete(recursive: true);
     }
   }
 
-  final output = File(outputFile);
-  return await FileService.decryptFile(
-    input: input,
-    output: output,
-    key: key,
-    iv: iv,
-  );
-}
-
-Future deleteAllByIdentity(int identity) async {
-  Directory appFolder = await Utils.getAppFolder();
-  Directory dir =
-      Directory('${appFolder.path}/${KeychatGlobal.baseFilePath}/$identity');
-  if (dir.existsSync()) {
-    await dir.delete(recursive: true);
+  Future deleteAllFolder() async {
+    Directory appFolder = await Utils.getAppFolder();
+    Directory dir = Directory('${appFolder.path}/${Config.env}/');
+    if (dir.existsSync()) {
+      await dir.delete(recursive: true);
+      logger.i("delete other file");
+    }
   }
-}
 
-Future deleteAllFolder() async {
-  Directory appFolder = await Utils.getAppFolder();
-  Directory dir = Directory('${appFolder.path}/${Config.env}/');
-  if (dir.existsSync()) {
-    await dir.delete(recursive: true);
-    logger.i("delete other file");
+  bool isImageFile(String path) {
+    String extension = path.split('.').last.toLowerCase();
+    return {'jpg', 'jpeg', 'png', 'gif', 'svg'}.contains(extension);
   }
-}
 
-bool isImageFile(String path) {
-  String extension = path.split('.').last.toLowerCase();
-  return {'jpg', 'jpeg', 'png', 'gif', 'svg'}.contains(extension);
-}
-
-bool isVideoFile(String path) {
-  String extension = path.split('.').last.toLowerCase();
-  return {'mp4', 'mov', 'avi', 'mkv'}.contains(extension);
+  bool isVideoFile(String path) {
+    String extension = path.split('.').last.toLowerCase();
+    return {'mp4', 'mov', 'avi', 'mkv'}.contains(extension);
+  }
 }

@@ -2,7 +2,7 @@ import 'dart:convert' show jsonDecode;
 
 import 'package:app/app.dart';
 import 'package:app/page/components.dart';
-import 'package:app/service/file_util.dart';
+import 'package:app/service/file.service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -62,7 +62,7 @@ class _FileMessageWidgetState extends State<FileMessageWidget> {
         ),
         subtitle: textSmallGray(
           context,
-          'Size: ${FileUtils.getFileSizeDisplay(msgFileInfo?.size ?? 0)}',
+          'Size: ${FileService.instance.getFileSizeDisplay(msgFileInfo?.size ?? 0)}',
         ),
         trailing: IconButton(
           onPressed: handleOnTap,

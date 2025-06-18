@@ -9,6 +9,7 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/page/FileExplore.dart';
 import 'package:app/page/login/OnboardingPage2.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
+import 'package:app/service/file.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app/service/websocket.service.dart';
@@ -25,7 +26,6 @@ import 'package:settings_ui/settings_ui.dart';
 
 import '../../controller/setting.controller.dart';
 import '../../models/db_provider.dart';
-import '../../service/file_util.dart';
 import '../../service/storage.dart';
 import '../routes.dart';
 
@@ -464,7 +464,8 @@ class AppGeneralSetting extends GetView<SettingController> {
               EasyLoading.show(status: 'Processing...');
               try {
                 await DBProvider.instance.deleteAll();
-                await deleteAllFolder(); // delete all files
+                await FileService.instance
+                    .deleteAllFolder(); // delete all files
                 await Get.find<WebsocketService>().stopListening();
                 await Storage.clearAll();
                 await SecureStorage.instance.clearAll();

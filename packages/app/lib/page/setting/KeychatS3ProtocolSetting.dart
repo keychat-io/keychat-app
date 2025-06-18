@@ -2,7 +2,7 @@ import 'package:app/controller/setting.controller.dart';
 import 'package:app/models/embedded/relay_file_fee.dart';
 import 'package:app/models/relay.dart';
 import 'package:app/page/components.dart';
-import 'package:app/service/file_util.dart';
+import 'package:app/service/file.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:flutter/material.dart';
@@ -124,8 +124,8 @@ class _KeychatS3ProtocolState extends State<KeychatS3Protocol> {
                         (relayFileFee?.mints ?? []).isNotEmpty)
                       SettingsTile(
                         title: const Text('MaxSize'),
-                        value: Text(FileUtils.getFileSizeDisplay(
-                            relayFileFee?.maxSize ?? 0)),
+                        value: Text(FileService.instance
+                            .getFileSizeDisplay(relayFileFee?.maxSize ?? 0)),
                       ),
                     if (isInit == true &&
                         (relayFileFee?.mints ?? []).isNotEmpty)
@@ -141,7 +141,7 @@ class _KeychatS3ProtocolState extends State<KeychatS3Protocol> {
                       tiles: (relayFileFee?.prices ?? [])
                           .map((price) => SettingsTile(
                                 title: Text(
-                                    '${FileUtils.getFileSizeDisplay(price['min'])} < size < ${FileUtils.getFileSizeDisplay(price['max'])}'),
+                                    '${FileService.instance.getFileSizeDisplay(price['min'])} < size < ${FileService.instance.getFileSizeDisplay(price['max'])}'),
                                 value: Text(
                                     '${price['price']} ${relayFileFee?.unit ?? 'sat'}'),
                               ))

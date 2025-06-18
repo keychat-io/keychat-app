@@ -1,4 +1,5 @@
 import 'package:app/controller/home.controller.dart';
+import 'package:app/controller/setting.controller.dart';
 import 'package:app/models/models.dart';
 import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/service/identity.service.dart';
@@ -25,13 +26,7 @@ class _BlossomProtocolSettingState extends State<BlossomProtocolSetting> {
       Get.find<HomeController>().allIdentities.values.first;
   bool isEditMode = false;
   late String selectedPaymentPubkey;
-  List<String> builtInMedias = [
-    "https://void.cat",
-    "https://cdn.satellite.earth",
-    "https://cdn.nostrcheck.me",
-    "https://nostr.download",
-    "https://nostrmedia.com",
-  ];
+  SettingController get settingController => Get.find<SettingController>();
 
   @override
   void initState() {
@@ -51,7 +46,6 @@ class _BlossomProtocolSettingState extends State<BlossomProtocolSetting> {
           .firstWhereOrNull((identity) =>
               identity.secp256k1PKHex == savedSelectedPaymentPubkey);
       if (exist != null) {
-        logger.d(exist.secp256k1PKHex);
         setState(() {
           selectedPaymentPubkey = savedSelectedPaymentPubkey;
           selectedIdentity = exist;
@@ -116,9 +110,13 @@ class _BlossomProtocolSettingState extends State<BlossomProtocolSetting> {
           CupertinoDialogAction(
             onPressed: () {
               if (urlController.text.isNotEmpty) {
-                if (!(Uri.tryParse(urlController.text)?.hasAbsolutePath ??
-                    false)) {
+                Uri? uri = Uri.tryParse(urlController.text);
+                if (uri == null) {
                   EasyLoading.showError('Invalid URL');
+                  return;
+                }
+                if (uri.path != '/') {
+                  EasyLoading.showError('URL should not contain path');
                   return;
                 }
                 _addToSelected(urlController.text.trim());
@@ -290,7 +288,7 @@ class _BlossomProtocolSettingState extends State<BlossomProtocolSetting> {
                 ]),
             tiles: [
               ...selected.map((url) => SettingsTile(
-                    title: Text(url),
+                    title: Text(url.replaceFirst('https://', '')),
                     trailing: isEditMode
                         ? IconButton(
                             icon: const Icon(Icons.remove_circle,
@@ -313,9 +311,9 @@ class _BlossomProtocolSettingState extends State<BlossomProtocolSetting> {
           ),
           SettingsSection(
             title: const Text('Recommended Servers'),
-            tiles: builtInMedias
+            tiles: settingController.builtInMedias
                 .map((url) => SettingsTile(
-                      title: Text(url),
+                      title: Text(url.replaceFirst('https://', '')),
                       trailing: IconButton(
                         icon: Icon(
                           selected.contains(url)

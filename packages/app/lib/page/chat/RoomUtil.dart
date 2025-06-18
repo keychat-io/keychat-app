@@ -10,6 +10,7 @@ import 'package:app/page/chat/ForwardSelectRoom.dart';
 import 'package:app/page/chat/contact_page.dart';
 
 import 'package:app/page/widgets/image_preview_widget.dart';
+import 'package:app/service/file.service.dart';
 import 'package:app/service/signal_chat_util.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:flutter/services.dart';
@@ -18,19 +19,11 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:keychat_ecash/red_pocket.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
-
 import 'package:app/service/storage.dart';
-
 import 'package:app/controller/chat.controller.dart';
 import 'package:app/controller/home.controller.dart';
-import 'package:app/models/db_provider.dart';
-import 'package:app/models/embedded/msg_file_info.dart';
-
-import 'package:app/models/message.dart';
-import 'package:app/models/room.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/widgets/image_min_preview_widget.dart';
-import 'package:app/service/file_util.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
@@ -189,9 +182,9 @@ Let's start an encrypted chat.''';
           .deleteAll();
     });
 
-    String dir =
-        await FileUtils.getRoomFolder(identityId: identityId, roomId: roomId);
-    FileUtils.deleteFilesByTime(dir, fromAt);
+    String dir = await FileService.instance
+        .getRoomFolder(identityId: identityId, roomId: roomId);
+    FileService.instance.deleteFilesByTime(dir, fromAt);
   }
 
   static SettingsTile autoCleanMessage(ChatController cc) {
@@ -749,7 +742,8 @@ Let's start an encrypted chat.''';
                     onPressed: () {
                       EasyLoading.showToast('Start downloading');
                       message.isRead = true;
-                      FileUtils.downloadForMessage(message, fileInfo);
+                      FileService.instance
+                          .downloadForMessage(message, fileInfo);
                     },
                     icon: const Icon(
                       Icons.refresh,

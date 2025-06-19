@@ -52,3 +52,4 @@ packages/app/android/app/.cxx/
 .fvmrc
 */.fvmrc
 *.sha256
+packages/app/ios/Flutter/Flutter.podspec

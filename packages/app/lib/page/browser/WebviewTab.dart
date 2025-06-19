@@ -1101,79 +1101,77 @@ img {
       {required String content,
       required int kind,
       required List<dynamic> tags}) {
-    return SafeArea(
-        child: Scaffold(
-            appBar: AppBar(title: Text('Sign Event')),
-            body: Container(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Event details
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Kind section
-                          _buildDetailSection(
-                            title: 'Event Kind',
-                            content: kind.toString(),
-                            icon: Icons.category_outlined,
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          // Content section
-                          _buildDetailSection(
-                            title: 'Content',
-                            content: content.isEmpty ? '(Empty)' : content,
-                            icon: Icons.description_outlined,
-                            isExpandable: content.length > 100,
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          // Tags section
-                          _buildDetailSection(
-                            title: 'Tags',
-                            content:
-                                tags.isEmpty ? '(No tags)' : tags.toString(),
-                            icon: Icons.label_outline,
-                            isExpandable: tags.toString().length > 100,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Action buttons
-                  Row(
+    return Scaffold(
+        appBar: AppBar(title: Text('Sign Event')),
+        body: Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Event details
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            Get.back(result: false);
-                          },
-                          child: Text('Decline'),
-                        ),
+                      // Kind section
+                      _buildDetailSection(
+                        title: 'Event Kind',
+                        content: kind.toString(),
+                        icon: Icons.category_outlined,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: FilledButton(
-                          onPressed: () {
-                            Get.back(result: true);
-                          },
-                          child: Text('Sign Event'),
-                        ),
+
+                      const SizedBox(height: 20),
+
+                      // Content section
+                      _buildDetailSection(
+                        title: 'Content',
+                        content: content.isEmpty ? '(Empty)' : content,
+                        icon: Icons.description_outlined,
+                        isExpandable: content.length > 100,
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Tags section
+                      _buildDetailSection(
+                        title: 'Tags',
+                        content: tags.isEmpty ? '(No tags)' : tags.toString(),
+                        icon: Icons.label_outline,
+                        isExpandable: tags.toString().length > 100,
                       ),
                     ],
                   ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Action buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        Get.back(result: false);
+                      },
+                      child: Text('Decline'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () {
+                        Get.back(result: true);
+                      },
+                      child: Text('Sign Event'),
+                    ),
+                  ),
                 ],
               ),
-            )));
+            ],
+          ),
+        ));
   }
 
   Widget _buildDetailSection({

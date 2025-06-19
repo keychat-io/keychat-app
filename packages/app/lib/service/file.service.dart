@@ -329,9 +329,9 @@ class FileService {
           title: Text('Upload Failed'),
           content: Column(
             children: [
-              Text(e.toString(), maxLines: 3, overflow: TextOverflow.ellipsis),
               Text(
                   'Check your blossom servers, make sure your subscription is valid.'),
+              Text('Tab:Me -> Chat Settings -> Media Servers'),
             ],
           ),
           actions: [

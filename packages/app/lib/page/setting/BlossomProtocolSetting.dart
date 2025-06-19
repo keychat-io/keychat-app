@@ -1,7 +1,9 @@
 import 'package:app/controller/home.controller.dart';
 import 'package:app/controller/setting.controller.dart';
+import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/page/browser/MultiWebviewController.dart';
+import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app/service/storage.dart';
@@ -97,6 +99,7 @@ class _BlossomProtocolSettingState extends State<BlossomProtocolSetting> {
           mainAxisSize: MainAxisSize.min,
           children: [
             CupertinoTextField(
+              style: Theme.of(context).textTheme.bodyMedium,
               controller: urlController,
               placeholder: 'URL',
             ),
@@ -210,6 +213,7 @@ class _BlossomProtocolSettingState extends State<BlossomProtocolSetting> {
                               CupertinoTextField(
                                 placeholder: 'Private Key',
                                 maxLines: 3,
+                                style: Theme.of(context).textTheme.bodyMedium,
                                 controller: prikeyController,
                               ),
                             ],
@@ -305,6 +309,8 @@ class _BlossomProtocolSettingState extends State<BlossomProtocolSetting> {
               SettingsTile(
                 title: const Text('Add Custom Server'),
                 leading: const Icon(Icons.add),
+                description: NoticeTextWidget.info(
+                    'The server needs to support uploading encrypted files.'),
                 onPressed: (context) => _showAddCustomDialog(),
               ),
             ],
@@ -321,7 +327,7 @@ class _BlossomProtocolSettingState extends State<BlossomProtocolSetting> {
                               : Icons.add_circle,
                           color: selected.contains(url)
                               ? Colors.green
-                              : Colors.blue,
+                              : KeychatGlobal.secondaryColor,
                         ),
                         onPressed: () => _addToSelected(url),
                       ),

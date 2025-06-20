@@ -347,16 +347,16 @@ class _ChatPage2State extends State<ChatPage> {
                               return;
                             }
                             // logger.d('${event.logicalKey}');
-                            // final isCmdPressed = HardwareKeyboard
-                            //         .instance.logicalKeysPressed
-                            //         .contains(LogicalKeyboardKey.metaLeft) ||
-                            //     HardwareKeyboard.instance.logicalKeysPressed
-                            //         .contains(LogicalKeyboardKey.metaRight);
-                            // if (event.logicalKey == LogicalKeyboardKey.keyV &&
-                            //     isCmdPressed) {
-                            //   controller.handlePasteboard();
-                            //   return;
-                            // }
+                            final isCmdPressed = HardwareKeyboard
+                                    .instance.logicalKeysPressed
+                                    .contains(LogicalKeyboardKey.metaLeft) ||
+                                HardwareKeyboard.instance.logicalKeysPressed
+                                    .contains(LogicalKeyboardKey.metaRight);
+                            if (event.logicalKey == LogicalKeyboardKey.keyV &&
+                                isCmdPressed) {
+                              await controller.handlePasteboard();
+                              return;
+                            }
                             final isShiftPressed = HardwareKeyboard
                                     .instance.logicalKeysPressed
                                     .contains(LogicalKeyboardKey.shiftLeft) ||

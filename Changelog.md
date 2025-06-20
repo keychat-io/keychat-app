@@ -4,8 +4,9 @@ git log -n 5 --pretty=format:"%h - %s (%ci)"
 
 ## 1.33.1+6390
 1. Add blossom servers to upload encrypted meida
-2. Remove aws lib
-3. Update flutter_rust_bridge to 2.10.0
+2. Paste file from clipboard for desktop
+3. Remove aws lib
+4. Update flutter_rust_bridge to 2.10.0
 
 ## 1.32.10+6388
 1. [Browser]Add config for auto_sign_event

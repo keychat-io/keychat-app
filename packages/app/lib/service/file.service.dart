@@ -105,7 +105,7 @@ class FileService {
   }
 
   // check text is image
-  isImage(String text) {
+  bool isImage(String text) {
     final regex = RegExp(
         r'(https?://\S+\.(?:jpg|bmp|gif|ico|pcx|jpeg|tif|png|raw))',
         caseSensitive: false);
@@ -182,14 +182,16 @@ class FileService {
   }
 
   onSendProgress(String status, int count, int total) {
+    loggerNoLine.d('Upload progress: $status, $count/$total');
     if (count == total && total != 0) {
       EasyLoading.showSuccess('Upload success');
       return;
     }
     double progress = count / total;
-    if (progress > 0.2) {
-      EasyLoading.showProgress(progress, status: status);
+    if (progress < 0.2) {
+      progress = 0.2;
     }
+    EasyLoading.showProgress(progress, status: status);
   }
 
   Widget getImageView(File file, [double width = 150, double height = 150]) {

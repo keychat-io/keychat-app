@@ -22,11 +22,11 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
-// import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
-// import 'package:super_clipboard/super_clipboard.dart';
+import 'package:super_clipboard/super_clipboard.dart';
 
 const int maxMessageId = 999999999999;
 
@@ -623,6 +623,7 @@ class ChatController extends GetxController {
             : '''1. Remove EXIF info
 2. Encrypting 
 3. Uploading''';
+        EasyLoading.showProgress(0.0, status: statusMessage);
         EasyLoading.showProgress(0.2, status: statusMessage);
         await FileService.instance.encryptAndSendFile(
             roomObs.value, xfile, mediaType,
@@ -745,59 +746,130 @@ class ChatController extends GetxController {
   }
 
   Future handlePasteboard() async {
-    // final clipboard = SystemClipboard.instance;
-    // if (clipboard == null) {
-    //   return; // Clipboard API is not supported on this platform.
-    // }
-    // final reader = await clipboard.read();
+    final clipboard = SystemClipboard.instance;
+    if (clipboard == null) {
+      return; // Clipboard API is not supported on this platform.
+    }
+    final reader = await clipboard.read();
 
-    // logger.d('cmd+v');
-    // final imageFormats = [
-    //   (Formats.png, MessageMediaType.image, true),
-    //   (Formats.jpeg, MessageMediaType.image, true),
-    //   (Formats.webp, MessageMediaType.image, true),
-    //   (Formats.gif, MessageMediaType.image, false),
-    //   (Formats.mp4, MessageMediaType.video, true),
-    //   (Formats.pdf, MessageMediaType.file, false)
-    // ];
+    // plain text
+    final textFormat = [
+      Formats.plainText,
+      Formats.htmlText,
+      Formats.uri,
+      Formats.fileUri,
+    ];
+    for (final format in textFormat) {
+      if (reader.canProvide(format)) {
+        String? text =
+            await reader.readValue(format as SimpleValueFormat<String>);
+        if (text != null && text.isNotEmpty) {
+          textEditingController.text = text;
+          return;
+        }
+      }
+    }
+    // file formats
+    final imageFormats = [
+      (Formats.png, MessageMediaType.image, true),
+      (Formats.jpeg, MessageMediaType.image, true),
+      (Formats.webp, MessageMediaType.image, true),
+      (Formats.gif, MessageMediaType.image, false),
+      (Formats.mp4, MessageMediaType.video, true),
+      (Formats.pdf, MessageMediaType.file, false),
+      (Formats.svg, MessageMediaType.image, false),
+      (Formats.webp, MessageMediaType.image, false),
+      (Formats.tiff, MessageMediaType.image, false),
+      (Formats.bmp, MessageMediaType.image, false),
+      (Formats.ico, MessageMediaType.image, false),
+      (Formats.heic, MessageMediaType.image, false),
+      (Formats.heif, MessageMediaType.image, false),
+      (Formats.mov, MessageMediaType.video, false),
+      (Formats.m4v, MessageMediaType.video, false),
+      (Formats.avi, MessageMediaType.video, false),
+      (Formats.mpeg, MessageMediaType.video, false),
+      (Formats.webm, MessageMediaType.video, false),
+      (Formats.ogg, MessageMediaType.video, false),
+      (Formats.wmv, MessageMediaType.video, false),
+      (Formats.flv, MessageMediaType.video, false),
+      (Formats.mkv, MessageMediaType.video, false),
+      (Formats.mp3, MessageMediaType.file, false),
+      (Formats.oga, MessageMediaType.file, false),
+      (Formats.aac, MessageMediaType.file, false),
+      (Formats.wav, MessageMediaType.file, false),
+      (Formats.doc, MessageMediaType.file, false),
+      (Formats.docx, MessageMediaType.file, false),
+      (Formats.csv, MessageMediaType.file, false),
+      (Formats.xls, MessageMediaType.file, false),
+      (Formats.xlsx, MessageMediaType.file, false),
+      (Formats.ppt, MessageMediaType.file, false),
+      (Formats.pptx, MessageMediaType.file, false),
+      (Formats.json, MessageMediaType.file, false),
+      (Formats.zip, MessageMediaType.file, false),
+      (Formats.tar, MessageMediaType.file, false),
+      (Formats.gzip, MessageMediaType.file, false),
+      (Formats.bzip2, MessageMediaType.file, false),
+      (Formats.rar, MessageMediaType.file, false),
+      (Formats.dmg, MessageMediaType.file, false),
+      (Formats.iso, MessageMediaType.file, false),
+      (Formats.deb, MessageMediaType.file, false),
+      (Formats.rpm, MessageMediaType.file, false),
+      (Formats.apk, MessageMediaType.file, false),
+      (Formats.exe, MessageMediaType.file, false),
+      (Formats.msi, MessageMediaType.file, false),
+      (Formats.htmlFile, MessageMediaType.file, false),
+    ];
 
-    // for (var (format, mediaType, compress) in imageFormats) {
-    //   if (reader.canProvide(format)) {
-    //     return _readFromStream(reader, format, mediaType, compress);
-    //   }
-    // }
+    for (int i = 0; i < imageFormats.length; i++) {
+      final format = imageFormats[i].$1;
+      final mediaType = imageFormats[i].$2;
+      final compress = imageFormats[i].$3;
+      bool canProcess = reader.canProvide(format);
+      if (canProcess) {
+        await _readFromStream(reader, format, mediaType, compress);
+        return;
+      }
+    }
   }
 
-  // _readFromStream(
-  //     ClipboardReader reader, SimpleFileFormat format, MessageMediaType type,
-  //     [bool compress = true]) async {
-  //   /// Binary formats need to be read as streams
-  //   reader.getFile(format, (DataReaderFile file) async {
-  //     try {
-  //       EasyLoading.show(status: 'Pasting...');
-  //       Uint8List imageBytes = await file.readAll();
-  //       final tempDir = await getTemporaryDirectory();
-  //       final timestamp = DateTime.now().millisecondsSinceEpoch;
-  //       String? mimeType = format.mimeTypes?.first;
-  //       if (mimeType == null) return;
-  //       String suffix = mimeType.split('/').last;
-  //       String newFileName = 'pasted_image_$timestamp.$suffix';
-  //       final path = '${tempDir.path}/$newFileName';
-  //       final teampFile = File(path);
-  //       await teampFile.writeAsBytes(imageBytes);
+  Future _readFromStream(
+      ClipboardReader reader, SimpleFileFormat format, MessageMediaType type,
+      [bool compress = true]) async {
+    /// Binary formats need to be read as streams
+    reader.getFile(format, (DataReaderFile file) async {
+      try {
+        EasyLoading.show(status: 'Pasting...');
+        Uint8List imageBytes = await file.readAll();
+        String sourceFileName = textEditingController.text.trim();
 
-  //       XFile xFile = XFile(path,
-  //           bytes: imageBytes, mimeType: mimeType, name: newFileName);
-  //       if (textEditingController.text.endsWith('.$suffix')) {
-  //         textEditingController.clear();
-  //       }
-  //       await handleSendMediaFile(xFile, type, compress);
-  //     } catch (e, s) {
-  //       logger.e('_readFromStream: ${e.toString()}', stackTrace: s);
-  //     } finally {
-  //       await Future.delayed(Duration(seconds: 2));
-  //       EasyLoading.dismiss();
-  //     }
-  //   });
-  // }
+        final tempDir = await getTemporaryDirectory();
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        String? mimeType = format.mimeTypes?.first;
+        String? suffix = mimeType?.split('/').last;
+        String? newFileName;
+        if (sourceFileName.isNotEmpty && sourceFileName.contains('.')) {
+          String inputName = sourceFileName.split('.').first;
+          String inputSuffix = sourceFileName.split('.').last;
+          newFileName = '$inputName.${suffix ?? inputSuffix}';
+          textEditingController.clear();
+        }
+        suffix ??= 'bin';
+        newFileName ??= 'pasteboard_$timestamp.$suffix';
+
+        final path = '${tempDir.path}/$newFileName';
+        final teampFile = File(path);
+        await teampFile.writeAsBytes(imageBytes);
+
+        XFile xFile = XFile(path,
+            bytes: imageBytes, mimeType: mimeType, name: newFileName);
+
+        await handleSendMediaFile(xFile, type, compress);
+      } catch (e, s) {
+        logger.e('_readFromStream: ${e.toString()}', stackTrace: s);
+      } finally {
+        await Future.delayed(Duration(seconds: 2));
+        EasyLoading.dismiss();
+      }
+    });
+  }
 }

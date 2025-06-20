@@ -97,7 +97,7 @@ dependencies:
   path: ^1.9.0
   sidebarx: ^0.17.1
   background_downloader: ^9.2.2
-  # super_clipboard: ^0.8.24
+  super_clipboard: ^0.9.1
 
 dev_dependencies:
   flutter_test:

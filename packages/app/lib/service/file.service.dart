@@ -22,7 +22,6 @@ import 'package:encrypt/encrypt.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
-import 'package:share_plus/share_plus.dart';
 import 'package:video_compress/video_compress.dart';
 import 'package:image/image.dart' as img;
 import 'package:app/utils/config.dart';

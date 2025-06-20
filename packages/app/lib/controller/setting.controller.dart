@@ -1,8 +1,6 @@
 import 'dart:io' show Directory;
 
 import 'package:app/app.dart';
-import 'package:app/service/storage.dart';
-import 'package:app/utils.dart';
 import 'package:flutter/foundation.dart'
     show FlutterError, FlutterErrorDetails, PlatformDispatcher;
 
@@ -22,6 +20,11 @@ class SettingController extends GetxController with StateMixin<Type> {
   late String avatarsFolder;
   late String browserCacheFolder;
   late String browserUserDataFolder;
+
+  List<String> builtInMedias = [
+    "https://void.cat",
+    "https://nostr.download",
+  ];
 
   @override
   void onInit() async {

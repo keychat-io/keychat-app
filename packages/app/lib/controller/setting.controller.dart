@@ -1,18 +1,12 @@
 import 'dart:io' show Directory;
 
-import 'package:app/global.dart';
+import 'package:app/app.dart';
+import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/foundation.dart'
     show FlutterError, FlutterErrorDetails, PlatformDispatcher;
 
 import 'package:get/get.dart';
-import '../service/storage.dart';
-
-enum MediaServerType {
-  blossom,
-  keychatS3,
-  nip94,
-}
 
 class SettingController extends GetxController with StateMixin<Type> {
   RxString displayName = ''.obs;
@@ -20,18 +14,14 @@ class SettingController extends GetxController with StateMixin<Type> {
   RxBool viewKeychatFutures = false.obs;
   RxInt autoCleanMessageDays = 0.obs;
   RxString themeMode = 'system'.obs;
-  RxString defaultFileServer = KeychatGlobal.defaultFileServer.obs;
-  RxString defaultFileMediaType = MediaServerType.keychatS3.name.obs;
+  RxString selectedMediaServer = KeychatGlobal.defaultFileServer.obs;
+  RxList<String> mediaServers =
+      [KeychatGlobal.defaultFileServer, 'https://nostr.download'].obs;
 
   Directory appFolder = Directory('/');
   late String avatarsFolder;
   late String browserCacheFolder;
   late String browserUserDataFolder;
-
-  List<String> builtInMedias = [
-    "https://void.cat",
-    "https://nostr.download",
-  ];
 
   @override
   void onInit() async {
@@ -80,13 +70,10 @@ class SettingController extends GetxController with StateMixin<Type> {
         ..writeln('Stack Trace: $stack');
 
       Utils.logErrorToFile(errorDetails.toString());
-      return true; // Return true to prevent the error from propagating
+      return true;
     };
     super.onInit();
-
-    // file server
-    initRelayFileServerConfig();
-    initFileMediaConfig();
+    initMediaServer();
   }
 
   getViewKeychatFutures() async {
@@ -100,43 +87,37 @@ class SettingController extends GetxController with StateMixin<Type> {
     viewKeychatFutures.value = true;
   }
 
-  Future<void> initRelayFileServerConfig() async {
-    String? res = await Storage.getString(StorageKeyString.defaultFileServer);
+  Future<void> initMediaServer() async {
+    String? res = await Storage.getString(StorageKeyString.selectedMediaServer);
     if (res != null) {
-      defaultFileServer.value = res;
-      return;
+      selectedMediaServer.value = res;
     }
-    await Storage.setString(
-        StorageKeyString.defaultFileServer, KeychatGlobal.defaultFileServer);
-    defaultFileServer.value = KeychatGlobal.defaultFileServer;
-  }
 
-  Future setDefaultRelayFileServer(String value) async {
-    await Storage.setString(StorageKeyString.defaultFileServer, value);
-    defaultFileServer.value = value;
-  }
-
-  Future<void> initFileMediaConfig() async {
-    String? res =
-        await Storage.getString(StorageKeyString.defaultFileMediaType);
-    if (res != null) {
-      defaultFileMediaType.value = res;
+    List<String> servers =
+        await Storage.getStringList(StorageKeyString.mediaServers);
+    if (servers.isNotEmpty) {
+      mediaServers.value = servers;
     }
   }
 
-  Future<void> setFileMediaType(String value) async {
-    await Storage.setString(StorageKeyString.defaultFileMediaType, value);
-    defaultFileMediaType.value = value;
+  setSelectedMediaServer(String server) async {
+    selectedMediaServer.value = server;
+    await Storage.setString(StorageKeyString.selectedMediaServer, server);
   }
 
-  String getHttpDefaultFileApi() {
-    String fileUploadUrl = '${defaultFileServer.value}/api/v1/object';
-    if (fileUploadUrl.startsWith('wss://')) {
-      fileUploadUrl = fileUploadUrl.replaceFirst('wss://', 'https://');
+  setMediaServers(List<String> servers) async {
+    mediaServers.value = servers;
+    await Storage.setStringList(StorageKeyString.mediaServers, servers);
+  }
+
+  void removeMediaServer(String url) async {
+    mediaServers.remove(url);
+    if (url == selectedMediaServer.value) {
+      selectedMediaServer.value = mediaServers.isNotEmpty
+          ? mediaServers.first
+          : KeychatGlobal.defaultFileServer;
     }
-    if (fileUploadUrl.startsWith('ws://')) {
-      fileUploadUrl = fileUploadUrl.replaceFirst('ws://', 'http://');
-    }
-    return fileUploadUrl;
+    await Storage.setStringList(
+        StorageKeyString.mediaServers, List.from(mediaServers));
   }
 }

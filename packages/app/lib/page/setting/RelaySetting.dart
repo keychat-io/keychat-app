@@ -40,6 +40,7 @@ class _RelaySettingState extends State<RelaySetting> {
     return Scaffold(
         appBar: AppBar(
           title: const Text('Message Relay'),
+          centerTitle: true,
           actions: [
             IconButton(
               onPressed: () {

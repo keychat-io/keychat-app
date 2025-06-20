@@ -1012,13 +1012,11 @@ class MessageWidget extends StatelessWidget {
           borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
       SettingsList(sections: [
         SettingsSection(
-            title: message.mediaType == MessageMediaType.text
-                ? Text(
-                    '「${message.realMessage ?? message.content}」',
-                    maxLines: 5,
-                    overflow: TextOverflow.ellipsis,
-                  )
-                : Text('「${message.mediaType.name.toUpperCase()}」'),
+            title: Text(
+              '「${message.content}」',
+              maxLines: 5,
+              overflow: TextOverflow.ellipsis,
+            ),
             tiles: [
               SettingsTile.navigation(
                   title: const Text('Copy'),

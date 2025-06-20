@@ -51,7 +51,7 @@ Widget _buildQuickSectionItem(BrowserFavorite favorite, int index,
     MultiWebviewController controller, BuildContext context) {
   return GestureDetector(
       onTap: () {
-        controller.launchWebview(
+        controller.lanuchWebview(
             content: favorite.url, defaultTitle: favorite.title);
       },
       child: Center(
@@ -73,7 +73,7 @@ Widget _buildQuickSectionItem(BrowserFavorite favorite, int index,
                     : favorite.title!,
                 favorite.url,
                 onTap: () {
-                  controller.launchWebview(
+                  controller.lanuchWebview(
                       content: favorite.url, defaultTitle: favorite.title);
                 },
                 onLongPress: () async {

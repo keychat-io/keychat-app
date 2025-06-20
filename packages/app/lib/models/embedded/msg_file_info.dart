@@ -1,6 +1,6 @@
 import 'dart:convert' show jsonEncode;
 
-import 'package:app/service/file.service.dart';
+import 'package:aws/aws.dart';
 import 'package:isar/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
 

@@ -3,7 +3,7 @@ import 'dart:io' show File, Directory, FileSystemEntity;
 import 'package:app/models/message.dart';
 import 'package:app/models/room.dart';
 import 'package:app/page/widgets/image_slide_widget.dart';
-import 'package:app/service/file.service.dart';
+import 'package:app/service/file_util.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -54,8 +54,8 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
                               onPressed: () async {
                                 EasyLoading.show(status: 'Deleting...');
                                 try {
-                                  String directory = await FileService.instance
-                                      .getRoomFolder(
+                                  String directory =
+                                      await FileUtils.getRoomFolder(
                                           identityId: widget.room.identityId,
                                           roomId: widget.room.id);
                                   await Directory(directory)
@@ -102,16 +102,16 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
                     itemBuilder: (context, index) {
                       File file = media[index];
                       late Widget child;
-                      if (FileService.instance.isImageFile(file.path)) {
+                      if (isImageFile(file.path)) {
                         child = GestureDetector(
                             onTap: () {
                               _onTap(index);
                             },
-                            child: FileService.instance.getImageView(file));
-                      } else if (FileService.instance.isVideoFile(file.path)) {
+                            child: FileUtils.getImageView(file));
+                      } else if (isVideoFile(file.path)) {
                         child = FutureBuilder(
-                            future: FileService.instance
-                                .getOrCreateThumbForVideo(file.path),
+                            future:
+                                FileUtils.getOrCreateThumbForVideo(file.path),
                             builder: (context, snapshot) {
                               if (snapshot.data != null) {
                                 File thumbnailFile = snapshot.data as File;
@@ -194,7 +194,7 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
                                 ),
                                 title: Text(file.path.split('/').last),
                                 subtitle: Text(
-                                    '${FileService.instance.getFileSizeDisplay(stat.size)}, ${DateFormat('yyyy-MM-dd HH:mm').format(stat.changed)}'),
+                                    '${FileUtils.getFileSizeDisplay(stat.size)}, ${DateFormat('yyyy-MM-dd HH:mm').format(stat.changed)}'),
                                 onTap: () {
                                   try {
                                     if (GetPlatform.isDesktop) {
@@ -206,8 +206,8 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
                                     }
                                   } catch (e) {
                                     Share.shareXFiles([XFile(filePath)],
-                                        subject: FileService.instance
-                                            .getDisplayFileName(fileFullName));
+                                        subject: FileUtils.getDisplayFileName(
+                                            fileFullName));
                                   }
                                 },
                               );
@@ -224,12 +224,12 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
   }
 
   void loadMedia() async {
-    List<File> files = await FileService.instance
-        .getRoomImageAndVideo(widget.room.identityId, widget.room.id);
+    List<File> files = await FileUtils.getRoomImageAndVideo(
+        widget.room.identityId, widget.room.id);
     setState(() {
       media = files;
     });
-    // String base = await FileService.instance.getRoomFolder(
+    // String base = await FileUtils.getRoomFolder(
     //   identityId: cc.room.identityId,
     //   roomId: cc.room.id);
   }
@@ -246,7 +246,7 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
   }
 
   Future<List<FileSystemEntity>> _fetchFileData() async {
-    String base = await FileService.instance.getRoomFolder(
+    String base = await FileUtils.getRoomFolder(
         identityId: widget.room.identityId,
         roomId: widget.room.id,
         type: MessageMediaType.file);

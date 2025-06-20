@@ -151,7 +151,7 @@ class QrScanService {
             Get.back();
             if (url.startsWith('https:') || url.startsWith('http:')) {
               Get.find<MultiWebviewController>()
-                  .launchWebview(content: url.toString());
+                  .lanuchWebview(content: url.toString());
               return;
             }
             launchUrl(uri, mode: LaunchMode.platformDefault);

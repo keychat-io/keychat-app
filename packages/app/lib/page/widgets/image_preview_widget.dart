@@ -3,12 +3,14 @@ import 'dart:io' show File;
 import 'package:app/controller/chat.controller.dart';
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/page/chat/message_actions/VideoPlayWidget.dart';
-import 'package:app/service/file.service.dart';
+
+import 'package:app/service/file_util.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:photo_view/photo_view.dart';
+import 'package:app/service/file_util.dart' as file_util;
 import 'package:share_plus/share_plus.dart';
 
 class ImagePreviewWidget extends StatelessWidget {
@@ -24,28 +26,27 @@ class ImagePreviewWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String filePath = FileService.instance.getAbsolutelyFilePath(
+    String filePath = FileUtils.getAbsolutelyFilePath(
         Get.find<SettingController>().appFolder.path, localPath);
     File file = File(filePath);
     if (!file.existsSync()) return errorCallback(text: '[Image cleaned]');
     return GestureDetector(
       onTap: () async {
-        // List<File> files = await FileService.instance.getRoomImageAndVideo(
+        // List<File> files = await FileUtils.getRoomImageAndVideo(
         //     cc.room.identityId, cc.room.id);
         // Get.to(
         //     () => SlidesImageViewWidget(
         //         files: files.reversed.toList(), selected: file, file: file),
         //     transition: Transition.zoom,
         //     fullscreenDialog: true);
-        bool isImageFile = FileService.instance.isImageFile(file.path);
+        bool isImageFile = file_util.isImageFile(file.path);
         Widget child = const Text('Loading');
         if (isImageFile) {
           child = PhotoView.customChild(
             child: Center(child: Image.file(file, fit: BoxFit.contain)),
           );
-        } else if (FileService.instance.isVideoFile(file.path)) {
-          File thumb =
-              await FileService.instance.getOrCreateThumbForVideo(file.path);
+        } else if (file_util.isVideoFile(file.path)) {
+          File thumb = await FileUtils.getOrCreateThumbForVideo(file.path);
           child = VideoPlayWidget(thumb, file.path, true);
         }
         var w = Scaffold(
@@ -97,7 +98,7 @@ class ImagePreviewWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
         child: SizedBox(
           width: 150,
-          child: FileService.instance.getImageView(file),
+          child: FileUtils.getImageView(file),
         ),
       ),
     );

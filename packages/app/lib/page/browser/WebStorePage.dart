@@ -99,7 +99,7 @@ class _WebStorePageState extends State<WebStorePage> {
                                           maxLines: 1),
                                       onTap: () {
                                         Get.find<MultiWebviewController>()
-                                            .launchWebview(
+                                            .lanuchWebview(
                                                 content: url,
                                                 defaultTitle: site['title']);
                                       },

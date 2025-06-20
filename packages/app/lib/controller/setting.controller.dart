@@ -8,12 +8,6 @@ import 'package:flutter/foundation.dart'
 import 'package:get/get.dart';
 import '../service/storage.dart';
 
-enum MediaServerType {
-  blossom,
-  keychatS3,
-  nip94,
-}
-
 class SettingController extends GetxController with StateMixin<Type> {
   RxString displayName = ''.obs;
 
@@ -21,17 +15,11 @@ class SettingController extends GetxController with StateMixin<Type> {
   RxInt autoCleanMessageDays = 0.obs;
   RxString themeMode = 'system'.obs;
   RxString defaultFileServer = KeychatGlobal.defaultFileServer.obs;
-  RxString defaultFileMediaType = MediaServerType.keychatS3.name.obs;
 
   Directory appFolder = Directory('/');
   late String avatarsFolder;
   late String browserCacheFolder;
   late String browserUserDataFolder;
-
-  List<String> builtInMedias = [
-    "https://void.cat",
-    "https://nostr.download",
-  ];
 
   @override
   void onInit() async {
@@ -85,8 +73,7 @@ class SettingController extends GetxController with StateMixin<Type> {
     super.onInit();
 
     // file server
-    initRelayFileServerConfig();
-    initFileMediaConfig();
+    initDefaultFileServerConfig();
   }
 
   getViewKeychatFutures() async {
@@ -100,7 +87,7 @@ class SettingController extends GetxController with StateMixin<Type> {
     viewKeychatFutures.value = true;
   }
 
-  Future<void> initRelayFileServerConfig() async {
+  Future<void> initDefaultFileServerConfig() async {
     String? res = await Storage.getString(StorageKeyString.defaultFileServer);
     if (res != null) {
       defaultFileServer.value = res;
@@ -111,22 +98,9 @@ class SettingController extends GetxController with StateMixin<Type> {
     defaultFileServer.value = KeychatGlobal.defaultFileServer;
   }
 
-  Future setDefaultRelayFileServer(String value) async {
+  Future setDefaultFileServer(String value) async {
     await Storage.setString(StorageKeyString.defaultFileServer, value);
     defaultFileServer.value = value;
-  }
-
-  Future<void> initFileMediaConfig() async {
-    String? res =
-        await Storage.getString(StorageKeyString.defaultFileMediaType);
-    if (res != null) {
-      defaultFileMediaType.value = res;
-    }
-  }
-
-  Future<void> setFileMediaType(String value) async {
-    await Storage.setString(StorageKeyString.defaultFileMediaType, value);
-    defaultFileMediaType.value = value;
   }
 
   String getHttpDefaultFileApi() {

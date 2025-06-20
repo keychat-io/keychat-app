@@ -1,4 +1,3 @@
-import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/embedded/relay_file_fee.dart';
 import 'package:app/models/embedded/relay_message_fee.dart';
@@ -330,11 +329,6 @@ class RelayService {
   }
 
   Future fetchRelayFileFee([List<Relay>? relays]) async {
-    String? res =
-        await Storage.getString(StorageKeyString.defaultFileMediaType);
-    if (res == null || res != MediaServerType.keychatS3.name) {
-      return;
-    }
     WebsocketService ws = Get.find<WebsocketService>();
     relays ??= await getEnableRelays();
     for (Relay relay in relays) {

@@ -4,7 +4,7 @@ import 'package:app/controller/setting.controller.dart';
 import 'package:app/models/embedded/msg_file_info.dart';
 import 'package:app/models/message.dart';
 import 'package:app/page/components.dart';
-import 'package:app/service/file.service.dart';
+import 'package:app/service/file_util.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -31,7 +31,7 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
   @override
   void initState() {
     msgFileInfo = widget.mfi;
-    fileSize = FileService.instance.getFileSizeDisplay(msgFileInfo.size);
+    fileSize = FileUtils.getFileSizeDisplay(msgFileInfo.size);
     super.initState();
 
     _init(widget.mfi);
@@ -108,8 +108,7 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
                 Text(msgFileInfo.fileName,
                     style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 16),
-                Text(
-                    'Size: ${FileService.instance.getFileSizeDisplay(msgFileInfo.size)}'),
+                Text('Size: ${FileUtils.getFileSizeDisplay(msgFileInfo.size)}'),
                 textSmallGray(
                     context, 'Encrypted by AES-256-CTR with one-time key'),
                 if (downloadProgress > 0 && downloadProgress < 100)
@@ -131,9 +130,8 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
                                 '${Get.find<SettingController>().appFolder.path}${msgFileInfo.localPath!}';
 
                             await Share.shareXFiles([XFile(filePath)],
-                                subject: FileService.instance
-                                    .getDisplayFileName(
-                                        msgFileInfo.localPath!));
+                                subject: FileUtils.getDisplayFileName(
+                                    msgFileInfo.localPath!));
                           },
                           icon: const Icon(CupertinoIcons.share),
                           label: const Text('More'))),
@@ -195,9 +193,8 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
         return FilledButton(
             onPressed: () {
               EasyLoading.showToast('Start downloading');
-              FileService.instance.downloadForMessage(
-                  widget.message, msgFileInfo, callback: _init,
-                  onReceiveProgress: (int count, int total) {
+              FileUtils.downloadForMessage(widget.message, msgFileInfo,
+                  callback: _init, onReceiveProgress: (int count, int total) {
                 if (count == total) {
                   EasyLoading.showToast('Download successfully');
                 }

@@ -183,7 +183,7 @@ class _BrowserBookmarkPageState extends State<BrowserBookmarkPage> {
                           onTap: () {
                             final controller =
                                 Get.find<MultiWebviewController>();
-                            controller.launchWebview(
+                            controller.lanuchWebview(
                               content: bookmark.url,
                               defaultTitle: bookmark.title,
                             );

@@ -3,7 +3,6 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/service/contact.service.dart';
-import 'package:app/service/file.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/secure_storage.dart';
@@ -18,6 +17,8 @@ import 'package:isar/isar.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
+
+import 'file_util.dart';
 
 class IdentityService {
   static IdentityService? _instance;
@@ -74,9 +75,10 @@ class IdentityService {
       await SecureStorage.instance
           .writePhraseWordsWhenNotExist(account.mnemonic!);
 
-      await SecureStorage.instance.write(iden.secp256k1PKHex, account.prikey);
       await SecureStorage.instance
-          .write(iden.curve25519PkHex!, account.curve25519SkHex!);
+          .writePrikey(iden.secp256k1PKHex, account.prikey);
+      await SecureStorage.instance
+          .writePrikey(iden.curve25519PkHex!, account.curve25519SkHex!);
     });
     await homeController.loadRoomList(init: true);
     try {
@@ -124,7 +126,7 @@ class IdentityService {
       ..index = -1;
     await database.writeTxn(() async {
       await database.identitys.put(iden);
-      await SecureStorage.instance.write(hexPubkey, prikey);
+      await SecureStorage.instance.writePrikey(hexPubkey, prikey);
     });
 
     await Get.find<HomeController>().loadRoomList(init: true);
@@ -208,7 +210,7 @@ class IdentityService {
             keyPair: keyPair, deviceId: id);
       }
       await database.contacts.filter().identityIdEqualTo(id).deleteAll();
-      await FileService.instance.deleteAllByIdentity(id);
+      await deleteAllByIdentity(id);
       await SecureStorage.instance.deletePrikey(secp256k1PKHex);
       if (curve25519PkHex != null) {
         await SecureStorage.instance.deletePrikey(curve25519PkHex);

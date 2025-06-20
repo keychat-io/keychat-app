@@ -762,6 +762,18 @@ class Utils {
             int.parse(input.substring(index * 2, index * 2 + 2), radix: 16)));
   }
 
+  static List<int> hexToBytes(String hex) {
+    if (hex.length % 2 != 0) {
+      throw FormatException(
+          "Hex string must have an even number of characters.");
+    }
+    Uint8List bytes = Uint8List(hex.length ~/ 2);
+    for (int i = 0; i < hex.length; i += 2) {
+      bytes[i ~/ 2] = int.parse(hex.substring(i, i + 2), radix: 16);
+    }
+    return bytes;
+  }
+
   static Uint8List hexToUint8List(String input) {
     return Uint8List.fromList(List.generate(
         input.length ~/ 2,

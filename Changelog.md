@@ -2,6 +2,12 @@
 https://keepachangelog.com/zh-CN/1.1.0
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
+## 1.33.1+6391
+1. Add blossom servers to upload encrypted meida
+2. Paste file from clipboard for desktop
+3. Remove aws lib
+4. Update flutter_rust_bridge to 2.10.0
+
 ## 1.32.10+6388
 1. [Browser]Add config for auto_sign_event
 2. Fix other bugs

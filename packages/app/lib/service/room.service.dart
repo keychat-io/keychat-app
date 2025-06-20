@@ -9,6 +9,7 @@ import 'package:app/models/models.dart';
 import 'package:app/models/nostr_event_status.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app/service/file.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/signalId.service.dart';
 import 'package:easy_debounce/easy_throttle.dart';
@@ -21,7 +22,6 @@ import 'package:app/service/notify.service.dart';
 import 'package:app/service/signal_chat.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
-import 'package:aws/aws.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
@@ -30,11 +30,8 @@ import 'package:queue/queue.dart';
 import '../constants.dart';
 import '../controller/chat.controller.dart';
 import '../controller/home.controller.dart';
-import '../models/db_provider.dart';
-import '../models/signal_id.dart';
 import '../nostr-core/nostr.dart';
 import 'contact.service.dart';
-import 'file_util.dart';
 import 'group.service.dart';
 import 'identity.service.dart';
 import 'message.service.dart';
@@ -181,7 +178,7 @@ class RoomService extends BaseChatService {
           .roomIdEqualTo(roomId)
           .deleteAll();
       await database.rooms.filter().idEqualTo(roomId).deleteFirst();
-      await FileUtils.deleteFolderByRoomId(room.identityId, room.id);
+      await FileService.instance.deleteFolderByRoomId(room.identityId, room.id);
     });
     if (listenPubkey != null) {
       if (roomType == RoomType.group &&
@@ -216,7 +213,7 @@ class RoomService extends BaseChatService {
   }
 
   deleteRoomMessage(Room room) async {
-    await FileUtils.deleteFolderByRoomId(room.identityId, room.id);
+    await FileService.instance.deleteFolderByRoomId(room.identityId, room.id);
 
     await DBProvider.database.writeTxn(() async {
       return DBProvider.database.messages

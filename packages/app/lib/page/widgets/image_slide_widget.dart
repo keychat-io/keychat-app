@@ -1,9 +1,7 @@
 import 'dart:io' show File;
 
 import 'package:app/page/chat/message_actions/VideoPlayWidget.dart';
-
-import 'package:app/service/file_util.dart' as file_util;
-import 'package:app/service/file_util.dart';
+import 'package:app/service/file.service.dart';
 
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/cupertino.dart';
@@ -84,7 +82,7 @@ class _NewPageState extends State<SlidesImageViewWidget> {
   }
 
   Widget _getStackWidget(File file) {
-    bool isImageFile = file_util.isImageFile(file.path);
+    bool isImageFile = FileService.instance.isImageFile(file.path);
     return Stack(key: Key(file.path), children: <Widget>[
       if (isImageFile)
         GestureDetector(
@@ -97,10 +95,10 @@ class _NewPageState extends State<SlidesImageViewWidget> {
             child: PhotoView.customChild(
               child: Center(child: Image.file(file, fit: BoxFit.contain)),
             )),
-      if (file_util.isVideoFile(file.path))
+      if (FileService.instance.isVideoFile(file.path))
         FutureBuilder(
             key: Key(file.path),
-            future: FileUtils.getOrCreateThumbForVideo(file.path),
+            future: FileService.instance.getOrCreateThumbForVideo(file.path),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.done) {
                 bool selected = widget.selected.path == file.path;

@@ -1,7 +1,7 @@
 import 'dart:io' show File;
 
 import 'package:app/controller/setting.controller.dart';
-import 'package:app/service/file_util.dart';
+import 'package:app/service/file.service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -13,8 +13,8 @@ class ImageMinPreviewWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     SettingController settingController = Get.find<SettingController>();
-    String filePath = FileUtils.getAbsolutelyFilePath(
-        settingController.appFolder.path, localPath);
+    String filePath = FileService.instance
+        .getAbsolutelyFilePath(settingController.appFolder.path, localPath);
     File file = File(filePath);
     if (!file.existsSync()) return const Text('[File cleaned]');
 

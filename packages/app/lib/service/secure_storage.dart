@@ -20,7 +20,8 @@ class SecureStorage {
   static Map<String, String> keys = {};
 
   Future write(String key, String value) async {
-    return storage.write(key: key, value: value);
+    await storage.write(key: key, value: value);
+    keys[key] = value;
   }
 
   Future writePhraseWordsWhenNotExist(String words) async {
@@ -34,16 +35,12 @@ class SecureStorage {
     return await storage.read(key: mnemonicKey);
   }
 
-  Future writePrikey(String pubkey, String prikey) async {
-    await storage.write(key: _getPrivateKeyName(pubkey), value: prikey);
-    keys[pubkey] = prikey;
-  }
-
   Future<String?> readPrikey(String pubkey) async {
     if (keys.containsKey(pubkey)) {
       return keys[pubkey];
     }
-    var res = await storage.read(key: _getPrivateKeyName(pubkey));
+    String? res = await storage.read(key: _getPrivateKeyName(pubkey));
+    res ??= await storage.read(key: pubkey);
     if (res != null) {
       keys[pubkey] = res; // store in memory
     }
@@ -55,6 +52,7 @@ class SecureStorage {
       return keys[pubkey]!;
     }
     var res = await storage.read(key: _getPrivateKeyName(pubkey));
+    res ??= await storage.read(key: pubkey);
     if (res != null && res.isNotEmpty) {
       keys[pubkey] = res; // store in memory
       return res;
@@ -80,7 +78,7 @@ class SecureStorage {
           .importFromPhraseWith(phrase: mnemonic, offset: 0, count: 10);
       for (var account in list) {
         if (account.pubkey == secp256k1PKHex) {
-          await writePrikey(account.pubkey, account.prikey);
+          await write(account.pubkey, account.prikey);
           return account.prikey;
         }
       }
@@ -95,13 +93,15 @@ class SecureStorage {
       return keys[pubkey]!;
     }
     var res = await storage.read(key: _getPrivateKeyName(pubkey));
+    res ??= await storage.read(key: pubkey);
     if (res != null && res.isNotEmpty) {
-      keys[pubkey] = res; // store in memory
+      keys[pubkey] = res;
       return res;
     }
     throw Exception('$pubkey \'s private key not found');
   }
 
+  @Deprecated('Use pubkey instead')
   String _getPrivateKeyName(String pubkey) {
     if (kReleaseMode) {
       return "prikey:$pubkey";
@@ -117,6 +117,7 @@ class SecureStorage {
     String key = _getPrivateKeyName(pubkey);
     keys.remove(pubkey);
     await storage.delete(key: key);
+    await storage.delete(key: pubkey);
   }
 
   // in debug model, if you open multi clients, all of them share the same keychain

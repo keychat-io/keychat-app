@@ -113,7 +113,7 @@ class _AddGroupPageState extends State<AddGroupPage>
                               },
                             ),
                             CupertinoDialogAction(
-                              child: const Text('Network'),
+                              child: const Text('Message Relay'),
                               onPressed: () {
                                 Get.back();
                                 Get.to(() => RelaySetting());

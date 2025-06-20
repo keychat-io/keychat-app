@@ -49,11 +49,13 @@ class _KeychatS3ProtocolState extends State<KeychatS3Protocol> {
         child: isInit
             ? SettingsList(platform: DevicePlatform.iOS, sections: [
                 SettingsSection(
-                  title: const Text('Keychat S3 Protocol'),
+                  title: const Text('Selected Relay'),
                   tiles: [
                     SettingsTile.navigation(
                       title: const Text('File Server'),
                       value: Text(Uri.parse(defaultFileServer).host),
+                      description: const Text(
+                          'You need to pay Ecash to the file server for storing your encrypted file.'),
                       onPressed: (context) async {
                         List<Relay> relays =
                             await RelayService.instance.getEnableRelays();
@@ -102,8 +104,6 @@ class _KeychatS3ProtocolState extends State<KeychatS3Protocol> {
                   ],
                 ),
                 SettingsSection(
-                  title: const Text(
-                      'You need to pay Ecash to the file server for storing your encrypted file.'),
                   tiles: [
                     if (isInit == true && (relayFileFee?.mints ?? []).isEmpty)
                       SettingsTile(

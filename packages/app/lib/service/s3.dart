@@ -16,7 +16,8 @@ class AwsS3 {
 
   Future<FileEncryptInfo> encryptAndUploadByRelay(File input,
       {void Function(int, int)? onSendProgress}) async {
-    FileEncryptInfo res = await FileService.instance.encryptFile(input);
+    FileEncryptInfo res =
+        await FileService.instance.encryptFile(input, base64Hash: true);
     int length = res.output.length;
     String? ecashToken = await Utils.getGetxController<EcashController>()
         ?.getFileUploadEcashToken(length);

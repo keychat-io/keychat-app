@@ -18,9 +18,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-
+import 'package:app/page/setting/RelaySetting.dart';
 import 'package:settings_ui/settings_ui.dart';
-
 import 'NostrEvents/NostrEvents_bindings.dart';
 import 'NostrEvents/NostrEvents_page.dart';
 
@@ -29,6 +28,7 @@ class MoreChatSetting extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    WebsocketService ws = Get.find<WebsocketService>();
     return Scaffold(
         appBar: AppBar(
           centerTitle: true,
@@ -39,8 +39,18 @@ class MoreChatSetting extends StatelessWidget {
           sections: [
             SettingsSection(tiles: [
               SettingsTile.navigation(
+                  leading: const Icon(CupertinoIcons.globe),
+                  value: Obx(() => ws.relayConnected.value == 0
+                      ? Text('Connecting')
+                      : Text(ws.relayConnected.value.toString())),
+                  onPressed: (c) {
+                    Get.to(() => const RelaySetting(),
+                        id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
+                  },
+                  title: const Text('Message Relay')),
+              SettingsTile.navigation(
                 leading: const Icon(Icons.folder_open_outlined),
-                title: const Text("Media Servers"),
+                title: const Text("Media Relay"),
                 onPressed: (context) {
                   Get.to(() => const SelectMediaType(),
                       id: GetPlatform.isDesktop ? GetXNestKey.setting : null);

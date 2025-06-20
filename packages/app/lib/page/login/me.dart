@@ -4,10 +4,8 @@ import 'package:app/page/browser/BrowserSetting.dart';
 import 'package:app/page/login/AccountSetting/AccountSetting_bindings.dart';
 import 'package:app/page/login/SelectModeToCreateID.dart';
 import 'package:app/page/routes.dart';
-import 'package:app/page/setting/RelaySetting.dart';
 import 'package:app/page/setting/app_general_setting.dart';
 import 'package:app/page/setting/more_chat_setting.dart';
-import 'package:app/service/websocket.service.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:app/controller/home.controller.dart';
 
@@ -28,7 +26,6 @@ class MinePage extends GetView<SettingController> {
   @override
   Widget build(BuildContext context) {
     HomeController homeController = Get.find<HomeController>();
-    WebsocketService ws = Get.find<WebsocketService>();
     return Scaffold(
         appBar: AppBar(
           centerTitle: true,
@@ -111,18 +108,6 @@ class MinePage extends GetView<SettingController> {
                                       ? GetXNestKey.setting
                                       : null);
                             }),
-                      SettingsTile.navigation(
-                          leading: const Icon(CupertinoIcons.globe),
-                          value: Obx(() => ws.relayConnected.value == 0
-                              ? Text('Connecting')
-                              : Text(ws.relayConnected.value.toString())),
-                          onPressed: (c) {
-                            Get.to(() => const RelaySetting(),
-                                id: GetPlatform.isDesktop
-                                    ? GetXNestKey.setting
-                                    : null);
-                          },
-                          title: const Text('Network')),
                       SettingsTile.navigation(
                         leading: const Icon(CupertinoIcons.settings),
                         title: const Text("App Settings"),

@@ -2,7 +2,6 @@ import 'dart:convert' show base64Encode, utf8;
 import 'dart:io' show File, Directory, FileSystemEntity;
 import 'dart:math' show Random;
 import 'dart:typed_data' show Uint8List;
-import 'package:app/controller/home.controller.dart';
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/db_provider.dart';
@@ -12,9 +11,9 @@ import 'package:app/models/room.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/s3.dart';
-import 'package:app/service/secure_storage.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
+import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart' hide Key;
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_svg/svg.dart';
@@ -84,7 +83,8 @@ class FileService {
     return output;
   }
 
-  Future<FileEncryptInfo> encryptFile(File input) async {
+  Future<FileEncryptInfo> encryptFile(File input,
+      {bool base64Hash = false}) async {
     final iv = IV.fromSecureRandom(16);
     final salt = SecureRandom(16).bytes;
     final key =
@@ -93,13 +93,18 @@ class FileService {
     String fileName = input.path.split('/').last;
     final encryptedBytes = encrypter
         .encryptBytes(Uint8List.fromList(await input.readAsBytes()), iv: iv);
-    var sha256 = await rust_nostr.sha256HashBytes(data: encryptedBytes.bytes);
+    String sha256Result =
+        await rust_nostr.sha256HashBytes(data: encryptedBytes.bytes);
+    if (base64Hash) {
+      sha256Result = base64Encode(Utils.hexToBytes(sha256Result));
+    }
+    logger.d(sha256Result);
     return FileEncryptInfo.fromJson({
       'output': encryptedBytes.bytes,
       'iv': iv.base64,
       'key': key.base64,
       'suffix': fileName.contains('.') ? fileName.split('.').last : '',
-      'hash': sha256,
+      'hash': sha256Result,
       'sourceName': fileName,
     });
   }
@@ -182,16 +187,17 @@ class FileService {
   }
 
   onSendProgress(String status, int count, int total) {
-    loggerNoLine.d('Upload progress: $status, $count/$total');
-    if (count == total && total != 0) {
-      EasyLoading.showSuccess('Upload success');
-      return;
-    }
-    double progress = count / total;
-    if (progress < 0.2) {
-      progress = 0.2;
-    }
-    EasyLoading.showProgress(progress, status: status);
+    EasyThrottle.throttle('onSendProgress', Duration(milliseconds: 100), () {
+      if (count == total && total != 0) {
+        EasyLoading.showSuccess('Upload success');
+        return;
+      }
+      double progress = count / total;
+      if (progress < 0.2) {
+        progress = 0.2;
+      }
+      EasyLoading.showProgress(progress, status: status);
+    });
   }
 
   Widget getImageView(File file, [double width = 150, double height = 150]) {
@@ -333,7 +339,8 @@ class FileService {
             children: [
               Text(
                   'Check your blossom servers, make sure your subscription is valid.'),
-              Text('Tab:Me -> Chat Settings -> Media Servers'),
+              Text('Make sure your server support uploading encrypted files.'),
+              Text('Tab:Me -> Chat Settings -> Media Relay'),
             ],
           ),
           actions: [
@@ -515,22 +522,24 @@ class FileService {
 
   Future<FileEncryptInfo> uploadToBlossom(
       {required File input, void Function(int, int)? onSendProgress}) async {
-    String? selectedPaymentPubkey =
-        await Storage.getString(StorageKeyString.selectedPaymentPubkey);
-    // If not set, use the first identity's pubkey
-    selectedPaymentPubkey ??=
-        Get.find<HomeController>().allIdentities.values.first.secp256k1PKHex;
-    String? prikey =
-        await SecureStorage.instance.readPrikey(selectedPaymentPubkey);
-    if (prikey == null) {
-      throw Exception(
-          'The payment prikey not found for $selectedPaymentPubkey');
-    }
+    // String? selectedPaymentPubkey =
+    //     await Storage.getString(StorageKeyString.selectedPaymentPubkey);
+    // // If not set, use the first identity's pubkey
+    // selectedPaymentPubkey ??=
+    //     Get.find<HomeController>().allIdentities.values.first.secp256k1PKHex;
+    // String? prikey =
+    //     await SecureStorage.instance.readPrikey(selectedPaymentPubkey);
+    // if (prikey == null) {
+    //   throw Exception(
+    //       'The payment prikey not found for $selectedPaymentPubkey');
+    // }
     FileEncryptInfo fe = await FileService.instance.encryptFile(input);
 
     fe.size = fe.output.length;
+    // Generate a new key pair
+    var random = await rust_nostr.generateSecp256K1();
     String eventString = await rust_nostr.signEvent(
-        senderKeys: prikey,
+        senderKeys: random.prikey,
         content: fe.hash,
         createdAt: BigInt.from(DateTime.now().millisecondsSinceEpoch ~/ 1000),
         kind: 24242,
@@ -563,7 +572,7 @@ class FileService {
         );
 
         if (response.statusCode == 200) {
-          logger.i('Success $selectedPaymentPubkey: ${response.data}');
+          logger.i('Success ${random.pubkey}: ${response.data}');
           fe.url = response.data['url'] ?? '';
           fe.size = response.data['size'] ?? fe.size;
           return fe;

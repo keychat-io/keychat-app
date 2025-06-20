@@ -2,7 +2,6 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
-import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/secure_storage.dart';
@@ -24,39 +23,41 @@ class BlossomProtocolSetting extends StatefulWidget {
 
 class _BlossomProtocolSettingState extends State<BlossomProtocolSetting> {
   List<String> selected = [];
-  Identity selectedIdentity =
-      Get.find<HomeController>().allIdentities.values.first;
   bool isEditMode = false;
-  late String selectedPaymentPubkey;
-  SettingController get settingController => Get.find<SettingController>();
-
+  List<String> recommendedServers = [];
   @override
   void initState() {
-    selectedPaymentPubkey = selectedIdentity.secp256k1PKHex;
     super.initState();
     init();
   }
 
   Future<void> init() async {
-    String? savedSelectedPaymentPubkey =
-        await Storage.getString(StorageKeyString.selectedPaymentPubkey);
-    if (savedSelectedPaymentPubkey != null) {
-      Identity? exist = Get.find<HomeController>()
-          .allIdentities
-          .values
-          .toList()
-          .firstWhereOrNull((identity) =>
-              identity.secp256k1PKHex == savedSelectedPaymentPubkey);
-      if (exist != null) {
-        setState(() {
-          selectedPaymentPubkey = savedSelectedPaymentPubkey;
-          selectedIdentity = exist;
-        });
-      }
-    }
+    // String? savedSelectedPaymentPubkey =
+    //     await Storage.getString(StorageKeyString.selectedPaymentPubkey);
+    // if (savedSelectedPaymentPubkey != null) {
+    //   Identity? exist = Get.find<HomeController>()
+    //       .allIdentities
+    //       .values
+    //       .toList()
+    //       .firstWhereOrNull((identity) =>
+    //           identity.secp256k1PKHex == savedSelectedPaymentPubkey);
+    //   if (exist != null) {
+    //     setState(() {
+    //       selectedPaymentPubkey = savedSelectedPaymentPubkey;
+    //       selectedIdentity = exist;
+    //     });
+    //   }
+    // }
     List<String> savedServers =
         await Storage.getStringList(StorageKeyString.blossomProtocolServers);
+
+    recommendedServers = Get.find<SettingController>()
+        .builtInMedias
+        .where((server) => !savedServers.contains(server))
+        .toList();
+
     setState(() {
+      recommendedServers = recommendedServers;
       selected = savedServers;
     });
   }
@@ -74,18 +75,16 @@ class _BlossomProtocolSettingState extends State<BlossomProtocolSetting> {
 
   void _addToSelected(String url) async {
     if (!selected.contains(url)) {
-      setState(() {
-        selected.add(url);
-      });
+      selected.add(url);
       await _saveSelectedServers();
+      init();
     }
   }
 
   void _removeFromSelected(String url) async {
-    setState(() {
-      selected.remove(url);
-    });
+    selected.remove(url);
     await _saveSelectedServers();
+    init();
   }
 
   void _showAddCustomDialog() {
@@ -101,6 +100,11 @@ class _BlossomProtocolSettingState extends State<BlossomProtocolSetting> {
             CupertinoTextField(
               style: Theme.of(context).textTheme.bodyMedium,
               controller: urlController,
+              autofocus: true,
+              maxLines: 1,
+              onSubmitted: (value) {
+                addUrlSubmit(urlController);
+              },
               placeholder: 'URL',
             ),
           ],
@@ -112,19 +116,7 @@ class _BlossomProtocolSettingState extends State<BlossomProtocolSetting> {
           ),
           CupertinoDialogAction(
             onPressed: () {
-              if (urlController.text.isNotEmpty) {
-                Uri? uri = Uri.tryParse(urlController.text);
-                if (uri == null) {
-                  EasyLoading.showError('Invalid URL');
-                  return;
-                }
-                if (uri.path != '/') {
-                  EasyLoading.showError('URL should not contain path');
-                  return;
-                }
-                _addToSelected(urlController.text.trim());
-                Navigator.pop(context);
-              }
+              addUrlSubmit(urlController);
             },
             child: const Text('Add'),
           ),
@@ -133,209 +125,218 @@ class _BlossomProtocolSettingState extends State<BlossomProtocolSetting> {
     );
   }
 
+  addUrlSubmit(TextEditingController urlController) {
+    String url = urlController.text.trim();
+    if (url.isEmpty) {
+      EasyLoading.showError('URL cannot be empty');
+      return;
+    }
+    Uri? uri = Uri.tryParse(url);
+    if (uri == null ||
+        (!uri.hasScheme || (uri.scheme != 'http' && uri.scheme != 'https'))) {
+      EasyLoading.showError('Invalid URL');
+      return;
+    }
+    _addToSelected(urlController.text.trim());
+    Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: SettingsList(
         sections: [
           SettingsSection(
-            title: Text('Payment Account'),
-            tiles: [
-              if (selectedIdentity.secp256k1PKHex == selectedPaymentPubkey)
-                SettingsTile.navigation(
-                    leading: Utils.getRandomAvatar(
-                        selectedIdentity.secp256k1PKHex,
-                        height: 30,
-                        width: 30),
-                    title: Text(selectedIdentity.displayName),
-                    onPressed: (context) async {
-                      List<Identity> identities =
-                          await IdentityService.instance.listIdentity();
-                      Get.dialog(
-                        SimpleDialog(
-                          title: const Text('Select a Identity'),
-                          children: identities
-                              .map((identity) => SimpleDialogOption(
-                                    onPressed: () async {
-                                      await Storage.setString(
-                                          StorageKeyString
-                                              .selectedPaymentPubkey,
-                                          identity.secp256k1PKHex);
-                                      setState(() {
-                                        selectedIdentity = identity;
-                                        selectedPaymentPubkey =
-                                            identity.secp256k1PKHex;
-                                      });
-                                      Get.back();
-                                      EasyLoading.showSuccess(
-                                          'Selected Identity: ${identity.displayName}');
-                                    },
-                                    child: ListTile(
-                                      leading: Utils.getRandomAvatar(
-                                          identity.secp256k1PKHex,
-                                          height: 30,
-                                          width: 30),
-                                      title: Text(identity.displayName),
-                                      selected:
-                                          selectedIdentity.secp256k1PKHex ==
-                                              identity.secp256k1PKHex,
-                                      trailing:
-                                          selectedIdentity.secp256k1PKHex ==
-                                                  identity.secp256k1PKHex
-                                              ? Icon(Icons.check_circle,
-                                                  color: Colors.green)
-                                              : null,
-                                    ),
-                                  ))
-                              .toList(),
-                        ),
-                      );
-                    }),
-              if (selectedIdentity.secp256k1PKHex == selectedPaymentPubkey)
-                SettingsTile(
-                    title: const Text('Add Payment Private Key'),
-                    leading: const Icon(Icons.add),
-                    onPressed: (context) async {
-                      TextEditingController prikeyController =
-                          TextEditingController();
-                      String? prikey = await showDialog(
-                        context: context,
-                        builder: (context) => CupertinoAlertDialog(
-                          title: const Text('Add a Payment Private Key'),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text(
-                                  'Please enter your private key for payment:'),
-                              const Text(
-                                  'Private key will be stored in keychain'),
-                              const SizedBox(height: 10),
-                              CupertinoTextField(
-                                placeholder: 'Private Key',
-                                maxLines: 3,
-                                style: Theme.of(context).textTheme.bodyMedium,
-                                controller: prikeyController,
-                              ),
-                            ],
-                          ),
-                          actions: [
-                            CupertinoDialogAction(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('Cancel'),
-                            ),
-                            CupertinoDialogAction(
-                              onPressed: () {
-                                // Handle save private key logic
-                                String prikey = prikeyController.text.trim();
-                                Navigator.pop(context, prikey);
-                              },
-                              child: const Text('Save'),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (prikey == null) return;
-                      try {
-                        if (prikey.startsWith('nsec')) {
-                          prikey =
-                              rust_nostr.getHexPrikeyByBech32(bech32: prikey);
-                        }
-                        // store in keychain
-                        String pubkey =
-                            rust_nostr.getHexPubkeyByPrikey(prikey: prikey);
-                        await SecureStorage.instance.write(pubkey, prikey);
-                        await Storage.setString(
-                            StorageKeyString.selectedPaymentPubkey, pubkey);
-                        setState(() {
-                          selectedPaymentPubkey = pubkey;
-                        });
-                      } catch (e, s) {
-                        String error = Utils.getErrorMessage(e);
-                        EasyLoading.showError(error);
-                        logger.e('Failed to save payment private key: $error',
-                            stackTrace: s);
-                      }
-                    }),
-              if (selectedIdentity.secp256k1PKHex != selectedPaymentPubkey)
-                SettingsTile(
-                  title: Text('Custom Payment Private Key'),
-                  description: Text(
-                      'Pubkey: ${rust_nostr.getBech32PubkeyByHex(hex: selectedPaymentPubkey)}'),
-                  trailing: IconButton(
-                      icon: Icon(Icons.remove),
-                      onPressed: () async {
-                        Identity identity = Get.find<HomeController>()
-                            .allIdentities
-                            .values
-                            .first;
-                        await Storage.setString(
-                            StorageKeyString.selectedPaymentPubkey,
-                            identity.secp256k1PKHex);
-                        setState(() {
-                          selectedPaymentPubkey = identity.secp256k1PKHex;
-                          selectedIdentity = identity;
-                        });
-                        EasyLoading.showSuccess(
-                            'Payment private key removed, use the identity: ${identity.displayName}');
-                      }),
-                ),
-            ],
-          ),
-          SettingsSection(
             title: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Selected Servers'),
+                  const Text('Selected Blossom Servers'),
                   TextButton(
                       onPressed: _toggleEditMode,
                       child: Text(isEditMode ? 'Done' : 'Edit'))
                 ]),
             tiles: [
               ...selected.map((url) => SettingsTile(
-                    title: Text(url.replaceFirst('https://', '')),
-                    trailing: isEditMode
-                        ? IconButton(
-                            icon: const Icon(Icons.remove_circle,
-                                color: Colors.red),
-                            onPressed: () => _removeFromSelected(url),
-                          )
-                        : TextButton(
-                            onPressed: () {
-                              Get.find<MultiWebviewController>()
-                                  .launchWebview(content: url);
-                            },
-                            child: Text('Pay')),
-                  )),
+                  title: Text(url.replaceFirst('https://', '')),
+                  trailing: isEditMode
+                      ? IconButton(
+                          icon: const Icon(Icons.remove_circle,
+                              color: Colors.red),
+                          onPressed: () => _removeFromSelected(url),
+                        )
+                      : null)),
               SettingsTile(
                 title: const Text('Add Custom Server'),
                 leading: const Icon(Icons.add),
                 description: NoticeTextWidget.info(
-                    'The server needs to support uploading encrypted files.'),
+                    '''1. The server needs to support uploading encrypted files.
+2. Each file will be encrypted with a random private key.'''),
                 onPressed: (context) => _showAddCustomDialog(),
               ),
             ],
           ),
-          SettingsSection(
-            title: const Text('Recommended Servers'),
-            tiles: settingController.builtInMedias
-                .map((url) => SettingsTile(
-                      title: Text(url.replaceFirst('https://', '')),
-                      trailing: IconButton(
-                        icon: Icon(
-                          selected.contains(url)
-                              ? Icons.check_circle
-                              : Icons.add_circle,
-                          color: selected.contains(url)
-                              ? Colors.green
-                              : KeychatGlobal.secondaryColor,
+          if (recommendedServers.isNotEmpty)
+            SettingsSection(
+              title: const Text('Recommended Servers'),
+              tiles: recommendedServers
+                  .map((url) => SettingsTile(
+                        title: Text(url.replaceFirst('https://', '')),
+                        trailing: IconButton(
+                          icon: Icon(
+                            selected.contains(url)
+                                ? Icons.check_circle
+                                : Icons.add_circle,
+                            color: selected.contains(url)
+                                ? Colors.green
+                                : KeychatGlobal.secondaryColor,
+                          ),
+                          onPressed: () => _addToSelected(url),
                         ),
-                        onPressed: () => _addToSelected(url),
-                      ),
-                    ))
-                .toList(),
-          ),
+                      ))
+                  .toList(),
+            ),
         ],
       ),
+    );
+  }
+
+  getAccountSection() {
+    Identity selectedIdentity =
+        Get.find<HomeController>().allIdentities.values.first;
+    String selectedPaymentPubkey = selectedIdentity.secp256k1PKHex;
+    return SettingsSection(
+      title: Text('Payment Account'),
+      tiles: [
+        if (selectedIdentity.secp256k1PKHex == selectedPaymentPubkey)
+          SettingsTile.navigation(
+              leading: Utils.getRandomAvatar(selectedIdentity.secp256k1PKHex,
+                  height: 30, width: 30),
+              title: Text(selectedIdentity.displayName),
+              onPressed: (context) async {
+                List<Identity> identities =
+                    await IdentityService.instance.listIdentity();
+                Get.dialog(
+                  SimpleDialog(
+                    title: const Text('Select a Identity'),
+                    children: identities
+                        .map((identity) => SimpleDialogOption(
+                              onPressed: () async {
+                                await Storage.setString(
+                                    StorageKeyString.selectedPaymentPubkey,
+                                    identity.secp256k1PKHex);
+                                setState(() {
+                                  selectedIdentity = identity;
+                                  selectedPaymentPubkey =
+                                      identity.secp256k1PKHex;
+                                });
+                                Get.back();
+                                EasyLoading.showSuccess(
+                                    'Selected Identity: ${identity.displayName}');
+                              },
+                              child: ListTile(
+                                leading: Utils.getRandomAvatar(
+                                    identity.secp256k1PKHex,
+                                    height: 30,
+                                    width: 30),
+                                title: Text(identity.displayName),
+                                selected: selectedIdentity.secp256k1PKHex ==
+                                    identity.secp256k1PKHex,
+                                trailing: selectedIdentity.secp256k1PKHex ==
+                                        identity.secp256k1PKHex
+                                    ? Icon(Icons.check_circle,
+                                        color: Colors.green)
+                                    : null,
+                              ),
+                            ))
+                        .toList(),
+                  ),
+                );
+              }),
+        if (selectedIdentity.secp256k1PKHex == selectedPaymentPubkey)
+          SettingsTile(
+              title: const Text('Add Payment Private Key'),
+              leading: const Icon(Icons.add),
+              onPressed: (context) async {
+                TextEditingController prikeyController =
+                    TextEditingController();
+                String? prikey = await showDialog(
+                  context: context,
+                  builder: (context) => CupertinoAlertDialog(
+                    title: const Text('Add a Payment Private Key'),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                            'Please enter your private key for payment:'),
+                        const Text('Private key will be stored in keychain'),
+                        const SizedBox(height: 10),
+                        CupertinoTextField(
+                          placeholder: 'Private Key',
+                          maxLines: 3,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                          controller: prikeyController,
+                        ),
+                      ],
+                    ),
+                    actions: [
+                      CupertinoDialogAction(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Cancel'),
+                      ),
+                      CupertinoDialogAction(
+                        onPressed: () {
+                          // Handle save private key logic
+                          String prikey = prikeyController.text.trim();
+                          Navigator.pop(context, prikey);
+                        },
+                        child: const Text('Save'),
+                      ),
+                    ],
+                  ),
+                );
+                if (prikey == null) return;
+                try {
+                  if (prikey.startsWith('nsec')) {
+                    prikey = rust_nostr.getHexPrikeyByBech32(bech32: prikey);
+                  }
+                  // store in keychain
+                  String pubkey =
+                      rust_nostr.getHexPubkeyByPrikey(prikey: prikey);
+                  await SecureStorage.instance.write(pubkey, prikey);
+                  await Storage.setString(
+                      StorageKeyString.selectedPaymentPubkey, pubkey);
+                  setState(() {
+                    selectedPaymentPubkey = pubkey;
+                  });
+                } catch (e, s) {
+                  String error = Utils.getErrorMessage(e);
+                  EasyLoading.showError(error);
+                  logger.e('Failed to save payment private key: $error',
+                      stackTrace: s);
+                }
+              }),
+        if (selectedIdentity.secp256k1PKHex != selectedPaymentPubkey)
+          SettingsTile(
+            title: Text('Custom Payment Private Key'),
+            description: Text(
+                'Pubkey: ${rust_nostr.getBech32PubkeyByHex(hex: selectedPaymentPubkey)}'),
+            trailing: IconButton(
+                icon: Icon(Icons.remove),
+                onPressed: () async {
+                  Identity identity =
+                      Get.find<HomeController>().allIdentities.values.first;
+                  await Storage.setString(
+                      StorageKeyString.selectedPaymentPubkey,
+                      identity.secp256k1PKHex);
+                  setState(() {
+                    selectedPaymentPubkey = identity.secp256k1PKHex;
+                    selectedIdentity = identity;
+                  });
+                  EasyLoading.showSuccess(
+                      'Payment private key removed, use the identity: ${identity.displayName}');
+                }),
+          ),
+      ],
     );
   }
 }

@@ -21,7 +21,7 @@ class SettingController extends GetxController with StateMixin<Type> {
   RxInt autoCleanMessageDays = 0.obs;
   RxString themeMode = 'system'.obs;
   RxString defaultFileServer = KeychatGlobal.defaultFileServer.obs;
-  RxString defaultFileMediaType = MediaServerType.blossom.name.obs;
+  RxString defaultFileMediaType = MediaServerType.keychatS3.name.obs;
 
   Directory appFolder = Directory('/');
   late String avatarsFolder;
@@ -30,10 +30,7 @@ class SettingController extends GetxController with StateMixin<Type> {
 
   List<String> builtInMedias = [
     "https://void.cat",
-    "https://cdn.nostrcheck.me",
     "https://nostr.download",
-    "https://nostrmedia.com",
-    "https://cdn.satellite.earth",
   ];
 
   @override
@@ -89,6 +86,7 @@ class SettingController extends GetxController with StateMixin<Type> {
 
     // file server
     initRelayFileServerConfig();
+    initFileMediaConfig();
   }
 
   getViewKeychatFutures() async {
@@ -118,7 +116,7 @@ class SettingController extends GetxController with StateMixin<Type> {
     defaultFileServer.value = value;
   }
 
-  Future<void> initMediaServerConfig() async {
+  Future<void> initFileMediaConfig() async {
     String? res =
         await Storage.getString(StorageKeyString.defaultFileMediaType);
     if (res != null) {
@@ -126,7 +124,7 @@ class SettingController extends GetxController with StateMixin<Type> {
     }
   }
 
-  Future<void> seteFileMediaType(String value) async {
+  Future<void> setFileMediaType(String value) async {
     await Storage.setString(StorageKeyString.defaultFileMediaType, value);
     defaultFileMediaType.value = value;
   }

@@ -2,7 +2,7 @@
 https://keepachangelog.com/zh-CN/1.1.0
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
-## 1.33.1+6390
+## 1.33.1+6391
 1. Add blossom servers to upload encrypted meida
 2. Paste file from clipboard for desktop
 3. Remove aws lib

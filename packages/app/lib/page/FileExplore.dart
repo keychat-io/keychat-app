@@ -2,7 +2,7 @@ import 'dart:io'
     show Directory, File, FileStat, FileSystemEntity, FileSystemEntityType;
 
 import 'package:app/page/log_viewer.dart';
-import 'package:app/service/file_util.dart';
+import 'package:app/service/file.service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -120,7 +120,8 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
             return ListTile(
               leading: const Icon(CupertinoIcons.doc),
               title: Text(file.path.substring(widget.dir.path.length + 1)),
-              subtitle: Text(FileUtils.getFileSizeDisplay(stat.size)),
+              subtitle:
+                  Text(FileService.instance.getFileSizeDisplay(stat.size)),
               trailing: _getDownloadButton(file),
               dense: true,
               onTap: () {
@@ -181,7 +182,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
             title: Text(file.path.substring(widget.dir.path.length + 1)),
             subtitle: isDirectory
                 ? null
-                : Text(FileUtils.getFileSizeDisplay(stat.size)),
+                : Text(FileService.instance.getFileSizeDisplay(stat.size)),
             trailing: isDirectory ? null : _getDownloadButton(file),
           );
         },
@@ -199,8 +200,8 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
             return;
           }
           Share.shareXFiles([XFile(sourceFile.path)],
-              subject: FileUtils.getDisplayFileName(
-                  sourceFile.path.split('/').last));
+              subject: FileService.instance
+                  .getDisplayFileName(sourceFile.path.split('/').last));
         },
         icon: const Icon(CupertinoIcons.share));
   }

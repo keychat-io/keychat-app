@@ -1,6 +1,7 @@
 import 'dart:io' show Directory;
 
 import 'package:app/desktop/DesktopController.dart';
+import 'package:app/global.dart';
 import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/service/chatx.service.dart';
@@ -84,12 +85,9 @@ Future<String> getInitRoute(bool isLogin) async {
 
 void initEasyLoading() {
   EasyLoading.instance
-    ..displayDuration = const Duration(milliseconds: 2000)
-    ..backgroundColor = Get.isDarkMode ? Colors.black87 : Colors.grey
-    ..textColor = Get.isDarkMode ? Colors.white70 : Colors.black87
     ..indicatorType = EasyLoadingIndicatorType.cubeGrid
-    ..loadingStyle =
-        Get.isDarkMode ? EasyLoadingStyle.dark : EasyLoadingStyle.light
+    ..progressColor = KeychatGlobal.secondaryColor
+    ..indicatorColor = KeychatGlobal.secondaryColor
     ..fontSize = 16;
 }
 

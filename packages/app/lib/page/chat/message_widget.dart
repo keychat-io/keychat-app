@@ -11,6 +11,7 @@ import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/page/theme.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
+import 'package:app/service/file.service.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 
 import 'package:isar/isar.dart';
@@ -28,7 +29,6 @@ import 'package:markdown_widget/markdown_widget.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:settings_ui/settings_ui.dart';
 
-import '../../service/file_util.dart';
 import '../../service/message.service.dart';
 import '../components.dart';
 import 'chat_bubble.dart';
@@ -153,13 +153,10 @@ class MessageWidget extends StatelessWidget {
                 },
                 children: [
                   tableRow("Path", mfi.localPath ?? ''),
-                  // tableRow("Status", mfi.status.name),
+                  tableRow("Url", mfi.url ?? ''),
                   tableRow("Time", mfi.updateAt?.toIso8601String() ?? ''),
-                  // tableRow(
-                  //   "Type",
-                  //   mfi.suffix ?? '',
-                  // ),
-                  tableRow("Size", FileUtils.getFileSizeDisplay(mfi.size)),
+                  tableRow("Size",
+                      FileService.instance.getFileSizeDisplay(mfi.size)),
                   tableRow("IV", mfi.iv ?? ''),
                   tableRow("Key", mfi.key ?? ''),
                 ]),
@@ -639,7 +636,8 @@ class MessageWidget extends StatelessWidget {
                   if (fileExists) {
                     await File(filePath).delete();
                     if (message.mediaType == MessageMediaType.video) {
-                      String thumbail = FileUtils.getVideoThumbPath(filePath);
+                      String thumbail =
+                          FileService.instance.getVideoThumbPath(filePath);
                       bool thumbExists = await File(thumbail).exists();
                       if (thumbExists) {
                         await File(thumbail).delete();
@@ -921,7 +919,7 @@ class MessageWidget extends StatelessWidget {
                 EasyLoading.showToast('File not exist');
                 return;
               }
-              String filePath = FileUtils.getAbsolutelyFilePath(
+              String filePath = FileService.instance.getAbsolutelyFilePath(
                   Get.find<SettingController>().appFolder.path, mfi.localPath!);
 
               // Get the directory of the file

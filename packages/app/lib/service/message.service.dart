@@ -4,7 +4,7 @@ import 'package:app/bot/bot_server_message_model.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/rust_api.dart';
-import 'package:app/service/file_util.dart';
+import 'package:app/service/file.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
@@ -597,7 +597,7 @@ $content'''
       m.realMessage = mfi.toString();
       if (mfi.type == MessageMediaType.image.name) {
         m.mediaType = MessageMediaType.image;
-        FileUtils.downloadForMessage(m, mfi);
+        await FileService.instance.downloadForMessage(m, mfi);
         return m;
       }
 

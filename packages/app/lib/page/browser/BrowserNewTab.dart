@@ -84,7 +84,7 @@ class BrowserNewTab extends GetView<MultiWebviewController> {
   }
 
   void submitSearchForm(value) {
-    controller.lanuchWebview(
+    controller.launchWebview(
       engine: controller.defaultSearchEngineObx.value,
       content: controller.textController.text.trim(),
     );

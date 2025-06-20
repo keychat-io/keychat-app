@@ -5,7 +5,6 @@ environment:
   sdk: ">=3.7.0 <4.0.0"
 workspace:
   - packages/app
-  - packages/aws
   - packages/keychat_ecash
   - packages/keychat_rust_ffi_plugin
 

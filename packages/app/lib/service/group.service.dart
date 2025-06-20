@@ -4,7 +4,6 @@ import 'dart:convert' show jsonDecode, jsonEncode;
 import 'package:app/controller/chat.controller.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/models/models.dart';
-import 'package:app/models/signal_id.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/group_tx.dart';

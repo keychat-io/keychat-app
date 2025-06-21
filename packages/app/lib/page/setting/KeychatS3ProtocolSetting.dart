@@ -1,12 +1,11 @@
+import 'package:app/app.dart';
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/models/embedded/relay_file_fee.dart';
-import 'package:app/models/relay.dart';
 import 'package:app/page/components.dart';
 import 'package:app/service/file.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:settings_ui/settings_ui.dart';
 
@@ -22,7 +21,7 @@ class _KeychatS3ProtocolState extends State<KeychatS3Protocol> {
   SettingController settingController = Get.find<SettingController>();
   WebsocketService ws = Get.find<WebsocketService>();
   bool isInit = false;
-  String defaultFileServer = 'Loading';
+  String defaultFileServer = KeychatGlobal.defaultFileServer;
 
   @override
   void initState() {
@@ -31,13 +30,12 @@ class _KeychatS3ProtocolState extends State<KeychatS3Protocol> {
   }
 
   _init() async {
-    String data = settingController.defaultFileServer.value;
-    RelayFileFee? fuc = await RelayService.instance.initRelayFileFeeModel(data);
+    RelayFileFee? fuc =
+        await RelayService.instance.initRelayFileFeeModel(defaultFileServer);
     if (fuc != null) {
-      ws.relayFileFeeModels[data] = fuc;
+      ws.setRelayFileFeeModel(defaultFileServer, fuc);
     }
     setState(() {
-      defaultFileServer = data;
       relayFileFee = fuc;
       isInit = true;
     });
@@ -45,64 +43,10 @@ class _KeychatS3ProtocolState extends State<KeychatS3Protocol> {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-        child: isInit
+    return Scaffold(
+        appBar: AppBar(title: Text(KeychatGlobal.defaultFileServer)),
+        body: isInit
             ? SettingsList(platform: DevicePlatform.iOS, sections: [
-                SettingsSection(
-                  title: const Text('Selected Relay'),
-                  tiles: [
-                    SettingsTile.navigation(
-                      title: const Text('File Server'),
-                      value: Text(Uri.parse(defaultFileServer).host),
-                      description: const Text(
-                          'You need to pay Ecash to the file server for storing your encrypted file.'),
-                      onPressed: (context) async {
-                        List<Relay> relays =
-                            await RelayService.instance.getEnableRelays();
-                        Get.bottomSheet(
-                            clipBehavior: Clip.antiAlias,
-                            shape: const RoundedRectangleBorder(
-                                borderRadius: BorderRadius.vertical(
-                                    top: Radius.circular(4))),
-                            SettingsList(
-                                platform: DevicePlatform.iOS,
-                                sections: [
-                                  SettingsSection(
-                                      title: const Text('Select Media Server'),
-                                      tiles: relays
-                                          .map(
-                                            (Relay relay) => SettingsTile(
-                                              onPressed: (context) async {
-                                                EasyLoading.show(
-                                                    status: 'Loading...');
-                                                await settingController
-                                                    .setDefaultRelayFileServer(
-                                                        relay.url);
-                                                await _init();
-                                                EasyLoading.showSuccess(
-                                                    'Success');
-                                                Get.back();
-                                              },
-                                              title: ListTile(
-                                                title: Text(relay.url),
-                                                subtitle: Text(
-                                                    getFeeString(relay.url)),
-                                              ),
-                                              trailing:
-                                                  relay.url == defaultFileServer
-                                                      ? const Icon(
-                                                          Icons.done,
-                                                          color: Colors.green,
-                                                        )
-                                                      : null,
-                                            ),
-                                          )
-                                          .toList())
-                                ]));
-                      },
-                    ),
-                  ],
-                ),
                 SettingsSection(
                   tiles: [
                     if (isInit == true && (relayFileFee?.mints ?? []).isEmpty)
@@ -151,7 +95,7 @@ class _KeychatS3ProtocolState extends State<KeychatS3Protocol> {
   }
 
   String getFeeString(String relay) {
-    RelayFileFee? fuc = ws.relayFileFeeModels[relay];
+    RelayFileFee? fuc = ws.getRelayFileFeeModel(relay);
     if (fuc == null) return '-';
     if (fuc.prices.isEmpty) return '-';
     return 'Fee: ${fuc.prices[0]['price']} ${fuc.unit}';

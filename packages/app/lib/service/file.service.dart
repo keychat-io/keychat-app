@@ -11,7 +11,6 @@ import 'package:app/models/room.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/s3.dart';
-import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart' hide Key;
@@ -23,7 +22,6 @@ import 'package:encrypt/encrypt.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
-import 'package:share_plus/share_plus.dart';
 import 'package:video_compress/video_compress.dart';
 import 'package:image/image.dart' as img;
 import 'package:app/utils/config.dart';
@@ -98,7 +96,6 @@ class FileService {
     if (base64Hash) {
       sha256Result = base64Encode(Utils.hexToBytes(sha256Result));
     }
-    logger.d(sha256Result);
     return FileEncryptInfo.fromJson({
       'output': encryptedBytes.bytes,
       'iv': iv.base64,
@@ -124,7 +121,7 @@ class FileService {
     try {
       final dio = Dio();
       final headers = {'Content-type': 'application/json'};
-      String url = Get.find<SettingController>().getHttpDefaultFileApi();
+      String url = '${KeychatGlobal.defaultFileServer}/api/v1/object';
       final response = await dio.post(
         url,
         data: {
@@ -136,6 +133,7 @@ class FileService {
       );
 
       if (response.statusCode == 200) {
+        logger.d(response.data);
         return response.data;
       }
     } on DioException catch (e, s) {
@@ -322,13 +320,14 @@ class FileService {
     }
     File newFile = File(newPath);
     await newFile.writeAsBytes(fileBytes);
-    String mediaServerType =
-        Get.find<SettingController>().defaultFileMediaType.value;
+    String selectedMediaServer =
+        Get.find<SettingController>().selectedMediaServer.value;
+    Uri uri = Uri.parse(selectedMediaServer);
     late FileEncryptInfo fileInfo;
-    if (mediaServerType == MediaServerType.keychatS3.name) {
+    if (uri.host == 'relay.keychat.io') {
       fileInfo = await AwsS3.instance
           .encryptAndUploadByRelay(newFile, onSendProgress: onSendProgress);
-    } else if (mediaServerType == MediaServerType.blossom.name) {
+    } else {
       try {
         fileInfo = await uploadToBlossom(
             input: newFile, onSendProgress: onSendProgress);
@@ -511,28 +510,8 @@ class FileService {
     }
   }
 
-  Future<List<String>> getBlossomServers() async {
-    List<String> savedServers =
-        await Storage.getStringList(StorageKeyString.blossomProtocolServers);
-    if (savedServers.isNotEmpty) {
-      return savedServers;
-    }
-    return Get.find<SettingController>().builtInMedias;
-  }
-
   Future<FileEncryptInfo> uploadToBlossom(
       {required File input, void Function(int, int)? onSendProgress}) async {
-    // String? selectedPaymentPubkey =
-    //     await Storage.getString(StorageKeyString.selectedPaymentPubkey);
-    // // If not set, use the first identity's pubkey
-    // selectedPaymentPubkey ??=
-    //     Get.find<HomeController>().allIdentities.values.first.secp256k1PKHex;
-    // String? prikey =
-    //     await SecureStorage.instance.readPrikey(selectedPaymentPubkey);
-    // if (prikey == null) {
-    //   throw Exception(
-    //       'The payment prikey not found for $selectedPaymentPubkey');
-    // }
     FileEncryptInfo fe = await FileService.instance.encryptFile(input);
 
     fe.size = fe.output.length;
@@ -553,50 +532,44 @@ class FileService {
                 .toString()
           ],
         ]);
+    String server = Get.find<SettingController>().selectedMediaServer.value;
+    String? errorMessage;
+    try {
+      Dio dio = Dio();
+      Response response = await dio.put(
+        '$server/upload',
+        data: Stream.fromIterable(fe.output.map((e) => [e])),
+        onSendProgress: onSendProgress,
+        options: Options(
+          headers: {
+            'Content-Type': 'application/octet-stream',
+            'Authorization': 'Nostr ${base64Encode(utf8.encode(eventString))}',
+          },
+        ),
+      );
 
-    List<String> servers = await getBlossomServers();
-    for (String server in servers) {
-      try {
-        Dio dio = Dio();
-        Response response = await dio.put(
-          '$server/upload',
-          data: Stream.fromIterable(fe.output.map((e) => [e])),
-          onSendProgress: onSendProgress,
-          options: Options(
-            headers: {
-              'Content-Type': 'application/octet-stream',
-              'Authorization':
-                  'Nostr ${base64Encode(utf8.encode(eventString))}',
-            },
-          ),
-        );
-
-        if (response.statusCode == 200) {
-          logger.i('Success ${random.pubkey}: ${response.data}');
-          fe.url = response.data['url'] ?? '';
-          fe.size = response.data['size'] ?? fe.size;
-          return fe;
-        }
-      } on DioException catch (e, s) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx and is also not 304.
-        if (e.response != null) {
-          logger.e('Server $server failed: ${e.response?.data}', stackTrace: s);
-        } else {
-          // Something happened in setting up or sending the request that triggered an Error
-          logger.e('Server $server failed: ${e.message}', stackTrace: s);
-        }
-        // Continue to next server if this one fails
-        continue;
-      } catch (e, s) {
-        // Handle any other exceptions
-        logger.e('Server $server failed: ${e.toString()}', stackTrace: s);
-        continue;
+      if (response.statusCode == 200) {
+        logger.i('Success ${random.pubkey}: ${response.data}');
+        fe.url = response.data['url'] ?? '';
+        fe.size = response.data['size'] ?? fe.size;
+        return fe;
       }
+    } on DioException catch (e, s) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx and is also not 304.
+      if (e.response != null) {
+        logger.e('Server $server failed: ${e.response?.data}', stackTrace: s);
+        errorMessage = e.response?.data;
+      } else {
+        errorMessage = e.message;
+        logger.e('Server $server failed: ${e.message}', stackTrace: s);
+      }
+    } catch (e, s) {
+      logger.e('Server $server failed: ${e.toString()}', stackTrace: s);
     }
 
     // If all servers fail, throw an exception
-    throw Exception('All servers failed to upload file');
+    throw Exception(errorMessage ?? 'Failed to upload file to $server');
   }
 
   static String getFileTypeFromBytes(Uint8List bytes) {

@@ -15,10 +15,10 @@ on:
         description: "Deployment environment"
         required: false
         type: string
-  pull_request:
-    types: [closed]
-    branches:
-      - "main"
+  # pull_request:
+  #   types: [closed]
+  #   branches:
+  #     - "main"
   push:
     tags:
       - "v*"

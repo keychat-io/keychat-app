@@ -83,6 +83,7 @@ Keychat implements the following nips:
 - [NIP-47: Nostr Wallet Connect][NIP47]
 - [NIP-55: Android Signer Application][nip55]
 - [NIP-59: Gift Wrap][NIP19]
+- [NIP-B7: Blossom Media](B7)
  
 [nips]: https://github.com/nostr-protocol/nips
 [nip01]: https://github.com/nostr-protocol/nips/blob/master/01.md
@@ -93,7 +94,7 @@ Keychat implements the following nips:
 [nip44]: https://github.com/nostr-protocol/nips/blob/master/44.md
 [nip47]: https://github.com/nostr-protocol/nips/blob/master/47.md
 [nip55]: https://github.com/nostr-protocol/nips/blob/master/55.md
-[nip59]: https://github.com/nostr-protocol/nips/blob/master/59.md
+[B7]: https://github.com/nostr-protocol/nips/blob/master/B7.md
 
 ## Getting Started
 

@@ -1,7 +1,6 @@
 import 'dart:async' show FutureOr;
 import 'dart:convert' show jsonDecode;
 
-import 'package:app/controller/setting.controller.dart';
 import 'package:app/models/embedded/relay_file_fee.dart';
 import 'package:app/models/models.dart';
 import 'package:app/rust_api.dart';
@@ -59,15 +58,17 @@ class EcashController extends GetxController {
   Future<String?> getFileUploadEcashToken(int fileSize) async {
     if (fileSize == 0) return null;
     WebsocketService ws = Get.find<WebsocketService>();
-    SettingController settingController = Get.find<SettingController>();
 
     if (ws.relayFileFeeModels.isEmpty) {
       await RelayService.instance.fetchRelayFileFee();
+      print(ws.relayFileFeeModels.keys);
       if (ws.relayFileFeeModels.isEmpty) return null;
     }
+    print(ws.relayFileFeeModels.keys);
+
     String? mint;
     RelayFileFee? fuc =
-        ws.relayFileFeeModels[settingController.defaultFileServer.value];
+        ws.getRelayFileFeeModel(KeychatGlobal.defaultFileServer);
     if (fuc == null || fuc.mints.isEmpty) {
       throw Exception('FileServerNotAvailable');
     }

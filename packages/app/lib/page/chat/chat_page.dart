@@ -346,7 +346,7 @@ class _ChatPage2State extends State<ChatPage> {
                               controller.handleSubmitted();
                               return;
                             }
-                            // logger.d('${event.logicalKey}');
+
                             final isCmdPressed = HardwareKeyboard
                                     .instance.logicalKeysPressed
                                     .contains(LogicalKeyboardKey.metaLeft) ||
@@ -411,6 +411,41 @@ class _ChatPage2State extends State<ChatPage> {
                                 contentPadding: EdgeInsets.all(0)),
                             textInputAction: TextInputAction.send,
                             onEditingComplete: controller.handleSubmitted,
+                            contextMenuBuilder: (context, editableTextState) {
+                              return AdaptiveTextSelectionToolbar.buttonItems(
+                                anchors: editableTextState.contextMenuAnchors,
+                                buttonItems: <ContextMenuButtonItem>[
+                                  ContextMenuButtonItem(
+                                    onPressed: () {
+                                      editableTextState.cutSelection(
+                                          SelectionChangedCause.toolbar);
+                                    },
+                                    type: ContextMenuButtonType.cut,
+                                  ),
+                                  ContextMenuButtonItem(
+                                    onPressed: () {
+                                      editableTextState.copySelection(
+                                          SelectionChangedCause.toolbar);
+                                    },
+                                    type: ContextMenuButtonType.copy,
+                                  ),
+                                  ContextMenuButtonItem(
+                                    onPressed: () {
+                                      controller.handlePasteboard();
+                                      editableTextState.hideToolbar();
+                                    },
+                                    type: ContextMenuButtonType.paste,
+                                  ),
+                                  ContextMenuButtonItem(
+                                    onPressed: () {
+                                      editableTextState.selectAll(
+                                          SelectionChangedCause.toolbar);
+                                    },
+                                    type: ContextMenuButtonType.selectAll,
+                                  ),
+                                ],
+                              );
+                            },
                             enableInteractiveSelection: true,
                             maxLines: 8,
                             minLines: 1,

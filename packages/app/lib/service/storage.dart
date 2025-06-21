@@ -17,8 +17,6 @@ class StorageKeyString {
   static String autoDeleteMessageDays = "autoDeleteMessageDays";
   static String lastMessageAt = "lastMessageAt";
   static String defaultWebRTCServers = "defaultWebRTCServers";
-  static String defaultFileServer = "defaultFileServer";
-  static String defaultFileMediaType = "defaultFileMediaType";
   static String relayMessageFeeConfig = "relayMessageFeeConfig";
   static String relayFileFeeConfig = "relayFileFeeConfig";
 
@@ -29,6 +27,8 @@ class StorageKeyString {
   static String dbBackupPwd = "dbBackupPwd";
   static String mlsStates = "mlsStates";
   static String mlsPKIdentity = "mlsPKIdentity";
+  static String selectedMediaServer = "selectedMediaServer";
+  static String mediaServers = "mediaServers";
 
   static const String desktopBrowserSidebarWidth =
       'desktop_browser_sidebar_width';

@@ -21,12 +21,9 @@ class KeychatGlobal {
   static const String defaultCashuMintURL =
       'https://mint.minibits.cash/Bitcoin';
   // token: /api/v1/object, fee: /api/v1/info
-  static const String defaultFileServer = 'wss://relay.keychat.io';
-  static const Set<String> feeFileServers = {
-    'wss://relay.keychat.io',
-  };
-
+  static const String defaultFileServer = 'https://relay.keychat.io';
   static const String defaultRelay = 'wss://relay.keychat.io';
+
   static const int oneTimePubkeysPoolLength = 1;
   static const int signalIdsPoolLength = 1;
   static const int oneTimePubkeysLifetime = 24; // hours

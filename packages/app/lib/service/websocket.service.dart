@@ -44,6 +44,16 @@ class WebsocketService extends GetxService {
     return channels.values.where((element) => element.isConnected()).length;
   }
 
+  RelayFileFee? getRelayFileFeeModel(String url) {
+    Uri uri = Uri.parse(url);
+    return relayFileFeeModels[uri.host];
+  }
+
+  setRelayFileFeeModel(String url, RelayFileFee fuc) {
+    Uri uri = Uri.parse(url);
+    relayFileFeeModels[uri.host] = fuc;
+  }
+
   Future<NostrEventStatus> addCashuToMessage(
       int roomId, NostrEventStatus eventSendStatus) async {
     RelayMessageFee? payInfoModel =
@@ -289,8 +299,12 @@ class WebsocketService extends GetxService {
         StorageKeyString.relayMessageFeeConfig);
     for (var entry in map1.entries) {
       if (entry.value.keys.length > 0) {
-        relayMessageFeeModels[entry.key] =
-            RelayMessageFee.fromJson(entry.value);
+        String host = entry.key;
+        if (host.startsWith('wss://')) {
+          Uri uri = Uri.parse(host);
+          host = uri.host;
+        }
+        relayMessageFeeModels[host] = RelayMessageFee.fromJson(entry.value);
       }
     }
 
@@ -298,7 +312,12 @@ class WebsocketService extends GetxService {
         await Storage.getLocalStorageMap(StorageKeyString.relayFileFeeConfig);
     for (var entry in map2.entries) {
       if (entry.value.keys.length > 0) {
-        relayFileFeeModels[entry.key] = RelayFileFee.fromJson(entry.value);
+        String host = entry.key;
+        if (host.startsWith('wss://')) {
+          Uri uri = Uri.parse(host);
+          host = uri.host;
+        }
+        relayFileFeeModels[host] = RelayFileFee.fromJson(entry.value);
       }
     }
   }

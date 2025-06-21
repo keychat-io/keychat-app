@@ -1,4 +1,3 @@
-import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/embedded/relay_file_fee.dart';
 import 'package:app/models/embedded/relay_message_fee.dart';
@@ -258,7 +257,12 @@ class RelayService {
         return;
       }
       await RelayService.instance.fetchRelayMessageFee(relays);
-      await RelayService.instance.fetchRelayFileFee(relays);
+      if (relays != null &&
+          relays
+              .map((item) => item.url)
+              .contains(KeychatGlobal.defaultFileServer)) {
+        await RelayService.instance.fetchRelayFileFee();
+      }
     } catch (e, s) {
       logger.e('fee: ${e.toString()}', stackTrace: s);
     }
@@ -329,21 +333,15 @@ class RelayService {
         StorageKeyString.relayMessageFeeConfig, ws.relayMessageFeeModels);
   }
 
-  Future fetchRelayFileFee([List<Relay>? relays]) async {
-    String? res =
-        await Storage.getString(StorageKeyString.defaultFileMediaType);
-    if (res == null || res != MediaServerType.keychatS3.name) {
-      return;
-    }
+  Future fetchRelayFileFee() async {
     WebsocketService ws = Get.find<WebsocketService>();
-    relays ??= await getEnableRelays();
-    for (Relay relay in relays) {
-      RelayFileFee? fuc = await initRelayFileFeeModel(relay.url);
-      // logger.i('initRelayFileFeeModel, $relay: ${fuc.toString()}');
-      if (fuc != null) {
-        ws.relayFileFeeModels[relay.url] = fuc;
-      }
+
+    RelayFileFee? fuc =
+        await initRelayFileFeeModel(KeychatGlobal.defaultFileServer);
+    if (fuc != null) {
+      ws.setRelayFileFeeModel(KeychatGlobal.defaultFileServer, fuc);
     }
+
     // store to local
     await Storage.setLocalStorageMap(
         StorageKeyString.relayFileFeeConfig, ws.relayFileFeeModels);
@@ -383,12 +381,6 @@ class RelayService {
   // curl https://backup.keychat.io/api/v1/info
   // {"maxsize":104857600,"mints":["https://8333.space:3338"],"prices":[{"max":10485760,"min":1,"price":1},{"max":104857600,"min":10485761,"price":2}],"unit":"sat"}
   Future<Map?> _fetchFileUploadConfig(String url) async {
-    if (url.startsWith('wss://')) {
-      url = url.replaceFirst('wss://', 'https://');
-    }
-    if (url.startsWith('ws://')) {
-      url = url.replaceFirst('ws://', 'http://');
-    }
     final dio = Dio();
     dio.options = BaseOptions(
         headers: {'Content-Type': 'application/json'},
@@ -412,7 +404,6 @@ class RelayService {
   }
 
   Future<RelayFileFee?> initRelayFileFeeModel(String url) async {
-    if (!KeychatGlobal.feeFileServers.contains(url)) return null;
     try {
       Map? map = await _fetchFileUploadConfig(url);
       logger.d('fetchAndSetFileUploadConfig, $url: $map');

@@ -3,7 +3,7 @@
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/page/setting/QueryReceivedEvent.dart';
-import 'package:app/page/setting/SelectMediaType.dart';
+import 'package:app/page/setting/MediaRelaySettings.dart';
 import 'package:app/page/setting/UnreadMessages.dart';
 import 'package:app/page/setting/UploadedPubkeys.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
@@ -49,10 +49,10 @@ class MoreChatSetting extends StatelessWidget {
                   },
                   title: const Text('Message Relay')),
               SettingsTile.navigation(
-                leading: const Icon(Icons.folder_open_outlined),
+                leading: const Icon(Icons.storage_outlined),
                 title: const Text("Media Relay"),
                 onPressed: (context) {
-                  Get.to(() => const SelectMediaType(),
+                  Get.to(() => const MediaRelaySettings(),
                       id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
                 },
               ),

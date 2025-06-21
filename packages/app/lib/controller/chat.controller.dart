@@ -751,24 +751,6 @@ class ChatController extends GetxController {
       return; // Clipboard API is not supported on this platform.
     }
     final reader = await clipboard.read();
-
-    // plain text
-    final textFormat = [
-      Formats.plainText,
-      Formats.htmlText,
-      Formats.uri,
-      Formats.fileUri,
-    ];
-    for (final format in textFormat) {
-      if (reader.canProvide(format)) {
-        String? text =
-            await reader.readValue(format as SimpleValueFormat<String>);
-        if (text != null && text.isNotEmpty) {
-          textEditingController.text = text;
-          return;
-        }
-      }
-    }
     // file formats
     final imageFormats = [
       (Formats.png, MessageMediaType.image, true),
@@ -828,6 +810,24 @@ class ChatController extends GetxController {
       if (canProcess) {
         await _readFromStream(reader, format, mediaType, compress);
         return;
+      }
+    }
+
+    // plain text
+    final textFormat = [
+      Formats.plainText,
+      Formats.htmlText,
+      Formats.uri,
+      Formats.fileUri,
+    ];
+    for (final format in textFormat) {
+      if (reader.canProvide(format)) {
+        String? text =
+            await reader.readValue(format as SimpleValueFormat<String>);
+        if (text != null && text.isNotEmpty) {
+          textEditingController.text = text;
+          return;
+        }
       }
     }
   }

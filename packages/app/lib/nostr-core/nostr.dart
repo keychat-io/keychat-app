@@ -530,6 +530,7 @@ class NostrAPI {
     NostrEventModel? subEvent;
     try {
       subEvent = NostrEventModel.deserialize(decodedContent);
+      // ignore: empty_catches
     } catch (e) {}
     if (subEvent != null) {
       await _processSubEvent(sourceEvent, subEvent, relay, failedCallback,

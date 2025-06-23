@@ -133,7 +133,6 @@ class FileService {
       );
 
       if (response.statusCode == 200) {
-        logger.d(response.data);
         return response.data;
       }
     } on DioException catch (e, s) {
@@ -541,6 +540,7 @@ class FileService {
         data: Stream.fromIterable(fe.output.map((e) => [e])),
         onSendProgress: onSendProgress,
         options: Options(
+          sendTimeout: Duration(seconds: 120),
           headers: {
             'Content-Type': 'application/octet-stream',
             'Authorization': 'Nostr ${base64Encode(utf8.encode(eventString))}',

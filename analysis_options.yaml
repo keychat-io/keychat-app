@@ -16,7 +16,7 @@ analyzer:
       build/**,
       android/,
       packages/app/build/**,
-      packages/app/windows/flutter/ephemeral//**,
+      packages/app/windows/flutter/ephemeral/**,
       packages/keychat_rust_ffi_plugin/lib/lib.dart,
     ]
 

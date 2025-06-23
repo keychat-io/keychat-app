@@ -68,13 +68,15 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
         });
         return;
       }
+      setState(() {
+        fileStatus = FileStatus.decryptSuccess;
+        msgFileInfo = mfi;
+        videoPath = filePath;
+      });
 
       FileService.instance.getOrCreateThumbForVideo(filePath).then((value) {
         setState(() {
-          fileStatus = FileStatus.decryptSuccess;
-          msgFileInfo = mfi;
           thumbnailFile = value;
-          videoPath = filePath;
         });
       });
     }
@@ -127,7 +129,7 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
     }
 
     return thumbnailFile == null
-        ? const Text('Video')
+        ? FileMessageWidget(widget.message, widget.errorCallback)
         : Stack(
             alignment: Alignment.center,
             children: <Widget>[

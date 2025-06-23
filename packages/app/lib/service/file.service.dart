@@ -278,7 +278,7 @@ class FileService {
     }
   }
 
-  encryptAndSendFile(
+  Future<void> encryptAndSendFile(
     Room room,
     XFile xfile,
     MessageMediaType type, {
@@ -302,15 +302,18 @@ class FileService {
       // print('Processed EXIF: ${processedImage?.exif.toString()}');
     } else if (type == MessageMediaType.video) {
       if (compress) {
-        MediaInfo? compressedFile = await VideoCompress.compressVideo(
-          xfile.path,
-          quality: VideoQuality.HighestQuality,
-          deleteOrigin: true,
-        );
-
-        // compressed video
-        if (compressedFile?.path != null) {
-          fileBytes = await File(compressedFile!.path!).readAsBytes();
+        MediaInfo? compressedFile;
+        try {
+          // try compressed video
+          compressedFile = await VideoCompress.compressVideo(
+            xfile.path,
+            quality: VideoQuality.MediumQuality,
+          );
+          if (compressedFile?.path != null) {
+            fileBytes = await File(compressedFile!.path!).readAsBytes();
+          }
+        } catch (e) {
+          logger.e('Video compression failed: $e');
         }
       }
     }

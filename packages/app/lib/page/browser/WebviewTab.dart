@@ -502,6 +502,18 @@ class _WebviewTabState extends State<WebviewTab> {
             assetFilePath: "assets/js/nostr.js");
         tc.pullToRefreshController?.endRefreshing();
 
+        if (kDebugMode) {
+          // Inject VConsole for debugging
+          await controller.evaluateJavascript(source: """
+          var script = document.createElement('script');
+          script.src = 'https://unpkg.com/vconsole@latest/dist/vconsole.min.js';
+          script.onload = function() {
+            var vConsole = new window.VConsole();
+          };
+          document.head.appendChild(script);
+        """);
+        }
+
         // Restore scroll position if needed
         if (GetPlatform.isAndroid && needRestorePosition) {
           needRestorePosition = false;

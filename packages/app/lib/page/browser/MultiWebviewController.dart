@@ -503,7 +503,7 @@ window.addEventListener('DOMContentLoaded', function(event) {
       onSecondaryTapDown: onSecondaryTapDown,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        spacing: 8,
+        spacing: 4,
         children: [
           icon,
           Text(title,

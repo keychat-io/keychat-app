@@ -41,6 +41,12 @@ class WebviewTabController extends GetxController {
   @override
   void onInit() {
     settings = InAppWebViewSettings(
+        cacheMode: CacheMode.LOAD_DEFAULT,
+        domStorageEnabled: true,
+        databaseEnabled: true,
+        javaScriptEnabled: true,
+        allowFileAccess: true,
+        allowUniversalAccessFromFileURLs: true,
         isInspectable: kDebugMode,
         mediaPlaybackRequiresUserGesture: false,
         allowsInlineMediaPlayback: true,
@@ -48,7 +54,7 @@ class WebviewTabController extends GetxController {
         safeBrowsingEnabled: false,
         disableDefaultErrorPage: true,
         useOnDownloadStart: true,
-        transparentBackground: Get.isDarkMode,
+        transparentBackground: true,
         supportMultipleWindows: GetPlatform.isDesktop,
         cacheEnabled: true,
         textZoom: multiWebviewController.kInitialTextSize.value,

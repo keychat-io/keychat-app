@@ -22,6 +22,7 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
+import 'package:mime/mime.dart' show extensionFromMime;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
@@ -845,7 +846,10 @@ class ChatController extends GetxController {
         final tempDir = await getTemporaryDirectory();
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         String? mimeType = format.mimeTypes?.first;
-        String? suffix = mimeType?.split('/').last;
+        String? suffix;
+        if (mimeType != null) {
+          suffix = extensionFromMime(mimeType);
+        }
         String? newFileName;
         if (sourceFileName.isNotEmpty && sourceFileName.contains('.')) {
           String inputName = sourceFileName.split('.').first;

@@ -512,7 +512,7 @@ class ChatController extends GetxController {
             await handleSendMediaFile(xfile!, MessageMediaType.image, true);
             Get.back();
           },
-          child: const Text('OK'),
+          child: const Text('Send'),
         ),
       ],
     ));
@@ -752,7 +752,10 @@ class ChatController extends GetxController {
       return; // Clipboard API is not supported on this platform.
     }
     final reader = await clipboard.read();
-    // file formats
+    if (reader.items.isEmpty) {
+      return;
+    }
+
     final imageFormats = [
       (Formats.png, MessageMediaType.image, true),
       (Formats.jpeg, MessageMediaType.image, true),
@@ -800,37 +803,45 @@ class ChatController extends GetxController {
       (Formats.apk, MessageMediaType.file, false),
       (Formats.exe, MessageMediaType.file, false),
       (Formats.msi, MessageMediaType.file, false),
+      (Formats.plainTextFile, MessageMediaType.file, false),
       (Formats.htmlFile, MessageMediaType.file, false),
+      (Formats.webUnknown, MessageMediaType.file, false),
     ];
+    if (reader.canProvide(Formats.fileUri)) {
+      for (int i = 0; i < imageFormats.length; i++) {
+        final format = imageFormats[i].$1;
+        final mediaType = imageFormats[i].$2;
+        final compress = imageFormats[i].$3;
+        bool canProcess = reader.canProvide(format);
+        if (canProcess) {
+          logger.d('Clipboard can provide: $format');
+          await _readFromStream(reader, format, mediaType, compress);
+          return;
+        }
+      }
+    }
+    if (reader.canProvide(Formats.plainText)) {
+      String? text = await reader.readValue(Formats.plainText);
+      if (text != null && text.isNotEmpty) {
+        textEditingController.text = text;
+        return;
+      }
+      return;
+    }
 
+    // fallback
     for (int i = 0; i < imageFormats.length; i++) {
       final format = imageFormats[i].$1;
       final mediaType = imageFormats[i].$2;
       final compress = imageFormats[i].$3;
       bool canProcess = reader.canProvide(format);
       if (canProcess) {
+        logger.d('Clipboard can provide: $format');
         await _readFromStream(reader, format, mediaType, compress);
         return;
       }
     }
-
-    // plain text
-    final textFormat = [
-      Formats.plainText,
-      Formats.htmlText,
-      Formats.uri,
-      Formats.fileUri,
-    ];
-    for (final format in textFormat) {
-      if (reader.canProvide(format)) {
-        String? text =
-            await reader.readValue(format as SimpleValueFormat<String>);
-        if (text != null && text.isNotEmpty) {
-          textEditingController.text = text;
-          return;
-        }
-      }
-    }
+    EasyLoading.showToast('Not supported media type');
   }
 
   Future _readFromStream(
@@ -838,36 +849,66 @@ class ChatController extends GetxController {
       [bool compress = true]) async {
     /// Binary formats need to be read as streams
     reader.getFile(format, (DataReaderFile file) async {
+      String? suggestedName = await reader.getSuggestedName();
+      String? mimeType = format.mimeTypes?.first;
+
       try {
-        EasyLoading.show(status: 'Pasting...');
         Uint8List imageBytes = await file.readAll();
         String sourceFileName = textEditingController.text.trim();
-
         final tempDir = await getTemporaryDirectory();
         final timestamp = DateTime.now().millisecondsSinceEpoch;
-        String? mimeType = format.mimeTypes?.first;
-        String? suffix;
-        if (mimeType != null) {
-          suffix = extensionFromMime(mimeType);
-        }
-        String? newFileName;
-        if (sourceFileName.isNotEmpty && sourceFileName.contains('.')) {
-          String inputName = sourceFileName.split('.').first;
-          String inputSuffix = sourceFileName.split('.').last;
-          newFileName = '$inputName.${suffix ?? inputSuffix}';
+        if (suggestedName == null) {
+          String? suffix;
+          if (mimeType != null) {
+            suffix = extensionFromMime(mimeType);
+          }
+          if (sourceFileName.isNotEmpty && sourceFileName.contains('.')) {
+            String inputName = sourceFileName.split('.').first;
+            String inputSuffix = sourceFileName.split('.').last;
+            suggestedName = '$inputName.${suffix ?? inputSuffix}';
+            textEditingController.clear();
+          }
+          suffix ??= 'bin';
+          suggestedName ??= 'pasteboard_$timestamp.$suffix';
+        } else if (textEditingController.text.trim() == sourceFileName) {
           textEditingController.clear();
         }
-        suffix ??= 'bin';
-        newFileName ??= 'pasteboard_$timestamp.$suffix';
-
-        final path = '${tempDir.path}/$newFileName';
+        final path = '${tempDir.path}/$suggestedName';
         final teampFile = File(path);
         await teampFile.writeAsBytes(imageBytes);
 
-        XFile xFile = XFile(path,
-            bytes: imageBytes, mimeType: mimeType, name: newFileName);
-
-        await handleSendMediaFile(xFile, type, compress);
+        XFile xfile = XFile(path,
+            bytes: imageBytes, mimeType: mimeType, name: suggestedName);
+        bool isImage = FileService.instance.isImageFile(xfile.path);
+        if (isImage) {
+          bool? comfirmResult = await Get.dialog(CupertinoAlertDialog(
+            content: SizedBox(
+              width: 300,
+              child: FileService.instance.getImageView(File(xfile.path)),
+            ),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text('Cancel'),
+                onPressed: () {
+                  Get.back();
+                },
+              ),
+              CupertinoDialogAction(
+                isDefaultAction: true,
+                onPressed: () async {
+                  await handleSendMediaFile(
+                      xfile, MessageMediaType.image, true);
+                  Get.back(result: true);
+                },
+                child: const Text('Send'),
+              ),
+            ],
+          ));
+          if (comfirmResult == null || !comfirmResult) {
+            return; // user cancelled
+          }
+        }
+        await handleSendMediaFile(xfile, type, compress);
       } catch (e, s) {
         logger.e('_readFromStream: ${e.toString()}', stackTrace: s);
       } finally {

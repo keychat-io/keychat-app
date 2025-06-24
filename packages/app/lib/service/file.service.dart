@@ -794,12 +794,18 @@ class FileService {
   }
 
   bool isImageFile(String path) {
-    String extension = path.split('.').last.toLowerCase();
-    return {'jpg', 'jpeg', 'png', 'gif', 'svg'}.contains(extension);
+    if (path.isEmpty) return false;
+    final regex = RegExp(
+        r'\.(jpg|jpeg|png|gif|svg|bmp|webp|tiff|tif|ico|heic|heif|raw|cr2|nef|arw|dng)$',
+        caseSensitive: false);
+    return regex.hasMatch(path);
   }
 
   bool isVideoFile(String path) {
-    String extension = path.split('.').last.toLowerCase();
-    return {'mp4', 'mov', 'avi', 'mkv'}.contains(extension);
+    if (path.isEmpty) return false;
+    final regex = RegExp(
+        r'\.(mp4|mov|avi|mkv|webm|m4v|flv|wmv|3gp|ts|mts|m2ts|vob|ogv|rm|rmvb|asf|f4v)$',
+        caseSensitive: false);
+    return regex.hasMatch(path);
   }
 }

@@ -673,4 +673,10 @@ class WebsocketService extends GetxService {
 
     return rw;
   }
+
+  void updateRelayPong(String relay) {
+    if (channels[relay] != null) {
+      channels[relay]!.pong = true;
+    }
+  }
 }

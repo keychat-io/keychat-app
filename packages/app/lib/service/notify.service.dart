@@ -2,6 +2,7 @@ import 'dart:async' show TimeoutException;
 
 import 'package:app/app.dart';
 import 'package:app/controller/home.controller.dart';
+import 'package:app/firebase_options.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/relay.service.dart';
@@ -174,7 +175,8 @@ class NotifyService {
       Storage.setInt(
           StorageKeyString.settingNotifyStatus, NotifySettingStatus.enable);
       await FirebaseMessaging.instance.setAutoInitEnabled(true);
-      fcmToken = await FirebaseMessaging.instance
+      debugPrint(DefaultFirebaseOptions.currentPlatform.toString());
+      fcmToken ??= await FirebaseMessaging.instance
           .getToken()
           .timeout(const Duration(seconds: 8), onTimeout: () async {
         fcmToken =
@@ -197,6 +199,10 @@ Fix:
 '''),
         );
         throw TimeoutException('FCMTokenTimeout');
+      }).catchError((e) {
+        logger.e('getAPNSToken error: $e');
+        fcmToken = null;
+        return null;
       });
       // end get fcm timeout
       if (fcmToken != null) {

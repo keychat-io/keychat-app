@@ -65,12 +65,16 @@ class NostrAPI {
           await _proccessEvent01(res, relay, message);
           break;
         case NostrResKinds.eose: // end event signal from relay
+          loggerNoLine.i('EOSE: ${relay.url} ${res[1]}');
           if (res[1].toString().startsWith('nwc')) {
             Utils.getGetxController<NostrWalletConnectController>()
                 ?.proccessEOSE(relay, res);
             return;
           }
-          loggerNoLine.i('EOSE: ${relay.url} ${res[1]}');
+          if (res[1] == 'keychat-relay-status-check') {
+            Get.find<WebsocketService>().updateRelayPong(relay.url);
+            return;
+          }
           await _proccessEOSE(relay, res);
           break;
         case NostrResKinds.notice:
@@ -79,8 +83,7 @@ class NostrAPI {
                 ?.proccessNotice(relay, res);
             return;
           }
-          loggerNoLine.i("Nostr notice: ${relay.url} $res");
-          _proccessNotice(relay, res[1]);
+          loggerNoLine.i("[Notice]: ${relay.url} $res");
           break;
         default:
           logger.i('${relay.url}: $message');
@@ -596,12 +599,6 @@ class NostrAPI {
         .fetchInfoFromRelay(id, requestWithFilter.serialize());
     Get.find<WebsocketService>().sendMessage(Close(id).serialize());
     return res;
-  }
-
-  void _proccessNotice(Relay relay, String msg1) {
-    var ws = Get.find<WebsocketService>();
-    if (ws.channels[relay.url] == null) return;
-    ws.channels[relay.url]!.notices.add(msg1);
   }
 
   Future _processNip17Message(NostrEventModel event, Relay relay,

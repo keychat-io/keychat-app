@@ -82,11 +82,13 @@ class _WebviewTabState extends State<WebviewTab> {
     initDomain = WebUri(widget.initUrl).host;
     initBrowserConnect(WebUri(widget.initUrl));
     super.initState();
-    Future.delayed(Duration(seconds: 1)).then((_) {
-      if (state == WebviewTabState.start) {
-        callPageFailed();
-      }
-    });
+    if (widget.initUrl != KeychatGlobal.newTab) {
+      Future.delayed(Duration(seconds: 1)).then((_) {
+        if (state == WebviewTabState.start) {
+          callPageFailed();
+        }
+      });
+    }
   }
 
   @override
@@ -95,7 +97,6 @@ class _WebviewTabState extends State<WebviewTab> {
   }
 
   callPageFailed() {
-    logger.d('${widget.initUrl} : WebviewTabState.start');
     controller.removeKeepAliveObject(widget.uniqueKey);
     InAppWebViewKeepAlive newKa =
         controller.addKeepAliveObject(widget.uniqueKey);

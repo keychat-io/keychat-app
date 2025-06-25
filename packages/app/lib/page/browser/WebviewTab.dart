@@ -650,7 +650,7 @@ class _WebviewTabState extends State<WebviewTab> {
         updateTabInfo(widget.uniqueKey, tc.url.value, title);
       },
       onUpdateVisitedHistory: (controller, url, androidIsReload) {
-        logger.d('onUpdateVisitedHistory: ${url.toString()} $androidIsReload');
+        // logger.d('onUpdateVisitedHistory: ${url.toString()} $androidIsReload');
         onUpdateVisitedHistory(url);
       },
     );
@@ -1007,7 +1007,7 @@ class _WebviewTabState extends State<WebviewTab> {
       updateTabInfo(widget.uniqueKey, uri.toString(), title);
       controller.addHistory(uri.toString(), title);
       controller.getFavicon(tc.webViewController!, uri.host).then((favicon) {
-        if (favicon != null) {
+        if (favicon != null && tc.favicon != favicon) {
           tc.favicon = favicon;
           controller.setTabDataFavicon(
               uniqueId: widget.uniqueKey, favicon: favicon);
@@ -1025,7 +1025,7 @@ class _WebviewTabState extends State<WebviewTab> {
   }
 
   updateTabInfo(String key, String url0, String title0) {
-    logger.d('updateTabInfo: $key, $url0, $title0');
+    // logger.d('updateTabInfo: $key, $url0, $title0');
     controller.setTabData(uniqueId: widget.uniqueKey, title: title0, url: url0);
     tc.title.value = title0;
     tc.url.value = url0;

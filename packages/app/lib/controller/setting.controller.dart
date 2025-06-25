@@ -13,18 +13,16 @@ class SettingController extends GetxController with StateMixin<Type> {
   RxInt autoCleanMessageDays = 0.obs;
   RxString themeMode = 'system'.obs;
   RxString selectedMediaServer = KeychatGlobal.defaultFileServer.obs;
-  RxList<String> mediaServers =
-      [KeychatGlobal.defaultFileServer, 'https://nostr.download'].obs;
+  RxList<String> mediaServers = [
+    KeychatGlobal.defaultFileServer,
+    "https://void.cat",
+    'https://nostr.download'
+  ].obs;
 
   Directory appFolder = Directory('/');
   late String avatarsFolder;
   late String browserCacheFolder;
   late String browserUserDataFolder;
-
-  List<String> builtInMedias = [
-    "https://void.cat",
-    "https://nostr.download",
-  ];
 
   @override
   void onInit() async {

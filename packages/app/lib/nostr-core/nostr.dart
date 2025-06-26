@@ -4,9 +4,6 @@ import 'package:app/service/SignerService.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:async_queue/async_queue.dart';
 import 'dart:convert' show jsonDecode, jsonEncode;
-
-import 'package:app/controller/world.controller.dart';
-
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/filter.dart';
 import 'package:app/nostr-core/nostr_event.dart';
@@ -135,11 +132,16 @@ class NostrAPI {
         () async {
       List<(NostrEventModel, List, String, Relay)> events =
           toProccessEventsPool;
+      if (events.isEmpty) return;
       toProccessEventsPool = [];
       events.sort((a, b) => a.$1.createdAt.compareTo(b.$1.createdAt));
       for (var (event, eventList, raw, relay) in events) {
         nostrEventQueue.addJob((_) async {
-          await _proccessEvent02(event, eventList, relay, raw);
+          try {
+            await _proccessEvent02(event, eventList, relay, raw);
+          } catch (e, s) {
+            logger.e('processEvent error', error: e, stackTrace: s);
+          }
         });
       }
     });
@@ -161,7 +163,7 @@ class NostrAPI {
         SubscribeResult.instance.fill(subscribeId, event);
         break;
       case EventKinds.textNote:
-        await Get.find<WorldController>().processEvent(event);
+        // await Get.find<WorldController>().processEvent(event);
         break;
       case EventKinds.nip47:
         await Utils.getGetxController<NostrWalletConnectController>()

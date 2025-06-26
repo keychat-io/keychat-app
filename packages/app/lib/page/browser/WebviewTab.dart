@@ -503,8 +503,8 @@ class _WebviewTabState extends State<WebviewTab> {
             assetFilePath: "assets/js/nostr.js");
         tc.pullToRefreshController?.endRefreshing();
 
-        if (kDebugMode) {
-          // Inject VConsole for debugging
+        // Inject VConsole for debugging
+        if (kDebugMode || Get.find<HomeController>().debugModel.value) {
           await controller.evaluateJavascript(source: """
           var script = document.createElement('script');
           script.src = 'https://unpkg.com/vconsole@latest/dist/vconsole.min.js';

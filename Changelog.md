@@ -3,11 +3,12 @@ https://keepachangelog.com/zh-CN/1.1.0
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
 ## 1.33.2+6393
-1. Add member to mls group by input a pubkey
-2. Paste image and file from clipboard
-3. Check websocket is online by write a message
-4. Add vconsole to webview in debugMode
-5. Update the gird style for favorite section
+1. Add members to an MLS group by inputting a pubkey.
+2. Paste image and file from the clipboard.
+3. Check if the websocket is online by sending a message.
+4. Add `vconsole` to webview in debug mode.
+5. Update the grid style for the favorite section.
+6. Show a blank line for chat messages.
 
 ## 1.33.1+6392
 1. Add blossom servers to upload encrypted media

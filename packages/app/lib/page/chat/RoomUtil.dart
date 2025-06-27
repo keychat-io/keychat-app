@@ -631,6 +631,7 @@ Let's start an encrypted chat.''';
   static Widget getMarkdownView(String text, MarkdownConfig config) {
     return MarkdownBlock(
         data: text,
+        selectable: GetPlatform.isDesktop,
         config: config,
         generator: MarkdownGenerator(
             linesMargin: const EdgeInsets.symmetric(vertical: 4)));

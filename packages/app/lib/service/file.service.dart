@@ -177,7 +177,7 @@ class FileService {
     File file = File(videoFilePath);
     File thumbnail = await VideoCompress.getFileThumbnail(
       file.path,
-      quality: 50,
+      quality: 75,
     );
     await thumbnailFile.writeAsBytes(await thumbnail.readAsBytes());
     return File(thumbnailFilePath);

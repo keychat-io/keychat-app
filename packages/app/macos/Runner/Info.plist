@@ -22,8 +22,6 @@
     <string>$(FLUTTER_BUILD_NUMBER)</string>
     <key>FirebaseMessagingAutoInitEnabled</key>
     <false/>
-    <key>FirebaseAppDelegateProxyEnabled</key>
-    <false/>
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.social-networking</string>
     <key>LSApplicationQueriesSchemes</key>

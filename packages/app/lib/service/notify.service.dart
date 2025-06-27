@@ -2,7 +2,6 @@ import 'dart:async' show TimeoutException;
 
 import 'package:app/app.dart';
 import 'package:app/controller/home.controller.dart';
-import 'package:app/firebase_options.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/relay.service.dart';

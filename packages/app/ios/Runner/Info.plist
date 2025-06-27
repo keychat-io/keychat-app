@@ -24,6 +24,8 @@
     <string>????</string>
     <key>CFBundleVersion</key>
     <string>$(FLUTTER_BUILD_NUMBER)</string>
+    <key>FirebaseAppDelegateProxyEnabled</key>
+    <false/>
     <key>FirebaseMessagingAutoInitEnabled</key>
     <false/>
     <key>ITSAppUsesNonExemptEncryption</key>

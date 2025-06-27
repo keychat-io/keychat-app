@@ -412,9 +412,20 @@ class _ChatPage2State extends State<ChatPage> {
                             textInputAction: TextInputAction.send,
                             onEditingComplete: controller.handleSubmitted,
                             contextMenuBuilder: (context, editableTextState) {
-                              return AdaptiveTextSelectionToolbar.buttonItems(
-                                anchors: editableTextState.contextMenuAnchors,
-                                buttonItems: <ContextMenuButtonItem>[
+                              final TextSelection selection = editableTextState
+                                  .currentTextEditingValue.selection;
+                              final String text = editableTextState
+                                  .currentTextEditingValue.text;
+                              final bool hasSelection = !selection.isCollapsed;
+                              final bool hasText = text.isNotEmpty;
+                              final bool canSelectAll = hasText &&
+                                  (selection.start != 0 ||
+                                      selection.end != text.length);
+
+                              List<ContextMenuButtonItem> buttonItems = [];
+
+                              if (hasSelection) {
+                                buttonItems.add(
                                   ContextMenuButtonItem(
                                     onPressed: () {
                                       editableTextState.cutSelection(
@@ -422,6 +433,8 @@ class _ChatPage2State extends State<ChatPage> {
                                     },
                                     type: ContextMenuButtonType.cut,
                                   ),
+                                );
+                                buttonItems.add(
                                   ContextMenuButtonItem(
                                     onPressed: () {
                                       editableTextState.copySelection(
@@ -429,13 +442,21 @@ class _ChatPage2State extends State<ChatPage> {
                                     },
                                     type: ContextMenuButtonType.copy,
                                   ),
-                                  ContextMenuButtonItem(
-                                    onPressed: () {
-                                      controller.handlePasteboard();
-                                      editableTextState.hideToolbar();
-                                    },
-                                    type: ContextMenuButtonType.paste,
-                                  ),
+                                );
+                              }
+
+                              buttonItems.add(
+                                ContextMenuButtonItem(
+                                  onPressed: () {
+                                    controller.handlePasteboard();
+                                    editableTextState.hideToolbar();
+                                  },
+                                  type: ContextMenuButtonType.paste,
+                                ),
+                              );
+
+                              if (canSelectAll) {
+                                buttonItems.add(
                                   ContextMenuButtonItem(
                                     onPressed: () {
                                       editableTextState.selectAll(
@@ -443,7 +464,12 @@ class _ChatPage2State extends State<ChatPage> {
                                     },
                                     type: ContextMenuButtonType.selectAll,
                                   ),
-                                ],
+                                );
+                              }
+
+                              return AdaptiveTextSelectionToolbar.buttonItems(
+                                anchors: editableTextState.contextMenuAnchors,
+                                buttonItems: buttonItems,
                               );
                             },
                             enableInteractiveSelection: true,

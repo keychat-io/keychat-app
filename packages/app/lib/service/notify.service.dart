@@ -174,7 +174,6 @@ class NotifyService {
       homeController.notificationStatus.value = true;
       Storage.setInt(
           StorageKeyString.settingNotifyStatus, NotifySettingStatus.enable);
-      debugPrint(DefaultFirebaseOptions.currentPlatform.toString());
       fcmToken ??= await FirebaseMessaging.instance
           .getToken()
           .timeout(const Duration(seconds: 8), onTimeout: () async {

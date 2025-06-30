@@ -571,7 +571,8 @@ class _WebviewTabState extends State<WebviewTab> {
         String url = request.url.toString();
         logger.d('onReceivedError: $url ${error.type} ${error.description}');
         var isForMainFrame = request.isForMainFrame ?? false;
-        if (!isForMainFrame) {
+        var isCancel = error.type == WebResourceErrorType.CANCELLED;
+        if (!isForMainFrame || isCancel) {
           return;
         }
         this.controller.removeKeepAliveObject(widget.uniqueKey);

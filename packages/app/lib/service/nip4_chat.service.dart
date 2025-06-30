@@ -6,7 +6,6 @@ import 'package:app/service/chat.service.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import '../constants.dart';
-import '../models/db_provider.dart';
 import '../nostr-core/nostr.dart';
 
 import '../utils.dart';
@@ -51,9 +50,9 @@ class Nip4ChatService extends BaseChatService {
 
   Future<Message> receiveNip4Message(NostrEventModel event, String content,
       {NostrEventModel? sourceEvent, Room? room}) async {
-    String to =  (sourceEvent ?? event).tags[0][1];
-    room ??= await roomService.getOrCreateRoom(
-        event.pubkey, to, RoomStatus.init);
+    String to = (sourceEvent ?? event).tags[0][1];
+    room ??=
+        await roomService.getOrCreateRoom(event.pubkey, to, RoomStatus.init);
 
     return await MessageService.instance.saveMessageToDB(
         room: room,

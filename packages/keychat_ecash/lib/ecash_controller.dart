@@ -61,10 +61,8 @@ class EcashController extends GetxController {
 
     if (ws.relayFileFeeModels.isEmpty) {
       await RelayService.instance.fetchRelayFileFee();
-      print(ws.relayFileFeeModels.keys);
       if (ws.relayFileFeeModels.isEmpty) return null;
     }
-    print(ws.relayFileFeeModels.keys);
 
     String? mint;
     RelayFileFee? fuc =

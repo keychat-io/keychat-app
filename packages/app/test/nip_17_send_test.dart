@@ -4,14 +4,14 @@ import 'package:app/constants.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/nostr-core/nostr_nip4_req.dart';
 import 'package:test/test.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:web_socket_client/web_socket_client.dart';
 
 // const String relay = 'wss://nos.lol';
 const String relay = 'wss://backup.keychat.io';
 
 void main() {
   test('NIP17-send', () async {
-    Future task(WebSocketChannel textSocketHandler) async {
+    Future task(WebSocket textSocketHandler) async {
       NostrEventModel nip17Event = NostrEventModel.partial(
           id:
               "2886780f7349afc1344047524540ee716f7bdc1b64191699855662330bf235d8",
@@ -30,7 +30,7 @@ void main() {
           sig:
               'a3c6ce632b145c0869423c1afaff4a6d764a9b64dedaf15f170b944ead67227518a72e455567ca1c2a0d187832cecbde7ed478395ec4c95dd3e71749ed66c480');
 
-      textSocketHandler.sink.add(nip17Event.serialize());
+      textSocketHandler.send(nip17Event.serialize());
     }
 
     await connectWebSocket(task);
@@ -38,7 +38,7 @@ void main() {
   });
 
   test('NIP17-receive', () async {
-    Future task(WebSocketChannel textSocketHandler) async {
+    Future task(WebSocket textSocketHandler) async {
       NostrReqModel req = NostrReqModel(
           reqId: 'a${Random().nextInt(900000).toString()}',
           pubkeys: [
@@ -46,7 +46,7 @@ void main() {
           ],
           kinds: [EventKinds.nip17],
           since: DateTime.fromMillisecondsSinceEpoch(1703128310 * 1000));
-      textSocketHandler.sink.add(req.toString());
+      textSocketHandler.send(req.toString());
     }
 
     await connectWebSocket(task);
@@ -56,14 +56,15 @@ void main() {
 
 // Connect to websocket
 Future<void> connectWebSocket(
-    Future Function(WebSocketChannel textSocketHandler) handleTask) async {
-  final wsUrl = Uri.parse(relay);
-  final channel = WebSocketChannel.connect(wsUrl);
+    Future Function(WebSocket textSocketHandler) handleTask) async {
+  final socket = WebSocket(Uri.parse('ws://localhost:8080'));
 
-  await channel.ready;
-
-  channel.stream.listen((message) {
-    channel.sink.add('received!');
+// Listen to messages from the server.
+  socket.messages.listen((message) {
+    // Handle incoming messages.
   });
-  handleTask(channel);
+
+  await socket.connection.firstWhere((state) => state is Connected);
+
+  handleTask(socket);
 }

@@ -83,6 +83,7 @@ class IdentityService {
       Get.find<WebsocketService>()
           .listenPubkey([account.pubkey], kinds: [EventKinds.nip04]);
       Get.find<WebsocketService>().listenPubkeyNip17([account.pubkey]);
+      // ignore: empty_catches
     } catch (e) {}
 
     if (isFirstAccount) {

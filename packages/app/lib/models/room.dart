@@ -5,7 +5,6 @@ import 'package:app/bot/bot_server_message_model.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/models/models.dart';
 
-import 'package:app/models/signal_id.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/room.service.dart';
@@ -176,6 +175,7 @@ class Room extends Equatable {
     SignalId? id;
     try {
       id = getGroupSharedSignalId();
+      // ignore: empty_catches
     } catch (e) {}
     if (id == null) return null;
 

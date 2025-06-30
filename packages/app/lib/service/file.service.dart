@@ -133,7 +133,6 @@ class FileService {
       );
 
       if (response.statusCode == 200) {
-        logger.d(response.data);
         return response.data;
       }
     } on DioException catch (e, s) {
@@ -178,7 +177,7 @@ class FileService {
     File file = File(videoFilePath);
     File thumbnail = await VideoCompress.getFileThumbnail(
       file.path,
-      quality: 50,
+      quality: 75,
     );
     await thumbnailFile.writeAsBytes(await thumbnail.readAsBytes());
     return File(thumbnailFilePath);
@@ -279,7 +278,7 @@ class FileService {
     }
   }
 
-  encryptAndSendFile(
+  Future<void> encryptAndSendFile(
     Room room,
     XFile xfile,
     MessageMediaType type, {
@@ -303,15 +302,18 @@ class FileService {
       // print('Processed EXIF: ${processedImage?.exif.toString()}');
     } else if (type == MessageMediaType.video) {
       if (compress) {
-        MediaInfo? compressedFile = await VideoCompress.compressVideo(
-          xfile.path,
-          quality: VideoQuality.HighestQuality,
-          deleteOrigin: true,
-        );
-
-        // compressed video
-        if (compressedFile?.path != null) {
-          fileBytes = await File(compressedFile!.path!).readAsBytes();
+        MediaInfo? compressedFile;
+        try {
+          // try compressed video
+          compressedFile = await VideoCompress.compressVideo(
+            xfile.path,
+            quality: VideoQuality.MediumQuality,
+          );
+          if (compressedFile?.path != null) {
+            fileBytes = await File(compressedFile!.path!).readAsBytes();
+          }
+        } catch (e) {
+          logger.e('Video compression failed: $e');
         }
       }
     }
@@ -541,6 +543,7 @@ class FileService {
         data: Stream.fromIterable(fe.output.map((e) => [e])),
         onSendProgress: onSendProgress,
         options: Options(
+          sendTimeout: Duration(seconds: 120),
           headers: {
             'Content-Type': 'application/octet-stream',
             'Authorization': 'Nostr ${base64Encode(utf8.encode(eventString))}',
@@ -791,12 +794,18 @@ class FileService {
   }
 
   bool isImageFile(String path) {
-    String extension = path.split('.').last.toLowerCase();
-    return {'jpg', 'jpeg', 'png', 'gif', 'svg'}.contains(extension);
+    if (path.isEmpty) return false;
+    final regex = RegExp(
+        r'\.(jpg|jpeg|png|gif|svg|bmp|webp|tiff|tif|ico|heic|heif|raw|cr2|nef|arw|dng)$',
+        caseSensitive: false);
+    return regex.hasMatch(path);
   }
 
   bool isVideoFile(String path) {
-    String extension = path.split('.').last.toLowerCase();
-    return {'mp4', 'mov', 'avi', 'mkv'}.contains(extension);
+    if (path.isEmpty) return false;
+    final regex = RegExp(
+        r'\.(mp4|mov|avi|mkv|webm|m4v|flv|wmv|3gp|ts|mts|m2ts|vob|ogv|rm|rmvb|asf|f4v)$',
+        caseSensitive: false);
+    return regex.hasMatch(path);
   }
 }

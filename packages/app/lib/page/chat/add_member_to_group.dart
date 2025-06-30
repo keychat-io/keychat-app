@@ -8,8 +8,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class AddMemberToGroup extends StatefulWidget {
   final Room room;
@@ -30,14 +32,14 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
   _AddMemberToGroupState();
 
   late ScrollController _scrollController;
-  late TextEditingController _userNameController;
+  late TextEditingController _pubkeyEditController;
 
   bool pageLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _userNameController = TextEditingController(text: "");
+    _pubkeyEditController = TextEditingController(text: "");
     _scrollController = ScrollController();
     _loading();
   }
@@ -76,7 +78,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
 
   @override
   void dispose() {
-    _userNameController.dispose();
+    _pubkeyEditController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -156,6 +158,10 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
             },
             child: const Text("Done"))
       ]),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addMemberFromInput,
+        child: const Icon(Icons.edit),
+      ),
       body: SafeArea(
           child: pageLoading
               ? pageLoadingSpinKit()
@@ -180,7 +186,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
 
   Widget getAddMemeberCheckBox(GroupType groupType, Map<String, dynamic> user) {
     if (user['isAdmin'] || user['exist']) {
-      return const Icon(Icons.check_box, color: Colors.grey, size: 30);
+      return Checkbox(onChanged: null, value: true, activeColor: Colors.grey);
     }
     if (groupType == GroupType.sendAll) {
       return Checkbox(
@@ -226,5 +232,90 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
           setState(() {});
         });
     // });
+  }
+
+  _addMemberFromInput() {
+    Get.dialog(CupertinoAlertDialog(
+        title: const Text('Add Members'),
+        content: TextField(
+          controller: _pubkeyEditController,
+          autofocus: true,
+          textInputAction: TextInputAction.done,
+          decoration: InputDecoration(
+            labelText: 'Npub or hex pubkey',
+            border: OutlineInputBorder(),
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.paste),
+              onPressed: () async {
+                final clipboardData = await Clipboard.getData('text/plain');
+                if (clipboardData?.text != null) {
+                  _pubkeyEditController.text = clipboardData!.text!;
+                }
+              },
+            ),
+          ),
+        ),
+        actions: <Widget>[
+          CupertinoDialogAction(
+              child: const Text('Cancel'),
+              onPressed: () {
+                _pubkeyEditController.clear();
+                Get.back();
+              }),
+          CupertinoDialogAction(
+              isDefaultAction: true,
+              onPressed: () async {
+                try {
+                  String input = _pubkeyEditController.text.trim();
+                  // input is a hex string, decode in json
+                  if (!(input.length == 64 || input.length == 63)) {
+                    EasyLoading.showError(
+                        'Please input a valid npub or hex pubkey');
+                    return;
+                  }
+                  String hexPubkey = input;
+                  if (input.startsWith('npub') && input.length == 63) {
+                    hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: input);
+                  }
+                  // Check if hexPubkey already exists in users
+                  bool alreadyExists =
+                      users.any((user) => user['pubkey'] == hexPubkey);
+                  if (alreadyExists) {
+                    EasyLoading.showError('User already exists in the list');
+                    return;
+                  }
+                  EasyLoading.show(status: 'Loading...');
+                  Map result = await MlsGroupService.instance
+                      .getKeyPackagesFromRelay([hexPubkey]);
+                  String? mlsPK = result[hexPubkey];
+                  if (mlsPK == null) {
+                    EasyLoading.dismiss();
+                    EasyLoading.showError(
+                        'The user has not uploaded their MLS key');
+                    return;
+                  }
+                  var map = {
+                    "pubkey": hexPubkey,
+                    "npubkey": rust_nostr.getBech32PubkeyByHex(hex: hexPubkey),
+                    "name": input.substring(0, 6),
+                    "exist": false,
+                    "isCheck": true,
+                    "mlsPK": result[hexPubkey],
+                    "isAdmin": false
+                  };
+                  users.add(map);
+                  setState(() {});
+                  _pubkeyEditController.clear();
+                  EasyLoading.dismiss();
+                  EasyLoading.showSuccess('User added successfully');
+                  Get.back();
+                } catch (e, s) {
+                  String msg = Utils.getErrorMessage(e);
+                  logger.e(msg, error: e, stackTrace: s);
+                  EasyLoading.showError(msg);
+                }
+              },
+              child: const Text('Add'))
+        ]));
   }
 }

@@ -13,14 +13,16 @@ import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.d
 import 'package:web_socket_client/web_socket_client.dart';
 
 const _maxReqCount = 20; // max pool size is 32. be setting by relay server
+const String _pingReq =
+    '["REQ", "keychat-relay-status-check", {"kinds": [1], "limit": 1,"authors": ["bbf923aa9246065f88c40c7d9bf61cccc0ff3fcff065a8cb2ff4cfbb62088f1e"]}]';
 
 class RelayWebsocket {
   RelayService rs = RelayService.instance;
   late Relay relay;
   WebSocket? channel;
-  List<String> notices = [];
   int maxReqCount = _maxReqCount;
   int sentReqCount = 0;
+  bool pong = false;
   Map<String, Set<String>> subscriptions = {}; // subId -> pubkeys
   late WebsocketService ws;
   RelayWebsocket(this.relay, this.ws);
@@ -138,16 +140,17 @@ class RelayWebsocket {
     if (channel == null || isDisConnected()) {
       return false;
     }
-    notices.clear();
+    pong = false;
     try {
-      channel!.send('ping');
+      channel!.send(_pingReq);
+      loggerNoLine.d('TO [${relay.url}]: ping');
     } catch (e) {
       return false;
     }
     final deadline = DateTime.now().add(const Duration(seconds: 1));
     while (DateTime.now().isBefore(deadline)) {
       await Future.delayed(const Duration(milliseconds: 50));
-      if (notices.isNotEmpty) {
+      if (pong) {
         return true;
       }
     }
@@ -156,7 +159,6 @@ class RelayWebsocket {
 
   void connectSuccess() async {
     subscriptions.clear();
-    notices.clear();
     maxReqCount = _maxReqCount;
     sentReqCount = 0;
 

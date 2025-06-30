@@ -159,7 +159,7 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
 
   Widget getAddMemeberCheckBox(GroupType groupType, Map<String, dynamic> user) {
     if (user['isAdmin'] || user['exist']) {
-      return const Icon(Icons.check_box, color: Colors.grey, size: 30);
+      return Checkbox(onChanged: null, value: true, activeColor: Colors.grey);
     }
     if (groupType == GroupType.sendAll) {
       return Checkbox(
@@ -170,16 +170,6 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
           });
     }
 
-    // mls group
-    // return FutureBuilder(future: () async {
-    //   if (user['mlsPK'] != null) {
-    //     return user['mlsPK'];
-    //   }
-    //   return MlsGroupService.instance.getKeyPackageFromRelay(user['pubkey']);
-    // }(), builder: (context, snapshot) {
-    //   if (snapshot.connectionState == ConnectionState.waiting) {
-    //     return const CupertinoActivityIndicator();
-    //   }
     if (user['mlsPK'] == null) {
       return IconButton(
           onPressed: () {

@@ -629,15 +629,12 @@ Let's start an encrypted chat.''';
   }
 
   static Widget getMarkdownView(String text, MarkdownConfig config) {
-    // Replace empty lines with \n
-    // String processedText = text.replaceAll(RegExp(r'(\n\s*\n)'), '\n');
-
     return MarkdownBlock(
         data: text,
-        selectable: false,
+        selectable: GetPlatform.isDesktop,
         config: config,
         generator: MarkdownGenerator(
-            linesMargin: const EdgeInsets.symmetric(vertical: 0)));
+            linesMargin: const EdgeInsets.symmetric(vertical: 4)));
   }
 
   static Widget _getLinkPreviewWidget(

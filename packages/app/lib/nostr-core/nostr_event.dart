@@ -30,7 +30,7 @@ class NostrEventModel {
   /// unix timestamp in seconds
   late int createdAt;
 
-  /// -  0: set_metadata: the content is set to a stringified JSON object {name: <username>, about: <string>, picture: <url, string>} describing the user who created the event. A relay may delete past set_metadata events once it gets a new one for the same pubkey.
+  /// -  0: set_metadata: the content is set to a stringified JSON object {name: username, about: string, picture: url} describing the user who created the event. A relay may delete past set_metadata events once it gets a new one for the same pubkey.
   /// -  1: text_note: the content is set to the text content of a note (anything the user wants to say). Non-plaintext notes should instead use kind 1000-10000 as described in NIP-16.
   /// -  2: recommend_server: the content is set to the URL (e.g., wss://somerelay.com) of a relay the event creator wants to recommend to its followers.
   late int kind;

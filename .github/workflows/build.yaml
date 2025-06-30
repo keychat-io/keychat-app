@@ -59,7 +59,7 @@ jobs:
           echo "version_short=$VERSION_SHORT" >> $GITHUB_OUTPUT
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
   build-linux:
-    # if: false # Temporarily disabled for testing
+    if: false # Temporarily disabled for testing
     runs-on: ubuntu-22.04
     needs: get-version
     steps:
@@ -122,7 +122,7 @@ jobs:
           cd ./packages/app/ && rm -f .env
 
   build-windows:
-    # if: false # Temporarily disabled for testing
+    if: false # Temporarily disabled for testing
     runs-on: windows-latest
     needs: get-version
     steps:
@@ -170,6 +170,21 @@ jobs:
     runs-on: ubuntu-22.04
     needs: get-version
     steps:
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          # this might remove tools that are actually needed,
+          # if set to "true" but frees about 6 GB
+          tool-cache: false
+
+          # all of these default to true, but feel free to set to
+          # "false" if necessary for your workflow
+          android: false
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -393,7 +408,7 @@ jobs:
           rm -f .env
           rm -f macos/Runner/GoogleService-Info.plist
   upload:
-    # if: false # Temporarily disabled for testing
+    if: false # Temporarily disabled for testing
     permissions: write-all
     needs: [get-version, build-windows, build-linux, build-android]
     runs-on: ubuntu-latest

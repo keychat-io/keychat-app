@@ -69,9 +69,9 @@ class DbSetting {
 
   Future exportDB(BuildContext context, encryptionKey) async {
     final fileName =
-        'Keychat_db_${formatTime(DateTime.now().millisecondsSinceEpoch, 'yyyy-MM-dd')}';
+        'Keychat_db_${formatTime(DateTime.now().millisecondsSinceEpoch, 'yyyy-MM-dd_HH-mm-ss')}';
     var appFolder = await Utils.getAppFolder();
-    String sourcePath = '${appFolder.path}/prod/database/';
+    String sourcePath = '${appFolder.path}/prod/database';
     String outputPath = '$sourcePath/$fileName';
     // need export shared_preferences file to sourcePath
     String sharedPrefsPath = '$sourcePath/shared_prefs_export.json';
@@ -92,7 +92,6 @@ class DbSetting {
       String fileName, String encryptionKey) async {
     try {
       final files = await getDatabaseFiles(sourcePath);
-
       if (files.isEmpty) {
         logger.e("No database files found at: $sourcePath");
         return;

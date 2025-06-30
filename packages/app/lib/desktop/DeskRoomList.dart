@@ -30,7 +30,7 @@ class DeskRoomList extends GetView<DesktopController> {
               );
             },
             child: Container(
-              width: 1,
+              width: 2,
               decoration: BoxDecoration(
                   border: Border(
                       right: BorderSide(

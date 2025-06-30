@@ -82,11 +82,13 @@ class _WebviewTabState extends State<WebviewTab> {
     initDomain = WebUri(widget.initUrl).host;
     initBrowserConnect(WebUri(widget.initUrl));
     super.initState();
-    Future.delayed(Duration(seconds: 1)).then((_) {
-      if (state == WebviewTabState.start) {
-        callPageFailed();
-      }
-    });
+    if (widget.initUrl != KeychatGlobal.newTab) {
+      Future.delayed(Duration(seconds: 1)).then((_) {
+        if (state == WebviewTabState.start) {
+          callPageFailed();
+        }
+      });
+    }
   }
 
   @override
@@ -95,7 +97,6 @@ class _WebviewTabState extends State<WebviewTab> {
   }
 
   callPageFailed() {
-    logger.d('${widget.initUrl} : WebviewTabState.start');
     controller.removeKeepAliveObject(widget.uniqueKey);
     InAppWebViewKeepAlive newKa =
         controller.addKeepAliveObject(widget.uniqueKey);
@@ -502,6 +503,18 @@ class _WebviewTabState extends State<WebviewTab> {
             assetFilePath: "assets/js/nostr.js");
         tc.pullToRefreshController?.endRefreshing();
 
+        // Inject VConsole for debugging
+        if (kDebugMode || Get.find<HomeController>().debugModel.value) {
+          await controller.evaluateJavascript(source: """
+          var script = document.createElement('script');
+          script.src = 'https://unpkg.com/vconsole@latest/dist/vconsole.min.js';
+          script.onload = function() {
+            var vConsole = new window.VConsole();
+          };
+          document.head.appendChild(script);
+        """);
+        }
+
         // Restore scroll position if needed
         if (GetPlatform.isAndroid && needRestorePosition) {
           needRestorePosition = false;
@@ -558,7 +571,8 @@ class _WebviewTabState extends State<WebviewTab> {
         String url = request.url.toString();
         logger.d('onReceivedError: $url ${error.type} ${error.description}');
         var isForMainFrame = request.isForMainFrame ?? false;
-        if (!isForMainFrame) {
+        var isCancel = error.type == WebResourceErrorType.CANCELLED;
+        if (!isForMainFrame || isCancel) {
           return;
         }
         this.controller.removeKeepAliveObject(widget.uniqueKey);
@@ -637,7 +651,7 @@ class _WebviewTabState extends State<WebviewTab> {
         updateTabInfo(widget.uniqueKey, tc.url.value, title);
       },
       onUpdateVisitedHistory: (controller, url, androidIsReload) {
-        logger.d('onUpdateVisitedHistory: ${url.toString()} $androidIsReload');
+        // logger.d('onUpdateVisitedHistory: ${url.toString()} $androidIsReload');
         onUpdateVisitedHistory(url);
       },
     );
@@ -994,7 +1008,7 @@ class _WebviewTabState extends State<WebviewTab> {
       updateTabInfo(widget.uniqueKey, uri.toString(), title);
       controller.addHistory(uri.toString(), title);
       controller.getFavicon(tc.webViewController!, uri.host).then((favicon) {
-        if (favicon != null) {
+        if (favicon != null && tc.favicon != favicon) {
           tc.favicon = favicon;
           controller.setTabDataFavicon(
               uniqueId: widget.uniqueKey, favicon: favicon);
@@ -1012,7 +1026,7 @@ class _WebviewTabState extends State<WebviewTab> {
   }
 
   updateTabInfo(String key, String url0, String title0) {
-    logger.d('updateTabInfo: $key, $url0, $title0');
+    // logger.d('updateTabInfo: $key, $url0, $title0');
     controller.setTabData(uniqueId: widget.uniqueKey, title: title0, url: url0);
     tc.title.value = title0;
     tc.url.value = url0;

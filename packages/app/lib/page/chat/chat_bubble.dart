@@ -90,9 +90,9 @@ class ChatBubble extends StatelessWidget {
   /// selected `clipper` type.
   EdgeInsets setPadding() {
     if ((clipper as ChatBubbleClipper4).type == BubbleType.sendBubble) {
-      return const EdgeInsets.only(top: 8, bottom: 8, left: 10, right: 16);
+      return const EdgeInsets.only(top: 4, bottom: 4, left: 10, right: 16);
     } else {
-      return const EdgeInsets.only(top: 8, bottom: 8, left: 16, right: 10);
+      return const EdgeInsets.only(top: 4, bottom: 4, left: 16, right: 10);
     }
   }
 }

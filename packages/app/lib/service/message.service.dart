@@ -76,6 +76,7 @@ class MessageService {
         return;
       }
       EasyThrottle.throttle('newMessageSnackbar', Duration(seconds: 2), () {
+        ChatController? cc = RoomService.getController(model.roomId);
         bool isCurrentRoomPage = Get.currentRoute
             .startsWith(Routes.room.replaceFirst(':id', room.id.toString()));
         if (Get.isSnackbarOpen) {
@@ -93,9 +94,10 @@ class MessageService {
                 Theme.of(Get.context!).colorScheme.surfaceContainer,
             snackPosition: SnackPosition.TOP,
             isDismissible: true,
+            margin: const EdgeInsets.all(8),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             duration: const Duration(seconds: 5),
-            mainButton: isCurrentRoomPage
+            mainButton: isCurrentRoomPage || cc != null
                 ? null
                 : TextButton(
                     child: const Text('View'),
@@ -103,7 +105,7 @@ class MessageService {
                       pressSnackbar(room);
                     }),
             icon: Utils.getRandomAvatar(room.toMainPubkey), onTap: (c) {
-          if (isCurrentRoomPage) return;
+          if (isCurrentRoomPage || cc != null) return;
           pressSnackbar(room);
         });
       });

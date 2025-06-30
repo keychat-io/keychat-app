@@ -30,7 +30,7 @@ env:
   # .ref == refs/heads/feature/new-login
   # .ref_name == new-login
   IS_STABLE: ${{ !contains(github.ref, '-') }}
-  FLUTTER_VERSION: "3.32.2"
+  FLUTTER_VERSION: "3.32.5"
 
 jobs:
   get-version:
@@ -170,6 +170,21 @@ jobs:
     runs-on: ubuntu-22.04
     needs: get-version
     steps:
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          # this might remove tools that are actually needed,
+          # if set to "true" but frees about 6 GB
+          tool-cache: false
+
+          # all of these default to true, but feel free to set to
+          # "false" if necessary for your workflow
+          android: false
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
       - name: Checkout
         uses: actions/checkout@v4
         with:

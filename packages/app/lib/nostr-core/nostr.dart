@@ -4,9 +4,6 @@ import 'package:app/service/SignerService.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:async_queue/async_queue.dart';
 import 'dart:convert' show jsonDecode, jsonEncode;
-
-import 'package:app/controller/world.controller.dart';
-
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/filter.dart';
 import 'package:app/nostr-core/nostr_event.dart';
@@ -65,12 +62,16 @@ class NostrAPI {
           await _proccessEvent01(res, relay, message);
           break;
         case NostrResKinds.eose: // end event signal from relay
+          loggerNoLine.i('EOSE: ${relay.url} ${res[1]}');
           if (res[1].toString().startsWith('nwc')) {
             Utils.getGetxController<NostrWalletConnectController>()
                 ?.proccessEOSE(relay, res);
             return;
           }
-          loggerNoLine.i('EOSE: ${relay.url} ${res[1]}');
+          if (res[1] == 'keychat-relay-status-check') {
+            Get.find<WebsocketService>().updateRelayPong(relay.url);
+            return;
+          }
           await _proccessEOSE(relay, res);
           break;
         case NostrResKinds.notice:
@@ -79,8 +80,7 @@ class NostrAPI {
                 ?.proccessNotice(relay, res);
             return;
           }
-          loggerNoLine.i("Nostr notice: ${relay.url} $res");
-          _proccessNotice(relay, res[1]);
+          loggerNoLine.i("[Notice]: ${relay.url} $res");
           break;
         default:
           logger.i('${relay.url}: $message');
@@ -132,11 +132,16 @@ class NostrAPI {
         () async {
       List<(NostrEventModel, List, String, Relay)> events =
           toProccessEventsPool;
+      if (events.isEmpty) return;
       toProccessEventsPool = [];
       events.sort((a, b) => a.$1.createdAt.compareTo(b.$1.createdAt));
       for (var (event, eventList, raw, relay) in events) {
         nostrEventQueue.addJob((_) async {
-          await _proccessEvent02(event, eventList, relay, raw);
+          try {
+            await _proccessEvent02(event, eventList, relay, raw);
+          } catch (e, s) {
+            logger.e('processEvent error', error: e, stackTrace: s);
+          }
         });
       }
     });
@@ -158,7 +163,7 @@ class NostrAPI {
         SubscribeResult.instance.fill(subscribeId, event);
         break;
       case EventKinds.textNote:
-        await Get.find<WorldController>().processEvent(event);
+        // await Get.find<WorldController>().processEvent(event);
         break;
       case EventKinds.nip47:
         await Utils.getGetxController<NostrWalletConnectController>()
@@ -530,6 +535,7 @@ class NostrAPI {
     NostrEventModel? subEvent;
     try {
       subEvent = NostrEventModel.deserialize(decodedContent);
+      // ignore: empty_catches
     } catch (e) {}
     if (subEvent != null) {
       await _processSubEvent(sourceEvent, subEvent, relay, failedCallback,
@@ -595,12 +601,6 @@ class NostrAPI {
         .fetchInfoFromRelay(id, requestWithFilter.serialize());
     Get.find<WebsocketService>().sendMessage(Close(id).serialize());
     return res;
-  }
-
-  void _proccessNotice(Relay relay, String msg1) {
-    var ws = Get.find<WebsocketService>();
-    if (ws.channels[relay.url] == null) return;
-    ws.channels[relay.url]!.notices.add(msg1);
   }
 
   Future _processNip17Message(NostrEventModel event, Relay relay,

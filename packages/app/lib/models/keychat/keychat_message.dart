@@ -4,7 +4,6 @@ import 'package:app/constants.dart';
 import 'package:app/global.dart';
 
 import 'package:app/models/models.dart';
-import 'package:app/models/signal_id.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/group.service.dart';
 import 'package:app/service/mls_group.service.dart';

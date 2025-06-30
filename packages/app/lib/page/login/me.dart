@@ -205,7 +205,7 @@ class MinePage extends GetView<SettingController> {
                     color: Theme.of(context).colorScheme.primary)
                 : Theme.of(context).textTheme.bodyLarge,
           ),
-          value: Text(getPublicKeyDisplay(identity.npub, 4)),
+          value: Text(getPublicKeyDisplay(identity.npub, 6)),
           onPressed: (context) async {
             Get.to(() => AccountSettingPage(),
                 arguments: identity,

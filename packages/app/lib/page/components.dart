@@ -1,12 +1,9 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:app/global.dart';
-import 'package:app/models/nostr_event_status.dart';
 import 'package:app/models/models.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/create_contact_page.dart';
-import 'package:app/models/signal_id.dart';
-
 import 'package:app/page/setting/my_qrcode.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/signalId.service.dart';

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.keychat.io</id>
+  <name>Keychat</name>
+  <summary> Keychat is the super app for Bitcoiners</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0</project_license> <developer id="com.keychat">
+    <name>KEYME PTE. LTD.</name>
+  </developer>
+  <icon type="remote">https://www.keychat.io/assets/img/logo.png</icon>
+  <url type="homepage">https://github.com/keychat-io/keychat-app</url>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>touch</control>
+  </supports>  
+  <description>
+    <p>
+     Keychat is the super app for Bitcoiners. Autonomous IDs, Bitcoin ecash wallet, secure chat, and rich mini apps — all in Keychat. Autonomy. Security. Richness.
+    </p>
+  </description>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Screenshot 1</caption>
+      <image type="source">https://www.keychat.io/assets/img/desktop3.png</image>
+    </screenshot>
+    </screenshots>
+  <releases>
+    <release version="1.33.2+6393" date="2025-06-26">
+      <description>
+        <p>Add members to an MLS group by inputting a pubkey.</p>
+        <p>Paste image and file from the clipboard.</p>
+      </description>
+    </release>
+  </releases>
+  <launchable type="desktop-id">com.keychat.io.desktop</launchable>
+  <provides>
+    <id>keychat.desktop</id>
+  </provides>  
+  <requires>
+    <control>
+      <category>desktop</category>
+    </control>
+  </requires>
+</component>
+

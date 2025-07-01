@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Keychat
+Comment=Autonomous IDs, Bitcoin ecash wallet, secure chat, and rich Mini Apps — all in Keychat
+Exec=Keychat
+Icon=com.keychat.io
+Terminal=false
+Type=Application
+Categories=Utility;

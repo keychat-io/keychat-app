@@ -395,7 +395,9 @@ class _WebviewTabState extends State<WebviewTab> {
         });
 
         controller.addJavaScriptHandler(
-            handlerName: 'keychat', callback: javascriptHandler);
+            handlerName: 'keychat-nostr', callback: javascriptHandlerNostr);
+        controller.addJavaScriptHandler(
+            handlerName: 'keychat-webln', callback: javascriptHandlerWebLN);
         // hide the progress bar
         if (widget.isCache == true) {
           tc.progress.value = 1.0;
@@ -499,8 +501,10 @@ class _WebviewTabState extends State<WebviewTab> {
       onLoadStop: (controller, url) async {
         if (url == null) return;
 
-        controller.injectJavascriptFileFromAsset(
+        await controller.injectJavascriptFileFromAsset(
             assetFilePath: "assets/js/nostr.js");
+        await controller.injectJavascriptFileFromAsset(
+            assetFilePath: "assets/js/webln.js");
         tc.pullToRefreshController?.endRefreshing();
 
         // Inject VConsole for debugging
@@ -721,7 +725,7 @@ class _WebviewTabState extends State<WebviewTab> {
   }
 
   // info coming from the JavaScript side!
-  javascriptHandler(List<dynamic> data) async {
+  javascriptHandlerNostr(List<dynamic> data) async {
     logger.d('javascriptHandler: $data');
     var method = data[0];
     if (method == 'getRelays') {
@@ -1109,6 +1113,47 @@ img {
 ''';
 
     await controller.loadData(data: htmlContent, baseUrl: request.url);
+  }
+
+  // info coming from the JavaScript side!
+  javascriptHandlerWebLN(List<dynamic> data) async {
+    logger.d('javascriptHandler: $data');
+    var method = data[0];
+    switch (method) {
+      case 'getInfo':
+        Identity? identity = Get.find<EcashController>().currentIdentity;
+        identity ??= Get.find<HomeController>().getSelectedIdentity();
+        return {
+          'node': {
+            'alias': identity.displayName,
+            'pubkey': identity.secp256k1PKHex,
+          }
+        };
+      case 'signMessage':
+        Identity? identity = Get.find<EcashController>().currentIdentity;
+        identity ??= Get.find<HomeController>().getSelectedIdentity();
+
+        String message = data[1];
+        String signature = await rust_nostr.signSchnorr(
+            privateKey: await identity.getSecp256k1SKHex(), content: message);
+        return {
+          'signature': signature,
+          'message': message,
+        };
+      case 'verifyMessage':
+        Identity? identity = Get.find<EcashController>().currentIdentity;
+        identity ??= Get.find<HomeController>().getSelectedIdentity();
+
+        String signature = data[1];
+        String message = data[2];
+        bool isValid = await rust_nostr.verifySchnorr(
+            pubkey: identity.secp256k1PKHex,
+            content: message,
+            sig: signature,
+            hash: true);
+        return isValid;
+      default:
+    }
   }
 
   Widget signEventConfirm(

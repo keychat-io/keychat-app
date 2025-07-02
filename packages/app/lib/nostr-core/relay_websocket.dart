@@ -78,7 +78,7 @@ class RelayWebsocket {
     nq.reqId = key;
     nq.pubkeys = subscriptions[key]?.toList();
     ++sentReqCount;
-    // logger.d('use old sub: ${nq.reqId} , length: ${nq.pubkeys.length}');
+    // logger.i('use old sub: ${nq.reqId} , length: ${nq.pubkeys.length}');
     return sendRawREQ(nq.toString());
   }
 

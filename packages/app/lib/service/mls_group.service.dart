@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert'
     show base64Decode, base64Encode, jsonDecode, jsonEncode, utf8;
 
@@ -201,7 +202,8 @@ $error ''';
       switch (messageType) {
         case MessageInType.commit:
           await _proccessTryProposalIn(
-              room, event, event.content, failedCallback);
+                  room, event, event.content, failedCallback)
+              .timeout(Duration(seconds: 10));
           break;
         case MessageInType.application:
           await _proccessApplication(
@@ -210,6 +212,12 @@ $error ''';
         default:
           throw Exception('Unsupported: ${messageType.name}');
       }
+    } on TimeoutException catch (e, s) {
+      String msg =
+          'ProccessTryProposalIn timeout after 10s for event: ${event.id}';
+      logger.e('decrypt mls msg timeout: $msg', error: e, stackTrace: s);
+      failedCallback(msg);
+      await appendMessageOrCreate(msg, room, 'mls decrypt timeout', event);
     } catch (e, s) {
       String? sender;
       try {
@@ -263,7 +271,7 @@ $error ''';
   //         'status': status,
   //         'errorMessage': errorMessage,
   //       };
-  //       logger.d('fetchOldKeypackageAndDelete callback: $map');
+  //       logger.i('fetchOldKeypackageAndDelete callback: $map');
   //     });
   //   });
   // }
@@ -313,7 +321,7 @@ $error ''';
       result[event.pubkey] = event.content;
     }
 
-    logger.d('PKs: $result');
+    logger.i('PKs: $result');
     return result;
   }
 
@@ -394,7 +402,7 @@ $error ''';
       {required NostrEventModel subEvent,
       required NostrEventModel sourceEvent,
       required Relay relay}) async {
-    logger.d('subEvent $subEvent');
+    logger.i('subEvent $subEvent');
     String senderIdPubkey = subEvent.pubkey;
     String myIdPubkey = (sourceEvent.getTagByKey(EventKindTags.pubkey) ??
         sourceEvent.getTagByKey(EventKindTags.pubkey))!;
@@ -402,7 +410,7 @@ $error ''';
         .getOrCreateRoom(subEvent.pubkey, myIdPubkey, RoomStatus.enabled);
     Identity identity = idRoom.getIdentity();
     if (senderIdPubkey == identity.secp256k1PKHex) {
-      logger.d('Event sent by me: ${subEvent.id}');
+      logger.i('Event sent by me: ${subEvent.id}');
       return;
     }
     String? pubkey = subEvent.getTagByKey(EventKindTags.pubkey);
@@ -510,11 +518,15 @@ $error ''';
     String newPubkey = await rust_mls.getListenKeyFromExportSecret(
         nostrId: room.myIdPubkey, groupId: room.toMainPubkey);
     if (newPubkey == room.onetimekey) {
+      logger.i('No need to update key for room: ${room.toMainPubkey}');
       await RoomService.instance.updateRoomAndRefresh(room);
       return room;
     }
+    logger.i('new pubkey for room: ${room.toMainPubkey}, '
+        'old: ${room.onetimekey}, new: $newPubkey');
     String? toDeletePubkey = room.onetimekey;
     // waiting for the old pubkey to be Eosed. means that all events proccessed
+
     await waitingForEose(
         recevingKey: room.onetimekey, relays: room.sendingRelays);
 
@@ -741,7 +753,7 @@ $error ''';
             }
           }
         }
-        logger.d(
+        logger.i(
             '${EventKinds.mlsNipKeypackages} start: ${identity.secp256k1PKHex}');
         String event = await _getOrCreateEvent(identity, statePK, onlineRelays);
 
@@ -854,7 +866,7 @@ $error ''';
             idPubkey: senderPubkey, name: senderName, roomId: room.id);
         realMessage = 'Hi everyone, I\'m ${newMember.name}!';
 
-        // room member self leaave group
+        // room member self leave group
         if (newMember.status == UserStatusType.removed) {
           realMessage =
               '[System] $senderName requests to leave the group chat.';
@@ -998,28 +1010,35 @@ $error ''';
 
   Future waitingForEose({String? recevingKey, List<String>? relays}) async {
     if (recevingKey == null) return;
-    await Utils.waitRelayOnline(defaultRelays: relays);
-    String? subId =
-        Get.find<WebsocketService>().getSubscriptionIdsByPubkey(recevingKey);
-    if (subId == null) return;
-    bool subEventEosed = NostrAPI.instance.subscriptionIdEose.contains(subId);
-    int queryTimes = 0;
-    while (!subEventEosed) {
-      DateTime? last = NostrAPI.instance.subscriptionLastEvent[subId];
-      // get a new events? pending for 500ms
-      if (last == null ||
-          last.isBefore(DateTime.now().subtract(const Duration(seconds: 1)))) {
-        queryTimes++;
-      }
-      if (queryTimes > 3) {
-        logger.e('Not Eose: $subId, but timeout');
-        break;
-      }
+    () async {
+      await Utils.waitRelayOnline(defaultRelays: relays);
+      String? subId =
+          Get.find<WebsocketService>().getSubscriptionIdsByPubkey(recevingKey);
+      if (subId == null) return;
 
-      await Future.delayed(const Duration(milliseconds: 500));
-      subEventEosed = NostrAPI.instance.subscriptionIdEose.contains(subId);
-    }
-    logger.d('done for Eose: $subId');
+      bool subEventEosed = NostrAPI.instance.subscriptionIdEose.contains(subId);
+      int queryTimes = 0;
+
+      while (!subEventEosed) {
+        DateTime? last = NostrAPI.instance.subscriptionLastEvent[subId];
+        // get a new events? pending for 500ms
+        if (last == null ||
+            last.isBefore(
+                DateTime.now().subtract(const Duration(seconds: 1)))) {
+          queryTimes++;
+        }
+        if (queryTimes > 3) {
+          logger.e('Not Eose: $subId, but timeout after $queryTimes attempts');
+          break;
+        }
+
+        await Future.delayed(const Duration(milliseconds: 500));
+        subEventEosed = NostrAPI.instance.subscriptionIdEose.contains(subId);
+      }
+    }()
+        .timeout(Duration(seconds: 10), onTimeout: () {
+      logger.w('Waiting for Eose timeout for $recevingKey');
+    });
   }
 
   // cache event for 10443
@@ -1027,7 +1046,7 @@ $error ''';
       Identity identity, String stateKey, List<String> onlineRelays) async {
     String? state = await Storage.getString(stateKey);
     if (state != null) {
-      logger.d(
+      logger.i(
           'Keypackage already exists: ${identity.secp256k1PKHex}, use cached');
       return state;
     }

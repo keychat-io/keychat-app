@@ -708,7 +708,7 @@ class Utils {
       try {
         return jsonDecode(config);
       } catch (e) {
-        // logger.d(e, error: e);
+        // logger.i(e, error: e);
       }
     }
     Storage.setString(StorageKeyString.defaultWebRTCServers,
@@ -883,7 +883,7 @@ class Utils {
 
     while (ws == null && initAttempts < maxInitAttempts) {
       initAttempts++;
-      logger.d(
+      logger.i(
           'Waiting for WebsocketService to initialize... ($initAttempts/$maxInitAttempts)');
       await Future.delayed(const Duration(milliseconds: 300));
       ws = getGetxController<WebsocketService>();
@@ -909,7 +909,7 @@ class Utils {
         'onlineRelays': onlineRelays,
         'activeRelays': activeRelays,
       };
-      logger.d('Waiting for relays to be available... $debug');
+      logger.i('Waiting for relays to be available... $debug');
       await Future.delayed(const Duration(seconds: 1));
       connectAttemptTimes++;
       onlineRelays = ws.getOnlineSocketString();

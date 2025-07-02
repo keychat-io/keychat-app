@@ -102,7 +102,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       var app = await Firebase.initializeApp(
           name: GetPlatform.isAndroid ? 'keychat-bg' : null,
           options: DefaultFirebaseOptions.currentPlatform);
-      logger.d('Firebase initialized in background: ${app.name}');
+      logger.i('Firebase initialized in background: ${app.name}');
     }
     debugPrint("Handling a background message: ${message.messageId}");
   }

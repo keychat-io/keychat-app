@@ -151,7 +151,7 @@ class MoreChatSetting extends StatelessWidget {
               }
               Clipboard.setData(
                   ClipboardData(text: NotifyService.fcmToken ?? ''));
-              logger.d('FCMToken: ${NotifyService.fcmToken}');
+              logger.i('FCMToken: ${NotifyService.fcmToken}');
               EasyLoading.showSuccess('Copied');
             },
             value: Text(

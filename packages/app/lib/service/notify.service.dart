@@ -77,7 +77,7 @@ class NotifyService {
 
   static Future<bool> hasNotifyPermission() async {
     if (GetPlatform.isLinux || GetPlatform.isWindows) {
-      logger.d('Notification not working on windows and linux');
+      logger.i('Notification not working on windows and linux');
       return false;
     }
     var s = await FirebaseMessaging.instance.getNotificationSettings();
@@ -136,7 +136,7 @@ class NotifyService {
 
   static Future init() async {
     if (GetPlatform.isLinux || GetPlatform.isWindows) {
-      logger.d('Notification not working on windows and linux');
+      logger.i('Notification not working on windows and linux');
       return;
     }
     var settings = await FirebaseMessaging.instance.requestPermission(
@@ -214,7 +214,7 @@ Fix:
 
       // fcm onMessage listen
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        logger.d('notification: ${message.data}');
+        logger.i('notification: ${message.data}');
 
         if (message.notification != null) {
           debugPrint('notification: ${message.notification?.body}');
@@ -222,7 +222,7 @@ Fix:
       }, onError: (e) {
         logger.e('onMessage', error: e);
       }, onDone: () {
-        logger.d('onMessage done');
+        logger.i('onMessage done');
       });
 
       // fcm onMessageOpenedApp listen

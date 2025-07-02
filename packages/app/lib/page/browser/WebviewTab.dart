@@ -31,6 +31,7 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
+import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -1152,6 +1153,46 @@ img {
             sig: signature,
             hash: true);
         return isValid;
+      case 'sendPayment':
+        String? lnbc = data[1];
+        if (lnbc == null || lnbc.isEmpty) {
+          return 'Error: Invoice is empty';
+        }
+        try {
+          Transaction? tr =
+              await ecashController.proccessPayLightningBill(lnbc, isPay: true);
+          if (tr == null) {
+            return 'Error: Payment failed or cancelled';
+          }
+          return (tr.field0 as LNTransaction).pr;
+        } catch (e) {
+          String msg = Utils.getErrorMessage(e);
+          return 'Error: - $msg';
+        }
+      case 'makeInvoice':
+        try {
+          Map source = data[1];
+          int amount = source['amount'] != null && source['amount'].isNotEmpty
+              ? int.parse(source['amount'] ?? '0')
+              : 0;
+          int defaultAmount = source['defaultAmount'] != null &&
+                  source['defaultAmount'].isNotEmpty
+              ? int.parse(source['defaultAmount'] ?? '0')
+              : 0;
+          int invoiceAmount = amount > 0 ? amount : defaultAmount;
+          Transaction? result = await Get.bottomSheet(
+              ignoreSafeArea: false,
+              clipBehavior: Clip.antiAlias,
+              shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
+              CreateInvoicePage(amount: invoiceAmount));
+          if (result != null) {
+            return (result.field0 as LNTransaction).pr;
+          }
+        } catch (e, s) {
+          logger.e(e.toString(), stackTrace: s);
+        }
+
       default:
     }
   }

@@ -11,6 +11,9 @@ import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 
 class CreateInvoiceController extends GetxController {
+  final int? defaultAmount;
+  CreateInvoiceController({this.defaultAmount});
+
   EcashController cashuController = Get.find<EcashController>();
   LightningBillController lightningBillController =
       Get.find<LightningBillController>();
@@ -20,6 +23,9 @@ class CreateInvoiceController extends GetxController {
   void onInit() {
     selectedMint.value = cashuController.latestMintUrl.value;
     textController = TextEditingController();
+    if (defaultAmount != null) {
+      textController.text = defaultAmount.toString();
+    }
     super.onInit();
   }
 
@@ -53,7 +59,7 @@ class CreateInvoiceController extends GetxController {
       EasyLoading.showToast('Create Successfully');
       textController.clear();
       if (Get.isBottomSheetOpen ?? false) {
-        Get.back();
+        Get.back(result: tr);
       }
       await Get.to(() => LightningTransactionPage(transaction: ln),
           id: GetPlatform.isDesktop ? GetXNestKey.ecash : null);

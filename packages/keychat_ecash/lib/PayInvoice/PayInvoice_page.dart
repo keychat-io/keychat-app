@@ -137,7 +137,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                       text: TextSpan(
                                         children: [
                                           TextSpan(
-                                            text: '${invoiceInfo.amount}',
+                                            text: '-${invoiceInfo.amount}',
                                             style: Theme.of(context)
                                                 .textTheme
                                                 .titleLarge
@@ -149,7 +149,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                               text: ' sat',
                                               style: Theme.of(context)
                                                   .textTheme
-                                                  .bodySmall),
+                                                  .bodyLarge),
                                         ],
                                       ),
                                     ),

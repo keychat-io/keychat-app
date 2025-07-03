@@ -799,6 +799,18 @@ class Utils {
         output: kReleaseMode
             ? LogFileOutputs(await Utils.createLogFile(directory.path))
             : null);
+
+    loggerNoLine = logger = Logger(
+        filter: kReleaseMode ? MyLogFilter() : null,
+        printer: PrettyPrinter(
+            dateTimeFormat: kDebugMode
+                ? DateTimeFormat.onlyTime
+                : DateTimeFormat.dateAndTime,
+            colors: false,
+            methodCount: 1),
+        output: kReleaseMode
+            ? LogFileOutputs(await Utils.createLogFile(directory.path))
+            : null);
   }
 
   static bool isDomain(String str) {

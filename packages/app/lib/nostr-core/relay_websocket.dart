@@ -143,7 +143,7 @@ class RelayWebsocket {
     pong = false;
     try {
       channel!.send(_pingReq);
-      loggerNoLine.d('TO [${relay.url}]: ping');
+      // loggerNoLine.d('TO [${relay.url}]: ping');
     } catch (e) {
       return false;
     }

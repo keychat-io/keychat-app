@@ -278,10 +278,17 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
                     hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: input);
                   }
                   // Check if hexPubkey already exists in users
-                  bool alreadyExists =
-                      users.any((user) => user['pubkey'] == hexPubkey);
-                  if (alreadyExists) {
-                    EasyLoading.showError('User already exists in the list');
+                  var alreadyExists = users
+                      .firstWhereOrNull((user) => user['pubkey'] == hexPubkey);
+                  if (alreadyExists != null) {
+                    if (alreadyExists['exist']) {
+                      EasyLoading.showError('User already exists in the group');
+                      return;
+                    }
+                    alreadyExists['isCheck'] = true;
+                    setState(() {});
+                    Get.back();
+                    // EasyLoading.showError('User already exists in the list');
                     return;
                   }
                   EasyLoading.show(status: 'Loading...');

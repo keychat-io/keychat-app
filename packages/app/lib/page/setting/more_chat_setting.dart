@@ -61,8 +61,13 @@ class MoreChatSetting extends StatelessWidget {
                   GetPlatform.isMacOS)
                 SettingsTile.navigation(
                     leading: const Icon(Icons.notifications_outlined),
-                    onPressed: (x) {
-                      handleNotificationSettting();
+                    onPressed: (x) async {
+                      try {
+                        await handleNotificationSettting();
+                      } catch (e, s) {
+                        logger.e('Request notification permission failed: $e',
+                            stackTrace: s);
+                      }
                     },
                     title: const Text('Notifications'))
             ]),
@@ -121,9 +126,10 @@ class MoreChatSetting extends StatelessWidget {
     hc.checkRunStatus.value = false;
   }
 
-  handleNotificationSettting() async {
+  Future<void> handleNotificationSettting() async {
     HomeController homeController = Get.find<HomeController>();
     bool permission = await NotifyService.hasNotifyPermission();
+    logger.d('Notification permission: $permission');
     Get.bottomSheet(Obx(
       () => SettingsList(platform: DevicePlatform.iOS, sections: [
         SettingsSection(title: const Text('Notification setting'), tiles: [

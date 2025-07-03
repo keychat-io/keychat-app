@@ -201,6 +201,7 @@ class SignalChatService extends BaseChatService {
     try {
       decodedContent = jsonDecode(decodeString);
       km = KeychatMessage.fromJson(decodedContent);
+      // ignore: empty_catches
     } catch (e) {}
 
     if (km != null) {
@@ -479,6 +480,7 @@ ${relays.join('\n')}
     KeychatMessage? km;
     try {
       km = KeychatMessage.fromJson(jsonDecode(prekeyMessageModel.message));
+      // ignore: empty_catches
     } catch (e) {}
     if (km != null) {
       await km.service.proccessMessage(

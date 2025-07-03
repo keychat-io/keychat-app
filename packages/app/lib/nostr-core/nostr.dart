@@ -587,6 +587,7 @@ class NostrAPI {
   KeychatMessage? getKeyChatMessageFromJson(dynamic str) {
     try {
       return KeychatMessage.fromJson(str);
+      // ignore: empty_catches
     } catch (e) {}
     return null;
   }

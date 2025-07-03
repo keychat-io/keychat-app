@@ -1,11 +1,10 @@
-import 'dart:convert';
 import 'package:app/global.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/utils.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_ecash/utils.dart';
 import 'package:settings_ui/settings_ui.dart';
@@ -97,14 +96,19 @@ class _MintServerPageState extends State<MintServerPage> {
 
   Future<void> _fetchMintInfo() async {
     try {
-      Uri url = Uri.parse('${widget.server.mint}/v1/info');
+      final dio = Dio();
+      dio.options.connectTimeout = Duration(seconds: 10);
+      dio.options.receiveTimeout = Duration(seconds: 10);
+
+      String url = '${widget.server.mint}/v1/info';
       if (widget.server.mint.endsWith('/')) {
-        url = Uri.parse('${widget.server.mint}v1/info');
+        url = '${widget.server.mint}v1/info';
       }
-      final response = await http.get(url);
+
+      final response = await dio.get(url);
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final data = response.data;
         logger.d('Mint info: $data');
         MintInfo? info;
         try {
@@ -122,6 +126,7 @@ class _MintServerPageState extends State<MintServerPage> {
               }
             });
           }
+          // ignore: empty_catches
         } catch (e) {}
         setState(() {
           mintInfo = info;

@@ -416,6 +416,7 @@ class MessageWidget extends StatelessWidget {
           if (bcmm.payToken != null) {
             token = await rust_cashu.decodeToken(encodedToken: bcmm.payToken!);
           }
+          // ignore: empty_catches
         } catch (e) {}
       }
       _showRawData(message, ess, event,
@@ -447,6 +448,7 @@ class MessageWidget extends StatelessWidget {
     if (rawEvent == null) return (ess, event);
     try {
       event = NostrEventModel.fromJson(jsonDecode(rawEvent));
+      // ignore: empty_catches
     } catch (e) {}
     return (ess, event);
   }

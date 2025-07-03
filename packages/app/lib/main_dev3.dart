@@ -1,14 +1,13 @@
 import 'dart:io' show Directory;
 
 import 'package:app/desktop/DesktopController.dart';
+import 'package:app/global.dart';
 import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:app/utils/MyCustomScrollBehavior.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -25,7 +24,6 @@ import 'page/app_theme.dart';
 import 'page/pages.dart';
 import 'service/identity.service.dart';
 import 'utils/config.dart' as env_config;
-import 'firebase_options.dart';
 
 bool isProdEnv = true;
 
@@ -84,28 +82,10 @@ Future<String> getInitRoute(bool isLogin) async {
 
 void initEasyLoading() {
   EasyLoading.instance
-    ..displayDuration = const Duration(milliseconds: 2000)
-    ..backgroundColor = Get.isDarkMode ? Colors.black87 : Colors.grey
-    ..textColor = Get.isDarkMode ? Colors.white70 : Colors.black87
     ..indicatorType = EasyLoadingIndicatorType.cubeGrid
-    ..loadingStyle =
-        Get.isDarkMode ? EasyLoadingStyle.dark : EasyLoadingStyle.light
+    ..progressColor = KeychatGlobal.secondaryColor
+    ..indicatorColor = KeychatGlobal.secondaryColor
     ..fontSize = 16;
-}
-
-@pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // If you're going to use other Firebase services in the background, such as Firestore,
-  // make sure you call `initializeApp` before using other Firebase services.
-  if (dotenv.get('FCM_API_KEY', fallback: '') != '') {
-    if (Firebase.apps.isEmpty) {
-      var app = await Firebase.initializeApp(
-          name: GetPlatform.isAndroid ? 'keychat-bg' : null,
-          options: DefaultFirebaseOptions.currentPlatform);
-      logger.d('Firebase initialized in background: ${app.name}');
-    }
-    debugPrint("Handling a background message: ${message.messageId}");
-  }
 }
 
 Future<SettingController> initServices() async {
@@ -114,18 +94,6 @@ Future<SettingController> initServices() async {
   await SystemChrome.setPreferredOrientations(
       [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   await dotenv.load(fileName: ".env");
-  if (dotenv.get('FCM_API_KEY', fallback: '') != '') {
-    await Firebase.initializeApp(
-            name: GetPlatform.isAndroid ? 'keychat' : null,
-            options: DefaultFirebaseOptions.currentPlatform)
-        .then((_) {
-      FirebaseMessaging.onBackgroundMessage(
-          _firebaseMessagingBackgroundHandler);
-      logger.i('Firebase initialized in main');
-    }, onError: (error) {
-      logger.e('Firebase initialize failed: $error');
-    });
-  }
 
   await RustLib.init();
   String env =

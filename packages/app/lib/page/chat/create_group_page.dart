@@ -63,77 +63,75 @@ class _AddGroupPageState extends State<AddGroupPage>
           centerTitle: true,
           title: const Text("New Group Chat"),
         ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-        floatingActionButton: Container(
-            padding: const EdgeInsets.only(left: 16, right: 16, top: 30),
-            child: FilledButton(
-                style: ButtonStyle(
-                    minimumSize: WidgetStateProperty.all(
-                        const Size(double.infinity, 44))),
-                onPressed: () async {
-                  String groupName = _groupNameController.text.trim();
-                  if (groupName.isEmpty) {
-                    EasyLoading.showToast('Please input group name');
-                    return;
-                  }
+        floatingActionButtonLocation:
+            FloatingActionButtonLocation.miniCenterDocked,
+        floatingActionButton: FilledButton(
+            style: ButtonStyle(
+                minimumSize:
+                    WidgetStateProperty.all(const Size(double.infinity, 44))),
+            onPressed: () async {
+              String groupName = _groupNameController.text.trim();
+              if (groupName.isEmpty) {
+                EasyLoading.showToast('Please input group name');
+                return;
+              }
 
-                  Identity identity =
-                      Get.find<HomeController>().getSelectedIdentity();
-                  List<Contact> contactList = await ContactService.instance
-                      .getListExcludeSelf(identity.id);
-                  contactList = contactList.reversed.toList();
-                  List<Map<String, dynamic>> list = [];
-                  for (int i = 0; i < contactList.length; i++) {
-                    var exist = false;
-                    list.add({
-                      "pubkey": contactList[i].pubkey,
-                      "npubkey": contactList[i].npubkey,
-                      "name": contactList[i].displayName,
-                      "exist": exist,
-                      "isCheck": false,
-                      "mlsPK": null,
-                      "isAdmin": false
-                    });
-                  }
-                  List<String> relays = [];
-                  if (groupType == GroupType.mls) {
-                    var list = Get.find<WebsocketService>().getOnlineSocket();
+              Identity identity =
+                  Get.find<HomeController>().getSelectedIdentity();
+              List<Contact> contactList =
+                  await ContactService.instance.getListExcludeSelf(identity.id);
+              contactList = contactList.reversed.toList();
+              List<Map<String, dynamic>> list = [];
+              for (int i = 0; i < contactList.length; i++) {
+                var exist = false;
+                list.add({
+                  "pubkey": contactList[i].pubkey,
+                  "npubkey": contactList[i].npubkey,
+                  "name": contactList[i].displayName,
+                  "exist": exist,
+                  "isCheck": false,
+                  "mlsPK": null,
+                  "isAdmin": false
+                });
+              }
+              List<String> relays = [];
+              if (groupType == GroupType.mls) {
+                var list = Get.find<WebsocketService>().getOnlineSocket();
 
-                    if (list.isEmpty) {
-                      Get.dialog(
-                        CupertinoAlertDialog(
-                          title: const Text('No relay available'),
-                          content: const Text(
-                              'Please reconnect the relay servers or add wss://relay.keychat.io'),
-                          actions: <Widget>[
-                            CupertinoDialogAction(
-                              child: const Text('Cancel'),
-                              onPressed: () {
-                                Get.back();
-                              },
-                            ),
-                            CupertinoDialogAction(
-                              child: const Text('Message Relay'),
-                              onPressed: () {
-                                Get.back();
-                                Get.to(() => RelaySetting());
-                              },
-                            ),
-                          ],
+                if (list.isEmpty) {
+                  Get.dialog(
+                    CupertinoAlertDialog(
+                      title: const Text('No relay available'),
+                      content: const Text(
+                          'Please reconnect the relay servers or add wss://relay.keychat.io'),
+                      actions: <Widget>[
+                        CupertinoDialogAction(
+                          child: const Text('Cancel'),
+                          onPressed: () {
+                            Get.back();
+                          },
                         ),
-                      );
-                      return;
-                    }
-                    relays = list.map((e) => e.relay.url).toList();
-                  }
+                        CupertinoDialogAction(
+                          child: const Text('Message Relay'),
+                          onPressed: () {
+                            Get.back();
+                            Get.to(() => RelaySetting());
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                  return;
+                }
+                relays = list.map((e) => e.relay.url).toList();
+              }
 
-                  Get.bottomSheet(
-                      CreateGroupSelectMember(
-                          groupName, relays, groupType, list),
-                      isScrollControlled: true,
-                      ignoreSafeArea: false);
-                },
-                child: const Text('Next'))),
+              Get.bottomSheet(
+                  CreateGroupSelectMember(groupName, relays, groupType, list),
+                  isScrollControlled: true,
+                  ignoreSafeArea: false);
+            },
+            child: const Text('Next')),
         body: SafeArea(
           child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 16),

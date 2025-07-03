@@ -204,7 +204,7 @@ class RoomService extends BaseChatService {
           await rust_mls.deleteGroup(
               nostrId: myIdPubkey, groupId: toMainPubkey);
         } catch (e) {
-          logger.d('delete mls group error', error: e);
+          logger.i('delete mls group error', error: e);
         }
       }
     }
@@ -677,7 +677,7 @@ class RoomService extends BaseChatService {
     }
 
     String toSendMessage = jsonEncode(cmm.toJson());
-    logger.d('toSendMessage: $toSendMessage');
+    logger.i('toSendMessage: $toSendMessage');
     if (room.encryptMode == EncryptMode.signal) {
       try {
         return await SignalChatService.instance.sendMessage(room, toSendMessage,

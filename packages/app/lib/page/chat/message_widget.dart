@@ -263,7 +263,7 @@ class MessageWidget extends StatelessWidget {
     // message send failed
     return IconButton(
         splashColor: Colors.transparent,
-        onPressed: () {
+        onPressed: () async {
           if (message.mediaType != MessageMediaType.text) {
             EasyLoading.showToast('Message sent failed');
             return;
@@ -272,11 +272,27 @@ class MessageWidget extends StatelessWidget {
             EasyLoading.showToast('Please retry the previous operation.');
             return;
           }
+          // check status
+          var (ess, event) = await _getRawMessageData(
+              message.eventIds[0], message.rawEvents[0]);
+
+          // fix message sent status
+          if (message.sent != SendStatusType.success) {
+            List success = ess
+                .where((element) => element.sendStatus == EventSendEnum.success)
+                .toList();
+            if (success.isNotEmpty) {
+              message.sent = SendStatusType.success;
+              await MessageService.instance.updateMessageAndRefresh(message);
+              Get.back();
+              EasyLoading.showSuccess('Sending Success');
+              return;
+            }
+          }
+          // show resend dialog
           Get.dialog(
             CupertinoAlertDialog(
-              title: const Text(
-                'Resend message',
-              ),
+              title: const Text('Resend message'),
               actions: [
                 CupertinoDialogAction(
                   child: const Text('Cancel'),
@@ -400,6 +416,7 @@ class MessageWidget extends StatelessWidget {
           if (bcmm.payToken != null) {
             token = await rust_cashu.decodeToken(encodedToken: bcmm.payToken!);
           }
+          // ignore: empty_catches
         } catch (e) {}
       }
       _showRawData(message, ess, event,
@@ -431,6 +448,7 @@ class MessageWidget extends StatelessWidget {
     if (rawEvent == null) return (ess, event);
     try {
       event = NostrEventModel.fromJson(jsonDecode(rawEvent));
+      // ignore: empty_catches
     } catch (e) {}
     return (ess, event);
   }

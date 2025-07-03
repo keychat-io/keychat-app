@@ -127,7 +127,7 @@ class MultiWebviewController extends GetxController {
     if (content.isEmpty) return;
 
     if (GetPlatform.isLinux) {
-      logger.d('webview not working on linux');
+      logger.i('webview not working on linux');
       if (!await launchUrl(Uri.parse(content))) {
         throw Exception('Could not launch $content');
       }
@@ -438,7 +438,7 @@ class MultiWebviewController extends GetxController {
     // for mobile
     try {
       var controller = Get.find<WebviewTabController>(tag: uniqueKey);
-      logger.d('found controller $uniqueKey');
+      logger.i('found controller $uniqueKey');
       return controller;
     } catch (e) {
       // permanent. manaully to delete

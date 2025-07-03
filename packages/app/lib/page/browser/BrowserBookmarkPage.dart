@@ -187,7 +187,9 @@ class _BrowserBookmarkPageState extends State<BrowserBookmarkPage> {
                               content: bookmark.url,
                               defaultTitle: bookmark.title,
                             );
-                            Get.back();
+                            if (Get.isBottomSheetOpen ?? false) {
+                              Get.back();
+                            }
                           },
                           onLongPress: _toggleEditMode,
                           trailing: Wrap(children: [

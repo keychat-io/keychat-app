@@ -94,7 +94,7 @@ class WebsocketService extends GetxService {
     }
 
     await _startConnectRelay(rw, connectedCallback: () async {
-      logger.d('relay: ${relay.url} connected, callback');
+      logger.i('relay: ${relay.url} connected, callback');
       if (connectedCallback != null) {
         connectedCallback();
       }
@@ -165,7 +165,7 @@ class WebsocketService extends GetxService {
       List<RelayWebsocket>? sockets}) async {
     sockets ??= getOnlineSocket();
     if (sockets.isEmpty) {
-      logger.d('Not connected, or the relay not support nips');
+      logger.i('Not connected, or the relay not support nips');
       return [];
     }
     for (RelayWebsocket rw in sockets) {
@@ -238,7 +238,7 @@ class WebsocketService extends GetxService {
   }
 
   Future<WebsocketService> init() async {
-    logger.d('start init websocket service');
+    logger.i('start init websocket service');
     relayStatusInt.value = RelayStatusEnum.connecting.name;
     List<Relay> list = await rs.initRelay();
     start(list);

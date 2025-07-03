@@ -708,7 +708,7 @@ class Utils {
       try {
         return jsonDecode(config);
       } catch (e) {
-        // logger.d(e, error: e);
+        // logger.i(e, error: e);
       }
     }
     Storage.setString(StorageKeyString.defaultWebRTCServers,
@@ -799,6 +799,18 @@ class Utils {
         output: kReleaseMode
             ? LogFileOutputs(await Utils.createLogFile(directory.path))
             : null);
+
+    loggerNoLine = logger = Logger(
+        filter: kReleaseMode ? MyLogFilter() : null,
+        printer: PrettyPrinter(
+            dateTimeFormat: kDebugMode
+                ? DateTimeFormat.onlyTime
+                : DateTimeFormat.dateAndTime,
+            colors: false,
+            methodCount: kReleaseMode ? 1 : 0),
+        output: kReleaseMode
+            ? LogFileOutputs(await Utils.createLogFile(directory.path))
+            : null);
   }
 
   static bool isDomain(String str) {
@@ -883,7 +895,7 @@ class Utils {
 
     while (ws == null && initAttempts < maxInitAttempts) {
       initAttempts++;
-      logger.d(
+      logger.i(
           'Waiting for WebsocketService to initialize... ($initAttempts/$maxInitAttempts)');
       await Future.delayed(const Duration(milliseconds: 300));
       ws = getGetxController<WebsocketService>();
@@ -909,7 +921,7 @@ class Utils {
         'onlineRelays': onlineRelays,
         'activeRelays': activeRelays,
       };
-      logger.d('Waiting for relays to be available... $debug');
+      logger.i('Waiting for relays to be available... $debug');
       await Future.delayed(const Duration(seconds: 1));
       connectAttemptTimes++;
       onlineRelays = ws.getOnlineSocketString();
@@ -1018,22 +1030,21 @@ class Utils {
 
   // Catch and log errors to file
   static void logErrorToFile(String errorDetails) async {
-    if (kReleaseMode) {
-      try {
-        Directory appFolder = await getAppFolder();
-        final dateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
-        final String errorFilePath = '${appFolder.path}/errors/$dateStr.log';
-        final File file = File(errorFilePath);
+    if (kDebugMode) return;
+    try {
+      Directory appFolder = await getAppFolder();
+      final dateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      final String errorFilePath = '${appFolder.path}/errors/$dateStr.log';
+      final File file = File(errorFilePath);
 
-        if (!file.existsSync()) {
-          file.createSync(recursive: true);
-        }
-
-        await file.writeAsString('$errorDetails\n\n', mode: FileMode.append);
-        logger.e('Error written to $errorFilePath');
-      } catch (e) {
-        logger.e('Failed to write error to file: $e');
+      if (!file.existsSync()) {
+        file.createSync(recursive: true);
       }
+
+      await file.writeAsString('$errorDetails\n\n', mode: FileMode.append);
+      // logger.e('Error written to $errorFilePath');
+    } catch (e) {
+      logger.e('Failed to write error to file: $e');
     }
   }
 }

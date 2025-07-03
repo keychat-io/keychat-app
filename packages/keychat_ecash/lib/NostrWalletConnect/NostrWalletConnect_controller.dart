@@ -5,11 +5,8 @@ import 'package:app/nostr-core/nostr.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
-
-import 'package:app/models/relay.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/nostr-core/nostr_nip4_req.dart';
-import 'package:app/utils.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';

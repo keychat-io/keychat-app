@@ -22,7 +22,7 @@ window.addEventListener('flutterInAppWebViewPlatformReady', function (event) {
 
 window.nostr.getPublicKey = async function () {
   var res = await window.flutter_inappwebview.callHandler(
-    'keychat',
+    'keychat-nostr',
     'getPublicKey'
   );
   console.log('getPublicKey:', res);
@@ -31,7 +31,7 @@ window.nostr.getPublicKey = async function () {
 
 window.nostr.signEvent = async function (event) {
   var res = await window.flutter_inappwebview.callHandler(
-    'keychat',
+    'keychat-nostr',
     'signEvent',
     event
   );
@@ -41,7 +41,7 @@ window.nostr.signEvent = async function (event) {
 
 window.nostr.getRelays = async function () {
   const res = await window.flutter_inappwebview.callHandler(
-    'keychat',
+    'keychat-nostr',
     'getRelays'
   );
   var map = {};
@@ -54,7 +54,7 @@ window.nostr.getRelays = async function () {
 
 window.nostr.nip04.encrypt = async function (pubkey, plaintext) {
   return await window.flutter_inappwebview.callHandler(
-    'keychat',
+    'keychat-nostr',
     'nip04Encrypt',
     pubkey,
     plaintext
@@ -63,7 +63,7 @@ window.nostr.nip04.encrypt = async function (pubkey, plaintext) {
 
 window.nostr.nip04.decrypt = async function (pubkey, ciphertext) {
   return await window.flutter_inappwebview.callHandler(
-    'keychat',
+    'keychat-nostr',
     'nip04Decrypt',
     pubkey,
     ciphertext
@@ -72,7 +72,7 @@ window.nostr.nip04.decrypt = async function (pubkey, ciphertext) {
 
 window.nostr.nip44.encrypt = async function (pubkey, plaintext) {
   return await window.flutter_inappwebview.callHandler(
-    'keychat',
+    'keychat-nostr',
     'nip44Encrypt',
     pubkey,
     plaintext
@@ -81,7 +81,7 @@ window.nostr.nip44.encrypt = async function (pubkey, plaintext) {
 
 window.nostr.nip44.decrypt = async function (pubkey, ciphertext) {
   return await window.flutter_inappwebview.callHandler(
-    'keychat',
+    'keychat-nostr',
     'nip44Decrypt',
     pubkey,
     ciphertext
@@ -90,7 +90,7 @@ window.nostr.nip44.decrypt = async function (pubkey, ciphertext) {
 
 window.pageFailedToRefresh = async function () {
   return await window.flutter_inappwebview.callHandler(
-    'keychat',
+    'keychat-nostr',
     'pageFailedToRefresh'
   );
 };

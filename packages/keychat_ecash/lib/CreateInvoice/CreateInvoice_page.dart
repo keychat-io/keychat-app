@@ -9,13 +9,15 @@ import 'package:easy_debounce/easy_throttle.dart';
 import './CreateInvoice_controller.dart';
 
 class CreateInvoicePage extends StatelessWidget {
-  const CreateInvoicePage({super.key});
+  final int? amount;
+  const CreateInvoicePage({this.amount, super.key});
 
   @override
   Widget build(BuildContext context) {
     EcashController cashuController = Get.find<EcashController>();
 
-    CreateInvoiceController controller = Get.put(CreateInvoiceController());
+    CreateInvoiceController controller =
+        Get.put(CreateInvoiceController(defaultAmount: amount));
 
     return SafeArea(
         child: Scaffold(

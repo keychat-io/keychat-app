@@ -29,6 +29,7 @@ class _BotPricePerMessageRequestWidgetState
     try {
       Map<String, dynamic> map = jsonDecode(widget.message.content);
       bmm = BotServerMessageModel.fromJson(map);
+      // ignore: empty_catches
     } catch (e) {}
     super.initState();
   }

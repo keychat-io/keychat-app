@@ -332,7 +332,7 @@ class GroupService extends BaseChatService {
     if (idRoom.type == RoomType.common) {
       bool isMemeber = checkUserInList(users, idRoom.toMainPubkey);
       if (!isMemeber) {
-        logger.d('You are not in the group');
+        logger.i('You are not in the group');
         throw Exception('You are not in the group, so can\'t invite me.');
       }
     }
@@ -420,7 +420,7 @@ class GroupService extends BaseChatService {
     // When the room has been created, verify whether the sender is in the group.
     RoomMember? member = await groupRoom.getEnableMember(senderIdPubkey);
     if (member == null) {
-      logger.d('Not a vaild member in group');
+      logger.i('Not a vaild member in group');
       throw Exception('Not a vaild member in group');
     }
 
@@ -922,7 +922,7 @@ class GroupService extends BaseChatService {
       Room groupRoom, String idPubkey, DateTime updatedAt, String name) async {
     RoomMember? rm = await groupRoom.getMemberByIdPubkey(idPubkey);
     if (rm == null) {
-      logger.d('Not a member in group ${groupRoom.id}, $idPubkey');
+      logger.i('Not a member in group ${groupRoom.id}, $idPubkey');
       return;
     }
 

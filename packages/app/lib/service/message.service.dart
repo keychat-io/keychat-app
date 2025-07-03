@@ -620,7 +620,7 @@ $content'''
         m.mediaType = bmm.type;
         m.realMessage = bmm.message;
       } catch (e) {
-        // logger.d(e, stackTrace: s);
+        // logger.i(e, stackTrace: s);
       }
     }
     return m;

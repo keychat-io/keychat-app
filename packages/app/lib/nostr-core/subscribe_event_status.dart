@@ -1,6 +1,4 @@
 import 'package:app/global.dart';
-import 'package:app/models/db_provider.dart';
-import 'package:app/models/nostr_event_status.dart';
 import 'package:app/models/models.dart';
 import 'package:app/service/message.service.dart';
 import 'package:isar/isar.dart';

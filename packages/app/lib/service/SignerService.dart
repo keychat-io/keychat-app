@@ -30,7 +30,7 @@ class SignerService {
         ),
       ],
     );
-    logger.d(res);
+    logger.i(res);
     return res['signature'];
   }
 
@@ -43,7 +43,7 @@ class SignerService {
     }
     var res =
         await amber.signMessage(currentUser: pubkey, content: content, id: id);
-    logger.d(res);
+    logger.i(res);
     return res['signature'];
   }
 
@@ -56,7 +56,7 @@ class SignerService {
     }
     var res = await amber.signEvent(
         currentUser: pubkey, eventJson: eventJson, id: id);
-    logger.d(res);
+    logger.i(res);
     return res['event'];
   }
 

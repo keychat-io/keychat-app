@@ -107,9 +107,13 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
                               : Text(site.url,
                                   maxLines: 1, overflow: TextOverflow.ellipsis),
                           dense: true,
-                          onTap: () => Get.find<MultiWebviewController>()
-                              .launchWebview(
-                                  content: site.url, defaultTitle: site.title),
+                          onTap: () {
+                            Get.find<MultiWebviewController>().launchWebview(
+                                content: site.url, defaultTitle: site.title);
+                            if (Get.isBottomSheetOpen ?? false) {
+                              Get.back();
+                            }
+                          },
                           trailing: IconButton(
                               onPressed: () async {
                                 await BrowserHistory.delete(site.id);

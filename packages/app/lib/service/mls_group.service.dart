@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert'
     show base64Decode, base64Encode, jsonDecode, jsonEncode, utf8;
 
@@ -188,37 +189,67 @@ $error ''';
   // kind 445
   Future decryptMessage(
       Room room, NostrEventModel event, Function(String) failedCallback) async {
+    loggerNoLine.i(
+        '[MLS] decryptMessage START - eventId: ${event.id}, roomId: ${room.id}');
+
     var exist = await MessageService.instance.getMessageByEventId(event.id);
     if (exist != null) {
-      loggerNoLine.d('[mls]Received my event: ${event.id}');
+      loggerNoLine.i('[MLS] decryptMessage END - duplicate event: ${event.id}');
       return;
     }
+
     try {
       MessageInType messageType = await rust_mls.parseMlsMsgType(
           groupId: room.toMainPubkey,
           nostrId: room.myIdPubkey,
           data: event.content);
+      loggerNoLine.i(
+          '[MLS] Message type parsed: ${messageType.name} for event: ${event.id}');
+
       switch (messageType) {
         case MessageInType.commit:
+          loggerNoLine.i('[MLS] Processing commit message: ${event.id}');
           await _proccessTryProposalIn(
-              room, event, event.content, failedCallback);
+                  room, event, event.content, failedCallback)
+              .timeout(Duration(seconds: 20));
+          loggerNoLine
+              .i('[MLS] Commit message processed successfully: ${event.id}');
           break;
         case MessageInType.application:
+          loggerNoLine.i('[MLS] Processing application message: ${event.id}');
           await _proccessApplication(
               room, event, event.content, failedCallback);
+          loggerNoLine.i(
+              '[MLS] Application message processed successfully: ${event.id}');
           break;
         default:
+          logger.e(
+              '[MLS] Unsupported message type: ${messageType.name} for event: ${event.id}');
           throw Exception('Unsupported: ${messageType.name}');
       }
+      loggerNoLine.i('[MLS] decryptMessage END - success: ${event.id}');
+    } on TimeoutException catch (e, s) {
+      String msg =
+          'ProccessTryProposalIn timeout after 10s for event: ${event.id}';
+      logger.e('[MLS] decrypt mls msg timeout: $msg', error: e, stackTrace: s);
+      failedCallback(msg);
+      await appendMessageOrCreate(msg, room, 'mls decrypt timeout', event);
     } catch (e, s) {
+      logger.e('[MLS] decryptMessage ERROR for event: ${event.id}',
+          error: e, stackTrace: s);
       String? sender;
       try {
+        loggerNoLine.i('[MLS] Getting sender for failed event: ${event.id}');
         sender = await rust_mls.getSender(
             nostrId: room.myIdPubkey,
             groupId: room.toMainPubkey,
             queuedMsg: event.content);
+        loggerNoLine
+            .i('[MLS] Sender retrieved: $sender for event: ${event.id}');
         // ignore: empty_catches
-      } catch (e) {}
+      } catch (e) {
+        logger.e('[MLS] Failed to get sender for event: ${event.id}', error: e);
+      }
       String msg = '$sender ${Utils.getErrorMessage(e)}';
       logger.e('decrypt mls msg: $msg', error: e, stackTrace: s);
       failedCallback(msg);
@@ -263,7 +294,7 @@ $error ''';
   //         'status': status,
   //         'errorMessage': errorMessage,
   //       };
-  //       logger.d('fetchOldKeypackageAndDelete callback: $map');
+  //       loggerNoLine.i('fetchOldKeypackageAndDelete callback: $map');
   //     });
   //   });
   // }
@@ -313,7 +344,7 @@ $error ''';
       result[event.pubkey] = event.content;
     }
 
-    logger.d('PKs: $result');
+    loggerNoLine.i('PKs: $result');
     return result;
   }
 
@@ -394,7 +425,7 @@ $error ''';
       {required NostrEventModel subEvent,
       required NostrEventModel sourceEvent,
       required Relay relay}) async {
-    logger.d('subEvent $subEvent');
+    loggerNoLine.i('subEvent $subEvent');
     String senderIdPubkey = subEvent.pubkey;
     String myIdPubkey = (sourceEvent.getTagByKey(EventKindTags.pubkey) ??
         sourceEvent.getTagByKey(EventKindTags.pubkey))!;
@@ -402,7 +433,7 @@ $error ''';
         .getOrCreateRoom(subEvent.pubkey, myIdPubkey, RoomStatus.enabled);
     Identity identity = idRoom.getIdentity();
     if (senderIdPubkey == identity.secp256k1PKHex) {
-      logger.d('Event sent by me: ${subEvent.id}');
+      loggerNoLine.i('Event sent by me: ${subEvent.id}');
       return;
     }
     String? pubkey = subEvent.getTagByKey(EventKindTags.pubkey);
@@ -442,7 +473,7 @@ $error ''';
         await rust_mls.initMlsDb(
             dbPath: '$dbPath${KeychatGlobal.mlsDBFile}',
             nostrId: identity.secp256k1PKHex);
-        logger.i('MLS init for identity: ${identity.secp256k1PKHex}');
+        loggerNoLine.i('MLS init for identity: ${identity.secp256k1PKHex}');
       } catch (e, s) {
         logger.e('Init MLS Failed: ${identity.secp256k1PKHex} ${e.toString()}',
             error: e, stackTrace: s);
@@ -507,19 +538,28 @@ $error ''';
   }
 
   Future<Room> replaceListenPubkey(Room room) async {
+    loggerNoLine.i(
+        '[MLS] replaceListenPubkey START - roomId: ${room.id}, currentKey: ${room.onetimekey}');
     String newPubkey = await rust_mls.getListenKeyFromExportSecret(
         nostrId: room.myIdPubkey, groupId: room.toMainPubkey);
+    loggerNoLine
+        .i('[MLS] New pubkey generated: $newPubkey for room: ${room.id}');
+
     if (newPubkey == room.onetimekey) {
       await RoomService.instance.updateRoomAndRefresh(room);
       return room;
     }
+
+    loggerNoLine.i('[MLS] new pubkey for room: ${room.toMainPubkey}, '
+        'old: ${room.onetimekey}, new: $newPubkey');
     String? toDeletePubkey = room.onetimekey;
-    // waiting for the old pubkey to be Eosed. means that all events proccessed
     await waitingForEose(
         recevingKey: room.onetimekey, relays: room.sendingRelays);
-
     room.onetimekey = newPubkey;
+    loggerNoLine.i('[MLS] Updating room with new key for room: ${room.id}');
     await RoomService.instance.updateRoomAndRefresh(room);
+    loggerNoLine.i('[MLS] Room updated with new key for room: ${room.id}');
+
     var ws = Get.find<WebsocketService>();
     if (toDeletePubkey != null) {
       ws.removePubkeyFromSubscription(toDeletePubkey);
@@ -527,7 +567,6 @@ $error ''';
         NotifyService.removePubkeys([toDeletePubkey]);
       }
     }
-
     ws.listenPubkeyNip17([newPubkey],
         since: DateTime.fromMillisecondsSinceEpoch(room.version)
             .subtract(Duration(seconds: 3)));
@@ -535,6 +574,8 @@ $error ''';
     if (room.isMute == false) {
       NotifyService.addPubkeys([newPubkey]);
     }
+    loggerNoLine
+        .i('[MLS] replaceListenPubkey END - success for room: ${room.id}');
     return room;
   }
 
@@ -741,7 +782,7 @@ $error ''';
             }
           }
         }
-        logger.d(
+        loggerNoLine.i(
             '${EventKinds.mlsNipKeypackages} start: ${identity.secp256k1PKHex}');
         String event = await _getOrCreateEvent(identity, statePK, onlineRelays);
 
@@ -789,56 +830,86 @@ $error ''';
 
   Future _proccessApplication(Room room, NostrEventModel event, String decoded,
       Function(String) failedCallback) async {
+    loggerNoLine.i('[MLS] Decrypting message for event: ${event.id}');
     DecryptedMessage decryptedMsg = await rust_mls.decryptMessage(
         nostrId: room.myIdPubkey, groupId: room.toMainPubkey, msg: decoded);
+    loggerNoLine.i(
+        '[MLS] Message decrypted, sender: ${decryptedMsg.sender}, event: ${event.id}');
 
     RoomMember? sender = await room.getMemberByIdPubkey(decryptedMsg.sender);
+    loggerNoLine.i(
+        '[MLS] Sender member found: ${sender?.name ?? 'null'} for event: ${event.id}');
+
     KeychatMessage? km;
     try {
       km = KeychatMessage.fromJson(jsonDecode(decryptedMsg.decryptMsg));
+      loggerNoLine
+          .i('[MLS] KeychatMessage parsed successfully for event: ${event.id}');
       // ignore: empty_catches
-    } catch (e) {}
+    } catch (e) {
+      loggerNoLine
+          .i('[MLS] No valid KeychatMessage found for event: ${event.id}');
+    }
+
     await RoomService.instance.receiveDM(room, event,
         km: km,
         decodedContent: decryptedMsg.decryptMsg,
         senderPubkey: decryptedMsg.sender,
         encryptType: MessageEncryptType.mls,
         senderName: sender?.name ?? decryptedMsg.sender);
+    loggerNoLine.i('[MLS] _proccessApplication END - success: ${event.id}');
   }
 
   Future _proccessTryProposalIn(Room room, NostrEventModel event,
       String queuedMsg, Function(String) failedCallback) async {
     if (event.createdAt <= room.version) {
+      logger.w(
+          '[MLS] Event is outdated: ${event.id}, eventTime: ${event.createdAt}, roomVersion: ${room.version}');
       throw Exception('Event is outdated.${event.id}');
     }
+
+    loggerNoLine.i('[MLS] Getting sender for event: ${event.id}');
     var res = await rust_mls.getSender(
         nostrId: room.myIdPubkey,
         groupId: room.toMainPubkey,
         queuedMsg: queuedMsg);
     if (res == null) {
+      logger.e('[MLS] Sender not found for event: ${event.id}');
       throw Exception('Sender not found. ${event.id}');
     }
     String senderPubkey = res;
+    loggerNoLine.i('[MLS] Sender found: $senderPubkey for event: ${event.id}');
+
     RoomMember? sender = await room.getMemberByIdPubkey(senderPubkey);
     String senderName = sender?.name ?? senderPubkey;
+    loggerNoLine.i('[MLS] Sender member: $senderName for event: ${event.id}');
     var before = await getMembers(room);
     CommitResult commitResult = await rust_mls.othersCommitNormal(
         nostrId: room.myIdPubkey,
         groupId: room.toMainPubkey,
         queuedMsg: queuedMsg);
+
     bool isMeRemoved = commitResult.commitType == CommitTypeResult.remove &&
         (commitResult.operatedMembers ?? []).contains(room.myIdPubkey);
+    loggerNoLine.i('[MLS] isMeRemoved: $isMeRemoved for event: ${event.id}');
+
     if (!isMeRemoved) {
+      loggerNoLine.i('[MLS] Processing update keys for event: ${event.id}');
       room = await _proccessUpdateKeys(room, event.createdAt);
+      loggerNoLine.i('[MLS] Update keys processed for event: ${event.id}');
     }
 
     String? realMessage;
     switch (commitResult.commitType) {
       case CommitTypeResult.add:
+        loggerNoLine.i('[MLS] Processing ADD commit for event: ${event.id}');
         List<String>? pubkeys = commitResult.operatedMembers;
         if (pubkeys == null) {
+          logger.e('[MLS] pubkeys is null for ADD commit, event: ${event.id}');
           throw Exception('pubkeys is null');
         }
+        loggerNoLine
+            .i('[MLS] Added ${pubkeys.length} members for event: ${event.id}');
         List<String> diffMembers = [];
         for (String pubkey in pubkeys) {
           RoomMember? member = await room.getMemberByIdPubkey(pubkey);
@@ -848,30 +919,43 @@ $error ''';
             '[System] $senderName added [${diffMembers.join(",")}] to the group';
         break;
       case CommitTypeResult.update:
+        loggerNoLine.i('[MLS] Processing UPDATE commit for event: ${event.id}');
         await RoomService.getController(room.id)?.resetMembers();
         var newMember = await room.getMemberByIdPubkey(senderPubkey);
         newMember ??= RoomMember(
             idPubkey: senderPubkey, name: senderName, roomId: room.id);
         realMessage = 'Hi everyone, I\'m ${newMember.name}!';
 
-        // room member self leaave group
+        // room member self leave group
         if (newMember.status == UserStatusType.removed) {
+          loggerNoLine.i(
+              '[MLS] Member requests to leave: $senderName for event: ${event.id}');
           realMessage =
               '[System] $senderName requests to leave the group chat.';
           bool isAdmin = await room.checkAdminByIdPubkey(room.myIdPubkey);
           if (isAdmin) {
+            loggerNoLine.i(
+                '[MLS] Admin removing member: $senderName for event: ${event.id}');
             removeMembers(room, [newMember]);
+            loggerNoLine
+                .i('[MLS] Member removed: $senderName for event: ${event.id}');
           }
         }
         break;
       case CommitTypeResult.remove:
+        loggerNoLine.i('[MLS] Processing REMOVE commit for event: ${event.id}');
         List<String>? pubkeys = commitResult.operatedMembers;
         if (pubkeys == null) {
+          logger
+              .e('[MLS] pubkeys is null for REMOVE commit, event: ${event.id}');
           realMessage = '[SystemError] remove members failed, pubkeys is null';
           break;
         }
+        loggerNoLine.i(
+            '[MLS] Removed ${pubkeys.length} members for event: ${event.id}');
         // if I'm removed
         if (pubkeys.contains(room.myIdPubkey)) {
+          logger.w('[MLS] I was removed from group for event: ${event.id}');
           realMessage = '[System] You have been removed by admin.';
           room.status = RoomStatus.removedFromGroup;
           await RoomService.instance.updateRoomAndRefresh(room);
@@ -885,21 +969,27 @@ $error ''';
           diffMembers.add(memberName);
         }
         realMessage =
-            '[System] $senderName reomved [${diffMembers.join(",")}] ';
+            '[System] $senderName removed [${diffMembers.join(",")}] ';
         await RoomService.getController(room.id)?.setRoom(room).resetMembers();
 
         break;
       case CommitTypeResult.groupContextExtensions:
+        loggerNoLine.i(
+            '[MLS] Processing GROUP_CONTEXT_EXTENSIONS commit for event: ${event.id}');
         var res = await _handleGroupInfo(room, event, queuedMsg);
         room = res.$1;
         realMessage = res.$2 ?? '[System] $senderName updated group info';
         break;
     }
+
+    loggerNoLine.i(
+        '[MLS] Calling receiveDM with realMessage: $realMessage for event: ${event.id}');
     await RoomService.instance.receiveDM(room, event,
         senderPubkey: senderPubkey,
         encryptType: MessageEncryptType.mls,
         realMessage: realMessage,
         senderName: senderName);
+    loggerNoLine.i('[MLS] _proccessTryProposalIn END - success: ${event.id}');
   }
 
   Future<String> _selfUpdateKeyLocal(Room room,
@@ -998,28 +1088,38 @@ $error ''';
 
   Future waitingForEose({String? recevingKey, List<String>? relays}) async {
     if (recevingKey == null) return;
-    await Utils.waitRelayOnline(defaultRelays: relays);
-    String? subId =
-        Get.find<WebsocketService>().getSubscriptionIdsByPubkey(recevingKey);
-    if (subId == null) return;
-    bool subEventEosed = NostrAPI.instance.subscriptionIdEose.contains(subId);
-    int queryTimes = 0;
-    while (!subEventEosed) {
-      DateTime? last = NostrAPI.instance.subscriptionLastEvent[subId];
-      // get a new events? pending for 500ms
-      if (last == null ||
-          last.isBefore(DateTime.now().subtract(const Duration(seconds: 1)))) {
-        queryTimes++;
-      }
-      if (queryTimes > 3) {
-        logger.e('Not Eose: $subId, but timeout');
-        break;
-      }
+    () async {
+      // waiting for the old pubkey to be Eosed. means that all events proccessed
+      loggerNoLine.i('[MLS] Waiting for EOSE for key: $recevingKey');
+      await Utils.waitRelayOnline(defaultRelays: relays);
+      String? subId =
+          Get.find<WebsocketService>().getSubscriptionIdsByPubkey(recevingKey);
+      if (subId == null) return;
 
-      await Future.delayed(const Duration(milliseconds: 500));
-      subEventEosed = NostrAPI.instance.subscriptionIdEose.contains(subId);
-    }
-    logger.d('done for Eose: $subId');
+      bool subEventEosed = NostrAPI.instance.subscriptionIdEose.contains(subId);
+      int queryTimes = 0;
+
+      while (!subEventEosed) {
+        DateTime? last = NostrAPI.instance.subscriptionLastEvent[subId];
+        // get a new events? pending for 500ms
+        if (last == null ||
+            last.isBefore(
+                DateTime.now().subtract(const Duration(seconds: 1)))) {
+          queryTimes++;
+        }
+        if (queryTimes > 3) {
+          logger.e('Not Eose: $subId, but timeout after $queryTimes attempts');
+          break;
+        }
+
+        await Future.delayed(const Duration(milliseconds: 500));
+        subEventEosed = NostrAPI.instance.subscriptionIdEose.contains(subId);
+      }
+      loggerNoLine.i('[MLS] EOSE wait completed for room: $recevingKey');
+    }()
+        .timeout(Duration(seconds: 10), onTimeout: () {
+      logger.e('Waiting for Eose timeout for $recevingKey');
+    });
   }
 
   // cache event for 10443
@@ -1027,7 +1127,7 @@ $error ''';
       Identity identity, String stateKey, List<String> onlineRelays) async {
     String? state = await Storage.getString(stateKey);
     if (state != null) {
-      logger.d(
+      loggerNoLine.i(
           'Keypackage already exists: ${identity.secp256k1PKHex}, use cached');
       return state;
     }

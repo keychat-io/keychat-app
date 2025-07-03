@@ -88,7 +88,7 @@ class WebviewTabController extends GetxController {
       await webViewController?.setSettings(settings: settings);
     } else {
       // update current text size
-      logger.d(
+      logger.i(
           'updateTextSize: $textSize, ${multiWebviewController.kTextSizeSourceJS}');
       await webViewController?.evaluateJavascript(
           source: multiWebviewController.kTextSizeSourceJS);

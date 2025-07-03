@@ -361,6 +361,7 @@ class EcashController extends GetxController {
       var pendings = await rust_cashu.getLnPendingTransactions();
       Utils.getGetxController<LightningBillController>()
           ?.checkPendings(pendings);
+      // ignore: empty_catches
     } catch (e) {}
     refreshController.refreshCompleted();
   }

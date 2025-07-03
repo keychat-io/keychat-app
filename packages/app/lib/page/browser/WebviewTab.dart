@@ -31,6 +31,7 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
+import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -395,7 +396,9 @@ class _WebviewTabState extends State<WebviewTab> {
         });
 
         controller.addJavaScriptHandler(
-            handlerName: 'keychat', callback: javascriptHandler);
+            handlerName: 'keychat-nostr', callback: javascriptHandlerNostr);
+        controller.addJavaScriptHandler(
+            handlerName: 'keychat-webln', callback: javascriptHandlerWebLN);
         // hide the progress bar
         if (widget.isCache == true) {
           tc.progress.value = 1.0;
@@ -412,12 +415,12 @@ class _WebviewTabState extends State<WebviewTab> {
             action: PermissionResponseAction.GRANT);
       },
       onReceivedIcon: (controller, icon) {
-        // logger.d('onReceivedIcon: ${icon.toString()}');
+        // logger.i('onReceivedIcon: ${icon.toString()}');
       },
       shouldOverrideUrlLoading:
           (controller, NavigationAction navigationAction) async {
         WebUri? uri = navigationAction.request.url;
-        logger.d(
+        logger.i(
             'shouldOverrideUrlLoading: ${uri?.toString()} download: ${navigationAction.shouldPerformDownload}');
         if (uri == null) return NavigationActionPolicy.ALLOW;
 
@@ -434,7 +437,7 @@ class _WebviewTabState extends State<WebviewTab> {
                 isPay: true);
             if (tx != null) {
               var lnTx = tx.field0 as LNTransaction;
-              logger.d('LN Transaction:   Amount=${lnTx.amount}, '
+              logger.i('LN Transaction:   Amount=${lnTx.amount}, '
                   'INfo=${lnTx.info}, Description=${lnTx.fee}, '
                   'Hash=${lnTx.hash}, NodeId=${lnTx.status.name}');
             }
@@ -444,7 +447,7 @@ class _WebviewTabState extends State<WebviewTab> {
             var tx = await ecashController.proccessPayLightningBill(str,
                 isPay: true);
             if (tx != null) {
-              logger.d((tx.field0 as LNTransaction).pr);
+              logger.i((tx.field0 as LNTransaction).pr);
             }
 
             return NavigationActionPolicy.CANCEL;
@@ -454,7 +457,7 @@ class _WebviewTabState extends State<WebviewTab> {
               !str.startsWith('https://docs.google.com/gview')) {
             final googleDocsUrl =
                 'https://docs.google.com/gview?embedded=true&url=${Uri.encodeFull(str)}';
-            logger.d('load pdf: $googleDocsUrl');
+            logger.i('load pdf: $googleDocsUrl');
             await controller.loadUrl(
               urlRequest: URLRequest(url: WebUri.uri(Uri.parse(googleDocsUrl))),
             );
@@ -491,7 +494,7 @@ class _WebviewTabState extends State<WebviewTab> {
           }
           return NavigationActionPolicy.ALLOW;
         } catch (e) {
-          logger.d(e.toString(), error: e);
+          logger.i(e.toString(), error: e);
         }
 
         return NavigationActionPolicy.ALLOW;
@@ -499,8 +502,10 @@ class _WebviewTabState extends State<WebviewTab> {
       onLoadStop: (controller, url) async {
         if (url == null) return;
 
-        controller.injectJavascriptFileFromAsset(
+        await controller.injectJavascriptFileFromAsset(
             assetFilePath: "assets/js/nostr.js");
+        await controller.injectJavascriptFileFromAsset(
+            assetFilePath: "assets/js/webln.js");
         tc.pullToRefreshController?.endRefreshing();
 
         // Inject VConsole for debugging
@@ -543,15 +548,15 @@ class _WebviewTabState extends State<WebviewTab> {
             action: ServerTrustAuthResponseAction.PROCEED);
       },
       onReceivedHttpError: (controller, request, error) async {
-        logger.d(
+        logger.i(
             'onReceivedHttpError: ${request.url.toString()} ${error.statusCode}');
       },
       onDidReceiveServerRedirectForProvisionalNavigation: (controller) async {
-        logger.d(
+        logger.i(
             'onDidReceiveServerRedirectForProvisionalNavigation: ${await controller.getUrl()}');
       },
       onReceivedClientCertRequest: (controller, challenge) {
-        logger.d(
+        logger.i(
             'onReceivedClientCertRequest: ${challenge.protectionSpace.host}');
         return ClientCertResponse(action: ClientCertResponseAction.PROCEED);
       },
@@ -569,7 +574,7 @@ class _WebviewTabState extends State<WebviewTab> {
       onReceivedError: (InAppWebViewController controller,
           WebResourceRequest request, error) async {
         String url = request.url.toString();
-        logger.d('onReceivedError: $url ${error.type} ${error.description}');
+        logger.i('onReceivedError: $url ${error.type} ${error.description}');
         var isForMainFrame = request.isForMainFrame ?? false;
         var isCancel = error.type == WebResourceErrorType.CANCELLED;
         if (!isForMainFrame || isCancel) {
@@ -651,7 +656,7 @@ class _WebviewTabState extends State<WebviewTab> {
         updateTabInfo(widget.uniqueKey, tc.url.value, title);
       },
       onUpdateVisitedHistory: (controller, url, androidIsReload) {
-        // logger.d('onUpdateVisitedHistory: ${url.toString()} $androidIsReload');
+        // logger.i('onUpdateVisitedHistory: ${url.toString()} $androidIsReload');
         onUpdateVisitedHistory(url);
       },
     );
@@ -721,8 +726,8 @@ class _WebviewTabState extends State<WebviewTab> {
   }
 
   // info coming from the JavaScript side!
-  javascriptHandler(List<dynamic> data) async {
-    logger.d('javascriptHandler: $data');
+  javascriptHandlerNostr(List<dynamic> data) async {
+    logger.i('javascriptHandler: $data');
     var method = data[0];
     if (method == 'getRelays') {
       var relays = await RelayService.instance.getEnableList();
@@ -750,7 +755,7 @@ class _WebviewTabState extends State<WebviewTab> {
       return null;
     }
 
-    logger.d('selected: ${identity.secp256k1PKHex}');
+    logger.i('selected: ${identity.secp256k1PKHex}');
     switch (method) {
       case 'getPublicKey':
         return identity.secp256k1PKHex;
@@ -910,7 +915,7 @@ class _WebviewTabState extends State<WebviewTab> {
             .urlEqualTo(uri.toString())
             .findFirst();
         if (exist == null) {
-          logger.d('add bookmark: ${uri.toString()}');
+          logger.i('add bookmark: ${uri.toString()}');
           String? favicon = await controller
               .getFavicon(tc.webViewController!, uri.host)
               .timeout(const Duration(seconds: 3));
@@ -1020,13 +1025,13 @@ class _WebviewTabState extends State<WebviewTab> {
   Future _checkGoBackState(String url) async {
     bool? canGoBack = await tc.webViewController?.canGoBack();
     bool? canGoForward = await tc.webViewController?.canGoForward();
-    logger.d('$url canGoBack: $canGoBack, canGoForward: $canGoForward');
+    logger.i('$url canGoBack: $canGoBack, canGoForward: $canGoForward');
     tc.canGoBack.value = canGoBack ?? false;
     tc.canGoForward.value = canGoForward ?? false;
   }
 
   updateTabInfo(String key, String url0, String title0) {
-    // logger.d('updateTabInfo: $key, $url0, $title0');
+    // logger.i('updateTabInfo: $key, $url0, $title0');
     controller.setTabData(uniqueId: widget.uniqueKey, title: title0, url: url0);
     tc.title.value = title0;
     tc.url.value = url0;
@@ -1109,6 +1114,87 @@ img {
 ''';
 
     await controller.loadData(data: htmlContent, baseUrl: request.url);
+  }
+
+  // info coming from the JavaScript side!
+  javascriptHandlerWebLN(List<dynamic> data) async {
+    logger.i('javascriptHandler: $data');
+    var method = data[0];
+    switch (method) {
+      case 'getInfo':
+        Identity? identity = Get.find<EcashController>().currentIdentity;
+        identity ??= Get.find<HomeController>().getSelectedIdentity();
+        return {
+          'node': {
+            'alias': identity.displayName,
+            'pubkey': identity.secp256k1PKHex,
+          }
+        };
+      case 'signMessage':
+        Identity? identity = Get.find<EcashController>().currentIdentity;
+        identity ??= Get.find<HomeController>().getSelectedIdentity();
+
+        String message = data[1];
+        String signature = await rust_nostr.signSchnorr(
+            privateKey: await identity.getSecp256k1SKHex(), content: message);
+        return {
+          'signature': signature,
+          'message': message,
+        };
+      case 'verifyMessage':
+        Identity? identity = Get.find<EcashController>().currentIdentity;
+        identity ??= Get.find<HomeController>().getSelectedIdentity();
+
+        String signature = data[1];
+        String message = data[2];
+        bool isValid = await rust_nostr.verifySchnorr(
+            pubkey: identity.secp256k1PKHex,
+            content: message,
+            sig: signature,
+            hash: true);
+        return isValid;
+      case 'sendPayment':
+        String? lnbc = data[1];
+        if (lnbc == null || lnbc.isEmpty) {
+          return 'Error: Invoice is empty';
+        }
+        try {
+          Transaction? tr =
+              await ecashController.proccessPayLightningBill(lnbc, isPay: true);
+          if (tr == null) {
+            return 'Error: Payment failed or cancelled';
+          }
+          return (tr.field0 as LNTransaction).pr;
+        } catch (e) {
+          String msg = Utils.getErrorMessage(e);
+          return 'Error: - $msg';
+        }
+      case 'makeInvoice':
+        try {
+          Map source = data[1];
+          int amount = source['amount'] != null && source['amount'].isNotEmpty
+              ? int.parse(source['amount'] ?? '0')
+              : 0;
+          int defaultAmount = source['defaultAmount'] != null &&
+                  source['defaultAmount'].isNotEmpty
+              ? int.parse(source['defaultAmount'] ?? '0')
+              : 0;
+          int invoiceAmount = amount > 0 ? amount : defaultAmount;
+          Transaction? result = await Get.bottomSheet(
+              ignoreSafeArea: false,
+              clipBehavior: Clip.antiAlias,
+              shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
+              CreateInvoicePage(amount: invoiceAmount));
+          if (result != null) {
+            return (result.field0 as LNTransaction).pr;
+          }
+        } catch (e, s) {
+          logger.e(e.toString(), stackTrace: s);
+        }
+
+      default:
+    }
   }
 
   Widget signEventConfirm(

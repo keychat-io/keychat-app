@@ -225,12 +225,12 @@ class ChatxService extends GetxService {
     var startTime = DateTime.now();
     await _initSignalDB(dbPath);
     var endTimeSignal = DateTime.now();
-    logger.d(
+    logger.i(
         "Init SignalDB: ${endTimeSignal.difference(startTime).inMilliseconds} ms");
 
     await MlsGroupService.instance.initDB(dbPath);
     var endTimeMLS = DateTime.now();
-    logger.d(
+    logger.i(
         "Init MLSGroupDB: ${endTimeMLS.difference(endTimeSignal).inMilliseconds} ms");
     return this;
   }
@@ -310,7 +310,7 @@ class ChatxService extends GetxService {
     bool isDel = await rust_signal.deleteSession(
         keyPair: keyPair, address: remoteAddress);
 
-    logger.d("The deleteSignalSessionKPA flag is $isDel");
+    logger.i("The deleteSignalSessionKPA flag is $isDel");
 
     await rust_signal.deleteIdentity(
         keyPair: keyPair, address: remoteAddress.name);

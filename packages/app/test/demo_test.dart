@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:test/test.dart';
 
 void main() {
@@ -7,9 +8,9 @@ void main() {
       throw Exception('RelayDisconnected');
     } catch (e) {
       if (e.toString().contains('RelayDisconnected')) {
-        print('RelayDisconnected, Please check your relay server');
+        debugPrint('RelayDisconnected, Please check your relay server');
       } else {
-        print('Error: $e');
+        debugPrint('Error: $e');
       }
     }
     expect(2 + 2, equals(4));

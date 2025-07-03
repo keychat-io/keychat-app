@@ -104,7 +104,7 @@ class _InviteMemberToMLSState extends State<InviteMemberToMLS>
           "message": message
         });
       } catch (e, s) {
-        logger.d(e.toString(), stackTrace: s);
+        logger.i(e.toString(), stackTrace: s);
       }
     }
     setState(() {

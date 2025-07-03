@@ -286,7 +286,7 @@ class _ChatPage2State extends State<ChatPage> {
                         .difference(controller.lastMessageAddedAt)
                         .inMilliseconds <
                     1500) {
-                  logger.d('wait for 300ms, then send greeting');
+                  logger.i('wait for 300ms, then send greeting');
                   await Future.delayed(const Duration(milliseconds: 300));
                 }
                 await MlsGroupService.instance

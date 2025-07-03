@@ -321,7 +321,7 @@ class RelayService {
         // logger.i('fetchRelayMessageFee, $relay: $payInfo');
         if (payInfo != null) {
           ws.relayMessageFeeModels[relay.url] = payInfo;
-          // logger.d('_fetchCashuPayInfo: ${payInfo.amount} ${payInfo.mints}');
+          // logger.i('_fetchCashuPayInfo: ${payInfo.amount} ${payInfo.mints}');
           ws.relayMessageFeeModels.refresh();
         }
       } catch (e, s) {
@@ -406,7 +406,7 @@ class RelayService {
   Future<RelayFileFee?> initRelayFileFeeModel(String url) async {
     try {
       Map? map = await _fetchFileUploadConfig(url);
-      logger.d('fetchAndSetFileUploadConfig, $url: $map');
+      logger.i('fetchAndSetFileUploadConfig, $url: $map');
       if (map != null) {
         RelayFileFee rufc = RelayFileFee();
         rufc.maxSize = map['maxsize'] ?? 0;

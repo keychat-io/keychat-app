@@ -1,5 +1,3 @@
-library keychat_ecash;
-
 export 'ecash_controller.dart';
 export './cashu_page.dart';
 export './cashu_send.dart';

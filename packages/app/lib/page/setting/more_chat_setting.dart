@@ -11,7 +11,6 @@ import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
-import 'package:app_settings/app_settings.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +18,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:app/page/setting/RelaySetting.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'NostrEvents/NostrEvents_bindings.dart';
 import 'NostrEvents/NostrEvents_page.dart';
@@ -163,9 +163,8 @@ class MoreChatSetting extends StatelessWidget {
           ),
           SettingsTile.navigation(
               title: const Text('Open System Settings'),
-              onPressed: (context) async {
-                await AppSettings.openAppSettings(
-                    type: AppSettingsType.notification);
+              onPressed: (context) {
+                openAppSettings();
               }),
           SettingsTile.navigation(
               title: const Text('Listening Pubkey Stats'),
@@ -236,8 +235,7 @@ class MoreChatSetting extends StatelessWidget {
               EasyLoading.showSuccess(
                   "Please enable this config in system setting");
 
-              await AppSettings.openAppSettings(
-                  type: AppSettingsType.notification);
+              openAppSettings();
               return;
             }
             try {

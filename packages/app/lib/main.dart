@@ -8,8 +8,6 @@ import 'package:app/service/chatx.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:app/utils/MyCustomScrollBehavior.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -26,7 +24,6 @@ import 'page/app_theme.dart';
 import 'page/pages.dart';
 import 'service/identity.service.dart';
 import 'utils/config.dart' as env_config;
-import 'firebase_options.dart';
 
 bool isProdEnv = true;
 
@@ -91,39 +88,12 @@ void initEasyLoading() {
     ..fontSize = 16;
 }
 
-@pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // If you're going to use other Firebase services in the background, such as Firestore,
-  // make sure you call `initializeApp` before using other Firebase services.
-  if (dotenv.get('FCM_API_KEY', fallback: '') != '') {
-    if (Firebase.apps.isEmpty) {
-      var app = await Firebase.initializeApp(
-          name: GetPlatform.isAndroid ? 'keychat-bg' : null,
-          options: DefaultFirebaseOptions.currentPlatform);
-      logger.i('Firebase initialized in background: ${app.name}');
-    }
-    debugPrint("Handling a background message: ${message.messageId}");
-  }
-}
-
 Future<SettingController> initServices() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   await SystemChrome.setPreferredOrientations(
       [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   await dotenv.load(fileName: ".env");
-  if (dotenv.get('FCM_API_KEY', fallback: '') != '') {
-    await Firebase.initializeApp(
-            name: GetPlatform.isAndroid ? 'keychat' : null,
-            options: DefaultFirebaseOptions.currentPlatform)
-        .then((_) {
-      logger.i('Firebase initialized in main');
-      FirebaseMessaging.onBackgroundMessage(
-          _firebaseMessagingBackgroundHandler);
-    }, onError: (error) {
-      logger.e('Firebase initialize failed: $error');
-    });
-  }
 
   await RustLib.init();
   String env = const String.fromEnvironment("MYENV", defaultValue: "prod");

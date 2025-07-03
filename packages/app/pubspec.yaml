@@ -45,7 +45,6 @@ dependencies:
   qr_flutter: ^4.1.0
   settings_ui: ^2.0.2
   search_page: ^2.3.0
-  app_settings: ^6.1.1
   flutter_native_splash: ^2.4.4
   package_info_plus: ^8.3.0
   flutter_spinkit: ^5.2.0 # loading
@@ -56,8 +55,6 @@ dependencies:
   flutter_dotenv: ^5.2.1
   logger: ^2.5.0
   cached_network_image: ^3.4.1
-  onboarding: ^4.0.2
-  # gif: ^2.3.0 # gif support
   queue: ^3.1.0+2
   mutex: ^3.0.1
   pull_to_refresh_flutter3: ^2.0.2
@@ -79,8 +76,8 @@ dependencies:
   freezed_annotation: ^3.0.0
   barcode_scan2: ^4.5.1
   intl: ^0.20.2
-  firebase_core: ^3.14.0
-  firebase_messaging: ^15.2.7
+  firebase_core: ^3.15.0
+  firebase_messaging: ^15.2.8
   async_queue: ^2.0.2
   url_launcher: ^6.3.1
   flutter_inappwebview: ^6.2.0-beta.2

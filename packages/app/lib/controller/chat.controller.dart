@@ -13,6 +13,7 @@ import 'package:app/service/message.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/utils.dart';
+import 'package:easy_debounce/easy_debounce.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
@@ -409,26 +410,25 @@ class ChatController extends GetxController {
 
     textFieldScrollController = ScrollController();
     textEditingController = TextEditingController();
-    autoScrollController = AutoScrollController(
-      viewportBoundaryGetter: () =>
-          Rect.fromLTRB(0, 0, 0, MediaQuery.of(Get.context!).padding.bottom),
-      axis: Axis.vertical,
-    );
+    autoScrollController = AutoScrollController(axis: Axis.vertical);
 
     autoScrollController.addListener(() {
-      bool isCurrent = DBProvider.instance.isCurrentPage(roomObs.value.id);
-      if (!isCurrent) {
-        messagesMore.clear();
-        searchMsgIndex = -1;
-      }
-      if (messagesMore.isNotEmpty &&
-          autoScrollController.position.pixels <= 100) {
-        messages.addAll(sortMessageById(messagesMore));
-        messages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
-        messages.value = List.from(messages);
+      EasyDebounce.debounce(
+          'autoScrollController.addListener', Duration(milliseconds: 200), () {
+        bool isCurrent = DBProvider.instance.isCurrentPage(roomObs.value.id);
+        if (!isCurrent) {
+          messagesMore.clear();
+          searchMsgIndex = -1;
+        }
+        if (messagesMore.isNotEmpty &&
+            autoScrollController.position.pixels <= 100) {
+          messages.addAll(sortMessageById(messagesMore));
+          messages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
+          messages.value = List.from(messages);
 
-        messagesMore.clear();
-      }
+          messagesMore.clear();
+        }
+      });
     });
 
     // load draft

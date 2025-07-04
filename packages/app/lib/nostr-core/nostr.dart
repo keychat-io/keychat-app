@@ -316,6 +316,7 @@ class NostrAPI {
     if (identity.isFromSigner) {
       encryptedEvent = await SignerService.instance.getNip59EventString(
           content: sourceContent,
+          nip17Kind: nip17Kind,
           from: identity.secp256k1PKHex,
           additionalTags: additionalTags,
           to: toPubkey ?? room.toMainPubkey);
@@ -618,6 +619,7 @@ class NostrAPI {
     late NostrEventModel subEvent;
     try {
       subEvent = await _getNostrEventByTo(event, failedCallback);
+      logger.d('subEvent: $subEvent');
     } catch (e) {
       // Maybe mls group room changed receiving address
       failedCallback(e.toString());

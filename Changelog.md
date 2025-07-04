@@ -8,6 +8,7 @@ git log -n 5 --pretty=format:"%h - %s (%ci)"
 3. Fix: `loggerNoLine` will write log to a local file.
 4. Fix: Open links in the bookmark page.
 5. Fix: Remove code warnings.
+6. Fix: Create a mls group when login with amber
 
 ## 1.33.2+6393
 1. Add members to MLS group by inputting a pubkey.

@@ -46,7 +46,7 @@ if (!window.webln) {
         'keychat-webln',
         'getInfo'
       );
-      console.log('getInfo:', res);
+      console.log('getInfo:', JSON.stringify(res));
       return res;
     },
     signMessage: async function (message) {
@@ -97,7 +97,6 @@ if (!window.webln) {
   });
 
   console.log('WebLN plugin injected successfully!');
-  console.log(window.webln);
 } else {
   console.log('WebLN already exists, skipping injection.');
 }

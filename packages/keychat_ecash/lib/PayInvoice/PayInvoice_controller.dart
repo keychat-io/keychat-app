@@ -54,8 +54,11 @@ class PayInvoiceController extends GetxController {
     }
     try {
       EasyLoading.show(status: 'Proccess...');
+      logger.i(
+          'PayInvoiceController: confirmToPayInvoice: mint: $mint, invoice: $invoice');
       Transaction tx =
           await rust_cashu.melt(invoice: invoice, activeMint: mint);
+      logger.i('PayInvoiceController: confirmToPayInvoice: tx: ${tx.field0}');
       EasyLoading.showSuccess('Success');
 
       textController.clear();

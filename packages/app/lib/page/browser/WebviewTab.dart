@@ -508,18 +508,6 @@ class _WebviewTabState extends State<WebviewTab> {
             assetFilePath: "assets/js/webln.js");
         tc.pullToRefreshController?.endRefreshing();
 
-        // Inject VConsole for debugging
-        if (kDebugMode || Get.find<HomeController>().debugModel.value) {
-          await controller.evaluateJavascript(source: """
-          var script = document.createElement('script');
-          script.src = 'https://unpkg.com/vconsole@latest/dist/vconsole.min.js';
-          script.onload = function() {
-            var vConsole = new window.VConsole();
-          };
-          document.head.appendChild(script);
-        """);
-        }
-
         // Restore scroll position if needed
         if (GetPlatform.isAndroid && needRestorePosition) {
           needRestorePosition = false;
@@ -534,16 +522,9 @@ class _WebviewTabState extends State<WebviewTab> {
       },
       onReceivedServerTrustAuthRequest: (_, challenge) async {
         var sslError = challenge.protectionSpace.sslError;
-        if (sslError != null && (sslError.code != null)) {
-          if ((GetPlatform.isIOS || GetPlatform.isMacOS) &&
-              sslError.code == SslErrorType.UNSPECIFIED) {
-            return ServerTrustAuthResponse(
-                action: ServerTrustAuthResponseAction.PROCEED);
-          }
+        logger.i(
+            'onReceivedServerTrustAuthRequest: ${challenge.protectionSpace.host} ${sslError?.code}');
 
-          return ServerTrustAuthResponse(
-              action: ServerTrustAuthResponseAction.PROCEED);
-        }
         return ServerTrustAuthResponse(
             action: ServerTrustAuthResponseAction.PROCEED);
       },

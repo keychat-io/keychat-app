@@ -96,6 +96,12 @@ Keychat implements the following nips:
 [nip55]: https://github.com/nostr-protocol/nips/blob/master/55.md
 [B7]: https://github.com/nostr-protocol/nips/blob/master/B7.md
 
+## WebLN Provider
+[webln.dev](https://www.webln.dev/)
+
+[x] sendPayment
+[x] makeInvoice
+
 ## Getting Started
 
 ```

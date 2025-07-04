@@ -2,6 +2,23 @@ if (!window.webln) {
   const webln = {
     _isEnabled: false,
 
+    async isEnabled() {
+      if (this._isEnabled) {
+        console.log('WebLN: Already enabled.');
+        return { enabled: true };
+      }
+
+      console.log('WebLN: enable() called. Simulating user approval...');
+
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          this._isEnabled = true;
+          console.log('WebLN: User approved. Enabled.');
+          resolve({ enabled: true });
+        }, 100);
+      });
+    },
+
     async enable() {
       if (this._isEnabled) {
         console.log('WebLN: Already enabled.');

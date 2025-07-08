@@ -84,7 +84,7 @@ class ChatController extends GetxController {
   late FocusNode keyboardFocus;
   late AutoScrollController autoScrollController;
   late ScrollController textFieldScrollController;
-  late RefreshController refreshController;
+  late RefreshController _refreshController;
   DateTime lastMessageAddedAt = DateTime.now();
 
   final List<String> featuresIcons = [
@@ -264,6 +264,15 @@ class ChatController extends GetxController {
     }
   }
 
+  bool _refreshInitialized = false;
+  RefreshController getRefreshController() {
+    if (!_refreshInitialized) {
+      _refreshController = RefreshController(initialRefresh: false);
+      _refreshInitialized = true;
+    }
+    return _refreshController;
+  }
+
   initChatPageFeatures() {
     featuresOnTaps = [
       () => pickAndUploadImage(ImageSource.gallery),
@@ -366,7 +375,7 @@ class ChatController extends GetxController {
 
   Future loadMoreChatHistory() async {
     if (messages.isEmpty) {
-      refreshController.loadComplete();
+      getRefreshController().loadComplete();
       return;
     }
 
@@ -376,25 +385,25 @@ class ChatController extends GetxController {
         roomId: roomObs.value.id, from: from, limit: messageLimitPerPage);
 
     if (sortedNewMessages.isEmpty) {
-      refreshController.loadComplete();
+      getRefreshController().loadComplete();
       return; // No new messages to load
     }
 
     sortedNewMessages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
     messages.addAll(sortedNewMessages);
-    refreshController.loadComplete();
+    getRefreshController().loadComplete();
     messages.value = List.from(messages);
   }
 
   @override
   void onClose() {
+    getRefreshController().dispose();
     messages.clear();
     chatContentFocus.dispose();
     keyboardFocus.dispose();
     textEditingController.dispose();
     textFieldScrollController.dispose();
     autoScrollController.dispose();
-    refreshController.dispose();
     super.onClose();
   }
 
@@ -402,7 +411,7 @@ class ChatController extends GetxController {
   void onInit() async {
     chatContentFocus = FocusNode();
     keyboardFocus = FocusNode();
-    refreshController = RefreshController();
+    getRefreshController();
     if (GetPlatform.isDesktop) {
       chatContentFocus.requestFocus();
       messageLimitPerPage = 100;

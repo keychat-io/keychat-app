@@ -101,7 +101,7 @@ class WebsocketService extends GetxService {
     });
   }
 
-  addFaiedEvents(String relay, String raw) {
+  addFailedEvents(String relay, String raw) {
     if (failedEventsMap[relay] == null) {
       failedEventsMap[relay] = {};
     }
@@ -178,7 +178,7 @@ class WebsocketService extends GetxService {
 
   List<String> getActiveRelayString() {
     List<String> res = [];
-    for (RelayWebsocket rw in channels.values) {
+    for (RelayWebsocket rw in List.from(channels.values)) {
       if (rw.relay.active) {
         res.add(rw.relay.url);
       }
@@ -212,7 +212,7 @@ class WebsocketService extends GetxService {
 
   List<String> getOnlineSocketString() {
     List<String> res = [];
-    for (RelayWebsocket rw in channels.values) {
+    for (RelayWebsocket rw in List.from(channels.values)) {
       if (rw.channel != null && rw.isConnected()) {
         res.add(rw.relay.url);
       }
@@ -366,7 +366,7 @@ class WebsocketService extends GetxService {
   }
 
   String? getSubscriptionIdsByPubkey(String pubkey) {
-    for (RelayWebsocket rw in channels.values) {
+    for (RelayWebsocket rw in List.from(channels.values)) {
       for (var entry in rw.subscriptions.entries) {
         if (entry.value.contains(pubkey)) {
           return entry.key;
@@ -464,7 +464,7 @@ class WebsocketService extends GetxService {
     if (relays != null && relays.isNotEmpty) {
       int sent = 0;
       for (String relayUrl in relays) {
-        if (channels[relayUrl]?.isConnected()) {
+        if (channels[relayUrl] != null && channels[relayUrl]!.isConnected()) {
           try {
             channels[relayUrl]!.sendREQ(nostrReq);
             sent++;

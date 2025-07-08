@@ -230,7 +230,7 @@ class MessageWidget extends StatelessWidget {
                           overflow: TextOverflow.ellipsis, style: style),
                     if (message.receiveAt != null)
                       Text(
-                          'Received: ${formatTime(message.receiveAt!.millisecondsSinceEpoch, 'yyyy-MM-dd HH:mm:ss:SSS')}',
+                          'Received: ${formatTime(message.createdAt.millisecondsSinceEpoch, 'yyyy-MM-dd HH:mm:ss:SSS')}',
                           overflow: TextOverflow.ellipsis,
                           style: style),
                   ]),

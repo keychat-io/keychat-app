@@ -603,7 +603,7 @@ class RoomService extends BaseChatService {
     if (realMessage == null && reply != null) {
       realMessageContent = content;
     }
-    await _checkWebsocketConnect();
+    await checkWebsocketConnect();
 
     if (room.type == RoomType.group) {
       room = await getRoomByIdOrFail(room.id);
@@ -745,7 +745,7 @@ class RoomService extends BaseChatService {
     updateChatRoomPage(room);
   }
 
-  Future _checkWebsocketConnect() async {
+  Future checkWebsocketConnect() async {
     bool netStatus =
         Utils.getGetxController<HomeController>()!.isConnectedNetwork.value;
     if (!netStatus) {

@@ -213,8 +213,11 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                                       try {
                                         EasyLoading.show(
                                             status: 'Processing...');
+                                        Room room = await RoomService.instance
+                                            .getRoomByIdOrFail(
+                                                cc.roomObs.value.id);
                                         await MlsGroupService.instance
-                                            .selfUpdateKey(cc.roomObs.value);
+                                            .selfUpdateKey(room);
                                         EasyLoading.showSuccess('Success');
                                       } catch (e, s) {
                                         String msg = Utils.getErrorMessage(e);

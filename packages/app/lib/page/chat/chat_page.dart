@@ -211,7 +211,8 @@ class _ChatPage2State extends State<ChatPage> {
                                     enablePullUp: true,
                                     scrollController:
                                         controller.autoScrollController,
-                                    controller: controller.refreshController,
+                                    controller:
+                                        controller.getRefreshController(),
                                     onLoading: controller.loadMoreChatHistory,
                                     child: ListView.builder(
                                       reverse: true,
@@ -276,19 +277,32 @@ class _ChatPage2State extends State<ChatPage> {
         !controller.roomObs.value.sentHelloToMLS) {
       return _inputSectionContainer(FilledButton(
           onPressed: () async {
-            EasyThrottle.throttle('sendGreeting', Duration(seconds: 3),
+            EasyThrottle.throttle('sendGreeting', Duration(seconds: 5),
                 () async {
               try {
                 EasyLoading.show(
                     status:
                         '1. Receving all messages... \n2. Sending greeting...');
-                while (DateTime.now()
-                        .difference(controller.lastMessageAddedAt)
-                        .inMilliseconds <
-                    1500) {
-                  logger.i('wait for 300ms, then send greeting');
-                  await Future.delayed(const Duration(milliseconds: 300));
+                Room room = await RoomService.instance
+                    .getRoomByIdOrFail(controller.roomObs.value.id);
+
+                while (true) {
+                  String receivingKey = room.onetimekey!;
+                  EasyLoading.show(status: 'Receiving from: $receivingKey');
+                  await MlsGroupService.instance.waitingForEose(
+                      receivingKey: receivingKey,
+                      relays: controller.roomObs.value.sendingRelays);
+                  await Future.delayed(Duration(milliseconds: 500));
+                  room = await RoomService.instance
+                      .getRoomByIdOrFail(controller.roomObs.value.id);
+                  if (receivingKey == room.onetimekey) {
+                    loggerNoLine.i('Receiving key matched: $receivingKey');
+                    break;
+                  }
+                  loggerNoLine
+                      .i('Waiting for receiving key to match: $receivingKey');
                 }
+
                 await MlsGroupService.instance
                     .sendGreetingMessage(controller.roomObs.value);
                 EasyLoading.dismiss();

@@ -890,20 +890,17 @@ class Utils {
   static Future<List<String>> waitRelayOnline(
       {List<String>? defaultRelays}) async {
     WebsocketService? ws = getGetxController<WebsocketService>();
-    int initAttempts = 0;
-    const maxInitAttempts = 5;
 
-    while (ws == null && initAttempts < maxInitAttempts) {
-      initAttempts++;
-      logger.i(
-          'Waiting for WebsocketService to initialize... ($initAttempts/$maxInitAttempts)');
+    for (int initAttempts = 1; initAttempts <= 5; initAttempts++) {
+      if (ws != null) break;
+      logger
+          .i('Waiting for WebsocketService to initialize... ($initAttempts/5)');
       await Future.delayed(const Duration(milliseconds: 300));
       ws = getGetxController<WebsocketService>();
     }
 
     if (ws == null) {
-      logger.e(
-          'Failed to initialize WebsocketService after $maxInitAttempts attempts');
+      logger.e('Failed to initialize WebsocketService');
       return [];
     }
     List<String> onlineRelays = ws.getOnlineSocketString();
@@ -911,22 +908,23 @@ class Utils {
     if (activeRelays.isEmpty) {
       activeRelays = ws.getActiveRelayString();
     }
-    int connectAttemptTimes = 0;
-    int connectMaxAttemptTimes = 5;
-
-    while (getIntersection(onlineRelays, activeRelays).isEmpty &&
-        connectAttemptTimes < connectMaxAttemptTimes) {
+    List<String> result = getIntersection(onlineRelays, activeRelays);
+    for (var checkRelayOnlineTimes = 0;
+        checkRelayOnlineTimes < 5;
+        checkRelayOnlineTimes++) {
+      if (result.isNotEmpty) {
+        return result;
+      }
       var debug = {
-        connectAttemptTimes: connectAttemptTimes,
+        checkRelayOnlineTimes: checkRelayOnlineTimes,
         'onlineRelays': onlineRelays,
         'activeRelays': activeRelays,
       };
       logger.i('Waiting for relays to be available... $debug');
       await Future.delayed(const Duration(seconds: 1));
-      connectAttemptTimes++;
       onlineRelays = ws.getOnlineSocketString();
     }
-    return getIntersection(onlineRelays, activeRelays);
+    return result;
   }
 
   static String _getDisplayName(String account, int nameLength) {

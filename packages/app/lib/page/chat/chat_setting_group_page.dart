@@ -192,6 +192,23 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                           title: const Text("Update My Group Key"),
                           leading: const Icon(Icons.refresh),
                           onPressed: (context) async {
+                            // Get the room ID to use as part of the storage key
+                            String storageKey =
+                                'UpdateMyGroupKey:${cc.roomObs.value.id}';
+                            int? lastUpdateTime =
+                                await Storage.getInt(storageKey);
+                            int now = DateTime.now().millisecondsSinceEpoch;
+
+                            // Check if it's been less than a day since the last update
+                            if (lastUpdateTime != null &&
+                                now - lastUpdateTime < 24 * 60 * 60 * 1000) {
+                              EasyLoading.showInfo(
+                                'You can only update once per day.',
+                                duration: const Duration(seconds: 3),
+                              );
+                              return;
+                            }
+
                             await Get.dialog(CupertinoAlertDialog(
                               title: const Text("Update My Group Key"),
                               content: const Text(
@@ -218,6 +235,10 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                                                 cc.roomObs.value.id);
                                         await MlsGroupService.instance
                                             .selfUpdateKey(room);
+
+                                        // Save the current timestamp when update is successful
+                                        await Storage.setInt(storageKey, now);
+
                                         EasyLoading.showSuccess('Success');
                                       } catch (e, s) {
                                         String msg = Utils.getErrorMessage(e);

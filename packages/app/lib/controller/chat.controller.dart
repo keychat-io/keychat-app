@@ -168,7 +168,7 @@ class ChatController extends GetxController {
     }
   }
 
-  deleteMessage(Message message) async {
+  Future<void> deleteMessage(Message message) async {
     await MessageService.instance.deleteMessageById(message.id);
     messages.remove(message);
   }

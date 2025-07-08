@@ -206,6 +206,8 @@ class _ChatPage2State extends State<ChatPage> {
                               },
                               child: Obx(
                                 () => SmartRefresher(
+                                    key: ValueKey(
+                                        'chatRefresh:${controller.roomObs.value.id}'),
                                     reverse: true,
                                     enablePullDown: false,
                                     enablePullUp: true,

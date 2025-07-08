@@ -2,13 +2,14 @@
 https://keepachangelog.com/zh-CN/1.1.0
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
-## 1.34.1+6399
-1. Add `window.webln` to webview, supporting `sendPayment` and `makeInvoice`.
-2. Add `try-catch` blocks and logging to MLS group methods.
-3. Fix: `loggerNoLine` will write log to a local file.
-4. Fix: Open links in the bookmark page.
-5. Fix: Remove code warnings.
-6. Fix: Create a mls group when login with amber
+## 1.33.4+6400
+1. Re-send message raw data when message send failed.
+2. Add `window.webln` to webview, supporting `sendPayment` and `makeInvoice`.
+3. Add `try-catch` blocks and logging to MLS group methods.
+4. Fix: `loggerNoLine` will write log to a local file.
+5. Fix: Open links in the bookmark page.
+6. Fix: Remove code warnings.
+7. Fix: Create a mls group when login with amber
 
 ## 1.33.2+6393
 1. Add members to MLS group by inputting a pubkey.

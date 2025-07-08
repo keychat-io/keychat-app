@@ -436,7 +436,7 @@ class WebsocketService extends GetxService {
         if (channels[relay] != null &&
             channels[relay]!.isConnected() &&
             channels[relay]!.channel != null) {
-          channels[relay]!.sendRawREQ("[\"EVENT\",$content]");
+          channels[relay]!.sendRawREQ(content);
           sent++;
         }
       }

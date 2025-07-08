@@ -273,8 +273,10 @@ class NostrAPI {
         eventString: encryptedEvent,
         roomId: room.parentRoom?.id ?? room.id,
         toRelays: room.sendingRelays);
+    SendStatusType sendStatusType = SendStatusType.success;
     if (save && relays.isEmpty) {
-      throw Exception(ErrorMessages.relayIsEmptyException);
+      // throw Exception(ErrorMessages.relayIsEmptyException);
+      sendStatusType = SendStatusType.failed;
     }
     if (!save) {
       return SendMessageResponse(events: [event], msgKeyHash: msgKeyHash);
@@ -285,6 +287,7 @@ class NostrAPI {
         from: from,
         to: toPubkey,
         isSystem: isSystem ?? false,
+        sent: sendStatusType,
         senderPubkey: room.myIdPubkey,
         content: sourceContent ?? toEncryptText,
         realMessage: realMessage,
@@ -297,7 +300,7 @@ class NostrAPI {
     return SendMessageResponse(events: [event], message: model);
   }
 
-  /// timestampTweaked: true-random timestamp in 0~2days ago
+  // timestampTweaked: true-random timestamp in 0~2days ago
   Future<SendMessageResponse> sendNip17Message(
     Room room,
     String sourceContent,

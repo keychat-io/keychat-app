@@ -60,7 +60,8 @@ class MlsGroupService extends BaseChatService {
     // send sync message to other member
     groupRoom = await RoomService.instance.getRoomByIdOrFail(groupRoom.id);
     await sendEncryptedMessage(groupRoom, data.queuedMsg,
-        realMessage: 'Invite [${userNameMap.values.join(', ')}] to join group');
+        realMessage:
+            '[System] Invite [${userNameMap.values.join(', ')}] to join group');
     await rust_mls.selfCommit(
         nostrId: identity.secp256k1PKHex, groupId: groupRoom.toMainPubkey);
     groupRoom = await _proccessUpdateKeys(groupRoom);
@@ -256,48 +257,6 @@ $error ''';
       await appendMessageOrCreate(msg, room, 'mls decrypt failed', event);
     }
   }
-
-  // Future deleteOldKeypackage(List<Identity> identities) async {
-  //   if (identities.isEmpty) return;
-  //   var ws = Get.find<WebsocketService>();
-  //   await Future.forEach(identities, (identity) async {
-  //     NostrReqModel req = NostrReqModel(
-  //         reqId: generate64RandomHexChars(16),
-  //         authors: [identity.secp256k1PKHex],
-  //         kinds: [EventKinds.nip104KP],
-  //         limit: 10,
-  //         since: DateTime.now().subtract(Duration(days: 365)));
-  //     List<RelayWebsocket> relays = ws.getOnlineNip104Relay();
-  //     List<NostrEventModel> list = await ws.fetchInfoFromRelay(
-  //         req.reqId, req.toString(),
-  //         waitTimeToFill: true, sockets: relays);
-  //     Get.find<WebsocketService>().sendMessage(Close(req.reqId).serialize());
-  //     if (list.isEmpty) return;
-  //     var ess = list.map((e) => ['e', e.id]);
-  //     var event = await NostrAPI.instance.signEventByIdentity(
-  //         identity: identity,
-  //         content: "delete",
-  //         createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-  //         kind: EventKinds.delete,
-  //         tags: [
-  //           ...ess,
-  //           ["k", EventKinds.nip104KP.toString()]
-  //         ]);
-  //     Get.find<WebsocketService>().sendMessageWithCallback(event, callback: (
-  //         {required String relay,
-  //         required String eventId,
-  //         required bool status,
-  //         String? errorMessage}) async {
-  //       NostrAPI.instance.removeOKCallback(eventId);
-  //       var map = {
-  //         'relay': relay,
-  //         'status': status,
-  //         'errorMessage': errorMessage,
-  //       };
-  //       loggerNoLine.i('fetchOldKeypackageAndDelete callback: $map');
-  //     });
-  //   });
-  // }
 
   Future dissolve(Room room) async {
     await RoomService.instance.checkWebsocketConnect();
@@ -630,6 +589,7 @@ $error ''';
             kind: EventKinds.nip17,
             save: save,
             sourceContent: message,
+            isSystem: true,
             realMessage: realMessage,
             isEncryptedMessage: true,
             additionalTags: additionalTags ??
@@ -755,7 +715,7 @@ $error ''';
         groupId: room.toMainPubkey,
         groupName: newName);
     await sendEncryptedMessage(room, res,
-        realMessage: '[System]Update group name to: $newName');
+        realMessage: '[System] Update group name to: $newName');
     await rust_mls.selfCommit(
         nostrId: room.myIdPubkey, groupId: room.toMainPubkey);
     room = await replaceListenPubkey(room);
@@ -796,7 +756,8 @@ $error ''';
             '${EventKinds.mlsNipKeypackages} start: ${identity.secp256k1PKHex}');
         String event = await _getOrCreateEvent(identity, statePK, onlineRelays);
 
-        Get.find<WebsocketService>().sendMessageWithCallback(event,
+        Get.find<WebsocketService>().sendMessageWithCallback(
+            "[\"EVENT\",$event]",
             relays: toRelay == null ? null : [toRelay], callback: (
                 {required String relay,
                 required String eventId,
@@ -1084,7 +1045,7 @@ $error ''';
       'status': UserStatusType.removed.name,
       'name': room.getIdentity().displayName
     });
-    String realMessage = 'I am exiting the group chat';
+    String realMessage = '[System] I am exiting the group chat';
     await sendEncryptedMessage(room, queuedMsg,
         realMessage: realMessage, save: false);
   }

@@ -289,8 +289,14 @@ class WebsocketService extends GetxService {
         since: since,
         limit: limit,
         kinds: [EventKinds.nip17]);
-
-    sendReq(req, relays: relays);
+    try {
+      sendReq(req, relays: relays);
+    } catch (e) {
+      if (e.toString().contains('RelayDisconnected')) {
+        EasyLoading.showToast('Disconnected, Please check your relay server');
+      }
+      logger.e('error: $e');
+    }
     return req;
   }
 

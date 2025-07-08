@@ -981,8 +981,8 @@ class Utils {
       EasyLoading.dismiss();
 
       return res;
-    } catch (e) {
-      EasyLoading.dismiss();
+    } catch (e, s) {
+      logger.e('Failed to create identity: $e', stackTrace: s);
       EasyLoading.showError("Failed to create identity: $e");
     }
     return null;

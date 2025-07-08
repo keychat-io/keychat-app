@@ -139,9 +139,14 @@ class Login extends StatelessWidget {
                 fit: BoxFit.contain, width: 20, height: 20),
             title: const Text("Login with Amber App"),
             onPressed: (context) async {
-              var identity = await Utils.handleAmberLogin();
-              if (identity != null) {
-                Get.offAllNamed(Routes.root, arguments: true);
+              try {
+                var identity = await Utils.handleAmberLogin();
+                if (identity != null) {
+                  Get.offAllNamed(Routes.root, arguments: true);
+                }
+              } catch (e, s) {
+                EasyLoading.showError(e.toString());
+                logger.e(e.toString(), stackTrace: s);
               }
             },
           )

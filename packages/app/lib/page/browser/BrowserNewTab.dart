@@ -75,11 +75,11 @@ class BrowserNewTab extends GetView<MultiWebviewController> {
                           onFieldSubmitted: submitSearchForm,
                         ),
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
                       if (controller.favorites.isNotEmpty) QuickSection(),
                       const SizedBox(height: 16),
                       functionSection(context),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
                     ])))));
   }
 

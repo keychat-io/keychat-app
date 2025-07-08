@@ -985,14 +985,11 @@ $error ''';
         break;
     }
 
-    loggerNoLine.i(
-        '[MLS] Calling receiveDM with realMessage: $realMessage for event: ${event.id}');
     await RoomService.instance.receiveDM(room, event,
         senderPubkey: senderPubkey,
         encryptType: MessageEncryptType.mls,
         realMessage: realMessage,
         senderName: senderName);
-    loggerNoLine.i('[MLS] _proccessTryProposalIn END - success: ${event.id}');
   }
 
   Future<String> _selfUpdateKeyLocal(Room room,
@@ -1115,14 +1112,14 @@ $error ''';
       if (hasNewEvent) {
         lastEventTime = currentEventTime;
         lastChangeTime = DateTime.now();
-        logger.d('New event detected for recevingKey: $receivingKey');
+        logger.d('New event detected for receivingKey: $receivingKey');
       }
 
       // Exit condition 1: EOSE received and no new messages for 1 second
       if (currentEosed &&
           DateTime.now().difference(lastChangeTime).inSeconds >= 1) {
         logger.d(
-            'EOSE received and no new events for 1s for recevingKey: $receivingKey');
+            'EOSE received and no new events for 1s for receivingKey: $receivingKey');
         break;
       }
 
@@ -1130,7 +1127,7 @@ $error ''';
       if (!currentEosed &&
           DateTime.now().difference(lastChangeTime).inSeconds >= 2) {
         logger.w(
-            'No EOSE received but no new events for 2s for recevingKey: $receivingKey');
+            'No EOSE received but no new events for 2s for receivingKey: $receivingKey');
         break;
       }
 
@@ -1138,7 +1135,7 @@ $error ''';
     }
 
     logger.d(
-        'Done waiting for events on recevingKey: $receivingKey, EOSE: ${NostrAPI.instance.subscriptionIdEose.contains(subId)}');
+        'Done waiting for events on receivingKey: $receivingKey, EOSE: ${NostrAPI.instance.subscriptionIdEose.contains(subId)}');
   }
 
   // cache event for 10443

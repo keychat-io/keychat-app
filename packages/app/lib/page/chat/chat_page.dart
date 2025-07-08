@@ -17,7 +17,6 @@ import 'package:app/service/contact.service.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/signal_chat.service.dart';
-import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -29,7 +28,6 @@ import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:settings_ui/settings_ui.dart';
 
-// ignore: must_be_immutable
 class ChatPage extends StatefulWidget {
   final Room? room;
   const ChatPage({this.room, super.key});
@@ -50,6 +48,8 @@ class _ChatPage2State extends State<ChatPage> {
   late Color toBackgroundColor;
   late MarkdownConfig markdownLightConfig;
   late Color fontColor;
+  bool isSendGreeting = false;
+
   @override
   void initState() {
     Room room = _getRoomAndInit(context);
@@ -277,40 +277,49 @@ class _ChatPage2State extends State<ChatPage> {
         !controller.roomObs.value.sentHelloToMLS) {
       return _inputSectionContainer(FilledButton(
           onPressed: () async {
-            EasyThrottle.throttle('sendGreeting', Duration(seconds: 5),
-                () async {
-              try {
-                EasyLoading.show(
-                    status:
-                        '1. Receving all messages... \n2. Sending greeting...');
-                Room room = await RoomService.instance
+            if (isSendGreeting) {
+              EasyLoading.showToast('Proccessing, please wait...');
+              return;
+            }
+            try {
+              isSendGreeting = true;
+              EasyLoading.show(
+                  status:
+                      '1. Receving all messages... \n2. Sending greeting...');
+              Room room = await RoomService.instance
+                  .getRoomByIdOrFail(controller.roomObs.value.id);
+
+              while (true) {
+                String receivingKey = room.onetimekey!;
+                EasyLoading.show(status: 'Receiving from: $receivingKey');
+                await MlsGroupService.instance.waitingForEose(
+                    receivingKey: receivingKey,
+                    relays: controller.roomObs.value.sendingRelays);
+                await Future.delayed(Duration(milliseconds: 500));
+                room = await RoomService.instance
                     .getRoomByIdOrFail(controller.roomObs.value.id);
 
-                while (true) {
-                  String receivingKey = room.onetimekey!;
-                  EasyLoading.show(status: 'Receiving from: $receivingKey');
-                  await MlsGroupService.instance.waitingForEose(
-                      receivingKey: receivingKey,
-                      relays: controller.roomObs.value.sendingRelays);
-                  await Future.delayed(Duration(milliseconds: 500));
-                  room = await RoomService.instance
-                      .getRoomByIdOrFail(controller.roomObs.value.id);
-                  if (receivingKey == room.onetimekey) {
-                    loggerNoLine.i('Receiving key matched: $receivingKey');
-                    break;
-                  }
-                  loggerNoLine
-                      .i('Waiting for receiving key to match: $receivingKey');
+                if (receivingKey == room.onetimekey &&
+                    DateTime.now()
+                            .difference(controller.lastMessageAddedAt)
+                            .inSeconds >
+                        2) {
+                  loggerNoLine.i('Receiving key matched: $receivingKey');
+                  break;
                 }
-
-                await MlsGroupService.instance
-                    .sendGreetingMessage(controller.roomObs.value);
-                EasyLoading.dismiss();
-              } catch (e) {
-                String msg = Utils.getErrorMessage(e);
-                EasyLoading.showError(msg);
+                loggerNoLine
+                    .i('Waiting for receiving key to match: $receivingKey');
               }
-            });
+
+              await MlsGroupService.instance
+                  .sendGreetingMessage(controller.roomObs.value);
+              EasyLoading.dismiss();
+            } catch (e) {
+              String msg = Utils.getErrorMessage(e);
+              EasyLoading.showError(msg);
+            } finally {
+              isSendGreeting = false;
+            }
           },
           child: Text('Send Greeting')));
     }

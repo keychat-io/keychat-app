@@ -63,7 +63,7 @@ jobs:
           echo "version_short=$VERSION_SHORT" >> $GITHUB_OUTPUT
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
   build-linux:
-    if: ${{ env.BUILD_LINUX }}
+    if: ${{ env.BUILD_LINUX == 'true' }}
     runs-on: ubuntu-22.04
     needs: get-version
     steps:
@@ -125,7 +125,7 @@ jobs:
           cd ./packages/app/ && rm -f .env
 
   build-windows:
-    if: ${{ env.BUILD_WINDOWS }}
+    if: ${{ env.BUILD_WINDOWS == 'true' }}
     runs-on: windows-latest
     needs: get-version
     steps:
@@ -169,7 +169,7 @@ jobs:
           overwrite: true
 
   build-android:
-    if: ${{ env.BUILD_ANDROID }}
+    if: ${{ env.BUILD_ANDROID == 'true' }}
     runs-on: ubuntu-22.04
     needs: get-version
     steps:
@@ -411,7 +411,7 @@ jobs:
           rm -f .env
           rm -f macos/Runner/GoogleService-Info.plist
   upload:
-    if: ${{ env.BUILD_UPLOAD }}
+    if: ${{ env.BUILD_UPLOAD == 'true' }}
     permissions: write-all
     needs: [get-version, build-windows, build-linux, build-android]
     runs-on: ubuntu-latest

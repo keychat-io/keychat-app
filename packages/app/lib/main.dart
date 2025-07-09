@@ -54,14 +54,6 @@ void main() async {
       darkTheme: AppThemeCustom.dark(),
       scrollBehavior: MyCustomScrollBehavior());
 
-  // fix https://github.com/flutter/flutter/issues/119465
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarBrightness: Brightness.light,
-    statusBarIconBrightness: Brightness.dark,
-    statusBarColor: Colors.transparent,
-    systemNavigationBarColor: Colors.transparent,
-  ));
   runApp(getMaterialApp);
   WidgetsBinding.instance.addPostFrameCallback((_) async {
     await WidgetsBinding.instance.endOfFrame;

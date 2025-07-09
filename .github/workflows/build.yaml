@@ -74,7 +74,7 @@ jobs:
           sudo apt-get update -y && sudo apt-get upgrade -y
           sudo apt-get install -y curl libcurl4-openssl-dev git unzip xz-utils zip libglu1-mesa
           sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
-          cargo install flutter_rust_bridge_codegen@2.9.0
+          cargo install flutter_rust_bridge_codegen@2.10.0
           rustup target add x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu
       - name: Setup Flutter
         uses: subosito/flutter-action@v2

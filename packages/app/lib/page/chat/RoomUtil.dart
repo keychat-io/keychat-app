@@ -127,45 +127,50 @@ Let's start an encrypted chat.''';
 
   // auto to delete messages and event logs
   static Future executeAutoDelete() async {
-    // delete nostr event log
-    await DBProvider.database.writeTxn(() async {
-      await DBProvider.database.nostrEventStatus
+    try {
+      // delete nostr event log
+      await DBProvider.database.writeTxn(() async {
+        await DBProvider.database.nostrEventStatus
+            .filter()
+            .createdAtLessThan(
+                DateTime.now().subtract(const Duration(days: 180)))
+            .deleteAll();
+      });
+      // excute auto delete message by user setting
+      int timestamp =
+          await Storage.getIntOrZero(StorageKeyString.autoDeleteMessageDays);
+      if (timestamp > 0 &&
+          DateTime.now()
+                  .difference(DateTime.fromMillisecondsSinceEpoch(timestamp))
+                  .inDays <
+              1) {
+        logger.i('auto_delete_message been executed today. Skip');
+        return;
+      }
+      await Storage.setInt(StorageKeyString.autoDeleteMessageDays,
+          DateTime.now().millisecondsSinceEpoch);
+      logger.i('The auto tasks been executed');
+      List<Room> list = await DBProvider.database.rooms
           .filter()
-          .createdAtLessThan(DateTime.now().subtract(const Duration(days: 180)))
-          .deleteAll();
-    });
-    // excute auto delete message by user setting
-    int timestamp =
-        await Storage.getIntOrZero(StorageKeyString.autoDeleteMessageDays);
-    if (timestamp > 0 &&
-        DateTime.now()
-                .difference(DateTime.fromMillisecondsSinceEpoch(timestamp))
-                .inDays <
-            1) {
-      logger.i('auto_delete_message been executed today. Skip');
-      return;
-    }
-    await Storage.setInt(StorageKeyString.autoDeleteMessageDays,
-        DateTime.now().millisecondsSinceEpoch);
-    logger.i('The auto tasks been executed');
-    List<Room> list = await DBProvider.database.rooms
-        .filter()
-        .autoDeleteDaysGreaterThan(0)
-        .findAll();
-    for (Room room in list) {
-      await RoomUtil.excuteAutoDeleteRoomMessages(
-          room.identityId, room.id, room.autoDeleteDays);
-    }
+          .autoDeleteDaysGreaterThan(0)
+          .findAll();
+      for (Room room in list) {
+        await RoomUtil.excuteAutoDeleteRoomMessages(
+            room.identityId, room.id, room.autoDeleteDays);
+      }
 
-    // room setting > global setting
-    DateTime fromAt = DateTime.now().subtract(const Duration(days: 180));
-    var start = BigInt.from(fromAt.millisecondsSinceEpoch);
-    rust_cashu.removeTransactions(
-        unixTimestampMsLe: start, kind: TransactionStatus.success);
-    rust_cashu.removeTransactions(
-        unixTimestampMsLe: start, kind: TransactionStatus.expired);
-    rust_cashu.removeTransactions(
-        unixTimestampMsLe: start, kind: TransactionStatus.failed);
+      // room setting > global setting
+      DateTime fromAt = DateTime.now().subtract(const Duration(days: 180));
+      var start = BigInt.from(fromAt.millisecondsSinceEpoch);
+      rust_cashu.removeTransactions(
+          unixTimestampMsLe: start, kind: TransactionStatus.success);
+      rust_cashu.removeTransactions(
+          unixTimestampMsLe: start, kind: TransactionStatus.expired);
+      rust_cashu.removeTransactions(
+          unixTimestampMsLe: start, kind: TransactionStatus.failed);
+    } catch (e, s) {
+      logger.e('executeAutoDelete:${e.toString()}', stackTrace: s);
+    }
   }
 
   static Future excuteAutoDeleteRoomMessages(

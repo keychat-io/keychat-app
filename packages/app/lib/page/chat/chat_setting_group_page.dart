@@ -3,6 +3,7 @@ import 'package:app/app.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:easy_debounce/easy_throttle.dart';
+import 'package:flutter/foundation.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_mls.dart' as rust_mls;
 
@@ -200,7 +201,8 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                             int now = DateTime.now().millisecondsSinceEpoch;
 
                             // Check if it's been less than a day since the last update
-                            if (lastUpdateTime != null &&
+                            if (kReleaseMode &&
+                                lastUpdateTime != null &&
                                 now - lastUpdateTime < 24 * 60 * 60 * 1000) {
                               EasyLoading.showInfo(
                                 'You can only update once per day.',

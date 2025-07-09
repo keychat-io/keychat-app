@@ -175,15 +175,15 @@ class DbSetting {
         final decrypted =
             encrypter.decryptBytes(encrypt.Encrypted(encryptedContent), iv: iv);
 
-        final targetFile = File('$targetDirectory/$fileName');
+        final targetFile = File('$targetDirectory$fileName');
         await targetFile.writeAsBytes(decrypted);
       }
       // parse sharedPreferences data
       await importSharedPreferences(targetDirectory);
       await importSecureStorage(targetDirectory);
       return true;
-    } catch (e) {
-      logger.e("Error occurred: $e");
+    } catch (e, s) {
+      logger.e("Error occurred: $e", stackTrace: s);
       return false;
     }
   }
@@ -317,7 +317,7 @@ class DbSetting {
     try {
       // first clear old data
       await SecureStorage.instance.clearAll();
-      String filePath = '$importFilePath/secure_storage.json';
+      String filePath = '${importFilePath}secure_storage.json';
 
       File file = File(filePath);
       String jsonData = await file.readAsString();

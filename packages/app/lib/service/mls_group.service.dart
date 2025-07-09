@@ -3,6 +3,7 @@ import 'dart:convert'
     show base64Decode, base64Encode, jsonDecode, jsonEncode, utf8;
 
 import 'package:app/constants.dart';
+import 'package:app/controller/chat.controller.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
@@ -1125,5 +1126,44 @@ $error ''';
         ]);
     await Storage.setString(stateKey, event);
     return event;
+  }
+
+  Future<void> fixMlsOnetimeKey(List<Room> rooms) async {
+    await Utils.waitRelayOnline();
+    for (Room room in rooms) {
+      try {
+        while (true) {
+          ChatController? cc = RoomService.getController(room.id);
+          if (cc == null) break;
+          await Future.delayed(Duration(seconds: 1));
+          if (DateTime.now().difference(cc.lastMessageAddedAt).inSeconds > 2) {
+            loggerNoLine.i('[MLS] Waiting for room ${room.id} to be ready');
+            break;
+          }
+        }
+
+        // no any new messages
+        String newPubkey = await rust_mls
+            .getListenKeyFromExportSecret(
+                nostrId: room.myIdPubkey, groupId: room.toMainPubkey)
+            .timeout(Duration(seconds: 2));
+
+        if (room.onetimekey == null || room.onetimekey != newPubkey) {
+          loggerNoLine.i('[MLS] Room ${room.id} update onetime key $newPubkey');
+          room.onetimekey = newPubkey;
+          await RoomService.instance.updateRoomAndRefresh(room);
+          Get.find<WebsocketService>().listenPubkeyNip17([newPubkey],
+              since: DateTime.fromMillisecondsSinceEpoch(room.version * 1000)
+                  .subtract(Duration(seconds: 3)),
+              relays: room.sendingRelays);
+
+          if (room.isMute == false) {
+            NotifyService.addPubkeys([newPubkey]);
+          }
+        }
+      } catch (e) {
+        logger.e('[MLS] Failed to get new pubkey for room ${room.id}: $e');
+      }
+    }
   }
 }

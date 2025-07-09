@@ -737,6 +737,11 @@ class ChatController extends GetxController {
   _initRoom() async {
     // group
     if (roomObs.value.type == RoomType.group) {
+      if (roomObs.value.isMLSGroup) {
+        Future.delayed(Duration(seconds: 2)).then((value) => {
+              MlsGroupService.instance.fixMlsOnetimeKey([roomObs.value])
+            });
+      }
       return await resetMembers();
     }
     // private chat

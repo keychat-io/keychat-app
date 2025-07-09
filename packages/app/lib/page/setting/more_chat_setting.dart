@@ -11,7 +11,6 @@ import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
-import 'package:app_settings/app_settings.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +18,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:app/page/setting/RelaySetting.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'NostrEvents/NostrEvents_bindings.dart';
 import 'NostrEvents/NostrEvents_page.dart';
@@ -61,8 +61,13 @@ class MoreChatSetting extends StatelessWidget {
                   GetPlatform.isMacOS)
                 SettingsTile.navigation(
                     leading: const Icon(Icons.notifications_outlined),
-                    onPressed: (x) {
-                      handleNotificationSettting();
+                    onPressed: (x) async {
+                      try {
+                        await handleNotificationSettting();
+                      } catch (e, s) {
+                        logger.e('Request notification permission failed: $e',
+                            stackTrace: s);
+                      }
                     },
                     title: const Text('Notifications'))
             ]),
@@ -121,9 +126,10 @@ class MoreChatSetting extends StatelessWidget {
     hc.checkRunStatus.value = false;
   }
 
-  handleNotificationSettting() async {
+  Future<void> handleNotificationSettting() async {
     HomeController homeController = Get.find<HomeController>();
     bool permission = await NotifyService.hasNotifyPermission();
+    logger.d('Notification permission: $permission');
     Get.bottomSheet(Obx(
       () => SettingsList(platform: DevicePlatform.iOS, sections: [
         SettingsSection(title: const Text('Notification setting'), tiles: [
@@ -151,7 +157,7 @@ class MoreChatSetting extends StatelessWidget {
               }
               Clipboard.setData(
                   ClipboardData(text: NotifyService.fcmToken ?? ''));
-              logger.d('FCMToken: ${NotifyService.fcmToken}');
+              logger.i('FCMToken: ${NotifyService.fcmToken}');
               EasyLoading.showSuccess('Copied');
             },
             value: Text(
@@ -163,9 +169,8 @@ class MoreChatSetting extends StatelessWidget {
           ),
           SettingsTile.navigation(
               title: const Text('Open System Settings'),
-              onPressed: (context) async {
-                await AppSettings.openAppSettings(
-                    type: AppSettingsType.notification);
+              onPressed: (context) {
+                openAppSettings();
               }),
           SettingsTile.navigation(
               title: const Text('Listening Pubkey Stats'),
@@ -236,8 +241,7 @@ class MoreChatSetting extends StatelessWidget {
               EasyLoading.showSuccess(
                   "Please enable this config in system setting");
 
-              await AppSettings.openAppSettings(
-                  type: AppSettingsType.notification);
+              openAppSettings();
               return;
             }
             try {

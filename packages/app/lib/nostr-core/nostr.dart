@@ -273,8 +273,10 @@ class NostrAPI {
         eventString: encryptedEvent,
         roomId: room.parentRoom?.id ?? room.id,
         toRelays: room.sendingRelays);
+    SendStatusType sendStatusType = SendStatusType.success;
     if (save && relays.isEmpty) {
-      throw Exception(ErrorMessages.relayIsEmptyException);
+      // throw Exception(ErrorMessages.relayIsEmptyException);
+      sendStatusType = SendStatusType.failed;
     }
     if (!save) {
       return SendMessageResponse(events: [event], msgKeyHash: msgKeyHash);
@@ -285,6 +287,7 @@ class NostrAPI {
         from: from,
         to: toPubkey,
         isSystem: isSystem ?? false,
+        sent: sendStatusType,
         senderPubkey: room.myIdPubkey,
         content: sourceContent ?? toEncryptText,
         realMessage: realMessage,
@@ -297,7 +300,7 @@ class NostrAPI {
     return SendMessageResponse(events: [event], message: model);
   }
 
-  /// timestampTweaked: true-random timestamp in 0~2days ago
+  // timestampTweaked: true-random timestamp in 0~2days ago
   Future<SendMessageResponse> sendNip17Message(
     Room room,
     String sourceContent,
@@ -316,6 +319,7 @@ class NostrAPI {
     if (identity.isFromSigner) {
       encryptedEvent = await SignerService.instance.getNip59EventString(
           content: sourceContent,
+          nip17Kind: nip17Kind,
           from: identity.secp256k1PKHex,
           additionalTags: additionalTags,
           to: toPubkey ?? room.toMainPubkey);
@@ -587,6 +591,7 @@ class NostrAPI {
   KeychatMessage? getKeyChatMessageFromJson(dynamic str) {
     try {
       return KeychatMessage.fromJson(str);
+      // ignore: empty_catches
     } catch (e) {}
     return null;
   }
@@ -617,6 +622,7 @@ class NostrAPI {
     late NostrEventModel subEvent;
     try {
       subEvent = await _getNostrEventByTo(event, failedCallback);
+      logger.d('subEvent: $subEvent');
     } catch (e) {
       // Maybe mls group room changed receiving address
       failedCallback(e.toString());

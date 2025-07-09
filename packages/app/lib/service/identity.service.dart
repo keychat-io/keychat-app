@@ -79,12 +79,12 @@ class IdentityService {
           .write(iden.curve25519PkHex!, account.curve25519SkHex!);
     });
     await homeController.loadRoomList(init: true);
-    try {
+
+    Utils.waitRelayOnline().then((_) {
       Get.find<WebsocketService>()
           .listenPubkey([account.pubkey], kinds: [EventKinds.nip04]);
       Get.find<WebsocketService>().listenPubkeyNip17([account.pubkey]);
-      // ignore: empty_catches
-    } catch (e) {}
+    });
 
     if (isFirstAccount) {
       try {
@@ -129,9 +129,13 @@ class IdentityService {
     });
 
     await Get.find<HomeController>().loadRoomList(init: true);
-    Get.find<WebsocketService>()
-        .listenPubkey([hexPubkey], kinds: [EventKinds.nip04]);
-    Get.find<WebsocketService>().listenPubkeyNip17([hexPubkey]);
+
+    Utils.waitRelayOnline().then((_) {
+      Get.find<WebsocketService>()
+          .listenPubkey([hexPubkey], kinds: [EventKinds.nip04]);
+      Get.find<WebsocketService>().listenPubkeyNip17([hexPubkey]);
+    });
+
     NotifyService.addPubkeys([hexPubkey]);
     MlsGroupService.instance.initIdentities([iden]).then((_) {
       MlsGroupService.instance.uploadKeyPackages(identities: [iden]);
@@ -154,9 +158,13 @@ class IdentityService {
     });
 
     await Get.find<HomeController>().loadRoomList(init: true);
-    Get.find<WebsocketService>()
-        .listenPubkey([hexPubkey], kinds: [EventKinds.nip04]);
-    Get.find<WebsocketService>().listenPubkeyNip17([hexPubkey]);
+
+    Utils.waitRelayOnline().then((_) {
+      Get.find<WebsocketService>()
+          .listenPubkey([hexPubkey], kinds: [EventKinds.nip04]);
+      Get.find<WebsocketService>().listenPubkeyNip17([hexPubkey]);
+    });
+
     NotifyService.addPubkeys([hexPubkey]);
     MlsGroupService.instance.initIdentities([iden]).then((_) {
       MlsGroupService.instance.uploadKeyPackages(identities: [iden]);

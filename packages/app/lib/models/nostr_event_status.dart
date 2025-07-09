@@ -60,6 +60,15 @@ class NostrEventStatus extends Equatable {
         .findFirst();
   }
 
+  static deleteById(String eventId) async {
+    await DBProvider.database.writeTxn(() async {
+      await DBProvider.database.nostrEventStatus
+          .filter()
+          .eventIdEqualTo(eventId)
+          .deleteAll();
+    });
+  }
+
   static Future<NostrEventStatus> createReceiveEvent(
       String relay, String eventId, String receiveSnapshot) async {
     var ess = NostrEventStatus(

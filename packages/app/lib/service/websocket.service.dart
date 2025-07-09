@@ -94,14 +94,14 @@ class WebsocketService extends GetxService {
     }
 
     await _startConnectRelay(rw, connectedCallback: () async {
-      logger.d('relay: ${relay.url} connected, callback');
+      logger.i('relay: ${relay.url} connected, callback');
       if (connectedCallback != null) {
         connectedCallback();
       }
     });
   }
 
-  addFaiedEvents(String relay, String raw) {
+  addFailedEvents(String relay, String raw) {
     if (failedEventsMap[relay] == null) {
       failedEventsMap[relay] = {};
     }
@@ -165,7 +165,7 @@ class WebsocketService extends GetxService {
       List<RelayWebsocket>? sockets}) async {
     sockets ??= getOnlineSocket();
     if (sockets.isEmpty) {
-      logger.d('Not connected, or the relay not support nips');
+      logger.i('Not connected, or the relay not support nips');
       return [];
     }
     for (RelayWebsocket rw in sockets) {
@@ -178,7 +178,7 @@ class WebsocketService extends GetxService {
 
   List<String> getActiveRelayString() {
     List<String> res = [];
-    for (RelayWebsocket rw in channels.values) {
+    for (RelayWebsocket rw in List.from(channels.values)) {
       if (rw.relay.active) {
         res.add(rw.relay.url);
       }
@@ -212,7 +212,7 @@ class WebsocketService extends GetxService {
 
   List<String> getOnlineSocketString() {
     List<String> res = [];
-    for (RelayWebsocket rw in channels.values) {
+    for (RelayWebsocket rw in List.from(channels.values)) {
       if (rw.channel != null && rw.isConnected()) {
         res.add(rw.relay.url);
       }
@@ -238,7 +238,7 @@ class WebsocketService extends GetxService {
   }
 
   Future<WebsocketService> init() async {
-    logger.d('start init websocket service');
+    logger.i('start init websocket service');
     relayStatusInt.value = RelayStatusEnum.connecting.name;
     List<Relay> list = await rs.initRelay();
     start(list);
@@ -289,8 +289,14 @@ class WebsocketService extends GetxService {
         since: since,
         limit: limit,
         kinds: [EventKinds.nip17]);
-
-    sendReq(req, relays: relays);
+    try {
+      sendReq(req, relays: relays);
+    } catch (e) {
+      if (e.toString().contains('RelayDisconnected')) {
+        EasyLoading.showToast('Disconnected, Please check your relay server');
+      }
+      logger.e('error: $e');
+    }
     return req;
   }
 
@@ -366,7 +372,7 @@ class WebsocketService extends GetxService {
   }
 
   String? getSubscriptionIdsByPubkey(String pubkey) {
-    for (RelayWebsocket rw in channels.values) {
+    for (RelayWebsocket rw in List.from(channels.values)) {
       for (var entry in rw.subscriptions.entries) {
         if (entry.value.contains(pubkey)) {
           return entry.key;
@@ -430,7 +436,7 @@ class WebsocketService extends GetxService {
         if (channels[relay] != null &&
             channels[relay]!.isConnected() &&
             channels[relay]!.channel != null) {
-          channels[relay]!.sendRawREQ("[\"EVENT\",$content]");
+          channels[relay]!.sendRawREQ(content);
           sent++;
         }
       }
@@ -464,7 +470,7 @@ class WebsocketService extends GetxService {
     if (relays != null && relays.isNotEmpty) {
       int sent = 0;
       for (String relayUrl in relays) {
-        if (channels[relayUrl]?.isConnected()) {
+        if (channels[relayUrl] != null && channels[relayUrl]!.isConnected()) {
           try {
             channels[relayUrl]!.sendREQ(nostrReq);
             sent++;

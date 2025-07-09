@@ -13,6 +13,7 @@ import 'package:app/service/message.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/utils.dart';
+import 'package:easy_debounce/easy_debounce.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
@@ -83,7 +84,7 @@ class ChatController extends GetxController {
   late FocusNode keyboardFocus;
   late AutoScrollController autoScrollController;
   late ScrollController textFieldScrollController;
-  late RefreshController refreshController;
+  late RefreshController _refreshController;
   DateTime lastMessageAddedAt = DateTime.now();
 
   final List<String> featuresIcons = [
@@ -167,7 +168,7 @@ class ChatController extends GetxController {
     }
   }
 
-  deleteMessage(Message message) async {
+  Future<void> deleteMessage(Message message) async {
     await MessageService.instance.deleteMessageById(message.id);
     messages.remove(message);
   }
@@ -261,6 +262,15 @@ class ChatController extends GetxController {
       logger.e('Failed: $msg', error: e, stackTrace: s);
       EasyLoading.showError(msg, duration: const Duration(seconds: 3));
     }
+  }
+
+  bool _refreshInitialized = false;
+  RefreshController getRefreshController() {
+    if (!_refreshInitialized) {
+      _refreshController = RefreshController(initialRefresh: false);
+      _refreshInitialized = true;
+    }
+    return _refreshController;
   }
 
   initChatPageFeatures() {
@@ -365,7 +375,7 @@ class ChatController extends GetxController {
 
   Future loadMoreChatHistory() async {
     if (messages.isEmpty) {
-      refreshController.loadComplete();
+      getRefreshController().loadComplete();
       return;
     }
 
@@ -375,25 +385,25 @@ class ChatController extends GetxController {
         roomId: roomObs.value.id, from: from, limit: messageLimitPerPage);
 
     if (sortedNewMessages.isEmpty) {
-      refreshController.loadComplete();
+      getRefreshController().loadComplete();
       return; // No new messages to load
     }
 
     sortedNewMessages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
     messages.addAll(sortedNewMessages);
-    refreshController.loadComplete();
+    getRefreshController().loadComplete();
     messages.value = List.from(messages);
   }
 
   @override
   void onClose() {
+    getRefreshController().dispose();
     messages.clear();
     chatContentFocus.dispose();
     keyboardFocus.dispose();
     textEditingController.dispose();
     textFieldScrollController.dispose();
     autoScrollController.dispose();
-    refreshController.dispose();
     super.onClose();
   }
 
@@ -401,7 +411,7 @@ class ChatController extends GetxController {
   void onInit() async {
     chatContentFocus = FocusNode();
     keyboardFocus = FocusNode();
-    refreshController = RefreshController();
+    getRefreshController();
     if (GetPlatform.isDesktop) {
       chatContentFocus.requestFocus();
       messageLimitPerPage = 100;
@@ -409,26 +419,25 @@ class ChatController extends GetxController {
 
     textFieldScrollController = ScrollController();
     textEditingController = TextEditingController();
-    autoScrollController = AutoScrollController(
-      viewportBoundaryGetter: () =>
-          Rect.fromLTRB(0, 0, 0, MediaQuery.of(Get.context!).padding.bottom),
-      axis: Axis.vertical,
-    );
+    autoScrollController = AutoScrollController(axis: Axis.vertical);
 
     autoScrollController.addListener(() {
-      bool isCurrent = DBProvider.instance.isCurrentPage(roomObs.value.id);
-      if (!isCurrent) {
-        messagesMore.clear();
-        searchMsgIndex = -1;
-      }
-      if (messagesMore.isNotEmpty &&
-          autoScrollController.position.pixels <= 100) {
-        messages.addAll(sortMessageById(messagesMore));
-        messages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
-        messages.value = List.from(messages);
+      EasyDebounce.debounce(
+          'autoScrollController.addListener', Duration(milliseconds: 200), () {
+        bool isCurrent = DBProvider.instance.isCurrentPage(roomObs.value.id);
+        if (!isCurrent) {
+          messagesMore.clear();
+          searchMsgIndex = -1;
+        }
+        if (messagesMore.isNotEmpty &&
+            autoScrollController.position.pixels <= 100) {
+          messages.addAll(sortMessageById(messagesMore));
+          messages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
+          messages.value = List.from(messages);
 
-        messagesMore.clear();
-      }
+          messagesMore.clear();
+        }
+      });
     });
 
     // load draft
@@ -728,6 +737,11 @@ class ChatController extends GetxController {
   _initRoom() async {
     // group
     if (roomObs.value.type == RoomType.group) {
+      if (roomObs.value.isMLSGroup) {
+        Future.delayed(Duration(seconds: 2)).then((value) => {
+              MlsGroupService.instance.fixMlsOnetimeKey([roomObs.value])
+            });
+      }
       return await resetMembers();
     }
     // private chat

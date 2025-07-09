@@ -137,7 +137,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                       text: TextSpan(
                                         children: [
                                           TextSpan(
-                                            text: '${invoiceInfo.amount}',
+                                            text: '-${invoiceInfo.amount}',
                                             style: Theme.of(context)
                                                 .textTheme
                                                 .titleLarge
@@ -149,7 +149,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                               text: ' sat',
                                               style: Theme.of(context)
                                                   .textTheme
-                                                  .bodySmall),
+                                                  .bodyLarge),
                                         ],
                                       ),
                                     ),
@@ -175,7 +175,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                   }
                                   if (isEmail(controller.textController.text) ||
                                       controller.textController.text
-                                          .toLowerCase()
+                                          .toUpperCase()
                                           .startsWith('LNURL')) {
                                     var tx = controller.lnurlPayFirst(
                                         controller.textController.text);
@@ -194,7 +194,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                   }
                                 });
                               },
-                              child: const Text('Pay Invoice'),
+                              child: const Text('Pay'),
                             )
                           : FilledButton(
                               onPressed: null,

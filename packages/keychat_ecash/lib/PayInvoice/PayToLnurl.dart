@@ -92,8 +92,8 @@ class _PayToLnurlState extends State<PayToLnurl> {
                         EasyLoading.showToast('Error: get invoice failed');
                         return;
                       }
-                      PayInvoiceController pic =
-                          Get.find<PayInvoiceController>();
+                      PayInvoiceController pic = Utils.getOrPutGetxController(
+                          create: PayInvoiceController.new);
                       var tx = await pic.confirmToPayInvoice(
                           invoice: pr,
                           mint: pic.selectedMint.value,

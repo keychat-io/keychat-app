@@ -6,12 +6,13 @@
 import 'dart:math';
 
 import 'package:easy_debounce/easy_debounce.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 
 List<int> _queue = [];
 
 void _processQueue() {
   for (var i in _queue) {
-    print('process- ${DateTime.now()} : $i');
+    debugPrint('process- ${DateTime.now()} : $i');
   }
   _queue.clear();
 }
@@ -27,7 +28,7 @@ void proccessIt(int i) {
 
 void main() async {
   for (var i = 0; i < 5; i++) {
-    print('call - ${DateTime.now()} : $i');
+    debugPrint('call - ${DateTime.now()} : $i');
     await Future.delayed(Duration(milliseconds: Random().nextInt(1000)));
     proccessIt(i);
   }

@@ -620,7 +620,7 @@ $content'''
         m.mediaType = bmm.type;
         m.realMessage = bmm.message;
       } catch (e) {
-        // logger.d(e, stackTrace: s);
+        // logger.i(e, stackTrace: s);
       }
     }
     return m;
@@ -654,5 +654,30 @@ $content'''
         .requestIdEqualTo(requestId)
         .requestConfrimIsNull()
         .findAll();
+  }
+
+  Future<void> checkMessageStatus({required Message message}) async {
+    Message? m = await getMessageByMsgId(message.msgid);
+    if (m == null || m.sent == SendStatusType.success) return;
+    List<String> ess = message.rawEvents.map((e) {
+      Map<String, dynamic> data = jsonDecode(e);
+      return data['id'] as String;
+    }).toList();
+    bool isSuccess = false;
+    for (var eventId in ess) {
+      NostrEventStatus? nes = await DBProvider.database.nostrEventStatus
+          .filter()
+          .eventIdEqualTo(eventId)
+          .sendStatusEqualTo(EventSendEnum.success)
+          .findFirst();
+      if (nes != null) {
+        isSuccess = true;
+        break;
+      }
+    }
+    if (isSuccess) {
+      m.sent = SendStatusType.success;
+      await updateMessageAndRefresh(m);
+    }
   }
 }

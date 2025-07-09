@@ -1,4 +1,3 @@
-import 'package:app/nostr-core/relay_websocket.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:flutter/cupertino.dart';
@@ -42,17 +41,6 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                     color: Colors.red,
                   ),
                   title: const Text('Error'),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.refresh),
-                    onPressed: () {
-                      RelayWebsocket? rw =
-                          ws.channels[controller.relay.value.url];
-                      if (rw != null) {
-                        if (ws.channels[controller.relay.value.url]
-                            ?.isDisConnected()) {}
-                      }
-                    },
-                  ),
                   subtitle: Text(ws.channels[controller.relay.value.url]?.relay
                           .errorMessage ??
                       '')))),

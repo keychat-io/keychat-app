@@ -102,6 +102,9 @@ class _WebStorePageState extends State<WebStorePage> {
                                             .launchWebview(
                                                 content: url,
                                                 defaultTitle: site['title']);
+                                        if (Get.isBottomSheetOpen ?? false) {
+                                          Get.back();
+                                        }
                                       },
                                       trailing: exists.contains(url)
                                           ? IconButton(

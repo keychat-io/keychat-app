@@ -1,9 +1,8 @@
-import 'dart:convert' show jsonDecode;
+import 'dart:convert' show jsonDecode, jsonEncode;
 import 'dart:io' show File;
 import 'package:app/app.dart';
 import 'package:app/bot/bot_client_message_model.dart';
 import 'package:app/controller/chat.controller.dart';
-import 'package:app/controller/home.controller.dart';
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/LongTextPreviewPage.dart';
@@ -12,6 +11,7 @@ import 'package:app/page/routes.dart';
 import 'package:app/page/theme.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/file.service.dart';
+import 'package:app/service/websocket.service.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 
 import 'package:isar/isar.dart';
@@ -239,10 +239,7 @@ class MessageWidget extends StatelessWidget {
   }
 
   Widget? getMessageStatus() {
-    if (!message.isMeSend) return null;
-
-    if (message.sent == SendStatusType.success ||
-        message.sent == SendStatusType.partialSuccess) {
+    if (!message.isMeSend || message.sent == SendStatusType.success) {
       return null;
     }
     if (message.sent == SendStatusType.sending) {
@@ -263,53 +260,109 @@ class MessageWidget extends StatelessWidget {
     // message send failed
     return IconButton(
         splashColor: Colors.transparent,
-        onPressed: () {
-          if (message.mediaType != MessageMediaType.text) {
-            EasyLoading.showToast('Message sent failed');
-            return;
-          }
-          if (message.isSystem) {
-            EasyLoading.showToast('Please retry the previous operation.');
-            return;
-          }
-          Get.dialog(
-            CupertinoAlertDialog(
-              title: const Text(
-                'Resend message',
-              ),
-              actions: [
-                CupertinoDialogAction(
-                  child: const Text('Cancel'),
-                  onPressed: () {
-                    Get.back();
-                  },
-                ),
-                if (message.mediaType == MessageMediaType.text)
-                  CupertinoDialogAction(
-                    child: const Text('Resend'),
-                    onPressed: () async {
-                      Get.back();
+        onPressed: () async {
+          // check status
+          var (ess, event) = await _getRawMessageData(
+              message.eventIds[0], message.rawEvents[0]);
 
-                      if (message.reply != null) {
-                        Identity identity = Get.find<HomeController>()
-                            .allIdentities[cc.roomObs.value.identityId]!;
-                        message.fromContact = FromContact(
-                            identity.secp256k1PKHex, identity.displayName);
-                        var decodeContent = jsonDecode(message.content);
-                        message.realMessage = message.reply!.content;
-                        cc.inputReplys.value = [message];
-                        cc.hideAdd.value = true;
-                        cc.inputReplys.refresh();
-                        cc.textEditingController.text = decodeContent['msg'];
-                      } else {
-                        cc.textEditingController.text = message.content;
-                      }
-                      cc.chatContentFocus.requestFocus();
-                    },
-                  ),
-              ],
-            ),
-          );
+          // fix message sent status
+          if (message.sent != SendStatusType.success) {
+            List success = ess
+                .where((element) => element.sendStatus == EventSendEnum.success)
+                .toList();
+            if (success.isNotEmpty) {
+              message.sent = SendStatusType.success;
+              await MessageService.instance.updateMessageAndRefresh(message);
+              Get.back();
+              EasyLoading.showSuccess('Sending Success');
+              return;
+            }
+          }
+          Get.dialog(CupertinoAlertDialog(
+            title: const Text('Send failed'),
+            content: const Text(
+                '1. Check your network first. 2. Re-Send raw data to Relays'),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text('Cancel'),
+                onPressed: () {
+                  Get.back();
+                },
+              ),
+              CupertinoDialogAction(
+                child: const Text('Resend'),
+                onPressed: () async {
+                  EasyLoading.showSuccess('Resending...');
+                  logger.i('Resend system message: ${message.rawEvents}');
+                  List<String> ess = message.rawEvents.map((e) {
+                    Map<String, dynamic> data = jsonDecode(e);
+                    if (data['toIdPubkey'] != null) {
+                      data.remove('toIdPubkey');
+                    }
+                    return jsonEncode(data);
+                  }).toList();
+                  logger.i('Resend system message: $ess');
+                  await Utils.waitRelayOnline();
+                  for (String item in ess) {
+                    try {
+                      NostrEventModel nem = NostrEventModel.fromJson(
+                          jsonDecode(item),
+                          verify: false);
+                      await NostrEventStatus.deleteById(nem.id);
+                      await Get.find<WebsocketService>().writeNostrEvent(
+                          event: nem,
+                          eventString: item,
+                          roomId: message.roomId);
+                    } catch (e) {
+                      logger.e('Failed to send event: $e');
+                    }
+                  }
+                  await MessageService.instance
+                      .checkMessageStatus(message: message);
+                  Get.back();
+                },
+              ),
+            ],
+          ));
+          return;
+
+          // // show resend dialog
+          // Get.dialog(
+          //   CupertinoAlertDialog(
+          //     title: const Text('Resend message'),
+          //     actions: [
+          //       CupertinoDialogAction(
+          //         child: const Text('Cancel'),
+          //         onPressed: () {
+          //           Get.back();
+          //         },
+          //       ),
+          //       if (message.mediaType == MessageMediaType.text)
+          //         CupertinoDialogAction(
+          //           child: const Text('Resend'),
+          //           onPressed: () async {
+          //             Get.back();
+
+          //             if (message.reply != null) {
+          //               Identity identity = Get.find<HomeController>()
+          //                   .allIdentities[cc.roomObs.value.identityId]!;
+          //               message.fromContact = FromContact(
+          //                   identity.secp256k1PKHex, identity.displayName);
+          //               var decodeContent = jsonDecode(message.content);
+          //               message.realMessage = message.reply!.content;
+          //               cc.inputReplys.value = [message];
+          //               cc.hideAdd.value = true;
+          //               cc.inputReplys.refresh();
+          //               cc.textEditingController.text = decodeContent['msg'];
+          //             } else {
+          //               cc.textEditingController.text = message.content;
+          //             }
+          //             cc.chatContentFocus.requestFocus();
+          //           },
+          //         ),
+          //     ],
+          //   ),
+          // );
         },
         icon: const SizedBox(
           child: Icon(
@@ -400,6 +453,7 @@ class MessageWidget extends StatelessWidget {
           if (bcmm.payToken != null) {
             token = await rust_cashu.decodeToken(encodedToken: bcmm.payToken!);
           }
+          // ignore: empty_catches
         } catch (e) {}
       }
       _showRawData(message, ess, event,
@@ -431,6 +485,7 @@ class MessageWidget extends StatelessWidget {
     if (rawEvent == null) return (ess, event);
     try {
       event = NostrEventModel.fromJson(jsonDecode(rawEvent));
+      // ignore: empty_catches
     } catch (e) {}
     return (ess, event);
   }

@@ -157,7 +157,7 @@ class _MyQRCodeState extends State<MyQRCode> {
       "globalSign": sig,
       ...userInfo
     };
-    logger.d('qrcode, $data');
+    logger.i('qrcode, $data');
     return QRUserModel.fromJson(data).toShortStringForQrcode();
   }
 

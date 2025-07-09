@@ -101,12 +101,12 @@ class DbSetting {
 
       final packagedFile =
           await packageEncryptedFiles(encryptedFiles, outputPath);
-      logger.d("Encrypted package created at: ${packagedFile.path}");
+      logger.i("Encrypted package created at: ${packagedFile.path}");
 
       await exportFile(packagedFile.path, fileName);
       if (await packagedFile.exists()) {
         await packagedFile.delete();
-        logger.d('File deleted: ${packagedFile.path}');
+        logger.i('File deleted: ${packagedFile.path}');
       }
     } catch (e) {
       logger.e("Error occurred: $e");
@@ -175,15 +175,15 @@ class DbSetting {
         final decrypted =
             encrypter.decryptBytes(encrypt.Encrypted(encryptedContent), iv: iv);
 
-        final targetFile = File('$targetDirectory/$fileName');
+        final targetFile = File('$targetDirectory$fileName');
         await targetFile.writeAsBytes(decrypted);
       }
       // parse sharedPreferences data
       await importSharedPreferences(targetDirectory);
       await importSecureStorage(targetDirectory);
       return true;
-    } catch (e) {
-      logger.e("Error occurred: $e");
+    } catch (e, s) {
+      logger.e("Error occurred: $e", stackTrace: s);
       return false;
     }
   }
@@ -197,7 +197,7 @@ class DbSetting {
         logger.e("No files found in the encrypted package.");
         return false;
       }
-      logger.d("Files successfully decrypted to: $targetDirectory");
+      logger.i("Files successfully decrypted to: $targetDirectory");
 
       return await decryptAndSaveFiles(
           encryptedFiles, decryptionKey, targetDirectory);
@@ -222,7 +222,7 @@ class DbSetting {
           }
         }
       });
-      logger.d("All files in $targetDirectory have been deleted.");
+      logger.i("All files in $targetDirectory have been deleted.");
     } else {
       logger.e("Directory does not exist then create: $targetDirectory");
       // path need to create
@@ -274,7 +274,7 @@ class DbSetting {
       // load then delete
       file.deleteSync();
 
-      logger.d('Shared preferences imported.');
+      logger.i('Shared preferences imported.');
     } catch (e) {
       logger.e('Error importing data: $e');
     }
@@ -293,7 +293,7 @@ class DbSetting {
       final jsonString = jsonEncode(data);
       await exportFile.writeAsString(jsonString);
 
-      logger.d('Exported to: ${exportFile.path}');
+      logger.i('Exported to: ${exportFile.path}');
     } catch (e) {
       logger.e('Error exporting data: $e');
     }
@@ -307,7 +307,7 @@ class DbSetting {
 
       await exportFile.writeAsString(jsonData);
 
-      logger.d('Data exported to ${exportFile.path}');
+      logger.i('Data exported to ${exportFile.path}');
     } catch (e) {
       logger.e('Error exporting data: $e');
     }
@@ -317,7 +317,7 @@ class DbSetting {
     try {
       // first clear old data
       await SecureStorage.instance.clearAll();
-      String filePath = '$importFilePath/secure_storage.json';
+      String filePath = '${importFilePath}secure_storage.json';
 
       File file = File(filePath);
       String jsonData = await file.readAsString();
@@ -332,7 +332,7 @@ class DbSetting {
       // load then delete
       file.deleteSync();
 
-      logger.d('Data imported from $filePath');
+      logger.i('Data imported from $filePath');
     } catch (e) {
       logger.e('Error importing data: $e');
     }

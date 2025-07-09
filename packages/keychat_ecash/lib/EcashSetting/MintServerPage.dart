@@ -389,7 +389,7 @@ class _MintServerPageState extends State<MintServerPage> {
                 EasyLoading.showError('Can\'t delete the last mint');
                 return;
               }
-              EasyLoading.show(status: 'Proccessing');
+              EasyLoading.show(status: 'Processing');
 
               int balance = ec.getBalanceByMint(widget.server.mint);
               if (balance > 0) {

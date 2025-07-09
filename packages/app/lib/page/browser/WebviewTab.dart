@@ -32,6 +32,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
+import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -308,13 +309,14 @@ class _WebviewTabState extends State<WebviewTab> {
                 ),
                 if (GetPlatform.isMobile)
                   IconButton(
-                      onPressed: () {
+                      onPressed: () async {
                         if (pageFailed || state != WebviewTabState.success) {
                           controller.removeKeepAliveObject(widget.uniqueKey);
                         }
                         if (Get.isBottomSheetOpen ?? false) {
                           Get.back();
                         }
+                        await pausePlayingMedia();
                         Get.back(); // exit page
                       },
                       icon: SvgPicture.asset(
@@ -433,6 +435,16 @@ class _WebviewTabState extends State<WebviewTab> {
           // lightning invoice
           if (str.startsWith('lightning:')) {
             str = str.replaceFirst('lightning:', '');
+            if (isEmail(str) || str.toUpperCase().startsWith('LNURL')) {
+              await Get.bottomSheet(
+                  clipBehavior: Clip.antiAlias,
+                  shape: const RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(4))),
+                  PayInvoicePage(
+                      invoce: str, isPay: false, showScanButton: false));
+              return NavigationActionPolicy.CANCEL;
+            }
             var tx = await ecashController.proccessPayLightningBill(str,
                 isPay: true);
             if (tx != null) {
@@ -691,8 +703,10 @@ class _WebviewTabState extends State<WebviewTab> {
   }
 
   void goBackOrPop() {
-    tc.webViewController?.canGoBack().then((canGoBack) {
+    tc.webViewController?.canGoBack().then((canGoBack) async {
       if (canGoBack) {
+        tc.webViewController?.pauseAllMediaPlayback();
+        await pausePlayingMedia();
         tc.webViewController?.goBack();
         return;
       }
@@ -702,6 +716,7 @@ class _WebviewTabState extends State<WebviewTab> {
       if (pageFailed || state != WebviewTabState.success) {
         controller.removeKeepAliveObject(widget.uniqueKey);
       }
+      await pausePlayingMedia();
       Get.back();
     });
   }
@@ -950,6 +965,7 @@ class _WebviewTabState extends State<WebviewTab> {
         break;
       case 'close':
         controller.removeKeepAliveObject(widget.uniqueKey);
+        await pausePlayingMedia();
         Get.back();
         break;
       case 'zoom':
@@ -1337,5 +1353,11 @@ img {
         ],
       ),
     );
+  }
+
+  Future<void> pausePlayingMedia() async {
+    await tc.webViewController?.evaluateJavascript(source: """
+      document.querySelectorAll('audio, video').forEach(media => media.pause());
+    """);
   }
 }

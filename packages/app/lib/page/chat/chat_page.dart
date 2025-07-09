@@ -280,7 +280,7 @@ class _ChatPage2State extends State<ChatPage> {
       return _inputSectionContainer(FilledButton(
           onPressed: () async {
             if (isSendGreeting) {
-              EasyLoading.showToast('Proccessing, please wait...');
+              EasyLoading.showToast('Processing, please wait...');
               return;
             }
             try {

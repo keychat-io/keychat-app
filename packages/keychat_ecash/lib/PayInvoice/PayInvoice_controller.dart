@@ -1,19 +1,19 @@
 import 'dart:async';
 
 import 'package:app/app.dart';
+import 'package:dio/dio.dart';
 import 'package:keychat_ecash/Bills/lightning_transaction.dart';
 import 'package:keychat_ecash/PayInvoice/PayToLnurl.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:intl/intl.dart' show DateFormat;
-import 'package:dio/dio.dart' show Dio;
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class PayInvoiceController extends GetxController {
   final String? invoice;
@@ -29,8 +29,12 @@ class PayInvoiceController extends GetxController {
     selectedInvoice.value = invoice ?? '';
 
     textController.addListener(() {
-      EasyThrottle.throttle('invoice', const Duration(milliseconds: 300),
+      EasyThrottle.throttle('invoice', const Duration(milliseconds: 1000),
           () async {
+        if (textController.text.trim().isEmpty) {
+          return;
+        }
+        if (textController.text.trim() == selectedInvoice.value) return;
         selectedInvoice.value = textController.text.trim();
         await lnurlPayFirst(selectedInvoice.value);
       });
@@ -53,7 +57,7 @@ class PayInvoiceController extends GetxController {
       return null;
     }
     try {
-      EasyLoading.show(status: 'Proccess...');
+      EasyLoading.show(status: 'Processing...');
       logger.i(
           'PayInvoiceController: confirmToPayInvoice: mint: $mint, invoice: $invoice');
       Transaction tx =
@@ -145,7 +149,7 @@ Expire At: ${DateFormat("yyyy-MM-ddTHH:mm:ss").format(DateTime.fromMillisecondsS
         try {
           var res = await Dio().get(host);
           data = res.data;
-          data!['domain'] = parts[1];
+          data?['domain'] = parts[1];
         } catch (e, s) {
           logger.e('error: $e', error: e, stackTrace: s);
           return null;
@@ -157,7 +161,7 @@ Expire At: ${DateFormat("yyyy-MM-ddTHH:mm:ss").format(DateTime.fromMillisecondsS
       try {
         var res = await Dio().get(url);
         data = res.data;
-        data!['domain'] = Uri.parse(url).host;
+        data?['domain'] = Uri.parse(url).host;
       } catch (e, s) {
         logger.e('error: $e', error: e, stackTrace: s);
         return null;

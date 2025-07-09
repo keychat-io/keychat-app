@@ -175,7 +175,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                   }
                                   if (isEmail(controller.textController.text) ||
                                       controller.textController.text
-                                          .toLowerCase()
+                                          .toUpperCase()
                                           .startsWith('LNURL')) {
                                     var tx = controller.lnurlPayFirst(
                                         controller.textController.text);
@@ -194,7 +194,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                   }
                                 });
                               },
-                              child: const Text('Pay Invoice'),
+                              child: const Text('Pay'),
                             )
                           : FilledButton(
                               onPressed: null,

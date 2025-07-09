@@ -3,6 +3,7 @@ import 'package:app/app.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:easy_debounce/easy_throttle.dart';
+import 'package:flutter/foundation.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_mls.dart' as rust_mls;
 
@@ -192,6 +193,24 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                           title: const Text("Update My Group Key"),
                           leading: const Icon(Icons.refresh),
                           onPressed: (context) async {
+                            // Get the room ID to use as part of the storage key
+                            String storageKey =
+                                'UpdateMyGroupKey:${cc.roomObs.value.id}';
+                            int? lastUpdateTime =
+                                await Storage.getInt(storageKey);
+                            int now = DateTime.now().millisecondsSinceEpoch;
+
+                            // Check if it's been less than a day since the last update
+                            if (kReleaseMode &&
+                                lastUpdateTime != null &&
+                                now - lastUpdateTime < 24 * 60 * 60 * 1000) {
+                              EasyLoading.showInfo(
+                                'You can only update once per day.',
+                                duration: const Duration(seconds: 3),
+                              );
+                              return;
+                            }
+
                             await Get.dialog(CupertinoAlertDialog(
                               title: const Text("Update My Group Key"),
                               content: const Text(
@@ -213,8 +232,15 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                                       try {
                                         EasyLoading.show(
                                             status: 'Processing...');
+                                        Room room = await RoomService.instance
+                                            .getRoomByIdOrFail(
+                                                cc.roomObs.value.id);
                                         await MlsGroupService.instance
-                                            .selfUpdateKey(cc.roomObs.value);
+                                            .selfUpdateKey(room);
+
+                                        // Save the current timestamp when update is successful
+                                        await Storage.setInt(storageKey, now);
+
                                         EasyLoading.showSuccess('Success');
                                       } catch (e, s) {
                                         String msg = Utils.getErrorMessage(e);

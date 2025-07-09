@@ -24,7 +24,7 @@ class BrowserNewTab extends GetView<MultiWebviewController> {
             child: Container(
                 padding: const EdgeInsets.only(left: 16, right: 16),
                 child: Obx(() => ListView(children: [
-                      SizedBox(height: 32),
+                      SizedBox(height: 16),
                       Form(
                         child: TextFormField(
                           textInputAction: TextInputAction.go,
@@ -75,11 +75,11 @@ class BrowserNewTab extends GetView<MultiWebviewController> {
                           onFieldSubmitted: submitSearchForm,
                         ),
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
                       if (controller.favorites.isNotEmpty) QuickSection(),
                       const SizedBox(height: 16),
                       functionSection(context),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
                     ])))));
   }
 

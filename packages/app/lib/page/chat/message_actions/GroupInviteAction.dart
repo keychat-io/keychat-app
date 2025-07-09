@@ -62,7 +62,7 @@ class GroupInviteAction extends StatelessWidget {
       }
       Room? groupRoom;
       try {
-        EasyLoading.show(status: 'Proccessing...');
+        EasyLoading.show(status: 'Processing...');
         Isar database = DBProvider.database;
         Room? exist = await database.rooms
             .filter()

@@ -356,7 +356,7 @@ class Room extends Equatable {
         if (exist != null) {
           if (exist.updatedAt != null && rm.updatedAt != null) {
             if (exist.updatedAt!.isAfter(rm.updatedAt!)) {
-              logger.d('Ingore by updatedAt: ${exist.idPubkey}');
+              logger.i('Ingore by updatedAt: ${exist.idPubkey}');
               continue;
             }
           }

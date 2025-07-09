@@ -63,13 +63,12 @@ class _AddGroupPageState extends State<AddGroupPage>
           centerTitle: true,
           title: const Text("New Group Chat"),
         ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+        floatingActionButtonLocation:
+            FloatingActionButtonLocation.miniCenterDocked,
         floatingActionButton: Container(
-            padding: const EdgeInsets.only(left: 16, right: 16, top: 30),
+            constraints: BoxConstraints(maxWidth: 400),
+            width: double.infinity,
             child: FilledButton(
-                style: ButtonStyle(
-                    minimumSize: WidgetStateProperty.all(
-                        const Size(double.infinity, 44))),
                 onPressed: () async {
                   String groupName = _groupNameController.text.trim();
                   if (groupName.isEmpty) {

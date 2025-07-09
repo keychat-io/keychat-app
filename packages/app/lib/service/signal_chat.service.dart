@@ -201,6 +201,7 @@ class SignalChatService extends BaseChatService {
     try {
       decodedContent = jsonDecode(decodeString);
       km = KeychatMessage.fromJson(decodedContent);
+      // ignore: empty_catches
     } catch (e) {}
 
     if (km != null) {
@@ -340,7 +341,7 @@ class SignalChatService extends BaseChatService {
         bobPrekeyPublic: Uint8List.fromList(hex.decode(model.prekeyPubkey)));
     if (res) {
       room.encryptMode = EncryptMode.signal;
-      logger.d('addRoomKPA success, set room encryptMode to signal');
+      logger.i('addRoomKPA success, set room encryptMode to signal');
     }
     room.contact = contact;
     await RoomService.instance.updateRoomAndRefresh(room);
@@ -479,6 +480,7 @@ ${relays.join('\n')}
     KeychatMessage? km;
     try {
       km = KeychatMessage.fromJson(jsonDecode(prekeyMessageModel.message));
+      // ignore: empty_catches
     } catch (e) {}
     if (km != null) {
       await km.service.proccessMessage(

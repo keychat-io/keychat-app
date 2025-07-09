@@ -150,10 +150,20 @@ class CashuPage extends GetView<EcashController> {
                                           horizontal: 5.0),
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(10),
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withAlpha(30),
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          colors: [
+                                            Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withAlpha(10),
+                                            Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withAlpha(40),
+                                          ],
+                                        ),
                                       ),
                                       child: IconButton(
                                           icon: const Icon(
@@ -234,6 +244,14 @@ class CashuPage extends GetView<EcashController> {
                             var server = (element as MintBalanceClass);
                             return Builder(
                               builder: (BuildContext context) {
+                                // Create a unique gradient based on the mint name
+                                final int mintHash = server.mint.hashCode;
+                                final gradientColors = [
+                                  KeychatGlobal.secondaryColor.withAlpha(100),
+                                  Color((mintHash & 0xFFFFFF) |
+                                      0x40000000), // Derived color with opacity
+                                ];
+
                                 return GestureDetector(
                                     onTap: () {
                                       mintTap(server);
@@ -243,10 +261,11 @@ class CashuPage extends GetView<EcashController> {
                                           horizontal: 5.0),
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(10),
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withAlpha(30),
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          colors: gradientColors,
+                                        ),
                                       ),
                                       child: Padding(
                                           padding: const EdgeInsets.all(16),

@@ -78,23 +78,23 @@ class RelayWebsocket {
     nq.reqId = key;
     nq.pubkeys = subscriptions[key]?.toList();
     ++sentReqCount;
-    // logger.d('use old sub: ${nq.reqId} , length: ${nq.pubkeys.length}');
+    // logger.i('use old sub: ${nq.reqId} , length: ${nq.pubkeys.length}');
     return sendRawREQ(nq.toString());
   }
 
-  isConnected() {
+  bool isConnected() {
     if (channel == null) return false;
     return channel?.connection.state is Connected ||
         channel?.connection.state is Reconnected;
   }
 
-  isDisConnected() {
+  bool isDisConnected() {
     if (channel == null) return true;
     return channel?.connection.state is Disconnected ||
         channel?.connection.state is Disconnecting;
   }
 
-  isConnecting() {
+  bool isConnecting() {
     return channel?.connection.state is Connecting ||
         channel?.connection.state is Reconnecting;
   }
@@ -129,7 +129,7 @@ class RelayWebsocket {
     } catch (e, s) {
       logger.e('TO [${relay.url}]: $message', error: e, stackTrace: s);
       if (retry) {
-        ws.addFaiedEvents(relay.url, message);
+        ws.addFailedEvents(relay.url, message);
       }
       rethrow;
     }
@@ -143,7 +143,7 @@ class RelayWebsocket {
     pong = false;
     try {
       channel!.send(_pingReq);
-      loggerNoLine.d('TO [${relay.url}]: ping');
+      // loggerNoLine.d('TO [${relay.url}]: ping');
     } catch (e) {
       return false;
     }

@@ -53,3 +53,4 @@ packages/app/android/app/.cxx/
 */.fvmrc
 *.sha256
 packages/app/ios/Flutter/Flutter.podspec
+packages/app/macos/Runner/Keychat.app/

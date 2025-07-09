@@ -349,47 +349,42 @@ class AppGeneralSetting extends GetView<SettingController> {
           CupertinoActionSheetAction(
             isDefaultAction: true,
             onPressed: () async {
-              if (passwordController.text.isNotEmpty) {
-                try {
-                  bool success = await DbSetting()
-                      .importDB(context, passwordController.text, file);
-                  // await Future.delayed(const Duration(microseconds: 100));
-                  if (success) {
-                    EasyLoading.showSuccess("Decryption successful");
-                    // need to restart the app and reload database
-                    // Restart.restartApp does not work?
-                    // Restart.restartApp(
-                    //   // Customizing the notification message only on IOS
-                    //   notificationTitle: 'Restarting App',
-                    //   notificationBody:
-                    //       'Please tap here to open the app again.',
-                    // );
-                    Get.dialog(
-                      CupertinoAlertDialog(
-                        title: const Text('Restart Required'),
-                        content: const Text(
-                            'The app needs to restart to reload the database. Please restart the app manually.'),
-                        actions: [
-                          CupertinoDialogAction(
-                            child: const Text(
-                              'Exit',
-                              style: TextStyle(color: Colors.red),
-                            ),
-                            onPressed: () {
-                              exit(0); // Exit the app
-                            },
-                          ),
-                        ],
-                      ),
-                    );
-                  } else {
-                    EasyLoading.showError('Decryption failed');
-                  }
-                } catch (e) {
-                  EasyLoading.showError('Decryption failed');
-                }
-              } else {
+              if (passwordController.text.isEmpty) {
                 EasyLoading.showError('Password can not be empty');
+                return;
+              }
+
+              try {
+                EasyLoading.show(status: 'Decrypting...');
+                bool success = await DbSetting()
+                    .importDB(context, passwordController.text, file);
+                EasyLoading.dismiss();
+                if (!success) {
+                  EasyLoading.showError('Decryption failed');
+                  return;
+                }
+                EasyLoading.showSuccess("Decryption successful");
+                Get.dialog(
+                  CupertinoAlertDialog(
+                    title: const Text('Restart Required'),
+                    content: const Text(
+                        'The app needs to restart to reload the database. Please restart the app manually.'),
+                    actions: [
+                      CupertinoDialogAction(
+                        child: const Text(
+                          'Exit',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                        onPressed: () {
+                          exit(0); // Exit the app
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              } catch (e, s) {
+                logger.e('Decryption error: $e', stackTrace: s);
+                EasyLoading.showError('Decryption failed');
               }
             },
             child: const Text('Confirm'),

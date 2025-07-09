@@ -6,7 +6,6 @@ import 'package:get/get.dart';
 import 'package:isar/isar.dart';
 import 'package:mutex/mutex.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
-import '../models/db_provider.dart';
 import '../nostr-core/nostr.dart';
 
 class ContactService {

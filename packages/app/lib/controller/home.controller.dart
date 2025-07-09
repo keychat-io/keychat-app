@@ -7,6 +7,7 @@ import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/identity.service.dart';
+import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/secure_storage.dart';
@@ -479,15 +480,13 @@ class HomeController extends GetxController
     }
 
     removeBadge();
-    try {
-      RoomUtil.executeAutoDelete();
-    } catch (e, s) {
-      logger.e('executeAutoDelete:${e.toString()}', stackTrace: s);
-    }
 
     // start to create ai identity
     Future.delayed(const Duration(seconds: 1), () async {
+      RoomUtil.executeAutoDelete();
       loadAppRemoteConfig();
+      List<Room> rooms = await RoomService.instance.getMlsRooms();
+      MlsGroupService.instance.fixMlsOnetimeKey(rooms);
     });
   }
 

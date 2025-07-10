@@ -69,6 +69,7 @@ class _WebviewTabState extends State<WebviewTab> {
   WebviewTabState state = WebviewTabState.start;
   InAppWebViewKeepAlive? ka;
   late String initDomain;
+  PullToRefreshController? pullToRefreshController;
 
   // Add scroll position tracking
   Map<String, Map<String, dynamic>> urlScrollPositions = {};
@@ -83,6 +84,7 @@ class _WebviewTabState extends State<WebviewTab> {
     ecashController = Get.find<EcashController>();
     initDomain = WebUri(widget.initUrl).host;
     initBrowserConnect(WebUri(widget.initUrl));
+    initPullToRefreshController();
     super.initState();
     if (widget.initUrl != KeychatGlobal.newTab) {
       Future.delayed(Duration(seconds: 1)).then((_) {
@@ -161,9 +163,7 @@ class _WebviewTabState extends State<WebviewTab> {
                                     : null,
                                 icon: const Icon(Icons.arrow_forward)),
                             IconButton(
-                                onPressed: () {
-                                  tc.webViewController?.reload();
-                                },
+                                onPressed: pageRefresh,
                                 icon: const Icon(Icons.refresh)),
                           ])),
                       Expanded(
@@ -354,7 +354,7 @@ class _WebviewTabState extends State<WebviewTab> {
       webViewEnvironment: controller.webViewEnvironment,
       initialUrlRequest: URLRequest(url: WebUri(tc.url.value)),
       initialSettings: tc.settings,
-      pullToRefreshController: tc.pullToRefreshController,
+      pullToRefreshController: pullToRefreshController,
       initialUserScripts: UnmodifiableListView([controller.textSizeUserScript]),
       onScrollChanged: (controller, x, y) async {
         // Save scroll position by current URL
@@ -518,7 +518,7 @@ class _WebviewTabState extends State<WebviewTab> {
             assetFilePath: "assets/js/nostr.js");
         await controller.injectJavascriptFileFromAsset(
             assetFilePath: "assets/js/webln.js");
-        tc.pullToRefreshController?.endRefreshing();
+        pullToRefreshController?.endRefreshing();
 
         // Restore scroll position if needed
         if (GetPlatform.isAndroid && needRestorePosition) {
@@ -560,7 +560,7 @@ class _WebviewTabState extends State<WebviewTab> {
       onProgressChanged: (controller, data) {
         if (data == 100) {
           state = WebviewTabState.success;
-          tc.pullToRefreshController?.endRefreshing();
+          pullToRefreshController?.endRefreshing();
         }
         tc.progress.value = data / 100;
       },
@@ -574,7 +574,7 @@ class _WebviewTabState extends State<WebviewTab> {
           return;
         }
         this.controller.removeKeepAliveObject(widget.uniqueKey);
-        tc.pullToRefreshController?.endRefreshing();
+        pullToRefreshController?.endRefreshing();
         if (error.description.contains('domain=WebKitErrorDomain, code=102')) {
           return renderAssetAsHtml(controller, request);
         }
@@ -733,7 +733,7 @@ class _WebviewTabState extends State<WebviewTab> {
     if (method == 'pageFailedToRefresh') {
       controller.removeKeepAliveObject(widget.uniqueKey);
       if (ka == null) {
-        tc.webViewController?.reload();
+        pageRefresh();
         return;
       }
 
@@ -903,7 +903,7 @@ class _WebviewTabState extends State<WebviewTab> {
         RoomUtil.forwardTextMessage(identity, uri.toString());
         break;
       case 'refresh':
-        tc.webViewController?.reload();
+        pageRefresh();
         break;
       case 'bookmark':
         var exist = await DBProvider.database.browserBookmarks
@@ -947,7 +947,7 @@ class _WebviewTabState extends State<WebviewTab> {
         tc.webViewController?.webStorage.localStorage.clear();
         tc.webViewController?.webStorage.sessionStorage.clear();
         EasyLoading.showToast('Clear Success');
-        tc.webViewController?.reload();
+        pageRefresh();
         break;
       case 'disconnect':
         var res = await BrowserConnect.getByHost(uri.host);
@@ -961,7 +961,7 @@ class _WebviewTabState extends State<WebviewTab> {
         tc.setBrowserConnect(null);
         tc.canGoBack.value = false;
         tc.canGoForward.value = false;
-        tc.webViewController?.reload();
+        pageRefresh();
         break;
       case 'close':
         controller.removeKeepAliveObject(widget.uniqueKey);
@@ -1359,5 +1359,47 @@ img {
     await tc.webViewController?.evaluateJavascript(source: """
       document.querySelectorAll('audio, video').forEach(media => media.pause());
     """);
+  }
+
+  Future<void> pageRefresh([WebUri? uri]) async {
+    try {
+      uri ??= await tc.webViewController?.getUrl().timeout(Duration(seconds: 1),
+          onTimeout: () {
+        return WebUri(widget.initUrl);
+      });
+      await tc.webViewController
+          ?.loadUrl(urlRequest: URLRequest(url: uri))
+          .timeout(Duration(seconds: 3));
+    } catch (e) {
+      loggerNoLine.i('Reload failed: $e');
+      controller.removeKeepAliveObject(widget.uniqueKey);
+
+      // Recreate the webview by updating state
+      setState(() {
+        ka = controller.addKeepAliveObject(widget.uniqueKey);
+        state = WebviewTabState.failed;
+      });
+    }
+  }
+
+  void initPullToRefreshController() {
+    pullToRefreshController = kIsWeb ||
+            ![TargetPlatform.iOS, TargetPlatform.android]
+                .contains(defaultTargetPlatform)
+        ? null
+        : PullToRefreshController(
+            settings: PullToRefreshSettings(color: KeychatGlobal.primaryColor),
+            onRefresh: () async {
+              if (tc.webViewController == null) {
+                return pageRefresh();
+              }
+              WebUri? url = await tc.webViewController
+                  ?.getUrl()
+                  .timeout(Duration(seconds: 1), onTimeout: () {
+                return WebUri(widget.initUrl);
+              });
+              if (url == null) return;
+              await pageRefresh(url);
+            });
   }
 }

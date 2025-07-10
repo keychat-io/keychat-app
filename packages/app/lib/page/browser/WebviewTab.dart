@@ -1393,12 +1393,16 @@ img {
               if (tc.webViewController == null) {
                 return pageRefresh();
               }
-              WebUri? url = await tc.webViewController
-                  ?.getUrl()
-                  .timeout(Duration(seconds: 1), onTimeout: () {
-                return WebUri(widget.initUrl);
-              });
-              if (url == null) return;
+              WebUri? url;
+              try {
+                url = await tc.webViewController
+                    ?.getUrl()
+                    .timeout(Duration(seconds: 1), onTimeout: () {
+                  return WebUri(widget.initUrl);
+                });
+              } catch (e) {
+                url = WebUri(widget.initUrl);
+              }
               await pageRefresh(url);
             });
   }

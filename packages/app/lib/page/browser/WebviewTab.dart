@@ -964,8 +964,12 @@ class _WebviewTabState extends State<WebviewTab> {
         refreshPage();
         break;
       case 'close':
-        controller.removeKeepAliveObject(widget.uniqueKey);
-        await pausePlayingMedia();
+        try {
+          controller.removeKeepAliveObject(widget.uniqueKey);
+          await pausePlayingMedia();
+        } catch (e, s) {
+          logger.e('Error while closing webview: $e', stackTrace: s);
+        }
         Get.back();
         break;
       case 'zoom':
@@ -1366,24 +1370,28 @@ img {
   }
 
   Future<void> refreshPage([WebUri? uri]) async {
-    try {
-      uri ??= await tc.webViewController?.getUrl().timeout(Duration(seconds: 1),
-          onTimeout: () {
-        return WebUri(widget.initUrl);
-      });
-      await tc.webViewController
-          ?.loadUrl(urlRequest: URLRequest(url: uri))
-          .timeout(Duration(seconds: 3));
-    } catch (e) {
-      loggerNoLine.i('Reload failed: $e');
-      controller.removeKeepAliveObject(widget.uniqueKey);
+    EasyDebounce.debounce('webviewRefreshPage', Duration(seconds: 1), () async {
+      try {
+        uri ??= await tc.webViewController
+            ?.getUrl()
+            .timeout(Duration(seconds: 1), onTimeout: () {
+          return WebUri(widget.initUrl);
+        });
+        await tc.webViewController
+            ?.loadUrl(urlRequest: URLRequest(url: uri))
+            .timeout(Duration(seconds: 3));
+        loggerNoLine.i('Reloaded: ${uri.toString()}');
+      } catch (e) {
+        loggerNoLine.i('Reload failed: $e');
+        controller.removeKeepAliveObject(widget.uniqueKey);
 
-      // Recreate the webview by updating state
-      setState(() {
-        ka = controller.addKeepAliveObject(widget.uniqueKey);
-        state = WebviewTabState.failed;
-      });
-    }
+        // Recreate the webview by updating state
+        setState(() {
+          ka = controller.addKeepAliveObject(widget.uniqueKey);
+          state = WebviewTabState.failed;
+        });
+      }
+    });
   }
 
   void initPullToRefreshController() {

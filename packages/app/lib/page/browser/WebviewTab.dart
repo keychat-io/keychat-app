@@ -163,7 +163,7 @@ class _WebviewTabState extends State<WebviewTab> {
                                     : null,
                                 icon: const Icon(Icons.arrow_forward)),
                             IconButton(
-                                onPressed: pageRefresh,
+                                onPressed: refreshPage,
                                 icon: const Icon(Icons.refresh)),
                           ])),
                       Expanded(
@@ -733,7 +733,7 @@ class _WebviewTabState extends State<WebviewTab> {
     if (method == 'pageFailedToRefresh') {
       controller.removeKeepAliveObject(widget.uniqueKey);
       if (ka == null) {
-        pageRefresh();
+        refreshPage();
         return;
       }
 
@@ -903,7 +903,7 @@ class _WebviewTabState extends State<WebviewTab> {
         RoomUtil.forwardTextMessage(identity, uri.toString());
         break;
       case 'refresh':
-        pageRefresh();
+        refreshPage();
         break;
       case 'bookmark':
         var exist = await DBProvider.database.browserBookmarks
@@ -947,7 +947,7 @@ class _WebviewTabState extends State<WebviewTab> {
         tc.webViewController?.webStorage.localStorage.clear();
         tc.webViewController?.webStorage.sessionStorage.clear();
         EasyLoading.showToast('Clear Success');
-        pageRefresh();
+        refreshPage();
         break;
       case 'disconnect':
         var res = await BrowserConnect.getByHost(uri.host);
@@ -961,7 +961,7 @@ class _WebviewTabState extends State<WebviewTab> {
         tc.setBrowserConnect(null);
         tc.canGoBack.value = false;
         tc.canGoForward.value = false;
-        pageRefresh();
+        refreshPage();
         break;
       case 'close':
         controller.removeKeepAliveObject(widget.uniqueKey);
@@ -1356,12 +1356,16 @@ img {
   }
 
   Future<void> pausePlayingMedia() async {
-    await tc.webViewController?.evaluateJavascript(source: """
+    try {
+      await tc.webViewController?.evaluateJavascript(source: """
       document.querySelectorAll('audio, video').forEach(media => media.pause());
-    """);
+    """).timeout(Duration(seconds: 2));
+    } catch (e) {
+      logger.e(e.toString(), error: e);
+    }
   }
 
-  Future<void> pageRefresh([WebUri? uri]) async {
+  Future<void> refreshPage([WebUri? uri]) async {
     try {
       uri ??= await tc.webViewController?.getUrl().timeout(Duration(seconds: 1),
           onTimeout: () {
@@ -1391,7 +1395,7 @@ img {
             settings: PullToRefreshSettings(color: KeychatGlobal.primaryColor),
             onRefresh: () async {
               if (tc.webViewController == null) {
-                return pageRefresh();
+                return refreshPage();
               }
               WebUri? url;
               try {
@@ -1403,7 +1407,7 @@ img {
               } catch (e) {
                 url = WebUri(widget.initUrl);
               }
-              await pageRefresh(url);
+              await refreshPage(url);
             });
   }
 }

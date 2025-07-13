@@ -835,58 +835,10 @@ class ChatController extends GetxController {
       }
     }
     if (reader.canProvide(Formats.plainText)) {
-      String? text = await reader.readValue(Formats.plainText);
-      if (text != null && text.isNotEmpty) {
-        String currentText = textEditingController.text;
-        TextSelection selection = textEditingController.selection;
-
-        String newText;
-        int newCursorPosition;
-
-        // If there's selected text, replace it
-        if (selection.isValid && !selection.isCollapsed) {
-          newText = currentText.substring(0, selection.start) +
-              text +
-              currentText.substring(selection.end);
-          newCursorPosition = selection.start + text.length;
-        } else {
-          // If no selection, insert at cursor position
-          int cursorPosition = selection.baseOffset;
-
-          // If no cursor position is set, append to the end
-          if (cursorPosition < 0) {
-            cursorPosition = currentText.length;
-          }
-
-          newText = currentText.substring(0, cursorPosition) +
-              text +
-              currentText.substring(cursorPosition);
-          newCursorPosition = cursorPosition + text.length;
-        }
-
-        textEditingController.text = newText;
-
-        // Set cursor position after inserted text
-        textEditingController.selection = TextSelection.fromPosition(
-          TextPosition(offset: newCursorPosition),
-        );
-        return;
-      }
       return;
     }
 
     // fallback
-    for (int i = 0; i < imageFormats.length; i++) {
-      final format = imageFormats[i].$1;
-      final mediaType = imageFormats[i].$2;
-      final compress = imageFormats[i].$3;
-      bool canProcess = reader.canProvide(format);
-      if (canProcess) {
-        logger.d('Clipboard can provide: $format');
-        await _readFromStream(reader, format, mediaType, compress);
-        return;
-      }
-    }
     EasyLoading.showToast('Not supported media type');
   }
 

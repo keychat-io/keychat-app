@@ -16,43 +16,88 @@ class RelayStatus extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
-    WebsocketService? ws;
+    // Add a reactive variable to track WebsocketService availability
+    final Rx<WebsocketService?> wsService = Rx<WebsocketService?>(null);
+
+    // Try to find the service with retries
+    _findWebsocketService(wsService);
+
+    // Wrap the entire widget with Obx to make it reactive to both network status and service availability
+    return Obx(() {
+      // Check network connection first
+      if (!controller.isConnectedNetwork.value) {
+        return relayErrorIcon();
+      }
+
+      // Check if WebsocketService is available
+      final ws = wsService.value;
+      if (ws == null) {
+        return relayErrorIcon();
+      }
+
+      // Now handle relay status based on the available service
+      return Obx(() => ws.relayStatusInt.value == RelayStatusEnum.connected.name
+          ? GestureDetector(
+              onLongPress: () {
+                Get.to(() => const RelaySetting());
+              },
+              child: badges.Badge(
+                  showBadge: controller.addFriendTips.value,
+                  position: badges.BadgePosition.topEnd(top: 5, end: 5),
+                  child: HomeDropMenuWidget(controller.addFriendTips.value)))
+          : (ws.relayStatusInt.value == RelayStatusEnum.connecting.name ||
+                  ws.relayStatusInt.value == RelayStatusEnum.init.name)
+              ? SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: IconButton(
+                    color: Colors.black,
+                    icon: SpinKitDoubleBounce(
+                      color: Colors.amber.shade200,
+                      size: 22.0,
+                      duration: const Duration(milliseconds: 4000),
+                    ),
+                    onPressed: () {
+                      _showDialogForReconnect(false, "Relays connecting");
+                    },
+                  ),
+                )
+              : relayErrorIcon());
+    });
+  }
+
+  void _findWebsocketService(Rx<WebsocketService?> wsService) {
+    // First immediate attempt
     try {
-      ws = Get.find<WebsocketService>();
+      wsService.value = Get.find<WebsocketService>();
+      if (wsService.value != null) return; // Successfully found the service
     } catch (e) {
-      return relayErrorIcon();
+      // Service not available yet
     }
 
-    if (!controller.isConnectedNetwork.value) {
-      return relayErrorIcon();
+    // If not found, start retry logic
+    int attempts = 1; // Already made 1 attempt
+    const maxAttempts = 10;
+    const delay = Duration(milliseconds: 200);
+
+    void tryFindService() {
+      Future.delayed(delay, () {
+        try {
+          wsService.value = Get.find<WebsocketService>();
+          if (wsService.value != null) return; // Successfully found the service
+        } catch (e) {
+          // Failed to find the service
+        }
+
+        attempts++;
+        if (attempts < maxAttempts) {
+          tryFindService(); // Recursive call for next attempt
+        }
+      });
     }
-    return Obx(() => ws!.relayStatusInt.value == RelayStatusEnum.connected.name
-        ? GestureDetector(
-            onLongPress: () {
-              Get.to(() => const RelaySetting());
-            },
-            child: badges.Badge(
-                showBadge: controller.addFriendTips.value,
-                position: badges.BadgePosition.topEnd(top: 5, end: 5),
-                child: HomeDropMenuWidget(controller.addFriendTips.value)))
-        : (ws.relayStatusInt.value == RelayStatusEnum.connecting.name ||
-                ws.relayStatusInt.value == RelayStatusEnum.init.name)
-            ? SizedBox(
-                width: 48,
-                height: 48,
-                child: IconButton(
-                  color: Colors.black,
-                  icon: SpinKitDoubleBounce(
-                    color: Colors.amber.shade200,
-                    size: 22.0,
-                    duration: const Duration(milliseconds: 4000),
-                  ),
-                  onPressed: () {
-                    _showDialogForReconnect(false, "Relays connecting");
-                  },
-                ),
-              )
-            : relayErrorIcon());
+
+    // Start the retry process
+    tryFindService();
   }
 
   Widget relayErrorIcon() {

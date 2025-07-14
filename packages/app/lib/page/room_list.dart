@@ -20,12 +20,6 @@ class RoomList extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
-    Color pinTileBackground =
-        Get.isDarkMode ? const Color(0xFF202020) : const Color(0xFFEDEDED);
-    Divider divider = Divider(
-        height: 0.1,
-        color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
-        indent: 80.0);
     return Scaffold(
       appBar: AppBar(
           automaticallyImplyLeading: false,
@@ -105,7 +99,12 @@ class RoomList extends GetView<HomeController> {
                       if (rooms[index].pin) {
                         return Container();
                       }
-                      return divider;
+                      return Divider(
+                          height: 0.1,
+                          color: Theme.of(context)
+                              .dividerColor
+                              .withValues(alpha: 0.1),
+                          indent: 80.0);
                     }
                     return Container();
                   },
@@ -113,7 +112,7 @@ class RoomList extends GetView<HomeController> {
                   itemBuilder: (context, index) {
                     if (index == 0) {
                       if (data.rooms.length > 4) {
-                        return getSearchWidget(context, pinTileBackground);
+                        return getSearchWidget(context);
                       }
                       return const SizedBox();
                     }
@@ -122,12 +121,22 @@ class RoomList extends GetView<HomeController> {
                           data.identity, List<Room>.from(rooms.sublist(4)));
                     }
                     if (index == 2) {
-                      return getNewFriendsWidget(data, rooms[2] as List<Room>,
-                          pinTileBackground, context);
+                      return getNewFriendsWidget(
+                          data,
+                          rooms[2] as List<Room>,
+                          Get.isDarkMode
+                              ? const Color(0xFF202020)
+                              : const Color(0xFFEDEDED),
+                          context);
                     }
                     if (index == 3) {
-                      return getRequestingWidget(data, rooms[3] as List<Room>,
-                          pinTileBackground, context);
+                      return getRequestingWidget(
+                          data,
+                          rooms[3] as List<Room>,
+                          Get.isDarkMode
+                              ? const Color(0xFF202020)
+                              : const Color(0xFFEDEDED),
+                          context);
                     }
                     Room room = rooms[index];
                     return InkWell(
@@ -146,7 +155,9 @@ class RoomList extends GetView<HomeController> {
                             RoomUtil.showRoomActionSheet(context, room),
                         child: Container(
                             color: room.pin
-                                ? pinTileBackground
+                                ? Get.isDarkMode
+                                    ? const Color(0xFF202020)
+                                    : const Color(0xFFEDEDED)
                                 : Colors.transparent,
                             child: Obx(() => ListTile(
                                   contentPadding:
@@ -209,8 +220,7 @@ class RoomList extends GetView<HomeController> {
     );
   }
 
-  GestureDetector getSearchWidget(
-      BuildContext context, Color pinTileBackground) {
+  GestureDetector getSearchWidget(BuildContext context) {
     return GestureDetector(
       onTap: () {
         Get.to(() => const SearchPage());
@@ -219,7 +229,9 @@ class RoomList extends GetView<HomeController> {
         height: 40,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(4),
-          color: pinTileBackground,
+          color: Get.isDarkMode
+              ? const Color(0xFF202020)
+              : const Color(0xFFEDEDED),
         ),
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: Row(

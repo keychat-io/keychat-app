@@ -9,7 +9,7 @@
 #include "Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = keychat
+PRODUCT_NAME = Keychat
 
 // The application's bundle identifier
 PRODUCT_BUNDLE_IDENTIFIER = com.keychat.test

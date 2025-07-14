@@ -556,20 +556,6 @@ class CashuPage extends GetView<EcashController> {
         SettingsList(platform: DevicePlatform.iOS, sections: [
           SettingsSection(tiles: [
             SettingsTile.navigation(
-              title: const Text('Receive Ecash'),
-              onPressed: (context) async {
-                Get.back();
-                await Get.bottomSheet(
-                    ignoreSafeArea: false,
-                    clipBehavior: Clip.antiAlias,
-                    shape: const RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.vertical(top: Radius.circular(4))),
-                    const ReceiveEcash());
-                controller.ecashBillController.getTransactions();
-              },
-            ),
-            SettingsTile.navigation(
               title: const Text('Receive from Lightning Wallet'),
               onPressed: (context) async {
                 Get.back();
@@ -583,6 +569,20 @@ class CashuPage extends GetView<EcashController> {
                 controller.lightningBillController.getTransactions();
               },
             ),
+            SettingsTile.navigation(
+              title: const Text('Receive Ecash'),
+              onPressed: (context) async {
+                Get.back();
+                await Get.bottomSheet(
+                    ignoreSafeArea: false,
+                    clipBehavior: Clip.antiAlias,
+                    shape: const RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(4))),
+                    const ReceiveEcash());
+                controller.ecashBillController.getTransactions();
+              },
+            ),
           ])
         ]));
   }
@@ -591,19 +591,6 @@ class CashuPage extends GetView<EcashController> {
     Get.bottomSheet(
       SettingsList(platform: DevicePlatform.iOS, sections: [
         SettingsSection(tiles: [
-          SettingsTile.navigation(
-            title: const Text('Send Ecash'),
-            onPressed: (context) async {
-              Get.back();
-              await Get.bottomSheet(
-                  clipBehavior: Clip.antiAlias,
-                  shape: const RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.vertical(top: Radius.circular(4))),
-                  const CashuSendPage(false));
-              controller.ecashBillController.getTransactions();
-            },
-          ),
           SettingsTile.navigation(
             title: const Text('Send to Lightning Wallet'),
             onPressed: (context) async {
@@ -615,6 +602,19 @@ class CashuPage extends GetView<EcashController> {
                           BorderRadius.vertical(top: Radius.circular(4))),
                   const PayInvoicePage());
               controller.lightningBillController.getTransactions();
+            },
+          ),
+          SettingsTile.navigation(
+            title: const Text('Send Ecash'),
+            onPressed: (context) async {
+              Get.back();
+              await Get.bottomSheet(
+                  clipBehavior: Clip.antiAlias,
+                  shape: const RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(4))),
+                  const CashuSendPage(false));
+              controller.ecashBillController.getTransactions();
             },
           ),
         ])

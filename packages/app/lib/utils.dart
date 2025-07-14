@@ -1032,7 +1032,7 @@ class Utils {
     try {
       Directory appFolder = await getAppFolder();
       final dateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
-      final String errorFilePath = '${appFolder.path}/errors/$dateStr.log';
+      final String errorFilePath = '${appFolder.path}/errors/$dateStr.txt';
       final File file = File(errorFilePath);
 
       if (!file.existsSync()) {

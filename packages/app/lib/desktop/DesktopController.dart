@@ -31,7 +31,7 @@ class DesktopController extends GetxController {
     double? savedWidth = double.tryParse(
         (await Storage.getString(StorageKeyString.desktopRoomListWidth)) ??
             roomListWidth.value.toString());
-    if (savedWidth != null && savedWidth >= 180 && savedWidth <= 400) {
+    if (savedWidth != null && savedWidth >= 100 && savedWidth <= 400) {
       roomListWidth.value = savedWidth;
     }
   }
@@ -41,7 +41,7 @@ class DesktopController extends GetxController {
     double? savedWidth = double.tryParse((await Storage.getString(
             StorageKeyString.desktopBrowserSidebarWidth)) ??
         browserSidebarWidth.value.toString());
-    if (savedWidth != null && savedWidth >= 180 && savedWidth <= 400) {
+    if (savedWidth != null && savedWidth >= 100 && savedWidth <= 400) {
       browserSidebarWidth.value = savedWidth;
     }
   }
@@ -58,7 +58,7 @@ class DesktopController extends GetxController {
   }
 
   void setRoomListWidth(double width) {
-    if (width >= 150 && width <= 400) {
+    if (width >= 100 && width <= 400) {
       roomListWidth.value = width;
       _saveRoomListWidth();
     }
@@ -66,7 +66,7 @@ class DesktopController extends GetxController {
 
   // Add this method to set browser sidebar width
   void setBrowserSidebarWidth(double width) {
-    if (width >= 150 && width <= 400) {
+    if (width >= 100 && width <= 400) {
       browserSidebarWidth.value = width;
       _saveBrowserSidebarWidth();
     }

@@ -112,11 +112,7 @@ class RoomList extends GetView<HomeController> {
                   itemBuilder: (context, index) {
                     if (index == 0) {
                       if (data.rooms.length > 4) {
-                        return getSearchWidget(
-                            context,
-                            Get.isDarkMode
-                                ? const Color(0xFF202020)
-                                : const Color(0xFFEDEDED));
+                        return getSearchWidget(context);
                       }
                       return const SizedBox();
                     }
@@ -224,8 +220,7 @@ class RoomList extends GetView<HomeController> {
     );
   }
 
-  GestureDetector getSearchWidget(
-      BuildContext context, Color pinTileBackground) {
+  GestureDetector getSearchWidget(BuildContext context) {
     return GestureDetector(
       onTap: () {
         Get.to(() => const SearchPage());
@@ -234,7 +229,9 @@ class RoomList extends GetView<HomeController> {
         height: 40,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(4),
-          color: pinTileBackground,
+          color: Get.isDarkMode
+              ? const Color(0xFF202020)
+              : const Color(0xFFEDEDED),
         ),
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: Row(

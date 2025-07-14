@@ -171,28 +171,38 @@ class _HoverCloseListTileState extends State<HoverCloseListTile> {
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: ListTile(
-        leading: widget.leading,
-        horizontalTitleGap: 10,
-        selectedTileColor: KeychatGlobal.primaryColor.withValues(alpha: 200),
-        contentPadding: EdgeInsets.only(left: 16, right: 4),
-        title: Text(widget.title,
-            style: Theme.of(context).textTheme.bodyMedium, maxLines: 1),
-        selected: widget.selected,
-        onTap: widget.onTap,
-        trailing: AnimatedOpacity(
-          opacity: _isHovered ? 1.0 : 0.0,
-          duration: Duration(milliseconds: 200),
-          child: _isHovered
-              ? IconButton(
-                  icon: Icon(Icons.close),
-                  onPressed: widget.onClose,
-                )
-              : SizedBox(width: 48),
-        ),
-      ),
-    );
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: Stack(
+          children: [
+            ListTile(
+              leading: widget.leading,
+              horizontalTitleGap: 6,
+              selectedTileColor:
+                  KeychatGlobal.primaryColor.withValues(alpha: 200),
+              contentPadding: EdgeInsets.only(left: 12, right: 4),
+              title: Text(widget.title,
+                  style: Theme.of(context).textTheme.bodyMedium, maxLines: 1),
+              selected: widget.selected,
+              onTap: widget.onTap,
+            ),
+            Positioned(
+                right: 0,
+                top: 4,
+                child: AnimatedOpacity(
+                  opacity: _isHovered ? 1.0 : 0.0,
+                  duration: Duration(milliseconds: 200),
+                  child: _isHovered
+                      ? IconButton(
+                          iconSize: 20,
+                          icon: Icon(Icons.close),
+                          hoverColor:
+                              KeychatGlobal.primaryColor.withValues(alpha: 100),
+                          onPressed: widget.onClose,
+                        )
+                      : SizedBox(width: 48),
+                ))
+          ],
+        ));
   }
 }

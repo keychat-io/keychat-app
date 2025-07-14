@@ -11,7 +11,6 @@ class WebviewTabController extends GetxController {
   RxBool canGoBack = false.obs;
   RxBool canGoForward = false.obs;
   InAppWebViewController? webViewController;
-  PullToRefreshController? pullToRefreshController;
   RxString title = ''.obs;
   RxString url = ''.obs;
   RxDouble progress = 0.1.obs;
@@ -48,10 +47,8 @@ class WebviewTabController extends GetxController {
         allowFileAccess: true,
         allowUniversalAccessFromFileURLs: true,
         isInspectable: kDebugMode,
-        mediaPlaybackRequiresUserGesture: false,
         allowsInlineMediaPlayback: true,
         useShouldOverrideUrlLoading: true,
-        safeBrowsingEnabled: false,
         disableDefaultErrorPage: true,
         useOnDownloadStart: true,
         transparentBackground: true,
@@ -63,21 +60,6 @@ class WebviewTabController extends GetxController {
         algorithmicDarkeningAllowed: true,
         iframeAllowFullscreen: true);
 
-    pullToRefreshController = kIsWeb ||
-            ![TargetPlatform.iOS, TargetPlatform.android]
-                .contains(defaultTargetPlatform)
-        ? null
-        : PullToRefreshController(
-            settings: PullToRefreshSettings(color: KeychatGlobal.primaryColor),
-            onRefresh: () async {
-              if (defaultTargetPlatform == TargetPlatform.android) {
-                webViewController?.reload();
-              } else if (defaultTargetPlatform == TargetPlatform.iOS) {
-                webViewController?.loadUrl(
-                    urlRequest:
-                        URLRequest(url: await webViewController?.getUrl()));
-              }
-            });
     super.onInit();
   }
 

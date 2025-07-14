@@ -45,9 +45,7 @@ class _ChatPage2State extends State<ChatPage> {
   late Widget myAavtar;
   bool isGroup = false;
   late MarkdownConfig markdownDarkConfig;
-  late Color toBackgroundColor;
   late MarkdownConfig markdownLightConfig;
-  late Color fontColor;
   bool isSendGreeting = false;
 
   @override
@@ -56,9 +54,6 @@ class _ChatPage2State extends State<ChatPage> {
     myAavtar = Utils.getRandomAvatar(room.getIdentity().secp256k1PKHex,
         height: 40, width: 40);
     isGroup = room.type == RoomType.group;
-    toBackgroundColor =
-        Get.isDarkMode ? const Color(0xFF2c2c2c) : const Color(0xFFFFFFFF);
-    fontColor = Get.isDarkMode ? Colors.white : Colors.black87;
     markdownDarkConfig = MarkdownConfig.darkConfig.copy(configs: [
       LinkConfig(
           onTap: (url) {
@@ -258,8 +253,12 @@ class _ChatPage2State extends State<ChatPage> {
                                                   : Colors.black54,
                                               backgroundColor: message.isMeSend
                                                   ? KeychatGlobal.secondaryColor
-                                                  : toBackgroundColor,
-                                              fontColor: fontColor,
+                                                  : Get.isDarkMode
+                                                      ? const Color(0xFF2c2c2c)
+                                                      : const Color(0xFFFFFFFF),
+                                              fontColor: Get.isDarkMode
+                                                  ? Colors.white
+                                                  : Colors.black87,
                                               markdownConfig: Get.isDarkMode ||
                                                       message.isMeSend
                                                   ? markdownDarkConfig

@@ -453,6 +453,7 @@ jobs:
           BUILD_NUMBER: ${{ needs.get-version.outputs.build_number }}
 
       - name: Generate sha256
+        if: false
         working-directory: ./dist/
         run: |
           for file in $(find . -type f -not -name "*.sha256"); do

@@ -602,37 +602,61 @@ class HomeController extends GetxController
     });
   }
 
-  handleAppLink(Uri? uri) async {
+  Future<void> handleAppLink(Uri? uri) async {
     if (uri == null) return;
-    logger.i('App received new link: $uri');
     if (uri.pathSegments.isEmpty) return;
-    String path = uri.pathSegments[0];
     Map params = uri.queryParametersAll;
-    if (path.startsWith('/u/')) {
-      String input = path.substring(3);
-      if (!(input.length == 64 || input.length == 63)) {
-        EasyLoading.showToast('Invalid universal link: ${uri.toString()}');
-        return;
-      }
-      String hexPubkey = input;
-      if (input.startsWith('npub') && input.length == 63) {
-        hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: input);
-      }
-      List<Room> rooms = await RoomService.instance.getRoomByPubkey(hexPubkey);
-      if (rooms.isEmpty) {
-        Get.bottomSheet(AddtoContactsPage(hexPubkey),
-            isScrollControlled: true,
-            ignoreSafeArea: false,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16))));
-        return;
-      }
-      // Handle the found rooms
-      if (rooms.length == 1) {
-        return Utils.toNamedRoom(rooms[0]);
-      }
-      // dialog to select room
+    logger
+        .i('App received new link: $uri  path: ${uri.path} , params: $params');
+    if (uri.path.startsWith('/u/')) {
+      return _handleAppLinkRoom(uri, params);
     }
+  }
+
+  Future<void> _handleAppLinkRoom(Uri uri, Map params) async {
+    String input = uri.path.replaceFirst('/u/', '');
+    // chatkey
+    if (!(input.length == 64 || input.length == 63)) {
+      Get.bottomSheet(AddtoContactsPage(input),
+          isScrollControlled: true,
+          ignoreSafeArea: false,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16))));
+      return;
+    }
+
+    // bech32 or hex pubkey
+    String hexPubkey = input;
+    if (input.startsWith('npub') && input.length == 63) {
+      hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: input);
+    }
+    List<Room> rooms =
+        await RoomService.instance.getCommonRoomByPubkey(hexPubkey);
+    if (rooms.isEmpty) {
+      Get.bottomSheet(AddtoContactsPage(input),
+          isScrollControlled: true,
+          ignoreSafeArea: false,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16))));
+      return;
+    }
+    // Handle the found rooms
+    if (rooms.length == 1) {
+      return Utils.toNamedRoom(rooms[0]);
+    }
+    // dialog to select room
+    Get.dialog(SimpleDialog(
+        title: const Text('Multi Rooms Found'),
+        children: rooms.map((room) {
+          return ListTile(
+            title: Text(room.getRoomName()),
+            subtitle: Text(allIdentities[room.identityId]?.name ?? ''),
+            onTap: () {
+              Get.back();
+              Utils.toNamedRoom(room);
+            },
+          );
+        }).toList()));
   }
 }
 

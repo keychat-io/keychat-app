@@ -24,6 +24,21 @@
     <true/>
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.social-networking</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+      <dict>
+        <key>CFBundleTypeRole</key>
+        <string>Viewer</string>
+        <key>CFBundleURLIconFile</key>
+        <string>https://www.keychat.io/assets/img/logo.png</string>
+        <key>CFBundleURLName</key>
+        <string>com.keychat.test</string>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>keychat</string>
+        </array>
+      </dict>
+    </array>
     <key>LSApplicationQueriesSchemes</key>
     <array>
       <string>lightning</string>

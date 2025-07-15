@@ -912,10 +912,11 @@ class RoomService extends BaseChatService {
     return mlsRoom;
   }
 
-  Future<List<Room>> getRoomByPubkey(String hexPubkey) async {
+  Future<List<Room>> getCommonRoomByPubkey(String hexPubkey) async {
     return await DBProvider.database.rooms
         .filter()
         .toMainPubkeyEqualTo(hexPubkey)
+        .typeEqualTo(RoomType.common)
         .findAll();
   }
 }

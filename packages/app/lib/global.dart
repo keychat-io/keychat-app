@@ -16,6 +16,7 @@ class KeychatGlobal {
   static const String ecashDBFile = 'ecash.db';
   static const String mlsDBFile = 'mls.db3';
   static const String notifycationServer = 'https://notify.keychat.io/v2';
+  static const String mainWebsite = 'https://www.keychat.io';
   static const int cashuPrepareAmount = 32;
   static const int messageFailedAfterSeconds = 4;
   static const String defaultCashuMintURL =

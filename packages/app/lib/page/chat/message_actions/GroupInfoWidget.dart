@@ -34,9 +34,6 @@ class GroupInfoWidget extends StatelessWidget {
                 ),
                 SettingsTile(
                     title: const Text('Mode'), value: Text('MLS Large Group')),
-                SettingsTile(
-                    title: const Text("Members Count"),
-                    value: Text(2.toString())),
               ])
             ],
           )),

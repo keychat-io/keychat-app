@@ -378,7 +378,7 @@ class _ChatPage2State extends State<ChatPage> {
                                     .contains(LogicalKeyboardKey.metaRight);
                             if (event.logicalKey == LogicalKeyboardKey.keyV &&
                                 isCmdPressed) {
-                              await controller.handlePasteboard();
+                              await controller.handlePasteboardFile();
                               return;
                             }
                             final isShiftPressed = HardwareKeyboard

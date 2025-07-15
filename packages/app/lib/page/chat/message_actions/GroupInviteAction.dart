@@ -100,12 +100,21 @@ class GroupInviteAction extends StatelessWidget {
             subEvent, identity, message,
             groupId: groupId);
         EasyLoading.dismiss();
-        await MlsGroupService.instance
+        MlsGroupService.instance
             .uploadKeyPackages(identities: [identity], forceUpload: true);
       } catch (e, s) {
+        String msg = Utils.getErrorMessage(e);
+        logger.e(msg, error: e, stackTrace: s);
+
+        // handle error to rollback the room
+        Room? room =
+            await RoomService.instance.getRoomByIdentity(groupId, identity.id);
+        if (room != null) {
+          logger.e('Rollback room $groupId due to error: $msg');
+          await RoomService.instance.deleteRoom(room);
+        }
         message.requestConfrim = RequestConfrimEnum.request;
         await MessageService.instance.updateMessageAndRefresh(message);
-        String msg = Utils.getErrorMessage(e);
         EasyLoading.dismiss();
         if (msg.contains('Error creating StagedWelcome from Welcome')) {
           msg =
@@ -115,7 +124,6 @@ class GroupInviteAction extends StatelessWidget {
           message.requestConfrim = RequestConfrimEnum.expired;
           await MessageService.instance.updateMessageAndRefresh(message);
         }
-        logger.e(msg, error: e, stackTrace: s);
         await Get.dialog(CupertinoAlertDialog(
             title: const Text('Join Group Error'),
             content: Text(msg),

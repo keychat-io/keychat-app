@@ -641,9 +641,10 @@ class ChatController extends GetxController {
             onSendProgress: (count, total) => FileService.instance
                 .onSendProgress(statusMessage, count, total));
         hideAdd.value = true; // close features section
-        EasyLoading.dismiss();
+        Future.delayed(Duration(seconds: 2)).then((_) {
+          EasyLoading.dismiss();
+        });
       } catch (e, s) {
-        EasyLoading.dismiss();
         EasyLoading.showError(Utils.getErrorMessage(e),
             duration: const Duration(seconds: 3));
         logger.e('encrypt And SendFile', error: e, stackTrace: s);
@@ -822,17 +823,23 @@ class ChatController extends GetxController {
       (Formats.htmlFile, MessageMediaType.file, false),
       (Formats.webUnknown, MessageMediaType.file, false),
     ];
-
-    for (int i = 0; i < imageFormats.length; i++) {
-      final format = imageFormats[i].$1;
-      final mediaType = imageFormats[i].$2;
-      final compress = imageFormats[i].$3;
-      bool canProcess = reader.canProvide(format);
-      if (canProcess) {
-        logger.d('Clipboard can provide: $format');
-        await _readFromStream(reader, format, mediaType, compress);
-        return;
+    if (reader.canProvide(Formats.fileUri)) {
+      for (int i = 0; i < imageFormats.length; i++) {
+        final format = imageFormats[i].$1;
+        final mediaType = imageFormats[i].$2;
+        final compress = imageFormats[i].$3;
+        bool canProcess = reader.canProvide(format);
+        if (canProcess) {
+          logger.d('Clipboard can provide: $format');
+          await _readFromStream(reader, format, mediaType, compress);
+          return;
+        }
       }
+    }
+    // fallback to screen capture
+    bool isImage = reader.canProvide(Formats.png);
+    if (isImage) {
+      await _readFromStream(reader, Formats.png, MessageMediaType.image, false);
     }
   }
 

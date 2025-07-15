@@ -760,6 +760,82 @@ class ChatController extends GetxController {
     }
   }
 
+  Future handlePasteboardFile() async {
+    logger.d('handlePasteboardFile');
+    final clipboard = SystemClipboard.instance;
+    if (clipboard == null) {
+      return; // Clipboard API is not supported on this platform.
+    }
+    final reader = await clipboard.read();
+    if (reader.items.isEmpty) {
+      return;
+    }
+
+    final imageFormats = [
+      (Formats.png, MessageMediaType.image, true),
+      (Formats.jpeg, MessageMediaType.image, true),
+      (Formats.webp, MessageMediaType.image, true),
+      (Formats.gif, MessageMediaType.image, false),
+      (Formats.mp4, MessageMediaType.video, true),
+      (Formats.pdf, MessageMediaType.file, false),
+      (Formats.svg, MessageMediaType.image, false),
+      (Formats.webp, MessageMediaType.image, false),
+      (Formats.tiff, MessageMediaType.image, false),
+      (Formats.bmp, MessageMediaType.image, false),
+      (Formats.ico, MessageMediaType.image, false),
+      (Formats.heic, MessageMediaType.image, false),
+      (Formats.heif, MessageMediaType.image, false),
+      (Formats.mov, MessageMediaType.video, false),
+      (Formats.m4v, MessageMediaType.video, false),
+      (Formats.avi, MessageMediaType.video, false),
+      (Formats.mpeg, MessageMediaType.video, false),
+      (Formats.webm, MessageMediaType.video, false),
+      (Formats.ogg, MessageMediaType.video, false),
+      (Formats.wmv, MessageMediaType.video, false),
+      (Formats.flv, MessageMediaType.video, false),
+      (Formats.mkv, MessageMediaType.video, false),
+      (Formats.mp3, MessageMediaType.file, false),
+      (Formats.oga, MessageMediaType.file, false),
+      (Formats.aac, MessageMediaType.file, false),
+      (Formats.wav, MessageMediaType.file, false),
+      (Formats.doc, MessageMediaType.file, false),
+      (Formats.docx, MessageMediaType.file, false),
+      (Formats.csv, MessageMediaType.file, false),
+      (Formats.xls, MessageMediaType.file, false),
+      (Formats.xlsx, MessageMediaType.file, false),
+      (Formats.ppt, MessageMediaType.file, false),
+      (Formats.pptx, MessageMediaType.file, false),
+      (Formats.json, MessageMediaType.file, false),
+      (Formats.zip, MessageMediaType.file, false),
+      (Formats.tar, MessageMediaType.file, false),
+      (Formats.gzip, MessageMediaType.file, false),
+      (Formats.bzip2, MessageMediaType.file, false),
+      (Formats.rar, MessageMediaType.file, false),
+      (Formats.dmg, MessageMediaType.file, false),
+      (Formats.iso, MessageMediaType.file, false),
+      (Formats.deb, MessageMediaType.file, false),
+      (Formats.rpm, MessageMediaType.file, false),
+      (Formats.apk, MessageMediaType.file, false),
+      (Formats.exe, MessageMediaType.file, false),
+      (Formats.msi, MessageMediaType.file, false),
+      (Formats.plainTextFile, MessageMediaType.file, false),
+      (Formats.htmlFile, MessageMediaType.file, false),
+      (Formats.webUnknown, MessageMediaType.file, false),
+    ];
+
+    for (int i = 0; i < imageFormats.length; i++) {
+      final format = imageFormats[i].$1;
+      final mediaType = imageFormats[i].$2;
+      final compress = imageFormats[i].$3;
+      bool canProcess = reader.canProvide(format);
+      if (canProcess) {
+        logger.d('Clipboard can provide: $format');
+        await _readFromStream(reader, format, mediaType, compress);
+        return;
+      }
+    }
+  }
+
   Future handlePasteboard() async {
     final clipboard = SystemClipboard.instance;
     if (clipboard == null) {
@@ -835,10 +911,58 @@ class ChatController extends GetxController {
       }
     }
     if (reader.canProvide(Formats.plainText)) {
+      String? text = await reader.readValue(Formats.plainText);
+      if (text != null && text.isNotEmpty) {
+        String currentText = textEditingController.text;
+        TextSelection selection = textEditingController.selection;
+
+        String newText;
+        int newCursorPosition;
+
+        // If there's selected text, replace it
+        if (selection.isValid && !selection.isCollapsed) {
+          newText = currentText.substring(0, selection.start) +
+              text +
+              currentText.substring(selection.end);
+          newCursorPosition = selection.start + text.length;
+        } else {
+          // If no selection, insert at cursor position
+          int cursorPosition = selection.baseOffset;
+
+          // If no cursor position is set, append to the end
+          if (cursorPosition < 0) {
+            cursorPosition = currentText.length;
+          }
+
+          newText = currentText.substring(0, cursorPosition) +
+              text +
+              currentText.substring(cursorPosition);
+          newCursorPosition = cursorPosition + text.length;
+        }
+
+        textEditingController.text = newText;
+
+        // Set cursor position after inserted text
+        textEditingController.selection = TextSelection.fromPosition(
+          TextPosition(offset: newCursorPosition),
+        );
+        return;
+      }
       return;
     }
 
     // fallback
+    for (int i = 0; i < imageFormats.length; i++) {
+      final format = imageFormats[i].$1;
+      final mediaType = imageFormats[i].$2;
+      final compress = imageFormats[i].$3;
+      bool canProcess = reader.canProvide(format);
+      if (canProcess) {
+        logger.d('Clipboard can provide: $format');
+        await _readFromStream(reader, format, mediaType, compress);
+        return;
+      }
+    }
     EasyLoading.showToast('Not supported media type');
   }
 

@@ -756,7 +756,6 @@ $error ''';
         loggerNoLine.i(
             '${EventKinds.mlsNipKeypackages} start: ${identity.secp256k1PKHex}');
         String event = await _getOrCreateEvent(identity, statePK, onlineRelays);
-
         Get.find<WebsocketService>().sendMessageWithCallback(
             "[\"EVENT\",$event]",
             relays: toRelay == null ? null : [toRelay], callback: (

@@ -552,8 +552,7 @@ class ChatController extends GetxController {
     } catch (e, s) {
       EasyLoading.dismiss();
       String msg = Utils.getErrorMessage(e);
-      EasyLoading.showError('status: $msg',
-          duration: const Duration(seconds: 3));
+      EasyLoading.showError(msg, duration: const Duration(seconds: 3));
       logger.e('encrypt And SendFile', error: e, stackTrace: s);
     } finally {
       hideAdd.trigger(true);
@@ -1041,8 +1040,9 @@ class ChatController extends GetxController {
       } catch (e, s) {
         logger.e('_readFromStream: ${e.toString()}', stackTrace: s);
       } finally {
-        await Future.delayed(Duration(seconds: 2));
-        EasyLoading.dismiss();
+        Future.delayed(Duration(seconds: 3)).then((_) {
+          EasyLoading.dismiss();
+        });
       }
     });
   }

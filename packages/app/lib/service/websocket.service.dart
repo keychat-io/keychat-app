@@ -449,7 +449,7 @@ class WebsocketService extends GetxService {
         continue;
       }
       sent++;
-      rw.sendRawREQ("[\"EVENT\",$content]");
+      rw.sendRawREQ(content);
     }
     if (sent == 0) {
       throw Exception(

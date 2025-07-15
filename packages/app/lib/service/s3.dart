@@ -67,10 +67,10 @@ class AwsS3 {
       } else {
         // Something happened in setting up or sending the request that triggered an Error
         logger.e(e.message ?? e.toString(), stackTrace: s);
-        throw Exception('File_upload_faild1: ${e.message ?? e.toString()}');
+        throw Exception(e.message ?? e.toString());
       }
     }
 
-    throw Exception('File_upload_faild2');
+    throw Exception('File_upload_failed2');
   }
 }

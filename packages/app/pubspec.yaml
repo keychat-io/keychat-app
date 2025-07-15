@@ -97,6 +97,7 @@ dependencies:
   super_clipboard: ^0.9.1
   responsive_grid_list: ^1.4.0
   mime: ^2.0.0
+  app_links: ^6.4.0
 
 dev_dependencies:
   flutter_test:

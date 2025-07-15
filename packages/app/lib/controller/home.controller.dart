@@ -6,6 +6,7 @@ import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app/page/chat/create_contact_page.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/notify.service.dart';
@@ -14,6 +15,7 @@ import 'package:app/service/secure_storage.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
+import 'package:app_links/app_links.dart';
 import 'package:flutter/cupertino.dart' show CupertinoTabController;
 import 'package:flutter_new_badger/flutter_new_badger.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -483,6 +485,7 @@ class HomeController extends GetxController
 
     // start to create ai identity
     Future.delayed(const Duration(seconds: 1), () async {
+      initAppLinks();
       RoomUtil.executeAutoDelete();
       loadAppRemoteConfig();
       List<Room> rooms = await RoomService.instance.getMlsRooms();
@@ -580,6 +583,56 @@ class HomeController extends GetxController
       }
     }
     return null;
+  }
+
+  Future<void> initAppLinks() async {
+    final appLinks = AppLinks();
+
+    try {
+      final uri = await appLinks.getInitialLink();
+      if (uri != null) {
+        handleAppLink(uri);
+      }
+    } catch (e) {
+      logger.e('Failed to get initial link: $e');
+    }
+
+    appLinks.uriLinkStream.listen(handleAppLink, onError: (err) {
+      logger.e('listen failed: $err');
+    });
+  }
+
+  handleAppLink(Uri? uri) async {
+    if (uri == null) return;
+    logger.i('App received new link: $uri');
+    if (uri.pathSegments.isEmpty) return;
+    String path = uri.pathSegments[0];
+    Map params = uri.queryParametersAll;
+    if (path.startsWith('/u/')) {
+      String input = path.substring(3);
+      if (!(input.length == 64 || input.length == 63)) {
+        EasyLoading.showToast('Invalid universal link: ${uri.toString()}');
+        return;
+      }
+      String hexPubkey = input;
+      if (input.startsWith('npub') && input.length == 63) {
+        hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: input);
+      }
+      List<Room> rooms = await RoomService.instance.getRoomByPubkey(hexPubkey);
+      if (rooms.isEmpty) {
+        Get.bottomSheet(AddtoContactsPage(hexPubkey),
+            isScrollControlled: true,
+            ignoreSafeArea: false,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16))));
+        return;
+      }
+      // Handle the found rooms
+      if (rooms.length == 1) {
+        return Utils.toNamedRoom(rooms[0]);
+      }
+      // dialog to select room
+    }
   }
 }
 

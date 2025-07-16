@@ -43,6 +43,7 @@
     <array>
       <string>lightning</string>
       <string>nostr</string>
+      <string>lnurlp</string>
     </array>
     <key>LSMinimumSystemVersion</key>
     <string>$(MACOSX_DEPLOYMENT_TARGET)</string>

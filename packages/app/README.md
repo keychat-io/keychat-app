@@ -103,19 +103,32 @@ flutter_distributor package --platform linux --targets appimage
 
 
 
-## Universal link test
-
-```
-adb shell am start -W -a android.intent.action.VIEW -d "keychat://www.keychat.io/u/npub10v2vdw8rulxj4s4h6ugh4ru7qlzqr7z2u8px5s4zlh2lsghs6lysyf69mf" com.keychat.io
-```
-
-deep link
+### Universal link
 
 ```
 adb shell am start -a android.intent.action.VIEW \
     -c android.intent.category.BROWSABLE \
     -d "https://www.keychat.io/u/npub10v2vdw8rulxj4s4h6ugh4ru7qlzqr7z2u8px5s4zlh2lsghs6lysyf69mf"
 ```
+
+### deep link
+```
+adb shell am start -W -a android.intent.action.VIEW -d "keychat://www.keychat.io/u/npub10v2vdw8rulxj4s4h6ugh4ru7qlzqr7z2u8px5s4zlh2lsghs6lysyf69mf" com.keychat.io
+```
+
+### cashu scheme
+adb shell am start -W -a android.intent.action.VIEW -d "cashu:cashuBo2FteBtodHRwczovL3Rlc3RudXQuY2FzaHUuc3BhY2VhdWNzYXRhdIGiYWlIAJofKTJT5B5hcIKjYWEEYXN4QDgzMDE3ODY1ZGJmMjgxNzEwZmY5OTUwOTkxNmE2MDA4NDhkNGZmM2FlODE4YmYzNjgxMTk1M2Y1MzRiNTUwYjVhY1ghA7CM51SOmJDzwJEeStQoIeyTq8KG8RSyG62zFI4TLmclpGFhAWFzeEAzNGZiNTZhYWI1ZmEwZWYzMGU4MDM0ZjZkNjY1MDUxYjViODc4NWQ2Yjk5N2MzYjhiZjE5YjAxNTA4NzRiMDMwYWNYIQJZDQ_cIMo_lKQbPoe_OfAAYxmpUbszgMGDc7W1V7_EQmFko2FlWCA1N1gGVhkV7yL5o8BnqtosG9OKM0djhph9y1oQIKlRaWFzWCAiyuxYu0Ps4d8jL6NCRaJ88omV0I4eiO_gcId5Dd3i22FyWCD1JfnxXQUeFKidFcR38uHcPY2blflxX61RqnMb2kDgzQ"
+
+### lightning scheme
+adb shell am start -W -a android.intent.action.VIEW -d "lightning:lnbc50n1p58ws58pp552983df7uzcngsfplq3u4662uczgxgxk0qsmxxzcardc6az2s52qdqqcqzpuxqrwzqsp5srv8f7gg8hhw8qpcm0mm29cm7kztxgm48vmth3nz67ny6yj2xqhq9qxpqysgq2573fx9ej620yd7mpep4pqfkhhrtxchmnmpsnvzt8yjakmhgvkppyd48587uk90j6cu5e42sgt97a062gpgxh4aqzaszqe7lg9eet2gp69fsac"
+
+### lnurlp scheme
+adb shell am start -W -a android.intent.action.VIEW -d "lnurlp:LNURL1DP68GURN8GHJ7UM9WFMXJCM99E3K7MF0V9CXJ0M385EKVCENXC6R2C35XVUKXEFCV5MKVV34X5EKZD3EV56NYD3HXQURZEPEXEJXXEPNXSCRVWFNV9NXZCN9XQ6XYEFHVGCXXCMYXYMNSERXFQ5FNS"
+
+### nostr scheme
+adb shell am start -W -a android.intent.action.VIEW -d "nostr:npub10v2vdw8rulxj4s4h6ugh4ru7qlzqr7z2u8px5s4zlh2lsghs6lysyf69mf"
+
+
 
 
 

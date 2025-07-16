@@ -151,7 +151,12 @@ Expire At: ${DateFormat("yyyy-MM-ddTHH:mm:ss").format(DateTime.fromMillisecondsS
           data = res.data;
           data?['domain'] = parts[1];
         } catch (e, s) {
-          logger.e('error: $e', error: e, stackTrace: s);
+          String errorMessage =
+              '${(e as DioException).response?.data ?? e.message}';
+          logger.e('error: $errorMessage', error: e, stackTrace: s);
+          EasyLoading.showError(
+              'Could not get lightning address details from the server: $errorMessage',
+              duration: Duration(seconds: 4));
           return null;
         }
       }
@@ -163,7 +168,12 @@ Expire At: ${DateFormat("yyyy-MM-ddTHH:mm:ss").format(DateTime.fromMillisecondsS
         data = res.data;
         data?['domain'] = Uri.parse(url).host;
       } catch (e, s) {
-        logger.e('error: $e', error: e, stackTrace: s);
+        String errorMessage =
+            '${(e as DioException).response?.data ?? e.message}';
+        logger.e('error: $errorMessage', error: e, stackTrace: s);
+        EasyLoading.showError(
+            'Could not get lightning address details from the server: $errorMessage',
+            duration: Duration(seconds: 4));
         return null;
       }
     }

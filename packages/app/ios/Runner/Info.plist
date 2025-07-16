@@ -45,11 +45,6 @@
     <false/>
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
-    <key>LSApplicationQueriesSchemes</key>
-    <array>
-      <string>lightning</string>
-      <string>nostr</string>
-    </array>
     <key>LSRequiresIPhoneOS</key>
     <true/>
     <key>NSAppTransportSecurity</key>
@@ -93,5 +88,11 @@
     <false/>
     <key>io.flutter.embedded_views_preview</key>
     <true/>
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+      <string>nostr</string>
+      <string>lightning</string>
+      <string>lnurlp</string>
+    </array>
   </dict>
 </plist>

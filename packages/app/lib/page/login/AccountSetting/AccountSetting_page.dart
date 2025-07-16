@@ -168,17 +168,6 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                         controller.identity.value.index > -1)
                       SettingsSection(
                         tiles: [
-                          SettingsTile.navigation(
-                            leading: const Icon(CupertinoIcons.link),
-                            title: const Text("Universal Link"),
-                            onPressed: (c) {
-                              String link =
-                                  '${KeychatGlobal.mainWebsite}/u/${controller.identity.value.npub}';
-                              Clipboard.setData(ClipboardData(text: link));
-                              EasyLoading.showSuccess("Copied");
-                            },
-                            value: Text('Copy'),
-                          ),
                           if (kDebugMode)
                             SettingsTile(
                               leading: const Icon(CupertinoIcons.person),
@@ -248,6 +237,18 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                               await showMyQrCode(
                                   context, controller.identity.value, true);
                             },
+                          ),
+                        if (controller.identity.value.enableChat)
+                          SettingsTile.navigation(
+                            leading: const Icon(CupertinoIcons.link),
+                            title: const Text("Universal Link"),
+                            onPressed: (c) {
+                              String link =
+                                  '${KeychatGlobal.mainWebsite}/u/${controller.identity.value.npub}';
+                              Clipboard.setData(ClipboardData(text: link));
+                              EasyLoading.showSuccess("Copied");
+                            },
+                            value: Text('Copy'),
                           ),
                         if (controller.identity.value.enableChat)
                           SettingsTile.navigation(

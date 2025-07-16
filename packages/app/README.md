@@ -100,3 +100,22 @@ sudo mv appimagetool /usr/local/bin/
 flutter_distributor package --platform linux --targets appimage
 
 ```
+
+
+
+## Universal link test
+
+```
+adb shell am start -W -a android.intent.action.VIEW -d "keychat://www.keychat.io/u/npub10v2vdw8rulxj4s4h6ugh4ru7qlzqr7z2u8px5s4zlh2lsghs6lysyf69mf" com.keychat.io
+```
+
+deep link
+
+```
+adb shell am start -a android.intent.action.VIEW \
+    -c android.intent.category.BROWSABLE \
+    -d "https://www.keychat.io/u/npub10v2vdw8rulxj4s4h6ugh4ru7qlzqr7z2u8px5s4zlh2lsghs6lysyf69mf"
+```
+
+
+

@@ -406,7 +406,10 @@ class _WebviewTabState extends State<WebviewTab> {
           tc.progress.value = 1.0;
         }
       },
-      onLoadStart: (controller, uri) async {},
+      onLoadStart: (controller, uri) async {
+        logger.d('onLoadStart: $uri');
+        await _checkGoBackState(uri.toString());
+      },
       onPrintRequest: (controller, url, printJobController) async {
         await printJobController?.cancel();
         return false;
@@ -513,7 +516,8 @@ class _WebviewTabState extends State<WebviewTab> {
       },
       onLoadStop: (controller, url) async {
         if (url == null) return;
-
+        logger.d('onLoadStop: $url');
+        await _checkGoBackState(url.toString());
         await controller.injectJavascriptFileFromAsset(
             assetFilePath: "assets/js/nostr.js");
         await controller.injectJavascriptFileFromAsset(
@@ -704,8 +708,8 @@ class _WebviewTabState extends State<WebviewTab> {
 
   void goBackOrPop() {
     tc.webViewController?.canGoBack().then((canGoBack) async {
+      logger.i('goBackOrPop: canGoBack: $canGoBack');
       if (canGoBack) {
-        tc.webViewController?.pauseAllMediaPlayback();
         await pausePlayingMedia();
         tc.webViewController?.goBack();
         return;

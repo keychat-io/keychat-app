@@ -632,6 +632,11 @@ class HomeController extends GetxController
         String input = _getDeeplinkData(uri);
         _handleAppLinkRoom(input, params);
         break;
+      case 'nostr':
+        // nostr:npub10v2vdw8rulxj4s4h6ugh4ru7qlzqr7z2u8px5s4zlh2lsghs6lysyf69mf
+        String input = _getDeeplinkData(uri);
+        _handleAppLinkRoom(input, params);
+        break;
       case 'lightning':
       case 'lnurlp':
         String input = _getDeeplinkData(uri);
@@ -653,48 +658,54 @@ class HomeController extends GetxController
   }
 
   Future<void> _handleAppLinkRoom(String input, Map params) async {
-    // chatkey
-    if (!(input.length == 64 || input.length == 63)) {
-      Get.bottomSheet(AddtoContactsPage(input),
-          isScrollControlled: true,
-          ignoreSafeArea: false,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(16))));
-      return;
-    }
+    loggerNoLine.i('handleAppLinkRoom: $input, params: $params');
+    try {
+      // qr chatkey
+      if (!(input.length == 64 || input.length == 63)) {
+        await Get.bottomSheet(AddtoContactsPage(input),
+            isScrollControlled: true,
+            ignoreSafeArea: false,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16))));
+        return;
+      }
 
-    // bech32 or hex pubkey
-    String hexPubkey = input;
-    if (input.startsWith('npub') && input.length == 63) {
-      hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: input);
+      // bech32 or hex pubkey
+      String hexPubkey = input;
+      if (input.startsWith('npub') && input.length == 63) {
+        hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: input);
+      }
+      List<Room> rooms =
+          await RoomService.instance.getCommonRoomByPubkey(hexPubkey);
+      if (rooms.isEmpty) {
+        await Get.bottomSheet(AddtoContactsPage(input),
+            isScrollControlled: true,
+            ignoreSafeArea: false,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16))));
+        return;
+      }
+      // Handle the found rooms
+      if (rooms.length == 1) {
+        return Utils.toNamedRoom(rooms[0]);
+      }
+      // dialog to select room
+      await Get.dialog(SimpleDialog(
+          title: const Text('Multi Rooms Found'),
+          children: rooms.map((room) {
+            return ListTile(
+              title: Text(room.getRoomName()),
+              subtitle: Text(allIdentities[room.identityId]?.name ?? ''),
+              onTap: () {
+                Get.back();
+                Utils.toNamedRoom(room);
+              },
+            );
+          }).toList()));
+    } catch (e, s) {
+      EasyLoading.showError('Failed to handle app link: $e');
+      logger.e('handleAppLinkRoom error: $e', stackTrace: s);
     }
-    List<Room> rooms =
-        await RoomService.instance.getCommonRoomByPubkey(hexPubkey);
-    if (rooms.isEmpty) {
-      Get.bottomSheet(AddtoContactsPage(input),
-          isScrollControlled: true,
-          ignoreSafeArea: false,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(16))));
-      return;
-    }
-    // Handle the found rooms
-    if (rooms.length == 1) {
-      return Utils.toNamedRoom(rooms[0]);
-    }
-    // dialog to select room
-    Get.dialog(SimpleDialog(
-        title: const Text('Multi Rooms Found'),
-        children: rooms.map((room) {
-          return ListTile(
-            title: Text(room.getRoomName()),
-            subtitle: Text(allIdentities[room.identityId]?.name ?? ''),
-            onTap: () {
-              Get.back();
-              Utils.toNamedRoom(room);
-            },
-          );
-        }).toList()));
   }
 
   Future _handleAppLinkLightning(String input) async {

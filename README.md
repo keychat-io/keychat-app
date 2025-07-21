@@ -109,8 +109,12 @@ Keychat implements the following nips:
 Demo: [https://www.keychat.io/u/npub1h0uj825jgcr9lzxyp37ehasuenq070707pj63je07n8mkcsg3u0qnsrwx8](https://www.keychat.io/u/npub1h0uj825jgcr9lzxyp37ehasuenq070707pj63je07n8mkcsg3u0qnsrwx8)
 
 ## Deeplink
+
 Add a contact
+
 ```
+nostr:npub1h0uj825jgcr9lzxyp37ehasuenq070707pj63je07n8mkcsg3u0qnsrwx8
+or
 keychat://www.keychat.io/u/npub1h0uj825jgcr9lzxyp37ehasuenq070707pj63je07n8mkcsg3u0qnsrwx8
 ```
 

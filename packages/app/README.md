@@ -98,10 +98,7 @@ chmod +x appimagetool
 sudo mv appimagetool /usr/local/bin/
 
 flutter_distributor package --platform linux --targets appimage
-
 ```
-
-
 
 ### Universal link
 

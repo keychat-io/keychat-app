@@ -38,11 +38,46 @@
           <string>keychat</string>
         </array>
       </dict>
+      <dict>
+        <key>CFBundleTypeRole</key>
+        <string>Viewer</string>
+        <key>CFBundleURLIconFile</key>
+        <string>https://www.keychat.io/assets/img/logo.png</string>
+        <key>CFBundleURLName</key>
+        <string>com.keychat.test</string>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>lightning</string>
+        </array>
+      </dict>
+      <dict>
+        <key>CFBundleTypeRole</key>
+        <string>Viewer</string>
+        <key>CFBundleURLIconFile</key>
+        <string>https://www.keychat.io/assets/img/logo.png</string>
+        <key>CFBundleURLName</key>
+        <string>com.keychat.test</string>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>nostr</string>
+        </array>
+      </dict>
+      <dict>
+        <key>CFBundleTypeRole</key>
+        <string>Viewer</string>
+        <key>CFBundleURLIconFile</key>
+        <string>https://www.keychat.io/assets/img/logo.png</string>
+        <key>CFBundleURLName</key>
+        <string>com.keychat.test</string>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>lnurlp</string>
+        </array>
+      </dict>
     </array>
     <key>LSApplicationQueriesSchemes</key>
     <array>
       <string>lightning</string>
-      <string>nostr</string>
       <string>lnurlp</string>
     </array>
     <key>LSMinimumSystemVersion</key>

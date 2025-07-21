@@ -25,8 +25,6 @@ class StorageKeyString {
   static String taskCreateRoom = "taskCreateRoom";
 
   static String dbBackupPwd = "dbBackupPwd";
-  static String mlsStates = "mlsStates";
-  static String mlsPKIdentity = "mlsPKIdentity";
   static String selectedMediaServer = "selectedMediaServer";
   static String mediaServers = "mediaServers";
 
@@ -41,6 +39,11 @@ class StorageKeyString {
   static String selectedTabIndex = 'selectedTabIndex';
   static String blossomProtocolServers = 'blossomProtocolServers';
   static String selectedPaymentPubkey = 'selectedPaymentPubkey';
+
+  // mls group
+  static const String mlsStates = 'mlsStates';
+  static const String mlsPKIdentity = 'mlsPKIdentity';
+  static const String mlsPKTimestamp = 'mlsPKTimestamp'; // Add this new key
 }
 
 class Storage {

@@ -59,6 +59,13 @@ void main() async {
     await WidgetsBinding.instance.endOfFrame;
     stopwatch.stop();
     logger.i("app launched: ${stopwatch.elapsedMilliseconds} ms");
+
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarContrastEnforced: true,
+    ));
   });
 }
 

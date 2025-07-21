@@ -742,9 +742,24 @@ $error ''';
             '${StorageKeyString.mlsStates}:${identity.secp256k1PKHex}';
         String statePK =
             '${StorageKeyString.mlsPKIdentity}:${identity.secp256k1PKHex}';
-        if (forceUpload) {
+        String timestampKey =
+            '${StorageKeyString.mlsPKTimestamp}:${identity.secp256k1PKHex}';
+
+        // Check if key package has expired (30 days)
+        String? lastUploadTime = await Storage.getString(timestampKey);
+        bool isExpired = false;
+        if (lastUploadTime != null) {
+          int timestamp = int.tryParse(lastUploadTime) ?? 0;
+          DateTime lastUpload = DateTime.fromMillisecondsSinceEpoch(timestamp);
+          isExpired = DateTime.now().difference(lastUpload).inDays >= 30;
+        }
+
+        if (forceUpload || isExpired) {
           await Storage.removeString(stateKey);
           await Storage.removeString(statePK);
+          await Storage.removeString(timestampKey);
+          loggerNoLine.i(
+              'Key package expired or force upload for identity: ${identity.secp256k1PKHex}');
         } else {
           if (toRelay != null) {
             List mlsStates = await Storage.getStringList(stateKey);
@@ -756,6 +771,11 @@ $error ''';
         loggerNoLine.i(
             '${EventKinds.mlsNipKeypackages} start: ${identity.secp256k1PKHex}');
         String event = await _getOrCreateEvent(identity, statePK, onlineRelays);
+
+        // Save upload timestamp when creating new event
+        await Storage.setString(
+            timestampKey, DateTime.now().millisecondsSinceEpoch.toString());
+
         Get.find<WebsocketService>().sendMessageWithCallback(
             "[\"EVENT\",$event]",
             relays: toRelay == null ? null : [toRelay], callback: (

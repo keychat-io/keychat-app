@@ -6,6 +6,8 @@ import 'package:app/page/components.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/relay.service.dart';
+import 'package:app/service/room.service.dart';
+import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -15,8 +17,6 @@ import 'package:get/get.dart';
 
 import 'package:settings_ui/settings_ui.dart';
 import 'package:app/models/models.dart';
-import '../../utils.dart';
-import '../../service/room.service.dart';
 
 // ignore: must_be_immutable
 class ChatSettingContactPage extends StatefulWidget {

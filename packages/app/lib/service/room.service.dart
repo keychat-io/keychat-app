@@ -236,6 +236,7 @@ class RoomService extends BaseChatService {
     return await DBProvider.database.rooms
         .filter()
         .groupTypeEqualTo(GroupType.mls)
+        .typeEqualTo(RoomType.group)
         .onetimekeyIsNotEmpty()
         .findAll();
   }
@@ -555,39 +556,6 @@ class RoomService extends BaseChatService {
         requestId: requestId,
         createdAt: event.createdAt,
         msgKeyHash: msgKeyHash);
-  }
-
-  Future sendFileMessage(
-      {required Room room,
-      required String relativePath,
-      required FileEncryptInfo fileInfo,
-      required MessageMediaType type}) async {
-    var mfi = MsgFileInfo()
-      ..localPath = relativePath
-      ..url = fileInfo.url
-      ..suffix = fileInfo.suffix
-      ..key = fileInfo.key
-      ..iv = fileInfo.iv
-      ..size = fileInfo.size
-      ..hash = fileInfo.hash
-      ..updateAt = DateTime.now()
-      ..ecashToken = fileInfo.ecashToken
-      ..sourceName = fileInfo.sourceName
-      ..status = FileStatus.decryptSuccess;
-    return await RoomService.instance.sendMessage(
-        room, mfi.getUriString(type.name, fileInfo),
-        realMessage: mfi.toString(), mediaType: type);
-  }
-
-  Future forwardFileMessage(
-      {required List<Room> rooms,
-      required String content,
-      required MsgFileInfo mfi,
-      required MessageMediaType mediaType}) async {
-    for (Room room in rooms) {
-      await RoomService.instance.sendMessage(room, content,
-          realMessage: mfi.toString(), mediaType: mediaType);
-    }
   }
 
   @override

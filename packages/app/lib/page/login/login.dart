@@ -18,42 +18,45 @@ class Login extends StatelessWidget {
   Widget build(context) {
     return SafeArea(
         child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
             child: Column(children: [
               Expanded(
                   child: Column(
                       crossAxisAlignment: GetPlatform.isDesktop
                           ? CrossAxisAlignment.center
-                          : CrossAxisAlignment.start,
+                          : CrossAxisAlignment.center,
                       children: [
                     SizedBox(height: 32),
-                    Text('Keychat is the super app for Bitcoiners',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleLarge
-                            ?.copyWith(fontSize: 32)),
-                    Padding(
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        child: Text(
-                            'Autonomous IDs, Bitcoin ecash wallet, secure chat, and rich Mini Apps — all in Keychat')),
+                    Center(
+                        child: Text('Keychat is the super app for Bitcoiners',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(fontSize: 32))),
+                    Center(
+                        child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            child: Text(
+                                'Autonomous IDs, Bitcoin ecash wallet, secure chat, and rich Mini Apps — all in Keychat'))),
                     Row(
                       spacing: 8,
-                      mainAxisAlignment: GetPlatform.isMobile
-                          ? MainAxisAlignment.start
-                          : MainAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         Chip(
                             label: Text('Autonomy'),
+                            labelPadding: EdgeInsets.symmetric(horizontal: 4),
                             avatar: SvgPicture.asset('assets/images/wallet.svg',
                                 width: 16, height: 16)),
                         Chip(
                             label: Text('Security'),
+                            labelPadding: EdgeInsets.symmetric(horizontal: 4),
                             avatar: SvgPicture.asset(
                                 'assets/images/security.svg',
                                 width: 16,
                                 height: 16)),
                         Chip(
                             label: Text('Richness'),
+                            labelPadding: EdgeInsets.symmetric(horizontal: 4),
                             avatar: Image.asset('assets/images/recommend.png',
                                 width: 16, height: 16)),
                       ],

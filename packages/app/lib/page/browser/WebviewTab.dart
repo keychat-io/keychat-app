@@ -350,7 +350,7 @@ class _WebviewTabState extends State<WebviewTab> {
   Widget _getWebview([PageStorageKey? key, InAppWebViewKeepAlive? keepAlive]) {
     return InAppWebView(
       key: key,
-      keepAlive: GetPlatform.isDesktop ? null : keepAlive,
+      // keepAlive: GetPlatform.isDesktop ? null : keepAlive,
       webViewEnvironment: controller.webViewEnvironment,
       initialUrlRequest: URLRequest(url: WebUri(tc.url.value)),
       initialSettings: tc.settings,

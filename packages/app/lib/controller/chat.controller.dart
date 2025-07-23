@@ -14,8 +14,6 @@ import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_debounce.dart';
-import 'package:easy_debounce/easy_throttle.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -278,7 +276,7 @@ class ChatController extends GetxController {
       () => pickAndUploadImage(ImageSource.gallery),
       _handleSendWithCamera,
       () => pickAndUploadVideo(ImageSource.gallery),
-      _handleFileUpload,
+      () => FileService.instance.handleFileUpload(roomObs.value),
       _handleSendSats,
     ];
     // disable webrtc
@@ -518,7 +516,8 @@ class ChatController extends GetxController {
         CupertinoDialogAction(
           isDefaultAction: true,
           onPressed: () async {
-            await handleSendMediaFile(xfile!, MessageMediaType.image, true);
+            await FileService.instance.handleSendMediaFile(
+                roomObs.value, xfile!, MessageMediaType.image, true);
             Get.back();
           },
           child: const Text('Send'),
@@ -605,52 +604,6 @@ class ChatController extends GetxController {
       }
     }
     return list;
-  }
-
-  _handleFileUpload() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
-    if (result == null) return;
-    XFile xfile = result.files.first.xFile;
-
-    if (FileService.instance.isImageFile(xfile.path)) {
-      return handleSendMediaFile(xfile, MessageMediaType.image, true);
-    }
-
-    if (FileService.instance.isVideoFile(xfile.path)) {
-      return handleSendMediaFile(xfile, MessageMediaType.video, true);
-    }
-    handleSendMediaFile(xfile, MessageMediaType.file, false);
-  }
-
-  Future handleSendMediaFile(
-      XFile xfile, MessageMediaType mediaType, bool compress) async {
-    EasyThrottle.throttle('sendMediaFile', const Duration(seconds: 1),
-        () async {
-      try {
-        String statusMessage = mediaType != MessageMediaType.image
-            ? 'Encrypting and Uploading...'
-            : '''1. Remove EXIF info
-2. Encrypting 
-3. Uploading''';
-        EasyLoading.showProgress(0.0, status: statusMessage);
-        EasyLoading.showProgress(0.2, status: statusMessage);
-        await FileService.instance.encryptAndSendFile(
-            roomObs.value, xfile, mediaType,
-            compress: compress,
-            onSendProgress: (count, total) => FileService.instance
-                .onSendProgress(statusMessage, count, total));
-        hideAdd.value = true; // close features section
-        Future.delayed(Duration(seconds: 2)).then((_) {
-          EasyLoading.dismiss();
-        });
-      } catch (e, s) {
-        EasyLoading.showError(Utils.getErrorMessage(e),
-            duration: const Duration(seconds: 3));
-        logger.e('encrypt And SendFile', error: e, stackTrace: s);
-      } finally {
-        hideAdd.trigger(true);
-      }
-    });
   }
 
   _handleSendSats() async {
@@ -916,60 +869,50 @@ class ChatController extends GetxController {
         }
       }
     }
-    if (reader.canProvide(Formats.plainText)) {
-      String? text = await reader.readValue(Formats.plainText);
-      if (text != null && text.isNotEmpty) {
-        String currentText = textEditingController.text;
-        TextSelection selection = textEditingController.selection;
+    // plain text
 
-        String newText;
-        int newCursorPosition;
-
-        // If there's selected text, replace it
-        if (selection.isValid && !selection.isCollapsed) {
-          newText = currentText.substring(0, selection.start) +
-              text +
-              currentText.substring(selection.end);
-          newCursorPosition = selection.start + text.length;
-        } else {
-          // If no selection, insert at cursor position
-          int cursorPosition = selection.baseOffset;
-
-          // If no cursor position is set, append to the end
-          if (cursorPosition < 0) {
-            cursorPosition = currentText.length;
-          }
-
-          newText = currentText.substring(0, cursorPosition) +
-              text +
-              currentText.substring(cursorPosition);
-          newCursorPosition = cursorPosition + text.length;
-        }
-
-        textEditingController.text = newText;
-
-        // Set cursor position after inserted text
-        textEditingController.selection = TextSelection.fromPosition(
-          TextPosition(offset: newCursorPosition),
-        );
-        return;
-      }
+    String? text = await reader.readValue(Formats.plainText);
+    if (text == null) {
+      final clipboardData = await Clipboard.getData('text/plain');
+      text == clipboardData?.text;
+    }
+    if (text == null || text.isEmpty) {
+      EasyLoading.showToast('Clipboard is empty or not supported');
       return;
     }
+    loggerNoLine.i('Clipboard text: $text');
+    String currentText = textEditingController.text;
+    TextSelection selection = textEditingController.selection;
 
-    // fallback
-    for (int i = 0; i < imageFormats.length; i++) {
-      final format = imageFormats[i].$1;
-      final mediaType = imageFormats[i].$2;
-      final compress = imageFormats[i].$3;
-      bool canProcess = reader.canProvide(format);
-      if (canProcess) {
-        logger.d('Clipboard can provide: $format');
-        await _readFromStream(reader, format, mediaType, compress);
-        return;
+    String newText;
+    int newCursorPosition;
+
+    // If there's selected text, replace it
+    if (selection.isValid && !selection.isCollapsed) {
+      newText = currentText.substring(0, selection.start) +
+          text +
+          currentText.substring(selection.end);
+      newCursorPosition = selection.start + text.length;
+    } else {
+      // If no selection, insert at cursor position
+      int cursorPosition = selection.baseOffset;
+
+      // If no cursor position is set, append to the end
+      if (cursorPosition < 0) {
+        cursorPosition = currentText.length;
       }
+
+      newText = currentText.substring(0, cursorPosition) +
+          text +
+          currentText.substring(cursorPosition);
+      newCursorPosition = cursorPosition + text.length;
     }
-    EasyLoading.showToast('Not supported media type');
+
+    textEditingController.text = newText;
+
+    // Set cursor position after inserted text
+    textEditingController.selection =
+        TextSelection.fromPosition(TextPosition(offset: newCursorPosition));
   }
 
   Future _readFromStream(
@@ -1024,8 +967,8 @@ class ChatController extends GetxController {
               CupertinoDialogAction(
                 isDefaultAction: true,
                 onPressed: () async {
-                  await handleSendMediaFile(
-                      xfile, MessageMediaType.image, true);
+                  await FileService.instance.handleSendMediaFile(
+                      roomObs.value, xfile, MessageMediaType.image, true);
                   Get.back(result: true);
                 },
                 child: const Text('Send'),
@@ -1036,7 +979,8 @@ class ChatController extends GetxController {
             return; // user cancelled
           }
         }
-        await handleSendMediaFile(xfile, type, compress);
+        await FileService.instance
+            .handleSendMediaFile(roomObs.value, xfile, type, compress);
       } catch (e, s) {
         logger.e('_readFromStream: ${e.toString()}', stackTrace: s);
       } finally {

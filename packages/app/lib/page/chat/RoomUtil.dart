@@ -59,9 +59,10 @@ class RoomUtil {
     return await messageReceiveCheck(room, event, delay, maxRetry);
   }
 
-  static forwardTextMessage(Identity identity, String content) async {
+  static forwardTextMessage(Identity identity, String content,
+      [bool showContent = true]) async {
     List<Room>? forwardRooms = await Get.to(
-        () => ForwardSelectRoom(content, identity),
+        () => ForwardSelectRoom(content, identity, showContent: showContent),
         fullscreenDialog: true,
         transition: Transition.downToUp);
     if (forwardRooms == null || forwardRooms.isEmpty) return;
@@ -92,14 +93,34 @@ class RoomUtil {
     EasyLoading.show(status: 'Sending...');
 
     MsgFileInfo mfi = MsgFileInfo.fromJson(jsonDecode(realMessage));
-    await RoomService.instance.forwardFileMessage(
-      rooms: forwardRooms,
-      content: content,
-      mfi: mfi,
-      mediaType: mediaType,
-    );
+    for (Room room in forwardRooms) {
+      await RoomService.instance.sendMessage(room, content,
+          realMessage: mfi.toString(), mediaType: mediaType);
+    }
     EasyLoading.showSuccess('Sent');
     return;
+  }
+
+  static Future<void> forwardMediaMessageToRooms(
+      List<Room> rooms, Message message) async {
+    if (rooms.isEmpty ||
+        message.realMessage == null ||
+        message.realMessage!.isEmpty) {
+      return;
+    }
+    try {
+      EasyLoading.show(status: 'Sending...');
+      MsgFileInfo mfi = MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
+      for (Room room in rooms) {
+        await RoomService.instance.sendMessage(room, message.content,
+            realMessage: mfi.toString(), mediaType: message.mediaType);
+      }
+      EasyLoading.showSuccess('Sent');
+    } catch (e, s) {
+      logger.e('forwardMediaMessageToRooms error: ${e.toString()}',
+          stackTrace: s);
+      EasyLoading.showError('Failed to forward message');
+    }
   }
 
   static GroupMessage getGroupMessage(Room room, String message,

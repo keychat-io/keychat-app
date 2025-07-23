@@ -1,3 +1,5 @@
+import 'package:app/controller/home.controller.dart';
+import 'package:app/global.dart';
 import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/page/chat/create_contact_page.dart';
 import 'package:app/page/components.dart';
@@ -99,6 +101,14 @@ class QrScanService {
           showAppBar: false);
       return;
     }
+    if (str.startsWith('${KeychatGlobal.mainWebsite}/u/')) {
+      try {
+        Get.find<HomeController>().handleAppLink(Uri.tryParse(str));
+      } catch (e) {
+        logger.e('Failed to handle app link: $e');
+      }
+      return;
+    }
     if (str.startsWith('npub') || str.length == 64) {
       Get.bottomSheet(AddtoContactsPage(str),
           isScrollControlled: true, ignoreSafeArea: false);
@@ -127,6 +137,11 @@ class QrScanService {
     } catch (e) {
       return handleText(url);
     }
+    if (url.startsWith('${KeychatGlobal.mainWebsite}/u/')) {
+      Get.find<HomeController>().handleAppLink(uri);
+      return;
+    }
+
     Get.dialog(CupertinoAlertDialog(
       title: const Text("Url"),
       content: Text(url.toString()),

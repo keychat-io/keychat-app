@@ -232,7 +232,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                         if (controller.identity.value.enableChat)
                           SettingsTile.navigation(
                             leading: const Icon(CupertinoIcons.qrcode),
-                            title: const Text("Chat Key"),
+                            title: const Text("One-Time Link"),
                             onPressed: (context) async {
                               await showMyQrCode(
                                   context, controller.identity.value, true);

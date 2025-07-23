@@ -1,7 +1,9 @@
 // ignore_for_file: must_be_immutable
 import 'dart:convert' show jsonDecode;
 
+import 'package:app/global.dart';
 import 'package:app/models/models.dart';
+import 'package:app/page/components.dart';
 import 'package:app/service/signalId.service.dart';
 import 'package:app/service/signal_chat_util.dart';
 
@@ -76,57 +78,47 @@ class _MyQRCodeState extends State<MyQRCode> {
                 alignment: Alignment.center,
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Text(
+                  Text('Share to your friends',
+                      style: Theme.of(context).textTheme.titleLarge),
+                  const SizedBox(height: 8),
+                  Utils.genQRImage('${KeychatGlobal.mainWebsite}/u/$qrString',
+                      size: 360),
+                  const SizedBox(height: 8),
+                  textSmallGray(
+                      context,
                       widget.isOneTime
                           ? 'Expires In: ${widget.time != null ? formatTime(widget.time!, 'MM-dd HH:mm') : '24 hours'}'
-                          : "",
-                      style: Theme.of(context).textTheme.titleMedium,
-                      overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 16),
-                  Utils.genQRImage(qrString, size: 360),
-                  Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Text(
-                        widget.isOneTime && qrString.length > 200
-                            ? "${qrString.substring(0, 30)}......${qrString.substring(qrString.length - 30)}"
-                            // ? qrString
-                            : widget.identity.npub,
-                        textAlign: TextAlign.center,
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 4,
-                      )),
+                          : ""),
+                  const SizedBox(height: 8),
                   Wrap(
                     alignment: WrapAlignment.center,
                     spacing: 10,
                     children: [
-                      FilledButton(
+                      FilledButton.icon(
                         onPressed: () {
                           Clipboard.setData(ClipboardData(
-                              text: widget.isOneTime
-                                  ? qrString
-                                  : widget.identity.npub));
-                          EasyLoading.showSuccess("Copied");
+                              text:
+                                  '${KeychatGlobal.mainWebsite}/u/${widget.isOneTime ? qrString : widget.identity.npub}'));
+                          EasyLoading.showSuccess("One-Time link copied");
                         },
-                        child: const Text("Copy"),
+                        icon: const Icon(Icons.copy),
+                        label: const Text("One-Time Link"),
                       ),
-                      OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.grey),
-                        ),
-                        onPressed: () {
-                          final box = context.findRenderObject() as RenderBox?;
+                      OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Colors.grey)),
+                          onPressed: () {
+                            final box =
+                                context.findRenderObject() as RenderBox?;
 
-                          Share.share(
-                            widget.isOneTime ? qrString : widget.identity.npub,
-                            sharePositionOrigin:
-                                box!.localToGlobal(Offset.zero) & box.size,
-                          );
-                        },
-                        child: const Text(
-                          "Share",
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
+                            Share.share(
+                                '${KeychatGlobal.mainWebsite}/u/${widget.isOneTime ? qrString : widget.identity.npub}',
+                                sharePositionOrigin:
+                                    box!.localToGlobal(Offset.zero) & box.size);
+                          },
+                          icon: const Icon(Icons.share, color: Colors.white),
+                          label: const Text("Share",
+                              style: TextStyle(color: Colors.white))),
                     ],
                   )
                 ]))));

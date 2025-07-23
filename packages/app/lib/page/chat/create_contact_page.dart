@@ -1,8 +1,9 @@
-// ignore_for_file: use_build_context_synchronously
-
+import 'package:app/controller/home.controller.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/components.dart';
 import 'package:app/service/qrscan.service.dart';
+import 'package:app/service/room.service.dart';
+import 'package:app/service/signal_chat.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
@@ -10,9 +11,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:app/models/models.dart';
-
-import '../../controller/home.controller.dart';
-import '../../service/room.service.dart';
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class AddtoContactsPage extends StatefulWidget {
   final String defaultInput;
@@ -25,7 +24,7 @@ class AddtoContactsPage extends StatefulWidget {
 class _SearchFriendsState extends State<AddtoContactsPage> {
   late TextEditingController _controller;
   late TextEditingController _helloController;
-  Identity identity = Get.find<HomeController>().getSelectedIdentity();
+  HomeController homeController = Get.find<HomeController>();
   @override
   void initState() {
     _controller = TextEditingController(text: widget.defaultInput.toString());
@@ -56,8 +55,12 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                         child: Row(
                           children: [
                             const Icon(Icons.arrow_back_ios),
-                            Utils.getRandomAvatar(identity.secp256k1PKHex,
-                                height: 22, width: 22)
+                            Utils.getRandomAvatar(
+                                Get.find<HomeController>()
+                                    .getSelectedIdentity()
+                                    .secp256k1PKHex,
+                                height: 22,
+                                width: 22)
                           ],
                         ))),
                 centerTitle: true,
@@ -111,41 +114,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                             constraints: BoxConstraints(maxWidth: 400),
                             width: double.infinity,
                             child: FilledButton(
-                              onPressed: () async {
-                                String input = _controller.text.trim();
-                                if (input.length > 70) {
-                                  bool isBase = isBase64(input);
-                                  if (isBase) {
-                                    QRUserModel model;
-                                    try {
-                                      model =
-                                          QRUserModel.fromShortString(input);
-                                    } catch (e, s) {
-                                      String msg = Utils.getErrorMessage(e);
-                                      logger.e(msg, stackTrace: s);
-                                      EasyLoading.showToast('Invalid Input');
-                                      return;
-                                    }
-                                    await RoomUtil.processUserQRCode(
-                                        model, true);
-                                  }
-                                  return;
-                                }
-
-                                // common private chat
-                                try {
-                                  await RoomService.instance
-                                      .createRoomAndsendInvite(input,
-                                          greeting:
-                                              _helloController.text.trim(),
-                                          identity: identity);
-                                } catch (e, s) {
-                                  String msg = Utils.getErrorMessage(e);
-                                  logger.e(msg, stackTrace: s);
-                                  EasyLoading.showToast(
-                                      'Failed to create room and send invite');
-                                }
-                              },
+                              onPressed: _createContact,
                               child: const Text('Confirm'),
                             ))),
                   ),
@@ -176,5 +145,59 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                 ],
               ),
             ))));
+  }
+
+  Future _createContact() async {
+    String input = _controller.text.trim();
+    if (input.length > 70) {
+      bool isBase = isBase64(input);
+      if (isBase) {
+        QRUserModel model;
+        try {
+          model = QRUserModel.fromShortString(input);
+        } catch (e, s) {
+          String msg = Utils.getErrorMessage(e);
+          logger.e(msg, stackTrace: s);
+          EasyLoading.showToast('Invalid Input');
+          return;
+        }
+        await RoomUtil.processUserQRCode(model, true);
+      }
+      return;
+    }
+    // check if input is a bot npub
+    String npub = rust_nostr.getBech32PubkeyByHex(hex: input);
+    for (var bot in homeController.recommendBots) {
+      if (bot['npub'] != npub) {
+        continue;
+      }
+      try {
+        Identity identity = Get.find<HomeController>().getSelectedIdentity();
+        String hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: bot['npub']);
+
+        Room room = await RoomService.instance.getOrCreateRoom(
+            hexPubkey, identity.secp256k1PKHex, RoomStatus.enabled,
+            contactName: bot['name'], type: RoomType.bot, identity: identity);
+        await SignalChatService.instance.sendHelloMessage(room, identity);
+        await Utils.toNamedRoom(room);
+      } catch (e) {
+        logger.e('Failed to create room for bot: $e');
+        EasyLoading.showToast(
+            'Failed to create room for bot: ${Utils.getErrorMessage(e)}');
+      }
+
+      return;
+    }
+
+    // common private chat
+    try {
+      await RoomService.instance.createRoomAndsendInvite(input,
+          greeting: _helloController.text.trim(),
+          identity: Get.find<HomeController>().getSelectedIdentity());
+    } catch (e, s) {
+      String msg = Utils.getErrorMessage(e);
+      logger.e(msg, stackTrace: s);
+      EasyLoading.showToast('Failed to create room and send invite: $msg');
+    }
   }
 }

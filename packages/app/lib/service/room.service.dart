@@ -911,6 +911,14 @@ class RoomService extends BaseChatService {
     Room? mlsRoom = await RoomService.instance.getRoomByOnetimeKey(pubkey);
     return mlsRoom;
   }
+
+  Future<List<Room>> getCommonRoomByPubkey(String hexPubkey) async {
+    return await DBProvider.database.rooms
+        .filter()
+        .toMainPubkeyEqualTo(hexPubkey)
+        .typeEqualTo(RoomType.common)
+        .findAll();
+  }
 }
 
 class SendMessageResponse {

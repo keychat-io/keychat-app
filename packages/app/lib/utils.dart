@@ -1014,6 +1014,10 @@ class Utils {
 
   static Future toNamedRoom(Room room, [dynamic arguments]) async {
     if (GetPlatform.isMobile) {
+      if (Get.currentRoute == '/room/${room.id}') {
+        logger.i('Already in room ${room.id}, no need to navigate again');
+        return;
+      }
       await Get.toNamed('/room/${room.id}', arguments: arguments ?? room);
       return;
     }

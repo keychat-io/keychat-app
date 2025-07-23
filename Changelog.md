@@ -2,6 +2,12 @@
 https://keepachangelog.com/zh-CN/1.1.0
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
+## 1.33.9+6409
+1. Upload MLS KeyPackage monthly
+2. Support Universal Link
+3. Merge the latest cargokit 
+4. Update flutter to 3.32.7
+
 ## 1.33.4+6400
 1. Re-send message raw data when message send failed.
 2. Add `window.webln` to webview, supporting `sendPayment` and `makeInvoice`.

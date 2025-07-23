@@ -102,7 +102,35 @@ Keychat implements the following nips:
 [x] sendPayment
 [x] makeInvoice
 
-## Getting Started
+## Universal Link
+### Add a contact from pubkey
+`https://www.keychat.io/u/xxx`
+
+Demo: [https://www.keychat.io/u/npub1h0uj825jgcr9lzxyp37ehasuenq070707pj63je07n8mkcsg3u0qnsrwx8](https://www.keychat.io/u/npub1h0uj825jgcr9lzxyp37ehasuenq070707pj63je07n8mkcsg3u0qnsrwx8)
+
+## Deeplink
+
+Add a contact
+
+```
+nostr:npub1h0uj825jgcr9lzxyp37ehasuenq070707pj63je07n8mkcsg3u0qnsrwx8
+or
+keychat://www.keychat.io/u/npub1h0uj825jgcr9lzxyp37ehasuenq070707pj63je07n8mkcsg3u0qnsrwx8
+```
+
+### Supported Intent / Scheme
+
+```
+adb shell am start -W -a android.intent.action.VIEW -d "scheme:xxxx"
+```
+
+- nostr. Add a contact, eg: `nostr:npub1h0uj825jgcr9lzxyp37ehasuenq070707pj63je07n8mkcsg3u0qnsrwx8`
+- cashu. Receive cashu token, eg: `cashu:cashuBo2FteBxxx`
+- lightning. Pay Lightning Invoice, eg: `lightning:npub1h0uj825jgcr9lzxyp37ehasuenq070707pj63je07n8mkcsg3u0qnsrwx8`
+- lnurlp. Pay to Lightning address, eg: `lightning:LNURL1DP68GURN8GHJ7UM9WFMXJCM99E3K7MF0V9CXJ0M385EKVCENXC6R2C35XVUKXEFCV5MKVV34X5EKZD3EV56NYD3HXQURZEPEXEJXXEPNXSCRVWFNV9NXZCN9XQ6XYEFHVGCXXCMYXYMNSERXFQ5FNS`
+
+
+## Development Getting Started
 
 ```
 git submodule update --init --recursive
@@ -124,10 +152,7 @@ melos run build:macos
 
 # windows
 dart pub global activate fastforge
-
-
 ```
-
 
 ## Based On
 

@@ -6,6 +6,7 @@ import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app/page/chat/create_contact_page.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/notify.service.dart';
@@ -14,6 +15,7 @@ import 'package:app/service/secure_storage.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
+import 'package:app_links/app_links.dart';
 import 'package:flutter/cupertino.dart' show CupertinoTabController;
 import 'package:flutter_new_badger/flutter_new_badger.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -25,8 +27,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:get/get.dart';
+import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
+import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -483,6 +487,7 @@ class HomeController extends GetxController
 
     // start to create ai identity
     Future.delayed(const Duration(seconds: 1), () async {
+      initAppLinks();
       RoomUtil.executeAutoDelete();
       loadAppRemoteConfig();
       List<Room> rooms = await RoomService.instance.getMlsRooms();
@@ -580,6 +585,146 @@ class HomeController extends GetxController
       }
     }
     return null;
+  }
+
+  Future<void> initAppLinks() async {
+    final appLinks = AppLinks();
+    // await for app inited
+    Future.delayed(Duration(seconds: 2)).then((value) async {
+      try {
+        final uri = await appLinks.getInitialLink();
+        if (uri != null) {
+          handleAppLink(uri);
+        }
+      } catch (e) {
+        logger.e('Failed to get initial link: $e');
+      }
+    });
+
+    appLinks.uriLinkStream.listen(handleAppLink, onError: (err) {
+      logger.e('listen failed: $err');
+    });
+  }
+
+  Future<void> handleAppLink(Uri? uri) async {
+    if (uri == null) return;
+    if (uri.pathSegments.isEmpty) return;
+    Map params = uri.queryParametersAll;
+    logger
+        .i('App received new link: $uri  path: ${uri.path} , params: $params');
+    String scheme = uri.scheme;
+    switch (scheme) {
+      case 'http':
+      case 'https':
+        // https://www.keychat.io/u/npub10v2vdw8rulxj4s4h6ugh4ru7qlzqr7z2u8px5s4zlh2lsghs6lysyf69mf
+        if (uri.path.startsWith('/u/')) {
+          String input = uri.path.replaceFirst('/u/', '');
+          return _handleAppLinkRoom(input, params);
+        }
+        break;
+      case 'keychat':
+        // keychat://www.keychat.io/u/npub10v2vdw8rulxj4s4h6ugh4ru7qlzqr7z2u8px5s4zlh2lsghs6lysyf69mf
+        if (uri.path.startsWith('/u/')) {
+          String input = uri.path.replaceFirst('/u/', '');
+          return _handleAppLinkRoom(input, params);
+        }
+        // keychat://npub10v2vdw8rulxj4s4h6ugh4ru7qlzqr7z2u8px5s4zlh2lsghs6lysyf69mf
+        String input = _getDeeplinkData(uri);
+        _handleAppLinkRoom(input, params);
+        break;
+      case 'nostr':
+        // nostr:npub10v2vdw8rulxj4s4h6ugh4ru7qlzqr7z2u8px5s4zlh2lsghs6lysyf69mf
+        String input = _getDeeplinkData(uri);
+        _handleAppLinkRoom(input, params);
+        break;
+      case 'lightning':
+      case 'lnurlp':
+        String input = _getDeeplinkData(uri);
+        _handleAppLinkLightning(input);
+        break;
+      case 'cashu':
+        String input = _getDeeplinkData(uri);
+        Get.find<EcashController>().proccessCashuAString(input);
+        break;
+
+      default:
+    }
+  }
+
+  String _getDeeplinkData(Uri uri) {
+    String scheme = uri.scheme;
+    String input = uri.toString().replaceFirst('$scheme:', '');
+    return input.replaceFirst('$scheme://', '');
+  }
+
+  Future<void> _handleAppLinkRoom(String input, Map params) async {
+    loggerNoLine.i('handleAppLinkRoom: $input, params: $params');
+    try {
+      // qr chatkey
+      if (!(input.length == 64 || input.length == 63)) {
+        await Get.bottomSheet(AddtoContactsPage(input),
+            isScrollControlled: true,
+            ignoreSafeArea: false,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16))));
+        return;
+      }
+
+      // bech32 or hex pubkey
+      String hexPubkey = input;
+      if (input.startsWith('npub') && input.length == 63) {
+        hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: input);
+      }
+      List<Room> rooms =
+          await RoomService.instance.getCommonRoomByPubkey(hexPubkey);
+      if (rooms.isEmpty) {
+        await Get.bottomSheet(AddtoContactsPage(input),
+            isScrollControlled: true,
+            ignoreSafeArea: false,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16))));
+        return;
+      }
+      // Handle the found rooms
+      if (rooms.length == 1) {
+        return Utils.toNamedRoom(rooms[0]);
+      }
+      // dialog to select room
+      await Get.dialog(SimpleDialog(
+          title: const Text('Multi Rooms Found'),
+          children: rooms.map((room) {
+            return ListTile(
+              title: Text(room.getRoomName()),
+              subtitle: Text(allIdentities[room.identityId]?.name ?? ''),
+              onTap: () {
+                Get.back();
+                Utils.toNamedRoom(room);
+              },
+            );
+          }).toList()));
+    } catch (e, s) {
+      EasyLoading.showError('Failed to handle app link: $e');
+      logger.e('handleAppLinkRoom error: $e', stackTrace: s);
+    }
+  }
+
+  Future _handleAppLinkLightning(String input) async {
+    if (isEmail(input) || input.toUpperCase().startsWith('LNURL')) {
+      await Get.bottomSheet(
+          clipBehavior: Clip.antiAlias,
+          shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
+          PayInvoicePage(invoce: input, isPay: false, showScanButton: false));
+      return;
+    }
+    var tx = await Get.find<EcashController>()
+        .proccessPayLightningBill(input, isPay: true);
+    if (tx != null) {
+      var lnTx = tx.field0 as LNTransaction;
+      logger.i('LN Transaction:   Amount=${lnTx.amount}, '
+          'INfo=${lnTx.info}, Description=${lnTx.fee}, '
+          'Hash=${lnTx.hash}, NodeId=${lnTx.status.name}');
+    }
   }
 }
 

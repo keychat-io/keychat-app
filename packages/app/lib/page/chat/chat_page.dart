@@ -378,7 +378,7 @@ class _ChatPage2State extends State<ChatPage> {
                                     .contains(LogicalKeyboardKey.metaRight);
                             if (event.logicalKey == LogicalKeyboardKey.keyV &&
                                 isCmdPressed) {
-                              await controller.handlePasteboardFile();
+                              controller.handlePasteboardFile();
                               return;
                             }
                             final isShiftPressed = HardwareKeyboard
@@ -448,49 +448,49 @@ class _ChatPage2State extends State<ChatPage> {
                               if (hasSelection) {
                                 buttonItems.add(
                                   ContextMenuButtonItem(
-                                    onPressed: () {
-                                      editableTextState.cutSelection(
-                                          SelectionChangedCause.toolbar);
-                                    },
-                                    type: ContextMenuButtonType.cut,
-                                  ),
+                                      onPressed: () {
+                                        editableTextState.cutSelection(
+                                            SelectionChangedCause.toolbar);
+                                      },
+                                      type: ContextMenuButtonType.cut),
                                 );
                                 buttonItems.add(
                                   ContextMenuButtonItem(
-                                    onPressed: () {
-                                      editableTextState.copySelection(
-                                          SelectionChangedCause.toolbar);
-                                    },
-                                    type: ContextMenuButtonType.copy,
-                                  ),
+                                      onPressed: () {
+                                        editableTextState.copySelection(
+                                            SelectionChangedCause.toolbar);
+                                      },
+                                      type: ContextMenuButtonType.copy),
                                 );
                               }
 
-                              buttonItems.add(
-                                ContextMenuButtonItem(
-                                    onPressed: () {
-                                      controller.handlePasteboard();
-                                      editableTextState.hideToolbar();
-                                    },
-                                    type: ContextMenuButtonType.paste),
-                              );
+                              buttonItems.add(ContextMenuButtonItem(
+                                  onPressed: () {
+                                    controller
+                                        .handlePasteboard()
+                                        .catchError((error, stackTrace) {
+                                      loggerNoLine.e(
+                                          'Error pasting clipboard content: $error',
+                                          stackTrace: stackTrace);
+                                    });
+                                    editableTextState.hideToolbar();
+                                  },
+                                  type: ContextMenuButtonType.paste));
 
                               if (canSelectAll) {
                                 buttonItems.add(
                                   ContextMenuButtonItem(
-                                    onPressed: () {
-                                      editableTextState.selectAll(
-                                          SelectionChangedCause.toolbar);
-                                    },
-                                    type: ContextMenuButtonType.selectAll,
-                                  ),
+                                      onPressed: () {
+                                        editableTextState.selectAll(
+                                            SelectionChangedCause.toolbar);
+                                      },
+                                      type: ContextMenuButtonType.selectAll),
                                 );
                               }
 
                               return AdaptiveTextSelectionToolbar.buttonItems(
-                                anchors: editableTextState.contextMenuAnchors,
-                                buttonItems: buttonItems,
-                              );
+                                  anchors: editableTextState.contextMenuAnchors,
+                                  buttonItems: buttonItems);
                             },
                             enableInteractiveSelection: true,
                             maxLines: 8,

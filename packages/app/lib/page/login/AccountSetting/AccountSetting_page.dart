@@ -86,8 +86,8 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                     Center(
                       child: Utils.getRandomAvatar(
                           controller.identity.value.secp256k1PKHex,
-                          height: 64,
-                          width: 64),
+                          height: 84,
+                          width: 84),
                     ),
                     if (controller.identity.value.isFromSigner)
                       Container(

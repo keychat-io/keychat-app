@@ -339,7 +339,7 @@ Let's start an encrypted chat.''';
           return ImageMinPreviewWidget(mfi.localPath!);
         }
       } catch (e, s) {
-        logger.e(e.toString(), stackTrace: s);
+        logger.e('img decoded error:${e.toString()}', stackTrace: s);
       }
     }
 
@@ -663,27 +663,6 @@ Let's start an encrypted chat.''';
             linesMargin: const EdgeInsets.symmetric(vertical: 4)));
   }
 
-  static Widget _getLinkPreviewWidget(
-      Message message,
-      MarkdownConfig markdownConfig,
-      Widget Function({Widget? child, String? text}) errorCallback) {
-    String content = message.content;
-    return AnyLinkPreview(
-        key: Key(content),
-        cache: const Duration(days: 7),
-        link: content,
-        onTap: () {
-          Utils.hideKeyboard(Get.context!);
-          Get.find<MultiWebviewController>().launchWebview(content: content);
-        },
-        placeholderWidget:
-            errorCallback(child: getMarkdownView(content, markdownConfig)),
-        showMultimedia: false,
-        errorBody: '',
-        errorWidget:
-            errorCallback(child: getMarkdownView(content, markdownConfig)));
-  }
-
   static Widget _getActionWidget(
       Widget child,
       Message message,
@@ -703,7 +682,21 @@ Let's start an encrypted chat.''';
       Widget Function({Widget? child, String? text}) errorCallback) {
     if (AnyLinkPreview.isValidLink(message.content) &&
         !isEmail(message.content)) {
-      return _getLinkPreviewWidget(message, markdownConfig, errorCallback);
+      return AnyLinkPreview(
+          key: Key(message.content),
+          cache: const Duration(days: 7),
+          link: message.content,
+          onTap: () {
+            Utils.hideKeyboard(Get.context!);
+            Get.find<MultiWebviewController>()
+                .launchWebview(content: message.content);
+          },
+          placeholderWidget: errorCallback(
+              child: getMarkdownView(message.content, markdownConfig)),
+          showMultimedia: false,
+          errorBody: '',
+          errorWidget: errorCallback(
+              child: getMarkdownView(message.content, markdownConfig)));
     }
 
     return errorCallback(

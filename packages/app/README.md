@@ -110,7 +110,12 @@ adb shell am start -a android.intent.action.VIEW \
 
 ### deep link
 ```
+# android
 adb shell am start -W -a android.intent.action.VIEW -d "keychat://www.keychat.io/u/npub10v2vdw8rulxj4s4h6ugh4ru7qlzqr7z2u8px5s4zlh2lsghs6lysyf69mf" com.keychat.io
+
+# iOS
+/usr/bin/xcrun simctl openurl booted "keychat://www.keychat.io/u/npub10v2vdw8rulxj4s4h6ugh4ru7qlzqr7z2u8px5s4zlh2lsghs6lysyf69mf"
+
 ```
 
 ### cashu scheme

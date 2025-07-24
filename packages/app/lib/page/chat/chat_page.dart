@@ -400,10 +400,7 @@ class _ChatPage2State extends State<ChatPage> {
                                   controller.textEditingController.value
                                       .copyWith(
                                 text: text.replaceRange(
-                                  selection.start,
-                                  selection.end,
-                                  '\n',
-                                ),
+                                    selection.start, selection.end, '\n'),
                                 selection: TextSelection.collapsed(
                                   offset: selection.start + 1,
                                 ),
@@ -471,12 +468,11 @@ class _ChatPage2State extends State<ChatPage> {
 
                               buttonItems.add(
                                 ContextMenuButtonItem(
-                                  onPressed: () {
-                                    controller.handlePasteboard();
-                                    editableTextState.hideToolbar();
-                                  },
-                                  type: ContextMenuButtonType.paste,
-                                ),
+                                    onPressed: () {
+                                      controller.handlePasteboard();
+                                      editableTextState.hideToolbar();
+                                    },
+                                    type: ContextMenuButtonType.paste),
                               );
 
                               if (canSelectAll) {

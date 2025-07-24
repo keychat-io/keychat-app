@@ -103,11 +103,12 @@ class FileService {
           onSendProgress: (count, total) =>
               FileService.instance.onSendProgress(statusMessage, count, total));
       if (mfi == null || mfi.fileInfo == null) return null;
+      EasyLoading.showProgress(1, status: statusMessage);
       SendMessageResponse smr = await RoomService.instance.sendMessage(
           room, mfi.getUriString(mediaType.name, mfi.fileInfo!),
           realMessage: mfi.toString(), mediaType: mediaType);
 
-      Future.delayed(Duration(seconds: 2)).then((_) {
+      Future.delayed(Duration(milliseconds: 500)).then((_) {
         EasyLoading.dismiss();
       });
       return smr.message;

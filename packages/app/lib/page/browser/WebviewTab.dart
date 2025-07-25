@@ -350,7 +350,7 @@ class _WebviewTabState extends State<WebviewTab> {
   Widget _getWebview([PageStorageKey? key, InAppWebViewKeepAlive? keepAlive]) {
     return InAppWebView(
       key: key,
-      keepAlive: GetPlatform.isDesktop ? null : keepAlive,
+      // keepAlive: GetPlatform.isDesktop ? null : keepAlive,
       webViewEnvironment: controller.webViewEnvironment,
       initialUrlRequest: URLRequest(url: WebUri(tc.url.value)),
       initialSettings: tc.settings,
@@ -474,8 +474,8 @@ class _WebviewTabState extends State<WebviewTab> {
                 'https://docs.google.com/gview?embedded=true&url=${Uri.encodeFull(str)}';
             logger.i('load pdf: $googleDocsUrl');
             await controller.loadUrl(
-              urlRequest: URLRequest(url: WebUri.uri(Uri.parse(googleDocsUrl))),
-            );
+                urlRequest:
+                    URLRequest(url: WebUri.uri(Uri.parse(googleDocsUrl))));
             return NavigationActionPolicy.CANCEL;
           }
 
@@ -490,29 +490,24 @@ class _WebviewTabState extends State<WebviewTab> {
             return NavigationActionPolicy.DOWNLOAD;
           }
 
-          if (![
-            "http",
-            "https",
-            "file",
-            "chrome",
-            "data",
-            "javascript",
-            "about"
-          ].contains(uri.scheme)) {
-            if (await canLaunchUrl(uri)) {
-              bool res = await launchUrl(uri);
-              if (res) {
-                return NavigationActionPolicy.CANCEL;
-              }
-              return NavigationActionPolicy.ALLOW;
-            }
+          if (["http", "https", "data", "javascript", "about"]
+              .contains(uri.scheme)) {
+            return NavigationActionPolicy.ALLOW;
           }
-          return NavigationActionPolicy.ALLOW;
+          try {
+            await launchUrl(uri);
+          } catch (e) {
+            if (e is PlatformException) {
+              EasyLoading.showError('Failed to open link: ${e.message}');
+              return NavigationActionPolicy.CANCEL;
+            }
+            logger.i(e.toString(), error: e);
+            EasyLoading.showError('Failed to open link: ${e.toString()}');
+          }
         } catch (e) {
           logger.i(e.toString(), error: e);
         }
-
-        return NavigationActionPolicy.ALLOW;
+        return NavigationActionPolicy.CANCEL;
       },
       onLoadStop: (controller, url) async {
         if (url == null) return;

@@ -1,6 +1,7 @@
 import UIKit
 import Flutter
 import app_links
+import receive_sharing_intent
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -19,4 +20,21 @@ import app_links
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
+
+  // If the application is using multiple libraries, which needs to implement this function here in AppDelegate, you should check if the url is made from SwiftReceiveSharingIntentPlugin (if so, return the sharingIntent response) or call the handler of specific librabry
+    override func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+        let sharingIntent = SwiftReceiveSharingIntentPlugin.instance
+        if sharingIntent.hasMatchingSchemePrefix(url: url) {
+            return sharingIntent.application(app, open: url, options: options)
+        }
+        
+         // For example load MSALPublicClientApplication
+         // return MSALPublicClientApplication.handleMSALResponse(url, sourceApplication: options[.sourceApplication] as? String)
+
+         // Cancel url handling
+         // return false
+
+         // Proceed url handling for other Flutter libraries like uni_links
+         return super.application(app, open: url, options:options)
+    }
 }

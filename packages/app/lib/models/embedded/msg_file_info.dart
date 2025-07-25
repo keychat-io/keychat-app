@@ -26,6 +26,9 @@ class MsgFileInfo {
   String? hash; // sha256
   String? sourceName;
 
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  FileEncryptInfo? fileInfo;
+
   MsgFileInfo();
 
   @override

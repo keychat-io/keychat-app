@@ -59,9 +59,10 @@ class RoomUtil {
     return await messageReceiveCheck(room, event, delay, maxRetry);
   }
 
-  static forwardTextMessage(Identity identity, String content) async {
+  static forwardTextMessage(Identity identity, String content,
+      [bool showContent = true]) async {
     List<Room>? forwardRooms = await Get.to(
-        () => ForwardSelectRoom(content, identity),
+        () => ForwardSelectRoom(content, identity, showContent: showContent),
         fullscreenDialog: true,
         transition: Transition.downToUp);
     if (forwardRooms == null || forwardRooms.isEmpty) return;
@@ -92,14 +93,34 @@ class RoomUtil {
     EasyLoading.show(status: 'Sending...');
 
     MsgFileInfo mfi = MsgFileInfo.fromJson(jsonDecode(realMessage));
-    await RoomService.instance.forwardFileMessage(
-      rooms: forwardRooms,
-      content: content,
-      mfi: mfi,
-      mediaType: mediaType,
-    );
+    for (Room room in forwardRooms) {
+      await RoomService.instance.sendMessage(room, content,
+          realMessage: mfi.toString(), mediaType: mediaType);
+    }
     EasyLoading.showSuccess('Sent');
     return;
+  }
+
+  static Future<void> forwardMediaMessageToRooms(
+      List<Room> rooms, Message message) async {
+    if (rooms.isEmpty ||
+        message.realMessage == null ||
+        message.realMessage!.isEmpty) {
+      return;
+    }
+    try {
+      EasyLoading.show(status: 'Sending...');
+      MsgFileInfo mfi = MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
+      for (Room room in rooms) {
+        await RoomService.instance.sendMessage(room, message.content,
+            realMessage: mfi.toString(), mediaType: message.mediaType);
+      }
+      EasyLoading.showSuccess('Sent');
+    } catch (e, s) {
+      logger.e('forwardMediaMessageToRooms error: ${e.toString()}',
+          stackTrace: s);
+      EasyLoading.showError('Failed to forward message');
+    }
   }
 
   static GroupMessage getGroupMessage(Room room, String message,
@@ -318,7 +339,7 @@ Let's start an encrypted chat.''';
           return ImageMinPreviewWidget(mfi.localPath!);
         }
       } catch (e, s) {
-        logger.e(e.toString(), stackTrace: s);
+        logger.e('img decoded error:${e.toString()}', stackTrace: s);
       }
     }
 
@@ -642,27 +663,6 @@ Let's start an encrypted chat.''';
             linesMargin: const EdgeInsets.symmetric(vertical: 4)));
   }
 
-  static Widget _getLinkPreviewWidget(
-      Message message,
-      MarkdownConfig markdownConfig,
-      Widget Function({Widget? child, String? text}) errorCallback) {
-    String content = message.content;
-    return AnyLinkPreview(
-        key: Key(content),
-        cache: const Duration(days: 7),
-        link: content,
-        onTap: () {
-          Utils.hideKeyboard(Get.context!);
-          Get.find<MultiWebviewController>().launchWebview(content: content);
-        },
-        placeholderWidget:
-            errorCallback(child: getMarkdownView(content, markdownConfig)),
-        showMultimedia: false,
-        errorBody: '',
-        errorWidget:
-            errorCallback(child: getMarkdownView(content, markdownConfig)));
-  }
-
   static Widget _getActionWidget(
       Widget child,
       Message message,
@@ -682,7 +682,21 @@ Let's start an encrypted chat.''';
       Widget Function({Widget? child, String? text}) errorCallback) {
     if (AnyLinkPreview.isValidLink(message.content) &&
         !isEmail(message.content)) {
-      return _getLinkPreviewWidget(message, markdownConfig, errorCallback);
+      return AnyLinkPreview(
+          key: Key(message.content),
+          cache: const Duration(days: 7),
+          link: message.content,
+          onTap: () {
+            Utils.hideKeyboard(Get.context!);
+            Get.find<MultiWebviewController>()
+                .launchWebview(content: message.content);
+          },
+          placeholderWidget: errorCallback(
+              child: getMarkdownView(message.content, markdownConfig)),
+          showMultimedia: false,
+          errorBody: '',
+          errorWidget: errorCallback(
+              child: getMarkdownView(message.content, markdownConfig)));
     }
 
     return errorCallback(

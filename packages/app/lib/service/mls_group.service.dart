@@ -760,21 +760,20 @@ $error ''';
           await Storage.removeString(timestampKey);
           loggerNoLine.i(
               'Key package expired or force upload for identity: ${identity.secp256k1PKHex}');
-        } else {
-          if (toRelay != null) {
-            List mlsStates = await Storage.getStringList(stateKey);
-            if (mlsStates.contains(toRelay)) {
-              return;
-            }
+        }
+
+        if (toRelay != null) {
+          List mlsStates = await Storage.getStringList(stateKey);
+          if (mlsStates.contains(toRelay)) {
+            loggerNoLine.i(
+                'Key package already uploaded to relay: $toRelay for identity: ${identity.secp256k1PKHex}');
+            return;
           }
         }
+
         loggerNoLine.i(
             '${EventKinds.mlsNipKeypackages} start: ${identity.secp256k1PKHex}');
         String event = await _getOrCreateEvent(identity, statePK, onlineRelays);
-
-        // Save upload timestamp when creating new event
-        await Storage.setString(
-            timestampKey, DateTime.now().millisecondsSinceEpoch.toString());
 
         Get.find<WebsocketService>().sendMessageWithCallback(
             "[\"EVENT\",$event]",
@@ -785,6 +784,8 @@ $error ''';
                 String? errorMessage}) async {
           List mlsStates = await Storage.getStringList(stateKey);
           if (status) {
+            loggerNoLine.i(
+                'Key package uploaded successfully: ${identity.secp256k1PKHex}');
             var set = Set.from(mlsStates);
             set.add(relay);
             // cache state
@@ -1121,8 +1122,8 @@ $error ''';
 
   // cache event for 10443
   Future<String> _getOrCreateEvent(
-      Identity identity, String stateKey, List<String> onlineRelays) async {
-    String? state = await Storage.getString(stateKey);
+      Identity identity, String statePK, List<String> onlineRelays) async {
+    String? state = await Storage.getString(statePK);
     if (state != null) {
       loggerNoLine.i(
           'Keypackage already exists: ${identity.secp256k1PKHex}, use cached');
@@ -1143,7 +1144,7 @@ $error ''';
           ["client", KeychatGlobal.appName],
           ["relay", ...onlineRelays]
         ]);
-    await Storage.setString(stateKey, event);
+    await Storage.setString(statePK, event);
     return event;
   }
 

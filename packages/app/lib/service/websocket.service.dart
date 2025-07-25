@@ -412,7 +412,6 @@ class WebsocketService extends GetxService {
     return sent;
   }
 
-  /// * content: nostr event model json string
   sendMessageWithCallback(String content,
       {List<String>? relays,
       Function(
@@ -423,9 +422,9 @@ class WebsocketService extends GetxService {
           callback}) {
     if (callback != null) {
       try {
-        var map = jsonDecode(content);
-        if (map['id'] != null) {
-          NostrAPI.instance.setOKCallback(map['id'], callback);
+        var list = jsonDecode(content);
+        if (list.length > 1 && list[1] != null) {
+          NostrAPI.instance.setOKCallback(list[1]['id'], callback);
         }
         // ignore: empty_catches
       } catch (e) {}

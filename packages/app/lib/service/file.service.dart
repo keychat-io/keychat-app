@@ -13,6 +13,7 @@ import 'package:app/service/room.service.dart';
 import 'package:app/service/s3.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart' hide Key;
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_svg/svg.dart';
@@ -67,6 +68,63 @@ class FileService {
   static FileService get instance => _instance ??= FileService._();
   // Avoid self instance
   FileService._();
+
+  Future<Message?> handleFileUpload(Room room, [XFile? xfile]) async {
+    if (xfile == null) {
+      FilePickerResult? result = await FilePicker.platform.pickFiles();
+      if (result == null) return null;
+      xfile = result.files.first.xFile;
+    }
+
+    if (FileService.instance.isImageFile(xfile.path)) {
+      return handleSendMediaFile(room, xfile, MessageMediaType.image, true);
+    }
+
+    if (FileService.instance.isVideoFile(xfile.path)) {
+      return handleSendMediaFile(room, xfile, MessageMediaType.video, true);
+    }
+    handleSendMediaFile(room, xfile, MessageMediaType.file, false);
+    return null;
+  }
+
+  Future<Message?> handleSendMediaFile(
+      Room room, XFile xfile, MessageMediaType mediaType, bool compress) async {
+    try {
+      String statusMessage = mediaType != MessageMediaType.image
+          ? 'Encrypting and Uploading...'
+          : '''1. Remove EXIF info
+2. Encrypting 
+3. Uploading''';
+      EasyLoading.showProgress(0.0, status: statusMessage);
+      EasyLoading.showProgress(0.2, status: statusMessage);
+      MsgFileInfo? mfi = await FileService.instance.encryptAndSendFile(
+          room, xfile, mediaType,
+          compress: compress,
+          onSendProgress: (count, total) =>
+              FileService.instance.onSendProgress(statusMessage, count, total));
+      if (mfi == null || mfi.fileInfo == null) return null;
+      EasyLoading.showProgress(1, status: statusMessage);
+      SendMessageResponse smr = await RoomService.instance.sendMessage(
+          room, mfi.getUriString(mediaType.name, mfi.fileInfo!),
+          realMessage: mfi.toString(), mediaType: mediaType);
+
+      Future.delayed(Duration(milliseconds: 500)).then((_) {
+        EasyLoading.dismiss();
+      });
+      return smr.message;
+    } catch (e, s) {
+      EasyLoading.showError(Utils.getErrorMessage(e),
+          duration: const Duration(seconds: 3));
+      logger.e('encrypt And SendFile', error: e, stackTrace: s);
+    } finally {
+      RoomService.getController(room.id)?.hideAdd.value = true;
+      Future.delayed(Duration(seconds: 2)).then((_) {
+        EasyLoading.dismiss();
+      });
+    }
+    return null;
+  }
+
   Future<File> decryptFile(
       {required File input,
       required File output,
@@ -278,7 +336,7 @@ class FileService {
     }
   }
 
-  Future<void> encryptAndSendFile(
+  Future<MsgFileInfo?> encryptAndSendFile(
     Room room,
     XFile xfile,
     MessageMediaType type, {
@@ -353,14 +411,25 @@ class FileService {
             ),
           ],
         ));
-        return;
+        return null;
       }
     }
 
     Directory appFolder = await Utils.getAppFolder();
     String relativePath = newFile.path.replaceAll(appFolder.path, '');
-    await RoomService.instance.sendFileMessage(
-        relativePath: relativePath, fileInfo: fileInfo, room: room, type: type);
+    return MsgFileInfo()
+      ..fileInfo = fileInfo
+      ..localPath = relativePath
+      ..url = fileInfo.url
+      ..suffix = fileInfo.suffix
+      ..key = fileInfo.key
+      ..iv = fileInfo.iv
+      ..size = fileInfo.size
+      ..hash = fileInfo.hash
+      ..updateAt = DateTime.now()
+      ..ecashToken = fileInfo.ecashToken
+      ..sourceName = fileInfo.sourceName
+      ..status = FileStatus.decryptSuccess;
   }
 
   Future downloadForMessage(Message message, MsgFileInfo mfi,

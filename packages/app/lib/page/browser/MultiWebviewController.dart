@@ -174,7 +174,7 @@ class MultiWebviewController extends GetxController {
                 uniqueKey: uniqueKey, // for close controller
                 windowId: 0,
                 isCache: mobileKeepAlive.containsKey(uniqueKey),
-                keepAlive: _getKeepAliveObject(uniqueKey),
+                // keepAlive: _getKeepAliveObject(uniqueKey),
               ),
           transition: Transition.cupertino);
       return;

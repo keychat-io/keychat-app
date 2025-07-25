@@ -1,8 +1,10 @@
+import 'package:app/app.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/models/room.dart';
 import 'package:app/page/browser/SelectIdentityForward.dart';
 import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app/page/components.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -10,7 +12,9 @@ import 'package:get/get.dart';
 class ForwardSelectRoom extends StatefulWidget {
   final String message;
   final Identity identity;
-  const ForwardSelectRoom(this.message, this.identity, {super.key});
+  final bool showContent;
+  const ForwardSelectRoom(this.message, this.identity,
+      {super.key, this.showContent = true});
 
   @override
   _ForwardSelectRoomState createState() => _ForwardSelectRoomState();
@@ -18,8 +22,6 @@ class ForwardSelectRoom extends StatefulWidget {
 
 class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
   List<Room> rooms = [];
-  Color pinTileBackground =
-      Get.isDarkMode ? const Color(0xFF202020) : const Color(0xFFEDEDED);
   late TextEditingController _searchController;
   Set<Room> selectedRooms = {};
   late Identity selectedIdentity;
@@ -48,11 +50,6 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
   @override
   Widget build(BuildContext context) {
     HomeController homeController = Get.find<HomeController>();
-    var divider = Divider(
-        height: 1,
-        color: Theme.of(context).dividerColor.withValues(alpha: 0.05));
-    var divider2 = Divider(
-        height: 0.3, color: Colors.grey.shade100.withValues(alpha: 0.01));
     DateTime messageExpired =
         DateTime.now().subtract(const Duration(seconds: 5));
     return Scaffold(
@@ -85,6 +82,11 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
             },
             child: const Text('Send')),
         body: Column(children: <Widget>[
+          if (widget.message.isNotEmpty && widget.showContent)
+            Padding(
+                padding: const EdgeInsets.only(left: 16, right: 16),
+                child: textSmallGray(context, widget.message,
+                    maxLines: 3, overflow: TextOverflow.ellipsis)),
           Padding(
               padding: const EdgeInsets.only(left: 16, right: 16, bottom: 10),
               child: TextField(
@@ -121,9 +123,15 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
                     const EdgeInsets.only(bottom: kMinInteractiveDimension * 2),
                 separatorBuilder: (context, index) {
                   if (rooms[index].pin) {
-                    return divider2;
+                    return Divider(
+                        height: 0.3,
+                        color: Colors.grey.shade100.withValues(alpha: 0.01));
                   }
-                  return divider;
+                  return Divider(
+                      height: 1,
+                      color: Theme.of(context)
+                          .dividerColor
+                          .withValues(alpha: 0.05));
                 },
                 itemCount: rooms.length,
                 itemBuilder: (context, index) {
@@ -151,7 +159,8 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
                         messageExpired,
                         homeController.roomLastMessage[room.id])),
                     trailing: isSelected
-                        ? const Icon(Icons.check_box)
+                        ? const Icon(Icons.check_box,
+                            color: KeychatGlobal.secondaryColor)
                         : const Icon(Icons.check_box_outline_blank),
                   );
                 }),

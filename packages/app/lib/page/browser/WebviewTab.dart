@@ -494,16 +494,18 @@ class _WebviewTabState extends State<WebviewTab> {
               .contains(uri.scheme)) {
             return NavigationActionPolicy.ALLOW;
           }
-          bool can = await canLaunchUrl(uri);
-          loggerNoLine.i(
-              'shouldOverrideUrlLoading: canLaunchUrl: $can, uri: ${uri.toString()}');
-          if (can) {
-            launchUrl(uri);
-            return NavigationActionPolicy.CANCEL;
+          try {
+            await launchUrl(uri);
+          } catch (e) {
+            if (e is PlatformException) {
+              EasyLoading.showError('Failed to open link: ${e.message}');
+              return NavigationActionPolicy.CANCEL;
+            }
+            logger.i(e.toString(), error: e);
+            EasyLoading.showError('Failed to open link: ${e.toString()}');
           }
         } catch (e) {
           logger.i(e.toString(), error: e);
-          return NavigationActionPolicy.CANCEL;
         }
         return NavigationActionPolicy.CANCEL;
       },

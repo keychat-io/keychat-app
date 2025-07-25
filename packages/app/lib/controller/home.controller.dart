@@ -757,6 +757,10 @@ class HomeController extends GetxController
     if (list.isEmpty) return;
     logger.i('Shared content received: ${list.map((f) => f.toMap())}');
     SharedMediaFile file = list.first;
+    if (file.path.startsWith('keychat://www.keychat.io/u/')) {
+      logger.i('Shared content is a room link, handle by deeplink');
+      return;
+    }
     Identity identity = getSelectedIdentity();
     switch (file.type) {
       case SharedMediaType.image:

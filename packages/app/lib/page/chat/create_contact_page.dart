@@ -78,7 +78,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                     controller: _controller,
                     // autofocus: true,
                     decoration: InputDecoration(
-                        labelText: 'Chat Key or ID Key',
+                        labelText: 'One-Time Key or ID Key',
                         border: const OutlineInputBorder(),
                         suffixIcon: IconButton(
                           icon: const Icon(Icons.paste),
@@ -123,7 +123,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                     child: Column(children: [
                       ListTile(
                         leading: const Icon(CupertinoIcons.qrcode),
-                        title: const Text('Chat Key'),
+                        title: const Text('One-Time Link'),
                         onTap: () async {
                           Identity identity =
                               Get.find<HomeController>().getSelectedIdentity();

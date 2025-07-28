@@ -616,6 +616,12 @@ class HomeController extends GetxController
   Future<void> handleAppLink(Uri? uri) async {
     if (uri == null) return;
     if (uri.pathSegments.isEmpty) return;
+    List identities = await IdentityService.instance.getIdentityList();
+    if (identities.isEmpty) {
+      EasyLoading.showError('No identity found, please login first');
+      return;
+    }
+
     Map params = uri.queryParametersAll;
     logger
         .i('App received new link: $uri  path: ${uri.path} , params: $params');
@@ -666,17 +672,23 @@ class HomeController extends GetxController
 
   Future<void> _handleAppLinkRoom(String input, Map params) async {
     loggerNoLine.i('handleAppLinkRoom: $input, params: $params');
-    try {
-      // qr chatkey
-      if (!(input.length == 64 || input.length == 63)) {
-        await Get.bottomSheet(AddtoContactsPage(input),
-            isScrollControlled: true,
-            ignoreSafeArea: false,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16))));
-        return;
-      }
 
+    List identities = await IdentityService.instance.getIdentityList();
+    if (identities.isEmpty) {
+      EasyLoading.showError('No identity found, please login first');
+      return;
+    }
+
+    // qr chatkey
+    if (!(input.length == 64 || input.length == 63)) {
+      await Get.bottomSheet(AddtoContactsPage(input),
+          isScrollControlled: true,
+          ignoreSafeArea: false,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16))));
+      return;
+    }
+    try {
       // bech32 or hex pubkey
       String hexPubkey = input;
       if (input.startsWith('npub') && input.length == 63) {

@@ -52,17 +52,15 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                     },
                     child: Padding(
                         padding: const EdgeInsets.only(left: 10),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.arrow_back_ios),
-                            Utils.getRandomAvatar(
-                                Get.find<HomeController>()
-                                    .getSelectedIdentity()
-                                    .secp256k1PKHex,
-                                height: 22,
-                                width: 22)
-                          ],
-                        ))),
+                        child: Row(children: [
+                          const Icon(Icons.arrow_back_ios),
+                          Utils.getRandomAvatar(
+                              Get.find<HomeController>()
+                                  .getSelectedIdentity()
+                                  .secp256k1PKHex,
+                              height: 22,
+                              width: 22)
+                        ]))),
                 centerTitle: true,
                 title: const Text("Add Contact")),
             body: SafeArea(
@@ -78,7 +76,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                     controller: _controller,
                     // autofocus: true,
                     decoration: InputDecoration(
-                        labelText: 'One-Time Key or ID Key',
+                        labelText: 'Link or ID Key',
                         border: const OutlineInputBorder(),
                         suffixIcon: IconButton(
                           icon: const Icon(Icons.paste),
@@ -149,6 +147,10 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
 
   Future _createContact() async {
     String input = _controller.text.trim();
+    if (input.startsWith('https://www.keychat.io/u/')) {
+      input = input.replaceAll('https://www.keychat.io/u/', '');
+    }
+    // chat key
     if (input.length > 70) {
       bool isBase = isBase64(input);
       if (isBase) {
@@ -165,39 +167,63 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
       }
       return;
     }
-    // check if input is a bot npub
-    String npub = rust_nostr.getBech32PubkeyByHex(hex: input);
-    for (var bot in homeController.recommendBots) {
-      if (bot['npub'] != npub) {
-        continue;
-      }
-      try {
-        Identity identity = Get.find<HomeController>().getSelectedIdentity();
-        String hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: bot['npub']);
-
-        Room room = await RoomService.instance.getOrCreateRoom(
-            hexPubkey, identity.secp256k1PKHex, RoomStatus.enabled,
-            contactName: bot['name'], type: RoomType.bot, identity: identity);
-        await SignalChatService.instance.sendHelloMessage(room, identity);
-        await Utils.toNamedRoom(room);
-      } catch (e) {
-        logger.e('Failed to create room for bot: $e');
-        EasyLoading.showToast(
-            'Failed to create room for bot: ${Utils.getErrorMessage(e)}');
-      }
-
-      return;
-    }
-
     // common private chat
     try {
-      await RoomService.instance.createRoomAndsendInvite(input,
-          greeting: _helloController.text.trim(),
-          identity: Get.find<HomeController>().getSelectedIdentity());
+      Identity identity = Get.find<HomeController>().getSelectedIdentity();
+      // check if input is a bot npub
+      String npub = rust_nostr.getBech32PubkeyByHex(hex: input);
+      String hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: npub);
+      for (var bot in homeController.recommendBots) {
+        if (bot['npub'] != npub) {
+          continue;
+        }
+        try {
+          Room room = await RoomService.instance.getOrCreateRoom(
+              hexPubkey, identity.secp256k1PKHex, RoomStatus.enabled,
+              contactName: bot['name'], type: RoomType.bot, identity: identity);
+          await SignalChatService.instance.sendHelloMessage(room, identity);
+          await Utils.toNamedRoom(room);
+        } catch (e) {
+          logger.e('Failed to create room for bot: $e');
+          EasyLoading.showToast(
+              'Failed to create room for bot: ${Utils.getErrorMessage(e)}');
+        }
+        return;
+      }
+
+      List<Room> rooms =
+          await RoomService.instance.getCommonRoomByPubkey(hexPubkey);
+
+      // exist rooms
+      if (rooms.isEmpty) {
+        await RoomService.instance.createRoomAndsendInvite(input,
+            greeting: _helloController.text.trim(), identity: identity);
+        return;
+      }
+
+      // found a room
+      if (rooms.length == 1) {
+        return Utils.offAndToNamedRoom(rooms[0]);
+      }
+
+      // found multiple rooms, dialog to select room
+      await Get.dialog(SimpleDialog(
+          title: const Text('Multi Rooms Found'),
+          children: rooms.map((room) {
+            return ListTile(
+              title: Text(room.getRoomName()),
+              subtitle: Text(
+                  homeController.allIdentities[room.identityId]?.name ?? ''),
+              onTap: () {
+                Get.back();
+                Utils.offAndToNamedRoom(room);
+              },
+            );
+          }).toList()));
     } catch (e, s) {
       String msg = Utils.getErrorMessage(e);
       logger.e(msg, stackTrace: s);
-      EasyLoading.showToast('Failed to create room and send invite: $msg');
+      EasyLoading.showError(msg);
     }
   }
 }

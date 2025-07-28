@@ -13,6 +13,7 @@ import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/file.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
+// import 'package:flutter_json_view/flutter_json_view.dart';
 
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
@@ -87,45 +88,9 @@ class MessageWidget extends StatelessWidget {
           ),
         ),
         message.isMeSend ? _getMessageContainer() : toTextContainer(),
-        // encryptInfo(),
         Obx(() => getFromAndToWidget(context, message))
       ],
     );
-  }
-
-  Widget encryptInfo() {
-    if (cc.roomObs.value.type != RoomType.common) {
-      return Container();
-    }
-
-    if (cc.roomContact.value.name == 'Note to Self') {
-      return Container();
-    }
-    return _getEncryptMode(message);
-  }
-
-  Widget _getEncryptMode(Message message) {
-    return !message.isSystem && message.encryptType == MessageEncryptType.nip4
-        ? Container(
-            padding: message.isMeSend
-                ? const EdgeInsets.only(right: 50)
-                : const EdgeInsets.only(left: 50),
-            child: Row(
-              mainAxisAlignment: message.isMeSend
-                  ? MainAxisAlignment.end
-                  : MainAxisAlignment.start,
-              children: [
-                Text('Weak Encrypt Mode',
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(Get.context!)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.6))),
-              ],
-            ))
-        : const SizedBox();
   }
 
   Widget getFileTable(BuildContext buildContext, Message message) {
@@ -190,15 +155,11 @@ class MessageWidget extends StatelessWidget {
                 ))
           ]),
         ),
-        const SizedBox(
-          height: 20,
-        ),
+        const SizedBox(height: 20),
         Padding(
             padding: const EdgeInsets.only(left: 10),
-            child: Text(
-              'Raw Message',
-              style: Theme.of(buildContext).textTheme.titleMedium,
-            )),
+            child: Text('Raw Message',
+                style: Theme.of(buildContext).textTheme.titleMedium)),
       ],
     );
   }
@@ -810,6 +771,7 @@ class MessageWidget extends StatelessWidget {
                                     message.msgKeyHash ?? ''),
                               tableRow("Sig", event.sig),
                             ])),
+                      // JsonView.string(event.toString())
                     ])))));
   }
 

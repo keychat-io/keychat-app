@@ -197,9 +197,7 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
               SettingsSection(tiles: [
                 RoomUtil.mediaSection(cc),
                 SettingsTile.navigation(
-                  leading: const Icon(
-                    CupertinoIcons.bitcoin,
-                  ),
+                  leading: const Icon(CupertinoIcons.bitcoin),
                   title: const Text('Pay to Relay'),
                   onPressed: (context) async {
                     Get.toNamed(
@@ -209,30 +207,26 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                   },
                 ),
               ]),
-              dangerZoom(),
+              SettingsSection(
+                tiles: [
+                  RoomUtil.autoCleanMessage(cc),
+                  RoomUtil.clearHistory(cc),
+                  SettingsTile(
+                    leading: const Icon(
+                      CupertinoIcons.trash,
+                      color: Colors.red,
+                    ),
+                    title: const Text('Delete Chat Room',
+                        style: TextStyle(color: Colors.red)),
+                    onPressed: (context) async {
+                      deleteChatRoomDialog(Get.context!, cc.roomObs.value);
+                    },
+                  ),
+                ],
+              )
             ]),
           ))
         ]));
-  }
-
-  dangerZoom() {
-    return SettingsSection(
-      tiles: [
-        RoomUtil.autoCleanMessage(cc),
-        RoomUtil.clearHistory(cc),
-        SettingsTile(
-          leading: const Icon(
-            CupertinoIcons.trash,
-            color: Colors.red,
-          ),
-          title: const Text('Delete Chat Room',
-              style: TextStyle(color: Colors.red)),
-          onPressed: (context) async {
-            deleteChatRoomDialog(Get.context!, cc.roomObs.value);
-          },
-        ),
-      ],
-    );
   }
 
   void deleteChatRoomDialog(BuildContext buildContext, Room room) {

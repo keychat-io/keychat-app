@@ -765,8 +765,8 @@ $error ''';
         if (toRelay != null) {
           List mlsStates = await Storage.getStringList(stateKey);
           if (mlsStates.contains(toRelay)) {
-            loggerNoLine.i(
-                'Key package already uploaded to relay: $toRelay for identity: ${identity.secp256k1PKHex}');
+            // loggerNoLine.i(
+            //     'Key package already uploaded to relay: $toRelay for identity: ${identity.secp256k1PKHex}');
             return;
           }
         }

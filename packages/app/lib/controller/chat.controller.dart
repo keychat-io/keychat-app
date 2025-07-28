@@ -6,6 +6,7 @@ import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/RoomDraft.dart';
+import 'package:app/page/components.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/file.service.dart';
@@ -457,12 +458,49 @@ class ChatController extends GetxController {
     });
     await _initRoom();
     await loadAllChat();
-
+    isLatestMessageNip04();
     if (searchMsgIndex > 0) {
       loadAllChatFromSearchScroll();
     }
     initChatPageFeatures();
     super.onInit();
+  }
+
+  // check if the latest message is nip04
+  void isLatestMessageNip04() {
+    if (messages.isEmpty) return;
+
+    if (roomObs.value.type == RoomType.common &&
+        (roomObs.value.encryptMode == EncryptMode.nip04)) {
+      Message? lastMessage =
+          messages.firstWhereOrNull((msg) => msg.isMeSend == false);
+      if (lastMessage == null) return;
+      if (lastMessage.encryptType == MessageEncryptType.nip4) {
+        Get.dialog(CupertinoAlertDialog(
+          title: const Text('Deprecated Encryption'),
+          content: const Text(
+              '''Your friends uses a deprecated encryption method-NIP04.
+Keychat is using NIP17 and SignalProtocol, and your friends may not be able to decrypt the messages you reply to.
+'''),
+          actions: [
+            CupertinoDialogAction(
+              child: const Text('OK'),
+              onPressed: () {
+                Get.back();
+              },
+            ),
+            CupertinoDialogAction(
+              child: const Text('Share One-Time Link'),
+              onPressed: () async {
+                Get.back();
+                await showMyQrCode(
+                    Get.context!, roomObs.value.getIdentity(), true);
+              },
+            ),
+          ],
+        ));
+      }
+    }
   }
 
   @override

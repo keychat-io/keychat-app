@@ -108,15 +108,6 @@ class _ChatPage2State extends State<ChatPage> {
                             Icon(Icons.android_outlined, color: Colors.purple))
                 ],
               )),
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(0),
-            child: Obx(() => controller.roomObs.value.status ==
-                        RoomStatus.enabled &&
-                    controller.roomObs.value.type == RoomType.common &&
-                    controller.roomObs.value.encryptMode == EncryptMode.nip04
-                ? const Text('Weak Encrypt Mode')
-                : const SizedBox()),
-          ),
           actions: [
             Obx(() => controller.roomObs.value.status != RoomStatus.approving
                 ? IconButton(
@@ -935,10 +926,17 @@ class _ChatPage2State extends State<ChatPage> {
             ),
             FilledButton(
               onPressed: () async {
-                int identityId = controller.roomObs.value.identityId;
-                await RoomService.instance.deleteRoom(controller.roomObs.value);
-                Get.find<HomeController>().loadIdentityRoomList(identityId);
-                Get.back();
+                try {
+                  int identityId = controller.roomObs.value.identityId;
+                  await RoomService.instance
+                      .deleteRoom(controller.roomObs.value);
+                  Get.find<HomeController>().loadIdentityRoomList(identityId);
+                  await Utils.offAllNamedRoom(Routes.root);
+                } catch (e) {
+                  String msg = Utils.getErrorMessage(e);
+                  EasyLoading.showError(msg);
+                  logger.e(msg, error: e);
+                }
               },
               style: ButtonStyle(
                   backgroundColor: WidgetStateProperty.all(Colors.red)),

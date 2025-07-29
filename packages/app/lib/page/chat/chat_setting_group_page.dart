@@ -559,8 +559,8 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                               title: const Text("Key Expired"),
                               content: const Text(
                                   '''This member's mls key-package has expired. The Methods to fix:
-1. Notify he/she to update their group key.
-2. Notify the admin to remove and re-add them to the group. '''),
+A. Notify he/she to update their group key.
+B. Notify the admin to remove and re-add them to the group. '''),
                               actions: <Widget>[
                                 CupertinoDialogAction(
                                   child: const Text("Cancel"),

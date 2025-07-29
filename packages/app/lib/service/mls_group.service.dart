@@ -39,13 +39,22 @@ class MlsGroupService extends BaseChatService {
 
   Future addMemeberToGroup(Room groupRoom, List<Map<String, dynamic>> toUsers,
       [String? sender]) async {
+    List<String> invalidPubkeys = await existExpiredMember(groupRoom);
+    if (invalidPubkeys.isNotEmpty) {
+      throw Exception(
+          '${invalidPubkeys.join(', ')} \'s key package is expired, please update it');
+    }
     Identity identity = groupRoom.getIdentity();
-    Map<String, String> userNameMap = {}; // pubkey, name
+    Map<String, String> userNameMap = {};
     List<String> keyPackages = [];
     for (var user in toUsers) {
       userNameMap[user['pubkey']] = user['name'];
       String? pk = user['mlsPK'];
       if (pk != null) {
+        bool valid = await checkPkIsValid(groupRoom, pk);
+        if (!valid) {
+          throw Exception('Key package for ${user['name']} is expired');
+        }
         keyPackages.add(pk);
       }
     }
@@ -359,8 +368,6 @@ $error ''';
       }
       bool mlsPKExpired = false;
       if (lifeTimes[element.key] != null) {
-        logger.d(
-            'getMembers: ${element.key} lifetime: ${lifeTimes[element.key]}');
         BigInt? lifetime = lifeTimes[element.key];
         if (lifetime != null && lifetime > BigInt.zero) {
           int expireTime = lifetime.toInt() * 1000;
@@ -505,7 +512,7 @@ $error ''';
         members: bLeafNodes);
 
     String realMessage =
-        '[System] Admin remove ${names.length > 1 ? 'members' : 'member'}: ${names.join(',')}';
+        '[System] Admin remove the ${names.length > 1 ? 'members' : 'member'}: ${names.join(',')}';
 
     room = await RoomService.instance.getRoomByIdOrFail(room.id);
     await sendEncryptedMessage(room, queuedMsg, realMessage: realMessage);
@@ -864,13 +871,6 @@ $error ''';
 
   Future _proccessTryProposalIn(Room room, NostrEventModel event,
       String queuedMsg, Function(String) failedCallback) async {
-    if (event.createdAt <= room.version) {
-      logger.w(
-          '[MLS] Event is outdated: ${event.id}, eventTime: ${event.createdAt}, roomVersion: ${room.version}');
-      throw Exception('Event is outdated.${event.id}');
-    }
-
-    loggerNoLine.i('[MLS] Getting sender for event: ${event.id}');
     var res = await rust_mls.getSender(
         nostrId: room.myIdPubkey,
         groupId: room.toMainPubkey,
@@ -1201,5 +1201,26 @@ $error ''';
         logger.e('[MLS] Failed to get new pubkey for room ${room.id}: $e');
       }
     }
+  }
+
+  Future<bool> checkPkIsValid(Room room, String pk) async {
+    String nostrId = room.getIdentity().secp256k1PKHex;
+    BigInt lifetime = await rust_mls.parseLifetimeFromKeyPackage(
+        nostrId: nostrId, keyPackageHex: pk);
+    int now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    if (lifetime > BigInt.zero) {
+      return lifetime.toInt() > now;
+    }
+    return false;
+  }
+
+  Future<List<String>> existExpiredMember(Room room) async {
+    Map<String, BigInt?> lifeTimes = await rust_mls.getGroupMembersWithLifetime(
+        nostrId: room.myIdPubkey, groupId: room.toMainPubkey);
+    int now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    return lifeTimes.entries
+        .where((entry) => entry.value != null && entry.value!.toInt() < now)
+        .map((entry) => entry.key)
+        .toList();
   }
 }

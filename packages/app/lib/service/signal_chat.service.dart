@@ -119,8 +119,10 @@ class SignalChatService extends BaseChatService {
         keyPair: keyPair,
         address: room.curve25519PkHex!,
         deviceId: room.identityId.toString());
-
-    String to = bobSession!.bobAddress ?? bobSession.address;
+    if (bobSession == null) {
+      throw Exception("signal_session_is_null");
+    }
+    String to = bobSession.bobAddress ?? bobSession.address;
 
     if (to.startsWith('05')) {
       to = room.toMainPubkey;

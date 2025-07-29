@@ -537,7 +537,74 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                           style: Theme.of(context)
                               .textTheme
                               .labelSmall
-                              ?.copyWith(color: Colors.amber.shade700))
+                              ?.copyWith(color: Colors.amber.shade700)),
+                    if (rm.mlsPKExpired)
+                      Container(
+                        padding: EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.red.shade700),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: InkWell(
+                          child: Text(
+                            'Key Expired',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(
+                                    color: Colors.red.shade700, fontSize: 10),
+                          ),
+                          onTap: () {
+                            Get.dialog(CupertinoAlertDialog(
+                              title: const Text("Key Expired"),
+                              content: const Text(
+                                  '''This member's mls key-package has expired. The Methods to fix:
+1. Notify he/she to update their group key.
+2. Notify the admin to remove and re-add them to the group. '''),
+                              actions: <Widget>[
+                                CupertinoDialogAction(
+                                  child: const Text("Cancel"),
+                                  onPressed: () {
+                                    Get.back();
+                                  },
+                                ),
+                                CupertinoDialogAction(
+                                  isDestructiveAction: true,
+                                  child: const Text("Remove"),
+                                  onPressed: () async {
+                                    if (!isAdmin) {
+                                      EasyLoading.showToast(
+                                          'Only admin can remove members');
+                                      return;
+                                    }
+                                    Identity identity =
+                                        cc.roomObs.value.getIdentity();
+                                    if (identity.secp256k1PKHex ==
+                                        rm.idPubkey) {
+                                      EasyLoading.showToast(
+                                          'Cannot remove yourself');
+                                      return;
+                                    }
+                                    try {
+                                      EasyLoading.show(status: 'Processing...');
+                                      await GroupService.instance
+                                          .removeMember(cc.roomObs.value, rm);
+                                      EasyLoading.showSuccess("Removed",
+                                          duration: const Duration(seconds: 1));
+                                      Get.back();
+                                    } catch (e, s) {
+                                      logger.e(e.toString(),
+                                          error: e, stackTrace: s);
+                                      String msg = Utils.getErrorMessage(e);
+                                      EasyLoading.showError(msg);
+                                    }
+                                  },
+                                ),
+                              ],
+                            ));
+                          },
+                        ),
+                      ),
                   ]),
                 );
               },

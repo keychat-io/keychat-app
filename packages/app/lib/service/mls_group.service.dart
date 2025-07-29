@@ -338,6 +338,9 @@ $error ''';
     Map<String, RoomMember> roomMembers = {};
     Map<String, List<Uint8List>> extensions = await rust_mls.getMemberExtension(
         nostrId: room.myIdPubkey, groupId: room.toMainPubkey);
+    Map<String, BigInt?> lifeTimes = await rust_mls.getGroupMembersWithLifetime(
+        nostrId: room.myIdPubkey, groupId: room.toMainPubkey);
+    int now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     for (var element in extensions.entries) {
       String name = element.key;
       UserStatusType status = UserStatusType.invited;
@@ -354,8 +357,21 @@ $error ''';
           logger.e('getMembers: ${e.toString()}');
         }
       }
+      bool mlsPKExpired = false;
+      if (lifeTimes[element.key] != null) {
+        logger.d(
+            'getMembers: ${element.key} lifetime: ${lifeTimes[element.key]}');
+        BigInt? lifetime = lifeTimes[element.key];
+        if (lifetime != null && lifetime > BigInt.zero) {
+          int expireTime = lifetime.toInt() * 1000;
+          if (expireTime < now) {
+            mlsPKExpired = true;
+          }
+        }
+      }
       roomMembers[element.key] = RoomMember(
-          idPubkey: element.key, name: name, roomId: room.id, status: status);
+          idPubkey: element.key, name: name, roomId: room.id, status: status)
+        ..mlsPKExpired = mlsPKExpired;
     }
     return roomMembers;
   }

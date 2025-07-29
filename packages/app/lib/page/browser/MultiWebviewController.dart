@@ -121,68 +121,65 @@ class MultiWebviewController extends GetxController {
   }
 
   Future launchWebview(
-      {required String content,
+      {required String initUrl,
       String engine = 'google',
       String? defaultTitle}) async {
-    if (content.isEmpty) return;
+    if (initUrl.isEmpty) return;
 
     if (GetPlatform.isLinux) {
       logger.i('webview not working on linux');
-      if (!await launchUrl(Uri.parse(content))) {
-        throw Exception('Could not launch $content');
+      if (!await launchUrl(Uri.parse(initUrl))) {
+        throw Exception('Could not launch $initUrl');
       }
       return;
     }
     String uniqueKey = generate64RandomHexChars(8);
     Uri? uri;
-    if (content.startsWith('http') == false) {
+    if (initUrl.startsWith('http') == false) {
       // try: domain.com
-      bool isDomain = Utils.isDomain(content);
+      bool isDomain = Utils.isDomain(initUrl);
       // start search engine
       if (isDomain) {
-        content = 'https://$content';
+        initUrl = 'https://$initUrl';
       } else {
         engine = engine.toLowerCase();
         switch (engine) {
           case 'google':
-            content = 'https://www.google.com/search?q=$content';
+            initUrl = 'https://www.google.com/search?q=$initUrl';
             break;
           case 'brave':
-            content = 'https://search.brave.com/search?q=$content';
+            initUrl = 'https://search.brave.com/search?q=$initUrl';
           case 'startpage':
-            content = 'https://www.startpage.com/sp/search?q=$content';
+            initUrl = 'https://www.startpage.com/sp/search?q=$initUrl';
           case 'searxng':
-            content = 'https://searx.tiekoetter.com/search?q=$content';
+            initUrl = 'https://searx.tiekoetter.com/search?q=$initUrl';
             break;
         }
         if (GetPlatform.isMobile) {
-          String? host = Uri.tryParse(content)?.host;
-          if (host != null) {
-            mobileKeepAlive.remove(host); // remove keep alive
-          }
+          await refreshKeepAliveObject(initUrl);
         }
       }
     }
-    uri = Uri.tryParse(content);
+    uri = Uri.tryParse(initUrl);
     if (uri == null) return;
     if (GetPlatform.isMobile) {
       uniqueKey = uri.host;
       Get.to(
           () => WebviewTab(
-                initUrl: content,
+                initUrl: initUrl,
                 initTitle: title.value,
                 uniqueKey: uniqueKey, // for close controller
                 windowId: 0,
                 isCache: mobileKeepAlive.containsKey(uniqueKey),
-                // keepAlive: _getKeepAliveObject(uniqueKey),
+                keepAlive: mobileKeepAlive[uniqueKey],
               ),
           transition: Transition.cupertino);
       return;
     }
-
+    // for desktop
     final tab = WebviewTab(
       uniqueKey: uniqueKey,
-      initUrl: content,
+      initUrl: initUrl,
       key: GlobalObjectKey(uniqueKey),
       windowId: getLastWindowId(),
     );
@@ -208,24 +205,6 @@ class MultiWebviewController extends GetxController {
           WebviewTabData(tab: tab, uniqueKey: uniqueKey, url: tab.initUrl));
       setCurrentTabIndex(tabs.length - 1);
     }
-  }
-
-  InAppWebViewKeepAlive? _getKeepAliveObject(String uniqueKey) {
-    if (!GetPlatform.isMobile) return null;
-
-    if (!mobileKeepAlive.containsKey(uniqueKey)) {
-      mobileKeepAlive[uniqueKey] = InAppWebViewKeepAlive();
-    }
-    return mobileKeepAlive[uniqueKey];
-  }
-
-  void removeKeepAliveObject(String uniqueKey) {
-    mobileKeepAlive.remove(uniqueKey);
-  }
-
-  InAppWebViewKeepAlive addKeepAliveObject(String uniqueKey) {
-    mobileKeepAlive[uniqueKey] = InAppWebViewKeepAlive();
-    return mobileKeepAlive[uniqueKey]!;
   }
 
   setCurrentTabIndex(index) {
@@ -266,6 +245,15 @@ class MultiWebviewController extends GetxController {
     int? textSize = await Storage.getInt(KeychatGlobal.browserTextSize);
     if (textSize != null) {
       kInitialTextSize.value = textSize;
+    }
+
+    // keepalive
+    List<String> host =
+        await Storage.getStringList(StorageKeyString.mobileKeepAlive);
+    if (host.isNotEmpty) {
+      for (var item in host) {
+        mobileKeepAlive[item] = InAppWebViewKeepAlive();
+      }
     }
   }
 
@@ -513,6 +501,46 @@ window.addEventListener('DOMContentLoaded', function(event) {
         ],
       ),
     );
+  }
+
+  Future<InAppWebViewKeepAlive?> enableKeepAlive(String url) async {
+    if (GetPlatform.isDesktop) {
+      return null;
+    }
+    String host = Uri.tryParse(url)?.host ?? url;
+
+    mobileKeepAlive[host] = InAppWebViewKeepAlive();
+    await Storage.setStringList(
+        StorageKeyString.mobileKeepAlive, mobileKeepAlive.keys.toList());
+    return mobileKeepAlive[host]!;
+  }
+
+  Future<InAppWebViewKeepAlive?> refreshKeepAliveObject(String url) async {
+    if (GetPlatform.isDesktop) {
+      return null;
+    }
+    String host = Uri.tryParse(url)?.host ?? url;
+    mobileKeepAlive[host] = InAppWebViewKeepAlive();
+    return mobileKeepAlive[host]!;
+  }
+
+  Future disableKeepAlive(String url) async {
+    if (GetPlatform.isDesktop) {
+      return null;
+    }
+    String host = Uri.tryParse(url)?.host ?? url;
+    mobileKeepAlive.remove(host);
+    await Storage.setStringList(
+        StorageKeyString.mobileKeepAlive, mobileKeepAlive.keys.toList());
+  }
+
+  removeKeepAlive(String url) {
+    if (GetPlatform.isDesktop) {
+      return null;
+    }
+    String host = Uri.tryParse(url)?.host ?? url;
+    mobileKeepAlive.remove(host);
+    mobileKeepAlive.remove(url);
   }
 }
 

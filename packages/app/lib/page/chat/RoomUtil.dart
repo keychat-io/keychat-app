@@ -657,7 +657,7 @@ Let's start an encrypted chat.''';
   static Widget getMarkdownView(String text, MarkdownConfig config) {
     return MarkdownBlock(
         data: text,
-        selectable: GetPlatform.isDesktop,
+        selectable: false,
         config: config,
         generator: MarkdownGenerator(
             linesMargin: const EdgeInsets.symmetric(vertical: 4)));
@@ -689,7 +689,7 @@ Let's start an encrypted chat.''';
           onTap: () {
             Utils.hideKeyboard(Get.context!);
             Get.find<MultiWebviewController>()
-                .launchWebview(content: message.content);
+                .launchWebview(initUrl: message.content);
           },
           placeholderWidget: errorCallback(
               child: getMarkdownView(message.content, markdownConfig)),

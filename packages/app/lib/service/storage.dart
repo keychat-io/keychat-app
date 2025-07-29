@@ -43,7 +43,9 @@ class StorageKeyString {
   // mls group
   static const String mlsStates = 'mlsStates';
   static const String mlsPKIdentity = 'mlsPKIdentity';
-  static const String mlsPKTimestamp = 'mlsPKTimestamp'; // Add this new key
+  static const String mlsPKTimestamp = 'mlsPKTimestamp';
+
+  static const String mobileKeepAlive = 'mobileKeepAlive';
 }
 
 class Storage {

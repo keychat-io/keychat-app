@@ -58,7 +58,7 @@ class _ChatPage2State extends State<ChatPage> {
       LinkConfig(
           onTap: (url) {
             Utils.hideKeyboard(Get.context!);
-            Get.find<MultiWebviewController>().launchWebview(content: url);
+            Get.find<MultiWebviewController>().launchWebview(initUrl: url);
           },
           style: const TextStyle(
               color: Colors.white,
@@ -73,7 +73,7 @@ class _ChatPage2State extends State<ChatPage> {
       LinkConfig(
           onTap: (url) {
             Utils.hideKeyboard(Get.context!);
-            Get.find<MultiWebviewController>().launchWebview(content: url);
+            Get.find<MultiWebviewController>().launchWebview(initUrl: url);
           },
           style: const TextStyle(
               color: Colors.blue, decoration: TextDecoration.none)),

@@ -53,7 +53,7 @@ Widget _buildQuickSectionItem(BrowserFavorite favorite,
             favorite.url,
             onTap: () {
               controller.launchWebview(
-                  content: favorite.url, defaultTitle: favorite.title);
+                  initUrl: favorite.url, defaultTitle: favorite.title);
             },
             onLongPress: () async {
               if (GetPlatform.isMobile) {

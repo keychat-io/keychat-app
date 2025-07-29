@@ -67,7 +67,8 @@ class _WebviewTabState extends State<WebviewTab> {
   late WebviewTabController tc;
   bool pageFailed = false;
   WebviewTabState state = WebviewTabState.start;
-  InAppWebViewKeepAlive? ka;
+  InAppWebViewKeepAlive? inAppWebViewKeepAlive;
+  PageStorageKey? pageStorageKey;
   late String initDomain;
   PullToRefreshController? pullToRefreshController;
 
@@ -77,37 +78,30 @@ class _WebviewTabState extends State<WebviewTab> {
 
   @override
   void initState() {
-    ka = widget.keepAlive;
+    inAppWebViewKeepAlive = widget.keepAlive;
     controller = Get.find<MultiWebviewController>();
     tc = controller.getOrCreateController(
         widget.initUrl, widget.initTitle, widget.uniqueKey);
     ecashController = Get.find<EcashController>();
     initDomain = WebUri(widget.initUrl).host;
+    pageStorageKey = PageStorageKey(initDomain);
+
     initBrowserConnect(WebUri(widget.initUrl));
     initPullToRefreshController();
     super.initState();
     if (widget.initUrl != KeychatGlobal.newTab) {
-      Future.delayed(Duration(seconds: 1)).then((_) {
+      Future.delayed(Duration(seconds: 1)).then((_) async {
         if (state == WebviewTabState.start) {
-          callPageFailed();
+          InAppWebViewKeepAlive? newKa =
+              await controller.refreshKeepAliveObject(widget.initUrl);
+          setState(() {
+            inAppWebViewKeepAlive = newKa;
+            state = WebviewTabState.failed;
+            pageStorageKey = null;
+          });
         }
       });
     }
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  callPageFailed() {
-    controller.removeKeepAliveObject(widget.uniqueKey);
-    InAppWebViewKeepAlive newKa =
-        controller.addKeepAliveObject(widget.uniqueKey);
-    setState(() {
-      ka = newKa;
-      state = WebviewTabState.failed;
-    });
   }
 
   void menuOpened() async {
@@ -276,6 +270,40 @@ class _WebviewTabState extends State<WebviewTab> {
                               style: Theme.of(context).textTheme.bodyLarge)
                         ]),
                       ),
+                      if (GetPlatform.isMobile)
+                        PopupMenuItem(
+                          padding: EdgeInsets.only(left: 0),
+                          value: 'KeepAlive',
+                          child: ListTile(
+                              leading: Transform.scale(
+                                  scale: 0.6,
+                                  child: Switch(
+                                      value: controller.mobileKeepAlive.keys
+                                          .contains(initDomain),
+                                      onChanged: (value) async {
+                                        Get.back();
+                                        if (value) {
+                                          InAppWebViewKeepAlive? newKa =
+                                              await controller.enableKeepAlive(
+                                                  widget.initUrl);
+                                          setState(() {
+                                            inAppWebViewKeepAlive = newKa;
+                                          });
+                                          EasyLoading.showSuccess(
+                                              'KeepAlive Enabled. It will take effect on the next visit');
+                                          return;
+                                        }
+                                        await controller
+                                            .disableKeepAlive(widget.initUrl);
+                                        EasyLoading.showSuccess(
+                                            'KeepAlive Disabled.');
+                                      })),
+                              contentPadding: EdgeInsets.all(0),
+                              horizontalTitleGap: 0,
+                              title: Text('Keep Alive',
+                                  style:
+                                      Theme.of(context).textTheme.bodyLarge)),
+                        ),
                       if (tc.browserConnect.value.host == "")
                         PopupMenuItem(
                           value: 'clear',
@@ -285,6 +313,11 @@ class _WebviewTabState extends State<WebviewTab> {
                                 style: Theme.of(context).textTheme.bodyLarge)
                           ]),
                         ),
+                      const PopupMenuItem(
+                        height: 1,
+                        value: 'divider',
+                        child: Divider(),
+                      ),
                       if (tc.browserConnect.value.host != "")
                         PopupMenuItem(
                           value: 'disconnect',
@@ -311,7 +344,7 @@ class _WebviewTabState extends State<WebviewTab> {
                   IconButton(
                       onPressed: () async {
                         if (pageFailed || state != WebviewTabState.success) {
-                          controller.removeKeepAliveObject(widget.uniqueKey);
+                          await controller.removeKeepAlive(widget.initUrl);
                         }
                         if (Get.isBottomSheetOpen ?? false) {
                           Get.back();
@@ -333,10 +366,7 @@ class _WebviewTabState extends State<WebviewTab> {
               child: Column(children: <Widget>[
                 Expanded(
                     child: Stack(children: [
-                  // create a new webview when not start
-                  state == WebviewTabState.failed
-                      ? _getWebview(null, ka)
-                      : _getWebview(PageStorageKey(widget.uniqueKey), ka),
+                  _getWebview(pageStorageKey, inAppWebViewKeepAlive),
                   Obx(() => tc.progress.value < 1.0
                       ? LinearProgressIndicator(
                           value:
@@ -350,7 +380,7 @@ class _WebviewTabState extends State<WebviewTab> {
   Widget _getWebview([PageStorageKey? key, InAppWebViewKeepAlive? keepAlive]) {
     return InAppWebView(
       key: key,
-      // keepAlive: GetPlatform.isDesktop ? null : keepAlive,
+      keepAlive: GetPlatform.isDesktop ? null : keepAlive,
       webViewEnvironment: controller.webViewEnvironment,
       initialUrlRequest: URLRequest(url: WebUri(tc.url.value)),
       initialSettings: tc.settings,
@@ -381,7 +411,7 @@ class _WebviewTabState extends State<WebviewTab> {
           ? (controller, createWindowAction) {
               if (createWindowAction.request.url == null) return false;
               this.controller.launchWebview(
-                  content: createWindowAction.request.url.toString());
+                  initUrl: createWindowAction.request.url.toString());
               return true;
             }
           : null,
@@ -572,7 +602,7 @@ class _WebviewTabState extends State<WebviewTab> {
         if (!isForMainFrame || isCancel) {
           return;
         }
-        this.controller.removeKeepAliveObject(widget.uniqueKey);
+        await this.controller.removeKeepAlive(widget.initUrl);
         pullToRefreshController?.endRefreshing();
         if (error.description.contains('domain=WebKitErrorDomain, code=102')) {
           return renderAssetAsHtml(controller, request);
@@ -713,7 +743,7 @@ class _WebviewTabState extends State<WebviewTab> {
         return;
       }
       if (pageFailed || state != WebviewTabState.success) {
-        controller.removeKeepAliveObject(widget.uniqueKey);
+        await controller.removeKeepAlive(widget.initUrl);
       }
       await pausePlayingMedia();
       Get.back();
@@ -730,14 +760,14 @@ class _WebviewTabState extends State<WebviewTab> {
     }
 
     if (method == 'pageFailedToRefresh') {
-      controller.removeKeepAliveObject(widget.uniqueKey);
-      if (ka == null) {
+      await controller.removeKeepAlive(widget.initUrl);
+      if (inAppWebViewKeepAlive == null) {
         refreshPage();
         return;
       }
 
       setState(() {
-        ka = null;
+        inAppWebViewKeepAlive = null;
       });
       return;
     }
@@ -964,7 +994,7 @@ class _WebviewTabState extends State<WebviewTab> {
         break;
       case 'close':
         try {
-          controller.removeKeepAliveObject(widget.uniqueKey);
+          await controller.removeKeepAlive(widget.initUrl);
           await pausePlayingMedia();
         } catch (e, s) {
           logger.e('Error while closing webview: $e', stackTrace: s);
@@ -1382,12 +1412,13 @@ img {
         loggerNoLine.i('Reloaded: ${uri.toString()}');
       } catch (e) {
         loggerNoLine.i('Reload failed: $e');
-        controller.removeKeepAliveObject(widget.uniqueKey);
 
         // Recreate the webview by updating state
+        InAppWebViewKeepAlive? newKa =
+            await controller.refreshKeepAliveObject(widget.initUrl);
         setState(() {
-          ka = controller.addKeepAliveObject(widget.uniqueKey);
-          state = WebviewTabState.failed;
+          inAppWebViewKeepAlive = newKa;
+          pageStorageKey = null;
         });
       }
     });

@@ -109,7 +109,7 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
                           dense: true,
                           onTap: () {
                             Get.find<MultiWebviewController>().launchWebview(
-                                content: site.url, defaultTitle: site.title);
+                                initUrl: site.url, defaultTitle: site.title);
                             if (Get.isBottomSheetOpen ?? false) {
                               Get.back();
                             }

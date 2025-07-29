@@ -100,7 +100,7 @@ class _WebStorePageState extends State<WebStorePage> {
                                       onTap: () {
                                         Get.find<MultiWebviewController>()
                                             .launchWebview(
-                                                content: url,
+                                                initUrl: url,
                                                 defaultTitle: site['title']);
                                         if (Get.isBottomSheetOpen ?? false) {
                                           Get.back();

@@ -42,7 +42,7 @@ class MlsGroupService extends BaseChatService {
     List<String> invalidPubkeys = await existExpiredMember(groupRoom);
     if (invalidPubkeys.isNotEmpty) {
       throw Exception(
-          '${invalidPubkeys.join(', ')} \'s key package is expired, please update it');
+          '${invalidPubkeys.join(', ')} \'s key package is expired, please remove them first');
     }
     Identity identity = groupRoom.getIdentity();
     Map<String, String> userNameMap = {};

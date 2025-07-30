@@ -292,8 +292,8 @@ Let's start an encrypted chat.''';
     );
   }
 
-  static Widget getSubtitleDisplay(
-      Room room, DateTime messageExpired, Message? lastMessage) {
+  static Widget getSubtitleDisplay(BuildContext context, Room room,
+      DateTime messageExpired, Message? lastMessage) {
     if (room.signalDecodeError) {
       return const Text('Decode Error', style: TextStyle(color: Colors.pink));
     }
@@ -313,8 +313,7 @@ Let's start an encrypted chat.''';
       text = '[${room.unReadCount} messages] $text';
     }
     var style = TextStyle(
-        color:
-            Theme.of(Get.context!).colorScheme.onSurface.withValues(alpha: 0.6),
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
         fontSize: 14);
     if (lastMessage.isMeSend && lastMessage.sent == SendStatusType.failed) {
       style = style.copyWith(color: Colors.red);

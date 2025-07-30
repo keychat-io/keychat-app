@@ -27,7 +27,7 @@ class RecommendBots extends StatelessWidget {
     return Obx(() => homeController.recommendBots.isEmpty
         ? Container()
         : ListView.separated(
-            separatorBuilder: (context, index) => Divider(
+            separatorBuilder: (context2, index) => Divider(
                 height: 1,
                 color: Theme.of(context).dividerColor.withValues(alpha: 0.05)),
             itemCount: homeController.recommendBots.length,

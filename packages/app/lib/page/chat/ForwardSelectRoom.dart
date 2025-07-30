@@ -1,11 +1,8 @@
 import 'package:app/app.dart';
 import 'package:app/controller/home.controller.dart';
-import 'package:app/models/identity.dart';
-import 'package:app/models/room.dart';
 import 'package:app/page/browser/SelectIdentityForward.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/components.dart';
-import 'package:app/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -155,6 +152,7 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
                         maxLines: 1,
                         style: Theme.of(context).textTheme.titleMedium),
                     subtitle: Obx(() => RoomUtil.getSubtitleDisplay(
+                        context,
                         room,
                         messageExpired,
                         homeController.roomLastMessage[room.id])),

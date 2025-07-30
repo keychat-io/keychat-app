@@ -290,7 +290,7 @@ class _WebviewTabState extends State<WebviewTab> {
                                             inAppWebViewKeepAlive = newKa;
                                           });
                                           EasyLoading.showSuccess(
-                                              'KeepAlive Enabled. It will take effect on the next visit');
+                                              'KeepAlive Enabled. Take effect after restarting the page.');
                                           return;
                                         }
                                         await controller

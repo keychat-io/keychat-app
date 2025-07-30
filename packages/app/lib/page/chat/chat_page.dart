@@ -808,7 +808,7 @@ class _ChatPage2State extends State<ChatPage> {
                     ),
                     body: ListView.separated(
                         controller: ScrollController(),
-                        separatorBuilder: (BuildContext context, int index) =>
+                        separatorBuilder: (BuildContext context2, int index) =>
                             Divider(
                                 color: Theme.of(context)
                                     .dividerTheme
@@ -1015,7 +1015,7 @@ class _ChatPage2State extends State<ChatPage> {
                   Expanded(
                       child: Obx(() => ListView.separated(
                           physics: const NeverScrollableScrollPhysics(),
-                          separatorBuilder: (context, index) =>
+                          separatorBuilder: (context2, index) =>
                               const SizedBox(height: 4),
                           shrinkWrap: true,
                           itemCount: controller.kpaIsNullRooms.length,

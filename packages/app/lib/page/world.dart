@@ -60,14 +60,13 @@ class WorldPage extends StatelessWidget {
                     child: ListView.separated(
                         shrinkWrap: true,
                         itemCount: list.length,
-                        separatorBuilder: (BuildContext context, int index) =>
+                        separatorBuilder: (BuildContext context2, int index) =>
                             Divider(
-                              color: Get.isDarkMode
-                                  ? Colors.black87
-                                  : Colors.white70,
-                              thickness: 1.0,
-                              height: 1,
-                            ),
+                                color: Get.isDarkMode
+                                    ? Colors.black87
+                                    : Colors.white70,
+                                thickness: 1.0,
+                                height: 1),
                         itemBuilder: (BuildContext context, int index) {
                           NostrEventModel ne = list[index];
                           String createdAt = Utils.getFormatTimeForMessage(

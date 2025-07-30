@@ -117,7 +117,7 @@ class CashuBillPage extends GetView<EcashBillController> {
                         },
                         controller: controller.refreshController,
                         child: ListView.separated(
-                            separatorBuilder: (BuildContext context,
+                            separatorBuilder: (BuildContext context2,
                                     int index) =>
                                 Divider(
                                   color: Theme.of(context).dividerTheme.color,

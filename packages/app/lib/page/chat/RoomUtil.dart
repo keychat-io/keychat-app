@@ -87,7 +87,6 @@ class RoomUtil {
         () => ForwardSelectRoom(content, identity),
         fullscreenDialog: true,
         transition: Transition.downToUp);
-    Get.back();
     if (forwardRooms == null || forwardRooms.isEmpty) return;
 
     EasyLoading.show(status: 'Sending...');

@@ -2,6 +2,7 @@ import 'dart:async' show Future, Timer;
 import 'dart:convert' show jsonDecode, jsonEncode;
 import 'dart:io' show Directory, File, FileSystemEntity;
 
+import 'package:app/controller/home.controller.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/nostr-core/nostr_event.dart';
@@ -603,11 +604,15 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     // chatContentFocus.unfocus();
   }
 
-  Future resetMembers() async {
+  Future<void> resetMembers() async {
     if (roomObs.value.isMLSGroup) {
-      var list = await MlsGroupService.instance.getMembers(roomObs.value);
+      Map<String, RoomMember> list =
+          await MlsGroupService.instance.getMembers(roomObs.value);
       enableMembers.value = list;
       members.value = list;
+      // update member's avatar
+      updateRoomMembersAvatar(members.keys.toList(), roomObs.value.identityId);
+
       String? admin = await roomObs.value.getAdmin();
       if (admin != null) {
         members[admin]!.isAdmin = true;
@@ -618,6 +623,8 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     if (roomObs.value.isSendAllGroup) {
       members.value = await roomObs.value.getMembers();
       enableMembers.value = await roomObs.value.getEnableMembers();
+      // update member's avatar
+      updateRoomMembersAvatar(members.keys.toList(), roomObs.value.identityId);
       memberRooms = await roomObs.value.getEnableMemberRooms();
       kpaIsNullRooms.value = await getKpaIsNullRooms(); // get null list
     }
@@ -745,10 +752,89 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
       } else {
         roomContact.value = roomObs.value.contact!;
       }
+      fetchAndUpdateMetadata(
+              roomContact.value.pubkey, roomContact.value.identityId)
+          .then((Contact? item) {
+        if (item == null) return;
+        roomContact.value = item;
+        Get.find<HomeController>()
+            .loadIdentityRoomList(roomContact.value.identityId);
+      });
+      return;
     }
     if (roomObs.value.type == RoomType.bot) {
       _initBotInfo();
     }
+  }
+
+  Future updateRoomMembersAvatar(List<String> pubkeys, int identityId) async {
+    for (var pubkey in pubkeys) {
+      Contact item = await fetchAndUpdateMetadata(pubkey, identityId);
+      enableMembers[pubkey]?.avatarFromRelay = item.avatarFromRelay;
+      enableMembers[pubkey]?.nameFromRelay = item.nameFromRelay;
+
+      members[pubkey]?.avatarFromRelay = item.avatarFromRelay;
+      members[pubkey]?.nameFromRelay = item.nameFromRelay;
+    }
+  }
+
+  Future<Contact> fetchAndUpdateMetadata(String pubkey, int identityId) async {
+    Map<String, dynamic> metadata = {};
+
+    List<Contact> contacts = await ContactService.instance.getContacts(pubkey);
+    if (contacts.isEmpty) {
+      var result = await ContactService.instance.createContact(
+          pubkey: pubkey, identityId: identityId, autoCreateFromGroup: true);
+      contacts = [result];
+    }
+    // ignore fetch in a hour
+    if (contacts.first.fetchFromRelayAt != null) {
+      if (contacts.first.fetchFromRelayAt!
+          .add(Duration(hours: 1))
+          .isAfter(DateTime.now())) {
+        return contacts.first;
+      }
+    }
+    try {
+      var list = await NostrAPI.instance.fetchMetadata([pubkey]);
+      if (list.isEmpty) return contacts.first;
+      NostrEventModel res = list.last;
+
+      loggerNoLine.i('metadata: ${res.content}');
+      metadata = Map<String, dynamic>.from(jsonDecode(res.content));
+      String? nameFromRelay = metadata['name'] ?? metadata['displayName'];
+      String? avatarFromRelay = metadata['picture'] ?? metadata['avatar'];
+      List<Contact> result = [];
+      for (Contact contact in contacts) {
+        if (nameFromRelay != null &&
+            nameFromRelay.isNotEmpty &&
+            contact.nameFromRelay != nameFromRelay) {
+          contact.nameFromRelay = nameFromRelay;
+        }
+        if (avatarFromRelay != null &&
+            avatarFromRelay.isNotEmpty &&
+            contact.avatarFromRelay != avatarFromRelay) {
+          if (avatarFromRelay.startsWith('http') ||
+              avatarFromRelay.startsWith('https')) {
+            contact.avatarFromRelay = avatarFromRelay;
+          }
+        }
+        String? description =
+            metadata['description'] ?? metadata['about'] ?? metadata['bio'];
+        if (description != null &&
+            description.isNotEmpty &&
+            contact.about != description) {
+          contact.about = description;
+        }
+        contact.fetchFromRelayAt = DateTime.now();
+        await ContactService.instance.saveContact(contact);
+        result.add(contact);
+      }
+    } catch (e) {
+      logger.e('fetchUserMetadata: ${e.toString()}', error: e);
+    }
+    return contacts.firstWhereOrNull((item) => item.identityId == identityId) ??
+        contacts.first;
   }
 
   Future<bool> handlePasteboardFile() async {

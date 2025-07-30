@@ -22,63 +22,73 @@ const ContactSchema = CollectionSchema(
       name: r'about',
       type: IsarType.string,
     ),
-    r'createdAt': PropertySchema(
+    r'avatarFromRelay': PropertySchema(
       id: 1,
+      name: r'avatarFromRelay',
+      type: IsarType.string,
+    ),
+    r'createdAt': PropertySchema(
+      id: 2,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'curve25519PkHex': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'curve25519PkHex',
       type: IsarType.string,
     ),
     r'hashCode': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'hashCode',
       type: IsarType.long,
     ),
     r'identityId': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'identityId',
       type: IsarType.long,
     ),
     r'metadata': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'metadata',
       type: IsarType.string,
     ),
     r'name': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'name',
       type: IsarType.string,
     ),
+    r'nameFromRelay': PropertySchema(
+      id: 8,
+      name: r'nameFromRelay',
+      type: IsarType.string,
+    ),
     r'npubkey': PropertySchema(
-      id: 7,
+      id: 9,
       name: r'npubkey',
       type: IsarType.string,
     ),
     r'petname': PropertySchema(
-      id: 8,
+      id: 10,
       name: r'petname',
       type: IsarType.string,
     ),
     r'picture': PropertySchema(
-      id: 9,
+      id: 11,
       name: r'picture',
       type: IsarType.string,
     ),
     r'pubkey': PropertySchema(
-      id: 10,
+      id: 12,
       name: r'pubkey',
       type: IsarType.string,
     ),
     r'stringify': PropertySchema(
-      id: 11,
+      id: 13,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'updatedAt': PropertySchema(
-      id: 12,
+      id: 14,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -129,6 +139,12 @@ int _contactEstimateSize(
     }
   }
   {
+    final value = object.avatarFromRelay;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.curve25519PkHex;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -142,6 +158,12 @@ int _contactEstimateSize(
   }
   {
     final value = object.name;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.nameFromRelay;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -170,18 +192,20 @@ void _contactSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeString(offsets[0], object.about);
-  writer.writeDateTime(offsets[1], object.createdAt);
-  writer.writeString(offsets[2], object.curve25519PkHex);
-  writer.writeLong(offsets[3], object.hashCode);
-  writer.writeLong(offsets[4], object.identityId);
-  writer.writeString(offsets[5], object.metadata);
-  writer.writeString(offsets[6], object.name);
-  writer.writeString(offsets[7], object.npubkey);
-  writer.writeString(offsets[8], object.petname);
-  writer.writeString(offsets[9], object.picture);
-  writer.writeString(offsets[10], object.pubkey);
-  writer.writeBool(offsets[11], object.stringify);
-  writer.writeDateTime(offsets[12], object.updatedAt);
+  writer.writeString(offsets[1], object.avatarFromRelay);
+  writer.writeDateTime(offsets[2], object.createdAt);
+  writer.writeString(offsets[3], object.curve25519PkHex);
+  writer.writeLong(offsets[4], object.hashCode);
+  writer.writeLong(offsets[5], object.identityId);
+  writer.writeString(offsets[6], object.metadata);
+  writer.writeString(offsets[7], object.name);
+  writer.writeString(offsets[8], object.nameFromRelay);
+  writer.writeString(offsets[9], object.npubkey);
+  writer.writeString(offsets[10], object.petname);
+  writer.writeString(offsets[11], object.picture);
+  writer.writeString(offsets[12], object.pubkey);
+  writer.writeBool(offsets[13], object.stringify);
+  writer.writeDateTime(offsets[14], object.updatedAt);
 }
 
 Contact _contactDeserialize(
@@ -191,19 +215,21 @@ Contact _contactDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Contact(
-    identityId: reader.readLong(offsets[4]),
-    npubkey: reader.readString(offsets[7]),
-    pubkey: reader.readString(offsets[10]),
+    identityId: reader.readLong(offsets[5]),
+    npubkey: reader.readString(offsets[9]),
+    pubkey: reader.readString(offsets[12]),
   );
   object.about = reader.readStringOrNull(offsets[0]);
-  object.createdAt = reader.readDateTimeOrNull(offsets[1]);
-  object.curve25519PkHex = reader.readStringOrNull(offsets[2]);
+  object.avatarFromRelay = reader.readStringOrNull(offsets[1]);
+  object.createdAt = reader.readDateTimeOrNull(offsets[2]);
+  object.curve25519PkHex = reader.readStringOrNull(offsets[3]);
   object.id = id;
-  object.metadata = reader.readStringOrNull(offsets[5]);
-  object.name = reader.readStringOrNull(offsets[6]);
-  object.petname = reader.readStringOrNull(offsets[8]);
-  object.picture = reader.readStringOrNull(offsets[9]);
-  object.updatedAt = reader.readDateTimeOrNull(offsets[12]);
+  object.metadata = reader.readStringOrNull(offsets[6]);
+  object.name = reader.readStringOrNull(offsets[7]);
+  object.nameFromRelay = reader.readStringOrNull(offsets[8]);
+  object.petname = reader.readStringOrNull(offsets[10]);
+  object.picture = reader.readStringOrNull(offsets[11]);
+  object.updatedAt = reader.readDateTimeOrNull(offsets[14]);
   return object;
 }
 
@@ -217,28 +243,32 @@ P _contactDeserializeProp<P>(
     case 0:
       return (reader.readStringOrNull(offset)) as P;
     case 1:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 2:
       return (reader.readStringOrNull(offset)) as P;
+    case 2:
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 3:
-      return (reader.readLong(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 4:
       return (reader.readLong(offset)) as P;
     case 5:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 6:
       return (reader.readStringOrNull(offset)) as P;
     case 7:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 8:
       return (reader.readStringOrNull(offset)) as P;
     case 9:
-      return (reader.readStringOrNull(offset)) as P;
-    case 10:
       return (reader.readString(offset)) as P;
+    case 10:
+      return (reader.readStringOrNull(offset)) as P;
     case 11:
-      return (reader.readBoolOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 12:
+      return (reader.readString(offset)) as P;
+    case 13:
+      return (reader.readBoolOrNull(offset)) as P;
+    case 14:
       return (reader.readDateTimeOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -704,6 +734,158 @@ extension ContactQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'about',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      avatarFromRelayIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'avatarFromRelay',
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      avatarFromRelayIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'avatarFromRelay',
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> avatarFromRelayEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'avatarFromRelay',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      avatarFromRelayGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'avatarFromRelay',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> avatarFromRelayLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'avatarFromRelay',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> avatarFromRelayBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'avatarFromRelay',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      avatarFromRelayStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'avatarFromRelay',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> avatarFromRelayEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'avatarFromRelay',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> avatarFromRelayContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'avatarFromRelay',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> avatarFromRelayMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'avatarFromRelay',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      avatarFromRelayIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'avatarFromRelay',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      avatarFromRelayIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'avatarFromRelay',
         value: '',
       ));
     });
@@ -1380,6 +1562,155 @@ extension ContactQueryFilter
     });
   }
 
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> nameFromRelayIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'nameFromRelay',
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      nameFromRelayIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'nameFromRelay',
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> nameFromRelayEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'nameFromRelay',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      nameFromRelayGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'nameFromRelay',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> nameFromRelayLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'nameFromRelay',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> nameFromRelayBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'nameFromRelay',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> nameFromRelayStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'nameFromRelay',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> nameFromRelayEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'nameFromRelay',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> nameFromRelayContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'nameFromRelay',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> nameFromRelayMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'nameFromRelay',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> nameFromRelayIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'nameFromRelay',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      nameFromRelayIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'nameFromRelay',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<Contact, Contact, QAfterFilterCondition> npubkeyEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -2047,6 +2378,18 @@ extension ContactQuerySortBy on QueryBuilder<Contact, Contact, QSortBy> {
     });
   }
 
+  QueryBuilder<Contact, Contact, QAfterSortBy> sortByAvatarFromRelay() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avatarFromRelay', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> sortByAvatarFromRelayDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avatarFromRelay', Sort.desc);
+    });
+  }
+
   QueryBuilder<Contact, Contact, QAfterSortBy> sortByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -2116,6 +2459,18 @@ extension ContactQuerySortBy on QueryBuilder<Contact, Contact, QSortBy> {
   QueryBuilder<Contact, Contact, QAfterSortBy> sortByNameDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> sortByNameFromRelay() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nameFromRelay', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> sortByNameFromRelayDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nameFromRelay', Sort.desc);
     });
   }
 
@@ -2206,6 +2561,18 @@ extension ContactQuerySortThenBy
     });
   }
 
+  QueryBuilder<Contact, Contact, QAfterSortBy> thenByAvatarFromRelay() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avatarFromRelay', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> thenByAvatarFromRelayDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avatarFromRelay', Sort.desc);
+    });
+  }
+
   QueryBuilder<Contact, Contact, QAfterSortBy> thenByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -2287,6 +2654,18 @@ extension ContactQuerySortThenBy
   QueryBuilder<Contact, Contact, QAfterSortBy> thenByNameDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> thenByNameFromRelay() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nameFromRelay', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> thenByNameFromRelayDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nameFromRelay', Sort.desc);
     });
   }
 
@@ -2372,6 +2751,14 @@ extension ContactQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Contact, Contact, QDistinct> distinctByAvatarFromRelay(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'avatarFromRelay',
+          caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<Contact, Contact, QDistinct> distinctByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'createdAt');
@@ -2409,6 +2796,14 @@ extension ContactQueryWhereDistinct
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'name', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QDistinct> distinctByNameFromRelay(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'nameFromRelay',
+          caseSensitive: caseSensitive);
     });
   }
 
@@ -2467,6 +2862,12 @@ extension ContactQueryProperty
     });
   }
 
+  QueryBuilder<Contact, String?, QQueryOperations> avatarFromRelayProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'avatarFromRelay');
+    });
+  }
+
   QueryBuilder<Contact, DateTime?, QQueryOperations> createdAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'createdAt');
@@ -2500,6 +2901,12 @@ extension ContactQueryProperty
   QueryBuilder<Contact, String?, QQueryOperations> nameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'name');
+    });
+  }
+
+  QueryBuilder<Contact, String?, QQueryOperations> nameFromRelayProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'nameFromRelay');
     });
   }
 

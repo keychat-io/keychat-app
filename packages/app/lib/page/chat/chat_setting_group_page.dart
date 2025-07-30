@@ -435,7 +435,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                       ..name = rm.name;
                     contact.name ??= rm.name;
                     Get.dialog(CupertinoAlertDialog(
-                      title: Text(rm.name),
+                      title: Text(rm.displayName),
                       content: Column(
                         children: [
                           if (rm.status == UserStatusType.inviting)
@@ -531,7 +531,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                   },
                   child: Column(children: [
                     Utils.getRandomAvatar(rm.idPubkey, height: 40, width: 40),
-                    Text(rm.name, overflow: TextOverflow.ellipsis),
+                    Text(rm.displayName, overflow: TextOverflow.ellipsis),
                     if (rm.status == UserStatusType.inviting)
                       Text('Inviting',
                           style: Theme.of(context)

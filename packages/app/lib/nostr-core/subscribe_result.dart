@@ -51,6 +51,7 @@ class SubscribeResult {
       uniqueEvents.add(model.id);
       return true;
     }).toList();
+    // from min to max
     list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
     return list as List<NostrEventModel>;
   }

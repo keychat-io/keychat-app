@@ -79,9 +79,7 @@ class ContactDetailPage extends StatelessWidget {
         children: [
           Obx(() => avatarSection2(
                 Utils.getRandomAvatar(controller.contact.value.pubkey,
-                    fit: BoxFit.contain,
-                    height: double.infinity,
-                    width: double.infinity),
+                    height: double.infinity, width: double.infinity),
                 Column(
                   children: [
                     AppBar(backgroundColor: Colors.transparent),

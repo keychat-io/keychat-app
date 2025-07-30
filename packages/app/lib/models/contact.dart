@@ -25,9 +25,12 @@ class Contact extends Equatable {
   late String npubkey;
   late int identityId;
   String? metadata;
-
   String? petname; // My note
   String? name; // fetch from friend
+  String? nameFromRelay; // fetch from relay
+  String? avatarFromRelay; // fetch from relay
+  DateTime? fetchFromRelayAt; // fetch time
+  bool autoCreateFromGroup = false;
 
   String? about;
   String? picture;
@@ -35,7 +38,7 @@ class Contact extends Equatable {
   DateTime? updatedAt;
 
   String get displayName {
-    String? nickname = petname ?? name;
+    String? nickname = petname ?? nameFromRelay ?? name;
     if (nickname == null || nickname.trim().isEmpty) {
       int max = npubkey.length;
       if (max > 8) {

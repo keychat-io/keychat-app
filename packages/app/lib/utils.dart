@@ -5,10 +5,12 @@ import 'dart:math' show Random;
 
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
+import 'package:app/models/contact.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/models/room.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/service/SignerService.dart';
+import 'package:app/service/contact.service.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/service/websocket.service.dart';
@@ -28,7 +30,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:isar/isar.dart';
-import 'package:keychat_rust_ffi_plugin/index.dart';
+import 'package:keychat_rust_ffi_plugin/index.dart' hide Contact;
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
@@ -618,7 +620,7 @@ class Utils {
   }
 
   static Widget? getNetworkImage(String? imageUrl,
-      {double size = 36, double radius = 100}) {
+      {double size = 36, double radius = 100, Widget? placeholder}) {
     if (imageUrl == null) return null;
 
     if (imageUrl.toString().endsWith('svg')) {
@@ -629,11 +631,11 @@ class Utils {
           width: size,
           height: size,
           placeholderBuilder: (BuildContext context) =>
-              Icon(Icons.image, size: size),
+              placeholder ?? Icon(Icons.image, size: size),
         ),
       );
     }
-    Widget child = ClipRRect(
+    placeholder ??= ClipRRect(
         borderRadius: BorderRadius.circular(radius),
         child: Icon(CupertinoIcons.compass, size: size));
     return CachedNetworkImage(
@@ -654,8 +656,8 @@ class Utils {
           ),
         ),
       ),
-      placeholder: (context, url) => child,
-      errorWidget: (context, url, error) => child,
+      placeholder: (context, url) => placeholder!,
+      errorWidget: (context, url, error) => placeholder!,
     );
   }
 
@@ -670,21 +672,32 @@ class Utils {
   }
 
   static Widget getRandomAvatar(String id,
-      {double height = 40, double width = 40, BoxFit fit = BoxFit.contain}) {
+      {double height = 40, Contact? contact, double width = 40}) {
+    // network avatar first
+    contact ??= ContactService.instance.getContactSync(id);
+    if (contact?.avatarFromRelay != null) {
+      if (contact!.avatarFromRelay!.startsWith('http')) {
+        return getNetworkImage(contact.avatarFromRelay,
+            size: width, placeholder: _generateRandomAvatar(id, size: width))!;
+      }
+    }
+    return _generateRandomAvatar(id, size: width);
+  }
+
+  static SvgPicture _generateRandomAvatar(String id, {double size = 40}) {
     var avatarsFolder = Get.find<SettingController>().avatarsFolder;
     final filePath = '$avatarsFolder/$id.svg';
     final file = File(filePath);
     if (file.existsSync()) {
-      return SvgPicture.file(file, width: width, height: height);
-    } else {
-      String svgCode = AvatarPlusGen.instance.generate(id);
-      file.writeAsStringSync(svgCode);
-      return SvgPicture.string(
-        svgCode,
-        width: width,
-        height: height,
-      );
-    }
+      return SvgPicture.file(file, width: size, height: size);
+    } else {}
+    String svgCode = AvatarPlusGen.instance.generate(id);
+    file.writeAsStringSync(svgCode);
+    return SvgPicture.string(
+      svgCode,
+      width: size,
+      height: size,
+    );
   }
 
   static Future<PermissionStatus> getStoragePermission() async {

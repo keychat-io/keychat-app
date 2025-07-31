@@ -1,5 +1,6 @@
 import 'package:app/models/identity.dart';
 import 'package:app/page/browser/BrowserConnectedWebsite.dart';
+import 'package:app/page/browser/KeepAliveHosts.dart';
 import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/storage.dart';
@@ -97,6 +98,14 @@ class _BrowserSettingState extends State<BrowserSetting> {
                         EasyLoading.showSuccess('Success');
                       },
                     ),
+                    if (GetPlatform.isMobile)
+                      SettingsTile.navigation(
+                        leading: const Icon(CupertinoIcons.heart),
+                        title: const Text("KeepAlive Hosts"),
+                        onPressed: (context) {
+                          Get.to(() => KeepAliveHosts());
+                        },
+                      ),
                     if (controller.config['enableHistory'])
                       SettingsTile.navigation(
                         title: const Text("Auto-delete"),

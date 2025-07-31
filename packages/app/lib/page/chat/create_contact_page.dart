@@ -42,32 +42,33 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-        child: Scaffold(
-            resizeToAvoidBottomInset: false,
-            appBar: AppBar(
-                leading: GestureDetector(
-                    onTap: () {
-                      Get.back();
-                    },
-                    child: Padding(
-                        padding: const EdgeInsets.only(left: 10),
-                        child: Row(children: [
-                          const Icon(Icons.arrow_back_ios),
-                          Utils.getRandomAvatar(
-                              Get.find<HomeController>()
-                                  .getSelectedIdentity()
-                                  .secp256k1PKHex,
-                              height: 22,
-                              width: 22)
-                        ]))),
-                centerTitle: true,
-                title: const Text("Add Contact")),
-            body: SafeArea(
+    return Scaffold(
+        resizeToAvoidBottomInset: false,
+        appBar: AppBar(
+            leading: GestureDetector(
+                onTap: () {
+                  Get.back();
+                },
                 child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 15.0, vertical: 20),
-              child: ListView(
+                    padding: const EdgeInsets.only(left: 10),
+                    child: Row(children: [
+                      const Icon(Icons.arrow_back_ios),
+                      Utils.getRandomAvatar(
+                          Get.find<HomeController>()
+                              .getSelectedIdentity()
+                              .secp256k1PKHex,
+                          height: 22,
+                          width: 22)
+                    ]))),
+            centerTitle: true,
+            title: const Text("Add Contact")),
+        body: SafeArea(
+            child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16),
+          child: Column(
+            children: [
+              Expanded(
+                  child: Column(
                 children: [
                   TextField(
                     textInputAction: TextInputAction.done,
@@ -76,24 +77,19 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                     controller: _controller,
                     // autofocus: true,
                     decoration: InputDecoration(
-                        labelText: 'Link or ID Key',
+                        labelText: 'Link or Key',
                         border: const OutlineInputBorder(),
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.paste),
-                          onPressed: () async {
-                            final clipboardData =
-                                await Clipboard.getData('text/plain');
-                            if (clipboardData != null) {
-                              final pastedText = clipboardData.text;
-                              if (pastedText != null && pastedText != '') {
-                                _controller.text = pastedText;
-                                _controller.selection =
-                                    TextSelection.fromPosition(TextPosition(
-                                        offset: _controller.text.length));
-                              }
-                            }
-                          },
-                        )),
+                        suffixIcon: GetPlatform.isMobile
+                            ? IconButton(
+                                icon: const Icon(
+                                    CupertinoIcons.qrcode_viewfinder),
+                                onPressed: () async {
+                                  String? qrCode = await QrScanService.instance
+                                      .handleQRScan(autoProcess: false);
+                                  if (qrCode != null) _controller.text = qrCode;
+                                },
+                              )
+                            : null),
                   ),
                   const SizedBox(height: 10),
                   TextField(
@@ -105,44 +101,20 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                       border: OutlineInputBorder(),
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 40.0, bottom: 40),
-                    child: Center(
-                        child: Container(
-                            constraints: BoxConstraints(maxWidth: 400),
-                            width: double.infinity,
-                            child: FilledButton(
-                              onPressed: _createContact,
-                              child: const Text('Confirm'),
-                            ))),
-                  ),
-                  const SizedBox(height: 50),
-                  Card(
-                    child: Column(children: [
-                      ListTile(
-                        leading: const Icon(CupertinoIcons.qrcode),
-                        title: const Text('One-Time Link'),
-                        onTap: () async {
-                          Identity identity =
-                              Get.find<HomeController>().getSelectedIdentity();
-                          await showMyQrCode(context, identity, false);
-                        },
-                        trailing: const Icon(CupertinoIcons.right_chevron),
-                      ),
-                      if (GetPlatform.isMobile)
-                        ListTile(
-                          leading: const Icon(CupertinoIcons.qrcode_viewfinder),
-                          title: const Text('Scan QR Code'),
-                          onTap: () {
-                            QrScanService.instance.handleQRScan();
-                          },
-                          trailing: const Icon(CupertinoIcons.right_chevron),
-                        )
-                    ]),
-                  )
                 ],
+              )),
+              Center(
+                child: Container(
+                    constraints: BoxConstraints(maxWidth: 400),
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: _createContact,
+                      child: const Text('Confirm'),
+                    )),
               ),
-            ))));
+            ],
+          ),
+        )));
   }
 
   Future _createContact() async {

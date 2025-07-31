@@ -42,9 +42,9 @@ class _HomeDropMenuWidgetState extends State<HomeDropMenuWidget> {
         const MenuItem(text: menuNewGroup, icon: CupertinoIcons.group_solid);
     MenuItem scan =
         const MenuItem(text: menuScan, icon: CupertinoIcons.qrcode_viewfinder);
-    MenuItem qrcode =
-        const MenuItem(text: menuMyQrcode, icon: CupertinoIcons.qrcode);
-    firstItems = [addContact, addGroup, scan, qrcode];
+    // MenuItem qrcode =
+    //     const MenuItem(text: menuMyQrcode, icon: CupertinoIcons.qrcode);
+    firstItems = [addContact, addGroup, scan];
 
     super.initState();
   }

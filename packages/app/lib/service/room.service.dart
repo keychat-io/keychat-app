@@ -797,8 +797,8 @@ class RoomService extends BaseChatService {
         }
         room = await RoomService.instance.getOrCreateRoomByIdentity(
             hexPubkey, identity, RoomStatus.requesting);
-        await SignalChatService.instance
-            .sendHelloMessage(room, identity, greeting: greeting);
+        await SignalChatService.instance.sendHelloMessage(room, identity,
+            greeting: greeting, fromNpub: true);
         if (room.status != RoomStatus.requesting) {
           room.status = RoomStatus.requesting;
           await RoomService.instance.updateRoom(room);

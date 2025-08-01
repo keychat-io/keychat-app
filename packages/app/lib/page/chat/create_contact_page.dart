@@ -1,12 +1,11 @@
 import 'package:app/controller/home.controller.dart';
+import 'package:app/page/browser/SelectIdentityForward.dart';
 import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/page/components.dart';
 import 'package:app/service/qrscan.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/signal_chat.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -24,9 +23,11 @@ class AddtoContactsPage extends StatefulWidget {
 class _SearchFriendsState extends State<AddtoContactsPage> {
   late TextEditingController _controller;
   late TextEditingController _helloController;
+  late Identity selectedIdentity;
   HomeController homeController = Get.find<HomeController>();
   @override
   void initState() {
+    selectedIdentity = homeController.getSelectedIdentity();
     _controller = TextEditingController(text: widget.defaultInput.toString());
     _helloController = TextEditingController();
 
@@ -45,23 +46,28 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
     return Scaffold(
         resizeToAvoidBottomInset: false,
         appBar: AppBar(
-            leading: GestureDetector(
-                onTap: () {
-                  Get.back();
+          centerTitle: true,
+          title: const Text("Add Contact"),
+          actions: [
+            TextButton.icon(
+                onPressed: () async {
+                  Identity? selected = await Get.bottomSheet(
+                      clipBehavior: Clip.antiAlias,
+                      shape: const RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(4))),
+                      const SelectIdentityForward('Select a Identity'));
+                  if (selected == null) return;
+                  EasyLoading.showToast(
+                      'Selected Identity: ${selected.displayName}');
+                  setState(() {
+                    selectedIdentity = selected;
+                  });
                 },
-                child: Padding(
-                    padding: const EdgeInsets.only(left: 10),
-                    child: Row(children: [
-                      const Icon(Icons.arrow_back_ios),
-                      Utils.getRandomAvatar(
-                          Get.find<HomeController>()
-                              .getSelectedIdentity()
-                              .secp256k1PKHex,
-                          height: 22,
-                          width: 22)
-                    ]))),
-            centerTitle: true,
-            title: const Text("Add Contact")),
+                icon: const Icon(Icons.swap_horiz),
+                label: Text(selectedIdentity.displayName))
+          ],
+        ),
         body: SafeArea(
             child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16),
@@ -120,7 +126,11 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
   Future _createContact() async {
     String input = _controller.text.trim();
     if (input.startsWith('https://www.keychat.io/u/')) {
-      input = input.replaceAll('https://www.keychat.io/u/', '');
+      Uri? uri = Uri.tryParse(input);
+      if (uri?.queryParameters['k'] != null) {
+        input = Uri.decodeComponent(uri!.queryParameters['k']!);
+        logger.i('Parsed input: $input');
+      }
     }
     // chat key
     if (input.length > 70) {
@@ -129,19 +139,21 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
         QRUserModel model;
         try {
           model = QRUserModel.fromShortString(input);
+          logger.i('Parsed QRUserModel: $model');
         } catch (e, s) {
           String msg = Utils.getErrorMessage(e);
           logger.e(msg, stackTrace: s);
           EasyLoading.showToast('Invalid Input');
           return;
         }
-        await RoomUtil.processUserQRCode(model, true);
+        await RoomUtil.processUserQRCode(model, true, selectedIdentity);
+      } else {
+        EasyLoading.showError('Error base64 format');
       }
       return;
     }
     // common private chat
     try {
-      Identity identity = Get.find<HomeController>().getSelectedIdentity();
       // check if input is a bot npub
       String npub = rust_nostr.getBech32PubkeyByHex(hex: input);
       String hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: npub);
@@ -151,9 +163,12 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
         }
         try {
           Room room = await RoomService.instance.getOrCreateRoom(
-              hexPubkey, identity.secp256k1PKHex, RoomStatus.enabled,
-              contactName: bot['name'], type: RoomType.bot, identity: identity);
-          await SignalChatService.instance.sendHelloMessage(room, identity);
+              hexPubkey, selectedIdentity.secp256k1PKHex, RoomStatus.enabled,
+              contactName: bot['name'],
+              type: RoomType.bot,
+              identity: selectedIdentity);
+          await SignalChatService.instance
+              .sendHelloMessage(room, selectedIdentity);
           await Utils.toNamedRoom(room);
         } catch (e) {
           logger.e('Failed to create room for bot: $e');
@@ -166,10 +181,10 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
       List<Room> rooms =
           await RoomService.instance.getCommonRoomByPubkey(hexPubkey);
 
-      // exist rooms
+      // not exist rooms
       if (rooms.isEmpty) {
         await RoomService.instance.createRoomAndsendInvite(input,
-            greeting: _helloController.text.trim(), identity: identity);
+            greeting: _helloController.text.trim(), identity: selectedIdentity);
         return;
       }
 

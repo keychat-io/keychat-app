@@ -56,7 +56,7 @@ class KeychatMessage {
   String toString() => jsonEncode(toJson());
 
   Future<KeychatMessage> setHelloMessagge(Identity identity,
-      {SignalId? signalId, String? greeting}) async {
+      {SignalId? signalId, String? greeting, bool fromNpub = false}) async {
     List<Mykey> oneTimeKeys =
         await Get.find<ChatxService>().getOneTimePubkey(identity.id);
     String onetimekey = '';
@@ -90,7 +90,11 @@ class KeychatMessage {
       ...userInfo
     };
     name = QRUserModel.fromJson(data).toString();
-    msg = '''
+    msg = fromNpub
+        ? '''
+😄Hi, I'm ${identity.displayName}.
+Request to start an encrypted chat.'''
+        : '''
 😄Hi, I'm ${identity.displayName}.
 Let's start an encrypted chat.''';
     if (greeting != null && greeting.isNotEmpty) {

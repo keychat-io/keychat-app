@@ -58,7 +58,7 @@ class _ChatPage2State extends State<ChatPage> {
       LinkConfig(
           onTap: (url) {
             Utils.hideKeyboard(Get.context!);
-            Get.find<MultiWebviewController>().launchWebview(content: url);
+            Get.find<MultiWebviewController>().launchWebview(initUrl: url);
           },
           style: const TextStyle(
               color: Colors.white,
@@ -73,7 +73,7 @@ class _ChatPage2State extends State<ChatPage> {
       LinkConfig(
           onTap: (url) {
             Utils.hideKeyboard(Get.context!);
-            Get.find<MultiWebviewController>().launchWebview(content: url);
+            Get.find<MultiWebviewController>().launchWebview(initUrl: url);
           },
           style: const TextStyle(
               color: Colors.blue, decoration: TextDecoration.none)),
@@ -108,15 +108,6 @@ class _ChatPage2State extends State<ChatPage> {
                             Icon(Icons.android_outlined, color: Colors.purple))
                 ],
               )),
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(0),
-            child: Obx(() => controller.roomObs.value.status ==
-                        RoomStatus.enabled &&
-                    controller.roomObs.value.type == RoomType.common &&
-                    controller.roomObs.value.encryptMode == EncryptMode.nip04
-                ? const Text('Weak Encrypt Mode')
-                : const SizedBox()),
-          ),
           actions: [
             Obx(() => controller.roomObs.value.status != RoomStatus.approving
                 ? IconButton(
@@ -378,7 +369,7 @@ class _ChatPage2State extends State<ChatPage> {
                                     .contains(LogicalKeyboardKey.metaRight);
                             if (event.logicalKey == LogicalKeyboardKey.keyV &&
                                 isCmdPressed) {
-                              await controller.handlePasteboardFile();
+                              controller.handlePasteboardFile();
                               return;
                             }
                             final isShiftPressed = HardwareKeyboard
@@ -400,10 +391,7 @@ class _ChatPage2State extends State<ChatPage> {
                                   controller.textEditingController.value
                                       .copyWith(
                                 text: text.replaceRange(
-                                  selection.start,
-                                  selection.end,
-                                  '\n',
-                                ),
+                                    selection.start, selection.end, '\n'),
                                 selection: TextSelection.collapsed(
                                   offset: selection.start + 1,
                                 ),
@@ -451,50 +439,49 @@ class _ChatPage2State extends State<ChatPage> {
                               if (hasSelection) {
                                 buttonItems.add(
                                   ContextMenuButtonItem(
-                                    onPressed: () {
-                                      editableTextState.cutSelection(
-                                          SelectionChangedCause.toolbar);
-                                    },
-                                    type: ContextMenuButtonType.cut,
-                                  ),
+                                      onPressed: () {
+                                        editableTextState.cutSelection(
+                                            SelectionChangedCause.toolbar);
+                                      },
+                                      type: ContextMenuButtonType.cut),
                                 );
                                 buttonItems.add(
                                   ContextMenuButtonItem(
-                                    onPressed: () {
-                                      editableTextState.copySelection(
-                                          SelectionChangedCause.toolbar);
-                                    },
-                                    type: ContextMenuButtonType.copy,
-                                  ),
+                                      onPressed: () {
+                                        editableTextState.copySelection(
+                                            SelectionChangedCause.toolbar);
+                                      },
+                                      type: ContextMenuButtonType.copy),
                                 );
                               }
 
-                              buttonItems.add(
-                                ContextMenuButtonItem(
+                              buttonItems.add(ContextMenuButtonItem(
                                   onPressed: () {
-                                    controller.handlePasteboard();
+                                    controller
+                                        .handlePasteboard()
+                                        .catchError((error, stackTrace) {
+                                      loggerNoLine.e(
+                                          'Error pasting clipboard content: $error',
+                                          stackTrace: stackTrace);
+                                    });
                                     editableTextState.hideToolbar();
                                   },
-                                  type: ContextMenuButtonType.paste,
-                                ),
-                              );
+                                  type: ContextMenuButtonType.paste));
 
                               if (canSelectAll) {
                                 buttonItems.add(
                                   ContextMenuButtonItem(
-                                    onPressed: () {
-                                      editableTextState.selectAll(
-                                          SelectionChangedCause.toolbar);
-                                    },
-                                    type: ContextMenuButtonType.selectAll,
-                                  ),
+                                      onPressed: () {
+                                        editableTextState.selectAll(
+                                            SelectionChangedCause.toolbar);
+                                      },
+                                      type: ContextMenuButtonType.selectAll),
                                 );
                               }
 
                               return AdaptiveTextSelectionToolbar.buttonItems(
-                                anchors: editableTextState.contextMenuAnchors,
-                                buttonItems: buttonItems,
-                              );
+                                  anchors: editableTextState.contextMenuAnchors,
+                                  buttonItems: buttonItems);
                             },
                             enableInteractiveSelection: true,
                             maxLines: 8,
@@ -821,7 +808,7 @@ class _ChatPage2State extends State<ChatPage> {
                     ),
                     body: ListView.separated(
                         controller: ScrollController(),
-                        separatorBuilder: (BuildContext context, int index) =>
+                        separatorBuilder: (BuildContext context2, int index) =>
                             Divider(
                                 color: Theme.of(context)
                                     .dividerTheme
@@ -939,10 +926,17 @@ class _ChatPage2State extends State<ChatPage> {
             ),
             FilledButton(
               onPressed: () async {
-                int identityId = controller.roomObs.value.identityId;
-                await RoomService.instance.deleteRoom(controller.roomObs.value);
-                Get.find<HomeController>().loadIdentityRoomList(identityId);
-                Get.back();
+                try {
+                  int identityId = controller.roomObs.value.identityId;
+                  await RoomService.instance
+                      .deleteRoom(controller.roomObs.value);
+                  Get.find<HomeController>().loadIdentityRoomList(identityId);
+                  await Utils.offAllNamedRoom(Routes.root);
+                } catch (e) {
+                  String msg = Utils.getErrorMessage(e);
+                  EasyLoading.showError(msg);
+                  logger.e(msg, error: e);
+                }
               },
               style: ButtonStyle(
                   backgroundColor: WidgetStateProperty.all(Colors.red)),
@@ -1021,7 +1015,7 @@ class _ChatPage2State extends State<ChatPage> {
                   Expanded(
                       child: Obx(() => ListView.separated(
                           physics: const NeverScrollableScrollPhysics(),
-                          separatorBuilder: (context, index) =>
+                          separatorBuilder: (context2, index) =>
                               const SizedBox(height: 4),
                           shrinkWrap: true,
                           itemCount: controller.kpaIsNullRooms.length,

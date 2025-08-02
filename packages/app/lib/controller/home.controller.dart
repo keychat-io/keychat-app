@@ -5,8 +5,10 @@ import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr.dart';
+import 'package:app/page/chat/ForwardSelectRoom.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/create_contact_page.dart';
+import 'package:app/service/file.service.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/notify.service.dart';
@@ -27,6 +29,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
@@ -35,6 +38,8 @@ import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
+import 'package:receive_sharing_intent/receive_sharing_intent.dart'
+    show SharedMediaFile, ReceiveSharingIntent, SharedMediaType;
 import '../utils/remote_config.dart' as remote_config;
 
 class HomeController extends GetxController
@@ -423,6 +428,7 @@ class HomeController extends GetxController
   @override
   onClose() async {
     tabController.dispose();
+    _intentSub.cancel();
     WidgetsBinding.instance.removeObserver(this);
     rust_cashu.closeDb();
     subscription.cancel();
@@ -488,6 +494,7 @@ class HomeController extends GetxController
     // start to create ai identity
     Future.delayed(const Duration(seconds: 1), () async {
       initAppLinks();
+      _initShareIntent();
       RoomUtil.executeAutoDelete();
       loadAppRemoteConfig();
       List<Room> rooms = await RoomService.instance.getMlsRooms();
@@ -609,6 +616,12 @@ class HomeController extends GetxController
   Future<void> handleAppLink(Uri? uri) async {
     if (uri == null) return;
     if (uri.pathSegments.isEmpty) return;
+    List identities = await IdentityService.instance.getIdentityList();
+    if (identities.isEmpty) {
+      EasyLoading.showError('No identity found, please login first');
+      return;
+    }
+
     Map params = uri.queryParametersAll;
     logger
         .i('App received new link: $uri  path: ${uri.path} , params: $params');
@@ -616,16 +629,16 @@ class HomeController extends GetxController
     switch (scheme) {
       case 'http':
       case 'https':
-        // https://www.keychat.io/u/npub10v2vdw8rulxj4s4h6ugh4ru7qlzqr7z2u8px5s4zlh2lsghs6lysyf69mf
-        if (uri.path.startsWith('/u/')) {
-          String input = uri.path.replaceFirst('/u/', '');
+        // https://www.keychat.io/u/?k=npub10v2vdw8rulxj4s4h6ugh4ru7qlzqr7z2u8px5s4zlh2lsghs6lysyf69mf
+        if (uri.queryParameters.containsKey('k')) {
+          String input = Uri.decodeComponent(uri.queryParameters['k']!);
           return _handleAppLinkRoom(input, params);
         }
         break;
       case 'keychat':
-        // keychat://www.keychat.io/u/npub10v2vdw8rulxj4s4h6ugh4ru7qlzqr7z2u8px5s4zlh2lsghs6lysyf69mf
-        if (uri.path.startsWith('/u/')) {
-          String input = uri.path.replaceFirst('/u/', '');
+        // keychat://www.keychat.io/u/?k=npub10v2vdw8rulxj4s4h6ugh4ru7qlzqr7z2u8px5s4zlh2lsghs6lysyf69mf
+        if (uri.queryParameters.containsKey('k')) {
+          String input = Uri.decodeComponent(uri.queryParameters['k']!);
           return _handleAppLinkRoom(input, params);
         }
         // keychat://npub10v2vdw8rulxj4s4h6ugh4ru7qlzqr7z2u8px5s4zlh2lsghs6lysyf69mf
@@ -659,17 +672,23 @@ class HomeController extends GetxController
 
   Future<void> _handleAppLinkRoom(String input, Map params) async {
     loggerNoLine.i('handleAppLinkRoom: $input, params: $params');
-    try {
-      // qr chatkey
-      if (!(input.length == 64 || input.length == 63)) {
-        await Get.bottomSheet(AddtoContactsPage(input),
-            isScrollControlled: true,
-            ignoreSafeArea: false,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16))));
-        return;
-      }
 
+    List identities = await IdentityService.instance.getIdentityList();
+    if (identities.isEmpty) {
+      EasyLoading.showError('No identity found, please login first');
+      return;
+    }
+
+    // qr chatkey
+    if (!(input.length == 64 || input.length == 63)) {
+      await Get.bottomSheet(AddtoContactsPage(input),
+          isScrollControlled: true,
+          ignoreSafeArea: false,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16))));
+      return;
+    }
+    try {
       // bech32 or hex pubkey
       String hexPubkey = input;
       if (input.startsWith('npub') && input.length == 63) {
@@ -724,6 +743,64 @@ class HomeController extends GetxController
       logger.i('LN Transaction:   Amount=${lnTx.amount}, '
           'INfo=${lnTx.info}, Description=${lnTx.fee}, '
           'Hash=${lnTx.hash}, NodeId=${lnTx.status.name}');
+    }
+  }
+
+  late StreamSubscription _intentSub;
+
+  _initShareIntent() {
+    if (!GetPlatform.isMobile) return;
+    // Listen to media sharing coming from outside the app while the app is in the memory.
+    _intentSub = ReceiveSharingIntent.instance.getMediaStream().listen((value) {
+      _handleSharedContent(value);
+    }, onError: (err) {
+      logger.e("getIntentDataStream error: $err");
+    });
+
+    // Get the media sharing coming from outside the app while the app is closed.
+    ReceiveSharingIntent.instance.getInitialMedia().then((value) {
+      _handleSharedContent(value);
+      ReceiveSharingIntent.instance.reset();
+    });
+    logger.i('ShareIntent initialized');
+  }
+
+  _handleSharedContent(List<SharedMediaFile> list) async {
+    if (list.isEmpty) return;
+    logger.i('Shared content received: ${list.map((f) => f.toMap())}');
+    SharedMediaFile file = list.first;
+    if (file.path.startsWith('keychat://www.keychat.io/u/')) {
+      logger.i('Shared content is a room link, handle by deeplink');
+      return;
+    }
+    Identity identity = getSelectedIdentity();
+    switch (file.type) {
+      case SharedMediaType.image:
+      case SharedMediaType.file:
+      case SharedMediaType.video:
+        List<Room>? forwardRooms = await Get.to(
+            () => ForwardSelectRoom('', identity, showContent: false),
+            fullscreenDialog: true,
+            transition: Transition.downToUp);
+        if (forwardRooms == null || forwardRooms.isEmpty) return;
+        Message? message = await FileService.instance
+            .handleFileUpload(forwardRooms.first, XFile(file.path));
+        if (forwardRooms.length > 1 && message != null) {
+          forwardRooms = forwardRooms.skip(1).toList();
+          await RoomUtil.forwardMediaMessageToRooms(forwardRooms, message);
+        }
+        break;
+      case SharedMediaType.text:
+      case SharedMediaType.url:
+        String toSendText = file.path;
+        if (file.message != null) {
+          toSendText = '''
+${file.path}
+${file.message}
+''';
+        }
+        await RoomUtil.forwardTextMessage(identity, toSendText);
+        break;
     }
   }
 }

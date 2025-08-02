@@ -125,6 +125,7 @@ class GroupInviteConfirmAction extends StatelessWidget {
                                 ],
                               ));
                             } else {
+                              // for signal group
                               await GroupService.instance
                                   .inviteToJoinGroup(groupRoom, toJoinUserMap);
                               EasyLoading.showSuccess('Success');

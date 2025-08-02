@@ -55,7 +55,7 @@ class LightningBillPage extends GetView<LightningBillController> {
                         },
                         controller: controller.refreshController,
                         child: ListView.separated(
-                            separatorBuilder: (BuildContext context,
+                            separatorBuilder: (BuildContext context2,
                                     int index) =>
                                 Divider(
                                   color: Theme.of(context).dividerTheme.color,

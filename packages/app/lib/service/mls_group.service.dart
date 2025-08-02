@@ -39,13 +39,22 @@ class MlsGroupService extends BaseChatService {
 
   Future addMemeberToGroup(Room groupRoom, List<Map<String, dynamic>> toUsers,
       [String? sender]) async {
+    List<String> invalidPubkeys = await existExpiredMember(groupRoom);
+    if (invalidPubkeys.isNotEmpty) {
+      throw Exception(
+          '${invalidPubkeys.join(', ')} \'s key package is expired, please remove them first');
+    }
     Identity identity = groupRoom.getIdentity();
-    Map<String, String> userNameMap = {}; // pubkey, name
+    Map<String, String> userNameMap = {};
     List<String> keyPackages = [];
     for (var user in toUsers) {
       userNameMap[user['pubkey']] = user['name'];
       String? pk = user['mlsPK'];
       if (pk != null) {
+        bool valid = await checkPkIsValid(groupRoom, pk);
+        if (!valid) {
+          throw Exception('Key package for ${user['name']} is expired');
+        }
         keyPackages.add(pk);
       }
     }
@@ -338,6 +347,9 @@ $error ''';
     Map<String, RoomMember> roomMembers = {};
     Map<String, List<Uint8List>> extensions = await rust_mls.getMemberExtension(
         nostrId: room.myIdPubkey, groupId: room.toMainPubkey);
+    Map<String, BigInt?> lifeTimes = await rust_mls.getGroupMembersWithLifetime(
+        nostrId: room.myIdPubkey, groupId: room.toMainPubkey);
+    int now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     for (var element in extensions.entries) {
       String name = element.key;
       UserStatusType status = UserStatusType.invited;
@@ -354,8 +366,19 @@ $error ''';
           logger.e('getMembers: ${e.toString()}');
         }
       }
+      bool mlsPKExpired = false;
+      if (lifeTimes[element.key] != null) {
+        BigInt? lifetime = lifeTimes[element.key];
+        if (lifetime != null && lifetime > BigInt.zero) {
+          int expireTime = lifetime.toInt() * 1000;
+          if (expireTime < now) {
+            mlsPKExpired = true;
+          }
+        }
+      }
       roomMembers[element.key] = RoomMember(
-          idPubkey: element.key, name: name, roomId: room.id, status: status);
+          idPubkey: element.key, name: name, roomId: room.id, status: status)
+        ..mlsPKExpired = mlsPKExpired;
     }
     return roomMembers;
   }
@@ -489,7 +512,7 @@ $error ''';
         members: bLeafNodes);
 
     String realMessage =
-        '[System] Admin remove ${names.length > 1 ? 'members' : 'member'}: ${names.join(',')}';
+        '[System] Admin remove the ${names.length > 1 ? 'members' : 'member'}: ${names.join(',')}';
 
     room = await RoomService.instance.getRoomByIdOrFail(room.id);
     await sendEncryptedMessage(room, queuedMsg, realMessage: realMessage);
@@ -760,21 +783,20 @@ $error ''';
           await Storage.removeString(timestampKey);
           loggerNoLine.i(
               'Key package expired or force upload for identity: ${identity.secp256k1PKHex}');
-        } else {
-          if (toRelay != null) {
-            List mlsStates = await Storage.getStringList(stateKey);
-            if (mlsStates.contains(toRelay)) {
-              return;
-            }
+        }
+
+        if (toRelay != null) {
+          List mlsStates = await Storage.getStringList(stateKey);
+          if (mlsStates.contains(toRelay)) {
+            // loggerNoLine.i(
+            //     'Key package already uploaded to relay: $toRelay for identity: ${identity.secp256k1PKHex}');
+            return;
           }
         }
+
         loggerNoLine.i(
             '${EventKinds.mlsNipKeypackages} start: ${identity.secp256k1PKHex}');
         String event = await _getOrCreateEvent(identity, statePK, onlineRelays);
-
-        // Save upload timestamp when creating new event
-        await Storage.setString(
-            timestampKey, DateTime.now().millisecondsSinceEpoch.toString());
 
         Get.find<WebsocketService>().sendMessageWithCallback(
             "[\"EVENT\",$event]",
@@ -785,6 +807,8 @@ $error ''';
                 String? errorMessage}) async {
           List mlsStates = await Storage.getStringList(stateKey);
           if (status) {
+            loggerNoLine.i(
+                'Key package uploaded successfully: ${identity.secp256k1PKHex}');
             var set = Set.from(mlsStates);
             set.add(relay);
             // cache state
@@ -847,13 +871,6 @@ $error ''';
 
   Future _proccessTryProposalIn(Room room, NostrEventModel event,
       String queuedMsg, Function(String) failedCallback) async {
-    if (event.createdAt <= room.version) {
-      logger.w(
-          '[MLS] Event is outdated: ${event.id}, eventTime: ${event.createdAt}, roomVersion: ${room.version}');
-      throw Exception('Event is outdated.${event.id}');
-    }
-
-    loggerNoLine.i('[MLS] Getting sender for event: ${event.id}');
     var res = await rust_mls.getSender(
         nostrId: room.myIdPubkey,
         groupId: room.toMainPubkey,
@@ -1121,8 +1138,8 @@ $error ''';
 
   // cache event for 10443
   Future<String> _getOrCreateEvent(
-      Identity identity, String stateKey, List<String> onlineRelays) async {
-    String? state = await Storage.getString(stateKey);
+      Identity identity, String statePK, List<String> onlineRelays) async {
+    String? state = await Storage.getString(statePK);
     if (state != null) {
       loggerNoLine.i(
           'Keypackage already exists: ${identity.secp256k1PKHex}, use cached');
@@ -1143,7 +1160,7 @@ $error ''';
           ["client", KeychatGlobal.appName],
           ["relay", ...onlineRelays]
         ]);
-    await Storage.setString(stateKey, event);
+    await Storage.setString(statePK, event);
     return event;
   }
 
@@ -1184,5 +1201,26 @@ $error ''';
         logger.e('[MLS] Failed to get new pubkey for room ${room.id}: $e');
       }
     }
+  }
+
+  Future<bool> checkPkIsValid(Room room, String pk) async {
+    String nostrId = room.getIdentity().secp256k1PKHex;
+    BigInt lifetime = await rust_mls.parseLifetimeFromKeyPackage(
+        nostrId: nostrId, keyPackageHex: pk);
+    int now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    if (lifetime > BigInt.zero) {
+      return lifetime.toInt() > now;
+    }
+    return false;
+  }
+
+  Future<List<String>> existExpiredMember(Room room) async {
+    Map<String, BigInt?> lifeTimes = await rust_mls.getGroupMembersWithLifetime(
+        nostrId: room.myIdPubkey, groupId: room.toMainPubkey);
+    int now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    return lifeTimes.entries
+        .where((entry) => entry.value != null && entry.value!.toInt() < now)
+        .map((entry) => entry.key)
+        .toList();
   }
 }

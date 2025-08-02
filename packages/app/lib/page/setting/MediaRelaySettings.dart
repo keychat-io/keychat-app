@@ -96,7 +96,7 @@ class MediaRelaySettings extends GetView<SettingController> {
                                 onPressed: (context) {
                                   Get.back();
                                   Get.find<MultiWebviewController>()
-                                      .launchWebview(content: url);
+                                      .launchWebview(initUrl: url);
                                 },
                               ),
                               SettingsTile(

@@ -2,6 +2,15 @@
 https://keepachangelog.com/zh-CN/1.1.0
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
+## 1.34.1+6413
+1.  Show tips when receiving a kind-4 message.
+2.  [MLS] New users cannot be added if an expired KeyPackage exists.
+3.  Support adding friends via link.
+4.  [Fix] When re-adding a friend, avoid sending multiple requests.
+5.  [Desktop] Chat -> Message - Context Menu
+6.  [Browser] Add keep-alive setting for host.
+7.  [Fix] Style bug when the theme changed 
+
 ## 1.33.9+6409
 1. Upload MLS KeyPackage monthly
 2. Support Universal Link

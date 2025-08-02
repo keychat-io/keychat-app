@@ -11,7 +11,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
-
 import 'RecommendBots/RecommendBots.dart';
 import 'components.dart';
 
@@ -20,6 +19,9 @@ class RoomList extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
+    DesktopController? desktopController =
+        Utils.getGetxController<DesktopController>();
+
     return Scaffold(
       appBar: AppBar(
           automaticallyImplyLeading: false,
@@ -61,12 +63,11 @@ class RoomList extends GetView<HomeController> {
                                           0,
                                       position: badges.BadgePosition.topEnd(
                                           top: -10, end: -15),
-                                      child: Text(
-                                        title,
-                                        style: const TextStyle(
-                                            overflow: TextOverflow.ellipsis),
-                                      )));
-                            }).toList()),
+                                      child: Text(title,
+                                          style: const TextStyle(
+                                              overflow:
+                                                  TextOverflow.ellipsis))));
+                            }).toList())
                       ],
                     ),
                   )))),
@@ -75,11 +76,7 @@ class RoomList extends GetView<HomeController> {
           controller: controller.tabController,
           children: controller.tabBodyDatas.keys.map((identityId) {
             TabData data = controller.tabBodyDatas[identityId]!;
-            int friendsCount = data.rooms.length;
             List rooms = data.rooms;
-            DateTime messageExpired =
-                DateTime.now().subtract(const Duration(seconds: 5));
-
             return SmartRefresher(
                 enablePullDown: true,
                 header: const WaterDropHeader(),
@@ -94,7 +91,7 @@ class RoomList extends GetView<HomeController> {
                   key: ObjectKey('roomlist_tab_$identityId'),
                   padding: const EdgeInsets.only(
                       bottom: kMinInteractiveDimension * 2),
-                  separatorBuilder: (context, index) {
+                  separatorBuilder: (context2, index) {
                     if (rooms[index] is Room) {
                       if (rooms[index].pin) {
                         return Container();
@@ -108,11 +105,48 @@ class RoomList extends GetView<HomeController> {
                     }
                     return Container();
                   },
-                  itemCount: friendsCount,
+                  itemCount: data.rooms.length,
                   itemBuilder: (context, index) {
                     if (index == 0) {
                       if (data.rooms.length > 4) {
-                        return getSearchWidget(context);
+                        return GestureDetector(
+                          onTap: () {
+                            Get.to(() => const SearchPage());
+                          },
+                          child: Container(
+                            height: 40,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(4),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainerHighest,
+                            ),
+                            margin: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            child: Row(
+                              children: [
+                                Padding(
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 8),
+                                    child: Icon(Icons.search,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.4))),
+                                Expanded(
+                                  child: Text(
+                                    'Search',
+                                    style: TextStyle(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.4)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
                       }
                       return const SizedBox();
                     }
@@ -139,11 +173,10 @@ class RoomList extends GetView<HomeController> {
                           context);
                     }
                     Room room = rooms[index];
-                    return InkWell(
+                    return GestureDetector(
                         key: ObjectKey('${index}_room${room.id}'),
                         onTap: () async {
                           await Utils.toNamedRoom(room);
-
                           RoomService.instance.markAllRead(
                               identityId: room.identityId, roomId: room.id);
                           controller.resortRoomList(room.identityId);
@@ -164,11 +197,8 @@ class RoomList extends GetView<HomeController> {
                                       EdgeInsets.only(left: 16, right: 16),
                                   leading: Utils.getAvatarDot(room),
                                   key: Key('room:${room.id}'),
-                                  selected: Utils.getGetxController<
-                                              DesktopController>()
-                                          ?.selectedRoom
-                                          .value
-                                          .id ==
+                                  selected: desktopController
+                                          ?.selectedRoom.value.id ==
                                       room.id,
                                   selectedTileColor: KeychatGlobal.primaryColor
                                       .withValues(alpha: 200),
@@ -187,7 +217,7 @@ class RoomList extends GetView<HomeController> {
                                           direction: Axis.horizontal,
                                           children: [
                                             textSmallGray(
-                                                Get.context!,
+                                                context,
                                                 Utils.formatTimeMsg(controller
                                                     .roomLastMessage[room.id]!
                                                     .createdAt)),
@@ -195,14 +225,11 @@ class RoomList extends GetView<HomeController> {
                                                 ? Icon(
                                                     Icons
                                                         .notifications_off_outlined,
-                                                    color:
-                                                        Theme.of(Get.context!)
-                                                            .colorScheme
-                                                            .onSurface
-                                                            .withValues(
-                                                                alpha: 0.6),
-                                                    size: 16,
-                                                  )
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurface
+                                                        .withValues(alpha: 0.6),
+                                                    size: 16)
                                                 : Container()
                                           ],
                                         ),
@@ -210,52 +237,15 @@ class RoomList extends GetView<HomeController> {
                                   ),
                                   subtitle: Obx(() =>
                                       RoomUtil.getSubtitleDisplay(
+                                          context,
                                           room,
-                                          messageExpired,
+                                          DateTime.now().subtract(
+                                              const Duration(seconds: 5)),
                                           controller.roomLastMessage[room.id])),
                                 ))));
                   },
                 ));
           }).toList())),
-    );
-  }
-
-  GestureDetector getSearchWidget(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Get.to(() => const SearchPage());
-      },
-      child: Container(
-        height: 40,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(4),
-          color: Get.isDarkMode
-              ? const Color(0xFF202020)
-              : const Color(0xFFEDEDED),
-        ),
-        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        child: Row(
-          children: [
-            Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8),
-                child: Icon(Icons.search,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.4))),
-            Expanded(
-              child: Text(
-                'Search',
-                style: TextStyle(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.4)),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -283,10 +273,8 @@ class RoomList extends GetView<HomeController> {
               ),
             ),
           ),
-          title: Text(
-            'New Friends',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
+          title: Text('New Friends',
+              style: Theme.of(context).textTheme.titleMedium),
           onTap: () async {
             await Get.bottomSheet(
                 clipBehavior: Clip.antiAlias,
@@ -325,10 +313,8 @@ class RoomList extends GetView<HomeController> {
                       Theme.of(context).colorScheme.secondaryContainer,
                   child: const Icon(CupertinoIcons.person_badge_plus_fill,
                       size: 26))),
-          title: Text(
-            'Requesting',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
+          title: Text('Requesting',
+              style: Theme.of(context).textTheme.titleMedium),
           onTap: () async {
             await Get.bottomSheet(
                 clipBehavior: Clip.antiAlias,

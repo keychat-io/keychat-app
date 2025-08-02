@@ -86,8 +86,8 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                     Center(
                       child: Utils.getRandomAvatar(
                           controller.identity.value.secp256k1PKHex,
-                          height: 64,
-                          width: 64),
+                          height: 84,
+                          width: 84),
                     ),
                     if (controller.identity.value.isFromSigner)
                       Container(
@@ -232,7 +232,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                         if (controller.identity.value.enableChat)
                           SettingsTile.navigation(
                             leading: const Icon(CupertinoIcons.qrcode),
-                            title: const Text("Chat Key"),
+                            title: const Text("One-Time Link"),
                             onPressed: (context) async {
                               await showMyQrCode(
                                   context, controller.identity.value, true);
@@ -244,7 +244,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                             title: const Text("Universal Link"),
                             onPressed: (c) {
                               String link =
-                                  '${KeychatGlobal.mainWebsite}/u/${controller.identity.value.npub}';
+                                  '${KeychatGlobal.mainWebsite}/u/?k=${controller.identity.value.npub}';
                               Clipboard.setData(ClipboardData(text: link));
                               EasyLoading.showSuccess("Copied");
                             },

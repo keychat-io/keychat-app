@@ -60,7 +60,7 @@ class _AnonymousRoomsState extends State<AnonymousRooms> {
       ),
       body: SafeArea(
           child: ListView.separated(
-              separatorBuilder: (context, index) => Divider(
+              separatorBuilder: (context2, index) => Divider(
                   height: 1,
                   color:
                       Theme.of(context).dividerColor.withValues(alpha: 0.05)),
@@ -93,12 +93,12 @@ class _AnonymousRoomsState extends State<AnonymousRooms> {
                     maxLines: 1,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  subtitle: RoomUtil.getSubtitleDisplay(room, messageExpired,
-                      homeController.roomLastMessage[room.id]),
+                  subtitle: RoomUtil.getSubtitleDisplay(context, room,
+                      messageExpired, homeController.roomLastMessage[room.id]),
                   trailing:
                       homeController.roomLastMessage[room.id]?.createdAt != null
                           ? textSmallGray(
-                              Get.context!,
+                              context,
                               Utils.formatTimeMsg(homeController
                                   .roomLastMessage[room.id]!.createdAt))
                           : null,

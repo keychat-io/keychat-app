@@ -31,7 +31,7 @@ class WebviewTabController extends GetxController {
   @override
   void onClose() {
     if (title.value == url.value) {
-      multiWebviewController.removeKeepAliveObject(uniqueKey);
+      multiWebviewController.removeKeepAlive(url.value);
     }
     webViewController?.dispose();
     super.onClose();

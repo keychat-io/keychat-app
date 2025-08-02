@@ -87,7 +87,6 @@ class RoomUtil {
         () => ForwardSelectRoom(content, identity),
         fullscreenDialog: true,
         transition: Transition.downToUp);
-    Get.back();
     if (forwardRooms == null || forwardRooms.isEmpty) return;
 
     EasyLoading.show(status: 'Sending...');
@@ -510,14 +509,14 @@ Let's start an encrypted chat.''';
   }
 
   static Future processUserQRCode(QRUserModel model,
-      [bool fromAddPage = false]) async {
+      [bool fromAddPage = false, Identity? identity]) async {
     if (model.time <
         DateTime.now().millisecondsSinceEpoch -
             1000 * 3600 * KeychatGlobal.oneTimePubkeysLifetime) {
       EasyLoading.showToast('QR Code expired');
       return;
     }
-    Identity identity = Get.find<HomeController>().getSelectedIdentity();
+    identity ??= Get.find<HomeController>().getSelectedIdentity();
 
     String pubkey = rust_nostr.getHexPubkeyByBech32(bech32: model.pubkey);
     String npub = rust_nostr.getBech32PubkeyByHex(hex: model.pubkey);

@@ -392,14 +392,19 @@ ${relays.join('\n')}
   Future sendHelloMessage(Room room, Identity identity,
       {int type = KeyChatEventKinds.dmAddContactFromAlice,
       String? onetimekey,
-      String? greeting}) async {
+      String? greeting,
+      bool fromNpub = false}) async {
     SignalId signalId =
         await SignalIdService.instance.createSignalId(identity.id);
     // after reset session, the room signal key need update
     room.signalIdPubkey = signalId.pubkey;
     room = await RoomService.instance.updateRoom(room);
     KeychatMessage sm = await KeychatMessage(c: MessageType.signal, type: type)
-        .setHelloMessagge(signalId: signalId, identity, greeting: greeting);
+        .setHelloMessagge(
+            signalId: signalId,
+            identity,
+            greeting: greeting,
+            fromNpub: fromNpub);
     await NostrAPI.instance.sendNip17Message(room, sm.toString(), identity,
         toPubkey: onetimekey, realMessage: sm.msg, isSystem: true);
   }

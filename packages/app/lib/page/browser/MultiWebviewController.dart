@@ -247,12 +247,19 @@ class MultiWebviewController extends GetxController {
       kInitialTextSize.value = textSize;
     }
 
-    // keepalive
-    List<String> host =
-        await Storage.getStringList(StorageKeyString.mobileKeepAlive);
-    if (host.isNotEmpty) {
-      for (var item in host) {
-        mobileKeepAlive[item] = InAppWebViewKeepAlive();
+    // keepAlive
+    if (GetPlatform.isMobile) {
+      List<String> hosts =
+          await Storage.getStringList(StorageKeyString.mobileKeepAlive);
+      // for init
+      if (hosts.isEmpty) {
+        hosts = ['jumble.social'];
+        await Storage.setStringList(StorageKeyString.mobileKeepAlive, hosts);
+      }
+      if (hosts.isNotEmpty) {
+        for (var item in hosts) {
+          mobileKeepAlive[item] = InAppWebViewKeepAlive();
+        }
       }
     }
   }
@@ -528,7 +535,10 @@ window.addEventListener('DOMContentLoaded', function(event) {
     if (GetPlatform.isDesktop) {
       return null;
     }
-    String host = Uri.tryParse(url)?.host ?? url;
+    String host = url;
+    if (url.startsWith('http') || url.startsWith('https')) {
+      host = Uri.tryParse(url)?.host ?? url;
+    }
     mobileKeepAlive.remove(host);
     await Storage.setStringList(
         StorageKeyString.mobileKeepAlive, mobileKeepAlive.keys.toList());
@@ -541,6 +551,16 @@ window.addEventListener('DOMContentLoaded', function(event) {
     String host = Uri.tryParse(url)?.host ?? url;
     mobileKeepAlive.remove(host);
     mobileKeepAlive.remove(url);
+  }
+
+  // Add this method to get current KeepAlive hosts count
+  int getKeepAliveHostsCount() {
+    return mobileKeepAlive.length;
+  }
+
+  // Add this method to get all KeepAlive hosts
+  List<String> getKeepAliveHosts() {
+    return mobileKeepAlive.keys.toList();
   }
 }
 

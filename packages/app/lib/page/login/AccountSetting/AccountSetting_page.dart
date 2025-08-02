@@ -244,7 +244,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                             title: const Text("Universal Link"),
                             onPressed: (c) {
                               String link =
-                                  '${KeychatGlobal.mainWebsite}/u/${controller.identity.value.npub}';
+                                  '${KeychatGlobal.mainWebsite}/u/?k=${controller.identity.value.npub}';
                               Clipboard.setData(ClipboardData(text: link));
                               EasyLoading.showSuccess("Copied");
                             },

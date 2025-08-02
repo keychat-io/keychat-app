@@ -44,11 +44,11 @@ class MyQRCode extends StatefulWidget {
 class _MyQRCodeState extends State<MyQRCode> {
 // class MyQRCode extends StatelessWidget {
 
-  late String qrString;
+  late String url;
 
   @override
   void initState() {
-    qrString = widget.identity.npub;
+    url = '${KeychatGlobal.mainWebsite}/u/?k=${widget.identity.npub}';
     init();
     super.initState();
   }
@@ -81,8 +81,7 @@ class _MyQRCodeState extends State<MyQRCode> {
                   Text('Share to your friends',
                       style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 8),
-                  Utils.genQRImage('${KeychatGlobal.mainWebsite}/u/$qrString',
-                      size: 360),
+                  Utils.genQRImage(url, size: 360),
                   const SizedBox(height: 8),
                   textSmallGray(
                       context,
@@ -96,9 +95,7 @@ class _MyQRCodeState extends State<MyQRCode> {
                     children: [
                       FilledButton.icon(
                         onPressed: () {
-                          Clipboard.setData(ClipboardData(
-                              text:
-                                  '${KeychatGlobal.mainWebsite}/u/${widget.isOneTime ? qrString : widget.identity.npub}'));
+                          Clipboard.setData(ClipboardData(text: url));
                           EasyLoading.showSuccess("One-Time link copied");
                         },
                         icon: const Icon(Icons.copy),
@@ -111,8 +108,7 @@ class _MyQRCodeState extends State<MyQRCode> {
                             final box =
                                 context.findRenderObject() as RenderBox?;
 
-                            Share.share(
-                                '${KeychatGlobal.mainWebsite}/u/${widget.isOneTime ? qrString : widget.identity.npub}',
+                            Share.share(url,
                                 sharePositionOrigin:
                                     box!.localToGlobal(Offset.zero) & box.size);
                           },
@@ -154,10 +150,12 @@ class _MyQRCodeState extends State<MyQRCode> {
   }
 
   void init() async {
-    String res = await _initQRCodeData(
+    String qrString = await _initQRCodeData(
         widget.identity, widget.oneTimeKey, widget.signalId, widget.time ?? -1);
+    logger.i('init qrcode: $qrString');
     setState(() {
-      qrString = res;
+      url =
+          '${KeychatGlobal.mainWebsite}/u/?k=${Uri.encodeComponent(qrString)}';
     });
   }
 }

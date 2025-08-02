@@ -630,6 +630,17 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     }
   }
 
+  Future updateRoomMembersAvatar(List<String> pubkeys, int identityId) async {
+    for (var pubkey in pubkeys) {
+      Contact item = await fetchAndUpdateMetadata(pubkey, identityId);
+      enableMembers[pubkey]?.avatarFromRelay = item.avatarFromRelay;
+      enableMembers[pubkey]?.nameFromRelay = item.nameFromRelay;
+
+      members[pubkey]?.avatarFromRelay = item.avatarFromRelay;
+      members[pubkey]?.nameFromRelay = item.nameFromRelay;
+    }
+  }
+
   ChatController setRoom(Room newRoom) {
     roomObs.value = newRoom;
     if (newRoom.contact != null) {
@@ -764,17 +775,6 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     }
     if (roomObs.value.type == RoomType.bot) {
       _initBotInfo();
-    }
-  }
-
-  Future updateRoomMembersAvatar(List<String> pubkeys, int identityId) async {
-    for (var pubkey in pubkeys) {
-      Contact item = await fetchAndUpdateMetadata(pubkey, identityId);
-      enableMembers[pubkey]?.avatarFromRelay = item.avatarFromRelay;
-      enableMembers[pubkey]?.nameFromRelay = item.nameFromRelay;
-
-      members[pubkey]?.avatarFromRelay = item.avatarFromRelay;
-      members[pubkey]?.nameFromRelay = item.nameFromRelay;
     }
   }
 

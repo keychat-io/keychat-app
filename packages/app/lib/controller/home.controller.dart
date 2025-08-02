@@ -629,16 +629,16 @@ class HomeController extends GetxController
     switch (scheme) {
       case 'http':
       case 'https':
-        // https://www.keychat.io/u/npub10v2vdw8rulxj4s4h6ugh4ru7qlzqr7z2u8px5s4zlh2lsghs6lysyf69mf
-        if (uri.path.startsWith('/u/')) {
-          String input = uri.path.replaceFirst('/u/', '');
+        // https://www.keychat.io/u/?k=npub10v2vdw8rulxj4s4h6ugh4ru7qlzqr7z2u8px5s4zlh2lsghs6lysyf69mf
+        if (uri.queryParameters.containsKey('k')) {
+          String input = Uri.decodeComponent(uri.queryParameters['k']!);
           return _handleAppLinkRoom(input, params);
         }
         break;
       case 'keychat':
-        // keychat://www.keychat.io/u/npub10v2vdw8rulxj4s4h6ugh4ru7qlzqr7z2u8px5s4zlh2lsghs6lysyf69mf
-        if (uri.path.startsWith('/u/')) {
-          String input = uri.path.replaceFirst('/u/', '');
+        // keychat://www.keychat.io/u/?k=npub10v2vdw8rulxj4s4h6ugh4ru7qlzqr7z2u8px5s4zlh2lsghs6lysyf69mf
+        if (uri.queryParameters.containsKey('k')) {
+          String input = Uri.decodeComponent(uri.queryParameters['k']!);
           return _handleAppLinkRoom(input, params);
         }
         // keychat://npub10v2vdw8rulxj4s4h6ugh4ru7qlzqr7z2u8px5s4zlh2lsghs6lysyf69mf

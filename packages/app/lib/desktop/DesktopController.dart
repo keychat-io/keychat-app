@@ -78,10 +78,4 @@ class DesktopController extends GetxController {
       // ignore: empty_catches
     } catch (e) {}
   }
-
-  @override
-  void onClose() {
-    // Dispose of any resources here
-    super.onClose();
-  }
 }

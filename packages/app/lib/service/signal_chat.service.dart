@@ -119,8 +119,10 @@ class SignalChatService extends BaseChatService {
         keyPair: keyPair,
         address: room.curve25519PkHex!,
         deviceId: room.identityId.toString());
-
-    String to = bobSession!.bobAddress ?? bobSession.address;
+    if (bobSession == null) {
+      throw Exception("signal_session_is_null");
+    }
+    String to = bobSession.bobAddress ?? bobSession.address;
 
     if (to.startsWith('05')) {
       to = room.toMainPubkey;
@@ -210,6 +212,7 @@ class SignalChatService extends BaseChatService {
           event: event,
           km: km,
           fromIdPubkey: room.toMainPubkey,
+          failedCallback: failedCallback,
           msgKeyHash: msgKeyHash,
           sourceEvent: sourceEvent);
       return decodeString;
@@ -389,14 +392,19 @@ ${relays.join('\n')}
   Future sendHelloMessage(Room room, Identity identity,
       {int type = KeyChatEventKinds.dmAddContactFromAlice,
       String? onetimekey,
-      String? greeting}) async {
+      String? greeting,
+      bool fromNpub = false}) async {
     SignalId signalId =
         await SignalIdService.instance.createSignalId(identity.id);
     // after reset session, the room signal key need update
     room.signalIdPubkey = signalId.pubkey;
     room = await RoomService.instance.updateRoom(room);
     KeychatMessage sm = await KeychatMessage(c: MessageType.signal, type: type)
-        .setHelloMessagge(signalId: signalId, identity, greeting: greeting);
+        .setHelloMessagge(
+            signalId: signalId,
+            identity,
+            greeting: greeting,
+            fromNpub: fromNpub);
     await NostrAPI.instance.sendNip17Message(room, sm.toString(), identity,
         toPubkey: onetimekey, realMessage: sm.msg, isSystem: true);
   }

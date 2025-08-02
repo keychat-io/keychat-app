@@ -50,7 +50,7 @@ class _BrowserConnectedWebsiteState extends State<BrowserConnectedWebsite> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: urls.length,
-              separatorBuilder: (BuildContext context, int index) =>
+              separatorBuilder: (BuildContext context2, int index) =>
                   const Divider(
                 indent: 16,
                 endIndent: 16,

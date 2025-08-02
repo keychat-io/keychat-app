@@ -7,7 +7,7 @@ part 'room_member.g.dart';
 enum UserStatusType { inviting, invited, blocked, removed }
 
 @JsonSerializable(includeIfNull: false)
-@Collection(ignore: {'props', 'isCheck'})
+@Collection(ignore: {'props', 'isCheck', 'messageCount', 'mlsPKExpired'})
 // ignore: must_be_immutable
 class RoomMember extends Equatable {
   @JsonKey(includeToJson: false, includeFromJson: false)
@@ -36,6 +36,9 @@ class RoomMember extends Equatable {
 
   @JsonKey(includeToJson: false, includeFromJson: false)
   int messageCount = 0;
+
+  @JsonKey(includeToJson: false, includeFromJson: false)
+  bool mlsPKExpired = false;
 
   RoomMember(
       {required this.idPubkey,

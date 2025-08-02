@@ -184,7 +184,7 @@ class _BrowserBookmarkPageState extends State<BrowserBookmarkPage> {
                             final controller =
                                 Get.find<MultiWebviewController>();
                             controller.launchWebview(
-                              content: bookmark.url,
+                              initUrl: bookmark.url,
                               defaultTitle: bookmark.title,
                             );
                             if (Get.isBottomSheetOpen ?? false) {

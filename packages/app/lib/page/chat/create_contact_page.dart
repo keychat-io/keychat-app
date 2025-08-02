@@ -1,12 +1,11 @@
 import 'package:app/controller/home.controller.dart';
+import 'package:app/page/browser/SelectIdentityForward.dart';
 import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/page/components.dart';
 import 'package:app/service/qrscan.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/signal_chat.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -24,9 +23,11 @@ class AddtoContactsPage extends StatefulWidget {
 class _SearchFriendsState extends State<AddtoContactsPage> {
   late TextEditingController _controller;
   late TextEditingController _helloController;
+  late Identity selectedIdentity;
   HomeController homeController = Get.find<HomeController>();
   @override
   void initState() {
+    selectedIdentity = homeController.getSelectedIdentity();
     _controller = TextEditingController(text: widget.defaultInput.toString());
     _helloController = TextEditingController();
 
@@ -42,34 +43,38 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-        child: Scaffold(
-            resizeToAvoidBottomInset: false,
-            appBar: AppBar(
-                leading: GestureDetector(
-                    onTap: () {
-                      Get.back();
-                    },
-                    child: Padding(
-                        padding: const EdgeInsets.only(left: 10),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.arrow_back_ios),
-                            Utils.getRandomAvatar(
-                                Get.find<HomeController>()
-                                    .getSelectedIdentity()
-                                    .secp256k1PKHex,
-                                height: 22,
-                                width: 22)
-                          ],
-                        ))),
-                centerTitle: true,
-                title: const Text("Add Contact")),
-            body: SafeArea(
-                child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 15.0, vertical: 20),
-              child: ListView(
+    return Scaffold(
+        resizeToAvoidBottomInset: false,
+        appBar: AppBar(
+          centerTitle: true,
+          title: const Text("Add Contact"),
+          actions: [
+            TextButton.icon(
+                onPressed: () async {
+                  Identity? selected = await Get.bottomSheet(
+                      clipBehavior: Clip.antiAlias,
+                      shape: const RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(4))),
+                      const SelectIdentityForward('Select a Identity'));
+                  if (selected == null) return;
+                  EasyLoading.showToast(
+                      'Selected Identity: ${selected.displayName}');
+                  setState(() {
+                    selectedIdentity = selected;
+                  });
+                },
+                icon: const Icon(Icons.swap_horiz),
+                label: Text(selectedIdentity.displayName))
+          ],
+        ),
+        body: SafeArea(
+            child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16),
+          child: Column(
+            children: [
+              Expanded(
+                  child: Column(
                 children: [
                   TextField(
                     textInputAction: TextInputAction.done,
@@ -78,24 +83,19 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                     controller: _controller,
                     // autofocus: true,
                     decoration: InputDecoration(
-                        labelText: 'Chat Key or ID Key',
+                        labelText: 'Link or Key',
                         border: const OutlineInputBorder(),
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.paste),
-                          onPressed: () async {
-                            final clipboardData =
-                                await Clipboard.getData('text/plain');
-                            if (clipboardData != null) {
-                              final pastedText = clipboardData.text;
-                              if (pastedText != null && pastedText != '') {
-                                _controller.text = pastedText;
-                                _controller.selection =
-                                    TextSelection.fromPosition(TextPosition(
-                                        offset: _controller.text.length));
-                              }
-                            }
-                          },
-                        )),
+                        suffixIcon: GetPlatform.isMobile
+                            ? IconButton(
+                                icon: const Icon(
+                                    CupertinoIcons.qrcode_viewfinder),
+                                onPressed: () async {
+                                  String? qrCode = await QrScanService.instance
+                                      .handleQRScan(autoProcess: false);
+                                  if (qrCode != null) _controller.text = qrCode;
+                                },
+                              )
+                            : null),
                   ),
                   const SizedBox(height: 10),
                   TextField(
@@ -107,97 +107,110 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                       border: OutlineInputBorder(),
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 40.0, bottom: 40),
-                    child: Center(
-                        child: Container(
-                            constraints: BoxConstraints(maxWidth: 400),
-                            width: double.infinity,
-                            child: FilledButton(
-                              onPressed: _createContact,
-                              child: const Text('Confirm'),
-                            ))),
-                  ),
-                  const SizedBox(height: 50),
-                  Card(
-                    child: Column(children: [
-                      ListTile(
-                        leading: const Icon(CupertinoIcons.qrcode),
-                        title: const Text('Chat Key'),
-                        onTap: () async {
-                          Identity identity =
-                              Get.find<HomeController>().getSelectedIdentity();
-                          await showMyQrCode(context, identity, false);
-                        },
-                        trailing: const Icon(CupertinoIcons.right_chevron),
-                      ),
-                      if (GetPlatform.isMobile)
-                        ListTile(
-                          leading: const Icon(CupertinoIcons.qrcode_viewfinder),
-                          title: const Text('Scan QR Code'),
-                          onTap: () {
-                            QrScanService.instance.handleQRScan();
-                          },
-                          trailing: const Icon(CupertinoIcons.right_chevron),
-                        )
-                    ]),
-                  )
                 ],
+              )),
+              Center(
+                child: Container(
+                    constraints: BoxConstraints(maxWidth: 400),
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: _createContact,
+                      child: const Text('Confirm'),
+                    )),
               ),
-            ))));
+            ],
+          ),
+        )));
   }
 
   Future _createContact() async {
     String input = _controller.text.trim();
+    if (input.startsWith('https://www.keychat.io/u/')) {
+      Uri? uri = Uri.tryParse(input);
+      if (uri?.queryParameters['k'] != null) {
+        input = Uri.decodeComponent(uri!.queryParameters['k']!);
+        logger.i('Parsed input: $input');
+      }
+    }
+    // chat key
     if (input.length > 70) {
       bool isBase = isBase64(input);
       if (isBase) {
         QRUserModel model;
         try {
           model = QRUserModel.fromShortString(input);
+          logger.i('Parsed QRUserModel: $model');
         } catch (e, s) {
           String msg = Utils.getErrorMessage(e);
           logger.e(msg, stackTrace: s);
           EasyLoading.showToast('Invalid Input');
           return;
         }
-        await RoomUtil.processUserQRCode(model, true);
+        await RoomUtil.processUserQRCode(model, true, selectedIdentity);
+      } else {
+        EasyLoading.showError('Error base64 format');
       }
       return;
     }
-    // check if input is a bot npub
-    String npub = rust_nostr.getBech32PubkeyByHex(hex: input);
-    for (var bot in homeController.recommendBots) {
-      if (bot['npub'] != npub) {
-        continue;
-      }
-      try {
-        Identity identity = Get.find<HomeController>().getSelectedIdentity();
-        String hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: bot['npub']);
-
-        Room room = await RoomService.instance.getOrCreateRoom(
-            hexPubkey, identity.secp256k1PKHex, RoomStatus.enabled,
-            contactName: bot['name'], type: RoomType.bot, identity: identity);
-        await SignalChatService.instance.sendHelloMessage(room, identity);
-        await Utils.toNamedRoom(room);
-      } catch (e) {
-        logger.e('Failed to create room for bot: $e');
-        EasyLoading.showToast(
-            'Failed to create room for bot: ${Utils.getErrorMessage(e)}');
-      }
-
-      return;
-    }
-
     // common private chat
     try {
-      await RoomService.instance.createRoomAndsendInvite(input,
-          greeting: _helloController.text.trim(),
-          identity: Get.find<HomeController>().getSelectedIdentity());
+      // check if input is a bot npub
+      String npub = rust_nostr.getBech32PubkeyByHex(hex: input);
+      String hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: npub);
+      for (var bot in homeController.recommendBots) {
+        if (bot['npub'] != npub) {
+          continue;
+        }
+        try {
+          Room room = await RoomService.instance.getOrCreateRoom(
+              hexPubkey, selectedIdentity.secp256k1PKHex, RoomStatus.enabled,
+              contactName: bot['name'],
+              type: RoomType.bot,
+              identity: selectedIdentity);
+          await SignalChatService.instance
+              .sendHelloMessage(room, selectedIdentity);
+          await Utils.toNamedRoom(room);
+        } catch (e) {
+          logger.e('Failed to create room for bot: $e');
+          EasyLoading.showToast(
+              'Failed to create room for bot: ${Utils.getErrorMessage(e)}');
+        }
+        return;
+      }
+
+      List<Room> rooms =
+          await RoomService.instance.getCommonRoomByPubkey(hexPubkey);
+
+      // not exist rooms
+      if (rooms.isEmpty) {
+        await RoomService.instance.createRoomAndsendInvite(input,
+            greeting: _helloController.text.trim(), identity: selectedIdentity);
+        return;
+      }
+
+      // found a room
+      if (rooms.length == 1) {
+        return Utils.offAndToNamedRoom(rooms[0]);
+      }
+
+      // found multiple rooms, dialog to select room
+      await Get.dialog(SimpleDialog(
+          title: const Text('Multi Rooms Found'),
+          children: rooms.map((room) {
+            return ListTile(
+              title: Text(room.getRoomName()),
+              subtitle: Text(
+                  homeController.allIdentities[room.identityId]?.name ?? ''),
+              onTap: () {
+                Get.back();
+                Utils.offAndToNamedRoom(room);
+              },
+            );
+          }).toList()));
     } catch (e, s) {
       String msg = Utils.getErrorMessage(e);
       logger.e(msg, stackTrace: s);
-      EasyLoading.showToast('Failed to create room and send invite: $msg');
+      EasyLoading.showError(msg);
     }
   }
 }

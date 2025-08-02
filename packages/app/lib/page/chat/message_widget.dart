@@ -13,6 +13,7 @@ import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/file.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
+// import 'package:flutter_json_view/flutter_json_view.dart';
 
 import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
@@ -87,45 +88,9 @@ class MessageWidget extends StatelessWidget {
           ),
         ),
         message.isMeSend ? _getMessageContainer() : toTextContainer(),
-        // encryptInfo(),
         Obx(() => getFromAndToWidget(context, message))
       ],
     );
-  }
-
-  Widget encryptInfo() {
-    if (cc.roomObs.value.type != RoomType.common) {
-      return Container();
-    }
-
-    if (cc.roomContact.value.name == 'Note to Self') {
-      return Container();
-    }
-    return _getEncryptMode(message);
-  }
-
-  Widget _getEncryptMode(Message message) {
-    return !message.isSystem && message.encryptType == MessageEncryptType.nip4
-        ? Container(
-            padding: message.isMeSend
-                ? const EdgeInsets.only(right: 50)
-                : const EdgeInsets.only(left: 50),
-            child: Row(
-              mainAxisAlignment: message.isMeSend
-                  ? MainAxisAlignment.end
-                  : MainAxisAlignment.start,
-              children: [
-                Text('Weak Encrypt Mode',
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(Get.context!)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.6))),
-              ],
-            ))
-        : const SizedBox();
   }
 
   Widget getFileTable(BuildContext buildContext, Message message) {
@@ -190,15 +155,11 @@ class MessageWidget extends StatelessWidget {
                 ))
           ]),
         ),
-        const SizedBox(
-          height: 20,
-        ),
+        const SizedBox(height: 20),
         Padding(
             padding: const EdgeInsets.only(left: 10),
-            child: Text(
-              'Raw Message',
-              style: Theme.of(buildContext).textTheme.titleMedium,
-            )),
+            child: Text('Raw Message',
+                style: Theme.of(buildContext).textTheme.titleMedium)),
       ],
     );
   }
@@ -810,6 +771,7 @@ class MessageWidget extends StatelessWidget {
                                     message.msgKeyHash ?? ''),
                               tableRow("Sig", event.sig),
                             ])),
+                      // JsonView.string(event.toString())
                     ])))));
   }
 
@@ -851,52 +813,48 @@ class MessageWidget extends StatelessWidget {
                 IconButton(onPressed: Get.back, icon: Icon(Icons.close))
               ],
             ),
-            body: Container(
-                padding: const EdgeInsets.all(16),
-                child: SingleChildScrollView(
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
-                    child: Column(
-                      children: [
-                        // getFileTable(buildContext, message),
-                        ListView.builder(
-                            physics: const NeverScrollableScrollPhysics(),
-                            shrinkWrap: true,
-                            itemCount: result.length,
-                            itemBuilder: (context, index) {
-                              Map map = result[index];
-                              // String idPubkey = maps.keys.toList()[index];
-                              RoomMember? rm = map['to'];
-                              List<NostrEventStatus> eventSendStatus =
-                                  map['ess'] ?? [];
-                              NostrEventModel? eventModel = map['eventModel'];
-                              List<NostrEventStatus> success = eventSendStatus
-                                  .where((element) =>
-                                      element.sendStatus ==
-                                      EventSendEnum.success)
-                                  .toList();
-                              String idPubkey = eventModel?.toIdPubkey ??
-                                  eventModel?.tags[0][1] ??
-                                  '';
-                              return ExpansionTile(
-                                leading: RoomUtil.getStatusCheckIcon(
-                                    eventSendStatus.length, success.length),
-                                title: Text(
-                                  'To: ${rm?.name ?? idPubkey}',
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 2,
-                                ),
-                                subtitle: Text(idPubkey),
-                                children: <Widget>[
-                                  relayStatusList(context, eventSendStatus),
-                                  if (eventModel != null)
-                                    ListTile(
-                                        title: Text(eventModel.toString())),
-                                ],
-                              );
-                            })
-                      ],
-                    )))));
+            body: SingleChildScrollView(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
+                child: Column(
+                  children: [
+                    // getFileTable(buildContext, message),
+                    ListView.builder(
+                        physics: const NeverScrollableScrollPhysics(),
+                        shrinkWrap: true,
+                        itemCount: result.length,
+                        itemBuilder: (context, index) {
+                          Map map = result[index];
+                          // String idPubkey = maps.keys.toList()[index];
+                          RoomMember? rm = map['to'];
+                          List<NostrEventStatus> eventSendStatus =
+                              map['ess'] ?? [];
+                          NostrEventModel? eventModel = map['eventModel'];
+                          List<NostrEventStatus> success = eventSendStatus
+                              .where((element) =>
+                                  element.sendStatus == EventSendEnum.success)
+                              .toList();
+                          String idPubkey = eventModel?.toIdPubkey ??
+                              eventModel?.tags[0][1] ??
+                              '';
+                          return ExpansionTile(
+                            leading: RoomUtil.getStatusCheckIcon(
+                                eventSendStatus.length, success.length),
+                            title: Text(
+                              'To: ${rm?.name ?? idPubkey}',
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 2,
+                            ),
+                            subtitle: Text(idPubkey),
+                            children: <Widget>[
+                              relayStatusList(context, eventSendStatus),
+                              if (eventModel != null)
+                                ListTile(title: Text(eventModel.toString())),
+                            ],
+                          );
+                        })
+                  ],
+                ))));
   }
 
   _handleForward(BuildContext context) {

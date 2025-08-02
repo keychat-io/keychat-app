@@ -42,7 +42,7 @@ class LongTextPreviewPage extends StatelessWidget {
                         LinkConfig(onTap: (url) {
                           Utils.hideKeyboard(Get.context!);
                           Get.find<MultiWebviewController>()
-                              .launchWebview(content: url);
+                              .launchWebview(initUrl: url);
                         })
                       ]))))
         ]));

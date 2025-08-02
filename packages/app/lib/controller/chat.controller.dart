@@ -6,6 +6,7 @@ import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/RoomDraft.dart';
+import 'package:app/page/components.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/file.service.dart';
@@ -14,8 +15,6 @@ import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_debounce.dart';
-import 'package:easy_debounce/easy_throttle.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -278,7 +277,7 @@ class ChatController extends GetxController {
       () => pickAndUploadImage(ImageSource.gallery),
       _handleSendWithCamera,
       () => pickAndUploadVideo(ImageSource.gallery),
-      _handleFileUpload,
+      () => FileService.instance.handleFileUpload(roomObs.value),
       _handleSendSats,
     ];
     // disable webrtc
@@ -459,12 +458,49 @@ class ChatController extends GetxController {
     });
     await _initRoom();
     await loadAllChat();
-
+    isLatestMessageNip04();
     if (searchMsgIndex > 0) {
       loadAllChatFromSearchScroll();
     }
     initChatPageFeatures();
     super.onInit();
+  }
+
+  // check if the latest message is nip04
+  void isLatestMessageNip04() {
+    if (messages.isEmpty) return;
+
+    if (roomObs.value.type == RoomType.common &&
+        (roomObs.value.encryptMode == EncryptMode.nip04)) {
+      Message? lastMessage =
+          messages.firstWhereOrNull((msg) => msg.isMeSend == false);
+      if (lastMessage == null) return;
+      if (lastMessage.encryptType == MessageEncryptType.nip4) {
+        Get.dialog(CupertinoAlertDialog(
+          title: const Text('Deprecated Encryption'),
+          content: const Text(
+              '''Your friends uses a deprecated encryption method-NIP04.
+Keychat is using NIP17 and SignalProtocol, and your friends may not be able to decrypt the messages you reply to.
+'''),
+          actions: [
+            CupertinoDialogAction(
+              child: const Text('OK'),
+              onPressed: () {
+                Get.back();
+              },
+            ),
+            CupertinoDialogAction(
+              child: const Text('Share One-Time Link'),
+              onPressed: () async {
+                Get.back();
+                await showMyQrCode(
+                    Get.context!, roomObs.value.getIdentity(), true);
+              },
+            ),
+          ],
+        ));
+      }
+    }
   }
 
   @override
@@ -518,7 +554,8 @@ class ChatController extends GetxController {
         CupertinoDialogAction(
           isDefaultAction: true,
           onPressed: () async {
-            await handleSendMediaFile(xfile!, MessageMediaType.image, true);
+            await FileService.instance.handleSendMediaFile(
+                roomObs.value, xfile!, MessageMediaType.image, true);
             Get.back();
           },
           child: const Text('Send'),
@@ -605,52 +642,6 @@ class ChatController extends GetxController {
       }
     }
     return list;
-  }
-
-  _handleFileUpload() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
-    if (result == null) return;
-    XFile xfile = result.files.first.xFile;
-
-    if (FileService.instance.isImageFile(xfile.path)) {
-      return handleSendMediaFile(xfile, MessageMediaType.image, true);
-    }
-
-    if (FileService.instance.isVideoFile(xfile.path)) {
-      return handleSendMediaFile(xfile, MessageMediaType.video, true);
-    }
-    handleSendMediaFile(xfile, MessageMediaType.file, false);
-  }
-
-  Future handleSendMediaFile(
-      XFile xfile, MessageMediaType mediaType, bool compress) async {
-    EasyThrottle.throttle('sendMediaFile', const Duration(seconds: 1),
-        () async {
-      try {
-        String statusMessage = mediaType != MessageMediaType.image
-            ? 'Encrypting and Uploading...'
-            : '''1. Remove EXIF info
-2. Encrypting 
-3. Uploading''';
-        EasyLoading.showProgress(0.0, status: statusMessage);
-        EasyLoading.showProgress(0.2, status: statusMessage);
-        await FileService.instance.encryptAndSendFile(
-            roomObs.value, xfile, mediaType,
-            compress: compress,
-            onSendProgress: (count, total) => FileService.instance
-                .onSendProgress(statusMessage, count, total));
-        hideAdd.value = true; // close features section
-        Future.delayed(Duration(seconds: 2)).then((_) {
-          EasyLoading.dismiss();
-        });
-      } catch (e, s) {
-        EasyLoading.showError(Utils.getErrorMessage(e),
-            duration: const Duration(seconds: 3));
-        logger.e('encrypt And SendFile', error: e, stackTrace: s);
-      } finally {
-        hideAdd.trigger(true);
-      }
-    });
   }
 
   _handleSendSats() async {
@@ -760,216 +751,150 @@ class ChatController extends GetxController {
     }
   }
 
-  Future handlePasteboardFile() async {
-    logger.d('handlePasteboardFile');
-    final clipboard = SystemClipboard.instance;
-    if (clipboard == null) {
-      return; // Clipboard API is not supported on this platform.
-    }
-    final reader = await clipboard.read();
+  Future<bool> handlePasteboardFile() async {
+    // Clipboard API is not supported on this platform.
+    if (SystemClipboard.instance == null) return false;
+    final reader = await SystemClipboard.instance!.read();
     if (reader.items.isEmpty) {
-      return;
+      return false;
     }
 
-    final imageFormats = [
-      (Formats.png, MessageMediaType.image, true),
-      (Formats.jpeg, MessageMediaType.image, true),
-      (Formats.webp, MessageMediaType.image, true),
-      (Formats.gif, MessageMediaType.image, false),
-      (Formats.mp4, MessageMediaType.video, true),
-      (Formats.pdf, MessageMediaType.file, false),
-      (Formats.svg, MessageMediaType.image, false),
-      (Formats.webp, MessageMediaType.image, false),
-      (Formats.tiff, MessageMediaType.image, false),
-      (Formats.bmp, MessageMediaType.image, false),
-      (Formats.ico, MessageMediaType.image, false),
-      (Formats.heic, MessageMediaType.image, false),
-      (Formats.heif, MessageMediaType.image, false),
-      (Formats.mov, MessageMediaType.video, false),
-      (Formats.m4v, MessageMediaType.video, false),
-      (Formats.avi, MessageMediaType.video, false),
-      (Formats.mpeg, MessageMediaType.video, false),
-      (Formats.webm, MessageMediaType.video, false),
-      (Formats.ogg, MessageMediaType.video, false),
-      (Formats.wmv, MessageMediaType.video, false),
-      (Formats.flv, MessageMediaType.video, false),
-      (Formats.mkv, MessageMediaType.video, false),
-      (Formats.mp3, MessageMediaType.file, false),
-      (Formats.oga, MessageMediaType.file, false),
-      (Formats.aac, MessageMediaType.file, false),
-      (Formats.wav, MessageMediaType.file, false),
-      (Formats.doc, MessageMediaType.file, false),
-      (Formats.docx, MessageMediaType.file, false),
-      (Formats.csv, MessageMediaType.file, false),
-      (Formats.xls, MessageMediaType.file, false),
-      (Formats.xlsx, MessageMediaType.file, false),
-      (Formats.ppt, MessageMediaType.file, false),
-      (Formats.pptx, MessageMediaType.file, false),
-      (Formats.json, MessageMediaType.file, false),
-      (Formats.zip, MessageMediaType.file, false),
-      (Formats.tar, MessageMediaType.file, false),
-      (Formats.gzip, MessageMediaType.file, false),
-      (Formats.bzip2, MessageMediaType.file, false),
-      (Formats.rar, MessageMediaType.file, false),
-      (Formats.dmg, MessageMediaType.file, false),
-      (Formats.iso, MessageMediaType.file, false),
-      (Formats.deb, MessageMediaType.file, false),
-      (Formats.rpm, MessageMediaType.file, false),
-      (Formats.apk, MessageMediaType.file, false),
-      (Formats.exe, MessageMediaType.file, false),
-      (Formats.msi, MessageMediaType.file, false),
-      (Formats.plainTextFile, MessageMediaType.file, false),
-      (Formats.htmlFile, MessageMediaType.file, false),
-      (Formats.webUnknown, MessageMediaType.file, false),
+    final fileFormats = [
+      (Formats.png, MessageMediaType.image),
+      (Formats.jpeg, MessageMediaType.image),
+      (Formats.webp, MessageMediaType.image),
+      (Formats.svg, MessageMediaType.image),
+      (Formats.gif, MessageMediaType.image),
+      (Formats.tiff, MessageMediaType.image),
+      (Formats.bmp, MessageMediaType.image),
+      (Formats.ico, MessageMediaType.image),
+      (Formats.heic, MessageMediaType.image),
+      (Formats.heif, MessageMediaType.image),
+      (Formats.mp4, MessageMediaType.video),
+      (Formats.pdf, MessageMediaType.file),
+      (Formats.mov, MessageMediaType.video),
+      (Formats.m4v, MessageMediaType.video),
+      (Formats.avi, MessageMediaType.video),
+      (Formats.mpeg, MessageMediaType.video),
+      (Formats.webm, MessageMediaType.video),
+      (Formats.ogg, MessageMediaType.video),
+      (Formats.wmv, MessageMediaType.video),
+      (Formats.flv, MessageMediaType.video),
+      (Formats.mkv, MessageMediaType.video),
+      (Formats.mp3, MessageMediaType.file),
+      (Formats.oga, MessageMediaType.file),
+      (Formats.aac, MessageMediaType.file),
+      (Formats.wav, MessageMediaType.file),
+      (Formats.doc, MessageMediaType.file),
+      (Formats.docx, MessageMediaType.file),
+      (Formats.csv, MessageMediaType.file),
+      (Formats.xls, MessageMediaType.file),
+      (Formats.xlsx, MessageMediaType.file),
+      (Formats.ppt, MessageMediaType.file),
+      (Formats.pptx, MessageMediaType.file),
+      (Formats.json, MessageMediaType.file),
+      (Formats.zip, MessageMediaType.file),
+      (Formats.tar, MessageMediaType.file),
+      (Formats.gzip, MessageMediaType.file),
+      (Formats.bzip2, MessageMediaType.file),
+      (Formats.rar, MessageMediaType.file),
+      (Formats.dmg, MessageMediaType.file),
+      (Formats.iso, MessageMediaType.file),
+      (Formats.deb, MessageMediaType.file),
+      (Formats.rpm, MessageMediaType.file),
+      (Formats.apk, MessageMediaType.file),
+      (Formats.exe, MessageMediaType.file),
+      (Formats.msi, MessageMediaType.file),
+      (Formats.plainTextFile, MessageMediaType.file),
+      (Formats.htmlFile, MessageMediaType.file),
+      (Formats.webUnknown, MessageMediaType.file),
     ];
     if (reader.canProvide(Formats.fileUri)) {
-      for (int i = 0; i < imageFormats.length; i++) {
-        final format = imageFormats[i].$1;
-        final mediaType = imageFormats[i].$2;
-        final compress = imageFormats[i].$3;
+      for (int i = 0; i < fileFormats.length; i++) {
+        final format = fileFormats[i].$1;
+        final mediaType = fileFormats[i].$2;
         bool canProcess = reader.canProvide(format);
         if (canProcess) {
           logger.d('Clipboard can provide: $format');
-          await _readFromStream(reader, format, mediaType, compress);
-          return;
+          await _readFromStream(
+              reader, format, mediaType, mediaType == MessageMediaType.video);
+          return true;
         }
       }
     }
-    // fallback to screen capture
-    bool isImage = reader.canProvide(Formats.png);
-    if (isImage) {
-      await _readFromStream(reader, Formats.png, MessageMediaType.image, false);
+
+    // _pasteFallinImage
+    for (var format in fileFormats) {
+      // skip plain text
+      if (format.$1 == Formats.plainTextFile) continue;
+      if (format.$1 == Formats.htmlFile) continue;
+      bool canProcess = reader.canProvide(format.$1);
+      if (canProcess) {
+        logger.d('_pasteFallinImage Clipboard can provide: $format');
+        await _readFromStream(reader, format.$1, format.$2, false);
+        return true;
+      }
     }
+    return false;
   }
 
   Future handlePasteboard() async {
-    final clipboard = SystemClipboard.instance;
-    if (clipboard == null) {
-      return; // Clipboard API is not supported on this platform.
-    }
-    final reader = await clipboard.read();
+    // Clipboard API is not supported on this platform.
+    if (SystemClipboard.instance == null) return;
+
+    final reader = await SystemClipboard.instance!.read();
     if (reader.items.isEmpty) {
       return;
     }
 
-    final imageFormats = [
-      (Formats.png, MessageMediaType.image, true),
-      (Formats.jpeg, MessageMediaType.image, true),
-      (Formats.webp, MessageMediaType.image, true),
-      (Formats.gif, MessageMediaType.image, false),
-      (Formats.mp4, MessageMediaType.video, true),
-      (Formats.pdf, MessageMediaType.file, false),
-      (Formats.svg, MessageMediaType.image, false),
-      (Formats.webp, MessageMediaType.image, false),
-      (Formats.tiff, MessageMediaType.image, false),
-      (Formats.bmp, MessageMediaType.image, false),
-      (Formats.ico, MessageMediaType.image, false),
-      (Formats.heic, MessageMediaType.image, false),
-      (Formats.heif, MessageMediaType.image, false),
-      (Formats.mov, MessageMediaType.video, false),
-      (Formats.m4v, MessageMediaType.video, false),
-      (Formats.avi, MessageMediaType.video, false),
-      (Formats.mpeg, MessageMediaType.video, false),
-      (Formats.webm, MessageMediaType.video, false),
-      (Formats.ogg, MessageMediaType.video, false),
-      (Formats.wmv, MessageMediaType.video, false),
-      (Formats.flv, MessageMediaType.video, false),
-      (Formats.mkv, MessageMediaType.video, false),
-      (Formats.mp3, MessageMediaType.file, false),
-      (Formats.oga, MessageMediaType.file, false),
-      (Formats.aac, MessageMediaType.file, false),
-      (Formats.wav, MessageMediaType.file, false),
-      (Formats.doc, MessageMediaType.file, false),
-      (Formats.docx, MessageMediaType.file, false),
-      (Formats.csv, MessageMediaType.file, false),
-      (Formats.xls, MessageMediaType.file, false),
-      (Formats.xlsx, MessageMediaType.file, false),
-      (Formats.ppt, MessageMediaType.file, false),
-      (Formats.pptx, MessageMediaType.file, false),
-      (Formats.json, MessageMediaType.file, false),
-      (Formats.zip, MessageMediaType.file, false),
-      (Formats.tar, MessageMediaType.file, false),
-      (Formats.gzip, MessageMediaType.file, false),
-      (Formats.bzip2, MessageMediaType.file, false),
-      (Formats.rar, MessageMediaType.file, false),
-      (Formats.dmg, MessageMediaType.file, false),
-      (Formats.iso, MessageMediaType.file, false),
-      (Formats.deb, MessageMediaType.file, false),
-      (Formats.rpm, MessageMediaType.file, false),
-      (Formats.apk, MessageMediaType.file, false),
-      (Formats.exe, MessageMediaType.file, false),
-      (Formats.msi, MessageMediaType.file, false),
-      (Formats.plainTextFile, MessageMediaType.file, false),
-      (Formats.htmlFile, MessageMediaType.file, false),
-      (Formats.webUnknown, MessageMediaType.file, false),
-    ];
-    if (reader.canProvide(Formats.fileUri)) {
-      for (int i = 0; i < imageFormats.length; i++) {
-        final format = imageFormats[i].$1;
-        final mediaType = imageFormats[i].$2;
-        final compress = imageFormats[i].$3;
-        bool canProcess = reader.canProvide(format);
-        if (canProcess) {
-          logger.d('Clipboard can provide: $format');
-          await _readFromStream(reader, format, mediaType, compress);
-          return;
-        }
-      }
+    bool isFile = reader.canProvide(Formats.fileUri);
+    loggerNoLine.i('Clipboard can provide file: $isFile');
+    if (isFile) {
+      return await handlePasteboardFile();
     }
-    if (reader.canProvide(Formats.plainText)) {
-      String? text = await reader.readValue(Formats.plainText);
-      if (text != null && text.isNotEmpty) {
-        String currentText = textEditingController.text;
-        TextSelection selection = textEditingController.selection;
+    final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+    String? text = clipboardData?.text;
+    if (text == null || text.isEmpty) {
+      return await handlePasteboardFile();
+    }
+    // plain text
+    await _handlePastePlainText(text);
+  }
 
-        String newText;
-        int newCursorPosition;
+  Future _handlePastePlainText(String text) async {
+    loggerNoLine.i('Clipboard plain text: $text');
+    String currentText = textEditingController.text;
+    TextSelection selection = textEditingController.selection;
 
-        // If there's selected text, replace it
-        if (selection.isValid && !selection.isCollapsed) {
-          newText = currentText.substring(0, selection.start) +
-              text +
-              currentText.substring(selection.end);
-          newCursorPosition = selection.start + text.length;
-        } else {
-          // If no selection, insert at cursor position
-          int cursorPosition = selection.baseOffset;
+    String newText;
+    int newCursorPosition;
 
-          // If no cursor position is set, append to the end
-          if (cursorPosition < 0) {
-            cursorPosition = currentText.length;
-          }
+    // If there's selected text, replace it
+    if (selection.isValid && !selection.isCollapsed) {
+      newText = currentText.substring(0, selection.start) +
+          text +
+          currentText.substring(selection.end);
+      newCursorPosition = selection.start + text.length;
+    } else {
+      // If no selection, insert at cursor position
+      int cursorPosition = selection.baseOffset;
 
-          newText = currentText.substring(0, cursorPosition) +
-              text +
-              currentText.substring(cursorPosition);
-          newCursorPosition = cursorPosition + text.length;
-        }
-
-        textEditingController.text = newText;
-
-        // Set cursor position after inserted text
-        textEditingController.selection = TextSelection.fromPosition(
-          TextPosition(offset: newCursorPosition),
-        );
-        return;
+      // If no cursor position is set, append to the end
+      if (cursorPosition < 0) {
+        cursorPosition = currentText.length;
       }
-      return;
+
+      newText = currentText.substring(0, cursorPosition) +
+          text +
+          currentText.substring(cursorPosition);
+      newCursorPosition = cursorPosition + text.length;
     }
 
-    // fallback
-    for (int i = 0; i < imageFormats.length; i++) {
-      final format = imageFormats[i].$1;
-      final mediaType = imageFormats[i].$2;
-      final compress = imageFormats[i].$3;
-      bool canProcess = reader.canProvide(format);
-      if (canProcess) {
-        logger.d('Clipboard can provide: $format');
-        await _readFromStream(reader, format, mediaType, compress);
-        return;
-      }
-    }
-    EasyLoading.showToast('Not supported media type');
+    textEditingController.text = newText;
+
+    // Set cursor position after inserted text
+    textEditingController.selection =
+        TextSelection.fromPosition(TextPosition(offset: newCursorPosition));
   }
 
   Future _readFromStream(
@@ -1008,35 +933,34 @@ class ChatController extends GetxController {
         XFile xfile = XFile(path,
             bytes: imageBytes, mimeType: mimeType, name: suggestedName);
         bool isImage = FileService.instance.isImageFile(xfile.path);
-        if (isImage) {
-          bool? comfirmResult = await Get.dialog(CupertinoAlertDialog(
-            content: SizedBox(
-              width: 300,
-              child: FileService.instance.getImageView(File(xfile.path)),
-            ),
-            actions: [
-              CupertinoDialogAction(
-                child: const Text('Cancel'),
-                onPressed: () {
-                  Get.back();
-                },
-              ),
-              CupertinoDialogAction(
-                isDefaultAction: true,
-                onPressed: () async {
-                  await handleSendMediaFile(
-                      xfile, MessageMediaType.image, true);
-                  Get.back(result: true);
-                },
-                child: const Text('Send'),
-              ),
-            ],
-          ));
-          if (comfirmResult == null || !comfirmResult) {
-            return; // user cancelled
-          }
+        if (!isImage) {
+          await FileService.instance
+              .handleSendMediaFile(roomObs.value, xfile, type, compress);
+          return;
         }
-        await handleSendMediaFile(xfile, type, compress);
+        await Get.dialog(CupertinoAlertDialog(
+          content: SizedBox(
+            width: 300,
+            child: FileService.instance.getImageView(File(xfile.path)),
+          ),
+          actions: [
+            CupertinoDialogAction(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Get.back();
+              },
+            ),
+            CupertinoDialogAction(
+              isDefaultAction: true,
+              onPressed: () async {
+                await FileService.instance.handleSendMediaFile(
+                    roomObs.value, xfile, MessageMediaType.image, true);
+                Get.back();
+              },
+              child: const Text('Send'),
+            ),
+          ],
+        ));
       } catch (e, s) {
         logger.e('_readFromStream: ${e.toString()}', stackTrace: s);
       } finally {

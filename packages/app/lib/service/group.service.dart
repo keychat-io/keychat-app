@@ -318,7 +318,8 @@ class GroupService extends BaseChatService {
   }
 
   processInvite(Room idRoom, NostrEventModel event, RoomProfile roomProfile,
-      String realMessage) async {
+      String realMessage,
+      {Function(String error)? failedCallback}) async {
     String groupName = roomProfile.name;
     List<dynamic> users = roomProfile.users;
     List groupInviteMsg = jsonDecode(realMessage);
@@ -380,6 +381,9 @@ class GroupService extends BaseChatService {
                 realMessage: groupInviteMsg[0],
                 persist: false);
           } catch (e, s) {
+            if (failedCallback != null) {
+              failedCallback(e.toString());
+            }
             logger.e(e.toString(), error: e, stackTrace: s);
           }
         });
@@ -414,6 +418,9 @@ class GroupService extends BaseChatService {
     // start to update room
     // check room version
     if (roomProfile.updatedAt < groupRoom.version) {
+      if (failedCallback != null) {
+        failedCallback('The invitation has expired');
+      }
       throw Exception('The invitation has expired');
     }
     groupRoom.version = roomProfile.updatedAt;
@@ -468,7 +475,8 @@ class GroupService extends BaseChatService {
         RoomProfile roomProfile = RoomProfile.fromJson(jsonDecode(km.msg!));
         String realMessage = km.name ?? "[]";
 
-        return await processInvite(room, event, roomProfile, realMessage);
+        return await processInvite(room, event, roomProfile, realMessage,
+            failedCallback: failedCallback);
       case KeyChatEventKinds.groupSharedKeyMessage:
         NostrEventModel subEvent =
             NostrEventModel.fromJson(jsonDecode(km.msg!));

@@ -95,13 +95,14 @@ class FileService {
           : '''1. Remove EXIF info
 2. Encrypting 
 3. Uploading''';
-      EasyLoading.showProgress(0.0, status: statusMessage);
+      EasyLoading.showProgress(0.1, status: statusMessage);
       EasyLoading.showProgress(0.2, status: statusMessage);
-      MsgFileInfo? mfi = await FileService.instance.encryptAndSendFile(
+      MsgFileInfo? mfi = await FileService.instance.encryptToSendFile(
           room, xfile, mediaType,
           compress: compress,
           onSendProgress: (count, total) =>
               FileService.instance.onSendProgress(statusMessage, count, total));
+      logger.d('FileService: handleSendMediaFile: $mfi');
       if (mfi == null || mfi.fileInfo == null) return null;
       EasyLoading.showProgress(1, status: statusMessage);
       SendMessageResponse smr = await RoomService.instance.sendMessage(
@@ -113,9 +114,9 @@ class FileService {
       });
       return smr.message;
     } catch (e, s) {
-      EasyLoading.showError(Utils.getErrorMessage(e),
-          duration: const Duration(seconds: 3));
-      logger.e('encrypt And SendFile', error: e, stackTrace: s);
+      String msg = Utils.getErrorMessage(e);
+      logger.e('encrypt And SendFile $msg', error: e, stackTrace: s);
+      EasyLoading.showError(msg, duration: const Duration(seconds: 3));
     } finally {
       RoomService.getController(room.id)?.hideAdd.value = true;
       Future.delayed(Duration(seconds: 2)).then((_) {
@@ -336,7 +337,7 @@ class FileService {
     }
   }
 
-  Future<MsgFileInfo?> encryptAndSendFile(
+  Future<MsgFileInfo?> encryptToSendFile(
     Room room,
     XFile xfile,
     MessageMediaType type, {
@@ -391,7 +392,8 @@ class FileService {
       try {
         fileInfo = await uploadToBlossom(
             input: newFile, onSendProgress: onSendProgress);
-      } catch (e) {
+      } catch (e, s) {
+        logger.e('Upload to blossom failed: $e', stackTrace: s);
         Get.dialog(CupertinoAlertDialog(
           title: Text('Upload Failed'),
           content: Column(

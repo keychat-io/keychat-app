@@ -104,7 +104,7 @@ class _WebviewTabState extends State<WebviewTab> {
     }
   }
 
-  void menuOpened() async {
+  Future<void> menuOpened() async {
     var uri = await tc.webViewController?.getUrl();
     if (uri == null) return;
     initBrowserConnect(uri);
@@ -277,27 +277,38 @@ class _WebviewTabState extends State<WebviewTab> {
                           child: ListTile(
                               leading: Transform.scale(
                                   scale: 0.6,
-                                  child: Switch(
-                                      value: controller.mobileKeepAlive.keys
-                                          .contains(initDomain),
-                                      onChanged: (value) async {
-                                        Get.back();
-                                        if (value) {
-                                          InAppWebViewKeepAlive? newKa =
-                                              await controller.enableKeepAlive(
-                                                  widget.initUrl);
-                                          setState(() {
-                                            inAppWebViewKeepAlive = newKa;
-                                          });
+                                  child: FutureBuilder(future: (() async {
+                                    await controller.loadKeepAlive();
+                                  })(), builder: (context, snapshot) {
+                                    if (snapshot.hasData) {
+                                      return Icon(
+                                        Icons.check_circle,
+                                        color: Theme.of(context).primaryColor,
+                                      );
+                                    }
+                                    return Switch(
+                                        value: controller.mobileKeepAlive.keys
+                                            .contains(initDomain),
+                                        onChanged: (value) async {
+                                          Get.back();
+                                          if (value) {
+                                            InAppWebViewKeepAlive? newKa =
+                                                await controller
+                                                    .enableKeepAlive(
+                                                        widget.initUrl);
+                                            setState(() {
+                                              inAppWebViewKeepAlive = newKa;
+                                            });
+                                            EasyLoading.showSuccess(
+                                                'KeepAlive Enabled. Take effect after restarting the page.');
+                                            return;
+                                          }
+                                          await controller
+                                              .disableKeepAlive(widget.initUrl);
                                           EasyLoading.showSuccess(
-                                              'KeepAlive Enabled. Take effect after restarting the page.');
-                                          return;
-                                        }
-                                        await controller
-                                            .disableKeepAlive(widget.initUrl);
-                                        EasyLoading.showSuccess(
-                                            'KeepAlive Disabled.');
-                                      })),
+                                              'KeepAlive Disabled.');
+                                        });
+                                  })),
                               contentPadding: EdgeInsets.all(0),
                               horizontalTitleGap: 0,
                               title: Text('Keep Alive',

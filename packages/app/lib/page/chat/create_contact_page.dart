@@ -6,11 +6,13 @@ import 'package:app/service/room.service.dart';
 import 'package:app/service/signal_chat.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:app/models/models.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
+import 'package:share_plus/share_plus.dart';
 
 class AddtoContactsPage extends StatefulWidget {
   final String defaultInput;
@@ -78,7 +80,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                 children: [
                   TextField(
                     textInputAction: TextInputAction.done,
-                    maxLines: 2,
+                    maxLines: 4,
                     minLines: 1,
                     controller: _controller,
                     // autofocus: true,
@@ -109,6 +111,53 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                   ),
                 ],
               )),
+              TextButton(
+                  onPressed: () {
+                    String url =
+                        'https://www.keychat.io/u/?k=${selectedIdentity.npub}';
+                    Get.dialog(CupertinoAlertDialog(
+                      title: const Text('My Universal Link'),
+                      content: Text(url),
+                      actions: [
+                        CupertinoActionSheetAction(
+                            onPressed: () {
+                              Clipboard.setData(ClipboardData(text: url));
+                              EasyLoading.showToast('Copied to clipboard');
+                              Get.back();
+                            },
+                            child: const Text('Copy')),
+                        CupertinoActionSheetAction(
+                            onPressed: () {
+                              Get.back();
+                              Get.dialog(CupertinoAlertDialog(
+                                content: SizedBox(
+                                    height: 240,
+                                    width: 240,
+                                    child: Utils.genQRImage(url, size: 240)),
+                                actions: [
+                                  CupertinoDialogAction(
+                                      onPressed: Get.back,
+                                      child: const Text('Close')),
+                                ],
+                              ));
+                            },
+                            child: const Text('QR Code')),
+                        CupertinoActionSheetAction(
+                            onPressed: () {
+                              final box =
+                                  context.findRenderObject() as RenderBox?;
+
+                              Share.share(url,
+                                  sharePositionOrigin:
+                                      box!.localToGlobal(Offset.zero) &
+                                          box.size);
+                              Get.back();
+                            },
+                            child: const Text('Share')),
+                      ],
+                    ));
+                  },
+                  child: const Text('My Universal Link')),
               Center(
                 child: Container(
                     constraints: BoxConstraints(maxWidth: 400),

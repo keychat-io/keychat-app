@@ -246,22 +246,6 @@ class MultiWebviewController extends GetxController {
     if (textSize != null) {
       kInitialTextSize.value = textSize;
     }
-
-    // keepAlive
-    if (GetPlatform.isMobile) {
-      List<String> hosts =
-          await Storage.getStringList(StorageKeyString.mobileKeepAlive);
-      // for init
-      if (hosts.isEmpty) {
-        hosts = ['jumble.social'];
-        await Storage.setStringList(StorageKeyString.mobileKeepAlive, hosts);
-      }
-      if (hosts.isNotEmpty) {
-        for (var item in hosts) {
-          mobileKeepAlive[item] = InAppWebViewKeepAlive();
-        }
-      }
-    }
   }
 
   setConfig(String key, dynamic value) async {
@@ -323,6 +307,7 @@ class MultiWebviewController extends GetxController {
         (await Storage.getString('defaultSearchEngine') ?? defaultSearchEngine);
 
     await loadConfig();
+    await loadKeepAlive();
     loadFavorite();
     initWebview();
     deleteOldHistories();
@@ -561,6 +546,23 @@ window.addEventListener('DOMContentLoaded', function(event) {
   // Add this method to get all KeepAlive hosts
   List<String> getKeepAliveHosts() {
     return mobileKeepAlive.keys.toList();
+  }
+
+  Future<void> loadKeepAlive() async {
+    if (!GetPlatform.isMobile) return;
+
+    List<String> hosts =
+        await Storage.getStringList(StorageKeyString.mobileKeepAlive);
+    // for init
+    if (hosts.isEmpty) {
+      hosts = ['jumble.social'];
+      await Storage.setStringList(StorageKeyString.mobileKeepAlive, hosts);
+    }
+    if (hosts.isNotEmpty) {
+      for (var item in hosts) {
+        mobileKeepAlive[item] = InAppWebViewKeepAlive();
+      }
+    }
   }
 }
 

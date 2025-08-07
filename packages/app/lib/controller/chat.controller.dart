@@ -580,11 +580,9 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     if (xfile == null) return;
     try {
       EasyLoading.showProgress(0.2, status: 'Encrypting and Uploading...');
-      await FileService.instance.encryptAndSendFile(
-          roomObs.value, xfile, MessageMediaType.video,
-          compress: true,
-          onSendProgress: (count, total) => FileService.instance
-              .onSendProgress('Encrypting and Uploading...', count, total));
+
+      await FileService.instance.handleSendMediaFile(
+          roomObs.value, xfile, MessageMediaType.video, true);
       hideAdd.value = true; // close features section
       EasyLoading.dismiss();
     } catch (e, s) {

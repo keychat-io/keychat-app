@@ -1,6 +1,7 @@
 import 'package:app/app.dart';
 // import 'package:app/page/chat/ForwardSelectRoom.dart';
 import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/foundation.dart';
@@ -435,7 +436,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                       ..name = rm.name;
                     contact.name ??= rm.name;
                     Get.dialog(CupertinoAlertDialog(
-                      title: Text(rm.name),
+                      title: Text(rm.displayName),
                       content: Column(
                         children: [
                           if (rm.status == UserStatusType.inviting)
@@ -445,6 +446,17 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                                     .bodyLarge
                                     ?.copyWith(color: Colors.amber.shade700)),
                           Text(npub),
+                          if (contact.displayAbout != null &&
+                              contact.displayAbout!.isNotEmpty)
+                            Padding(
+                                padding: EdgeInsets.only(top: 8),
+                                child: NoticeTextWidget.info(
+                                    contact.displayAbout!.length > 200
+                                        ? contact.displayAbout!
+                                            .substring(0, 200)
+                                        : contact.displayAbout!,
+                                    fontSize: 12,
+                                    borderRadius: 8))
                         ],
                       ),
                       actions: <Widget>[
@@ -530,8 +542,9 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                     ));
                   },
                   child: Column(children: [
-                    Utils.getRandomAvatar(rm.idPubkey, height: 40, width: 40),
-                    Text(rm.name, overflow: TextOverflow.ellipsis),
+                    Utils.getRandomAvatar(rm.idPubkey,
+                        height: 40, width: 40, httpAvatar: rm.avatarFromRelay),
+                    Text(rm.displayName, overflow: TextOverflow.ellipsis),
                     if (rm.status == UserStatusType.inviting)
                       Text('Inviting',
                           style: Theme.of(context)

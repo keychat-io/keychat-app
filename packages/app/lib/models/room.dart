@@ -479,7 +479,7 @@ class Room extends Equatable {
 
   String getRoomName() {
     if (type == RoomType.group) {
-      return name!;
+      return name ?? getPublicKeyDisplay(npub);
     }
 
     if (contact == null) {

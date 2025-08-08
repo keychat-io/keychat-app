@@ -57,7 +57,9 @@ class _AddGroupPageState extends State<AddGroupPage>
                     children: [
                       const Icon(Icons.arrow_back_ios),
                       Utils.getRandomAvatar(identity.secp256k1PKHex,
-                          height: 22, width: 22)
+                          httpAvatar: identity.avatarFromRelay,
+                          height: 22,
+                          width: 22)
                     ],
                   ))),
           centerTitle: true,
@@ -67,6 +69,7 @@ class _AddGroupPageState extends State<AddGroupPage>
             FloatingActionButtonLocation.miniCenterDocked,
         floatingActionButton: Container(
             constraints: BoxConstraints(maxWidth: 400),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             width: double.infinity,
             child: FilledButton(
                 onPressed: () async {

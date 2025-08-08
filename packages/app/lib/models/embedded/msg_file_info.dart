@@ -27,6 +27,7 @@ class MsgFileInfo {
   String? sourceName;
 
   @JsonKey(includeFromJson: false, includeToJson: false)
+  @ignore
   FileEncryptInfo? fileInfo;
 
   MsgFileInfo();

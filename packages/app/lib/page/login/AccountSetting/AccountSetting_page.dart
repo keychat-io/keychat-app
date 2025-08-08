@@ -3,6 +3,7 @@ import 'package:app/global.dart';
 import 'package:app/models/browser/browser_connect.dart';
 import 'package:app/models/db_provider.dart';
 import 'package:app/models/identity.dart';
+
 import 'package:app/page/browser/BrowserConnectedWebsite.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/contact/contact_list_page.dart';
@@ -84,11 +85,12 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                   top: 0, left: 16, right: 16, bottom: 24),
               child: Obx(() => Column(children: [
                     Center(
-                      child: Utils.getRandomAvatar(
-                          controller.identity.value.secp256k1PKHex,
-                          height: 84,
-                          width: 84),
-                    ),
+                        child: Utils.getRandomAvatar(
+                            controller.identity.value.secp256k1PKHex,
+                            httpAvatar:
+                                controller.identity.value.avatarFromRelay,
+                            height: 84,
+                            width: 84)),
                     if (controller.identity.value.isFromSigner)
                       Container(
                           padding: const EdgeInsets.symmetric(vertical: 8),
@@ -143,6 +145,14 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                             ),
                           ),
                         )),
+                    if (controller.identity.value.displayAbout != null &&
+                        controller.identity.value.displayAbout!.isNotEmpty)
+                      Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: NoticeTextWidget.info(
+                              controller.identity.value.displayAbout ?? '',
+                              fontSize: 12,
+                              borderRadius: 50)),
                     FutureBuilder(
                         future: controller.identity.value.getSecp256k1SKHex(),
                         builder: (context, snapshot) {
@@ -259,6 +269,29 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                             onPressed: (context) async {
                               await _updateIdentityNameDialog(
                                   context, controller.identity.value);
+                            },
+                          ),
+                        if (controller.identity.value.enableChat)
+                          SettingsTile.navigation(
+                            leading: const Icon(CupertinoIcons.arrow_clockwise),
+                            title: const Text("Sync profile from relay"),
+                            onPressed: (context) async {
+                              try {
+                                EasyLoading.show(status: "Syncing...");
+                                Identity identity = await IdentityService
+                                    .instance
+                                    .syncProfileFromRelay(
+                                        controller.identity.value);
+                                controller.identity.value = identity;
+                                controller.identity.refresh();
+                                EasyLoading.showSuccess("Successfully synced");
+                              } catch (e) {
+                                logger.e(
+                                    'Failed to sync profile: ${Utils.getErrorMessage(e)}');
+                                EasyLoading.showError(
+                                    "Failed to sync profile: ${Utils.getErrorMessage(e)}");
+                                return;
+                              }
                             },
                           ),
                         if (controller.identity.value.enableChat)

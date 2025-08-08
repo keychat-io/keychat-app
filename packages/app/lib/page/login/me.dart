@@ -206,7 +206,7 @@ class MinePage extends GetView<SettingController> {
 
       res.add(SettingsTile.navigation(
           leading: Utils.getRandomAvatar(identity.secp256k1PKHex,
-              height: 30, width: 30),
+              httpAvatar: identity.avatarFromRelay, height: 30, width: 30),
           title: Text(
             identity.displayName,
             overflow: TextOverflow.ellipsis,

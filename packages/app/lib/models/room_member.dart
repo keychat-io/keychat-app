@@ -14,7 +14,8 @@ enum UserStatusType { inviting, invited, blocked, removed }
   'mlsPKExpired',
   'nameFromRelay',
   'avatarFromRelay',
-  'fetchFromRelayAt'
+  'fetchFromRelayAt',
+  'displayName'
 })
 // ignore: must_be_immutable
 class RoomMember extends Equatable {

@@ -4,6 +4,7 @@ import 'package:app/global.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/routes.dart';
+import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/room.service.dart';
@@ -70,10 +71,12 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   ListTile(
-                      leading: Utils.getRandomAvatar(
-                          cc.roomObs.value.toMainPubkey,
-                          height: 60,
-                          width: 60),
+                      leading: ClipRRect(
+                          borderRadius: BorderRadius.circular(100),
+                          child: Utils.getRandomAvatar(
+                              cc.roomObs.value.toMainPubkey,
+                              height: 60,
+                              width: 60)),
                       title: Obx(() => Text(
                             cc.roomObs.value.getRoomName(),
                             style: Theme.of(context).textTheme.titleMedium,
@@ -85,7 +88,15 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                             textSmallGray(
                                 context, 'Name: ${cc.roomContact.value.name}'),
                           textSmallGray(context, 'ID: ${cc.roomObs.value.npub}',
-                              overflow: TextOverflow.visible)
+                              overflow: TextOverflow.visible),
+                          if (cc.roomContact.value.aboutFromRelay != null &&
+                              cc.roomContact.value.aboutFromRelay!.isNotEmpty)
+                            Padding(
+                                padding: EdgeInsets.only(top: 8),
+                                child: NoticeTextWidget.info(
+                                    cc.roomContact.value.aboutFromRelay ?? '',
+                                    fontSize: 12,
+                                    borderRadius: 50))
                         ],
                       ),
                       trailing: IconButton(

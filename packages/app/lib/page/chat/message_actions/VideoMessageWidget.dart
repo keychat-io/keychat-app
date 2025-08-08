@@ -102,11 +102,8 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
                 });
               });
             },
-            icon: Icon(
-              Icons.download_sharp,
-              color: Theme.of(context).colorScheme.primary,
-              size: 28,
-            ),
+            icon: Icon(Icons.download_sharp,
+                color: Theme.of(context).colorScheme.primary, size: 20),
           )
         ],
       );

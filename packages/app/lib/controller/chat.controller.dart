@@ -17,6 +17,7 @@ import 'package:app/service/room.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
@@ -785,10 +786,10 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
           pubkey: pubkey, identityId: identityId, autoCreateFromGroup: true);
       contacts = [result];
     }
-    // ignore fetch in a hour
-    if (contacts.first.fetchFromRelayAt != null) {
+    // ignore fetch in a hour in kReleaseMode
+    if (kReleaseMode && contacts.first.fetchFromRelayAt != null) {
       if (contacts.first.fetchFromRelayAt!
-          .add(Duration(hours: 1))
+          .add(Duration(minutes: 10))
           .isAfter(DateTime.now())) {
         return contacts.first;
       }
@@ -800,33 +801,29 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
 
       loggerNoLine.i('metadata: ${res.content}');
       metadata = Map<String, dynamic>.from(jsonDecode(res.content));
-      String? nameFromRelay = metadata['name'] ?? metadata['displayName'];
+      String? nameFromRelay = metadata['displayName'] ?? metadata['name'];
       String? avatarFromRelay = metadata['picture'] ?? metadata['avatar'];
-      List<Contact> result = [];
+      String? description =
+          metadata['description'] ?? metadata['about'] ?? metadata['bio'];
       for (Contact contact in contacts) {
-        if (nameFromRelay != null &&
-            nameFromRelay.isNotEmpty &&
-            contact.nameFromRelay != nameFromRelay) {
-          contact.nameFromRelay = nameFromRelay;
+        if (contact.versionFromRelay >= res.createdAt) {
+          continue;
         }
-        if (avatarFromRelay != null &&
-            avatarFromRelay.isNotEmpty &&
-            contact.avatarFromRelay != avatarFromRelay) {
+        if (avatarFromRelay != null && avatarFromRelay.isNotEmpty) {
           if (avatarFromRelay.startsWith('http') ||
               avatarFromRelay.startsWith('https')) {
             contact.avatarFromRelay = avatarFromRelay;
           }
         }
-        String? description =
-            metadata['description'] ?? metadata['about'] ?? metadata['bio'];
-        if (description != null &&
-            description.isNotEmpty &&
-            contact.about != description) {
-          contact.about = description;
-        }
+
+        contact.nameFromRelay = nameFromRelay;
+        contact.aboutFromRelay = description;
+        contact.metadataFromRelay = res.content;
         contact.fetchFromRelayAt = DateTime.now();
+        contact.versionFromRelay = res.createdAt;
+        loggerNoLine.i(
+            'fetchUserMetadata: ${contact.pubkey} name: ${contact.nameFromRelay} avatar: ${contact.avatarFromRelay}');
         await ContactService.instance.saveContact(contact);
-        result.add(contact);
       }
     } catch (e) {
       logger.e('fetchUserMetadata: ${e.toString()}', error: e);

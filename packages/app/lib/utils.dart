@@ -672,9 +672,13 @@ class Utils {
   }
 
   static Widget getRandomAvatar(String id,
-      {double height = 40, Contact? contact, double width = 40}) {
+      {double height = 40, double width = 40, String? httpAvatar}) {
     // network avatar first
-    contact ??= ContactService.instance.getContactSync(id);
+    if (httpAvatar != null && httpAvatar.startsWith('http')) {
+      return getNetworkImage(httpAvatar,
+          size: width, placeholder: _generateRandomAvatar(id, size: width))!;
+    }
+    Contact? contact = ContactService.instance.getContactSync(id);
     if (contact?.avatarFromRelay != null) {
       if (contact!.avatarFromRelay!.startsWith('http')) {
         return getNetworkImage(contact.avatarFromRelay,

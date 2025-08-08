@@ -30,6 +30,10 @@ class Contact extends Equatable {
   String? nameFromRelay; // fetch from relay
   String? avatarFromRelay; // fetch from relay
   DateTime? fetchFromRelayAt; // fetch time
+  String? aboutFromRelay;
+  String? metadataFromRelay; // fetch from relay
+  int versionFromRelay = 0; // fetch from relay
+
   bool autoCreateFromGroup = false;
 
   String? about;
@@ -46,7 +50,7 @@ class Contact extends Equatable {
       }
       return npubkey.substring(0, max);
     } else {
-      return nickname;
+      return nickname.trim();
     }
   }
 

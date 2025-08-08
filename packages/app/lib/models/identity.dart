@@ -4,7 +4,7 @@ import 'package:isar/isar.dart';
 
 part 'identity.g.dart';
 
-@Collection(ignore: {'props', 'displayName', 'mainMykey'})
+@Collection(ignore: {'props', 'displayName', 'mainMykey', 'displayAbout'})
 // ignore: must_be_immutable
 class Identity extends Equatable {
   Id id = Isar.autoIncrement;
@@ -26,7 +26,8 @@ class Identity extends Equatable {
 
   String name;
   String? about;
-  String get displayName => name;
+  String get displayName => nameFromRelay ?? name;
+  String? get displayAbout => aboutFromRelay ?? about;
 
   String? curve25519PkHex;
 
@@ -39,6 +40,13 @@ class Identity extends Equatable {
   bool enableChat = true;
   bool enableBrowser = true;
   bool isFromSigner = false;
+
+  String? nameFromRelay; // fetch from relay
+  String? avatarFromRelay; // fetch from relay
+  DateTime? fetchFromRelayAt; // fetch time
+  String? aboutFromRelay; // fetch from relay
+  String? metadataFromRelay; // fetch from relay
+  int versionFromRelay = 0; // fetch from relay
 
   Identity({
     required this.name,

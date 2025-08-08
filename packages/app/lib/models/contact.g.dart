@@ -22,75 +22,100 @@ const ContactSchema = CollectionSchema(
       name: r'about',
       type: IsarType.string,
     ),
-    r'avatarFromRelay': PropertySchema(
+    r'aboutFromRelay': PropertySchema(
       id: 1,
+      name: r'aboutFromRelay',
+      type: IsarType.string,
+    ),
+    r'autoCreateFromGroup': PropertySchema(
+      id: 2,
+      name: r'autoCreateFromGroup',
+      type: IsarType.bool,
+    ),
+    r'avatarFromRelay': PropertySchema(
+      id: 3,
       name: r'avatarFromRelay',
       type: IsarType.string,
     ),
     r'createdAt': PropertySchema(
-      id: 2,
+      id: 4,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'curve25519PkHex': PropertySchema(
-      id: 3,
+      id: 5,
       name: r'curve25519PkHex',
       type: IsarType.string,
     ),
+    r'fetchFromRelayAt': PropertySchema(
+      id: 6,
+      name: r'fetchFromRelayAt',
+      type: IsarType.dateTime,
+    ),
     r'hashCode': PropertySchema(
-      id: 4,
+      id: 7,
       name: r'hashCode',
       type: IsarType.long,
     ),
     r'identityId': PropertySchema(
-      id: 5,
+      id: 8,
       name: r'identityId',
       type: IsarType.long,
     ),
     r'metadata': PropertySchema(
-      id: 6,
+      id: 9,
       name: r'metadata',
       type: IsarType.string,
     ),
+    r'metadataFromRelay': PropertySchema(
+      id: 10,
+      name: r'metadataFromRelay',
+      type: IsarType.string,
+    ),
     r'name': PropertySchema(
-      id: 7,
+      id: 11,
       name: r'name',
       type: IsarType.string,
     ),
     r'nameFromRelay': PropertySchema(
-      id: 8,
+      id: 12,
       name: r'nameFromRelay',
       type: IsarType.string,
     ),
     r'npubkey': PropertySchema(
-      id: 9,
+      id: 13,
       name: r'npubkey',
       type: IsarType.string,
     ),
     r'petname': PropertySchema(
-      id: 10,
+      id: 14,
       name: r'petname',
       type: IsarType.string,
     ),
     r'picture': PropertySchema(
-      id: 11,
+      id: 15,
       name: r'picture',
       type: IsarType.string,
     ),
     r'pubkey': PropertySchema(
-      id: 12,
+      id: 16,
       name: r'pubkey',
       type: IsarType.string,
     ),
     r'stringify': PropertySchema(
-      id: 13,
+      id: 17,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'updatedAt': PropertySchema(
-      id: 14,
+      id: 18,
       name: r'updatedAt',
       type: IsarType.dateTime,
+    ),
+    r'versionFromRelay': PropertySchema(
+      id: 19,
+      name: r'versionFromRelay',
+      type: IsarType.long,
     )
   },
   estimateSize: _contactEstimateSize,
@@ -139,6 +164,12 @@ int _contactEstimateSize(
     }
   }
   {
+    final value = object.aboutFromRelay;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.avatarFromRelay;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -152,6 +183,12 @@ int _contactEstimateSize(
   }
   {
     final value = object.metadata;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.metadataFromRelay;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -192,20 +229,25 @@ void _contactSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeString(offsets[0], object.about);
-  writer.writeString(offsets[1], object.avatarFromRelay);
-  writer.writeDateTime(offsets[2], object.createdAt);
-  writer.writeString(offsets[3], object.curve25519PkHex);
-  writer.writeLong(offsets[4], object.hashCode);
-  writer.writeLong(offsets[5], object.identityId);
-  writer.writeString(offsets[6], object.metadata);
-  writer.writeString(offsets[7], object.name);
-  writer.writeString(offsets[8], object.nameFromRelay);
-  writer.writeString(offsets[9], object.npubkey);
-  writer.writeString(offsets[10], object.petname);
-  writer.writeString(offsets[11], object.picture);
-  writer.writeString(offsets[12], object.pubkey);
-  writer.writeBool(offsets[13], object.stringify);
-  writer.writeDateTime(offsets[14], object.updatedAt);
+  writer.writeString(offsets[1], object.aboutFromRelay);
+  writer.writeBool(offsets[2], object.autoCreateFromGroup);
+  writer.writeString(offsets[3], object.avatarFromRelay);
+  writer.writeDateTime(offsets[4], object.createdAt);
+  writer.writeString(offsets[5], object.curve25519PkHex);
+  writer.writeDateTime(offsets[6], object.fetchFromRelayAt);
+  writer.writeLong(offsets[7], object.hashCode);
+  writer.writeLong(offsets[8], object.identityId);
+  writer.writeString(offsets[9], object.metadata);
+  writer.writeString(offsets[10], object.metadataFromRelay);
+  writer.writeString(offsets[11], object.name);
+  writer.writeString(offsets[12], object.nameFromRelay);
+  writer.writeString(offsets[13], object.npubkey);
+  writer.writeString(offsets[14], object.petname);
+  writer.writeString(offsets[15], object.picture);
+  writer.writeString(offsets[16], object.pubkey);
+  writer.writeBool(offsets[17], object.stringify);
+  writer.writeDateTime(offsets[18], object.updatedAt);
+  writer.writeLong(offsets[19], object.versionFromRelay);
 }
 
 Contact _contactDeserialize(
@@ -215,21 +257,26 @@ Contact _contactDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Contact(
-    identityId: reader.readLong(offsets[5]),
-    npubkey: reader.readString(offsets[9]),
-    pubkey: reader.readString(offsets[12]),
+    identityId: reader.readLong(offsets[8]),
+    npubkey: reader.readString(offsets[13]),
+    pubkey: reader.readString(offsets[16]),
   );
   object.about = reader.readStringOrNull(offsets[0]);
-  object.avatarFromRelay = reader.readStringOrNull(offsets[1]);
-  object.createdAt = reader.readDateTimeOrNull(offsets[2]);
-  object.curve25519PkHex = reader.readStringOrNull(offsets[3]);
+  object.aboutFromRelay = reader.readStringOrNull(offsets[1]);
+  object.autoCreateFromGroup = reader.readBool(offsets[2]);
+  object.avatarFromRelay = reader.readStringOrNull(offsets[3]);
+  object.createdAt = reader.readDateTimeOrNull(offsets[4]);
+  object.curve25519PkHex = reader.readStringOrNull(offsets[5]);
+  object.fetchFromRelayAt = reader.readDateTimeOrNull(offsets[6]);
   object.id = id;
-  object.metadata = reader.readStringOrNull(offsets[6]);
-  object.name = reader.readStringOrNull(offsets[7]);
-  object.nameFromRelay = reader.readStringOrNull(offsets[8]);
-  object.petname = reader.readStringOrNull(offsets[10]);
-  object.picture = reader.readStringOrNull(offsets[11]);
-  object.updatedAt = reader.readDateTimeOrNull(offsets[14]);
+  object.metadata = reader.readStringOrNull(offsets[9]);
+  object.metadataFromRelay = reader.readStringOrNull(offsets[10]);
+  object.name = reader.readStringOrNull(offsets[11]);
+  object.nameFromRelay = reader.readStringOrNull(offsets[12]);
+  object.petname = reader.readStringOrNull(offsets[14]);
+  object.picture = reader.readStringOrNull(offsets[15]);
+  object.updatedAt = reader.readDateTimeOrNull(offsets[18]);
+  object.versionFromRelay = reader.readLong(offsets[19]);
   return object;
 }
 
@@ -245,31 +292,41 @@ P _contactDeserializeProp<P>(
     case 1:
       return (reader.readStringOrNull(offset)) as P;
     case 2:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 3:
       return (reader.readStringOrNull(offset)) as P;
     case 4:
-      return (reader.readLong(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 5:
-      return (reader.readLong(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 6:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 7:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 8:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 9:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 10:
       return (reader.readStringOrNull(offset)) as P;
     case 11:
       return (reader.readStringOrNull(offset)) as P;
     case 12:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 13:
-      return (reader.readBoolOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 14:
+      return (reader.readStringOrNull(offset)) as P;
+    case 15:
+      return (reader.readStringOrNull(offset)) as P;
+    case 16:
+      return (reader.readString(offset)) as P;
+    case 17:
+      return (reader.readBoolOrNull(offset)) as P;
+    case 18:
       return (reader.readDateTimeOrNull(offset)) as P;
+    case 19:
+      return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -739,6 +796,167 @@ extension ContactQueryFilter
     });
   }
 
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> aboutFromRelayIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'aboutFromRelay',
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      aboutFromRelayIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'aboutFromRelay',
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> aboutFromRelayEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'aboutFromRelay',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      aboutFromRelayGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'aboutFromRelay',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> aboutFromRelayLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'aboutFromRelay',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> aboutFromRelayBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'aboutFromRelay',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      aboutFromRelayStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'aboutFromRelay',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> aboutFromRelayEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'aboutFromRelay',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> aboutFromRelayContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'aboutFromRelay',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> aboutFromRelayMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'aboutFromRelay',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      aboutFromRelayIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'aboutFromRelay',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      aboutFromRelayIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'aboutFromRelay',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      autoCreateFromGroupEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'autoCreateFromGroup',
+        value: value,
+      ));
+    });
+  }
+
   QueryBuilder<Contact, Contact, QAfterFilterCondition>
       avatarFromRelayIsNull() {
     return QueryBuilder.apply(this, (query) {
@@ -1112,6 +1330,79 @@ extension ContactQueryFilter
     });
   }
 
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      fetchFromRelayAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'fetchFromRelayAt',
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      fetchFromRelayAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'fetchFromRelayAt',
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> fetchFromRelayAtEqualTo(
+      DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'fetchFromRelayAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      fetchFromRelayAtGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'fetchFromRelayAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      fetchFromRelayAtLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'fetchFromRelayAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> fetchFromRelayAtBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'fetchFromRelayAt',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
   QueryBuilder<Contact, Contact, QAfterFilterCondition> hashCodeEqualTo(
       int value) {
     return QueryBuilder.apply(this, (query) {
@@ -1411,6 +1702,160 @@ extension ContactQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'metadata',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      metadataFromRelayIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'metadataFromRelay',
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      metadataFromRelayIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'metadataFromRelay',
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      metadataFromRelayEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'metadataFromRelay',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      metadataFromRelayGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'metadataFromRelay',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      metadataFromRelayLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'metadataFromRelay',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      metadataFromRelayBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'metadataFromRelay',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      metadataFromRelayStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'metadataFromRelay',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      metadataFromRelayEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'metadataFromRelay',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      metadataFromRelayContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'metadataFromRelay',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      metadataFromRelayMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'metadataFromRelay',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      metadataFromRelayIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'metadataFromRelay',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      metadataFromRelayIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'metadataFromRelay',
         value: '',
       ));
     });
@@ -2357,6 +2802,61 @@ extension ContactQueryFilter
       ));
     });
   }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> versionFromRelayEqualTo(
+      int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'versionFromRelay',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      versionFromRelayGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'versionFromRelay',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition>
+      versionFromRelayLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'versionFromRelay',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> versionFromRelayBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'versionFromRelay',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
 }
 
 extension ContactQueryObject
@@ -2375,6 +2875,30 @@ extension ContactQuerySortBy on QueryBuilder<Contact, Contact, QSortBy> {
   QueryBuilder<Contact, Contact, QAfterSortBy> sortByAboutDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'about', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> sortByAboutFromRelay() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'aboutFromRelay', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> sortByAboutFromRelayDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'aboutFromRelay', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> sortByAutoCreateFromGroup() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'autoCreateFromGroup', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> sortByAutoCreateFromGroupDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'autoCreateFromGroup', Sort.desc);
     });
   }
 
@@ -2414,6 +2938,18 @@ extension ContactQuerySortBy on QueryBuilder<Contact, Contact, QSortBy> {
     });
   }
 
+  QueryBuilder<Contact, Contact, QAfterSortBy> sortByFetchFromRelayAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'fetchFromRelayAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> sortByFetchFromRelayAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'fetchFromRelayAt', Sort.desc);
+    });
+  }
+
   QueryBuilder<Contact, Contact, QAfterSortBy> sortByHashCode() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'hashCode', Sort.asc);
@@ -2447,6 +2983,18 @@ extension ContactQuerySortBy on QueryBuilder<Contact, Contact, QSortBy> {
   QueryBuilder<Contact, Contact, QAfterSortBy> sortByMetadataDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'metadata', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> sortByMetadataFromRelay() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'metadataFromRelay', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> sortByMetadataFromRelayDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'metadataFromRelay', Sort.desc);
     });
   }
 
@@ -2545,6 +3093,18 @@ extension ContactQuerySortBy on QueryBuilder<Contact, Contact, QSortBy> {
       return query.addSortBy(r'updatedAt', Sort.desc);
     });
   }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> sortByVersionFromRelay() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'versionFromRelay', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> sortByVersionFromRelayDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'versionFromRelay', Sort.desc);
+    });
+  }
 }
 
 extension ContactQuerySortThenBy
@@ -2558,6 +3118,30 @@ extension ContactQuerySortThenBy
   QueryBuilder<Contact, Contact, QAfterSortBy> thenByAboutDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'about', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> thenByAboutFromRelay() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'aboutFromRelay', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> thenByAboutFromRelayDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'aboutFromRelay', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> thenByAutoCreateFromGroup() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'autoCreateFromGroup', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> thenByAutoCreateFromGroupDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'autoCreateFromGroup', Sort.desc);
     });
   }
 
@@ -2594,6 +3178,18 @@ extension ContactQuerySortThenBy
   QueryBuilder<Contact, Contact, QAfterSortBy> thenByCurve25519PkHexDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'curve25519PkHex', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> thenByFetchFromRelayAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'fetchFromRelayAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> thenByFetchFromRelayAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'fetchFromRelayAt', Sort.desc);
     });
   }
 
@@ -2642,6 +3238,18 @@ extension ContactQuerySortThenBy
   QueryBuilder<Contact, Contact, QAfterSortBy> thenByMetadataDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'metadata', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> thenByMetadataFromRelay() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'metadataFromRelay', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> thenByMetadataFromRelayDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'metadataFromRelay', Sort.desc);
     });
   }
 
@@ -2740,6 +3348,18 @@ extension ContactQuerySortThenBy
       return query.addSortBy(r'updatedAt', Sort.desc);
     });
   }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> thenByVersionFromRelay() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'versionFromRelay', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QAfterSortBy> thenByVersionFromRelayDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'versionFromRelay', Sort.desc);
+    });
+  }
 }
 
 extension ContactQueryWhereDistinct
@@ -2748,6 +3368,20 @@ extension ContactQueryWhereDistinct
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'about', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QDistinct> distinctByAboutFromRelay(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'aboutFromRelay',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QDistinct> distinctByAutoCreateFromGroup() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'autoCreateFromGroup');
     });
   }
 
@@ -2773,6 +3407,12 @@ extension ContactQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Contact, Contact, QDistinct> distinctByFetchFromRelayAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'fetchFromRelayAt');
+    });
+  }
+
   QueryBuilder<Contact, Contact, QDistinct> distinctByHashCode() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'hashCode');
@@ -2789,6 +3429,14 @@ extension ContactQueryWhereDistinct
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'metadata', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<Contact, Contact, QDistinct> distinctByMetadataFromRelay(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'metadataFromRelay',
+          caseSensitive: caseSensitive);
     });
   }
 
@@ -2846,6 +3494,12 @@ extension ContactQueryWhereDistinct
       return query.addDistinctBy(r'updatedAt');
     });
   }
+
+  QueryBuilder<Contact, Contact, QDistinct> distinctByVersionFromRelay() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'versionFromRelay');
+    });
+  }
 }
 
 extension ContactQueryProperty
@@ -2859,6 +3513,18 @@ extension ContactQueryProperty
   QueryBuilder<Contact, String?, QQueryOperations> aboutProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'about');
+    });
+  }
+
+  QueryBuilder<Contact, String?, QQueryOperations> aboutFromRelayProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'aboutFromRelay');
+    });
+  }
+
+  QueryBuilder<Contact, bool, QQueryOperations> autoCreateFromGroupProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'autoCreateFromGroup');
     });
   }
 
@@ -2880,6 +3546,13 @@ extension ContactQueryProperty
     });
   }
 
+  QueryBuilder<Contact, DateTime?, QQueryOperations>
+      fetchFromRelayAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'fetchFromRelayAt');
+    });
+  }
+
   QueryBuilder<Contact, int, QQueryOperations> hashCodeProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'hashCode');
@@ -2895,6 +3568,12 @@ extension ContactQueryProperty
   QueryBuilder<Contact, String?, QQueryOperations> metadataProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'metadata');
+    });
+  }
+
+  QueryBuilder<Contact, String?, QQueryOperations> metadataFromRelayProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'metadataFromRelay');
     });
   }
 
@@ -2943,6 +3622,12 @@ extension ContactQueryProperty
   QueryBuilder<Contact, DateTime?, QQueryOperations> updatedAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'updatedAt');
+    });
+  }
+
+  QueryBuilder<Contact, int, QQueryOperations> versionFromRelayProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'versionFromRelay');
     });
   }
 }

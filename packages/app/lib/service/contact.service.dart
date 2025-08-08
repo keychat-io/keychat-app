@@ -312,20 +312,6 @@ class ContactService {
     return id;
   }
 
-  saveContactFromRelay(
-      {required int identityId,
-      required String pubkey,
-      required Map<String, dynamic> content,
-      bool justSave = true}) async {
-    Contact contact = await getOrCreateContact(identityId, pubkey);
-    contact.name = content['name'];
-    contact.about = content['about'];
-    contact.picture = content['picture'];
-    // contact.isFriend = true;
-    contact.updatedAt = DateTime.now();
-    saveContact(contact, sync: false);
-  }
-
   Future updateContact(
       {required int identityId,
       required String pubkey,

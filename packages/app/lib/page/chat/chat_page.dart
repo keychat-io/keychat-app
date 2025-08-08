@@ -52,7 +52,7 @@ class _ChatPage2State extends State<ChatPage> {
   void initState() {
     Room room = _getRoomAndInit(context);
     myAavtar = Utils.getRandomAvatar(room.getIdentity().secp256k1PKHex,
-        height: 40, width: 40);
+        httpAvatar: room.getIdentity().avatarFromRelay, height: 40, width: 40);
     isGroup = room.type == RoomType.group;
     markdownDarkConfig = MarkdownConfig.darkConfig.copy(configs: [
       LinkConfig(

@@ -1,7 +1,11 @@
+import 'dart:convert';
+
 import 'package:app/constants.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
+import 'package:app/nostr-core/nostr.dart';
+import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/file.service.dart';
 import 'package:app/service/mls_group.service.dart';
@@ -313,7 +317,7 @@ class IdentityService {
   Future updateIdentity(Identity identity) async {
     Isar database = DBProvider.database;
     await database.writeTxn(() async {
-      return await database.identitys.put(identity);
+      await database.identitys.put(identity);
     });
   }
 
@@ -457,5 +461,41 @@ class IdentityService {
       mlsPubkeys.add(room.onetimekey!);
     }
     return <String>{...signal, ...mlsPubkeys}.toList();
+  }
+
+  Future<Identity> syncProfileFromRelay(Identity identity) async {
+    List<NostrEventModel> list =
+        await NostrAPI.instance.fetchMetadata([identity.secp256k1PKHex]);
+    NostrEventModel res = list.last;
+    Map<String, dynamic> metadata =
+        Map<String, dynamic>.from(jsonDecode(res.content));
+    logger.i('Sync profile from relay: $metadata');
+
+    if (identity.versionFromRelay >= res.createdAt) {
+      logger.d('Identity version is up to date, skip sync');
+      return identity;
+    }
+    String? nameFromRelay = metadata['displayName'] ?? metadata['name'];
+    String? avatarFromRelay = metadata['picture'] ?? metadata['avatar'];
+
+    identity.nameFromRelay = nameFromRelay;
+    if (avatarFromRelay != null && avatarFromRelay.isNotEmpty) {
+      if (avatarFromRelay.startsWith('http') ||
+          avatarFromRelay.startsWith('https')) {
+        identity.avatarFromRelay = avatarFromRelay;
+      }
+    }
+    String? description =
+        metadata['description'] ?? metadata['about'] ?? metadata['bio'];
+    identity.aboutFromRelay = description;
+    identity.metadataFromRelay = res.content;
+    identity.fetchFromRelayAt = DateTime.now();
+    identity.versionFromRelay = res.createdAt;
+
+    await updateIdentity(identity);
+    await Get.find<HomeController>().loadIdentity();
+    Get.find<HomeController>().tabBodyDatas.refresh();
+    logger.d(identity.displayName);
+    return identity;
   }
 }

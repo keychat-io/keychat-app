@@ -43,7 +43,9 @@ class _SelectIdentityForBrowserState extends State<SelectIdentityForBrowser> {
             tiles: identities
                 .map((iden) => SettingsTile(
                     leading: Utils.getRandomAvatar(iden.secp256k1PKHex,
-                        height: 30, width: 30),
+                        httpAvatar: iden.avatarFromRelay,
+                        height: 30,
+                        width: 30),
                     value: Text(getPublicKeyDisplay(iden.npub)),
                     title: Text(iden.displayName),
                     onPressed: (context) async {

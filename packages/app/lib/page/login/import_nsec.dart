@@ -131,7 +131,8 @@ class _ImportNsec extends State<ImportNsec> {
                                       name: name,
                                       prikey: input,
                                       hexPubkey: hexPubkey);
-
+                              await IdentityService.instance
+                                  .syncProfileFromRelay(newIdentity);
                               EasyLoading.showSuccess('Import successfully');
                               Get.back(result: newIdentity);
                             } catch (e, s) {

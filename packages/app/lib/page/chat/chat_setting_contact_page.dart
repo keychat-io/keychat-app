@@ -90,15 +90,7 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                             textSmallGray(
                                 context, 'Name: ${cc.roomContact.value.name}'),
                           textSmallGray(context, 'ID: ${cc.roomObs.value.npub}',
-                              overflow: TextOverflow.visible),
-                          if (cc.roomContact.value.displayAbout != null &&
-                              cc.roomContact.value.displayAbout!.isNotEmpty)
-                            Padding(
-                                padding: EdgeInsets.only(top: 8),
-                                child: NoticeTextWidget.info(
-                                    cc.roomContact.value.displayAbout ?? '',
-                                    fontSize: 12,
-                                    borderRadius: 8))
+                              overflow: TextOverflow.visible)
                         ],
                       ),
                       trailing: IconButton(
@@ -108,6 +100,15 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                             EasyLoading.showToast('Copied');
                           },
                           icon: const Icon(Icons.copy))),
+                  if (cc.roomContact.value.displayAbout != null &&
+                      cc.roomContact.value.displayAbout!.isNotEmpty)
+                    Padding(
+                        padding:
+                            EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                        child: NoticeTextWidget.info(
+                            cc.roomContact.value.displayAbout ?? '',
+                            fontSize: 12,
+                            borderRadius: 8)),
                   if (cc.roomObs.value.description != null)
                     Container(
                         padding: const EdgeInsets.symmetric(

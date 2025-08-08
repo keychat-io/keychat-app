@@ -499,8 +499,11 @@ window.addEventListener('DOMContentLoaded', function(event) {
     if (GetPlatform.isDesktop) {
       return null;
     }
-    String host = Uri.tryParse(url)?.host ?? url;
-
+    String? host = Uri.tryParse(url)?.host;
+    if (host == null || host.isEmpty) {
+      host = url;
+    }
+    logger.d('enableKeepAlive host: $host');
     mobileKeepAlive[host] = InAppWebViewKeepAlive();
     await Storage.setStringList(
         StorageKeyString.mobileKeepAlive, mobileKeepAlive.keys.toList());
@@ -511,7 +514,10 @@ window.addEventListener('DOMContentLoaded', function(event) {
     if (GetPlatform.isDesktop) {
       return null;
     }
-    String host = Uri.tryParse(url)?.host ?? url;
+    String? host = Uri.tryParse(url)?.host;
+    if (host == null || host.isEmpty) {
+      host = url;
+    }
     mobileKeepAlive[host] = InAppWebViewKeepAlive();
     return mobileKeepAlive[host]!;
   }
@@ -520,9 +526,12 @@ window.addEventListener('DOMContentLoaded', function(event) {
     if (GetPlatform.isDesktop) {
       return null;
     }
-    String host = url;
+    String? host;
     if (url.startsWith('http') || url.startsWith('https')) {
-      host = Uri.tryParse(url)?.host ?? url;
+      host = Uri.tryParse(url)?.host;
+    }
+    if (host == null || host.isEmpty) {
+      host = url;
     }
     mobileKeepAlive.remove(host);
     await Storage.setStringList(
@@ -533,7 +542,10 @@ window.addEventListener('DOMContentLoaded', function(event) {
     if (GetPlatform.isDesktop) {
       return null;
     }
-    String host = Uri.tryParse(url)?.host ?? url;
+    String? host = Uri.tryParse(url)?.host;
+    if (host == null || host.isEmpty) {
+      host = url;
+    }
     mobileKeepAlive.remove(host);
     mobileKeepAlive.remove(url);
   }

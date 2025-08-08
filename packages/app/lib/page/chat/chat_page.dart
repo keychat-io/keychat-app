@@ -100,7 +100,13 @@ class _ChatPage2State extends State<ChatPage> {
                 direction: Axis.horizontal,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  _getRoomTite(),
+                  controller.roomObs.value.type != RoomType.group
+                      ? RoomTitle(controller.roomObs.value.getRoomName(),
+                          controller.roomObs.value.isMute, null)
+                      : RoomTitle(
+                          controller.roomObs.value.getRoomName(),
+                          controller.roomObs.value.isMute,
+                          controller.enableMembers.length.toString()),
                   if (controller.roomObs.value.type == RoomType.bot)
                     const Padding(
                         padding: EdgeInsets.only(left: 5),
@@ -843,22 +849,13 @@ class _ChatPage2State extends State<ChatPage> {
     }
   }
 
-  Widget _getRoomTite() {
-    String? title = controller.roomObs.value.name;
-    if (controller.roomObs.value.type == RoomType.common) {
-      title = controller.roomContact.value.displayName;
-    }
-    if (controller.roomObs.value.type == RoomType.group) {
-      title =
-          '${controller.roomObs.value.name} (${controller.enableMembers.length})';
-    }
-
+  Widget RoomTitle(String title, bool isMute, String? memberCount) {
     return Wrap(
       direction: Axis.horizontal,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Text(title ?? controller.roomObs.value.getRoomName()),
-        if (controller.roomObs.value.isMute)
+        Text(memberCount != null ? '$title ($memberCount)' : title),
+        if (isMute)
           Icon(
             Icons.notifications_off_outlined,
             color: Theme.of(Get.context!)

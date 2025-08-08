@@ -84,10 +84,14 @@ class IdentityService {
     });
     await homeController.loadRoomList(init: true);
 
-    Utils.waitRelayOnline().then((_) {
+    Utils.waitRelayOnline().then((_) async {
       Get.find<WebsocketService>()
           .listenPubkey([account.pubkey], kinds: [EventKinds.nip04]);
       Get.find<WebsocketService>().listenPubkeyNip17([account.pubkey]);
+      Identity? identity = await getIdentityByNostrPubkey(iden.secp256k1PKHex);
+      if (identity != null) {
+        syncProfileFromRelay(iden);
+      }
     });
 
     if (isFirstAccount) {
@@ -133,11 +137,14 @@ class IdentityService {
     });
 
     await Get.find<HomeController>().loadRoomList(init: true);
-
-    Utils.waitRelayOnline().then((_) {
+    Utils.waitRelayOnline().then((_) async {
       Get.find<WebsocketService>()
           .listenPubkey([hexPubkey], kinds: [EventKinds.nip04]);
       Get.find<WebsocketService>().listenPubkeyNip17([hexPubkey]);
+      Identity? identity = await getIdentityByNostrPubkey(hexPubkey);
+      if (identity != null) {
+        syncProfileFromRelay(iden);
+      }
     });
 
     NotifyService.addPubkeys([hexPubkey]);
@@ -163,10 +170,14 @@ class IdentityService {
 
     await Get.find<HomeController>().loadRoomList(init: true);
 
-    Utils.waitRelayOnline().then((_) {
+    Utils.waitRelayOnline().then((_) async {
       Get.find<WebsocketService>()
           .listenPubkey([hexPubkey], kinds: [EventKinds.nip04]);
       Get.find<WebsocketService>().listenPubkeyNip17([hexPubkey]);
+      Identity? identity = await getIdentityByNostrPubkey(hexPubkey);
+      if (identity != null) {
+        syncProfileFromRelay(iden);
+      }
     });
 
     NotifyService.addPubkeys([hexPubkey]);
@@ -495,7 +506,6 @@ class IdentityService {
     await updateIdentity(identity);
     await Get.find<HomeController>().loadIdentity();
     Get.find<HomeController>().tabBodyDatas.refresh();
-    logger.d(identity.displayName);
     return identity;
   }
 }

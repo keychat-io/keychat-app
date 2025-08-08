@@ -290,21 +290,22 @@ class _WebviewTabState extends State<WebviewTab> {
                                         value: controller.mobileKeepAlive.keys
                                             .contains(initDomain),
                                         onChanged: (value) async {
-                                          Get.back();
                                           if (value) {
                                             InAppWebViewKeepAlive? newKa =
                                                 await controller
                                                     .enableKeepAlive(
-                                                        widget.initUrl);
+                                                        initDomain);
                                             setState(() {
                                               inAppWebViewKeepAlive = newKa;
                                             });
+                                            Get.back();
                                             EasyLoading.showSuccess(
                                                 'KeepAlive Enabled. Take effect after restarting the page.');
                                             return;
                                           }
                                           await controller
-                                              .disableKeepAlive(widget.initUrl);
+                                              .disableKeepAlive(initDomain);
+                                          Get.back();
                                           EasyLoading.showSuccess(
                                               'KeepAlive Disabled.');
                                         });

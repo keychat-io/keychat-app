@@ -41,9 +41,10 @@ class Contact extends Equatable {
   String? picture;
   DateTime? createdAt;
   DateTime? updatedAt;
-  String? get displayAbout => about ?? aboutFromRelay;
+  String? get displayAbout =>
+      about != null && about!.isNotEmpty ? about : aboutFromRelay;
   String get displayName {
-    String? nickname = petname ?? nameFromRelay ?? name;
+    String? nickname = petname ?? name ?? nameFromRelay;
     if (nickname == null || nickname.trim().isEmpty) {
       int max = npubkey.length;
       if (max > 8) {

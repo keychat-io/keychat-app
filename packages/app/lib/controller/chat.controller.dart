@@ -767,6 +767,8 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
           .then((Contact? item) {
         if (item == null) return;
         roomContact.value = item;
+        roomObs.value.contact = item;
+        roomObs.refresh();
         Get.find<HomeController>()
             .loadIdentityRoomList(roomContact.value.identityId);
       });
@@ -822,7 +824,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
         contact.fetchFromRelayAt = DateTime.now();
         contact.versionFromRelay = res.createdAt;
         loggerNoLine.i(
-            'fetchUserMetadata: ${contact.pubkey} name: ${contact.nameFromRelay} avatar: ${contact.avatarFromRelay}');
+            'fetchUserMetadata: ${contact.pubkey} name: ${contact.nameFromRelay} avatar: ${contact.avatarFromRelay} ${contact.aboutFromRelay}');
         await ContactService.instance.saveContact(contact);
       }
     } catch (e) {

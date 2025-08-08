@@ -76,7 +76,9 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                           child: Utils.getRandomAvatar(
                               cc.roomObs.value.toMainPubkey,
                               height: 60,
-                              width: 60)),
+                              width: 60,
+                              httpAvatar:
+                                  cc.roomContact.value.avatarFromRelay)),
                       title: Obx(() => Text(
                             cc.roomObs.value.getRoomName(),
                             style: Theme.of(context).textTheme.titleMedium,
@@ -89,14 +91,14 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                                 context, 'Name: ${cc.roomContact.value.name}'),
                           textSmallGray(context, 'ID: ${cc.roomObs.value.npub}',
                               overflow: TextOverflow.visible),
-                          if (cc.roomContact.value.aboutFromRelay != null &&
-                              cc.roomContact.value.aboutFromRelay!.isNotEmpty)
+                          if (cc.roomContact.value.displayAbout != null &&
+                              cc.roomContact.value.displayAbout!.isNotEmpty)
                             Padding(
                                 padding: EdgeInsets.only(top: 8),
                                 child: NoticeTextWidget.info(
-                                    cc.roomContact.value.aboutFromRelay ?? '',
+                                    cc.roomContact.value.displayAbout ?? '',
                                     fontSize: 12,
-                                    borderRadius: 50))
+                                    borderRadius: 8))
                         ],
                       ),
                       trailing: IconButton(

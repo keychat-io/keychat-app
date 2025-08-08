@@ -401,7 +401,7 @@ showSearchContactsPage(BuildContext context, List<Contact> contactList) {
           builder: (contact) => ListTile(
                 onTap: () async {},
                 leading: Utils.getRandomAvatar(contact.pubkey,
-                    height: 40, width: 40),
+                    height: 40, width: 40, httpAvatar: contact.avatarFromRelay),
                 title: Text(
                   contact.displayName.toString(),
                   overflow: TextOverflow.ellipsis,

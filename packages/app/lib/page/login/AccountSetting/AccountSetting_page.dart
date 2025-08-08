@@ -152,7 +152,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                           child: NoticeTextWidget.info(
                               controller.identity.value.displayAbout ?? '',
                               fontSize: 12,
-                              borderRadius: 50)),
+                              borderRadius: 8)),
                     FutureBuilder(
                         future: controller.identity.value.getSecp256k1SKHex(),
                         builder: (context, snapshot) {

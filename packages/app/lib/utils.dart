@@ -433,8 +433,10 @@ class Utils {
       child = getAvatorByName(account,
           room: room, width: width, borderRadius: 12, backgroudColors: colors);
     } else {
-      child =
-          Utils.getRandomAvatar(room.toMainPubkey, height: width, width: width);
+      child = Utils.getRandomAvatar(room.toMainPubkey,
+          height: width,
+          width: width,
+          httpAvatar: room.contact?.avatarFromRelay);
     }
     if (room.unReadCount == 0) return child;
 
@@ -671,20 +673,34 @@ class Utils {
     return getNetworkImage(imageUrl, size: size, radius: radius)!;
   }
 
+  static Map<String, String> avatarCache = {};
+
   static Widget getRandomAvatar(String id,
       {double height = 40, double width = 40, String? httpAvatar}) {
     // network avatar first
-    if (httpAvatar != null && httpAvatar.startsWith('http')) {
+    if (httpAvatar != null &&
+        (httpAvatar.startsWith('http://') ||
+            httpAvatar.startsWith('https://'))) {
       return getNetworkImage(httpAvatar,
           size: width, placeholder: _generateRandomAvatar(id, size: width))!;
     }
+    // from cache
+    if (httpAvatar == null && avatarCache.containsKey(id)) {
+      return getNetworkImage(avatarCache[id],
+          size: width, placeholder: _generateRandomAvatar(id, size: width))!;
+    }
+    // query from contact
     Contact? contact = ContactService.instance.getContactSync(id);
     if (contact?.avatarFromRelay != null) {
-      if (contact!.avatarFromRelay!.startsWith('http')) {
+      if (contact!.avatarFromRelay!.startsWith('http://') ||
+          contact.avatarFromRelay!.startsWith('https://')) {
+        avatarCache[id] = contact.avatarFromRelay!;
         return getNetworkImage(contact.avatarFromRelay,
             size: width, placeholder: _generateRandomAvatar(id, size: width))!;
       }
     }
+
+    // use random avatar
     return _generateRandomAvatar(id, size: width);
   }
 

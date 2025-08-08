@@ -822,7 +822,9 @@ class _ChatPage2State extends State<ChatPage> {
                                 Get.back(result: members[index]);
                               },
                               leading: Utils.getRandomAvatar(rm.idPubkey,
-                                  height: 36, width: 36),
+                                  height: 36,
+                                  width: 36,
+                                  httpAvatar: rm.avatarFromRelay),
                               title: Text(
                                 rm.name,
                                 maxLines: 1,

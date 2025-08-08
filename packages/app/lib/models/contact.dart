@@ -13,7 +13,8 @@ part 'contact.g.dart';
   'isCheck',
   'admin',
   'imageAssets',
-  'mlsPK'
+  'mlsPK',
+  'displayAbout'
 })
 // ignore: must_be_immutable
 class Contact extends Equatable {
@@ -40,7 +41,7 @@ class Contact extends Equatable {
   String? picture;
   DateTime? createdAt;
   DateTime? updatedAt;
-
+  String? get displayAbout => about ?? aboutFromRelay;
   String get displayName {
     String? nickname = petname ?? nameFromRelay ?? name;
     if (nickname == null || nickname.trim().isEmpty) {

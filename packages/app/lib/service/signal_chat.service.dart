@@ -249,7 +249,8 @@ class SignalChatService extends BaseChatService {
         break;
       case KeyChatEventKinds.dmAddContactFromAlice:
       case KeyChatEventKinds.dmAddContactFromBob:
-        await _processHelloMessage(room, event, km, sourceEvent);
+        await _processHelloMessage(
+            room, event, km, sourceEvent, failedCallback);
         break;
       case KeyChatEventKinds.dmReject:
         await _processReject(room, event, km, sourceEvent);
@@ -287,15 +288,30 @@ class SignalChatService extends BaseChatService {
     return (addList, removeList);
   }
 
-  _processHelloMessage(Room room, NostrEventModel event,
-      KeychatMessage keychatMessage, NostrEventModel? sourceEvent) async {
+  _processHelloMessage(
+      Room room,
+      NostrEventModel event,
+      KeychatMessage keychatMessage,
+      NostrEventModel? sourceEvent,
+      Function(String error)? failedCallback) async {
     if (keychatMessage.name == null) {
       logger.i('name is null');
       return;
     }
 
     var model = QRUserModel.fromJson(jsonDecode(keychatMessage.name!));
-
+    // -1 for compatibility with old version
+    if (model.time != -1) {
+      if (room.version > model.time) {
+        logger.e('The version is too old, skip');
+        if (failedCallback != null) {
+          failedCallback('The version is too old, skip');
+        }
+        return;
+      } else {
+        room.version = model.time;
+      }
+    }
     var contact = await ContactService.instance
         .getOrCreateContact(room.identityId, room.toMainPubkey);
 

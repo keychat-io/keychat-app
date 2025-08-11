@@ -141,6 +141,7 @@ class SignalIdService {
     var res2 = await rust_signal.generatePrekeyApi(keyPair: keypair);
     data['prekeyId'] = res2.$1;
     data['prekeyPubkey'] = hex.encode(res2.$2);
+    data['time'] = DateTime.now().millisecondsSinceEpoch;
     return data;
   }
 

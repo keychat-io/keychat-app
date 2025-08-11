@@ -561,6 +561,7 @@ class _WebviewTabState extends State<WebviewTab> {
             assetFilePath: "assets/js/webln.js");
         pullToRefreshController?.endRefreshing();
 
+        state = WebviewTabState.success;
         // Restore scroll position if needed
         if (GetPlatform.isAndroid && needRestorePosition) {
           needRestorePosition = false;
@@ -594,10 +595,6 @@ class _WebviewTabState extends State<WebviewTab> {
             'onReceivedClientCertRequest: ${challenge.protectionSpace.host}');
         return ClientCertResponse(action: ClientCertResponseAction.PROCEED);
       },
-      // onDownloadStarting: (controller, url) async {
-      //   await downloadFile(url.url.toString(), url.suggestedFilename);
-      //   return null;
-      // },
       onProgressChanged: (controller, data) {
         if (data == 100) {
           state = WebviewTabState.success;

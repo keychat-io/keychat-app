@@ -791,7 +791,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     // ignore fetch in a hour in kReleaseMode
     if (kReleaseMode && contacts.first.fetchFromRelayAt != null) {
       if (contacts.first.fetchFromRelayAt!
-          .add(Duration(minutes: 10))
+          .add(Duration(days: 1))
           .isAfter(DateTime.now())) {
         return contacts.first;
       }

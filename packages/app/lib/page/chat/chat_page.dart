@@ -904,6 +904,7 @@ class _ChatPage2State extends State<ChatPage> {
               onPressed: () async {
                 try {
                   Room room = controller.roomObs.value;
+                  room = await RoomService.instance.getRoomByIdOrFail(room.id);
                   if (room.status == RoomStatus.approving) {
                     String displayName = room.getIdentity().displayName;
                     await SignalChatService.instance.sendMessage(

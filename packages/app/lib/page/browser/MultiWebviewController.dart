@@ -526,14 +526,7 @@ window.addEventListener('DOMContentLoaded', function(event) {
     if (GetPlatform.isDesktop) {
       return null;
     }
-    String? host;
-    if (url.startsWith('http') || url.startsWith('https')) {
-      host = Uri.tryParse(url)?.host;
-    }
-    if (host == null || host.isEmpty) {
-      host = url;
-    }
-    mobileKeepAlive.remove(host);
+    removeKeepAlive(url);
     await Storage.setStringList(
         StorageKeyString.mobileKeepAlive, mobileKeepAlive.keys.toList());
   }
@@ -542,6 +535,7 @@ window.addEventListener('DOMContentLoaded', function(event) {
     if (GetPlatform.isDesktop) {
       return null;
     }
+    logger.d('removeKeepAlive url: $url');
     String? host = Uri.tryParse(url)?.host;
     if (host == null || host.isEmpty) {
       host = url;
@@ -570,8 +564,8 @@ window.addEventListener('DOMContentLoaded', function(event) {
       hosts = ['jumble.social'];
       await Storage.setStringList(StorageKeyString.mobileKeepAlive, hosts);
     }
-    if (hosts.isNotEmpty) {
-      for (var item in hosts) {
+    for (var item in hosts) {
+      if (!mobileKeepAlive.containsKey(item)) {
         mobileKeepAlive[item] = InAppWebViewKeepAlive();
       }
     }

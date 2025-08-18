@@ -1,6 +1,6 @@
 import 'dart:async' show Timer;
 import 'dart:convert' show jsonDecode;
-import 'dart:math' show Random;
+import 'dart:math' show Random, min;
 
 import 'package:app/app.dart';
 import 'package:app/controller/chat.controller.dart';
@@ -17,6 +17,7 @@ import 'package:app/service/contact.service.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/signal_chat.service.dart';
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -24,7 +25,6 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 import 'package:get/get.dart';
 import 'package:markdown_widget/markdown_widget.dart';
-import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:settings_ui/settings_ui.dart';
 
@@ -101,9 +101,9 @@ class _ChatPage2State extends State<ChatPage> {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   controller.roomObs.value.type != RoomType.group
-                      ? RoomTitle(controller.roomObs.value.getRoomName(),
+                      ? getRoomTitle(controller.roomObs.value.getRoomName(),
                           controller.roomObs.value.isMute, null)
-                      : RoomTitle(
+                      : getRoomTitle(
                           controller.roomObs.value.getRoomName(),
                           controller.roomObs.value.isMute,
                           controller.enableMembers.length.toString()),
@@ -197,17 +197,23 @@ class _ChatPage2State extends State<ChatPage> {
                                 }
                               },
                               child: Obx(
-                                () => SmartRefresher(
-                                    key: ValueKey(
-                                        'chatRefresh:${controller.roomObs.value.id}'),
-                                    reverse: true,
-                                    enablePullDown: false,
-                                    enablePullUp: true,
-                                    scrollController:
-                                        controller.autoScrollController,
-                                    controller:
-                                        controller.getRefreshController(),
-                                    onLoading: controller.loadMoreChatHistory,
+                                () => CustomMaterialIndicator(
+                                    onRefresh: controller.loadMoreChatHistory,
+                                    displacement: 20,
+                                    backgroundColor: Colors.white,
+                                    trigger: IndicatorTrigger.trailingEdge,
+                                    triggerMode: IndicatorTriggerMode.anywhere,
+                                    indicatorBuilder: (context, c) {
+                                      return Padding(
+                                        padding: const EdgeInsets.all(6.0),
+                                        child: CircularProgressIndicator(
+                                          color: KeychatGlobal.primaryColor,
+                                          value: c.state.isLoading
+                                              ? null
+                                              : min(c.value, 1.0),
+                                        ),
+                                      );
+                                    },
                                     child: ListView.builder(
                                       reverse: true,
                                       shrinkWrap: true,
@@ -849,7 +855,7 @@ class _ChatPage2State extends State<ChatPage> {
     }
   }
 
-  Widget RoomTitle(String title, bool isMute, String? memberCount) {
+  Widget getRoomTitle(String title, bool isMute, String? memberCount) {
     return Wrap(
       direction: Axis.horizontal,
       crossAxisAlignment: WrapCrossAlignment.center,

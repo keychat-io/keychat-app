@@ -103,7 +103,7 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
               });
             },
             icon: Icon(Icons.download_sharp,
-                color: Theme.of(context).colorScheme.primary, size: 20),
+                color: Theme.of(context).colorScheme.primary),
           )
         ],
       );
@@ -115,11 +115,8 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
           widget.errorCallback(text: '[Downloading]: $downloadProgress%'),
           IconButton(
             onPressed: () {},
-            icon: Icon(
-              Icons.downloading_rounded,
-              color: Theme.of(context).colorScheme.primary,
-              size: 28,
-            ),
+            icon: Icon(Icons.downloading_rounded,
+                color: Theme.of(context).colorScheme.primary),
           )
         ],
       );

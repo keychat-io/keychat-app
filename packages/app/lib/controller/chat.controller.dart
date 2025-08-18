@@ -27,7 +27,6 @@ import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:mime/mime.dart' show extensionFromMime;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 
@@ -85,7 +84,6 @@ class ChatController extends GetxController {
   late FocusNode keyboardFocus;
   late AutoScrollController autoScrollController;
   late ScrollController textFieldScrollController;
-  late RefreshController _refreshController;
   DateTime lastMessageAddedAt = DateTime.now();
 
   final List<String> featuresIcons = [
@@ -265,15 +263,6 @@ class ChatController extends GetxController {
     }
   }
 
-  bool _refreshInitialized = false;
-  RefreshController getRefreshController() {
-    if (!_refreshInitialized) {
-      _refreshController = RefreshController(initialRefresh: false);
-      _refreshInitialized = true;
-    }
-    return _refreshController;
-  }
-
   initChatPageFeatures() {
     featuresOnTaps = [
       () => pickAndUploadImage(ImageSource.gallery),
@@ -363,9 +352,8 @@ class ChatController extends GetxController {
     if (messages.isEmpty) return [];
 
     DateTime from = messages.first.createdAt;
-    Message? message = MessageService.instance.listLastestMessage(
-      roomId: roomObs.value.id,
-    );
+    Message? message =
+        MessageService.instance.listLastestMessage(roomId: roomObs.value.id);
     if (message != null && message.createdAt == from) {
       return [];
     }
@@ -376,7 +364,6 @@ class ChatController extends GetxController {
 
   Future loadMoreChatHistory() async {
     if (messages.isEmpty) {
-      getRefreshController().loadComplete();
       return;
     }
 
@@ -386,19 +373,17 @@ class ChatController extends GetxController {
         roomId: roomObs.value.id, from: from, limit: messageLimitPerPage);
 
     if (sortedNewMessages.isEmpty) {
-      getRefreshController().loadComplete();
+      EasyLoading.showToast('No more messages to load');
       return; // No new messages to load
     }
 
     sortedNewMessages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
     messages.addAll(sortedNewMessages);
-    getRefreshController().loadComplete();
     messages.value = List.from(messages);
   }
 
   @override
   void onClose() {
-    getRefreshController().dispose();
     messages.clear();
     chatContentFocus.dispose();
     keyboardFocus.dispose();
@@ -412,7 +397,6 @@ class ChatController extends GetxController {
   void onInit() async {
     chatContentFocus = FocusNode();
     keyboardFocus = FocusNode();
-    getRefreshController();
     if (GetPlatform.isDesktop) {
       chatContentFocus.requestFocus();
       messageLimitPerPage = 100;

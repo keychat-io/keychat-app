@@ -749,19 +749,13 @@ Let's start an encrypted chat.''';
         return Row(
           children: [
             errorCallback(text: '[Image Crashed]'),
-            SizedBox(
-                height: 30,
-                child: IconButton(
-                    iconSize: 18,
-                    onPressed: () {
-                      EasyLoading.showToast('Start downloading');
-                      message.isRead = true;
-                      FileService.instance
-                          .downloadForMessage(message, fileInfo);
-                    },
-                    icon: const Icon(
-                      Icons.refresh,
-                    )))
+            IconButton(
+                onPressed: () {
+                  EasyLoading.showToast('Start downloading');
+                  message.isRead = true;
+                  FileService.instance.downloadForMessage(message, fileInfo);
+                },
+                icon: const Icon(Icons.refresh))
           ],
         );
       default:

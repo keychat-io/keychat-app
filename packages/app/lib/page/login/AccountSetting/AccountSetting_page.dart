@@ -153,19 +153,20 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                               controller.identity.value.displayAbout ?? '',
                               fontSize: 12,
                               borderRadius: 8)),
-                    FutureBuilder(
-                        future: controller.identity.value.getSecp256k1SKHex(),
-                        builder: (context, snapshot) {
-                          if (snapshot.data == null) {
-                            return Padding(
-                                padding: EdgeInsets.only(top: 8),
-                                child: NoticeTextWidget.error(
-                                    'Private key not found',
-                                    fontSize: 12,
-                                    borderRadius: 15));
-                          }
-                          return Container();
-                        })
+                    if (!controller.identity.value.isFromSigner)
+                      FutureBuilder(
+                          future: controller.identity.value.getSecp256k1SKHex(),
+                          builder: (context, snapshot) {
+                            if (snapshot.data == null) {
+                              return Padding(
+                                  padding: EdgeInsets.only(top: 8),
+                                  child: NoticeTextWidget.error(
+                                      'Private key not found',
+                                      fontSize: 12,
+                                      borderRadius: 15));
+                            }
+                            return Container();
+                          })
                   ])),
             ),
             Obx(() => Expanded(

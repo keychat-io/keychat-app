@@ -303,9 +303,9 @@ class SignalChatService extends BaseChatService {
     // -1 for compatibility with old version
     if (model.time != -1) {
       if (room.version > model.time) {
-        logger.e('The version is too old, skip');
+        logger.e('The message\'s version is too old, skip');
         if (failedCallback != null) {
-          failedCallback('The version is too old, skip');
+          failedCallback('The message\'s version is too old, skip');
         }
         return;
       } else {
@@ -457,6 +457,7 @@ ${relays.join('\n')}
           msg = room.getDebugInfo(msg);
         }
       }
+      failedCallback(msg);
       throw Exception(msg);
     }
     KeychatIdentityKeyPair keyPair = await Get.find<ChatxService>()

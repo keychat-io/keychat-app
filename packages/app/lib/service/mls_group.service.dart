@@ -25,7 +25,6 @@ import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/foundation.dart' show Uint8List;
 import 'package:get/get.dart';
-import 'package:isar/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_mls.dart' as rust_mls;
 import 'package:keychat_rust_ffi_plugin/api_mls/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
@@ -79,28 +78,6 @@ class MlsGroupService extends BaseChatService {
     // send invitation message
     await _sendInviteMessage(
         groupRoom: groupRoom, users: userNameMap, mlsWelcome: welcomeMsg);
-  }
-
-  Future appendMessageOrCreate(
-      String error, Room room, String content, NostrEventModel nostrEvent,
-      {String? fromIdPubkey}) async {
-    Message? message = await DBProvider.database.messages
-        .filter()
-        .msgidEqualTo(nostrEvent.id)
-        .findFirst();
-    if (message == null) {
-      await RoomService.instance.receiveDM(room, nostrEvent,
-          decodedContent: '''
-$error
-
-track: $content''',
-          senderPubkey: fromIdPubkey);
-      return;
-    }
-    message.content = '''${message.content}
-
-$error ''';
-    await MessageService.instance.updateMessageAndRefresh(message);
   }
 
   Future<Room> createGroup(String groupName, Identity identity,
@@ -244,7 +221,8 @@ $error ''';
           'ProccessTryProposalIn timeout after 10s for event: ${event.id}';
       logger.e('[MLS] decrypt mls msg timeout: $msg', error: e, stackTrace: s);
       failedCallback(msg);
-      await appendMessageOrCreate(msg, room, 'mls decrypt timeout', event);
+      await RoomUtil.appendMessageOrCreate(
+          msg, room, 'mls decrypt timeout', event);
     } catch (e, s) {
       logger.e('[MLS] decryptMessage ERROR for event: ${event.id}',
           error: e, stackTrace: s);
@@ -264,7 +242,6 @@ $error ''';
       String msg = '$sender ${Utils.getErrorMessage(e)}';
       logger.e('decrypt mls msg: $msg', error: e, stackTrace: s);
       failedCallback(msg);
-      await appendMessageOrCreate(msg, room, 'mls decrypt failed', event);
     }
   }
 

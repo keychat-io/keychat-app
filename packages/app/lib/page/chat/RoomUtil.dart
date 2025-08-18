@@ -11,6 +11,7 @@ import 'package:app/page/chat/contact_page.dart';
 
 import 'package:app/page/widgets/image_preview_widget.dart';
 import 'package:app/service/file.service.dart';
+import 'package:app/service/message.service.dart';
 import 'package:app/service/signal_chat_util.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:flutter/services.dart';
@@ -820,5 +821,27 @@ Let's start an encrypted chat.''';
     }
 
     return _getTextItemView(message, markdownConfig, errorCallback);
+  }
+
+  static Future appendMessageOrCreate(
+      String error, Room room, String content, NostrEventModel nostrEvent,
+      {String? fromIdPubkey}) async {
+    Message? message = await DBProvider.database.messages
+        .filter()
+        .msgidEqualTo(nostrEvent.id)
+        .findFirst();
+    if (message == null) {
+      await RoomService.instance.receiveDM(room, nostrEvent,
+          decodedContent: '''
+$error
+
+track: $content''',
+          senderPubkey: fromIdPubkey);
+      return;
+    }
+    message.content = '''${message.content}
+
+$error ''';
+    await MessageService.instance.updateMessageAndRefresh(message);
   }
 }

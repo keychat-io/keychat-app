@@ -106,14 +106,7 @@ class SettingController extends GetxController with StateMixin<Type> {
       EasyLoading.showError('Biometrics not available');
       return;
     }
-    final List<BiometricType> availableBiometrics =
-        await auth.getAvailableBiometrics();
 
-    loggerNoLine.i('Available biometrics: $availableBiometrics');
-    if (availableBiometrics.isEmpty) {
-      EasyLoading.showError('No biometrics available');
-      return;
-    }
     try {
       final bool didAuthenticate = await auth.authenticate(
           localizedReason: 'Authenticate',
@@ -146,18 +139,14 @@ class SettingController extends GetxController with StateMixin<Type> {
       EasyLoading.showError('Biometrics not available');
       return false;
     }
-    final List<BiometricType> availableBiometrics =
-        await auth.getAvailableBiometrics();
 
-    if (availableBiometrics.isEmpty) {
-      return false;
-    }
     try {
       bool result = await auth.authenticate(
           localizedReason: 'Authenticate',
           options: const AuthenticationOptions(useErrorDialogs: false));
       return result;
     } catch (e) {
+      logger.e('Authentication error: $e');
       return false;
     }
   }

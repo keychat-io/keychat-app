@@ -153,19 +153,24 @@ class HomeController extends GetxController
         resumed = true;
 
         // if app running background > 10s
-        bool pausedTooLong = false;
+        bool wasAppBackgroundedTooLong = false;
         if (pausedTime != null) {
-          pausedTooLong = DateTime.now().difference(pausedTime!).inSeconds > 10;
+          wasAppBackgroundedTooLong =
+              DateTime.now().difference(pausedTime!).inSeconds > 10;
         }
 
         removeBadge();
-        // desktop: _pausedBefore == false;
-        if (GetPlatform.isDesktop) {
+
+        // websocket status
+        bool shouldConnect =
+            Get.find<WebsocketService>().relayConnectedCount.value == 0 ||
+                GetPlatform.isDesktop ||
+                wasAppBackgroundedTooLong;
+        if (shouldConnect) {
           Get.find<WebsocketService>().checkOnlineAndConnect();
         }
-        if (pausedTooLong && GetPlatform.isMobile) {
-          Get.find<WebsocketService>().checkOnlineAndConnect();
-        }
+
+        // app status
         EasyThrottle.throttle(
             'AppLifecycleState.resumed', const Duration(seconds: 2), () {
           NostrAPI.instance.okCallback.clear();
@@ -200,7 +205,7 @@ class HomeController extends GetxController
     int time = Get.find<SettingController>().biometricsAuthTime.value;
     if (time != 0 && pausedTime != null) {
       bool isTimeToValid =
-          DateTime.now().difference(pausedTime!).inMinutes > time;
+          DateTime.now().difference(pausedTime!).inSeconds > time * 60;
 
       if (!isTimeToValid) {
         loggerNoLine.d(

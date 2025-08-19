@@ -50,7 +50,7 @@ dependencies:
   flutter_spinkit: ^5.2.2 # loading
   dio: ^5.9.0
   photo_view: ^0.15.0
-  image_picker: ^1.0.7 # select image
+  image_picker: ^1.2.0 # select image
   any_link_preview: ^3.0.2 # show link preview in chat content
   flutter_dotenv: ^5.2.1
   logger: ^2.6.1

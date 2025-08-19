@@ -1,5 +1,6 @@
 import 'package:app/controller/setting.controller.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
 class BiometricAuthScreen extends StatefulWidget {
@@ -20,7 +21,9 @@ class _BiometricAuthScreenState extends State<BiometricAuthScreen> {
     bool result = await Get.find<SettingController>().authenticate();
     if (result) {
       Get.back();
+      return;
     }
+    EasyLoading.showError('Authentication failed or cancelled');
   }
 
   @override

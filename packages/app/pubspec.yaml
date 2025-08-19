@@ -102,6 +102,7 @@ dependencies:
     git:
       url: https://github.com/KasemJaffer/receive_sharing_intent
   custom_refresh_indicator: ^4.0.1
+  local_auth: ^2.3.0
 
 dev_dependencies:
   flutter_test:

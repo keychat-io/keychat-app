@@ -46,6 +46,7 @@ class StorageKeyString {
   static const String mlsPKTimestamp = 'mlsPKTimestamp';
 
   static const String mobileKeepAlive = 'mobileKeepAlive';
+  static const String biometricsAuthTime = 'biometricsAuthTime';
 }
 
 class Storage {

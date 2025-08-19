@@ -8,6 +8,7 @@ import 'package:app/nostr-core/nostr.dart';
 import 'package:app/page/chat/ForwardSelectRoom.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/create_contact_page.dart';
+import 'package:app/page/setting/BiometricAuthScreen.dart';
 import 'package:app/service/file.service.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/mls_group.service.dart';
@@ -75,8 +76,6 @@ class HomeController extends GetxController
 
   DateTime? pausedTime;
 
-  List<AppLifecycleState> appstates = [];
-
   RxInt defaultSelectedTab =
       (-1).obs; // 0: chat, 1: browser, -1: last opened tab
   int selectedTabIndex = 0; // main bottom tab index
@@ -140,6 +139,7 @@ class HomeController extends GetxController
     logger.i('CreateAIIdentity Success');
   }
 
+  bool _pausedBefore = false;
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
@@ -148,36 +148,38 @@ class HomeController extends GetxController
     // apprun-> inactive -> resumed
     // apprun->inactive -> hidden-> paused ->hidden->inactive->resumed
     // macos:  apprun->inactive -> resumed
-    appstates.add(state);
     switch (state) {
       case AppLifecycleState.resumed:
         resumed = true;
 
-        // if app running background > 20s, then reconnect. Otherwise check status first
-        bool resumeFromPausedStatus = false;
-        if (appstates.contains(AppLifecycleState.paused)) {
-          if (pausedTime != null) {
-            resumeFromPausedStatus = DateTime.now()
-                .subtract(const Duration(seconds: 10))
-                .isAfter(pausedTime!);
-          }
+        // if app running background > 10s
+        bool pausedTooLong = false;
+        if (pausedTime != null) {
+          pausedTooLong = DateTime.now().difference(pausedTime!).inSeconds > 10;
         }
-        appstates.clear();
+
         removeBadge();
-        EasyThrottle.throttle(
-            'AppLifecycleState.resumed', const Duration(seconds: 3), () {
+        // desktop: _pausedBefore == false;
+        if (GetPlatform.isDesktop) {
           Get.find<WebsocketService>().checkOnlineAndConnect();
-          if (resumeFromPausedStatus) {
-            NostrAPI.instance.okCallback.clear();
-            Utils.initLoggger(Get.find<SettingController>().appFolder);
-            NotifyService.syncPubkeysToServer(checkUpload: true);
-            return;
-          }
+        }
+        if (pausedTooLong && GetPlatform.isMobile) {
+          Get.find<WebsocketService>().checkOnlineAndConnect();
+        }
+        EasyThrottle.throttle(
+            'AppLifecycleState.resumed', const Duration(seconds: 2), () {
+          NostrAPI.instance.okCallback.clear();
+          Utils.initLoggger(Get.find<SettingController>().appFolder);
+          NotifyService.syncPubkeysToServer(checkUpload: true);
         });
 
-        return;
+        // check biometrics
+        await biometricsAuth(_pausedBefore);
+        _pausedBefore = false;
+        break;
       case AppLifecycleState.paused:
         resumed = false;
+        _pausedBefore = true;
         pausedTime = DateTime.now();
         break;
       case AppLifecycleState.detached:
@@ -186,6 +188,31 @@ class HomeController extends GetxController
       default:
         break;
     }
+  }
+
+  Future<void> biometricsAuth(bool auth) async {
+    if (!(auth && GetPlatform.isMobile)) return;
+    if (Get.currentRoute == '/BiometricAuthScreen') return;
+
+    bool isBiometricsEnable = await SecureStorage.instance.isBiometricsEnable();
+    if (!isBiometricsEnable) return;
+
+    int time = Get.find<SettingController>().biometricsAuthTime.value;
+    if (time != 0 && pausedTime != null) {
+      bool isTimeToValid =
+          DateTime.now().difference(pausedTime!).inMinutes > time;
+
+      if (!isTimeToValid) {
+        loggerNoLine.d(
+            'Paused: ${DateTime.now().difference(pausedTime!).inSeconds} seconds, skip now.');
+        return;
+      }
+    }
+
+    await Get.to(() => const BiometricAuthScreen(),
+        fullscreenDialog: true,
+        popGesture: false,
+        transition: Transition.fadeIn);
   }
 
   Future loadAppRemoteConfig() async {

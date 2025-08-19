@@ -236,27 +236,31 @@ Let's start an encrypted chat.''';
           showModalBottomSheetWidget(
               context,
               'Auto Delete Messages',
-              Obx(() => SettingsList(platform: DevicePlatform.iOS, sections: [
-                    SettingsSection(
-                        title: const Text(
-                            'Messages will been deleted before days'),
-                        tiles: [0, 1, 7, 30, 90]
-                            .map(
-                              (e) => SettingsTile(
-                                onPressed: (context) {
-                                  autoDeleteHandle(e);
-                                },
-                                title: Text(Utils.getDaysText(e)),
-                                trailing: cc.roomObs.value.autoDeleteDays == e
-                                    ? const Icon(
-                                        Icons.done,
-                                        color: Colors.green,
-                                      )
-                                    : null,
-                              ),
-                            )
-                            .toList())
-                  ])));
+              Obx(() => SettingsList(
+                      platform: DevicePlatform.iOS,
+                      physics: NeverScrollableScrollPhysics(),
+                      sections: [
+                        SettingsSection(
+                            title: const Text(
+                                'Messages will been deleted before days'),
+                            tiles: [0, 1, 7, 30, 90]
+                                .map(
+                                  (e) => SettingsTile(
+                                    onPressed: (context) {
+                                      autoDeleteHandle(e);
+                                    },
+                                    title: Text(Utils.getDaysText(e)),
+                                    trailing:
+                                        cc.roomObs.value.autoDeleteDays == e
+                                            ? const Icon(
+                                                Icons.done,
+                                                color: Colors.green,
+                                              )
+                                            : null,
+                                  ),
+                                )
+                                .toList())
+                      ])));
         });
   }
 

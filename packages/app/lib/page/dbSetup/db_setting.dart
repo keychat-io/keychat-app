@@ -4,7 +4,6 @@ import 'package:app/service/secure_storage.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -67,7 +66,7 @@ class DbSetting {
     return outputFile;
   }
 
-  Future exportDB(BuildContext context, encryptionKey) async {
+  Future exportDB(String encryptionKey) async {
     final fileName =
         'Keychat_db_${formatTime(DateTime.now().millisecondsSinceEpoch, 'yyyy-MM-dd_HH-mm-ss')}';
     var appFolder = await Utils.getAppFolder();
@@ -230,8 +229,7 @@ class DbSetting {
     }
   }
 
-  Future<bool> importDB(
-      BuildContext context, String decryptionKey, File file) async {
+  Future<bool> importDB(String decryptionKey, File file) async {
     Directory appFolder = await Utils.getAppFolder();
 
     String sourcePath = '${appFolder.path}/prod/database/';

@@ -28,14 +28,16 @@ class _BiometricAuthScreenState extends State<BiometricAuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: FilledButton(
-            onPressed: () {
-              auth();
-            },
-            child: const Text('Unlock Keychat')),
-      ),
-    );
+    return PopScope(
+        canPop: false,
+        child: Scaffold(
+          body: Center(
+            child: FilledButton(
+                onPressed: () {
+                  auth();
+                },
+                child: const Text('Unlock Keychat')),
+          ),
+        ));
   }
 }

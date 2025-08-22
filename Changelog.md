@@ -2,10 +2,10 @@
 https://keepachangelog.com/zh-CN/1.1.0
 git log -n 5 --pretty=format:"%h - %s (%ci)"
 
-## 1.35.1+6419
-1. fetch contact's avatar, name, about from relay
-2. fetch identity's avatar from relay
-
+## 1.35.3+6421
+1. Setting: use Device Authentication
+2. Fetch contact's avatar, name, about from relay
+3. Fetch identity's avatar from relay
 
 ## 1.34.1+6413
 1.  Show tips when receiving a kind-4 message.

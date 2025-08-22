@@ -146,6 +146,7 @@ class SettingController extends GetxController with StateMixin<Type> {
           options: const AuthenticationOptions(useErrorDialogs: false));
       return result;
     } catch (e) {
+      EasyLoading.showError('Auth Failed: $e');
       logger.e('Authentication error: $e');
       return false;
     }

@@ -1,6 +1,6 @@
 import 'dart:async' show TimeoutException;
 import 'dart:convert' show jsonDecode, jsonEncode;
-import 'dart:io' show Directory, File, FileMode, Platform;
+import 'dart:io' show Directory, File, FileMode, Platform, exit;
 import 'dart:math' show Random;
 
 import 'package:app/controller/setting.controller.dart';
@@ -8,6 +8,7 @@ import 'package:app/global.dart';
 import 'package:app/models/contact.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/models/room.dart';
+import 'package:app/page/dbSetup/db_setting.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/service/SignerService.dart';
 import 'package:app/service/contact.service.dart';
@@ -1081,5 +1082,110 @@ class Utils {
     } catch (e) {
       logger.e('Failed to write error to file: $e');
     }
+  }
+
+  static enableImportDB() {
+    Get.dialog(CupertinoAlertDialog(
+      title: const Text("Alert"),
+      content: const Text(
+          'Once executed, this action will permanently delete all your local data. Proceed with caution to avoid unintended consequences.'),
+      actions: <Widget>[
+        CupertinoDialogAction(
+          child: const Text("Cancel"),
+          onPressed: () {
+            Get.back();
+          },
+        ),
+        CupertinoDialogAction(
+          child: const Text("Confirm"),
+          onPressed: () async {
+            File? file = await DbSetting().importFile();
+            if (file == null) {
+              return;
+            }
+            _showEnterDecryptionPwdDialog(file);
+          },
+        ),
+      ],
+    ));
+  }
+
+  static _showEnterDecryptionPwdDialog(File file) {
+    TextEditingController passwordController = TextEditingController();
+
+    Get.dialog(
+      CupertinoAlertDialog(
+        title: const Text("Enter decryption password"),
+        content: Container(
+          color: Colors.transparent,
+          padding: const EdgeInsets.only(top: 15),
+          child: Column(
+            children: [
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                textInputAction: TextInputAction.done,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Password',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Get.back();
+            },
+            child: const Text('Cancel'),
+          ),
+          CupertinoActionSheetAction(
+            isDefaultAction: true,
+            onPressed: () async {
+              if (passwordController.text.isEmpty) {
+                EasyLoading.showError('Password can not be empty');
+                return;
+              }
+
+              try {
+                EasyLoading.show(status: 'Decrypting...');
+                bool success =
+                    await DbSetting().importDB(passwordController.text, file);
+                EasyLoading.dismiss();
+                if (!success) {
+                  EasyLoading.showError('Decryption failed');
+                  return;
+                }
+                EasyLoading.showSuccess("Decryption successful");
+                Get.dialog(
+                  CupertinoAlertDialog(
+                    title: const Text('Restart Required'),
+                    content: const Text(
+                        'The app needs to restart to reload the database. Please restart the app manually.'),
+                    actions: [
+                      CupertinoDialogAction(
+                        child: const Text(
+                          'Exit',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                        onPressed: () {
+                          exit(0); // Exit the app
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              } catch (e, s) {
+                logger.e('Decryption error: $e', stackTrace: s);
+                EasyLoading.showError('Decryption failed');
+              }
+            },
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
   }
 }

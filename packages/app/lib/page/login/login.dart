@@ -3,7 +3,6 @@ import 'package:app/page/login/CreateAccount.dart';
 import 'package:app/page/login/import_nsec.dart';
 import 'package:app/page/login/import_seed_phrase.dart';
 import 'package:app/page/routes.dart';
-import 'package:app/page/setting/app_general_setting.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -111,7 +110,7 @@ class Login extends StatelessWidget {
           leading: const Icon(Icons.file_open),
           title: const Text("From Backup File"),
           onPressed: (context) {
-            AppGeneralSetting.enableImportDB(context);
+            Utils.enableImportDB();
           },
         ),
         SettingsTile.navigation(

@@ -1,4 +1,4 @@
-import 'dart:io' show File, exit;
+import 'dart:io' show exit;
 
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
@@ -25,8 +25,23 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:settings_ui/settings_ui.dart';
 
-class AppGeneralSetting extends GetView<SettingController> {
+class AppGeneralSetting extends StatefulWidget {
   const AppGeneralSetting({super.key});
+
+  @override
+  State<AppGeneralSetting> createState() => _AppGeneralSettingState();
+}
+
+class _AppGeneralSettingState extends State<AppGeneralSetting> {
+  late SettingController controller;
+  bool _biometricsEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.find<SettingController>();
+    _biometricsEnabled = controller.biometricsEnabled.value;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,218 +51,211 @@ class AppGeneralSetting extends GetView<SettingController> {
           centerTitle: true,
           title: const Text('App Settings'),
         ),
-        body: Obx(() => SettingsList(
-              platform: DevicePlatform.iOS,
-              sections: [
-                SettingsSection(tiles: [
-                  SettingsTile.navigation(
-                      leading: const Icon(CupertinoIcons.brightness),
-                      onPressed: (context) async {
-                        Get.bottomSheet(
-                            clipBehavior: Clip.antiAlias,
-                            shape: const RoundedRectangleBorder(
-                                borderRadius: BorderRadius.vertical(
-                                    top: Radius.circular(4))),
-                            Obx(() => SettingsList(
-                                    platform: DevicePlatform.iOS,
-                                    sections: [
-                                      SettingsSection(
-                                          title:
-                                              const Text('Select theme mode'),
-                                          tiles: [
-                                            SettingsTile(
-                                              onPressed: (value) async {
-                                                Get.changeThemeMode(
-                                                    ThemeMode.system);
-                                                controller.themeMode.value =
-                                                    ThemeMode.system.name;
-                                                await Storage.setString(
-                                                    StorageKeyString.themeMode,
-                                                    ThemeMode.system.name);
-                                              },
-                                              title: const Text("System Mode"),
-                                              trailing:
-                                                  controller.themeMode.value ==
-                                                          ThemeMode.system.name
+        body: SettingsList(
+          platform: DevicePlatform.iOS,
+          sections: [
+            SettingsSection(tiles: [
+              SettingsTile.navigation(
+                  leading: const Icon(CupertinoIcons.brightness),
+                  onPressed: (context) async {
+                    Get.bottomSheet(
+                        clipBehavior: Clip.antiAlias,
+                        shape: const RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.vertical(top: Radius.circular(4))),
+                        Obx(() => SettingsList(
+                                platform: DevicePlatform.iOS,
+                                sections: [
+                                  SettingsSection(
+                                      title: const Text('Select theme mode'),
+                                      tiles: [
+                                        SettingsTile(
+                                          onPressed: (value) async {
+                                            Get.changeThemeMode(
+                                                ThemeMode.system);
+                                            controller.themeMode.value =
+                                                ThemeMode.system.name;
+                                            await Storage.setString(
+                                                StorageKeyString.themeMode,
+                                                ThemeMode.system.name);
+                                          },
+                                          title: const Text("System Mode"),
+                                          trailing:
+                                              controller.themeMode.value ==
+                                                      ThemeMode.system.name
+                                                  ? const Icon(
+                                                      Icons.done,
+                                                      color: Colors.green,
+                                                    )
+                                                  : null,
+                                        ),
+                                        SettingsTile(
+                                          onPressed: (value) async {
+                                            Get.changeThemeMode(
+                                                ThemeMode.light);
+                                            controller.themeMode.value =
+                                                ThemeMode.light.name;
+                                            await Storage.setString(
+                                                StorageKeyString.themeMode,
+                                                ThemeMode.light.name);
+                                          },
+                                          title: const Text("Light Mode"),
+                                          trailing:
+                                              controller.themeMode.value ==
+                                                      ThemeMode.light.name
+                                                  ? const Icon(
+                                                      Icons.done,
+                                                      color: Colors.green,
+                                                    )
+                                                  : null,
+                                        ),
+                                        SettingsTile(
+                                          onPressed: (value) async {
+                                            Get.changeThemeMode(ThemeMode.dark);
+                                            controller.themeMode.value =
+                                                ThemeMode.dark.name;
+                                            await Storage.setString(
+                                                StorageKeyString.themeMode,
+                                                ThemeMode.dark.name);
+                                          },
+                                          title: const Text("Dark Mode"),
+                                          trailing:
+                                              controller.themeMode.value ==
+                                                      ThemeMode.dark.name
+                                                  ? const Icon(
+                                                      Icons.done,
+                                                      color: Colors.green,
+                                                    )
+                                                  : null,
+                                        ),
+                                      ])
+                                ])));
+                  },
+                  title: const Text("Dark Mode")),
+              SettingsTile.navigation(
+                leading: const Icon(CupertinoIcons.home),
+                title: const Text("Startup Tab"),
+                onPressed: (context) async {
+                  Get.bottomSheet(
+                      clipBehavior: Clip.antiAlias,
+                      shape: const RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(4))),
+                      Scaffold(
+                          appBar: AppBar(
+                            title: Text('Default startup tab'),
+                          ),
+                          body: Column(
+                            children: hc.defaultTabConfig.entries.map((entry) {
+                              return RadioListTile<dynamic>(
+                                title: Text(entry.key),
+                                value: entry.value,
+                                groupValue: hc.defaultSelectedTab.value,
+                                onChanged: (value) {
+                                  if (value == null) return;
+                                  hc.setDefaultSelectedTab(value);
+                                  EasyLoading.showSuccess('Set successfully');
+                                  Get.back();
+                                },
+                              );
+                            }).toList(),
+                          )));
+                },
+              ),
+              SettingsTile.navigation(
+                leading: const Icon(CupertinoIcons.doc),
+                title: const Text("App File Explore"),
+                onPressed: (context) async {
+                  Get.to(() => FileExplorerPage(dir: controller.appFolder),
+                      id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
+                },
+              ),
+              SettingsTile.navigation(
+                leading: const Icon(CupertinoIcons.question_circle),
+                title: const Text("About Keychat"),
+                onPressed: (context) {
+                  Get.to(() => const OnboardingPage2(),
+                      id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
+                },
+              ),
+            ]),
+            if (GetPlatform.isMobile)
+              SettingsSection(title: const Text('Security'), tiles: [
+                SettingsTile.switchTile(
+                    initialValue: _biometricsEnabled,
+                    onToggle: (value) async {
+                      await controller.setBiometricsStatus(value);
+                      setState(() {
+                        _biometricsEnabled = value;
+                      });
+                    },
+                    leading: const Icon(Icons.security),
+                    title: const Text("Use Device Authentication")),
+                SettingsTile.navigation(
+                    leading: const Icon(CupertinoIcons.clock),
+                    title: const Text("Require authentication"),
+                    value: Obx(() => Text(
+                        formatAuthTime(controller.biometricsAuthTime.value))),
+                    onPressed: (_) {
+                      List<int> authTimes = [0, 1, 5, 15, 30, 60, 240, 480];
+                      showModalBottomSheetWidget(
+                          context,
+                          'Require authentication',
+                          Obx(() => SettingsList(
+                                  platform: DevicePlatform.iOS,
+                                  physics: NeverScrollableScrollPhysics(),
+                                  sections: [
+                                    SettingsSection(
+                                        tiles: authTimes
+                                            .map(
+                                              (int minutes) => SettingsTile(
+                                                  onPressed: (context) {
+                                                    controller
+                                                        .setBiometricsAuthTime(
+                                                            minutes);
+                                                  },
+                                                  title: Text(
+                                                      formatAuthTime(minutes)),
+                                                  trailing: controller
+                                                              .biometricsAuthTime
+                                                              .value ==
+                                                          minutes
                                                       ? const Icon(
                                                           Icons.done,
                                                           color: Colors.green,
                                                         )
-                                                      : null,
-                                            ),
-                                            SettingsTile(
-                                              onPressed: (value) async {
-                                                Get.changeThemeMode(
-                                                    ThemeMode.light);
-                                                controller.themeMode.value =
-                                                    ThemeMode.light.name;
-                                                await Storage.setString(
-                                                    StorageKeyString.themeMode,
-                                                    ThemeMode.light.name);
-                                              },
-                                              title: const Text("Light Mode"),
-                                              trailing:
-                                                  controller.themeMode.value ==
-                                                          ThemeMode.light.name
-                                                      ? const Icon(
-                                                          Icons.done,
-                                                          color: Colors.green,
-                                                        )
-                                                      : null,
-                                            ),
-                                            SettingsTile(
-                                              onPressed: (value) async {
-                                                Get.changeThemeMode(
-                                                    ThemeMode.dark);
-                                                controller.themeMode.value =
-                                                    ThemeMode.dark.name;
-                                                await Storage.setString(
-                                                    StorageKeyString.themeMode,
-                                                    ThemeMode.dark.name);
-                                              },
-                                              title: const Text("Dark Mode"),
-                                              trailing:
-                                                  controller.themeMode.value ==
-                                                          ThemeMode.dark.name
-                                                      ? const Icon(
-                                                          Icons.done,
-                                                          color: Colors.green,
-                                                        )
-                                                      : null,
-                                            ),
-                                          ])
-                                    ])));
-                      },
-                      title: const Text("Dark Mode")),
-                  SettingsTile.navigation(
-                    leading: const Icon(CupertinoIcons.home),
-                    title: const Text("Startup Tab"),
-                    onPressed: (context) async {
-                      Get.bottomSheet(
-                          clipBehavior: Clip.antiAlias,
-                          shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                  top: Radius.circular(4))),
-                          Scaffold(
-                              appBar: AppBar(
-                                title: Text('Default startup tab'),
-                              ),
-                              body: Column(
-                                children:
-                                    hc.defaultTabConfig.entries.map((entry) {
-                                  return RadioListTile<dynamic>(
-                                    title: Text(entry.key),
-                                    value: entry.value,
-                                    groupValue: hc.defaultSelectedTab.value,
-                                    onChanged: (value) {
-                                      if (value == null) return;
-                                      hc.setDefaultSelectedTab(value);
-                                      EasyLoading.showSuccess(
-                                          'Set successfully');
-                                      Get.back();
-                                    },
-                                  );
-                                }).toList(),
-                              )));
-                    },
+                                                      : null),
+                                            )
+                                            .toList())
+                                  ])));
+                    })
+                // SettingsTile.navigation(
+                //   leading: const Icon(Icons.pin),
+                //   title: const Text("Reset PIN"),
+                //   onPressed: (context) {
+                //     Get.to(() => const ResetPinPage(),
+                //         id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
+                //   },
+                // ),
+              ]),
+            SettingsSection(title: const Text('Data Backup'), tiles: [
+              SettingsTile.navigation(
+                  leading: const Icon(Icons.storage),
+                  title: const Text("Database Setting"),
+                  onPressed: handleDBSettting)
+            ]),
+            SettingsSection(tiles: [
+              SettingsTile.navigation(
+                  leading: const Icon(
+                    CupertinoIcons.trash,
+                    color: Colors.red,
                   ),
-                  SettingsTile.navigation(
-                    leading: const Icon(CupertinoIcons.doc),
-                    title: const Text("App File Explore"),
-                    onPressed: (context) async {
-                      Get.to(() => FileExplorerPage(dir: controller.appFolder),
-                          id: GetPlatform.isDesktop
-                              ? GetXNestKey.setting
-                              : null);
-                    },
-                  ),
-                  SettingsTile.navigation(
-                    leading: const Icon(CupertinoIcons.question_circle),
-                    title: const Text("About Keychat"),
-                    onPressed: (context) {
-                      Get.to(() => const OnboardingPage2(),
-                          id: GetPlatform.isDesktop
-                              ? GetXNestKey.setting
-                              : null);
-                    },
-                  ),
-                ]),
-                if (GetPlatform.isMobile)
-                  SettingsSection(title: const Text('Security'), tiles: [
-                    SettingsTile.switchTile(
-                        initialValue: controller.biometricsEnabled.value,
-                        onToggle: (value) async {
-                          await controller.setBiometricsStatus(value);
-                        },
-                        leading: const Icon(Icons.security),
-                        title: const Text("Use Device Authentication")),
-                    SettingsTile.navigation(
-                        leading: const Icon(CupertinoIcons.clock),
-                        title: const Text("Require authentication"),
-                        value: Obx(() => Text(formatAuthTime(
-                            controller.biometricsAuthTime.value))),
-                        onPressed: (_) {
-                          List<int> authTimes = [0, 1, 5, 15, 30, 60, 240, 480];
-                          showModalBottomSheetWidget(
-                              context,
-                              'Require authentication',
-                              Obx(() => SettingsList(
-                                      platform: DevicePlatform.iOS,
-                                      physics: NeverScrollableScrollPhysics(),
-                                      sections: [
-                                        SettingsSection(
-                                            tiles: authTimes
-                                                .map(
-                                                  (int minutes) => SettingsTile(
-                                                      onPressed: (context) {
-                                                        controller
-                                                            .setBiometricsAuthTime(
-                                                                minutes);
-                                                      },
-                                                      title: Text(
-                                                          formatAuthTime(
-                                                              minutes)),
-                                                      trailing: controller
-                                                                  .biometricsAuthTime
-                                                                  .value ==
-                                                              minutes
-                                                          ? const Icon(
-                                                              Icons.done,
-                                                              color:
-                                                                  Colors.green,
-                                                            )
-                                                          : null),
-                                                )
-                                                .toList())
-                                      ])));
-                        })
-                    // SettingsTile.navigation(
-                    //   leading: const Icon(Icons.pin),
-                    //   title: const Text("Reset PIN"),
-                    //   onPressed: (context) {
-                    //     Get.to(() => const ResetPinPage(),
-                    //         id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
-                    //   },
-                    // ),
-                  ]),
-                SettingsSection(title: const Text('Data Backup'), tiles: [
-                  SettingsTile.navigation(
-                      leading: const Icon(Icons.storage),
-                      title: const Text("Database Setting"),
-                      onPressed: handleDBSettting)
-                ]),
-                SettingsSection(tiles: [
-                  SettingsTile.navigation(
-                      leading: const Icon(
-                        CupertinoIcons.trash,
-                        color: Colors.red,
-                      ),
-                      title: const Text("Logout",
-                          style: TextStyle(color: Colors.red)),
-                      onPressed: deleteAccount)
-                ])
-              ],
-            )));
+                  title:
+                      const Text("Logout", style: TextStyle(color: Colors.red)),
+                  onPressed: deleteAccount)
+            ])
+          ],
+        ));
   }
 
   String formatAuthTime(int minutes) {
@@ -398,111 +406,6 @@ class AppGeneralSetting extends GetView<SettingController> {
         ],
       ),
     );
-  }
-
-  static _showEnterDecryptionPwdDialog(File file) {
-    TextEditingController passwordController = TextEditingController();
-
-    Get.dialog(
-      CupertinoAlertDialog(
-        title: const Text("Enter decryption password"),
-        content: Container(
-          color: Colors.transparent,
-          padding: const EdgeInsets.only(top: 15),
-          child: Column(
-            children: [
-              TextField(
-                controller: passwordController,
-                obscureText: true,
-                textInputAction: TextInputAction.done,
-                autofocus: true,
-                decoration: const InputDecoration(
-                  labelText: 'Password',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Get.back();
-            },
-            child: const Text('Cancel'),
-          ),
-          CupertinoActionSheetAction(
-            isDefaultAction: true,
-            onPressed: () async {
-              if (passwordController.text.isEmpty) {
-                EasyLoading.showError('Password can not be empty');
-                return;
-              }
-
-              try {
-                EasyLoading.show(status: 'Decrypting...');
-                bool success =
-                    await DbSetting().importDB(passwordController.text, file);
-                EasyLoading.dismiss();
-                if (!success) {
-                  EasyLoading.showError('Decryption failed');
-                  return;
-                }
-                EasyLoading.showSuccess("Decryption successful");
-                Get.dialog(
-                  CupertinoAlertDialog(
-                    title: const Text('Restart Required'),
-                    content: const Text(
-                        'The app needs to restart to reload the database. Please restart the app manually.'),
-                    actions: [
-                      CupertinoDialogAction(
-                        child: const Text(
-                          'Exit',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                        onPressed: () {
-                          exit(0); // Exit the app
-                        },
-                      ),
-                    ],
-                  ),
-                );
-              } catch (e, s) {
-                logger.e('Decryption error: $e', stackTrace: s);
-                EasyLoading.showError('Decryption failed');
-              }
-            },
-            child: const Text('Confirm'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static enableImportDB(BuildContext context) {
-    Get.dialog(CupertinoAlertDialog(
-      title: const Text("Alert"),
-      content: const Text(
-          'Once executed, this action will permanently delete all your local data. Proceed with caution to avoid unintended consequences.'),
-      actions: <Widget>[
-        CupertinoDialogAction(
-          child: const Text("Cancel"),
-          onPressed: () {
-            Get.back();
-          },
-        ),
-        CupertinoDialogAction(
-          child: const Text("Confirm"),
-          onPressed: () async {
-            File? file = await DbSetting().importFile();
-            if (file == null) {
-              return;
-            }
-            _showEnterDecryptionPwdDialog(file);
-          },
-        ),
-      ],
-    ));
   }
 
   void closeAllRelays() async {

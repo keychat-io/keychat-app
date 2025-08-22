@@ -29,7 +29,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart' show DateFormat;
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:keychat_rust_ffi_plugin/index.dart' hide Contact;
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;

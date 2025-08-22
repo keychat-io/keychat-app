@@ -8,7 +8,7 @@ import 'package:app/models/signal_id.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:convert/convert.dart' show hex;
 import 'package:get/get.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
 import 'package:keychat_rust_ffi_plugin/api_signal.dart';
 

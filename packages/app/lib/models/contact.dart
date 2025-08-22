@@ -2,7 +2,7 @@ import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:app/service/contact.service.dart';
 import 'package:equatable/equatable.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 part 'contact.g.dart';
 

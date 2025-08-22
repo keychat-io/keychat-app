@@ -15,7 +15,7 @@ import 'package:app/service/websocket.service.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 // import 'package:flutter_json_view/flutter_json_view.dart';
 
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 // import 'package:cached_network_image/cached_network_image.dart';

@@ -6,7 +6,7 @@ import 'package:app/models/mykey.dart';
 import 'package:app/models/room.dart';
 import 'package:app/models/room_member.dart';
 import 'package:app/service/signalId.service.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class GroupTx {

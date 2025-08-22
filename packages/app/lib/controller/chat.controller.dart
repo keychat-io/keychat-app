@@ -22,7 +22,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:mime/mime.dart' show extensionFromMime;
 import 'package:path_provider/path_provider.dart';

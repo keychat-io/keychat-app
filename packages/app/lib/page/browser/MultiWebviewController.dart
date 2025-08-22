@@ -15,7 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart'
     hide Storage, WebResourceError;
 import 'package:get/get.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class WebviewTabData {

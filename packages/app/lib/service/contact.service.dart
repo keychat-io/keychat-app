@@ -3,7 +3,7 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:get/get.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:mutex/mutex.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 

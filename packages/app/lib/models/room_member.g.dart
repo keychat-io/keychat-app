@@ -99,7 +99,7 @@ const RoomMemberSchema = CollectionSchema(
   getId: _roomMemberGetId,
   getLinks: _roomMemberGetLinks,
   attach: _roomMemberAttach,
-  version: '3.1.8',
+  version: '3.2.0-dev.2',
 );
 
 int _roomMemberEstimateSize(

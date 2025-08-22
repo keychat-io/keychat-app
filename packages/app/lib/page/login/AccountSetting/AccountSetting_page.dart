@@ -21,7 +21,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:settings_ui/settings_ui.dart';
 import './AccountSetting_controller.dart';

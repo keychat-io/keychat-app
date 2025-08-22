@@ -16,7 +16,7 @@ import flutter_inappwebview_macos
 import flutter_new_badger
 import flutter_secure_storage_darwin
 import irondash_engine_context
-import isar_flutter_libs
+import isar_community_flutter_libs
 import local_auth_darwin
 import package_info_plus
 import path_provider_foundation

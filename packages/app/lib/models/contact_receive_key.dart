@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 part 'contact_receive_key.g.dart';
 

@@ -14,7 +14,7 @@ import 'package:app/models/models.dart';
 
 import 'package:app/utils.dart';
 import 'package:get/get.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 import '../controller/chat.controller.dart';
 import '../controller/home.controller.dart';

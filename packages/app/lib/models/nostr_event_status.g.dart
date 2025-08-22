@@ -115,7 +115,7 @@ const NostrEventStatusSchema = CollectionSchema(
   getId: _nostrEventStatusGetId,
   getLinks: _nostrEventStatusGetLinks,
   attach: _nostrEventStatusAttach,
-  version: '3.1.8',
+  version: '3.2.0-dev.2',
 );
 
 int _nostrEventStatusEstimateSize(

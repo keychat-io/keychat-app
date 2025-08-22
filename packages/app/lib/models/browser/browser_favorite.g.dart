@@ -88,7 +88,7 @@ const BrowserFavoriteSchema = CollectionSchema(
   getId: _browserFavoriteGetId,
   getLinks: _browserFavoriteGetLinks,
   attach: _browserFavoriteAttach,
-  version: '3.1.8',
+  version: '3.2.0-dev.2',
 );
 
 int _browserFavoriteEstimateSize(

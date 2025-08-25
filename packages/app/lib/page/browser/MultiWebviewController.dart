@@ -15,7 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart'
     hide Storage, WebResourceError;
 import 'package:get/get.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class WebviewTabData {
@@ -499,8 +499,11 @@ window.addEventListener('DOMContentLoaded', function(event) {
     if (GetPlatform.isDesktop) {
       return null;
     }
-    String host = Uri.tryParse(url)?.host ?? url;
-
+    String? host = Uri.tryParse(url)?.host;
+    if (host == null || host.isEmpty) {
+      host = url;
+    }
+    logger.d('enableKeepAlive host: $host');
     mobileKeepAlive[host] = InAppWebViewKeepAlive();
     await Storage.setStringList(
         StorageKeyString.mobileKeepAlive, mobileKeepAlive.keys.toList());
@@ -511,7 +514,10 @@ window.addEventListener('DOMContentLoaded', function(event) {
     if (GetPlatform.isDesktop) {
       return null;
     }
-    String host = Uri.tryParse(url)?.host ?? url;
+    String? host = Uri.tryParse(url)?.host;
+    if (host == null || host.isEmpty) {
+      host = url;
+    }
     mobileKeepAlive[host] = InAppWebViewKeepAlive();
     return mobileKeepAlive[host]!;
   }
@@ -520,11 +526,7 @@ window.addEventListener('DOMContentLoaded', function(event) {
     if (GetPlatform.isDesktop) {
       return null;
     }
-    String host = url;
-    if (url.startsWith('http') || url.startsWith('https')) {
-      host = Uri.tryParse(url)?.host ?? url;
-    }
-    mobileKeepAlive.remove(host);
+    removeKeepAlive(url);
     await Storage.setStringList(
         StorageKeyString.mobileKeepAlive, mobileKeepAlive.keys.toList());
   }
@@ -533,7 +535,11 @@ window.addEventListener('DOMContentLoaded', function(event) {
     if (GetPlatform.isDesktop) {
       return null;
     }
-    String host = Uri.tryParse(url)?.host ?? url;
+    logger.d('removeKeepAlive url: $url');
+    String? host = Uri.tryParse(url)?.host;
+    if (host == null || host.isEmpty) {
+      host = url;
+    }
     mobileKeepAlive.remove(host);
     mobileKeepAlive.remove(url);
   }
@@ -558,8 +564,8 @@ window.addEventListener('DOMContentLoaded', function(event) {
       hosts = ['jumble.social'];
       await Storage.setStringList(StorageKeyString.mobileKeepAlive, hosts);
     }
-    if (hosts.isNotEmpty) {
-      for (var item in hosts) {
+    for (var item in hosts) {
+      if (!mobileKeepAlive.containsKey(item)) {
         mobileKeepAlive[item] = InAppWebViewKeepAlive();
       }
     }

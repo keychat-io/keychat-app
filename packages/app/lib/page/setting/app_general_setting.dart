@@ -1,10 +1,9 @@
-// ignore_for_file: use_build_context_synchronously
-
-import 'dart:io' show File, exit;
+import 'dart:io' show exit;
 
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/db_provider.dart';
+import 'package:app/page/components.dart';
 import 'package:app/page/dbSetup/db_setting.dart';
 
 import 'package:app/controller/home.controller.dart';
@@ -24,11 +23,25 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-
 import 'package:settings_ui/settings_ui.dart';
 
-class AppGeneralSetting extends GetView<SettingController> {
+class AppGeneralSetting extends StatefulWidget {
   const AppGeneralSetting({super.key});
+
+  @override
+  State<AppGeneralSetting> createState() => _AppGeneralSettingState();
+}
+
+class _AppGeneralSettingState extends State<AppGeneralSetting> {
+  late SettingController controller;
+  bool _biometricsEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.find<SettingController>();
+    _biometricsEnabled = controller.biometricsEnabled.value;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -166,16 +179,97 @@ class AppGeneralSetting extends GetView<SettingController> {
                 },
               ),
             ]),
-            SettingsSection(title: const Text('Backup'), tiles: [
+            if (GetPlatform.isMobile)
+              SettingsSection(title: const Text('Security'), tiles: [
+                SettingsTile.switchTile(
+                    initialValue: _biometricsEnabled,
+                    onToggle: (value) async {
+                      await controller.setBiometricsStatus(value);
+                      setState(() {
+                        _biometricsEnabled = value;
+                      });
+                    },
+                    leading: const Icon(Icons.security),
+                    title: const Text("Use Device Authentication")),
+                SettingsTile.navigation(
+                    leading: const Icon(CupertinoIcons.clock),
+                    title: const Text("Require authentication"),
+                    value: Obx(() => Text(
+                        formatAuthTime(controller.biometricsAuthTime.value))),
+                    onPressed: (_) {
+                      List<int> authTimes = [0, 1, 5, 15, 30, 60, 240, 480];
+                      showModalBottomSheetWidget(
+                          context,
+                          'Require authentication',
+                          Obx(() => SettingsList(
+                                  platform: DevicePlatform.iOS,
+                                  physics: NeverScrollableScrollPhysics(),
+                                  sections: [
+                                    SettingsSection(
+                                        tiles: authTimes
+                                            .map(
+                                              (int minutes) => SettingsTile(
+                                                  onPressed: (context) {
+                                                    controller
+                                                        .setBiometricsAuthTime(
+                                                            minutes);
+                                                  },
+                                                  title: Text(
+                                                      formatAuthTime(minutes)),
+                                                  trailing: controller
+                                                              .biometricsAuthTime
+                                                              .value ==
+                                                          minutes
+                                                      ? const Icon(
+                                                          Icons.done,
+                                                          color: Colors.green,
+                                                        )
+                                                      : null),
+                                            )
+                                            .toList())
+                                  ])));
+                    })
+                // SettingsTile.navigation(
+                //   leading: const Icon(Icons.pin),
+                //   title: const Text("Reset PIN"),
+                //   onPressed: (context) {
+                //     Get.to(() => const ResetPinPage(),
+                //         id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
+                //   },
+                // ),
+              ]),
+            SettingsSection(title: const Text('Data Backup'), tiles: [
               SettingsTile.navigation(
-                leading: const Icon(Icons.dataset_outlined),
-                title: const Text("Database Setting"),
-                onPressed: handleDBSettting,
-              )
+                  leading: const Icon(Icons.storage),
+                  title: const Text("Database Setting"),
+                  onPressed: handleDBSettting)
             ]),
-            dangerZone()
+            SettingsSection(tiles: [
+              SettingsTile.navigation(
+                  leading: const Icon(
+                    CupertinoIcons.trash,
+                    color: Colors.red,
+                  ),
+                  title:
+                      const Text("Logout", style: TextStyle(color: Colors.red)),
+                  onPressed: deleteAccount)
+            ])
           ],
         ));
+  }
+
+  String formatAuthTime(int minutes) {
+    if (minutes == 0) return 'Immediately';
+    if (minutes < 60) {
+      if (minutes == 1) {
+        return '$minutes minute';
+      }
+      return '$minutes minutes';
+    }
+
+    int hours = minutes ~/ 60;
+    if (hours == 1) return '$hours hour';
+    return '$hours hours';
   }
 
   handleDBSettting(BuildContext context) async {
@@ -297,8 +391,7 @@ class AppGeneralSetting extends GetView<SettingController> {
               await Future.delayed(const Duration(microseconds: 100));
               EasyLoading.show(status: 'Exporting...');
               try {
-                await DbSetting()
-                    .exportDB(context, confirmPasswordController.text);
+                await DbSetting().exportDB(confirmPasswordController.text);
                 EasyLoading.showSuccess("Export successful");
               } catch (e, s) {
                 logger.e(e.toString(), error: e, stackTrace: s);
@@ -315,127 +408,10 @@ class AppGeneralSetting extends GetView<SettingController> {
     );
   }
 
-  static _showEnterDecryptionPwdDialog(BuildContext context, File file) {
-    TextEditingController passwordController = TextEditingController();
-
-    Get.dialog(
-      CupertinoAlertDialog(
-        title: const Text("Enter decryption password"),
-        content: Container(
-          color: Colors.transparent,
-          padding: const EdgeInsets.only(top: 15),
-          child: Column(
-            children: [
-              TextField(
-                controller: passwordController,
-                obscureText: true,
-                textInputAction: TextInputAction.done,
-                autofocus: true,
-                decoration: const InputDecoration(
-                  labelText: 'Password',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Get.back();
-            },
-            child: const Text('Cancel'),
-          ),
-          CupertinoActionSheetAction(
-            isDefaultAction: true,
-            onPressed: () async {
-              if (passwordController.text.isEmpty) {
-                EasyLoading.showError('Password can not be empty');
-                return;
-              }
-
-              try {
-                EasyLoading.show(status: 'Decrypting...');
-                bool success = await DbSetting()
-                    .importDB(context, passwordController.text, file);
-                EasyLoading.dismiss();
-                if (!success) {
-                  EasyLoading.showError('Decryption failed');
-                  return;
-                }
-                EasyLoading.showSuccess("Decryption successful");
-                Get.dialog(
-                  CupertinoAlertDialog(
-                    title: const Text('Restart Required'),
-                    content: const Text(
-                        'The app needs to restart to reload the database. Please restart the app manually.'),
-                    actions: [
-                      CupertinoDialogAction(
-                        child: const Text(
-                          'Exit',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                        onPressed: () {
-                          exit(0); // Exit the app
-                        },
-                      ),
-                    ],
-                  ),
-                );
-              } catch (e, s) {
-                logger.e('Decryption error: $e', stackTrace: s);
-                EasyLoading.showError('Decryption failed');
-              }
-            },
-            child: const Text('Confirm'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static enableImportDB(BuildContext context) {
-    Get.dialog(CupertinoAlertDialog(
-      title: const Text("Alert"),
-      content: const Text(
-          'Once executed, this action will permanently delete all your local data. Proceed with caution to avoid unintended consequences.'),
-      actions: <Widget>[
-        CupertinoDialogAction(
-          child: const Text("Cancel"),
-          onPressed: () {
-            Get.back();
-          },
-        ),
-        CupertinoDialogAction(
-          child: const Text("Confirm"),
-          onPressed: () async {
-            File? file = await DbSetting().importFile();
-            if (file == null) {
-              return;
-            }
-            _showEnterDecryptionPwdDialog(context, file);
-          },
-        ),
-      ],
-    ));
-  }
-
   void closeAllRelays() async {
     HomeController hc = Get.find<HomeController>();
     await Get.find<WebsocketService>().stopListening();
     hc.checkRunStatus.value = false;
-  }
-
-  dangerZone() {
-    return SettingsSection(tiles: [
-      SettingsTile.navigation(
-          leading: const Icon(
-            CupertinoIcons.trash,
-            color: Colors.red,
-          ),
-          title: const Text("Logout", style: TextStyle(color: Colors.red)),
-          onPressed: deleteAccount)
-    ]);
   }
 
   deleteAccount(BuildContext context) {

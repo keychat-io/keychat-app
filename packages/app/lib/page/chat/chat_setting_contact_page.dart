@@ -4,6 +4,7 @@ import 'package:app/global.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/routes.dart';
+import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/room.service.dart';
@@ -70,10 +71,14 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   ListTile(
-                      leading: Utils.getRandomAvatar(
-                          cc.roomObs.value.toMainPubkey,
-                          height: 60,
-                          width: 60),
+                      leading: ClipRRect(
+                          borderRadius: BorderRadius.circular(100),
+                          child: Utils.getRandomAvatar(
+                              cc.roomObs.value.toMainPubkey,
+                              height: 60,
+                              width: 60,
+                              httpAvatar:
+                                  cc.roomContact.value.avatarFromRelay)),
                       title: Obx(() => Text(
                             cc.roomObs.value.getRoomName(),
                             style: Theme.of(context).textTheme.titleMedium,
@@ -95,6 +100,15 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                             EasyLoading.showToast('Copied');
                           },
                           icon: const Icon(Icons.copy))),
+                  if (cc.roomContact.value.displayAbout != null &&
+                      cc.roomContact.value.displayAbout!.isNotEmpty)
+                    Padding(
+                        padding:
+                            EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                        child: NoticeTextWidget.info(
+                            cc.roomContact.value.displayAbout ?? '',
+                            fontSize: 12,
+                            borderRadius: 8)),
                   if (cc.roomObs.value.description != null)
                     Container(
                         padding: const EdgeInsets.symmetric(

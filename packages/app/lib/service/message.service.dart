@@ -14,7 +14,7 @@ import 'package:app/models/models.dart';
 
 import 'package:app/utils.dart';
 import 'package:get/get.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 import '../controller/chat.controller.dart';
 import '../controller/home.controller.dart';
@@ -64,52 +64,56 @@ class MessageService {
     hc.loadIdentityRoomList(model.identityId);
 
     // show snackbar in other page
-    if (!model.isRead && !isCurrentPage && Get.currentRoute != '/') {
-      String contenet = model.mediaType == MessageMediaType.text
-          ? (model.realMessage ?? model.content)
-          : '[${model.mediaType.name}]';
-
-      if (GetPlatform.isDesktop) {
-        if (Get.find<HomeController>().resumed == false) {
-          Get.find<HomeController>().addUnreadCount();
-        }
-        return;
-      }
-      EasyThrottle.throttle('newMessageSnackbar', Duration(seconds: 2), () {
-        ChatController? cc = RoomService.getController(model.roomId);
-        bool isCurrentRoomPage = Get.currentRoute
-            .startsWith(Routes.room.replaceFirst(':id', room.id.toString()));
-        if (Get.isSnackbarOpen) {
-          try {
-            Get.closeAllSnackbars();
-            // ignore: empty_catches
-          } catch (e) {}
-        }
-        Get.snackbar(room.getRoomName(), contenet,
-            titleText: Text(room.getRoomName(),
-                style: Theme.of(Get.context!).textTheme.titleMedium),
-            messageText:
-                Text(contenet, maxLines: 4, overflow: TextOverflow.ellipsis),
-            backgroundColor:
-                Theme.of(Get.context!).colorScheme.surfaceContainer,
-            snackPosition: SnackPosition.TOP,
-            isDismissible: true,
-            margin: const EdgeInsets.all(8),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            duration: const Duration(seconds: 5),
-            mainButton: isCurrentRoomPage || cc != null
-                ? null
-                : TextButton(
-                    child: const Text('View'),
-                    onPressed: () {
-                      pressSnackbar(room);
-                    }),
-            icon: Utils.getRandomAvatar(room.toMainPubkey), onTap: (c) {
-          if (isCurrentRoomPage || cc != null) return;
-          pressSnackbar(room);
-        });
-      });
+    if (model.isRead ||
+        isCurrentPage ||
+        Get.currentRoute == '/' ||
+        Get.currentRoute == '/BiometricAuthScreen') {
+      return;
     }
+
+    String content = model.mediaType == MessageMediaType.text
+        ? (model.realMessage ?? model.content)
+        : '[${model.mediaType.name}]';
+
+    if (GetPlatform.isDesktop) {
+      if (Get.find<HomeController>().resumed == false) {
+        Get.find<HomeController>().addUnreadCount();
+      }
+      return;
+    }
+    EasyThrottle.throttle('newMessageSnackbar', Duration(seconds: 2), () {
+      ChatController? cc = RoomService.getController(model.roomId);
+      bool isCurrentRoomPage = Get.currentRoute
+          .startsWith(Routes.room.replaceFirst(':id', room.id.toString()));
+      if (Get.isSnackbarOpen) {
+        try {
+          Get.closeAllSnackbars();
+          // ignore: empty_catches
+        } catch (e) {}
+      }
+      Get.snackbar(room.getRoomName(), content,
+          titleText: Text(room.getRoomName(),
+              style: Theme.of(Get.context!).textTheme.titleMedium),
+          messageText:
+              Text(content, maxLines: 4, overflow: TextOverflow.ellipsis),
+          backgroundColor: Theme.of(Get.context!).colorScheme.surfaceContainer,
+          snackPosition: SnackPosition.TOP,
+          isDismissible: true,
+          margin: const EdgeInsets.all(8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          duration: const Duration(seconds: 5),
+          mainButton: isCurrentRoomPage || cc != null
+              ? null
+              : TextButton(
+                  child: const Text('View'),
+                  onPressed: () {
+                    pressSnackbar(room);
+                  }),
+          icon: Utils.getRandomAvatar(room.toMainPubkey), onTap: (c) {
+        if (isCurrentRoomPage || cc != null) return;
+        pressSnackbar(room);
+      });
+    });
   }
 
   void pressSnackbar(Room room) {

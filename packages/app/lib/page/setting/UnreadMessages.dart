@@ -6,7 +6,7 @@ import 'package:app/service/room.service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 class UnreadMessages extends StatefulWidget {
   const UnreadMessages({super.key});

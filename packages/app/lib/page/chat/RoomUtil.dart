@@ -11,6 +11,7 @@ import 'package:app/page/chat/contact_page.dart';
 
 import 'package:app/page/widgets/image_preview_widget.dart';
 import 'package:app/service/file.service.dart';
+import 'package:app/service/message.service.dart';
 import 'package:app/service/signal_chat_util.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:flutter/services.dart';
@@ -30,7 +31,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart' hide Contact;
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:settings_ui/settings_ui.dart';
@@ -235,27 +236,31 @@ Let's start an encrypted chat.''';
           showModalBottomSheetWidget(
               context,
               'Auto Delete Messages',
-              Obx(() => SettingsList(platform: DevicePlatform.iOS, sections: [
-                    SettingsSection(
-                        title: const Text(
-                            'Messages will been deleted before days'),
-                        tiles: [0, 1, 7, 30, 90]
-                            .map(
-                              (e) => SettingsTile(
-                                onPressed: (context) {
-                                  autoDeleteHandle(e);
-                                },
-                                title: Text(Utils.getDaysText(e)),
-                                trailing: cc.roomObs.value.autoDeleteDays == e
-                                    ? const Icon(
-                                        Icons.done,
-                                        color: Colors.green,
-                                      )
-                                    : null,
-                              ),
-                            )
-                            .toList())
-                  ])));
+              Obx(() => SettingsList(
+                      platform: DevicePlatform.iOS,
+                      physics: NeverScrollableScrollPhysics(),
+                      sections: [
+                        SettingsSection(
+                            title: const Text(
+                                'Messages will been deleted before days'),
+                            tiles: [0, 1, 7, 30, 90]
+                                .map(
+                                  (e) => SettingsTile(
+                                    onPressed: (context) {
+                                      autoDeleteHandle(e);
+                                    },
+                                    title: Text(Utils.getDaysText(e)),
+                                    trailing:
+                                        cc.roomObs.value.autoDeleteDays == e
+                                            ? const Icon(
+                                                Icons.done,
+                                                color: Colors.green,
+                                              )
+                                            : null,
+                                  ),
+                                )
+                                .toList())
+                      ])));
         });
   }
 
@@ -749,19 +754,13 @@ Let's start an encrypted chat.''';
         return Row(
           children: [
             errorCallback(text: '[Image Crashed]'),
-            SizedBox(
-                height: 30,
-                child: IconButton(
-                    iconSize: 18,
-                    onPressed: () {
-                      EasyLoading.showToast('Start downloading');
-                      message.isRead = true;
-                      FileService.instance
-                          .downloadForMessage(message, fileInfo);
-                    },
-                    icon: const Icon(
-                      Icons.refresh,
-                    )))
+            IconButton(
+                onPressed: () {
+                  EasyLoading.showToast('Start downloading');
+                  message.isRead = true;
+                  FileService.instance.downloadForMessage(message, fileInfo);
+                },
+                icon: const Icon(Icons.refresh))
           ],
         );
       default:
@@ -826,5 +825,27 @@ Let's start an encrypted chat.''';
     }
 
     return _getTextItemView(message, markdownConfig, errorCallback);
+  }
+
+  static Future appendMessageOrCreate(
+      String error, Room room, String content, NostrEventModel nostrEvent,
+      {String? fromIdPubkey}) async {
+    Message? message = await DBProvider.database.messages
+        .filter()
+        .msgidEqualTo(nostrEvent.id)
+        .findFirst();
+    if (message == null) {
+      await RoomService.instance.receiveDM(room, nostrEvent,
+          decodedContent: '''
+$error
+
+track: $content''',
+          senderPubkey: fromIdPubkey);
+      return;
+    }
+    message.content = '''${message.content}
+
+$error ''';
+    await MessageService.instance.updateMessageAndRefresh(message);
   }
 }

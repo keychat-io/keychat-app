@@ -365,7 +365,12 @@ showSearchContactsPage(BuildContext context, List<Contact> contactList) {
                       if (clipboardData != null) {
                         final pastedText = clipboardData.text;
                         if (pastedText != null && pastedText != '') {
-                          Get.off(() => AddtoContactsPage(pastedText));
+                          await Get.bottomSheet(AddtoContactsPage(pastedText),
+                              isScrollControlled: true,
+                              ignoreSafeArea: false,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.vertical(
+                                      top: Radius.circular(16))));
                         } else {
                           EasyLoading.showToast('Clipboard is empty');
                         }
@@ -389,7 +394,12 @@ showSearchContactsPage(BuildContext context, List<Contact> contactList) {
                 ),
                 FilledButton(
                   onPressed: () async {
-                    Get.off(() => AddtoContactsPage(input));
+                    await Get.bottomSheet(AddtoContactsPage(input),
+                        isScrollControlled: true,
+                        ignoreSafeArea: false,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(16))));
                   },
                   child: const Text(
                     'Add to contacts',
@@ -401,7 +411,7 @@ showSearchContactsPage(BuildContext context, List<Contact> contactList) {
           builder: (contact) => ListTile(
                 onTap: () async {},
                 leading: Utils.getRandomAvatar(contact.pubkey,
-                    height: 40, width: 40),
+                    height: 40, width: 40, httpAvatar: contact.avatarFromRelay),
                 title: Text(
                   contact.displayName.toString(),
                   overflow: TextOverflow.ellipsis,

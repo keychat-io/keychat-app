@@ -6,6 +6,7 @@ import 'package:app/page/new_friends_rooms.dart';
 import 'package:app/page/search_page.dart';
 import 'package:app/page/widgets/RelayStatus.dart';
 import 'package:app/service/websocket.service.dart';
+import 'package:auto_size_text_plus/auto_size_text_plus.dart';
 import 'package:badges/badges.dart' as badges;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -206,8 +207,12 @@ class RoomList extends GetView<HomeController> {
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text(room.getRoomName(),
+                                      AutoSizeText(room.getRoomName(),
+                                          minFontSize: 10,
+                                          stepGranularity: 1,
+                                          maxFontSize: 18,
                                           maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                           style: Theme.of(context)
                                               .textTheme
                                               .titleMedium),

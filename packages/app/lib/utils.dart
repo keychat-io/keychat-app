@@ -1,14 +1,17 @@
 import 'dart:async' show TimeoutException;
 import 'dart:convert' show jsonDecode, jsonEncode;
-import 'dart:io' show Directory, File, FileMode, Platform;
+import 'dart:io' show Directory, File, FileMode, Platform, exit;
 import 'dart:math' show Random;
 
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
+import 'package:app/models/contact.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/models/room.dart';
+import 'package:app/page/dbSetup/db_setting.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/service/SignerService.dart';
+import 'package:app/service/contact.service.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/service/websocket.service.dart';
@@ -27,8 +30,8 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart' show DateFormat;
-import 'package:isar/isar.dart';
-import 'package:keychat_rust_ffi_plugin/index.dart';
+import 'package:isar_community/isar.dart';
+import 'package:keychat_rust_ffi_plugin/index.dart' hide Contact;
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
@@ -431,8 +434,10 @@ class Utils {
       child = getAvatorByName(account,
           room: room, width: width, borderRadius: 12, backgroudColors: colors);
     } else {
-      child =
-          Utils.getRandomAvatar(room.toMainPubkey, height: width, width: width);
+      child = Utils.getRandomAvatar(room.toMainPubkey,
+          height: width,
+          width: width,
+          httpAvatar: room.contact?.avatarFromRelay);
     }
     if (room.unReadCount == 0) return child;
 
@@ -618,7 +623,7 @@ class Utils {
   }
 
   static Widget? getNetworkImage(String? imageUrl,
-      {double size = 36, double radius = 100}) {
+      {double size = 36, double radius = 100, Widget? placeholder}) {
     if (imageUrl == null) return null;
 
     if (imageUrl.toString().endsWith('svg')) {
@@ -629,11 +634,11 @@ class Utils {
           width: size,
           height: size,
           placeholderBuilder: (BuildContext context) =>
-              Icon(Icons.image, size: size),
+              placeholder ?? Icon(Icons.image, size: size),
         ),
       );
     }
-    Widget child = ClipRRect(
+    placeholder ??= ClipRRect(
         borderRadius: BorderRadius.circular(radius),
         child: Icon(CupertinoIcons.compass, size: size));
     return CachedNetworkImage(
@@ -654,8 +659,8 @@ class Utils {
           ),
         ),
       ),
-      placeholder: (context, url) => child,
-      errorWidget: (context, url, error) => child,
+      placeholder: (context, url) => placeholder!,
+      errorWidget: (context, url, error) => placeholder!,
     );
   }
 
@@ -669,22 +674,51 @@ class Utils {
     return getNetworkImage(imageUrl, size: size, radius: radius)!;
   }
 
+  static Map<String, String> avatarCache = {};
+
   static Widget getRandomAvatar(String id,
-      {double height = 40, double width = 40, BoxFit fit = BoxFit.contain}) {
+      {double height = 40, double width = 40, String? httpAvatar}) {
+    // network avatar first
+    if (httpAvatar != null &&
+        (httpAvatar.startsWith('http://') ||
+            httpAvatar.startsWith('https://'))) {
+      return getNetworkImage(httpAvatar,
+          size: width, placeholder: _generateRandomAvatar(id, size: width))!;
+    }
+    // from cache
+    if (httpAvatar == null && avatarCache.containsKey(id)) {
+      return getNetworkImage(avatarCache[id],
+          size: width, placeholder: _generateRandomAvatar(id, size: width))!;
+    }
+    // query from contact
+    Contact? contact = ContactService.instance.getContactSync(id);
+    if (contact?.avatarFromRelay != null) {
+      if (contact!.avatarFromRelay!.startsWith('http://') ||
+          contact.avatarFromRelay!.startsWith('https://')) {
+        avatarCache[id] = contact.avatarFromRelay!;
+        return getNetworkImage(contact.avatarFromRelay,
+            size: width, placeholder: _generateRandomAvatar(id, size: width))!;
+      }
+    }
+
+    // use random avatar
+    return _generateRandomAvatar(id, size: width);
+  }
+
+  static SvgPicture _generateRandomAvatar(String id, {double size = 40}) {
     var avatarsFolder = Get.find<SettingController>().avatarsFolder;
     final filePath = '$avatarsFolder/$id.svg';
     final file = File(filePath);
     if (file.existsSync()) {
-      return SvgPicture.file(file, width: width, height: height);
-    } else {
-      String svgCode = AvatarPlusGen.instance.generate(id);
-      file.writeAsStringSync(svgCode);
-      return SvgPicture.string(
-        svgCode,
-        width: width,
-        height: height,
-      );
-    }
+      return SvgPicture.file(file, width: size, height: size);
+    } else {}
+    String svgCode = AvatarPlusGen.instance.generate(id);
+    file.writeAsStringSync(svgCode);
+    return SvgPicture.string(
+      svgCode,
+      width: size,
+      height: size,
+    );
   }
 
   static Future<PermissionStatus> getStoragePermission() async {
@@ -1048,5 +1082,110 @@ class Utils {
     } catch (e) {
       logger.e('Failed to write error to file: $e');
     }
+  }
+
+  static enableImportDB() {
+    Get.dialog(CupertinoAlertDialog(
+      title: const Text("Alert"),
+      content: const Text(
+          'Once executed, this action will permanently delete all your local data. Proceed with caution to avoid unintended consequences.'),
+      actions: <Widget>[
+        CupertinoDialogAction(
+          child: const Text("Cancel"),
+          onPressed: () {
+            Get.back();
+          },
+        ),
+        CupertinoDialogAction(
+          child: const Text("Confirm"),
+          onPressed: () async {
+            File? file = await DbSetting().importFile();
+            if (file == null) {
+              return;
+            }
+            _showEnterDecryptionPwdDialog(file);
+          },
+        ),
+      ],
+    ));
+  }
+
+  static _showEnterDecryptionPwdDialog(File file) {
+    TextEditingController passwordController = TextEditingController();
+
+    Get.dialog(
+      CupertinoAlertDialog(
+        title: const Text("Enter decryption password"),
+        content: Container(
+          color: Colors.transparent,
+          padding: const EdgeInsets.only(top: 15),
+          child: Column(
+            children: [
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                textInputAction: TextInputAction.done,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Password',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Get.back();
+            },
+            child: const Text('Cancel'),
+          ),
+          CupertinoActionSheetAction(
+            isDefaultAction: true,
+            onPressed: () async {
+              if (passwordController.text.isEmpty) {
+                EasyLoading.showError('Password can not be empty');
+                return;
+              }
+
+              try {
+                EasyLoading.show(status: 'Decrypting...');
+                bool success =
+                    await DbSetting().importDB(passwordController.text, file);
+                EasyLoading.dismiss();
+                if (!success) {
+                  EasyLoading.showError('Decryption failed');
+                  return;
+                }
+                EasyLoading.showSuccess("Decryption successful");
+                Get.dialog(
+                  CupertinoAlertDialog(
+                    title: const Text('Restart Required'),
+                    content: const Text(
+                        'The app needs to restart to reload the database. Please restart the app manually.'),
+                    actions: [
+                      CupertinoDialogAction(
+                        child: const Text(
+                          'Exit',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                        onPressed: () {
+                          exit(0); // Exit the app
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              } catch (e, s) {
+                logger.e('Decryption error: $e', stackTrace: s);
+                EasyLoading.showError('Decryption failed');
+              }
+            },
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
   }
 }

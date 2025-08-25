@@ -28,8 +28,8 @@ import 'package:web_socket_client/web_socket_client.dart';
 class WebsocketService extends GetxService {
   RelayService rs = RelayService.instance;
   NostrAPI nostrAPI = NostrAPI.instance;
-  RxString relayStatusInt = RelayStatusEnum.init.name.obs;
-  RxInt relayConnected = 0.obs;
+  RxString mainRelayStatus = RelayStatusEnum.init.name.obs;
+  RxInt relayConnectedCount = 0.obs;
   final RxMap<String, RelayWebsocket> channels = <String, RelayWebsocket>{}.obs;
   final RxMap<String, RelayMessageFee> relayMessageFeeModels =
       <String, RelayMessageFee>{}.obs;
@@ -239,12 +239,12 @@ class WebsocketService extends GetxService {
 
   Future<WebsocketService> init() async {
     logger.i('start init websocket service');
-    relayStatusInt.value = RelayStatusEnum.connecting.name;
+    mainRelayStatus.value = RelayStatusEnum.connecting.name;
     List<Relay> list = await rs.initRelay();
     start(list);
     int activeCount = list.where((element) => element.active).length;
     if (activeCount == 0) {
-      relayStatusInt.value = RelayStatusEnum.noAcitveRelay.name;
+      mainRelayStatus.value = RelayStatusEnum.noAcitveRelay.name;
     }
     return this;
   }
@@ -337,7 +337,7 @@ class WebsocketService extends GetxService {
 
   refreshMainRelayStatus() async {
     int success = getOnlineSocket().length;
-    relayConnected.value = success;
+    relayConnectedCount.value = success;
     if (success > 0) {
       return await _setMainRelayStatus(RelayStatusEnum.connected);
     }
@@ -503,9 +503,9 @@ class WebsocketService extends GetxService {
   }
 
   Future _setMainRelayStatus(RelayStatusEnum status) async {
-    if (relayStatusInt.value != status.name) {
-      relayStatusInt.value = status.name;
-      loggerNoLine.d('setMainRelayStatus: ${relayStatusInt.value}');
+    if (mainRelayStatus.value != status.name) {
+      mainRelayStatus.value = status.name;
+      loggerNoLine.d('setMainRelayStatus: ${mainRelayStatus.value}');
       channels.refresh();
     }
   }

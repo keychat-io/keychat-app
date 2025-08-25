@@ -17,11 +17,18 @@ class SecureStorage {
       iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock));
 
   String mnemonicKey = kReleaseMode ? 'mnemonic' : '${Config.env}:mnemonic';
+  String pinKey = 'APP_PIN_HASH';
+  String biometricsStatusKey = 'APP_BIOMETRICS_STATUS';
+
   static Map<String, String> keys = {};
 
   Future write(String key, String value) async {
     await storage.write(key: key, value: value);
     keys[key] = value;
+  }
+
+  Future<String?> read(String key) async {
+    return await storage.read(key: key);
   }
 
   Future writePhraseWordsWhenNotExist(String words) async {
@@ -131,5 +138,46 @@ class SecureStorage {
         key: mnemonicKey,
         iOptions: const IOSOptions(
             accessibility: KeychainAccessibility.first_unlock));
+  }
+
+  Future<void> setBiometrics(bool status) async {
+    if (status) {
+      await storage.write(
+          key: biometricsStatusKey, value: (status ? 1 : 0).toString());
+      return;
+    }
+    await storage.delete(key: biometricsStatusKey);
+  }
+
+  Future<bool> isBiometricsEnable() async {
+    String? value = await storage.read(key: biometricsStatusKey);
+    return value == '1';
+  }
+
+  Future<String> _hashPin(String pin) async {
+    var hash = await rust_nostr.sha256Hash(data: pin);
+    return hash;
+  }
+
+  Future<bool> hasPinCode() async {
+    String? pinHash = await storage.read(key: pinKey);
+    return pinHash != null && pinHash.isNotEmpty;
+  }
+
+  Future<void> savePinCode(String pin) async {
+    String hashedPin = await _hashPin(pin);
+    await storage.write(key: pinKey, value: hashedPin);
+  }
+
+  Future<bool> verifyPinCode(String pin) async {
+    String? storedHash = await storage.read(key: pinKey);
+    if (storedHash == null) return false;
+
+    String inputHash = await _hashPin(pin);
+    return storedHash == inputHash;
+  }
+
+  Future<void> deletePinCode() async {
+    await storage.delete(key: pinKey);
   }
 }

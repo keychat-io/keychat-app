@@ -2,6 +2,7 @@ import 'dart:async' show Future, Timer;
 import 'dart:convert' show jsonDecode, jsonEncode;
 import 'dart:io' show Directory, File, FileSystemEntity;
 
+import 'package:app/controller/home.controller.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/nostr-core/nostr_event.dart';
@@ -16,16 +17,16 @@ import 'package:app/service/room.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:mime/mime.dart' show extensionFromMime;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 
@@ -83,7 +84,6 @@ class ChatController extends GetxController {
   late FocusNode keyboardFocus;
   late AutoScrollController autoScrollController;
   late ScrollController textFieldScrollController;
-  late RefreshController _refreshController;
   DateTime lastMessageAddedAt = DateTime.now();
 
   final List<String> featuresIcons = [
@@ -263,15 +263,6 @@ class ChatController extends GetxController {
     }
   }
 
-  bool _refreshInitialized = false;
-  RefreshController getRefreshController() {
-    if (!_refreshInitialized) {
-      _refreshController = RefreshController(initialRefresh: false);
-      _refreshInitialized = true;
-    }
-    return _refreshController;
-  }
-
   initChatPageFeatures() {
     featuresOnTaps = [
       () => pickAndUploadImage(ImageSource.gallery),
@@ -361,9 +352,8 @@ class ChatController extends GetxController {
     if (messages.isEmpty) return [];
 
     DateTime from = messages.first.createdAt;
-    Message? message = MessageService.instance.listLastestMessage(
-      roomId: roomObs.value.id,
-    );
+    Message? message =
+        MessageService.instance.listLastestMessage(roomId: roomObs.value.id);
     if (message != null && message.createdAt == from) {
       return [];
     }
@@ -374,7 +364,6 @@ class ChatController extends GetxController {
 
   Future loadMoreChatHistory() async {
     if (messages.isEmpty) {
-      getRefreshController().loadComplete();
       return;
     }
 
@@ -384,19 +373,17 @@ class ChatController extends GetxController {
         roomId: roomObs.value.id, from: from, limit: messageLimitPerPage);
 
     if (sortedNewMessages.isEmpty) {
-      getRefreshController().loadComplete();
+      EasyLoading.showToast('No more messages to load');
       return; // No new messages to load
     }
 
     sortedNewMessages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
     messages.addAll(sortedNewMessages);
-    getRefreshController().loadComplete();
     messages.value = List.from(messages);
   }
 
   @override
   void onClose() {
-    getRefreshController().dispose();
     messages.clear();
     chatContentFocus.dispose();
     keyboardFocus.dispose();
@@ -410,7 +397,6 @@ class ChatController extends GetxController {
   void onInit() async {
     chatContentFocus = FocusNode();
     keyboardFocus = FocusNode();
-    getRefreshController();
     if (GetPlatform.isDesktop) {
       chatContentFocus.requestFocus();
       messageLimitPerPage = 100;
@@ -601,11 +587,15 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     // chatContentFocus.unfocus();
   }
 
-  Future resetMembers() async {
+  Future<void> resetMembers() async {
     if (roomObs.value.isMLSGroup) {
-      var list = await MlsGroupService.instance.getMembers(roomObs.value);
+      Map<String, RoomMember> list =
+          await MlsGroupService.instance.getMembers(roomObs.value);
       enableMembers.value = list;
       members.value = list;
+      // update member's avatar
+      updateRoomMembersAvatar(members.keys.toList(), roomObs.value.identityId);
+
       String? admin = await roomObs.value.getAdmin();
       if (admin != null) {
         members[admin]!.isAdmin = true;
@@ -616,8 +606,21 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     if (roomObs.value.isSendAllGroup) {
       members.value = await roomObs.value.getMembers();
       enableMembers.value = await roomObs.value.getEnableMembers();
+      // update member's avatar
+      updateRoomMembersAvatar(members.keys.toList(), roomObs.value.identityId);
       memberRooms = await roomObs.value.getEnableMemberRooms();
       kpaIsNullRooms.value = await getKpaIsNullRooms(); // get null list
+    }
+  }
+
+  Future updateRoomMembersAvatar(List<String> pubkeys, int identityId) async {
+    for (var pubkey in pubkeys) {
+      Contact item = await fetchAndUpdateMetadata(pubkey, identityId);
+      enableMembers[pubkey]?.avatarFromRelay = item.avatarFromRelay;
+      enableMembers[pubkey]?.nameFromRelay = item.nameFromRelay;
+
+      members[pubkey]?.avatarFromRelay = item.avatarFromRelay;
+      members[pubkey]?.nameFromRelay = item.nameFromRelay;
     }
   }
 
@@ -743,10 +746,76 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
       } else {
         roomContact.value = roomObs.value.contact!;
       }
+      fetchAndUpdateMetadata(
+              roomContact.value.pubkey, roomContact.value.identityId)
+          .then((Contact? item) {
+        if (item == null) return;
+        roomContact.value = item;
+        roomObs.value.contact = item;
+        roomObs.refresh();
+        Get.find<HomeController>()
+            .loadIdentityRoomList(roomContact.value.identityId);
+      });
+      return;
     }
     if (roomObs.value.type == RoomType.bot) {
       _initBotInfo();
     }
+  }
+
+  Future<Contact> fetchAndUpdateMetadata(String pubkey, int identityId) async {
+    Map<String, dynamic> metadata = {};
+
+    List<Contact> contacts = await ContactService.instance.getContacts(pubkey);
+    if (contacts.isEmpty) {
+      var result = await ContactService.instance.createContact(
+          pubkey: pubkey, identityId: identityId, autoCreateFromGroup: true);
+      contacts = [result];
+    }
+    // ignore fetch in a hour in kReleaseMode
+    if (kReleaseMode && contacts.first.fetchFromRelayAt != null) {
+      if (contacts.first.fetchFromRelayAt!
+          .add(Duration(days: 1))
+          .isAfter(DateTime.now())) {
+        return contacts.first;
+      }
+    }
+    try {
+      var list = await NostrAPI.instance.fetchMetadata([pubkey]);
+      if (list.isEmpty) return contacts.first;
+      NostrEventModel res = list.last;
+
+      loggerNoLine.i('metadata: ${res.content}');
+      metadata = Map<String, dynamic>.from(jsonDecode(res.content));
+      String? nameFromRelay = metadata['displayName'] ?? metadata['name'];
+      String? avatarFromRelay = metadata['picture'] ?? metadata['avatar'];
+      String? description =
+          metadata['description'] ?? metadata['about'] ?? metadata['bio'];
+      for (Contact contact in contacts) {
+        if (contact.versionFromRelay >= res.createdAt) {
+          continue;
+        }
+        if (avatarFromRelay != null && avatarFromRelay.isNotEmpty) {
+          if (avatarFromRelay.startsWith('http') ||
+              avatarFromRelay.startsWith('https')) {
+            contact.avatarFromRelay = avatarFromRelay;
+          }
+        }
+
+        contact.nameFromRelay = nameFromRelay;
+        contact.aboutFromRelay = description;
+        contact.metadataFromRelay = res.content;
+        contact.fetchFromRelayAt = DateTime.now();
+        contact.versionFromRelay = res.createdAt;
+        loggerNoLine.i(
+            'fetchUserMetadata: ${contact.pubkey} name: ${contact.nameFromRelay} avatar: ${contact.avatarFromRelay} ${contact.aboutFromRelay}');
+        await ContactService.instance.saveContact(contact);
+      }
+    } catch (e) {
+      logger.e('fetchUserMetadata: ${e.toString()}', error: e);
+    }
+    return contacts.firstWhereOrNull((item) => item.identityId == identityId) ??
+        contacts.first;
   }
 
   Future<bool> handlePasteboardFile() async {

@@ -36,7 +36,8 @@ class RelayStatus extends GetView<HomeController> {
       }
 
       // Now handle relay status based on the available service
-      return Obx(() => ws.relayStatusInt.value == RelayStatusEnum.connected.name
+      return Obx(() => ws.mainRelayStatus.value ==
+              RelayStatusEnum.connected.name
           ? GestureDetector(
               onLongPress: () {
                 Get.to(() => const RelaySetting());
@@ -45,8 +46,8 @@ class RelayStatus extends GetView<HomeController> {
                   showBadge: controller.addFriendTips.value,
                   position: badges.BadgePosition.topEnd(top: 5, end: 5),
                   child: HomeDropMenuWidget(controller.addFriendTips.value)))
-          : (ws.relayStatusInt.value == RelayStatusEnum.connecting.name ||
-                  ws.relayStatusInt.value == RelayStatusEnum.init.name)
+          : (ws.mainRelayStatus.value == RelayStatusEnum.connecting.name ||
+                  ws.mainRelayStatus.value == RelayStatusEnum.init.name)
               ? SizedBox(
                   width: 48,
                   height: 48,

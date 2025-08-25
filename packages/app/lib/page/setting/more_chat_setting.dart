@@ -40,9 +40,9 @@ class MoreChatSetting extends StatelessWidget {
             SettingsSection(tiles: [
               SettingsTile.navigation(
                   leading: const Icon(CupertinoIcons.globe),
-                  value: Obx(() => ws.relayConnected.value == 0
+                  value: Obx(() => ws.relayConnectedCount.value == 0
                       ? Text('Connecting')
-                      : Text(ws.relayConnected.value.toString())),
+                      : Text(ws.relayConnectedCount.value.toString())),
                   onPressed: (c) {
                     Get.to(() => const RelaySetting(),
                         id: GetPlatform.isDesktop ? GetXNestKey.setting : null);

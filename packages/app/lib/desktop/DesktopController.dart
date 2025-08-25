@@ -11,9 +11,9 @@ class DesktopController extends GetxController {
   final globalKey = GlobalKey<ScaffoldState>();
 
   final roomListWidth = 260.0.obs;
-  final browserSidebarWidth =
-      260.0.obs; // Add this line for browser sidebar width
+  final browserSidebarWidth = 180.0.obs;
   late HomeController hc;
+
   @override
   void onInit() {
     hc = Get.find<HomeController>();

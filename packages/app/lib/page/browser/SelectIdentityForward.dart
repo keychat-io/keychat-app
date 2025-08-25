@@ -38,13 +38,15 @@ class _SelectIdentityForwardState extends State<SelectIdentityForward> {
                 title: Text(widget.title,
                     style: Theme.of(context).textTheme.titleMedium),
                 tiles: identities
-                    .map((iden) => SettingsTile(
-                        leading: Utils.getRandomAvatar(iden.secp256k1PKHex,
-                            height: 30, width: 30),
-                        value: Text(getPublicKeyDisplay(iden.npub)),
-                        title: Text(iden.displayName),
+                    .map((identity) => SettingsTile(
+                        leading: Utils.getRandomAvatar(identity.secp256k1PKHex,
+                            httpAvatar: identity.avatarFromRelay,
+                            height: 30,
+                            width: 30),
+                        value: Text(getPublicKeyDisplay(identity.npub)),
+                        title: Text(identity.displayName),
                         onPressed: (context) async {
-                          Get.back(result: iden);
+                          Get.back(result: identity);
                         }))
                     .toList()),
           ])

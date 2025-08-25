@@ -3,10 +3,9 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:get/get.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:mutex/mutex.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
-import '../nostr-core/nostr.dart';
 
 class ContactService {
   static ContactService? _instance;
@@ -39,21 +38,21 @@ class ContactService {
       required int identityId,
       String? petname,
       String? name,
-      String? curve25519PkHex}) async {
+      String? curve25519PkHex,
+      bool autoCreateFromGroup = false}) async {
     String pubKeyHex = rust_nostr.getHexPubkeyByBech32(bech32: pubkey);
     Contact contact =
         Contact(pubkey: pubKeyHex, npubkey: '', identityId: identityId)
-          ..curve25519PkHex = curve25519PkHex;
+          ..curve25519PkHex = curve25519PkHex
+          ..autoCreateFromGroup = autoCreateFromGroup;
     if (name != null) {
       contact.name = name.trim();
     }
     if (petname != null) {
-      contact.petname = petname;
+      contact.petname = petname.trim();
     }
-    contact.createdAt = DateTime.now();
     int id = await saveContact(contact, sync: true);
-    NostrAPI.instance.fetchMetadata([pubKeyHex]);
-    contact = (await getContactById(id))!;
+    contact.id = id;
     return contact;
   }
 
@@ -313,20 +312,6 @@ class ContactService {
     return id;
   }
 
-  saveContactFromRelay(
-      {required int identityId,
-      required String pubkey,
-      required Map<String, dynamic> content,
-      bool justSave = true}) async {
-    Contact contact = await getOrCreateContact(identityId, pubkey);
-    contact.name = content['name'];
-    contact.about = content['about'];
-    contact.picture = content['picture'];
-    // contact.isFriend = true;
-    contact.updatedAt = DateTime.now();
-    saveContact(contact, sync: false);
-  }
-
   Future updateContact(
       {required int identityId,
       required String pubkey,
@@ -379,5 +364,12 @@ class ContactService {
       crk.isMute = value;
       await DBProvider.database.contactReceiveKeys.put(crk);
     });
+  }
+
+  Contact? getContactSync(String pubkey) {
+    return DBProvider.database.contacts
+        .filter()
+        .pubkeyEqualTo(pubkey)
+        .findFirstSync();
   }
 }

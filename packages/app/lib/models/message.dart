@@ -3,7 +3,7 @@ import 'package:app/models/embedded/msg_file_info.dart';
 import 'package:app/models/embedded/msg_reply.dart';
 
 import 'package:equatable/equatable.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 part 'message.g.dart';
 

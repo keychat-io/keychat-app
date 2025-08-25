@@ -1,4 +1,5 @@
 import 'package:app/controller/setting.controller.dart';
+import 'package:app/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
@@ -19,11 +20,20 @@ class _BiometricAuthScreenState extends State<BiometricAuthScreen> {
 
   Future auth() async {
     bool result = await Get.find<SettingController>().authenticate();
-    if (result) {
-      Get.back();
+    if (!result) {
+      EasyLoading.showError('Authentication failed or cancelled');
       return;
     }
-    EasyLoading.showError('Authentication failed or cancelled');
+    if (Get.isSnackbarOpen) {
+      Get.closeAllSnackbars();
+    }
+    if (Get.isBottomSheetOpen ?? false) {
+      Get.back();
+    }
+    if (Get.isDialogOpen ?? false) {
+      Get.back();
+    }
+    Get.back();
   }
 
   @override

@@ -24,6 +24,8 @@
     <string>$(FLUTTER_BUILD_NAME)</string>
     <key>CFBundleSignature</key>
     <string>????</string>
+    <key>NSFaceIDUsageDescription</key>
+    <string>For your privacy protection</string>
     <key>CFBundleURLTypes</key>
     <array>
       <dict>

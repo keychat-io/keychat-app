@@ -3,7 +3,7 @@ import 'package:app/models/nostr_event_status.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 class QueryReceivedEvent extends StatefulWidget {
   const QueryReceivedEvent({super.key});

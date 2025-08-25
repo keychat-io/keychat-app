@@ -1,5 +1,6 @@
 import 'package:app/nostr-core/close.dart';
 import 'package:app/nostr-core/subscribe_result.dart';
+import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/SignerService.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:async_queue/async_queue.dart';
@@ -473,7 +474,11 @@ class NostrAPI {
               await SignalChatService.instance.getSignalChatRoomByTo(to);
           if (room != null) {
             await SignalChatService.instance.decryptMessage(room, event, relay,
-                failedCallback: failedCallback);
+                failedCallback: (msg) {
+              failedCallback(msg);
+              RoomUtil.appendMessageOrCreate(
+                  msg, room, 'decrypt failed', event);
+            });
             return;
           }
 
@@ -542,8 +547,13 @@ class NostrAPI {
       // ignore: empty_catches
     } catch (e) {}
     if (subEvent != null) {
-      await _processSubEvent(sourceEvent, subEvent, relay, failedCallback,
-          room: room);
+      await _processSubEvent(sourceEvent, subEvent, relay, (String msg) {
+        failedCallback(msg);
+        if (room != null) {
+          RoomUtil.appendMessageOrCreate(
+              msg, room, 'decrypt failed', sourceEvent);
+        }
+      }, room: room);
       return;
     }
 
@@ -583,9 +593,14 @@ class NostrAPI {
     // nip4(signal)
     room ??= await RoomService.instance
         .getOrCreateRoom(subEvent.pubkey, subEvent.tags[0][1], RoomStatus.init);
-    return await SignalChatService.instance.decryptMessage(
-        room, subEvent, relay,
-        sourceEvent: event, failedCallback: failedCallback);
+    return await SignalChatService.instance
+        .decryptMessage(room, subEvent, relay, sourceEvent: event,
+            failedCallback: (String msg) {
+      failedCallback(msg);
+      if (room != null) {
+        RoomUtil.appendMessageOrCreate(msg, room, 'decrypt failed', event);
+      }
+    });
   }
 
   KeychatMessage? getKeyChatMessageFromJson(dynamic str) {
@@ -614,8 +629,11 @@ class NostrAPI {
     String to = event.getTagByKey(EventKindTags.pubkey)!;
     Room? mlsRoom = await RoomService.instance.getRoomByOnetimeKey(to);
     if (mlsRoom != null && mlsRoom.isMLSGroup) {
-      await MlsGroupService.instance
-          .decryptMessage(mlsRoom, event, failedCallback);
+      await MlsGroupService.instance.decryptMessage(mlsRoom, event,
+          (String msg) {
+        failedCallback(msg);
+        RoomUtil.appendMessageOrCreate(msg, mlsRoom, 'decrypt failed', event);
+      });
       return;
     }
     // other nip17 event.

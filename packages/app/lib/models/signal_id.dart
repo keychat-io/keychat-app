@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 part 'signal_id.g.dart';
 

@@ -125,10 +125,9 @@ class NotifyService {
       await removePubkeys(toRemovePubkeys);
     }
     if (checkUpload) {
-      String hashcode = await NotifyService.calculateHash(
-          [...idPubkeys, ...pubkeys2, ...relays]);
+      String hashcode =
+          await NotifyService.calculateHash([...idPubkeys, ...pubkeys2]);
       bool hasUploaded = await NotifyService.checkHashcode(fcmToken!, hashcode);
-
       if (hasUploaded) return;
     }
     var map = {
@@ -283,20 +282,6 @@ Fix:
       logger.e('removePubkeys', error: e, stackTrace: s);
     }
     return false;
-  }
-
-  // app online, do not push
-  static void setOnlineStatus(bool status) async {
-    bool enable = Get.find<HomeController>().notificationStatus.value;
-    if (!enable) return;
-    if (fcmToken == null) return;
-    try {
-      logger.i('setOnlineStatus $status');
-      await Dio().post('${KeychatGlobal.notifycationServer}/appstatus',
-          data: {'status': status ? 1 : -1, 'deviceId': fcmToken});
-    } catch (e) {
-      logger.e('${(e as DioException).response?.data}', error: e);
-    }
   }
 
   static Future updateUserSetting(bool status) async {

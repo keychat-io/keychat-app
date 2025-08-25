@@ -173,11 +173,11 @@ class MinePage extends GetView<SettingController> {
     return GestureDetector(
       onTap: () {
         if (GetPlatform.isIOS) {
-          const url = 'itms-beta://testflight.apple.com';
+          const url = 'https://apps.apple.com/app/keychat-io/id6447493752';
           launchUrl(Uri.parse(url), mode: LaunchMode.platformDefault);
           return;
         }
-        const url = 'https://keychat.io';
+        const url = 'https://www.keychat.io';
         launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
       },
       child: Wrap(
@@ -206,7 +206,7 @@ class MinePage extends GetView<SettingController> {
 
       res.add(SettingsTile.navigation(
           leading: Utils.getRandomAvatar(identity.secp256k1PKHex,
-              height: 30, width: 30),
+              httpAvatar: identity.avatarFromRelay, height: 30, width: 30),
           title: Text(
             identity.displayName,
             overflow: TextOverflow.ellipsis,

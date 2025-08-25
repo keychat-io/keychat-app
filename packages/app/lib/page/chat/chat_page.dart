@@ -1,6 +1,6 @@
 import 'dart:async' show Timer;
 import 'dart:convert' show jsonDecode;
-import 'dart:math' show Random;
+import 'dart:math' show Random, min;
 
 import 'package:app/app.dart';
 import 'package:app/controller/chat.controller.dart';
@@ -17,6 +17,7 @@ import 'package:app/service/contact.service.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/signal_chat.service.dart';
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -24,7 +25,6 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 import 'package:get/get.dart';
 import 'package:markdown_widget/markdown_widget.dart';
-import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:settings_ui/settings_ui.dart';
 
@@ -52,7 +52,7 @@ class _ChatPage2State extends State<ChatPage> {
   void initState() {
     Room room = _getRoomAndInit(context);
     myAavtar = Utils.getRandomAvatar(room.getIdentity().secp256k1PKHex,
-        height: 40, width: 40);
+        httpAvatar: room.getIdentity().avatarFromRelay, height: 40, width: 40);
     isGroup = room.type == RoomType.group;
     markdownDarkConfig = MarkdownConfig.darkConfig.copy(configs: [
       LinkConfig(
@@ -100,7 +100,13 @@ class _ChatPage2State extends State<ChatPage> {
                 direction: Axis.horizontal,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  _getRoomTite(),
+                  controller.roomObs.value.type != RoomType.group
+                      ? getRoomTitle(controller.roomObs.value.getRoomName(),
+                          controller.roomObs.value.isMute, null)
+                      : getRoomTitle(
+                          controller.roomObs.value.getRoomName(),
+                          controller.roomObs.value.isMute,
+                          controller.enableMembers.length.toString()),
                   if (controller.roomObs.value.type == RoomType.bot)
                     const Padding(
                         padding: EdgeInsets.only(left: 5),
@@ -191,17 +197,23 @@ class _ChatPage2State extends State<ChatPage> {
                                 }
                               },
                               child: Obx(
-                                () => SmartRefresher(
-                                    key: ValueKey(
-                                        'chatRefresh:${controller.roomObs.value.id}'),
-                                    reverse: true,
-                                    enablePullDown: false,
-                                    enablePullUp: true,
-                                    scrollController:
-                                        controller.autoScrollController,
-                                    controller:
-                                        controller.getRefreshController(),
-                                    onLoading: controller.loadMoreChatHistory,
+                                () => CustomMaterialIndicator(
+                                    onRefresh: controller.loadMoreChatHistory,
+                                    displacement: 20,
+                                    backgroundColor: Colors.white,
+                                    trigger: IndicatorTrigger.trailingEdge,
+                                    triggerMode: IndicatorTriggerMode.anywhere,
+                                    indicatorBuilder: (context, c) {
+                                      return Padding(
+                                        padding: const EdgeInsets.all(6.0),
+                                        child: CircularProgressIndicator(
+                                          color: KeychatGlobal.primaryColor,
+                                          value: c.state.isLoading
+                                              ? null
+                                              : min(c.value, 1.0),
+                                        ),
+                                      );
+                                    },
                                     child: ListView.builder(
                                       reverse: true,
                                       shrinkWrap: true,
@@ -822,7 +834,9 @@ class _ChatPage2State extends State<ChatPage> {
                                 Get.back(result: members[index]);
                               },
                               leading: Utils.getRandomAvatar(rm.idPubkey,
-                                  height: 36, width: 36),
+                                  height: 36,
+                                  width: 36,
+                                  httpAvatar: rm.avatarFromRelay),
                               title: Text(
                                 rm.name,
                                 maxLines: 1,
@@ -841,22 +855,13 @@ class _ChatPage2State extends State<ChatPage> {
     }
   }
 
-  Widget _getRoomTite() {
-    String? title = controller.roomObs.value.name;
-    if (controller.roomObs.value.type == RoomType.common) {
-      title = controller.roomContact.value.displayName;
-    }
-    if (controller.roomObs.value.type == RoomType.group) {
-      title =
-          '${controller.roomObs.value.name} (${controller.enableMembers.length})';
-    }
-
+  Widget getRoomTitle(String title, bool isMute, String? memberCount) {
     return Wrap(
       direction: Axis.horizontal,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Text(title ?? controller.roomObs.value.getRoomName()),
-        if (controller.roomObs.value.isMute)
+        Text(memberCount != null ? '$title ($memberCount)' : title),
+        if (isMute)
           Icon(
             Icons.notifications_off_outlined,
             color: Theme.of(Get.context!)
@@ -905,6 +910,7 @@ class _ChatPage2State extends State<ChatPage> {
               onPressed: () async {
                 try {
                   Room room = controller.roomObs.value;
+                  room = await RoomService.instance.getRoomByIdOrFail(room.id);
                   if (room.status == RoomStatus.approving) {
                     String displayName = room.getIdentity().displayName;
                     await SignalChatService.instance.sendMessage(

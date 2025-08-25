@@ -131,7 +131,6 @@ class _ImportNsec extends State<ImportNsec> {
                                       name: name,
                                       prikey: input,
                                       hexPubkey: hexPubkey);
-
                               EasyLoading.showSuccess('Import successfully');
                               Get.back(result: newIdentity);
                             } catch (e, s) {

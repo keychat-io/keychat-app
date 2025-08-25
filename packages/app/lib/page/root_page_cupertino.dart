@@ -29,6 +29,7 @@ class _CupertinoRootPageState extends State<CupertinoRootPage> {
     pages = [RoomList(), BrowserNewTab(), MinePage()];
     homeController = Get.find<HomeController>();
     super.initState();
+    homeController.biometricsAuth(true);
   }
 
   @override

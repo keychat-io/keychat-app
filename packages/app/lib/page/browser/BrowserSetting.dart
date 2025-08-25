@@ -45,6 +45,7 @@ class _BrowserSettingState extends State<BrowserSetting> {
                           .map((identity) => SettingsTile.navigation(
                               leading: Utils.getRandomAvatar(
                                   identity.secp256k1PKHex,
+                                  httpAvatar: identity.avatarFromRelay,
                                   height: 30,
                                   width: 30),
                               title: Text(

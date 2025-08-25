@@ -2,7 +2,7 @@ import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:app/service/contact.service.dart';
 import 'package:equatable/equatable.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 part 'contact.g.dart';
 
@@ -13,7 +13,8 @@ part 'contact.g.dart';
   'isCheck',
   'admin',
   'imageAssets',
-  'mlsPK'
+  'mlsPK',
+  'displayAbout'
 })
 // ignore: must_be_immutable
 class Contact extends Equatable {
@@ -25,17 +26,25 @@ class Contact extends Equatable {
   late String npubkey;
   late int identityId;
   String? metadata;
-
   String? petname; // My note
   String? name; // fetch from friend
+  String? nameFromRelay; // fetch from relay
+  String? avatarFromRelay; // fetch from relay
+  DateTime? fetchFromRelayAt; // fetch time
+  String? aboutFromRelay;
+  String? metadataFromRelay; // fetch from relay
+  int versionFromRelay = 0; // fetch from relay
+
+  bool autoCreateFromGroup = false;
 
   String? about;
   String? picture;
   DateTime? createdAt;
   DateTime? updatedAt;
-
+  String? get displayAbout =>
+      about != null && about!.isNotEmpty ? about : aboutFromRelay;
   String get displayName {
-    String? nickname = petname ?? name;
+    String? nickname = petname ?? name ?? nameFromRelay;
     if (nickname == null || nickname.trim().isEmpty) {
       int max = npubkey.length;
       if (max > 8) {
@@ -43,7 +52,7 @@ class Contact extends Equatable {
       }
       return npubkey.substring(0, max);
     } else {
-      return nickname;
+      return nickname.trim();
     }
   }
 

@@ -30,7 +30,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
@@ -290,21 +290,22 @@ class _WebviewTabState extends State<WebviewTab> {
                                         value: controller.mobileKeepAlive.keys
                                             .contains(initDomain),
                                         onChanged: (value) async {
-                                          Get.back();
                                           if (value) {
                                             InAppWebViewKeepAlive? newKa =
                                                 await controller
                                                     .enableKeepAlive(
-                                                        widget.initUrl);
+                                                        initDomain);
                                             setState(() {
                                               inAppWebViewKeepAlive = newKa;
                                             });
+                                            Get.back();
                                             EasyLoading.showSuccess(
                                                 'KeepAlive Enabled. Take effect after restarting the page.');
                                             return;
                                           }
                                           await controller
-                                              .disableKeepAlive(widget.initUrl);
+                                              .disableKeepAlive(initDomain);
+                                          Get.back();
                                           EasyLoading.showSuccess(
                                               'KeepAlive Disabled.');
                                         });
@@ -560,6 +561,7 @@ class _WebviewTabState extends State<WebviewTab> {
             assetFilePath: "assets/js/webln.js");
         pullToRefreshController?.endRefreshing();
 
+        state = WebviewTabState.success;
         // Restore scroll position if needed
         if (GetPlatform.isAndroid && needRestorePosition) {
           needRestorePosition = false;
@@ -593,10 +595,6 @@ class _WebviewTabState extends State<WebviewTab> {
             'onReceivedClientCertRequest: ${challenge.protectionSpace.host}');
         return ClientCertResponse(action: ClientCertResponseAction.PROCEED);
       },
-      // onDownloadStarting: (controller, url) async {
-      //   await downloadFile(url.url.toString(), url.suggestedFilename);
-      //   return null;
-      // },
       onProgressChanged: (controller, data) {
         if (data == 100) {
           state = WebviewTabState.success;

@@ -79,9 +79,7 @@ class ContactDetailPage extends StatelessWidget {
         children: [
           Obx(() => avatarSection2(
                 Utils.getRandomAvatar(controller.contact.value.pubkey,
-                    fit: BoxFit.contain,
-                    height: double.infinity,
-                    width: double.infinity),
+                    httpAvatar: controller.contact.value.avatarFromRelay),
                 Column(
                   children: [
                     AppBar(backgroundColor: Colors.transparent),
@@ -90,7 +88,10 @@ class ContactDetailPage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Utils.getRandomAvatar(controller.contact.value.pubkey,
-                            height: 60, width: 60),
+                            httpAvatar:
+                                controller.contact.value.avatarFromRelay,
+                            height: 60,
+                            width: 60),
                         Text(
                           controller.contact.value.displayName,
                           style: Theme.of(context)

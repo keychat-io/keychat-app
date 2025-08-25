@@ -1,6 +1,6 @@
 import 'dart:convert' show jsonEncode;
 
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'msg_reply.g.dart';

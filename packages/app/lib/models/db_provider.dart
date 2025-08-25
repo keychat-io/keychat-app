@@ -3,7 +3,7 @@ import 'package:app/desktop/DesktopController.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:get/get.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 class DBProvider {
   static DBProvider? _instance;

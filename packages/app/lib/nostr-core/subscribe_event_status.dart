@@ -1,7 +1,7 @@
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/service/message.service.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 class MesssageToRelayEOSE {
   int maxRelay = 0;

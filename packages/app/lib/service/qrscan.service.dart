@@ -3,7 +3,7 @@ import 'package:app/global.dart';
 import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/page/chat/create_contact_page.dart';
 import 'package:app/page/components.dart';
-import 'package:barcode_scan2/barcode_scan2.dart';
+import 'package:ai_barcode_scanner/ai_barcode_scanner.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
@@ -22,37 +22,6 @@ class QrScanService {
   QrScanService._();
   static QrScanService get instance => _instance ??= QrScanService._();
 
-  final _aspectTolerance = 0.00;
-  final _selectedCamera = -1;
-  final _useAutoFocus = true;
-  final _autoEnableFlash = false;
-  Future<ScanResult> _scan() async {
-    try {
-      final result = await BarcodeScanner.scan(
-        options: ScanOptions(
-          // strings: {
-          //   'cancel': _cancelController.text,
-          //   'flash_on': _flashOnController.text,
-          //   'flash_off': _flashOffController.text,
-          // },
-          useCamera: _selectedCamera,
-          autoEnableFlash: _autoEnableFlash,
-          android: AndroidOptions(
-            aspectTolerance: _aspectTolerance,
-            useAutoFocus: _useAutoFocus,
-          ),
-        ),
-      );
-      return result;
-    } on PlatformException catch (e) {
-      return ScanResult(
-        rawContent: e.code == BarcodeScanner.cameraAccessDenied
-            ? 'The user did not grant the camera permission!'
-            : 'Unknown error: $e',
-      );
-    }
-  }
-
   Future<String?> handleQRScan({bool autoProcess = true}) async {
     if (!GetPlatform.isMobile) {
       EasyLoading.showToast('Not available on this devices');
@@ -65,17 +34,27 @@ class QrScanService {
       openAppSettings();
       return null;
     }
-    ScanResult sr = await _scan();
-    if (sr.type == ResultType.Cancelled) return null;
-    if (sr.type == ResultType.Error) {
-      EasyLoading.showToast('Scan error');
-      return null;
+    MobileScannerController mobileScannerController = MobileScannerController(
+      formats: [BarcodeFormat.qrCode],
+    );
+    String? result = await Get.to(() => AiBarcodeScanner(
+          controller: mobileScannerController,
+          validator: (value) {
+            return true;
+          },
+          onDetect: (BarcodeCapture capture) {
+            if (capture.barcodes.isNotEmpty) {
+              mobileScannerController.dispose();
+              Get.back(result: capture.barcodes.first.rawValue);
+            }
+          },
+        ));
+    debugPrint("Barcode detected: $result");
+
+    if (result != null && autoProcess) {
+      processQRResult(result);
     }
-    if (sr.rawContent.isEmpty) return null;
-    if (autoProcess) {
-      processQRResult(sr.rawContent);
-    }
-    return sr.rawContent;
+    return result;
   }
 
   processQRResult(String str) async {
@@ -119,9 +98,7 @@ class QrScanService {
       QRUserModel model;
       try {
         model = QRUserModel.fromShortString(str);
-      } catch (e, s) {
-        String msg = Utils.getErrorMessage(e);
-        logger.e('scan error: $msg', stackTrace: s);
+      } catch (e) {
         return handleText(str);
       }
       await RoomUtil.processUserQRCode(model);

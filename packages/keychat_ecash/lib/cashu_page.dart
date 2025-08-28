@@ -570,7 +570,8 @@ class CashuPage extends GetView<EcashController> {
                 LNTransaction ln = result.field0 as LNTransaction;
                 await Get.to(() => LightningTransactionPage(transaction: ln),
                     id: GetPlatform.isDesktop ? GetXNestKey.ecash : null);
-                controller.lightningBillController.getTransactions();
+                controller.refreshController.requestRefresh();
+                controller.requestPageRefresh();
               },
             ),
             SettingsTile.navigation(

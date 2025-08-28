@@ -23,34 +23,39 @@ const CashuInfoModelSchema = Schema(
       name: r'expiredAt',
       type: IsarType.dateTime,
     ),
-    r'id': PropertySchema(
+    r'hash': PropertySchema(
       id: 2,
+      name: r'hash',
+      type: IsarType.string,
+    ),
+    r'id': PropertySchema(
+      id: 3,
       name: r'id',
       type: IsarType.string,
     ),
     r'memo': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'memo',
       type: IsarType.string,
     ),
     r'mint': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'mint',
       type: IsarType.string,
     ),
     r'status': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'status',
       type: IsarType.int,
       enumMap: _CashuInfoModelstatusEnumValueMap,
     ),
     r'token': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'token',
       type: IsarType.string,
     ),
     r'unit': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'unit',
       type: IsarType.string,
     )
@@ -67,6 +72,12 @@ int _cashuInfoModelEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  {
+    final value = object.hash;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   {
     final value = object.id;
     if (value != null) {
@@ -98,12 +109,13 @@ void _cashuInfoModelSerialize(
 ) {
   writer.writeLong(offsets[0], object.amount);
   writer.writeDateTime(offsets[1], object.expiredAt);
-  writer.writeString(offsets[2], object.id);
-  writer.writeString(offsets[3], object.memo);
-  writer.writeString(offsets[4], object.mint);
-  writer.writeInt(offsets[5], object.status.index);
-  writer.writeString(offsets[6], object.token);
-  writer.writeString(offsets[7], object.unit);
+  writer.writeString(offsets[2], object.hash);
+  writer.writeString(offsets[3], object.id);
+  writer.writeString(offsets[4], object.memo);
+  writer.writeString(offsets[5], object.mint);
+  writer.writeInt(offsets[6], object.status.index);
+  writer.writeString(offsets[7], object.token);
+  writer.writeString(offsets[8], object.unit);
 }
 
 CashuInfoModel _cashuInfoModelDeserialize(
@@ -115,14 +127,15 @@ CashuInfoModel _cashuInfoModelDeserialize(
   final object = CashuInfoModel();
   object.amount = reader.readLong(offsets[0]);
   object.expiredAt = reader.readDateTimeOrNull(offsets[1]);
-  object.id = reader.readStringOrNull(offsets[2]);
-  object.memo = reader.readStringOrNull(offsets[3]);
-  object.mint = reader.readString(offsets[4]);
+  object.hash = reader.readStringOrNull(offsets[2]);
+  object.id = reader.readStringOrNull(offsets[3]);
+  object.memo = reader.readStringOrNull(offsets[4]);
+  object.mint = reader.readString(offsets[5]);
   object.status =
-      _CashuInfoModelstatusValueEnumMap[reader.readIntOrNull(offsets[5])] ??
+      _CashuInfoModelstatusValueEnumMap[reader.readIntOrNull(offsets[6])] ??
           TransactionStatus.pending;
-  object.token = reader.readString(offsets[6]);
-  object.unit = reader.readStringOrNull(offsets[7]);
+  object.token = reader.readString(offsets[7]);
+  object.unit = reader.readStringOrNull(offsets[8]);
   return object;
 }
 
@@ -142,13 +155,15 @@ P _cashuInfoModelDeserializeProp<P>(
     case 3:
       return (reader.readStringOrNull(offset)) as P;
     case 4:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 5:
+      return (reader.readString(offset)) as P;
+    case 6:
       return (_CashuInfoModelstatusValueEnumMap[reader.readIntOrNull(offset)] ??
           TransactionStatus.pending) as P;
-    case 6:
-      return (reader.readString(offset)) as P;
     case 7:
+      return (reader.readString(offset)) as P;
+    case 8:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -296,6 +311,160 @@ extension CashuInfoModelQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
+      hashIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'hash',
+      ));
+    });
+  }
+
+  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
+      hashIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'hash',
+      ));
+    });
+  }
+
+  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
+      hashEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'hash',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
+      hashGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'hash',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
+      hashLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'hash',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
+      hashBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'hash',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
+      hashStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'hash',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
+      hashEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'hash',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
+      hashContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'hash',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
+      hashMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'hash',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
+      hashIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'hash',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
+      hashIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'hash',
+        value: '',
       ));
     });
   }
@@ -1104,6 +1273,7 @@ CashuInfoModel _$CashuInfoModelFromJson(Map<String, dynamic> json) =>
       ..amount = (json['amount'] as num).toInt()
       ..unit = json['unit'] as String?
       ..memo = json['memo'] as String?
+      ..hash = json['hash'] as String?
       ..expiredAt = json['expiredAt'] == null
           ? null
           : DateTime.parse(json['expiredAt'] as String);
@@ -1115,6 +1285,7 @@ Map<String, dynamic> _$CashuInfoModelToJson(CashuInfoModel instance) =>
       'amount': instance.amount,
       if (instance.unit case final value?) 'unit': value,
       if (instance.memo case final value?) 'memo': value,
+      if (instance.hash case final value?) 'hash': value,
       if (instance.expiredAt?.toIso8601String() case final value?)
         'expiredAt': value,
     };

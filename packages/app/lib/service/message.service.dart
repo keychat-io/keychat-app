@@ -671,6 +671,7 @@ $content'''
           ..amount = ii.amount.toInt()
           ..token = invoice
           ..mint = ii.mint ?? ''
+          ..hash = ii.hash
           ..expiredAt = ii.expiryTs == BigInt.zero
               ? null
               : DateTime.fromMillisecondsSinceEpoch(ii.expiryTs.toInt());

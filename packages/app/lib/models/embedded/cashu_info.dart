@@ -21,6 +21,7 @@ class CashuInfoModel {
   String? id;
   String? unit;
   String? memo;
+  String? hash;
   DateTime? expiredAt;
 
   CashuInfoModel();

@@ -686,6 +686,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
         ..token = invoice.pr
         ..mint = invoice.mint
         ..status = invoice.status
+        ..hash = invoice.hash
         ..expiredAt = DateTime.fromMillisecondsSinceEpoch(invoice.time.toInt());
       await RoomService.instance.sendMessage(roomObs.value, invoice.pr,
           realMessage: cim.toString(),

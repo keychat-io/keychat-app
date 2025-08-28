@@ -9,6 +9,7 @@ import 'package:app/service/message.service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:easy_debounce/easy_throttle.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 class RedPocketCashu extends StatefulWidget {
   final Message message;
@@ -52,7 +53,7 @@ class _RedPocketCashuState extends State<RedPocketCashu> {
           children: [
             ListTile(
                 leading: SizedBox(
-                    width: 32,
+                    width: 48,
                     child: Image.asset('assets/images/BTC.png',
                         fit: BoxFit.contain)),
                 title: Text(
@@ -101,14 +102,7 @@ class _RedPocketCashuState extends State<RedPocketCashu> {
                                   retry: true);
 
                           if (model != null) {
-                            if (model.status != _cashuInfoModel.status) {
-                              widget.message.cashuInfo = model;
-                              await MessageService.instance
-                                  .updateMessage(widget.message);
-                              setState(() {
-                                _cashuInfoModel = model;
-                              });
-                            }
+                            updateMessageEcashStatus(model.status);
                           }
                         });
                       },
@@ -119,17 +113,47 @@ class _RedPocketCashuState extends State<RedPocketCashu> {
                               ?.copyWith(color: Colors.white))),
                   OutlinedButton(
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.white70),
-                      ),
+                          side: const BorderSide(color: Colors.white70)),
                       onPressed: () {
                         Clipboard.setData(
                             ClipboardData(text: _cashuInfoModel.token));
                         EasyLoading.showSuccess('Token copied to clipboard');
                       },
                       child: Icon(Icons.copy, color: Colors.white, size: 16)),
+                  OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.white70)),
+                      onPressed: checkStatus,
+                      child:
+                          Icon(Icons.refresh, color: Colors.white, size: 16)),
                 ],
               ),
           ],
         ));
+  }
+
+  Future<void> checkStatus() async {
+    if (_cashuInfoModel.id == null) {
+      EasyLoading.showError('No id found');
+      return;
+    }
+    Transaction item =
+        await rust_cashu.checkTransaction(id: _cashuInfoModel.id!);
+    CashuTransaction ln = item.field0 as CashuTransaction;
+    updateMessageEcashStatus(ln.status);
+  }
+
+  Future<void> updateMessageEcashStatus(TransactionStatus status) async {
+    if (_cashuInfoModel.status == status) {
+      EasyLoading.showInfo('Status: ${status.name.toUpperCase()}');
+      return;
+    }
+
+    _cashuInfoModel.status = status;
+    widget.message.cashuInfo = _cashuInfoModel;
+    await MessageService.instance.updateMessage(widget.message);
+    setState(() {
+      _cashuInfoModel = _cashuInfoModel;
+    });
   }
 }

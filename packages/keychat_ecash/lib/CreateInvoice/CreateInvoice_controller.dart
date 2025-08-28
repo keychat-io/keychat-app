@@ -52,10 +52,9 @@ class CreateInvoiceController extends GetxController {
       EasyLoading.show(status: 'Generating...');
       Transaction tr = await rust_cashu.requestMint(
           amount: BigInt.from(amount), activeMint: selectedMint.value);
+      Utils.getGetxController<LightningBillController>()?.getTransactions();
       EasyLoading.showToast('Create Successfully');
       textController.clear();
-      ecashController.refreshController.requestRefresh();
-      ecashController.requestPageRefresh();
       Get.back(result: tr);
     } catch (e, s) {
       String msg = Utils.getErrorMessage(e);

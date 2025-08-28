@@ -1,4 +1,4 @@
-import 'package:app/utils.dart' show logger;
+import 'package:app/utils.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
@@ -11,6 +11,7 @@ import 'package:app/service/message.service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:easy_debounce/easy_throttle.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 class RedPocketLightning extends StatefulWidget {
   final Message message;
@@ -36,7 +37,7 @@ class _RedPocketLightningState extends State<RedPocketLightning> {
     return Container(
         constraints: const BoxConstraints(maxWidth: 350),
         alignment: Alignment.center,
-        padding: EdgeInsets.only(bottom: 8),
+        padding: EdgeInsets.only(top: 8, bottom: 8),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           gradient: const LinearGradient(
@@ -51,7 +52,7 @@ class _RedPocketLightningState extends State<RedPocketLightning> {
           children: [
             ListTile(
                 leading: SizedBox(
-                    width: 32,
+                    width: 48,
                     child: Image.asset('assets/images/lightning.png',
                         fit: BoxFit.contain)),
                 title: Text(
@@ -98,17 +99,7 @@ class _RedPocketLightningState extends State<RedPocketLightning> {
                                   isPay: true);
                           if (tx == null) return;
                           var lnTx = tx.field0 as LNTransaction;
-                          logger.i('LN Transaction:   Amount=${lnTx.amount}, '
-                              'INfo=${lnTx.info}, Description=${lnTx.fee}, '
-                              'Hash=${lnTx.hash}, NodeId=${lnTx.status.name}');
-
-                          _cashuInfoModel.status = lnTx.status;
-                          widget.message.cashuInfo = _cashuInfoModel;
-                          await MessageService.instance
-                              .updateMessage(widget.message);
-                          setState(() {
-                            _cashuInfoModel = _cashuInfoModel;
-                          });
+                          updateMessageEcashStatus(lnTx.status);
                         });
                       },
                       child: Text('Pay Invoice',
@@ -125,9 +116,46 @@ class _RedPocketLightningState extends State<RedPocketLightning> {
                         EasyLoading.showSuccess('Token copied to clipboard');
                       },
                       child: Icon(Icons.copy, color: Colors.white, size: 16)),
+                  OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.white70)),
+                      onPressed: checkStatus,
+                      child:
+                          Icon(Icons.refresh, color: Colors.white, size: 16)),
                 ],
               ),
           ],
         ));
+  }
+
+  Future<void> checkStatus() async {
+    if (_cashuInfoModel.hash == null) {
+      EasyLoading.showError('No id found');
+      return;
+    }
+    try {
+      logger.d('checkStatus id: ${_cashuInfoModel.hash}');
+      Transaction item =
+          await rust_cashu.checkTransaction(id: _cashuInfoModel.hash!);
+      LNTransaction ln = item.field0 as LNTransaction;
+      await updateMessageEcashStatus(ln.status);
+    } catch (e, s) {
+      String msg = Utils.getErrorMessage(e);
+      EasyLoading.showError(msg);
+      logger.e('checkStatus error: $e', stackTrace: s);
+    }
+  }
+
+  Future<void> updateMessageEcashStatus(TransactionStatus status) async {
+    if (_cashuInfoModel.status == status) {
+      EasyLoading.showInfo('Status: ${status.name.toUpperCase()}');
+      return;
+    }
+    _cashuInfoModel.status = status;
+    widget.message.cashuInfo = _cashuInfoModel;
+    await MessageService.instance.updateMessage(widget.message);
+    setState(() {
+      _cashuInfoModel = _cashuInfoModel;
+    });
   }
 }

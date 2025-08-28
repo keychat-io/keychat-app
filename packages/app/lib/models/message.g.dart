@@ -492,6 +492,7 @@ const _MessagemediaTypeEnumValueMap = {
   'botOneTimePaymentRequest': 13,
   'groupInvitationInfo': 14,
   'groupInvitationRequesting': 15,
+  'lightningInvoice': 16,
 };
 const _MessagemediaTypeValueEnumMap = {
   0: MessageMediaType.text,
@@ -510,6 +511,7 @@ const _MessagemediaTypeValueEnumMap = {
   13: MessageMediaType.botOneTimePaymentRequest,
   14: MessageMediaType.groupInvitationInfo,
   15: MessageMediaType.groupInvitationRequesting,
+  16: MessageMediaType.lightningInvoice,
 };
 const _MessagerequestConfrimEnumValueMap = {
   'none': 0,

@@ -17,7 +17,8 @@ import 'package:app/service/websocket.service.dart';
 import 'package:flutter/services.dart';
 
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:keychat_ecash/red_pocket.dart';
+import 'package:keychat_ecash/red_pocket_cashu.dart';
+import 'package:keychat_ecash/red_pocket_lightning.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:app/service/storage.dart';
@@ -789,9 +790,16 @@ Let's start an encrypted chat.''';
           return FileMessageWidget(message, errorCallback);
         case MessageMediaType.cashuA:
           if (message.cashuInfo != null) {
-            return RedPocket(
-                key: Key('mredpocket:${message.id}'), message: message);
+            return RedPocketCashu(
+                key: Key('cashu:${message.id}'), message: message);
           }
+          break;
+        case MessageMediaType.lightningInvoice:
+          if (message.cashuInfo != null) {
+            return RedPocketLightning(
+                key: Key('lightning:${message.id}'), message: message);
+          }
+          break;
         case MessageMediaType.setPostOffice:
           return _getActionWidget(SetRoomRelayAction(cc, message), message,
               markdownConfig, errorCallback);

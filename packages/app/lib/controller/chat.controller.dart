@@ -23,7 +23,11 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:isar_community/isar.dart';
+import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart'
+    show LNTransaction;
+import 'package:keychat_rust_ffi_plugin/index.dart' show Transaction;
 import 'package:mime/mime.dart' show extensionFromMime;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -92,6 +96,7 @@ class ChatController extends GetxController {
     'assets/images/video.png',
     'assets/images/file.png',
     'assets/images/BTC.png',
+    'assets/images/lightning.png',
   ];
 
   //image video camera-image  camera-video file satos
@@ -100,7 +105,8 @@ class ChatController extends GetxController {
     'Camera',
     'Video',
     'File',
-    'Sat'
+    'Sat',
+    'Lightning'
   ];
 
   List<Function> featuresOnTaps = [];
@@ -208,7 +214,7 @@ class ChatController extends GetxController {
     return rooms;
   }
 
-  getRoomStats() async {
+  Future<void> getRoomStats() async {
     statsSend.value = await DBProvider.database.messages
         .filter()
         .roomIdEqualTo(roomObs.value.id)
@@ -270,6 +276,7 @@ class ChatController extends GetxController {
       () => pickAndUploadVideo(ImageSource.gallery),
       () => FileService.instance.handleFileUpload(roomObs.value),
       _handleSendSats,
+      _handleSendLightning
     ];
     // disable webrtc
     // bool isCommonRoom = roomObs.value.type == RoomType.common;
@@ -656,6 +663,33 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
       await RoomService.instance.sendMessage(roomObs.value, cashuInfo.token,
           realMessage: cashuInfo.toString(),
           mediaType: MessageMediaType.cashuA);
+      hideAdd.value = true; // close features section
+    } catch (e, s) {
+      String msg = Utils.getErrorMessage(e);
+      logger.e(msg, error: e, stackTrace: s);
+      EasyLoading.showError(msg);
+    }
+  }
+
+  _handleSendLightning() async {
+    Transaction? transaction = await Get.bottomSheet(
+        clipBehavior: Clip.hardEdge,
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
+        const CreateInvoicePage());
+    if (transaction == null) return;
+    LNTransaction invoice = transaction.field0 as LNTransaction;
+
+    try {
+      CashuInfoModel cim = CashuInfoModel()
+        ..amount = invoice.amount.toInt()
+        ..token = invoice.pr
+        ..mint = invoice.mint
+        ..status = invoice.status
+        ..expiredAt = DateTime.fromMillisecondsSinceEpoch(invoice.time.toInt());
+      await RoomService.instance.sendMessage(roomObs.value, invoice.pr,
+          realMessage: cim.toString(),
+          mediaType: MessageMediaType.lightningInvoice);
       hideAdd.value = true; // close features section
     } catch (e, s) {
       String msg = Utils.getErrorMessage(e);

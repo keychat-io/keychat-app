@@ -18,34 +18,39 @@ const CashuInfoModelSchema = Schema(
       name: r'amount',
       type: IsarType.long,
     ),
-    r'id': PropertySchema(
+    r'expiredAt': PropertySchema(
       id: 1,
+      name: r'expiredAt',
+      type: IsarType.dateTime,
+    ),
+    r'id': PropertySchema(
+      id: 2,
       name: r'id',
       type: IsarType.string,
     ),
     r'memo': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'memo',
       type: IsarType.string,
     ),
     r'mint': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'mint',
       type: IsarType.string,
     ),
     r'status': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'status',
       type: IsarType.int,
       enumMap: _CashuInfoModelstatusEnumValueMap,
     ),
     r'token': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'token',
       type: IsarType.string,
     ),
     r'unit': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'unit',
       type: IsarType.string,
     )
@@ -92,12 +97,13 @@ void _cashuInfoModelSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeLong(offsets[0], object.amount);
-  writer.writeString(offsets[1], object.id);
-  writer.writeString(offsets[2], object.memo);
-  writer.writeString(offsets[3], object.mint);
-  writer.writeInt(offsets[4], object.status.index);
-  writer.writeString(offsets[5], object.token);
-  writer.writeString(offsets[6], object.unit);
+  writer.writeDateTime(offsets[1], object.expiredAt);
+  writer.writeString(offsets[2], object.id);
+  writer.writeString(offsets[3], object.memo);
+  writer.writeString(offsets[4], object.mint);
+  writer.writeInt(offsets[5], object.status.index);
+  writer.writeString(offsets[6], object.token);
+  writer.writeString(offsets[7], object.unit);
 }
 
 CashuInfoModel _cashuInfoModelDeserialize(
@@ -108,14 +114,15 @@ CashuInfoModel _cashuInfoModelDeserialize(
 ) {
   final object = CashuInfoModel();
   object.amount = reader.readLong(offsets[0]);
-  object.id = reader.readStringOrNull(offsets[1]);
-  object.memo = reader.readStringOrNull(offsets[2]);
-  object.mint = reader.readString(offsets[3]);
+  object.expiredAt = reader.readDateTimeOrNull(offsets[1]);
+  object.id = reader.readStringOrNull(offsets[2]);
+  object.memo = reader.readStringOrNull(offsets[3]);
+  object.mint = reader.readString(offsets[4]);
   object.status =
-      _CashuInfoModelstatusValueEnumMap[reader.readIntOrNull(offsets[4])] ??
+      _CashuInfoModelstatusValueEnumMap[reader.readIntOrNull(offsets[5])] ??
           TransactionStatus.pending;
-  object.token = reader.readString(offsets[5]);
-  object.unit = reader.readStringOrNull(offsets[6]);
+  object.token = reader.readString(offsets[6]);
+  object.unit = reader.readStringOrNull(offsets[7]);
   return object;
 }
 
@@ -129,17 +136,19 @@ P _cashuInfoModelDeserializeProp<P>(
     case 0:
       return (reader.readLong(offset)) as P;
     case 1:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 2:
       return (reader.readStringOrNull(offset)) as P;
     case 3:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 4:
+      return (reader.readString(offset)) as P;
+    case 5:
       return (_CashuInfoModelstatusValueEnumMap[reader.readIntOrNull(offset)] ??
           TransactionStatus.pending) as P;
-    case 5:
-      return (reader.readString(offset)) as P;
     case 6:
+      return (reader.readString(offset)) as P;
+    case 7:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -209,6 +218,80 @@ extension CashuInfoModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
         property: r'amount',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
+      expiredAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'expiredAt',
+      ));
+    });
+  }
+
+  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
+      expiredAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'expiredAt',
+      ));
+    });
+  }
+
+  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
+      expiredAtEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'expiredAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
+      expiredAtGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'expiredAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
+      expiredAtLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'expiredAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<CashuInfoModel, CashuInfoModel, QAfterFilterCondition>
+      expiredAtBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'expiredAt',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -1020,7 +1103,10 @@ CashuInfoModel _$CashuInfoModelFromJson(Map<String, dynamic> json) =>
       ..token = json['token'] as String
       ..amount = (json['amount'] as num).toInt()
       ..unit = json['unit'] as String?
-      ..memo = json['memo'] as String?;
+      ..memo = json['memo'] as String?
+      ..expiredAt = json['expiredAt'] == null
+          ? null
+          : DateTime.parse(json['expiredAt'] as String);
 
 Map<String, dynamic> _$CashuInfoModelToJson(CashuInfoModel instance) =>
     <String, dynamic>{
@@ -1029,4 +1115,6 @@ Map<String, dynamic> _$CashuInfoModelToJson(CashuInfoModel instance) =>
       'amount': instance.amount,
       if (instance.unit case final value?) 'unit': value,
       if (instance.memo case final value?) 'memo': value,
+      if (instance.expiredAt?.toIso8601String() case final value?)
+        'expiredAt': value,
     };

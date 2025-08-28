@@ -559,13 +559,17 @@ class CashuPage extends GetView<EcashController> {
               title: const Text('Receive from Lightning Wallet'),
               onPressed: (context) async {
                 Get.back();
-                await Get.bottomSheet(
+                var result = await Get.bottomSheet(
                     ignoreSafeArea: false,
                     clipBehavior: Clip.antiAlias,
                     shape: const RoundedRectangleBorder(
                         borderRadius:
                             BorderRadius.vertical(top: Radius.circular(4))),
                     const CreateInvoicePage());
+                if (result == null) return;
+                LNTransaction ln = result.field0 as LNTransaction;
+                await Get.to(() => LightningTransactionPage(transaction: ln),
+                    id: GetPlatform.isDesktop ? GetXNestKey.ecash : null);
                 controller.lightningBillController.getTransactions();
               },
             ),

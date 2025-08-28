@@ -9,6 +9,8 @@ import 'package:app/service/storage.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
+
 import 'package:app/service/room.service.dart';
 import 'package:app/models/models.dart';
 
@@ -590,11 +592,18 @@ $content'''
   }
 
   Future<Message> _fillTypeForMessage(Message m, bool isBot) async {
-    // cashuA
+    // cashu token
     if (m.mediaType == MessageMediaType.cashuA ||
         m.content.startsWith('cashu')) {
-      return await _cashuAInfo(m);
+      return await _cashuMessage(m);
     }
+    // lightning invoice
+    if (m.mediaType == MessageMediaType.lightningInvoice ||
+        m.content.startsWith('lightning:') ||
+        m.content.startsWith('lnbc')) {
+      return await _lightningInvoiceMessage(m);
+    }
+
     if (m.realMessage != null) return m;
 
     // image/video/file
@@ -630,7 +639,7 @@ $content'''
     return m;
   }
 
-  Future<Message> _cashuAInfo(Message model) async {
+  Future<Message> _cashuMessage(Message model) async {
     try {
       late CashuInfoModel cim;
       if (model.isMeSend && model.realMessage != null) {
@@ -639,6 +648,34 @@ $content'''
         cim = await RustAPI.decodeToken(encodedToken: model.content);
       }
       model.mediaType = MessageMediaType.cashuA;
+      model.cashuInfo = cim;
+      // ignore: empty_catches
+    } catch (e) {}
+
+    return model;
+  }
+
+  Future<Message> _lightningInvoiceMessage(Message model) async {
+    try {
+      late CashuInfoModel cim;
+      if (model.isMeSend && model.realMessage != null) {
+        cim = CashuInfoModel.fromJson(jsonDecode(model.realMessage!));
+      } else {
+        String invoice = model.content;
+        if (invoice.startsWith('lightning:')) {
+          invoice = invoice.replaceFirst('lightning:', '');
+        }
+        rust_cashu.InvoiceInfo ii =
+            await rust_cashu.decodeInvoice(encodedInvoice: invoice);
+        cim = CashuInfoModel()
+          ..amount = ii.amount.toInt()
+          ..token = invoice
+          ..mint = ii.mint ?? ''
+          ..expiredAt = ii.expiryTs == BigInt.zero
+              ? null
+              : DateTime.fromMillisecondsSinceEpoch(ii.expiryTs.toInt());
+      }
+      model.mediaType = MessageMediaType.lightningInvoice;
       model.cashuInfo = cim;
       // ignore: empty_catches
     } catch (e) {}

@@ -194,6 +194,8 @@ class MultiWebviewController extends GetxController {
       tabs.insert(currentIndex,
           WebviewTabData(tab: tab, uniqueKey: uniqueKey, url: tab.initUrl));
       setCurrentTabIndex(currentIndex);
+
+      saveDesktopTabs();
       return;
     }
     if (tabs.isNotEmpty && tabs.last.url == KeychatGlobal.newTab) {
@@ -205,6 +207,8 @@ class MultiWebviewController extends GetxController {
           WebviewTabData(tab: tab, uniqueKey: uniqueKey, url: tab.initUrl));
       setCurrentTabIndex(tabs.length - 1);
     }
+
+    saveDesktopTabs();
   }
 
   setCurrentTabIndex(index) {
@@ -311,7 +315,7 @@ class MultiWebviewController extends GetxController {
     loadFavorite();
     initWebview();
     deleteOldHistories();
-
+    await loadDesktopTabs();
     if (tabs.isEmpty && GetPlatform.isDesktop) {
       addNewTab();
     }
@@ -384,6 +388,74 @@ class MultiWebviewController extends GetxController {
     }
   }
 
+  Future<void> saveDesktopTabs() async {
+    if (!GetPlatform.isDesktop) return;
+
+    List<Map<String, dynamic>> tabData = tabs
+        .map((tab) => {
+              'url': tab.url,
+              'title': tab.title ?? '',
+              'favicon': tab.favicon,
+            })
+        .toList();
+
+    await Storage.setString(
+        StorageKeyString.desktopBrowserTabs, jsonEncode(tabData));
+    logger.d('Saved ${tabData.length} desktop tabs');
+  }
+
+  Future<void> loadDesktopTabs() async {
+    if (!GetPlatform.isDesktop) return;
+
+    try {
+      String? savedTabs =
+          await Storage.getString(StorageKeyString.desktopBrowserTabs);
+      if (savedTabs == null || savedTabs.isEmpty) return;
+
+      List<dynamic> tabData = jsonDecode(savedTabs);
+      logger.d('Loading ${tabData.length} desktop tabs');
+
+      for (var data in tabData) {
+        String url = data['url'] ?? '';
+        String title = data['title'] ?? '';
+        String? favicon = data['favicon'];
+
+        if (url.isNotEmpty && url != KeychatGlobal.newTab) {
+          String uniqueId = generate64RandomHexChars(8);
+          final tab = WebviewTab(
+            uniqueKey: uniqueId,
+            initUrl: url,
+            key: GlobalObjectKey(uniqueId),
+            windowId: getLastWindowId(),
+          );
+
+          WebviewTabData tabData = WebviewTabData(
+            tab: tab,
+            uniqueKey: uniqueId,
+            url: url,
+          );
+          tabData.title = title.isNotEmpty ? title : null;
+          tabData.favicon = favicon;
+
+          tabs.add(tabData);
+        }
+      }
+
+      // Add a new tab if no tabs were loaded
+      if (tabs.isEmpty) {
+        addNewTab();
+      } else {
+        setCurrentTabIndex(0);
+      }
+    } catch (e) {
+      logger.e('Error loading desktop tabs: $e');
+      // If loading fails, just add a new tab
+      if (tabs.isEmpty) {
+        addNewTab();
+      }
+    }
+  }
+
   void setTabData(
       {required String uniqueId,
       String? title,
@@ -399,6 +471,8 @@ class MultiWebviewController extends GetxController {
         tabs[tabIndex].favicon = favicon;
       }
       tabs.refresh(); // Trigger UI update since we're using GetX
+
+      saveDesktopTabs();
     }
   }
 

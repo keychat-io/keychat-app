@@ -167,10 +167,10 @@ class ContactPage extends StatelessWidget {
                           Future.delayed(const Duration(seconds: 2))
                               .then((c) => EasyLoading.dismiss());
                         }
-                        await Get.find<HomeController>()
+                        Get.find<HomeController>()
                             .loadIdentityRoomList(room0.identityId);
                         await Utils.offAndToNamedRoom(room0);
-                        await Get.find<HomeController>()
+                        Get.find<HomeController>()
                             .loadIdentityRoomList(room0.identityId);
                       });
                     },

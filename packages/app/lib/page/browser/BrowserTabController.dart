@@ -90,7 +90,7 @@ window.addEventListener('DOMContentLoaded', function(event) {
     }
   }
 
-  setWebViewController(InAppWebViewController controller, String initUrl) {
+  void setWebViewController(InAppWebViewController controller, String initUrl) {
     webViewController = controller;
     if (GetPlatform.isDesktop) return;
     // Init data for keep alive on mobile

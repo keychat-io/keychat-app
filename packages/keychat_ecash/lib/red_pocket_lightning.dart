@@ -62,7 +62,7 @@ class _RedPocketLightningState extends State<RedPocketLightning> {
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context)
                         .textTheme
-                        .titleLarge
+                        .titleMedium
                         ?.copyWith(color: Colors.white)),
                 subtitle: Text(
                   _cashuInfoModel.token,

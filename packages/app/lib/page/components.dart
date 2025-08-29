@@ -36,7 +36,7 @@ Widget centerLoadingComponent([String title = 'loading']) {
   ));
 }
 
-textP(String title, {Color? color, int? maxLength}) {
+Text textP(String title, {Color? color, int? maxLength}) {
   if (maxLength != null) {
     if (title.length > maxLength) {
       title = title.substring(0, maxLength);
@@ -49,7 +49,7 @@ textP(String title, {Color? color, int? maxLength}) {
   );
 }
 
-textDescription(String title, BuildContext context) {
+Text textDescription(String title, BuildContext context) {
   return Text(
     title,
     style: TextStyle(
@@ -57,14 +57,14 @@ textDescription(String title, BuildContext context) {
   );
 }
 
-errorText(String title) {
+Text errorText(String title) {
   return Text(
     title,
     style: TextStyle(color: Colors.red.shade400),
   );
 }
 
-settingInfoCopy(String title, String content, [Icon? icon]) {
+SettingsTile settingInfoCopy(String title, String content, [Icon? icon]) {
   return SettingsTile(
     leading: icon,
     title: Text(title),
@@ -113,7 +113,7 @@ Future<void> showDeleteMsgDialog(BuildContext context, Room room) async {
       });
 }
 
-getAppBarFlexibleSpace() {
+Container getAppBarFlexibleSpace() {
   var colors = Get.isDarkMode
       ? [Colors.black, Colors.black]
       : [const Color(0xffededed), const Color(0xffe6e1e5)];
@@ -142,7 +142,7 @@ List futuresSubtitle = [
   'All contact, private key, configuration and other data are stored on your device without server interaction.',
   'We don\'t provide any servers, collect any account or device data, or any runtime logs. Your data is entirely stored locally, ensuring perfect protection of your privacy.'
 ];
-showModalBottomSheetKeyChatFetures(BuildContext context) {
+void showModalBottomSheetKeyChatFetures(BuildContext context) {
   List<Widget> ws = [];
   for (var i = 0; i < futuresTitle.length; i++) {
     ws.add(ListTile(
@@ -162,7 +162,7 @@ showModalBottomSheetKeyChatFetures(BuildContext context) {
 }
 
 // almost fullscreen
-showModalBottomSheetWidget(BuildContext context, String title, Widget body,
+void showModalBottomSheetWidget(BuildContext context, String title, Widget body,
     {bool showAppBar = true, Function? callback}) {
   if (!showAppBar) {
     showCupertinoSheet(
@@ -194,7 +194,8 @@ showModalBottomSheetWidget(BuildContext context, String title, Widget body,
           appBar: getSheetAppBar(context, title, callback), body: body));
 }
 
-getSheetAppBar(BuildContext context, String title, [Function? callback]) {
+AppBar getSheetAppBar(BuildContext context, String title,
+    [Function? callback]) {
   return AppBar(
     leading: const SizedBox(),
     title: Text(title),
@@ -212,7 +213,7 @@ getSheetAppBar(BuildContext context, String title, [Function? callback]) {
 }
 
 // Adaptive height, not suitable for content with OBX
-showFitSheetWidget(BuildContext context, String title, List<Widget> bodys,
+void showFitSheetWidget(BuildContext context, String title, List<Widget> bodys,
     {bool showAppBar = true, Function? callback}) {
   showCupertinoSheet(
     context: context,
@@ -228,7 +229,7 @@ showFitSheetWidget(BuildContext context, String title, List<Widget> bodys,
   );
 }
 
-getGroupInfoBottomSheetWidget(BuildContext context) {
+void getGroupInfoBottomSheetWidget(BuildContext context) {
   Get.bottomSheet(
       ignoreSafeArea: false,
       clipBehavior: Clip.antiAlias,
@@ -343,7 +344,7 @@ void copyAllContacts(List<Contact> contactList) {
   EasyLoading.showToast('Copied all contacts to clipboard');
 }
 
-showSearchContactsPage(BuildContext context, List<Contact> contactList) {
+void showSearchContactsPage(BuildContext context, List<Contact> contactList) {
   String input = "";
   showSearch(
       context: context,

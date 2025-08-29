@@ -57,7 +57,7 @@ class QrScanService {
     return result;
   }
 
-  processQRResult(String str) async {
+  Future processQRResult(String str) async {
     if (str.startsWith('http://') || str.startsWith('https://')) {
       handleUrl(str);
       return;
@@ -75,8 +75,7 @@ class QrScanService {
       return ecashController.proccessPayLightningBill(str);
     }
     if (str.toUpperCase().startsWith('LNURL') || isEmail(str)) {
-      await showModalBottomSheetWidget(
-          Get.context!, '', PayInvoicePage(invoce: str),
+      showModalBottomSheetWidget(Get.context!, '', PayInvoicePage(invoce: str),
           showAppBar: false);
       return;
     }
@@ -107,7 +106,7 @@ class QrScanService {
     return handleText(str);
   }
 
-  handleUrl(String url) {
+  dynamic handleUrl(String url) {
     Uri uri;
     try {
       uri = Uri.parse(url);
@@ -154,7 +153,7 @@ class QrScanService {
     return;
   }
 
-  handleText(String str) {
+  void handleText(String str) {
     Get.dialog(
       CupertinoAlertDialog(
         title: const Text("Result"),

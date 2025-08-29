@@ -128,7 +128,7 @@ class MediaRelaySettings extends GetView<SettingController> {
             : const Center(child: Text("No media relay configured yet"))));
   }
 
-  addUrlSubmit(TextEditingController urlController) {
+  void addUrlSubmit(TextEditingController urlController) {
     String url = urlController.text.trim();
     if (url.isEmpty) {
       EasyLoading.showError('URL cannot be empty');

@@ -355,7 +355,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
         ));
   }
 
-  receiveInPostOffice() {
+  SettingsSection receiveInPostOffice() {
     return SettingsSection(
       title: const Text('Message Relays'),
       tiles: [
@@ -377,7 +377,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
     );
   }
 
-  payToRelaySection() {
+  SettingsSection payToRelaySection() {
     return SettingsSection(
       tiles: [
         RoomUtil.mediaSection(cc),
@@ -475,7 +475,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                             }
 
                             await Utils.offAndToNamedRoom(room);
-                            await Get.find<HomeController>()
+                            Get.find<HomeController>()
                                 .loadIdentityRoomList(room.identityId);
                           },
                           child: const Text("Start Private Chat"),
@@ -691,7 +691,7 @@ B. Notify the admin to remove and re-add them to the group. '''),
     ));
   }
 
-  _selfExitGroup(BuildContext context) {
+  void _selfExitGroup(BuildContext context) {
     Get.dialog(CupertinoAlertDialog(
       title: Text(isAdmin ? "Disband?" : "Leave?"),
       content:
@@ -721,7 +721,7 @@ B. Notify the admin to remove and re-add them to the group. '''),
                 EasyLoading.showError(msg);
                 return;
               }
-              await Get.find<HomeController>()
+              Get.find<HomeController>()
                   .loadIdentityRoomList(cc.roomObs.value.identityId);
               Utils.offAllNamedRoom(Routes.root);
             }),

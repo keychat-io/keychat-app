@@ -88,7 +88,7 @@ class RelayService {
   //       .findAll();
   // }
 
-  delete(int id) async {
+  Future<bool> delete(int id) async {
     Isar database = DBProvider.database;
 
     return await database.writeTxn(() async {

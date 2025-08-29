@@ -271,7 +271,7 @@ class HomeController extends GetxController
     return chatIdentities.values.toList()[tabController.index];
   }
 
-  initTabController([int initialIndex = 0]) {
+  void initTabController([int initialIndex = 0]) {
     tabController.dispose();
     if (initialIndex >= chatIdentities.length) {
       initialIndex = 0;
@@ -307,7 +307,7 @@ class HomeController extends GetxController
     return chatIdentities.values.toList();
   }
 
-  loadIdentityRoomList(int identityId) {
+  void loadIdentityRoomList(int identityId) {
     EasyDebounce.debounce(
         'loadIdentityRoomList:$identityId', const Duration(milliseconds: 200),
         () async {
@@ -562,7 +562,7 @@ class HomeController extends GetxController
     await Storage.setInt(name, 1);
   }
 
-  setUnreadCount(int count) async {
+  Future<void> setUnreadCount(int count) async {
     if (count == allUnReadCount.value) return;
     allUnReadCount.value = count;
     if (!isAppBadgeSupported) return;
@@ -570,13 +570,13 @@ class HomeController extends GetxController
     FlutterNewBadger.setBadge(count);
   }
 
-  addUnreadCount() {
+  void addUnreadCount() {
     allUnReadCount.value++;
     if (!isAppBadgeSupported) return;
     FlutterNewBadger.setBadge(allUnReadCount.value);
   }
 
-  troggleDebugModel() {
+  void troggleDebugModel() {
     ++debugModelClickCount;
     if (debugModelClickCount % 5 == 0) {
       logger.i('enable debug model');
@@ -780,7 +780,7 @@ class HomeController extends GetxController
 
   late StreamSubscription _intentSub;
 
-  _initShareIntent() {
+  void _initShareIntent() {
     if (!GetPlatform.isMobile) return;
     // Listen to media sharing coming from outside the app while the app is in the memory.
     _intentSub = ReceiveSharingIntent.instance.getMediaStream().listen((value) {
@@ -797,7 +797,7 @@ class HomeController extends GetxController
     logger.i('ShareIntent initialized');
   }
 
-  _handleSharedContent(List<SharedMediaFile> list) async {
+  Future<void> _handleSharedContent(List<SharedMediaFile> list) async {
     if (list.isEmpty) return;
     logger.i('Shared content received: ${list.map((f) => f.toMap())}');
     SharedMediaFile file = list.first;

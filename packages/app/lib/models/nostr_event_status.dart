@@ -60,7 +60,7 @@ class NostrEventStatus extends Equatable {
         .findFirst();
   }
 
-  static deleteById(String eventId) async {
+  static Future<void> deleteById(String eventId) async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.nostrEventStatus
           .filter()
@@ -94,7 +94,7 @@ class NostrEventStatus extends Equatable {
     });
   }
 
-  static getLatestErrorEvents(int limit) {
+  static Future<List<NostrEventStatus>> getLatestErrorEvents(int limit) {
     return DBProvider.database.nostrEventStatus
         .filter()
         .isReceiveEqualTo(true)

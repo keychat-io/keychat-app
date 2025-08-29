@@ -116,7 +116,7 @@ class RelayStatus extends GetView<HomeController> {
         ));
   }
 
-  _showDialogForReconnect(bool status, String message) {
+  void _showDialogForReconnect(bool status, String message) {
     Get.dialog(CupertinoAlertDialog(
       title: status
           ? const Icon(

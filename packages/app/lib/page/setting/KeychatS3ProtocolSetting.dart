@@ -29,7 +29,7 @@ class _KeychatS3ProtocolState extends State<KeychatS3Protocol> {
     _init();
   }
 
-  _init() async {
+  Future<void> _init() async {
     RelayFileFee? fuc =
         await RelayService.instance.initRelayFileFeeModel(defaultFileServer);
     if (fuc != null) {

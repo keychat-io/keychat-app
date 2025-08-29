@@ -63,7 +63,7 @@ class _UnreadMessagesState extends State<UnreadMessages> {
             }));
   }
 
-  getUnreadMessages() async {
+  Future<void> getUnreadMessages() async {
     List<Message> ms = await DBProvider.database.messages
         .filter()
         .isReadEqualTo(false)

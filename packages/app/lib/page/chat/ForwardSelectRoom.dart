@@ -30,7 +30,7 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
     super.initState();
   }
 
-  init(Identity identity) {
+  void init(Identity identity) {
     List<Room> res = Get.find<HomeController>().getRoomsByIdentity(identity.id);
     setState(() {
       selectedIdentity = identity;

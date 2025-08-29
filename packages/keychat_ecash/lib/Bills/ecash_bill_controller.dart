@@ -26,7 +26,7 @@ class EcashBillController extends GetxController {
     super.onClose();
   }
 
-  initPageData() {
+  void initPageData() {
     Future.delayed(Duration(seconds: 1)).then((_) {
       rust_cashu.checkPending().then(
         (value) async {

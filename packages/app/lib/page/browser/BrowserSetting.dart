@@ -153,7 +153,7 @@ class _BrowserSettingState extends State<BrowserSetting> {
     });
   }
 
-  selectRetentionPeriod(int? value) async {
+  Future<void> selectRetentionPeriod(int? value) async {
     if (value == null) return;
     controller.setConfig('historyRetentionDays', value);
     EasyLoading.showSuccess('Success');

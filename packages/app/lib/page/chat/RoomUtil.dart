@@ -61,7 +61,7 @@ class RoomUtil {
     return await messageReceiveCheck(room, event, delay, maxRetry);
   }
 
-  static forwardTextMessage(Identity identity, String content,
+  static Future<void> forwardTextMessage(Identity identity, String content,
       [bool showContent = true]) async {
     List<Room>? forwardRooms = await Get.to(
         () => ForwardSelectRoom(content, identity, showContent: showContent),
@@ -81,7 +81,7 @@ class RoomUtil {
     return;
   }
 
-  static forwardMediaMessage(Identity identity,
+  static Future<void> forwardMediaMessage(Identity identity,
       {required MessageMediaType mediaType,
       required String content,
       required String realMessage}) async {
@@ -278,7 +278,7 @@ Let's start an encrypted chat.''';
         await RoomService.instance.updateRoom(cc.roomObs.value);
         cc.roomObs.refresh();
         EasyLoading.showSuccess('Saved');
-        await Get.find<HomeController>()
+        Get.find<HomeController>()
             .loadIdentityRoomList(cc.roomObs.value.identityId);
       },
     );
@@ -397,7 +397,7 @@ Let's start an encrypted chat.''';
                       onDeletRoom();
                     }
                     EasyLoading.showSuccess('Success');
-                    await Get.find<HomeController>()
+                    Get.find<HomeController>()
                         .loadIdentityRoomList(room.identityId);
                   } catch (e, s) {
                     EasyLoading.dismiss();
@@ -682,7 +682,7 @@ Let's start an encrypted chat.''';
     );
   }
 
-  static _getTextItemView(Message message, MarkdownConfig markdownConfig,
+  static Widget _getTextItemView(Message message, MarkdownConfig markdownConfig,
       Widget Function({Widget? child, String? text}) errorCallback) {
     if (AnyLinkPreview.isValidLink(message.content) &&
         !isEmail(message.content)) {

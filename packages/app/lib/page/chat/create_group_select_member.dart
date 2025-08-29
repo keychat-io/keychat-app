@@ -44,7 +44,7 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
     _loading();
   }
 
-  _loading() async {
+  Future<void> _loading() async {
     if (widget.groupType == GroupType.sendAll) {
       setState(() {
         pageLoading = false;
@@ -116,7 +116,7 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
             widget.groupName, identity,
             toUsers: selectedContact, groupRelays: widget.relays);
       }
-      await Get.find<HomeController>().loadIdentityRoomList(identity.id);
+      Get.find<HomeController>().loadIdentityRoomList(identity.id);
       Get.back();
       await Utils.offAndToNamedRoom(room);
     } catch (e, s) {

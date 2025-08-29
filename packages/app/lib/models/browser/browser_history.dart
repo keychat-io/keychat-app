@@ -34,13 +34,13 @@ class BrowserHistory extends Equatable {
     return list;
   }
 
-  static deleteAll() async {
+  static Future<void> deleteAll() async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.browserHistorys.where().deleteAll();
     });
   }
 
-  static delete(Id id) async {
+  static Future<void> delete(Id id) async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.browserHistorys.delete(id);
     });

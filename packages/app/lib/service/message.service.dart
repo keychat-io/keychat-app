@@ -59,8 +59,9 @@ class MessageService {
     return model;
   }
 
-  _messageNotifyToPage(bool isCurrentPage, Message model, Room room) async {
-    await RoomService.getController(model.roomId)?.addMessage(model);
+  Future<void> _messageNotifyToPage(
+      bool isCurrentPage, Message model, Room room) async {
+    RoomService.getController(model.roomId)?.addMessage(model);
     var hc = Get.find<HomeController>();
     hc.roomLastMessage[model.roomId] = model;
     hc.loadIdentityRoomList(model.identityId);
@@ -159,7 +160,7 @@ $content'''
     refreshMessageInPage(message);
   }
 
-  refreshMessageInPage(Message message) {
+  void refreshMessageInPage(Message message) {
     try {
       ChatController? cc = RoomService.getController(message.roomId);
       if (cc == null) return;
@@ -268,7 +269,7 @@ $content'''
         .findAll();
   }
 
-  distinctByRoomId() async {
+  Future<Future<List<Message>>> distinctByRoomId() async {
     Isar database = DBProvider.database;
 
     return database.messages.where().distinctByRoomId().findAll();
@@ -685,7 +686,7 @@ $content'''
     return model;
   }
 
-  deleteAll() async {
+  Future<void> deleteAll() async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.messages.clear();
     });

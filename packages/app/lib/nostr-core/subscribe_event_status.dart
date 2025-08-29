@@ -8,7 +8,7 @@ class MesssageToRelayEOSE {
   List<String> okRelays = [];
   Map<String, String> errors = {};
 
-  receiveRelayEOSE(String url, bool isSuccess, [String? errorMessage]) {
+  void receiveRelayEOSE(String url, bool isSuccess, [String? errorMessage]) {
     if (isSuccess) {
       okRelays.add(url);
     } else {
@@ -22,7 +22,7 @@ class MesssageToRelayEOSE {
 class SubscribeEventStatus {
   static final Map<String, MesssageToRelayEOSE> _map = {};
 
-  static addSubscripton(String eventId, int maxRelay,
+  static Future<void> addSubscripton(String eventId, int maxRelay,
       {Function(bool)? sentCallback}) async {
     if (maxRelay == 0) return;
     _map[eventId] = MesssageToRelayEOSE(maxRelay);
@@ -33,13 +33,15 @@ class SubscribeEventStatus {
     while (DateTime.now().isBefore(deadline)) {
       await Future.delayed(const Duration(milliseconds: 100));
 
-      if (await SubscribeEventStatus.isFilled(eventId)) {
+      if (SubscribeEventStatus.isFilled(eventId)) {
         if (sentCallback != null) sentCallback(true);
-        return removeSubscripton(eventId);
+        removeSubscripton(eventId);
+        return;
       }
     }
     if (sentCallback != null) sentCallback(false);
-    return removeSubscripton(eventId);
+    removeSubscripton(eventId);
+    return;
   }
 
   static MesssageToRelayEOSE removeSubscripton(String eventId) {
@@ -49,7 +51,7 @@ class SubscribeEventStatus {
     return me;
   }
 
-  static fillSubscripton(String eventId, String url, bool isSuccess,
+  static void fillSubscripton(String eventId, String url, bool isSuccess,
       [String? errorMessage]) {
     MesssageToRelayEOSE? m = _map[eventId];
     if (m != null) {
@@ -61,7 +63,7 @@ class SubscribeEventStatus {
     updateEventAndMessageStatus(eventId, me);
   }
 
-  static isFilled(String eventId) {
+  static bool isFilled(String eventId) {
     MesssageToRelayEOSE? m = _map[eventId];
     if (m == null) return false;
     return m.maxRelay == m.okRelays.length + m.errors.keys.length;

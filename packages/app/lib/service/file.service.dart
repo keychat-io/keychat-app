@@ -242,7 +242,7 @@ class FileService {
     return File(thumbnailFilePath);
   }
 
-  onSendProgress(String status, int count, int total) {
+  void onSendProgress(String status, int count, int total) {
     EasyThrottle.throttle('onSendProgress', Duration(milliseconds: 100), () {
       if (count == total && total != 0) {
         EasyLoading.showSuccess('Upload success');
@@ -322,7 +322,7 @@ class FileService {
     return res;
   }
 
-  deleteFilesByTime(String path, DateTime fromAt) {
+  void deleteFilesByTime(String path, DateTime fromAt) {
     Directory directory = Directory(path);
     if (directory.existsSync()) {
       directory.listSync().forEach((element) {
@@ -545,7 +545,7 @@ class FileService {
     if (callback != null) {
       callback(mfi);
     } else {
-      await MessageService.instance.refreshMessageInPage(message);
+      MessageService.instance.refreshMessageInPage(message);
     }
   }
 

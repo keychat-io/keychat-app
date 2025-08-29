@@ -48,7 +48,7 @@ class BrowserConnect extends Equatable {
     return list;
   }
 
-  static delete(Id id) async {
+  static Future<void> delete(Id id) async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.browserConnects.delete(id);
     });

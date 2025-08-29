@@ -22,7 +22,7 @@ class _SelectIdentityForwardState extends State<SelectIdentityForward> {
     super.initState();
   }
 
-  init() async {
+  Future<void> init() async {
     List<Identity> list =
         await IdentityService.instance.getEnableChatIdentityList();
     setState(() {

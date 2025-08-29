@@ -111,7 +111,7 @@ class _WebviewTabState extends State<WebviewTab> {
     controller.updateTabData(uniqueId: widget.uniqueKey, url: uri.toString());
   }
 
-  initBrowserConnect(WebUri uri) {
+  void initBrowserConnect(WebUri uri) {
     BrowserConnect.getByHost(uri.host).then((value) {
       tc.setBrowserConnect(value);
     });
@@ -356,7 +356,7 @@ class _WebviewTabState extends State<WebviewTab> {
                   IconButton(
                       onPressed: () async {
                         if (pageFailed || state != WebviewTabState.success) {
-                          await controller.removeKeepAlive(widget.initUrl);
+                          controller.removeKeepAlive(widget.initUrl);
                         }
                         if (Get.isBottomSheetOpen ?? false) {
                           Get.back();
@@ -611,7 +611,7 @@ class _WebviewTabState extends State<WebviewTab> {
         if (!isForMainFrame || isCancel) {
           return;
         }
-        await this.controller.removeKeepAlive(widget.initUrl);
+        this.controller.removeKeepAlive(widget.initUrl);
         pullToRefreshController?.endRefreshing();
         if (error.description.contains('domain=WebKitErrorDomain, code=102')) {
           return renderAssetAsHtml(controller, request);
@@ -752,7 +752,7 @@ class _WebviewTabState extends State<WebviewTab> {
         return;
       }
       if (pageFailed || state != WebviewTabState.success) {
-        await controller.removeKeepAlive(widget.initUrl);
+        controller.removeKeepAlive(widget.initUrl);
       }
       await pausePlayingMedia();
       Get.back();
@@ -760,7 +760,7 @@ class _WebviewTabState extends State<WebviewTab> {
   }
 
   // info coming from the JavaScript side!
-  javascriptHandlerNostr(List<dynamic> data) async {
+  Future<Object?>? javascriptHandlerNostr(List<dynamic> data) async {
     logger.i('javascriptHandler: $data');
     var method = data[0];
     if (method == 'getRelays') {
@@ -769,21 +769,21 @@ class _WebviewTabState extends State<WebviewTab> {
     }
 
     if (method == 'pageFailedToRefresh') {
-      await controller.removeKeepAlive(widget.initUrl);
+      controller.removeKeepAlive(widget.initUrl);
       if (inAppWebViewKeepAlive == null) {
         refreshPage();
-        return;
+        return null;
       }
 
       setState(() {
         inAppWebViewKeepAlive = null;
       });
-      return;
+      return null;
     }
 
     WebUri? uri = await tc.webViewController?.getUrl();
     String? host = uri?.host;
-    if (host == null) return;
+    if (host == null) return null;
     Identity? identity = await getOrSelectIdentity(host);
     if (identity == null) {
       return null;
@@ -807,11 +807,11 @@ class _WebviewTabState extends State<WebviewTab> {
                         List<String>.from((e.map((item) => item.toString()))))
                     .toList()));
             if (confirm != true) {
-              return;
+              return null;
             }
           } catch (e, s) {
             logger.e('Failed to parse event: $event', stackTrace: s);
-            return;
+            return null;
           }
         }
         var res = await NostrAPI.instance.signEventByIdentity(
@@ -1003,7 +1003,7 @@ class _WebviewTabState extends State<WebviewTab> {
         break;
       case 'close':
         try {
-          await controller.removeKeepAlive(widget.initUrl);
+          controller.removeKeepAlive(widget.initUrl);
           await pausePlayingMedia();
         } catch (e, s) {
           logger.e('Error while closing webview: $e', stackTrace: s);
@@ -1069,7 +1069,7 @@ class _WebviewTabState extends State<WebviewTab> {
     tc.canGoForward.value = canGoForward ?? false;
   }
 
-  updateTabInfo(String key, String url0, String title0) {
+  void updateTabInfo(String key, String url0, String title0) {
     // logger.i('updateTabInfo: $key, $url0, $title0');
     controller.setTabData(uniqueId: widget.uniqueKey, title: title0, url: url0);
     tc.title.value = title0;
@@ -1156,7 +1156,7 @@ img {
   }
 
   // info coming from the JavaScript side!
-  javascriptHandlerWebLN(List<dynamic> data) async {
+  Future<Object?> javascriptHandlerWebLN(List<dynamic> data) async {
     logger.i('javascriptHandler: $data');
     var method = data[0];
     switch (method) {
@@ -1234,6 +1234,7 @@ img {
 
       default:
     }
+    return null;
   }
 
   Widget signEventConfirm(

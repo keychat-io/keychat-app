@@ -35,13 +35,13 @@ class BrowserBookmark extends Equatable {
     return list;
   }
 
-  static deleteAll() async {
+  static Future<void> deleteAll() async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.browserBookmarks.where().deleteAll();
     });
   }
 
-  static delete(Id id) async {
+  static Future<void> delete(Id id) async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.browserBookmarks.delete(id);
     });
@@ -54,7 +54,8 @@ class BrowserBookmark extends Equatable {
     });
   }
 
-  static add({required String url, String? title, String? favicon}) async {
+  static Future<void> add(
+      {required String url, String? title, String? favicon}) async {
     await DBProvider.database.writeTxn(() async {
       BrowserBookmark model =
           BrowserBookmark(url: url, title: title, favicon: favicon);
@@ -62,14 +63,15 @@ class BrowserBookmark extends Equatable {
     });
   }
 
-  static getByUrl(String url) async {
+  static Future<BrowserBookmark?>? getByUrl(String url) async {
     return await DBProvider.database.browserBookmarks
         .filter()
         .urlEqualTo(url)
         .findFirst();
   }
 
-  static batchUpdateWeights(List<BrowserBookmark> bookmarks) async {
+  static Future<void> batchUpdateWeights(
+      List<BrowserBookmark> bookmarks) async {
     await DBProvider.database.writeTxn(() async {
       for (int i = 0; i < bookmarks.length; i++) {
         bookmarks[i].weight = bookmarks.length - i;

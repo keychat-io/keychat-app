@@ -63,7 +63,7 @@ class _RedPocketCashuState extends State<RedPocketCashu> {
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context)
                         .textTheme
-                        .titleMedium
+                        .titleLarge
                         ?.copyWith(color: Colors.white)),
                 subtitle: Text(
                   _cashuInfoModel.token,
@@ -89,7 +89,7 @@ class _RedPocketCashuState extends State<RedPocketCashu> {
                       ),
                       onPressed: () async {
                         EasyThrottle.throttle(
-                            'handleReceiveToken', const Duration(seconds: 2),
+                            'handleReceiveToken', const Duration(seconds: 3),
                             () async {
                           if (_cashuInfoModel.status !=
                               TransactionStatus.pending) {
@@ -102,6 +102,8 @@ class _RedPocketCashuState extends State<RedPocketCashu> {
                                   retry: true);
 
                           if (model != null) {
+                            logger.d(
+                                'handleReceiveToken status: ${model.status.name}');
                             updateMessageEcashStatus(model.status);
                           }
                         });

@@ -62,7 +62,7 @@ class _RedPocketLightningState extends State<RedPocketLightning> {
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context)
                         .textTheme
-                        .titleMedium
+                        .titleLarge
                         ?.copyWith(color: Colors.white)),
                 subtitle: Text(
                   _cashuInfoModel.token,
@@ -84,11 +84,10 @@ class _RedPocketLightningState extends State<RedPocketLightning> {
                 children: [
                   OutlinedButton(
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.white70),
-                      ),
+                          side: const BorderSide(color: Colors.white70)),
                       onPressed: () async {
                         EasyThrottle.throttle(
-                            'handlePayInvoice', const Duration(seconds: 2),
+                            'handlePayInvoice', const Duration(seconds: 3),
                             () async {
                           if (_cashuInfoModel.status !=
                               TransactionStatus.pending) {

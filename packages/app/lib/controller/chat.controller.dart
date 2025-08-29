@@ -26,13 +26,14 @@ import 'package:isar_community/isar.dart';
 import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart'
-    show LNTransaction;
+    show LNTransaction, TransactionStatus;
 import 'package:keychat_rust_ffi_plugin/index.dart' show Transaction;
 import 'package:mime/mime.dart' show extensionFromMime;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:super_clipboard/super_clipboard.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 const int maxMessageId = 999999999999;
 
@@ -324,6 +325,43 @@ class ChatController extends GetxController {
     messages.value = sortMessageById(unreads.toList());
     messages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
     messages.value = List.from(messages);
+    checkPendingEcash();
+  }
+
+  Future<void> checkPendingEcash() async {
+    for (var message in messages) {
+      if (message.mediaType == MessageMediaType.cashuA) {
+        if (message.cashuInfo?.status == TransactionStatus.pending) {
+          await checkEcashStatus(message, message.cashuInfo?.id);
+        }
+      }
+
+      if (message.mediaType == MessageMediaType.lightningInvoice) {
+        if (message.cashuInfo?.status == TransactionStatus.pending) {
+          await checkEcashStatus(message, message.cashuInfo?.hash);
+        }
+      }
+    }
+  }
+
+  Future<void> checkEcashStatus(Message message, String? id) async {
+    if (message.cashuInfo == null || id == null) {
+      return;
+    }
+
+    try {
+      logger.d('checkLNStatus id: $id');
+      Transaction item = await rust_cashu.checkTransaction(id: id);
+      LNTransaction ln = item.field0 as LNTransaction;
+      if (message.cashuInfo!.status == ln.status) {
+        return;
+      }
+      message.cashuInfo!.status = ln.status;
+      await MessageService.instance.updateMessageAndRefresh(message);
+    } catch (e, s) {
+      String msg = Utils.getErrorMessage(e);
+      logger.e('checkStatus error: $msg', stackTrace: s);
+    }
   }
 
   loadAllChatFromSearchScroll() {
@@ -660,6 +698,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
         const CashuSendPage(true));
     if (cashuInfo == null) return;
     try {
+      logger.d(cashuInfo.toString());
       await RoomService.instance.sendMessage(roomObs.value, cashuInfo.token,
           realMessage: cashuInfo.toString(),
           mediaType: MessageMediaType.cashuA);

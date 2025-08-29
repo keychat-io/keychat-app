@@ -1,3 +1,4 @@
+import 'package:app/utils.dart';
 import 'package:flutter/services.dart';
 import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
@@ -26,7 +27,6 @@ class _RedPocketCashuState extends State<RedPocketCashu> {
   @override
   void initState() {
     super.initState();
-
     _cashuInfoModel = widget.message.cashuInfo!;
   }
 
@@ -35,7 +35,7 @@ class _RedPocketCashuState extends State<RedPocketCashu> {
     return Container(
         constraints: const BoxConstraints(maxWidth: 350),
         alignment: Alignment.center,
-        padding: EdgeInsets.only(bottom: 8),
+        padding: EdgeInsets.only(top: 8, bottom: 8),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           gradient: const LinearGradient(
@@ -120,12 +120,13 @@ class _RedPocketCashuState extends State<RedPocketCashu> {
                         EasyLoading.showSuccess('Token copied to clipboard');
                       },
                       child: Icon(Icons.copy, color: Colors.white, size: 16)),
-                  OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.white70)),
-                      onPressed: checkStatus,
-                      child:
-                          Icon(Icons.refresh, color: Colors.white, size: 16)),
+                  if (_cashuInfoModel.id != null)
+                    OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.white70)),
+                        onPressed: checkStatus,
+                        child:
+                            Icon(Icons.refresh, color: Colors.white, size: 16)),
                 ],
               ),
           ],
@@ -137,10 +138,17 @@ class _RedPocketCashuState extends State<RedPocketCashu> {
       EasyLoading.showError('No id found');
       return;
     }
-    Transaction item =
-        await rust_cashu.checkTransaction(id: _cashuInfoModel.id!);
-    CashuTransaction ln = item.field0 as CashuTransaction;
-    updateMessageEcashStatus(ln.status);
+    try {
+      logger.d('checkStatus id: ${_cashuInfoModel.id}');
+      Transaction item =
+          await rust_cashu.checkTransaction(id: _cashuInfoModel.id!);
+      CashuTransaction ln = item.field0 as CashuTransaction;
+      await updateMessageEcashStatus(ln.status);
+    } catch (e, s) {
+      String msg = Utils.getErrorMessage(e);
+      EasyLoading.showError(msg);
+      logger.e('checkStatus error: $e', stackTrace: s);
+    }
   }
 
   Future<void> updateMessageEcashStatus(TransactionStatus status) async {
@@ -148,7 +156,6 @@ class _RedPocketCashuState extends State<RedPocketCashu> {
       EasyLoading.showInfo('Status: ${status.name.toUpperCase()}');
       return;
     }
-
     _cashuInfoModel.status = status;
     widget.message.cashuInfo = _cashuInfoModel;
     await MessageService.instance.updateMessage(widget.message);

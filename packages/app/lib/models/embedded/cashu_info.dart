@@ -16,8 +16,6 @@ class CashuInfoModel {
   @Enumerated(EnumType.ordinal32)
   @JsonKey(includeToJson: false, includeFromJson: false)
   TransactionStatus status = TransactionStatus.pending;
-
-  @JsonKey(includeToJson: false, includeFromJson: false)
   String? id;
   String? unit;
   String? memo;

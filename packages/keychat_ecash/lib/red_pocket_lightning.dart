@@ -96,7 +96,9 @@ class _RedPocketLightningState extends State<RedPocketLightning> {
                           }
                           var tx = await Get.find<EcashController>()
                               .proccessPayLightningBill(_cashuInfoModel.token,
-                                  isPay: true);
+                                  isPay: true, paidCallback: () {
+                            updateMessageEcashStatus(TransactionStatus.success);
+                          });
                           if (tx == null) return;
                           var lnTx = tx.field0 as LNTransaction;
                           updateMessageEcashStatus(lnTx.status);
@@ -116,12 +118,13 @@ class _RedPocketLightningState extends State<RedPocketLightning> {
                         EasyLoading.showSuccess('Token copied to clipboard');
                       },
                       child: Icon(Icons.copy, color: Colors.white, size: 16)),
-                  OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.white70)),
-                      onPressed: checkStatus,
-                      child:
-                          Icon(Icons.refresh, color: Colors.white, size: 16)),
+                  if (widget.message.isMeSend && _cashuInfoModel.hash != null)
+                    OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.white70)),
+                        onPressed: checkStatus,
+                        child:
+                            Icon(Icons.refresh, color: Colors.white, size: 16)),
                 ],
               ),
           ],
@@ -129,14 +132,14 @@ class _RedPocketLightningState extends State<RedPocketLightning> {
   }
 
   Future<void> checkStatus() async {
-    if (_cashuInfoModel.hash == null) {
+    String? hash = _cashuInfoModel.hash;
+    if (hash == null) {
       EasyLoading.showError('No id found');
       return;
     }
     try {
-      logger.d('checkStatus id: ${_cashuInfoModel.hash}');
-      Transaction item =
-          await rust_cashu.checkTransaction(id: _cashuInfoModel.hash!);
+      logger.d('checkStatus id: $hash');
+      Transaction item = await rust_cashu.checkTransaction(id: hash);
       LNTransaction ln = item.field0 as LNTransaction;
       await updateMessageEcashStatus(ln.status);
     } catch (e, s) {

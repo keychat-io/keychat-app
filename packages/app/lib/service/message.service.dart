@@ -154,7 +154,7 @@ $content'''
         room: room);
   }
 
-  Future updateMessageAndRefresh(Message message) async {
+  Future<void> updateMessageAndRefresh(Message message) async {
     await MessageService.instance.updateMessage(message);
     refreshMessageInPage(message);
   }
@@ -578,7 +578,7 @@ $content'''
 
     m.cashuInfo!.status = TransactionStatus.success;
     m.isRead = true;
-    await updateMessage(m);
+    await updateMessageAndRefresh(m);
     return m;
   }
 
@@ -646,6 +646,7 @@ $content'''
         cim = CashuInfoModel.fromJson(jsonDecode(model.realMessage!));
       } else {
         cim = await RustAPI.decodeToken(encodedToken: model.content);
+        cim.id = null; // local id
       }
       model.mediaType = MessageMediaType.cashuA;
       model.cashuInfo = cim;

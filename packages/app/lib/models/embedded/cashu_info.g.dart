@@ -1271,6 +1271,7 @@ CashuInfoModel _$CashuInfoModelFromJson(Map<String, dynamic> json) =>
       ..mint = json['mint'] as String
       ..token = json['token'] as String
       ..amount = (json['amount'] as num).toInt()
+      ..id = json['id'] as String?
       ..unit = json['unit'] as String?
       ..memo = json['memo'] as String?
       ..hash = json['hash'] as String?
@@ -1283,6 +1284,7 @@ Map<String, dynamic> _$CashuInfoModelToJson(CashuInfoModel instance) =>
       'mint': instance.mint,
       'token': instance.token,
       'amount': instance.amount,
+      if (instance.id case final value?) 'id': value,
       if (instance.unit case final value?) 'unit': value,
       if (instance.memo case final value?) 'memo': value,
       if (instance.hash case final value?) 'hash': value,

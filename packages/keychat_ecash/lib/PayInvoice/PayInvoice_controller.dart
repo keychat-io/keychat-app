@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:app/app.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:keychat_ecash/Bills/lightning_transaction.dart';
 import 'package:keychat_ecash/PayInvoice/PayToLnurl.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:intl/intl.dart' show DateFormat;
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
@@ -48,8 +48,9 @@ class PayInvoiceController extends GetxController {
     super.onClose();
   }
 
-  FutureOr<Transaction?> _confirmPayment(String mint, String invoice,
-      rust_cashu.InvoiceInfo ii, bool isPay) async {
+  FutureOr<Transaction?> _confirmPayment(
+      String mint, String invoice, rust_cashu.InvoiceInfo ii, bool isPay,
+      {Function? paidCallback}) async {
     EcashController cc = Get.find<EcashController>();
 
     if (cc.getBalanceByMint(mint) < ii.amount.toInt()) {
@@ -80,6 +81,9 @@ class PayInvoiceController extends GetxController {
     } catch (e, s) {
       String msg = Utils.getErrorMessage(e);
       EasyLoading.showError('Error: $msg');
+      if (msg.contains('11000') && paidCallback != null) {
+        paidCallback();
+      }
       logger.e('error: $msg', error: e, stackTrace: s);
     }
     return null;
@@ -88,7 +92,8 @@ class PayInvoiceController extends GetxController {
   FutureOr<Transaction?> confirmToPayInvoice(
       {required String invoice,
       required String mint,
-      bool isPay = false}) async {
+      bool isPay = false,
+      Function? paidCallback}) async {
     if (invoice.isEmpty) {
       EasyLoading.showToast('Please enter a valid invoice');
       return null;
@@ -102,14 +107,13 @@ class PayInvoiceController extends GetxController {
           await rust_cashu.decodeInvoice(encodedInvoice: invoice);
 
       if (isPay == true) {
-        return await _confirmPayment(mint, invoice, ii, isPay);
+        return await _confirmPayment(mint, invoice, ii, isPay,
+            paidCallback: paidCallback);
       }
       return await Get.dialog(CupertinoAlertDialog(
-        title: Text('Pay ${ii.amount} ${EcashTokenSymbol.sat.name}'),
-        content: Text('''
-
-Expire At: ${DateFormat("yyyy-MM-ddTHH:mm:ss").format(DateTime.fromMillisecondsSinceEpoch(ii.expiryTs.toInt()))}
-'''),
+        title: Text('Pay Invoice'),
+        content: Text('${ii.amount} ${EcashTokenSymbol.sat.name}',
+            style: Theme.of(Get.context!).textTheme.titleLarge),
         actions: [
           CupertinoDialogAction(
             child: const Text('Cancel'),

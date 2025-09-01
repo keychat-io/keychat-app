@@ -26,7 +26,7 @@ import 'package:isar_community/isar.dart';
 import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart'
-    show LNTransaction, TransactionStatus;
+    show Transaction, TransactionStatus;
 import 'package:keychat_rust_ffi_plugin/index.dart' show Transaction;
 import 'package:mime/mime.dart' show extensionFromMime;
 import 'package:path_provider/path_provider.dart';
@@ -351,8 +351,7 @@ class ChatController extends GetxController {
 
     try {
       logger.d('checkLNStatus id: $id');
-      Transaction item = await rust_cashu.checkTransaction(id: id);
-      LNTransaction ln = item.field0 as LNTransaction;
+      Transaction ln = await rust_cashu.checkTransaction(id: id);
       if (message.cashuInfo!.status == ln.status) {
         return;
       }
@@ -711,23 +710,23 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
   }
 
   Future<void> _handleSendLightning() async {
-    Transaction? transaction = await Get.bottomSheet(
+    Transaction? invoice = await Get.bottomSheet(
         clipBehavior: Clip.hardEdge,
         shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
         const CreateInvoicePage());
-    if (transaction == null) return;
-    LNTransaction invoice = transaction.field0 as LNTransaction;
+    if (invoice == null) return;
 
     try {
       CashuInfoModel cim = CashuInfoModel()
         ..amount = invoice.amount.toInt()
-        ..token = invoice.pr
-        ..mint = invoice.mint
+        ..token = invoice.token
+        ..mint = invoice.mintUrl
         ..status = invoice.status
         ..hash = invoice.hash
-        ..expiredAt = DateTime.fromMillisecondsSinceEpoch(invoice.time.toInt());
-      await RoomService.instance.sendMessage(roomObs.value, invoice.pr,
+        ..expiredAt =
+            DateTime.fromMillisecondsSinceEpoch(invoice.timestamp.toInt());
+      await RoomService.instance.sendMessage(roomObs.value, invoice.token,
           realMessage: cim.toString(),
           mediaType: MessageMediaType.lightningInvoice);
       hideAdd.value = true; // close features section

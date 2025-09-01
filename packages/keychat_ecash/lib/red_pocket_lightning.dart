@@ -98,7 +98,7 @@ class _RedPocketLightningState extends State<RedPocketLightning> {
                             updateMessageEcashStatus(TransactionStatus.success);
                           });
                           if (tx == null) return;
-                          var lnTx = tx.field0 as LNTransaction;
+                          var lnTx = tx;
                           updateMessageEcashStatus(lnTx.status);
                         });
                       },
@@ -138,7 +138,7 @@ class _RedPocketLightningState extends State<RedPocketLightning> {
     try {
       logger.d('checkStatus id: $hash');
       Transaction item = await rust_cashu.checkTransaction(id: hash);
-      LNTransaction ln = item.field0 as LNTransaction;
+      Transaction ln = item;
       await updateMessageEcashStatus(ln.status);
     } catch (e, s) {
       String msg = Utils.getErrorMessage(e);

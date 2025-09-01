@@ -6,7 +6,7 @@ import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 class LightningBillController extends GetxController {
-  RxList<LNTransaction> transactions = <LNTransaction>[].obs;
+  RxList<Transaction> transactions = <Transaction>[].obs;
   RxBool status = false.obs;
   bool run = true;
   late RefreshController refreshController;
@@ -30,15 +30,15 @@ class LightningBillController extends GetxController {
     super.onClose();
   }
 
-  Future<List<LNTransaction>> getTransactions({
+  Future<List<Transaction>> getTransactions({
     int offset = 0,
     int limit = 15,
   }) async {
-    List<LNTransaction> list = await rust_cashu.getLnTransactionsWithOffset(
+    List<Transaction> list = await rust_cashu.getLnTransactionsWithOffset(
         offset: BigInt.from(offset), limit: BigInt.from(limit));
-    list.sort((a, b) => b.time.compareTo(a.time));
+    list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
-    List<LNTransaction> res = offset == 0 ? [] : transactions.toList();
+    List<Transaction> res = offset == 0 ? [] : transactions.toList();
 
     res.addAll(list);
     transactions.value = res;
@@ -46,7 +46,7 @@ class LightningBillController extends GetxController {
     return res;
   }
 
-  Future<void> checkPendings(List<LNTransaction> pendings) async {
+  Future<void> checkPendings(List<Transaction> pendings) async {
     if (pendings.isEmpty) return;
     int length = pendings.length;
     while (true) {
@@ -70,18 +70,17 @@ class LightningBillController extends GetxController {
   }
 
   Map pendingTaskMap = {};
-  void startCheckPending(LNTransaction tx, int expiryTs,
-      Function(LNTransaction ln) callback) async {
+  void startCheckPending(
+      Transaction tx, int expiryTs, Function(Transaction ln) callback) async {
     if (tx.status != TransactionStatus.pending) {
       callback(tx);
       return;
     }
 
-    pendingTaskMap[tx.hash] = true;
+    pendingTaskMap[tx.id] = true;
 
-    while (pendingTaskMap[tx.hash] != null && pendingTaskMap[tx.hash] == true) {
-      Transaction item = await rust_cashu.checkTransaction(id: tx.hash);
-      LNTransaction ln = item.field0 as LNTransaction;
+    while (pendingTaskMap[tx.id] != null && pendingTaskMap[tx.id] == true) {
+      Transaction ln = await rust_cashu.checkTransaction(id: tx.id);
       int now = DateTime.now().millisecondsSinceEpoch;
 
       if (ln.status == TransactionStatus.success ||
@@ -89,20 +88,20 @@ class LightningBillController extends GetxController {
           (now > expiryTs && expiryTs > 0)) {
         callback(ln);
         Get.find<EcashController>().requestPageRefresh();
-        pendingTaskMap.remove(tx.hash);
+        pendingTaskMap.remove(tx.id);
         return;
       }
-      logger.d('Checking status: ${tx.hash}');
+      logger.d('Checking status: ${tx.id}');
       await Future.delayed(const Duration(seconds: 2));
     }
 
-    logger.d('Check stopped for transaction: ${tx.hash}');
+    logger.d('Check stopped for transaction: ${tx.id}');
   }
 
-  void stopCheckPending(LNTransaction tx) {
-    if (pendingTaskMap.containsKey(tx.hash)) {
-      pendingTaskMap[tx.hash] = false;
-      logger.d('Stopping check for lightning transaction: ${tx.hash}');
+  void stopCheckPending(Transaction tx) {
+    if (pendingTaskMap.containsKey(tx.id)) {
+      pendingTaskMap[tx.id] = false;
+      logger.d('Stopping check for lightning transaction: ${tx.id}');
     }
   }
 }

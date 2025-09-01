@@ -12,7 +12,7 @@ import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 class LightningTransactionPage extends StatefulWidget {
-  final LNTransaction transaction;
+  final Transaction transaction;
   const LightningTransactionPage({super.key, required this.transaction});
 
   @override
@@ -20,13 +20,13 @@ class LightningTransactionPage extends StatefulWidget {
 }
 
 class _CashuTransactionPageState extends State<LightningTransactionPage> {
-  late LNTransaction tx;
+  late Transaction tx;
   int expiryTs = 0;
   LightningBillController? lightningBillController;
   @override
   void initState() {
     tx = widget.transaction;
-    rust_cashu.decodeInvoice(encodedInvoice: tx.pr).then((value) {
+    rust_cashu.decodeInvoice(encodedInvoice: tx.token).then((value) {
       setState(() {
         expiryTs = value.expiryTs.toInt();
       });
@@ -38,7 +38,7 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
     lightningBillController =
         Utils.getOrPutGetxController(create: LightningBillController.new);
 
-    lightningBillController?.pendingTaskMap[tx.hash] = true;
+    lightningBillController?.pendingTaskMap[tx.id] = true;
     lightningBillController?.startCheckPending(tx, expiryTs, (ln) {
       setState(() {
         tx = ln;
@@ -62,7 +62,7 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
         appBar: AppBar(
             centerTitle: true,
             title: Text(
-              tx.io == TransactionDirection.in_
+              tx.io == TransactionDirection.incoming
                   ? 'Receive from Lightning Wallet'
                   : 'Send to Lightning Wallet',
               style: Theme.of(context).textTheme.bodyMedium,
@@ -93,10 +93,9 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
             Padding(
                 padding: EdgeInsetsDirectional.symmetric(vertical: 16),
                 child: Center(
-                    child: Utils.genQRImage('lightning:${tx.pr}',
+                    child: Utils.genQRImage('lightning:${tx.token}',
                         size: maxWidth, padding: 16))),
-            if (tx.fee != null)
-              Center(child: Text('Fee: ${tx.fee!.toInt()} ${tx.unit}')),
+            Center(child: Text('Fee: ${tx.fee.toInt()} ${tx.unit}')),
             if (tx.status == TransactionStatus.pending && expiryTs > 0)
               Text(
                 'Expire At: ${formatTime(expiryTs, 'yyyy-MM-dd HH:mm:ss')}',
@@ -104,12 +103,12 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
               ),
             textSmallGray(
               context,
-              'Mint: ${tx.mint}',
+              'Mint: ${tx.mintUrl}',
               textAlign: TextAlign.center,
             ),
             textSmallGray(
               context,
-              'Created At: ${DateTime.fromMillisecondsSinceEpoch(tx.time.toInt()).toIso8601String()}',
+              'Created At: ${DateTime.fromMillisecondsSinceEpoch(tx.timestamp.toInt()).toIso8601String()}',
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 16),
@@ -119,14 +118,14 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
               direction: Axis.vertical,
               spacing: 16,
               children: [
-                if (tx.io == TransactionDirection.in_ &&
+                if (tx.io == TransactionDirection.incoming &&
                     tx.status == TransactionStatus.pending)
                   OutlinedButton(
                       style: ButtonStyle(
                           minimumSize:
                               WidgetStateProperty.all(Size(maxWidth, 48))),
                       onPressed: () async {
-                        String url = 'lightning:${tx.pr}';
+                        String url = 'lightning:${tx.token}';
                         final Uri uri = Uri.parse(url);
                         bool res = await canLaunchUrl(uri);
                         if (!res) {
@@ -139,7 +138,7 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
                 FilledButton.icon(
                     onPressed: () {
                       Clipboard.setData(
-                          ClipboardData(text: 'lightning:${tx.pr}'));
+                          ClipboardData(text: 'lightning:${tx.token}'));
                       EasyLoading.showToast('Copied');
                     },
                     style: ButtonStyle(

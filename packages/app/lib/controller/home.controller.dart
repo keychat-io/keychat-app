@@ -33,8 +33,6 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
-import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -462,7 +460,6 @@ class HomeController extends GetxController
     tabController.dispose();
     _intentSub.cancel();
     WidgetsBinding.instance.removeObserver(this);
-    rust_cashu.closeDb();
     subscription.cancel();
     _connectionCheckTimer.cancel();
     refreshControllers.forEach((key, value) {
@@ -768,14 +765,8 @@ class HomeController extends GetxController
           PayInvoicePage(invoce: input, isPay: false, showScanButton: false));
       return;
     }
-    var tx = await Get.find<EcashController>()
+    await Get.find<EcashController>()
         .proccessPayLightningBill(input, isPay: true);
-    if (tx != null) {
-      var lnTx = tx.field0 as LNTransaction;
-      logger.i('LN Transaction:   Amount=${lnTx.amount}, '
-          'INfo=${lnTx.info}, Description=${lnTx.fee}, '
-          'Hash=${lnTx.hash}, NodeId=${lnTx.status.name}');
-    }
   }
 
   late StreamSubscription _intentSub;

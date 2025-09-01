@@ -394,12 +394,12 @@ class CashuPage extends GetView<EcashController> {
                                           ? billLimit
                                           : controller.ecashBillController
                                               .transactions.length)
-                                  .map((CashuTransaction transaction) {
+                                  .map((Transaction transaction) {
                                   String feeString =
-                                      'Fee: ${transaction.fee ?? BigInt.from(0)} ${transaction.unit}';
+                                      'Fee: ${transaction.fee} ${transaction.unit}';
                                   return ListTile(
                                     key: Key(transaction.id +
-                                        transaction.time.toString()),
+                                        transaction.timestamp.toString()),
                                     dense: true,
                                     leading: CashuUtil.getTransactionIcon(
                                         transaction.io),
@@ -409,7 +409,7 @@ class CashuPage extends GetView<EcashController> {
                                             .textTheme
                                             .bodyLarge),
                                     subtitle: textSmallGray(Get.context!,
-                                        '$feeString - ${formatTime(transaction.time.toInt())}'),
+                                        '$feeString - ${formatTime(transaction.timestamp.toInt())}'),
                                     trailing: CashuUtil.getStatusIcon(
                                         transaction.status),
                                     onTap: () {
@@ -486,10 +486,10 @@ class CashuPage extends GetView<EcashController> {
                                           ? billLimit
                                           : controller.lightningBillController
                                               .transactions.length)
-                                  .map((LNTransaction transaction) {
+                                  .map((Transaction transaction) {
                                   return ListTile(
-                                    key: Key(transaction.hash +
-                                        transaction.time.toString()),
+                                    key: Key(transaction.id +
+                                        transaction.timestamp.toString()),
                                     dense: true,
                                     leading: CashuUtil.getTransactionIcon(
                                         transaction.io),
@@ -506,13 +506,14 @@ class CashuPage extends GetView<EcashController> {
                                       children: [
                                         textSmallGray(
                                           Get.context!,
-                                          transaction.pr,
+                                          transaction.token,
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                         textSmallGray(
                                             Get.context!,
                                             DateTime.fromMillisecondsSinceEpoch(
-                                                    transaction.time.toInt())
+                                                    transaction.timestamp
+                                                        .toInt())
                                                 .toIso8601String())
                                       ],
                                     ),
@@ -567,7 +568,7 @@ class CashuPage extends GetView<EcashController> {
                             BorderRadius.vertical(top: Radius.circular(4))),
                     const CreateInvoicePage());
                 if (result == null) return;
-                LNTransaction ln = result.field0 as LNTransaction;
+                Transaction ln = result;
                 await Get.to(() => LightningTransactionPage(transaction: ln),
                     id: GetPlatform.isDesktop ? GetXNestKey.ecash : null);
                 controller.refreshController.requestRefresh();

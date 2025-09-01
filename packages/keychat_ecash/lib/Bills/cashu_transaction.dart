@@ -14,7 +14,7 @@ import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 
 class CashuTransactionPage extends StatefulWidget {
-  final CashuTransaction transaction;
+  final Transaction transaction;
   const CashuTransactionPage({super.key, required this.transaction});
 
   @override
@@ -22,7 +22,7 @@ class CashuTransactionPage extends StatefulWidget {
 }
 
 class _CashuTransactionPageState extends State<CashuTransactionPage> {
-  late CashuTransaction tx;
+  late Transaction tx;
   @override
   void initState() {
     tx = widget.transaction;
@@ -88,13 +88,14 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                         padding: EdgeInsetsDirectional.symmetric(vertical: 16),
                         child: Center(
                             child: Utils.genQRImage(tx.token, size: maxWidth))),
-                  if (tx.fee != null)
+                  if (tx.fee != BigInt.from(0))
                     Text(
-                        '${tx.io == TransactionDirection.out ? "Mint Send" : (tx.io == TransactionDirection.split ? "Split Send" : "Mint Receive")} Fee: ${tx.fee.toString()} ${tx.unit}',
+                        '${tx.io == TransactionDirection.outgoing ? "Mint Send" : (tx.io == TransactionDirection.split ? "Split Send" : "Mint Receive")} Fee: ${tx.fee.toString()} ${tx.unit}',
                         textAlign: TextAlign.center),
-                  textSmallGray(context, formatTime(tx.time.toInt()),
+                  textSmallGray(context, formatTime(tx.timestamp.toInt()),
                       textAlign: TextAlign.center),
-                  textSmallGray(context, tx.mint, textAlign: TextAlign.center),
+                  textSmallGray(context, tx.mintUrl,
+                      textAlign: TextAlign.center),
                   SizedBox(height: 8),
                   Text(tx.token,
                       maxLines: 1,
@@ -134,14 +135,17 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                                           encodedToken: tx.token);
                                   if (cm.status == TransactionStatus.success) {
                                     EasyLoading.showSuccess('Success');
-                                    CashuTransaction tx1 = CashuTransaction(
+                                    Transaction tx1 = Transaction(
                                         id: tx.id,
                                         status: cm.status,
                                         io: tx.io,
-                                        time: tx.time,
+                                        timestamp: tx.timestamp,
                                         amount: tx.amount,
-                                        mint: tx.mint,
-                                        token: tx.token);
+                                        mintUrl: tx.mintUrl,
+                                        token: tx.token,
+                                        kind: TransactionKind.cashu,
+                                        fee: tx.fee,
+                                        metadata: {});
                                     Get.find<EcashController>().getBalance();
                                     Utils.getGetxController<
                                             EcashBillController>()

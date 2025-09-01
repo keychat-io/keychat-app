@@ -64,7 +64,7 @@ class LightningBillPage extends GetView<LightningBillController> {
                                 ),
                             itemCount: controller.transactions.length,
                             itemBuilder: (BuildContext context, int index) {
-                              LNTransaction transaction =
+                              Transaction transaction =
                                   controller.transactions[index];
 
                               return ListTile(
@@ -97,11 +97,12 @@ class LightningBillPage extends GetView<LightningBillController> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      textSmallGray(context, transaction.mint),
+                                      textSmallGray(
+                                          context, transaction.mintUrl),
                                       textSmallGray(
                                           Get.context!,
                                           DateTime.fromMillisecondsSinceEpoch(
-                                                  transaction.time.toInt())
+                                                  transaction.timestamp.toInt())
                                               .toIso8601String())
                                     ],
                                   ),

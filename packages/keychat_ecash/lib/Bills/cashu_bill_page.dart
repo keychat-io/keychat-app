@@ -126,10 +126,10 @@ class CashuBillPage extends GetView<EcashBillController> {
                                 ),
                             itemCount: controller.transactions.length,
                             itemBuilder: (BuildContext context, int index) {
-                              CashuTransaction transaction =
+                              Transaction transaction =
                                   controller.transactions[index];
                               String feeString =
-                                  'Fee: ${transaction.fee ?? BigInt.from(0)} ${transaction.unit}';
+                                  'Fee: ${transaction.fee} ${transaction.unit}';
                               return ListTile(
                                   key: Key(index.toString()),
                                   dense: true,
@@ -150,7 +150,7 @@ class CashuBillPage extends GetView<EcashBillController> {
                                           .textTheme
                                           .bodyLarge),
                                   subtitle: textSmallGray(Get.context!,
-                                      '$feeString - ${formatTime(transaction.time.toInt())}'),
+                                      '$feeString - ${formatTime(transaction.timestamp.toInt())}'),
                                   trailing: CashuUtil.getStatusIcon(
                                       transaction.status));
                             })))))));

@@ -33,7 +33,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart' hide Contact;
+import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:settings_ui/settings_ui.dart';
 
@@ -185,11 +185,7 @@ Let's start an encrypted chat.''';
       DateTime fromAt = DateTime.now().subtract(const Duration(days: 180));
       var start = BigInt.from(fromAt.millisecondsSinceEpoch);
       rust_cashu.removeTransactions(
-          unixTimestampMsLe: start, kind: TransactionStatus.success);
-      rust_cashu.removeTransactions(
-          unixTimestampMsLe: start, kind: TransactionStatus.expired);
-      rust_cashu.removeTransactions(
-          unixTimestampMsLe: start, kind: TransactionStatus.failed);
+          unixTimestampLe: start, status: TransactionStatus.success);
     } catch (e, s) {
       logger.e('executeAutoDelete:${e.toString()}', stackTrace: s);
     }

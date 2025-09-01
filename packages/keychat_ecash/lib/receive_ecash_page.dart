@@ -97,7 +97,7 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
                         if (decodedModel != null)
                           ListTile(
                             title: Text(
-                                '+${decodedModel?.amount} ${decodedModel!.unit?.toUpperCase() ?? EcashTokenSymbol.sat.name}'),
+                                '+${decodedModel?.amount} ${decodedModel!.unit?.toString().toString()}'),
                             subtitle: Text(decodedModel!.mint),
                           ),
                         const SizedBox(height: 8),

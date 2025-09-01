@@ -1178,7 +1178,7 @@ img {
           if (tr == null) {
             return 'Error: Payment failed or cancelled';
           }
-          return (tr.field0 as LNTransaction).pr;
+          return tr.token;
         } catch (e) {
           String msg = Utils.getErrorMessage(e);
           return 'Error: - $msg';
@@ -1201,7 +1201,7 @@ img {
                   borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
               CreateInvoicePage(amount: invoiceAmount));
           if (result != null) {
-            return (result.field0 as LNTransaction).pr;
+            return result.token;
           }
         } catch (e, s) {
           logger.e(e.toString(), stackTrace: s);
@@ -1452,22 +1452,12 @@ img {
               PayInvoicePage(invoce: str, isPay: false, showScanButton: false));
           return true;
         }
-        var tx =
-            await ecashController.proccessPayLightningBill(str, isPay: true);
-        if (tx != null) {
-          var lnTx = tx.field0 as LNTransaction;
-          logger.i('LN Transaction:   Amount=${lnTx.amount}, '
-              'INfo=${lnTx.info}, Description=${lnTx.fee}, '
-              'Hash=${lnTx.hash}, NodeId=${lnTx.status.name}');
-        }
+        await ecashController.proccessPayLightningBill(str, isPay: true);
         return true;
       }
       if (urlString.startsWith('lnbc')) {
-        var tx = await ecashController.proccessPayLightningBill(urlString,
-            isPay: true);
-        if (tx != null) {
-          logger.i((tx.field0 as LNTransaction).pr);
-        }
+        await ecashController.proccessPayLightningBill(urlString, isPay: true);
+
         return true;
       }
     } catch (e) {

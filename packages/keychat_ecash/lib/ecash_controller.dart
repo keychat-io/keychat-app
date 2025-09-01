@@ -321,9 +321,9 @@ class EcashController extends GetxController {
       if (nuts == null) continue;
       if (nuts.nut09.supported) {
         await rust_cashu.restore(
-            mint: m.url,
-            words: mnemonic,
-            sleepmsAfterCheckABatch: BigInt.from(1000));
+          mintUrl: m.url,
+          words: mnemonic,
+        );
       }
     }
     await getBalance();

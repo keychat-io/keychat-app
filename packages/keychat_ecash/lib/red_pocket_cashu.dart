@@ -143,7 +143,7 @@ class _RedPocketCashuState extends State<RedPocketCashu> {
       logger.d('checkStatus id: ${_cashuInfoModel.id}');
       Transaction item =
           await rust_cashu.checkTransaction(id: _cashuInfoModel.id!);
-      CashuTransaction ln = item.field0 as CashuTransaction;
+      Transaction ln = item;
       await updateMessageEcashStatus(ln.status);
     } catch (e, s) {
       String msg = Utils.getErrorMessage(e);

@@ -380,14 +380,17 @@ class EcashController extends GetxController {
   }
 
   FutureOr<Transaction?> proccessPayLightningBill(String invoice,
-      {bool isPay = false}) async {
+      {bool isPay = false, Function? paidCallback}) async {
     try {
       await rust_cashu.decodeInvoice(encodedInvoice: invoice);
     } catch (e) {
       EasyLoading.showError('Invalid lightning invoice');
       return null;
     }
-    return Get.bottomSheet<Transaction>(
-        PayInvoicePage(invoce: invoice, isPay: isPay, showScanButton: !isPay));
+    return Get.bottomSheet<Transaction>(PayInvoicePage(
+        invoce: invoice,
+        isPay: isPay,
+        showScanButton: !isPay,
+        paidCallback: paidCallback));
   }
 }

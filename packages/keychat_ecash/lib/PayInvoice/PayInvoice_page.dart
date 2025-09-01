@@ -16,8 +16,13 @@ class PayInvoicePage extends StatefulWidget {
   final String? invoce;
   final bool isPay;
   final bool showScanButton;
+  final Function? paidCallback;
   const PayInvoicePage(
-      {super.key, this.invoce, this.isPay = false, this.showScanButton = true});
+      {super.key,
+      this.invoce,
+      this.isPay = false,
+      this.showScanButton = true,
+      this.paidCallback});
 
   @override
   _PayInvoicePageState createState() => _PayInvoicePageState();
@@ -81,13 +86,11 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                     icon: const Icon(Icons.paste),
                                     onPressed: () async {
                                       final clipboardData =
-                                          await Clipboard.getData('text/plain');
-                                      if (clipboardData == null) return;
-                                      final pastedText =
-                                          clipboardData.text?.trim() ?? '';
-                                      if (pastedText.isNotEmpty) {
+                                          await Clipboard.getData(
+                                              Clipboard.kTextPlain);
+                                      if (clipboardData?.text != null) {
                                         controller.textController.text =
-                                            pastedText;
+                                            clipboardData!.text!;
                                       }
                                     },
                                   )),
@@ -137,19 +140,18 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                       text: TextSpan(
                                         children: [
                                           TextSpan(
-                                            text: '-${invoiceInfo.amount}',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .titleLarge
-                                                ?.copyWith(
-                                                    fontSize: 34,
-                                                    color: Colors.green),
-                                          ),
+                                              text: '-${invoiceInfo.amount}',
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .titleLarge
+                                                  ?.copyWith(
+                                                      fontSize: 34,
+                                                      color: Colors.green)),
                                           TextSpan(
                                               text: ' sat',
                                               style: Theme.of(context)
                                                   .textTheme
-                                                  .bodyLarge),
+                                                  .bodyLarge)
                                         ],
                                       ),
                                     ),
@@ -188,7 +190,8 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                       invoice:
                                           controller.textController.text.trim(),
                                       mint: controller.selectedMint.value,
-                                      isPay: widget.isPay);
+                                      isPay: widget.isPay,
+                                      paidCallback: widget.paidCallback);
                                   if (tx != null) {
                                     Get.back(result: tx);
                                   }

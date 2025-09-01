@@ -4,6 +4,7 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
     id "com.google.gms.google-services"
 }
+
 def keystoreProperties = new Properties()
 def localProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')
@@ -93,4 +94,8 @@ android {
             outputFileName = "Keychat-${flutterVersionName}+${flutterVersionCode}-android${abiSuffix}.apk"
         }
     }
+}
+
+dependencies {
+    implementation 'com.google.android.material:material:1.12.0'
 }

@@ -23,12 +23,17 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:isar_community/isar.dart';
+import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart'
+    show LNTransaction, TransactionStatus;
+import 'package:keychat_rust_ffi_plugin/index.dart' show Transaction;
 import 'package:mime/mime.dart' show extensionFromMime;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:super_clipboard/super_clipboard.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 const int maxMessageId = 999999999999;
 
@@ -92,6 +97,7 @@ class ChatController extends GetxController {
     'assets/images/video.png',
     'assets/images/file.png',
     'assets/images/BTC.png',
+    'assets/images/lightning.png',
   ];
 
   //image video camera-image  camera-video file satos
@@ -100,7 +106,8 @@ class ChatController extends GetxController {
     'Camera',
     'Video',
     'File',
-    'Sat'
+    'Sat',
+    'Lightning'
   ];
 
   List<Function> featuresOnTaps = [];
@@ -208,7 +215,7 @@ class ChatController extends GetxController {
     return rooms;
   }
 
-  getRoomStats() async {
+  Future<void> getRoomStats() async {
     statsSend.value = await DBProvider.database.messages
         .filter()
         .roomIdEqualTo(roomObs.value.id)
@@ -270,6 +277,7 @@ class ChatController extends GetxController {
       () => pickAndUploadVideo(ImageSource.gallery),
       () => FileService.instance.handleFileUpload(roomObs.value),
       _handleSendSats,
+      _handleSendLightning
     ];
     // disable webrtc
     // bool isCommonRoom = roomObs.value.type == RoomType.common;
@@ -317,6 +325,43 @@ class ChatController extends GetxController {
     messages.value = sortMessageById(unreads.toList());
     messages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
     messages.value = List.from(messages);
+    checkPendingEcash();
+  }
+
+  Future<void> checkPendingEcash() async {
+    for (var message in messages) {
+      if (message.mediaType == MessageMediaType.cashuA) {
+        if (message.cashuInfo?.status == TransactionStatus.pending) {
+          await checkEcashStatus(message, message.cashuInfo?.id);
+        }
+      }
+
+      if (message.mediaType == MessageMediaType.lightningInvoice) {
+        if (message.cashuInfo?.status == TransactionStatus.pending) {
+          await checkEcashStatus(message, message.cashuInfo?.hash);
+        }
+      }
+    }
+  }
+
+  Future<void> checkEcashStatus(Message message, String? id) async {
+    if (message.cashuInfo == null || id == null) {
+      return;
+    }
+
+    try {
+      logger.d('checkLNStatus id: $id');
+      Transaction item = await rust_cashu.checkTransaction(id: id);
+      LNTransaction ln = item.field0 as LNTransaction;
+      if (message.cashuInfo!.status == ln.status) {
+        return;
+      }
+      message.cashuInfo!.status = ln.status;
+      await MessageService.instance.updateMessageAndRefresh(message);
+    } catch (e, s) {
+      String msg = Utils.getErrorMessage(e);
+      logger.e('checkStatus error: $msg', stackTrace: s);
+    }
   }
 
   loadAllChatFromSearchScroll() {
@@ -653,9 +698,38 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
         const CashuSendPage(true));
     if (cashuInfo == null) return;
     try {
+      logger.d(cashuInfo.toString());
       await RoomService.instance.sendMessage(roomObs.value, cashuInfo.token,
           realMessage: cashuInfo.toString(),
           mediaType: MessageMediaType.cashuA);
+      hideAdd.value = true; // close features section
+    } catch (e, s) {
+      String msg = Utils.getErrorMessage(e);
+      logger.e(msg, error: e, stackTrace: s);
+      EasyLoading.showError(msg);
+    }
+  }
+
+  _handleSendLightning() async {
+    Transaction? transaction = await Get.bottomSheet(
+        clipBehavior: Clip.hardEdge,
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
+        const CreateInvoicePage());
+    if (transaction == null) return;
+    LNTransaction invoice = transaction.field0 as LNTransaction;
+
+    try {
+      CashuInfoModel cim = CashuInfoModel()
+        ..amount = invoice.amount.toInt()
+        ..token = invoice.pr
+        ..mint = invoice.mint
+        ..status = invoice.status
+        ..hash = invoice.hash
+        ..expiredAt = DateTime.fromMillisecondsSinceEpoch(invoice.time.toInt());
+      await RoomService.instance.sendMessage(roomObs.value, invoice.pr,
+          realMessage: cim.toString(),
+          mediaType: MessageMediaType.lightningInvoice);
       hideAdd.value = true; // close features section
     } catch (e, s) {
       String msg = Utils.getErrorMessage(e);

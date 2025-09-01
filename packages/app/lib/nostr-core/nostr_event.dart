@@ -206,7 +206,7 @@ class NostrEventModel {
   ///   }
   /// ]);
   /// ```
-  factory NostrEventModel.deserialize(input, {bool verify = true}) {
+  factory NostrEventModel.deserialize(dynamic input, {bool verify = true}) {
     Map<String, dynamic> json = {};
     String? subscriptionId;
     if (input.length == 1) {

@@ -96,7 +96,8 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                   )),
                             ),
                           ),
-                        if (widget.showScanButton && GetPlatform.isMobile)
+                        if (widget.showScanButton &&
+                            (GetPlatform.isMobile || GetPlatform.isMacOS))
                           OutlinedButton.icon(
                               onPressed: () async {
                                 String? result = await QrScanService.instance

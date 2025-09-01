@@ -428,7 +428,7 @@ class Room extends Equatable {
     });
   }
 
-  updateMemberName(String pubkey, String name) async {
+  Future<void> updateMemberName(String pubkey, String name) async {
     Isar database = DBProvider.database;
 
     RoomMember? rm = await getMemberByIdPubkey(pubkey);

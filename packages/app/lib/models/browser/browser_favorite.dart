@@ -36,13 +36,13 @@ class BrowserFavorite extends Equatable {
         .findAll();
   }
 
-  static delete(Id id) async {
+  static Future<void> delete(Id id) async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.browserFavorites.delete(id);
     });
   }
 
-  static deleteByUrl(String url) async {
+  static Future<void> deleteByUrl(String url) async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.browserFavorites
           .filter()
@@ -65,7 +65,8 @@ class BrowserFavorite extends Equatable {
         .findFirst();
   }
 
-  static add({required String url, String? title, String? favicon}) async {
+  static Future<void> add(
+      {required String url, String? title, String? favicon}) async {
     await DBProvider.database.writeTxn(() async {
       BrowserFavorite model =
           BrowserFavorite(url: url, title: title, favicon: favicon);
@@ -73,7 +74,7 @@ class BrowserFavorite extends Equatable {
     });
   }
 
-  static updateWeight(BrowserFavorite bf, int newWeight) async {
+  static Future<void> updateWeight(BrowserFavorite bf, int newWeight) async {
     bf.weight = newWeight;
     bf.updatedAt = DateTime.now();
     await DBProvider.database.writeTxn(() async {
@@ -81,7 +82,8 @@ class BrowserFavorite extends Equatable {
     });
   }
 
-  static batchUpdateWeights(List<BrowserFavorite> favorites) async {
+  static Future<void> batchUpdateWeights(
+      List<BrowserFavorite> favorites) async {
     await DBProvider.database.writeTxn(() async {
       for (int i = 0; i < favorites.length; i++) {
         favorites[i].weight = i;
@@ -91,7 +93,7 @@ class BrowserFavorite extends Equatable {
     });
   }
 
-  static setPin(BrowserFavorite bf) async {
+  static Future<void> setPin(BrowserFavorite bf) async {
     bf.weight = -1;
     bf.isPin = true;
     bf.updatedAt = DateTime.now();

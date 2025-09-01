@@ -210,7 +210,7 @@ class RoomService extends BaseChatService {
     }
   }
 
-  deleteRoomMessage(Room room) async {
+  Future<void> deleteRoomMessage(Room room) async {
     await FileService.instance.deleteFolderByRoomId(room.identityId, room.id);
 
     await DBProvider.database.writeTxn(() async {
@@ -866,7 +866,7 @@ class RoomService extends BaseChatService {
       room.isMute = value;
       await RoomService.instance.updateRoomAndRefresh(room);
       EasyLoading.showSuccess('Saved');
-      await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
+      Get.find<HomeController>().loadIdentityRoomList(room.identityId);
     });
   }
 

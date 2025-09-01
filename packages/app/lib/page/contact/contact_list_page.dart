@@ -30,7 +30,7 @@ class _ContactsPageState extends State<ContactsPage> {
     INDEX_WORDS[0]: 0.0,
   };
 
-  _getData() async {
+  Future<void> _getData() async {
     List<Contact> contactList =
         await ContactService.instance.getContactList(widget.identity.id);
 

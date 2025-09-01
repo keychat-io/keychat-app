@@ -67,7 +67,7 @@ class RoomMember extends Equatable {
     createdAt = DateTime.now();
     updatedAt = DateTime.now();
   }
-  get displayName => nameFromRelay ?? name;
+  String get displayName => nameFromRelay ?? name;
 
   factory RoomMember.fromJson(Map<String, dynamic> json) =>
       _$RoomMemberFromJson(json);

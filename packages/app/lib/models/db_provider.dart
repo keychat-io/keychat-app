@@ -13,8 +13,8 @@ class DBProvider {
   static bool _isInitializing = false;
   static late Isar database;
 
-  static initDB(String dbFolder) async {
-    if (_isInitializing) return;
+  static Future<Isar> initDB(String dbFolder) async {
+    if (_isInitializing) return database;
 
     _isInitializing = true;
     database = await Isar.open([
@@ -47,7 +47,7 @@ class DBProvider {
     // await Storage.setInt(StorageKeyString.dbVersion, currentVersion);
   }
 
-  static close() async {
+  static Future<void> close() async {
     await database.close();
   }
 
@@ -67,7 +67,7 @@ class DBProvider {
     return false;
   }
 
-  deleteAll() {
+  void deleteAll() {
     database.writeTxnSync(() {
       database.clearSync();
     });

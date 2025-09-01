@@ -22,7 +22,7 @@ class Request {
 
   /// Deserialize a nostr request message
   /// - ["REQ", subscription_id, filter JSON, filter JSON, ...]
-  Request.deserialize(input) {
+  Request.deserialize(List input) {
     assert(input.length >= 3);
     subscriptionId = input[1];
     filters = [];

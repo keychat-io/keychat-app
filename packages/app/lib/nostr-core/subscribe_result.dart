@@ -27,7 +27,7 @@ class SubscribeResult {
     return removeSubscripton(subId);
   }
 
-  fill(String subId, NostrEventModel nem) {
+  void fill(String subId, NostrEventModel nem) {
     List list = _map[subId] ?? <NostrEventModel>[];
     list.add(nem);
     _map[subId] = list;

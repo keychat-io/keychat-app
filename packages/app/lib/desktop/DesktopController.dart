@@ -72,7 +72,7 @@ class DesktopController extends GetxController {
     }
   }
 
-  resetRoom() {
+  void resetRoom() {
     try {
       selectedRoom.value = Room(identityId: -1, toMainPubkey: '', npub: '');
       // ignore: empty_catches

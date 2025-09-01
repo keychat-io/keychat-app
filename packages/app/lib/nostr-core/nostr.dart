@@ -47,7 +47,7 @@ class NostrAPI {
     return jsonEncode(["CLOSE", subscriptionId]);
   }
 
-  addNostrEventToQueue(Relay relay, dynamic message) async {
+  Future<void> addNostrEventToQueue(Relay relay, dynamic message) async {
     //logger.d('processWebsocketMessage, ${relay.url} $message');
     // nostrEventQueue.addJob((_) async { });
     try {
@@ -91,7 +91,7 @@ class NostrAPI {
     }
   }
 
-  _proccessEOSE(Relay relay, List res) async {
+  Future<void> _proccessEOSE(Relay relay, List res) async {
     subscriptionIdEose.add(res[1]);
     String key = '${StorageKeyString.lastMessageAt}:${relay.url}';
     int lastMessageAt = await Storage.getIntOrZero(key);
@@ -107,7 +107,7 @@ class NostrAPI {
   }
 
   // ignore: unused_element
-  _processAUTH(List msg1, Relay relay, String message) async {
+  Future<void> _processAUTH(List msg1, Relay relay, String message) async {
     // Mykey mykey = await IdentityService.instance.getDefaultMykey();
     // NostrEvent event = NostrEvent.from(
     //     kind: EventKinds.NIP42,
@@ -175,7 +175,7 @@ class NostrAPI {
     }
   }
 
-  _proccessWriteEventResponse(List msg, Relay relay) async {
+  Future<void> _proccessWriteEventResponse(List msg, Relay relay) async {
     String eventId = msg[1];
     bool status = msg[2];
     String? errorMessage = msg[3];
@@ -191,7 +191,7 @@ class NostrAPI {
         eventId, relay.url, status, errorMessage);
   }
 
-  _proccessNip2(NostrEventModel msg) async {
+  Future<void> _proccessNip2(NostrEventModel msg) async {
     // List profiles = Nip2.decode(msg);
     // Mykey mykey = await IdentityService.instance.getDefaultMykey();
     // for (var profile in profiles) {
@@ -216,7 +216,7 @@ class NostrAPI {
   }
 
   /// sync contact to relay
-  sendNip2Message(int identityId) async {
+  Future<void> sendNip2Message(int identityId) async {
     // List<Contact> contacts = await contactService.getContactList(identityId);
     // Mykey mykey = await IdentityService.instance.getDefaultMykey();
 
@@ -414,7 +414,7 @@ class NostrAPI {
   }
 
   static final Map<String, List<int>> _lastMessageAtMap = {};
-  _updateRelayLastMessageAt(String url, int createdAt) async {
+  Future<void> _updateRelayLastMessageAt(String url, int createdAt) async {
     if (_lastMessageAtMap[url] == null) {
       _lastMessageAtMap[url] = [];
     }
@@ -561,8 +561,8 @@ class NostrAPI {
         .receiveNip4Message(sourceEvent, content, room: room);
   }
 
-  _processSubEvent(NostrEventModel event, NostrEventModel subEvent, Relay relay,
-      Function(String error) failedCallback,
+  Future _processSubEvent(NostrEventModel event, NostrEventModel subEvent,
+      Relay relay, Function(String error) failedCallback,
       {Room? room}) async {
     // nip4(nip4)
     if (subEvent.isNip4) {

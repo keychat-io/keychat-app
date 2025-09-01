@@ -366,7 +366,7 @@ class RoomList extends GetView<HomeController> {
           room.pin = !room.pin;
           room.pinAt = DateTime.now();
           await RoomService.instance.updateRoomAndRefresh(room);
-          await controller.loadIdentityRoomList(room.identityId);
+          controller.loadIdentityRoomList(room.identityId);
           break;
         case 'mute':
           await RoomService.instance.mute(room, !room.isMute);

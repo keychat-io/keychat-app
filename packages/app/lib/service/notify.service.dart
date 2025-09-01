@@ -79,7 +79,7 @@ class NotifyService {
     return false;
   }
 
-  static clearAll() async {
+  static Future<void> clearAll() async {
     if (fcmToken == null) return;
     fcmToken == null;
     try {
@@ -102,7 +102,7 @@ class NotifyService {
   }
 
   // Listening Keys: identity pubkey, mls group pubkey, signal chat receive key, onetime key
-  static syncPubkeysToServer({bool checkUpload = false}) async {
+  static Future<void> syncPubkeysToServer({bool checkUpload = false}) async {
     bool isGrant = await NotifyService.checkAllNotifyPermission();
     if (!isGrant) return;
     List<String> toRemovePubkeys =
@@ -230,7 +230,7 @@ Fix:
     });
     // end get fcm timeout
     if (fcmToken != null) {
-      await Storage.setString(StorageKeyString.notificationFCMToken, fcmToken);
+      await Storage.setString(StorageKeyString.notificationFCMToken, fcmToken!);
       RemoteMessage? initialMessage =
           await FirebaseMessaging.instance.getInitialMessage();
       if (initialMessage != null) {

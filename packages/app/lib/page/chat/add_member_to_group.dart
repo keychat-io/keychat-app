@@ -44,7 +44,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
     _loading();
   }
 
-  _loading() async {
+  Future<void> _loading() async {
     if (widget.room.isSendAllGroup) {
       setState(() {
         pageLoading = false;
@@ -234,7 +234,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
     // });
   }
 
-  _addMemberFromInput() {
+  void _addMemberFromInput() {
     Get.dialog(CupertinoAlertDialog(
         title: const Text('Add Members'),
         content: TextField(

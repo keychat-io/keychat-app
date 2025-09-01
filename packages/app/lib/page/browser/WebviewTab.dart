@@ -111,7 +111,7 @@ class _WebviewTabState extends State<WebviewTab> {
     controller.updateTabData(uniqueId: widget.uniqueKey, url: uri.toString());
   }
 
-  initBrowserConnect(WebUri uri) {
+  void initBrowserConnect(WebUri uri) {
     BrowserConnect.getByHost(uri.host).then((value) {
       tc.setBrowserConnect(value);
     });
@@ -356,7 +356,7 @@ class _WebviewTabState extends State<WebviewTab> {
                   IconButton(
                       onPressed: () async {
                         if (pageFailed || state != WebviewTabState.success) {
-                          await controller.removeKeepAlive(widget.initUrl);
+                          controller.removeKeepAlive(widget.initUrl);
                         }
                         if (Get.isBottomSheetOpen ?? false) {
                           Get.back();
@@ -422,8 +422,14 @@ class _WebviewTabState extends State<WebviewTab> {
       onCreateWindow: GetPlatform.isDesktop
           ? (controller, createWindowAction) {
               if (createWindowAction.request.url == null) return false;
-              this.controller.launchWebview(
-                  initUrl: createWindowAction.request.url.toString());
+              String urlString = createWindowAction.request.url.toString();
+
+              // Check for special URLs first
+              handleSpecialUrls(urlString).then((handled) {
+                if (handled) return;
+                // If not a special URL, create new window
+                this.controller.launchWebview(initUrl: urlString);
+              });
               return true;
             }
           : null,
@@ -473,40 +479,9 @@ class _WebviewTabState extends State<WebviewTab> {
 
         try {
           var str = uri.toString();
-          if (str.startsWith('cashu')) {
-            ecashController.proccessCashuAString(str);
-            return NavigationActionPolicy.CANCEL;
-          }
-          // lightning invoice
-          if (str.startsWith('lightning:')) {
-            str = str.replaceFirst('lightning:', '');
-            if (isEmail(str) || str.toUpperCase().startsWith('LNURL')) {
-              await Get.bottomSheet(
-                  clipBehavior: Clip.antiAlias,
-                  shape: const RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.vertical(top: Radius.circular(4))),
-                  PayInvoicePage(
-                      invoce: str, isPay: false, showScanButton: false));
-              return NavigationActionPolicy.CANCEL;
-            }
-            var tx = await ecashController.proccessPayLightningBill(str,
-                isPay: true);
-            if (tx != null) {
-              var lnTx = tx.field0 as LNTransaction;
-              logger.i('LN Transaction:   Amount=${lnTx.amount}, '
-                  'INfo=${lnTx.info}, Description=${lnTx.fee}, '
-                  'Hash=${lnTx.hash}, NodeId=${lnTx.status.name}');
-            }
-            return NavigationActionPolicy.CANCEL;
-          }
-          if (str.startsWith('lnbc')) {
-            var tx = await ecashController.proccessPayLightningBill(str,
-                isPay: true);
-            if (tx != null) {
-              logger.i((tx.field0 as LNTransaction).pr);
-            }
 
+          // Handle special URLs
+          if (await handleSpecialUrls(str)) {
             return NavigationActionPolicy.CANCEL;
           }
 
@@ -611,7 +586,7 @@ class _WebviewTabState extends State<WebviewTab> {
         if (!isForMainFrame || isCancel) {
           return;
         }
-        await this.controller.removeKeepAlive(widget.initUrl);
+        this.controller.removeKeepAlive(widget.initUrl);
         pullToRefreshController?.endRefreshing();
         if (error.description.contains('domain=WebKitErrorDomain, code=102')) {
           return renderAssetAsHtml(controller, request);
@@ -752,7 +727,7 @@ class _WebviewTabState extends State<WebviewTab> {
         return;
       }
       if (pageFailed || state != WebviewTabState.success) {
-        await controller.removeKeepAlive(widget.initUrl);
+        controller.removeKeepAlive(widget.initUrl);
       }
       await pausePlayingMedia();
       Get.back();
@@ -760,7 +735,7 @@ class _WebviewTabState extends State<WebviewTab> {
   }
 
   // info coming from the JavaScript side!
-  javascriptHandlerNostr(List<dynamic> data) async {
+  Future<Object?>? javascriptHandlerNostr(List<dynamic> data) async {
     logger.i('javascriptHandler: $data');
     var method = data[0];
     if (method == 'getRelays') {
@@ -769,21 +744,21 @@ class _WebviewTabState extends State<WebviewTab> {
     }
 
     if (method == 'pageFailedToRefresh') {
-      await controller.removeKeepAlive(widget.initUrl);
+      controller.removeKeepAlive(widget.initUrl);
       if (inAppWebViewKeepAlive == null) {
         refreshPage();
-        return;
+        return null;
       }
 
       setState(() {
         inAppWebViewKeepAlive = null;
       });
-      return;
+      return null;
     }
 
     WebUri? uri = await tc.webViewController?.getUrl();
     String? host = uri?.host;
-    if (host == null) return;
+    if (host == null) return null;
     Identity? identity = await getOrSelectIdentity(host);
     if (identity == null) {
       return null;
@@ -807,11 +782,11 @@ class _WebviewTabState extends State<WebviewTab> {
                         List<String>.from((e.map((item) => item.toString()))))
                     .toList()));
             if (confirm != true) {
-              return;
+              return null;
             }
           } catch (e, s) {
             logger.e('Failed to parse event: $event', stackTrace: s);
-            return;
+            return null;
           }
         }
         var res = await NostrAPI.instance.signEventByIdentity(
@@ -1003,7 +978,7 @@ class _WebviewTabState extends State<WebviewTab> {
         break;
       case 'close':
         try {
-          await controller.removeKeepAlive(widget.initUrl);
+          controller.removeKeepAlive(widget.initUrl);
           await pausePlayingMedia();
         } catch (e, s) {
           logger.e('Error while closing webview: $e', stackTrace: s);
@@ -1069,7 +1044,7 @@ class _WebviewTabState extends State<WebviewTab> {
     tc.canGoForward.value = canGoForward ?? false;
   }
 
-  updateTabInfo(String key, String url0, String title0) {
+  void updateTabInfo(String key, String url0, String title0) {
     // logger.i('updateTabInfo: $key, $url0, $title0');
     controller.setTabData(uniqueId: widget.uniqueKey, title: title0, url: url0);
     tc.title.value = title0;
@@ -1156,7 +1131,7 @@ img {
   }
 
   // info coming from the JavaScript side!
-  javascriptHandlerWebLN(List<dynamic> data) async {
+  Future<Object?> javascriptHandlerWebLN(List<dynamic> data) async {
     logger.i('javascriptHandler: $data');
     var method = data[0];
     switch (method) {
@@ -1234,6 +1209,7 @@ img {
 
       default:
     }
+    return null;
   }
 
   Widget signEventConfirm(
@@ -1456,5 +1432,47 @@ img {
               }
               await refreshPage(url);
             });
+  }
+
+  // Add new method to handle special URLs
+  Future<bool> handleSpecialUrls(String urlString) async {
+    try {
+      if (urlString.startsWith('cashu')) {
+        ecashController.proccessCashuAString(urlString);
+        return true;
+      }
+      // lightning invoice
+      if (urlString.startsWith('lightning:')) {
+        String str = urlString.replaceFirst('lightning:', '');
+        if (isEmail(str) || str.toUpperCase().startsWith('LNURL')) {
+          await Get.bottomSheet(
+              clipBehavior: Clip.antiAlias,
+              shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
+              PayInvoicePage(invoce: str, isPay: false, showScanButton: false));
+          return true;
+        }
+        var tx =
+            await ecashController.proccessPayLightningBill(str, isPay: true);
+        if (tx != null) {
+          var lnTx = tx.field0 as LNTransaction;
+          logger.i('LN Transaction:   Amount=${lnTx.amount}, '
+              'INfo=${lnTx.info}, Description=${lnTx.fee}, '
+              'Hash=${lnTx.hash}, NodeId=${lnTx.status.name}');
+        }
+        return true;
+      }
+      if (urlString.startsWith('lnbc')) {
+        var tx = await ecashController.proccessPayLightningBill(urlString,
+            isPay: true);
+        if (tx != null) {
+          logger.i((tx.field0 as LNTransaction).pr);
+        }
+        return true;
+      }
+    } catch (e) {
+      logger.i(e.toString(), error: e);
+    }
+    return false;
   }
 }

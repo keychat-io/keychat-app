@@ -37,7 +37,7 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
     _init(widget.mfi);
   }
 
-  _init(MsgFileInfo mfi) {
+  void _init(MsgFileInfo mfi) {
     if (mfi.status == FileStatus.downloading && mfi.updateAt != null) {
       bool isTimeout = DateTime.now()
           .subtract(const Duration(seconds: 120))

@@ -18,7 +18,7 @@ import 'package:app/service/relay.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart' hide ConnectionState;
-import 'package:flutter/material.dart' show Colors;
+import 'package:flutter/material.dart' hide ConnectionState;
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
@@ -49,7 +49,7 @@ class WebsocketService extends GetxService {
     return relayFileFeeModels[uri.host];
   }
 
-  setRelayFileFeeModel(String url, RelayFileFee fuc) {
+  void setRelayFileFeeModel(String url, RelayFileFee fuc) {
     Uri uri = Uri.parse(url);
     relayFileFeeModels[uri.host] = fuc;
   }
@@ -101,7 +101,7 @@ class WebsocketService extends GetxService {
     });
   }
 
-  addFailedEvents(String relay, String raw) {
+  void addFailedEvents(String relay, String raw) {
     if (failedEventsMap[relay] == null) {
       failedEventsMap[relay] = {};
     }
@@ -122,7 +122,7 @@ class WebsocketService extends GetxService {
     }));
   }
 
-  clearFailedEvents(String relay) {
+  void clearFailedEvents(String relay) {
     failedEventsMap.remove(relay);
   }
 
@@ -186,7 +186,7 @@ class WebsocketService extends GetxService {
     return res;
   }
 
-  getColorByState(ConnectionState? state) {
+  Color getColorByState(ConnectionState? state) {
     switch (state) {
       case Connecting _:
       case Reconnecting _:
@@ -249,7 +249,7 @@ class WebsocketService extends GetxService {
     return this;
   }
 
-  listenPubkey(List<String> pubkeys,
+  void listenPubkey(List<String> pubkeys,
       {DateTime? since,
       List<String>? relays,
       int? limit,
@@ -335,7 +335,7 @@ class WebsocketService extends GetxService {
     RelayService.instance.initRelayFeeInfo();
   }
 
-  refreshMainRelayStatus() async {
+  Future refreshMainRelayStatus() async {
     int success = getOnlineSocket().length;
     relayConnectedCount.value = success;
     if (success > 0) {
@@ -352,7 +352,7 @@ class WebsocketService extends GetxService {
     await _setMainRelayStatus(RelayStatusEnum.connecting);
   }
 
-  removePubkeyFromSubscription(String pubkey) {
+  void removePubkeyFromSubscription(String pubkey) {
     for (RelayWebsocket rw in channels.values) {
       for (var entry in rw.subscriptions.entries) {
         if (entry.value.contains(pubkey)) {
@@ -362,7 +362,7 @@ class WebsocketService extends GetxService {
     }
   }
 
-  removePubkeysFromSubscription(List<String> keys) {
+  void removePubkeysFromSubscription(List<String> keys) {
     for (RelayWebsocket rw in channels.values) {
       for (var entry in rw.subscriptions.entries) {
         rw.subscriptions[entry.key]?.removeAll(keys);
@@ -412,7 +412,7 @@ class WebsocketService extends GetxService {
     return sent;
   }
 
-  sendMessageWithCallback(String content,
+  void sendMessageWithCallback(String content,
       {List<String>? relays,
       Function(
               {required String relay,
@@ -456,7 +456,7 @@ class WebsocketService extends GetxService {
     }
   }
 
-  sendRawReq(String msg) {
+  void sendRawReq(String msg) {
     List<RelayWebsocket> list = getOnlineSocket();
 
     for (RelayWebsocket rw in list) {
@@ -464,7 +464,7 @@ class WebsocketService extends GetxService {
     }
   }
 
-  sendReq(NostrReqModel nostrReq,
+  void sendReq(NostrReqModel nostrReq,
       {List<String>? relays, Function(String relay)? callback}) {
     if (relays != null && relays.isNotEmpty) {
       int sent = 0;

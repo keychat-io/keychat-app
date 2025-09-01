@@ -39,7 +39,7 @@ class GroupInviteAction extends StatelessWidget {
     }
   }
 
-  handlRequest() async {
+  Future<void> handlRequest() async {
     EasyThrottle.throttle('joingroup', const Duration(seconds: 2), () async {
       NostrEventModel subEvent =
           NostrEventModel.fromJson(jsonDecode(message.content));

@@ -352,10 +352,10 @@ class EcashController extends GetxController {
   }
 
   Future requestPageRefresh() async {
-    await rust_cashu.checkPending();
-    await getBalance();
-    await Utils.getGetxController<EcashBillController>()?.getTransactions();
     try {
+      await rust_cashu.checkPending();
+      await getBalance();
+      await Utils.getGetxController<EcashBillController>()?.getTransactions();
       await Utils.getGetxController<LightningBillController>()
           ?.getTransactions();
       var pendings = await rust_cashu.getLnPendingTransactions();

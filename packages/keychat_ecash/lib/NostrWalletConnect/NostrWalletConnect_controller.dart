@@ -75,7 +75,7 @@ class NostrWalletConnectController extends GetxController {
     initConnectUri();
   }
 
-  initConnectUri() {
+  void initConnectUri() {
     List<String> relays = subscribeSuccessRelays.toList();
     List<String> onlineRelays = websocketService.getOnlineSocketString();
     // Find the intersection of relays and onlineRelays
@@ -94,7 +94,7 @@ class NostrWalletConnectController extends GetxController {
         secret: client.value.prikey);
   }
 
-  stopNwc() {
+  void stopNwc() {
     subscribeSuccessRelays.clear();
     proccessedEvents.clear();
     nwcUri.value = '';
@@ -102,7 +102,7 @@ class NostrWalletConnectController extends GetxController {
     logs.clear();
   }
 
-  startListening([String? relay]) {
+  void startListening([String? relay]) {
     if (!featureStatus.value) {
       // loggerNoLine.i('Feature:nwc is not enabled');
       return;
@@ -329,7 +329,7 @@ class NostrWalletConnectController extends GetxController {
     featureStatus.value = value;
     await updateLocalStorage();
     if (value) {
-      await startListening();
+      startListening();
       sendMyInfoToRelay();
       return;
     }

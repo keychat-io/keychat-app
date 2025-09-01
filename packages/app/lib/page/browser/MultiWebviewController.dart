@@ -211,7 +211,7 @@ class MultiWebviewController extends GetxController {
     saveDesktopTabs();
   }
 
-  setCurrentTabIndex(index) {
+  void setCurrentTabIndex(int index) {
     if (index < 0 || index >= tabs.length) {
       index = 0;
     }
@@ -252,7 +252,7 @@ class MultiWebviewController extends GetxController {
     }
   }
 
-  setConfig(String key, dynamic value) async {
+  Future<void> setConfig(String key, dynamic value) async {
     config[key] = value;
     await Storage.setString('browserConfig', jsonEncode(config));
     config.refresh();
@@ -279,17 +279,17 @@ class MultiWebviewController extends GetxController {
     });
   }
 
-  addSearchEngine(String engine) async {
+  Future<void> addSearchEngine(String engine) async {
     enableSearchEngine.add(engine);
     Storage.setStringList('searchEngine', enableSearchEngine.toList());
   }
 
-  initBrowser() {
+  void initBrowser() {
     title.value = 'Loading';
     progress.value = 0.0;
   }
 
-  loadFavorite() async {
+  Future<void> loadFavorite() async {
     favorites.value = await BrowserFavorite.getAll();
   }
 
@@ -354,7 +354,7 @@ class MultiWebviewController extends GetxController {
     }
   }
 
-  removeSearchEngine(String engine) async {
+  Future<void> removeSearchEngine(String engine) async {
     enableSearchEngine.remove(engine);
     Storage.setStringList('searchEngine', enableSearchEngine.toList());
   }
@@ -605,7 +605,7 @@ window.addEventListener('DOMContentLoaded', function(event) {
         StorageKeyString.mobileKeepAlive, mobileKeepAlive.keys.toList());
   }
 
-  removeKeepAlive(String url) {
+  Null removeKeepAlive(String url) {
     if (GetPlatform.isDesktop) {
       return null;
     }

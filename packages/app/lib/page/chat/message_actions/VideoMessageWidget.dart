@@ -40,7 +40,7 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
     }
   }
 
-  _init(MsgFileInfo mfi) async {
+  Future<void> _init(MsgFileInfo mfi) async {
     if (mfi.status == FileStatus.downloading && mfi.updateAt != null) {
       bool isTimeout = DateTime.now()
           .subtract(const Duration(seconds: 120))

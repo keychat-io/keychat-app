@@ -234,7 +234,7 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
     //   roomId: cc.room.id);
   }
 
-  _onTap(int index, [File? thumbnailFile]) {
+  void _onTap(int index, [File? thumbnailFile]) {
     Get.to(
         () => SlidesImageViewWidget(
               files: media,

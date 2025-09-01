@@ -190,7 +190,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
     );
   }
 
-  _getDownloadButton(FileSystemEntity sourceFile) {
+  IconButton _getDownloadButton(FileSystemEntity sourceFile) {
     return IconButton(
         onPressed: () async {
           if (GetPlatform.isDesktop) {
@@ -206,7 +206,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
         icon: const Icon(CupertinoIcons.share));
   }
 
-  showClickDialog(FileSystemEntity file) {
+  void showClickDialog(FileSystemEntity file) {
     Get.dialog(CupertinoAlertDialog(
       title: const Text('Delete'),
       content: const Text('Are you sure you want to delete this file?'),

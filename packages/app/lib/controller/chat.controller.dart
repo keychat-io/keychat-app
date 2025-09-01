@@ -107,7 +107,7 @@ class ChatController extends GetxController {
     'Video',
     'File',
     'Sat',
-    'Lightning'
+    'Invoice'
   ];
 
   List<Function> featuresOnTaps = [];

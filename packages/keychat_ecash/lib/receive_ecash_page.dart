@@ -101,7 +101,7 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
                             subtitle: Text(decodedModel!.mint),
                           ),
                         const SizedBox(height: 8),
-                        if (GetPlatform.isMobile)
+                        if (GetPlatform.isMobile || GetPlatform.isMacOS)
                           OutlinedButton.icon(
                               onPressed: () async {
                                 QrScanService.instance.handleQRScan();

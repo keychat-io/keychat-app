@@ -422,8 +422,14 @@ class _WebviewTabState extends State<WebviewTab> {
       onCreateWindow: GetPlatform.isDesktop
           ? (controller, createWindowAction) {
               if (createWindowAction.request.url == null) return false;
-              this.controller.launchWebview(
-                  initUrl: createWindowAction.request.url.toString());
+              String urlString = createWindowAction.request.url.toString();
+
+              // Check for special URLs first
+              handleSpecialUrls(urlString).then((handled) {
+                if (handled) return;
+                // If not a special URL, create new window
+                this.controller.launchWebview(initUrl: urlString);
+              });
               return true;
             }
           : null,
@@ -473,40 +479,9 @@ class _WebviewTabState extends State<WebviewTab> {
 
         try {
           var str = uri.toString();
-          if (str.startsWith('cashu')) {
-            ecashController.proccessCashuAString(str);
-            return NavigationActionPolicy.CANCEL;
-          }
-          // lightning invoice
-          if (str.startsWith('lightning:')) {
-            str = str.replaceFirst('lightning:', '');
-            if (isEmail(str) || str.toUpperCase().startsWith('LNURL')) {
-              await Get.bottomSheet(
-                  clipBehavior: Clip.antiAlias,
-                  shape: const RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.vertical(top: Radius.circular(4))),
-                  PayInvoicePage(
-                      invoce: str, isPay: false, showScanButton: false));
-              return NavigationActionPolicy.CANCEL;
-            }
-            var tx = await ecashController.proccessPayLightningBill(str,
-                isPay: true);
-            if (tx != null) {
-              var lnTx = tx.field0 as LNTransaction;
-              logger.i('LN Transaction:   Amount=${lnTx.amount}, '
-                  'INfo=${lnTx.info}, Description=${lnTx.fee}, '
-                  'Hash=${lnTx.hash}, NodeId=${lnTx.status.name}');
-            }
-            return NavigationActionPolicy.CANCEL;
-          }
-          if (str.startsWith('lnbc')) {
-            var tx = await ecashController.proccessPayLightningBill(str,
-                isPay: true);
-            if (tx != null) {
-              logger.i((tx.field0 as LNTransaction).pr);
-            }
 
+          // Handle special URLs
+          if (await handleSpecialUrls(str)) {
             return NavigationActionPolicy.CANCEL;
           }
 
@@ -1457,5 +1432,47 @@ img {
               }
               await refreshPage(url);
             });
+  }
+
+  // Add new method to handle special URLs
+  Future<bool> handleSpecialUrls(String urlString) async {
+    try {
+      if (urlString.startsWith('cashu')) {
+        ecashController.proccessCashuAString(urlString);
+        return true;
+      }
+      // lightning invoice
+      if (urlString.startsWith('lightning:')) {
+        String str = urlString.replaceFirst('lightning:', '');
+        if (isEmail(str) || str.toUpperCase().startsWith('LNURL')) {
+          await Get.bottomSheet(
+              clipBehavior: Clip.antiAlias,
+              shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
+              PayInvoicePage(invoce: str, isPay: false, showScanButton: false));
+          return true;
+        }
+        var tx =
+            await ecashController.proccessPayLightningBill(str, isPay: true);
+        if (tx != null) {
+          var lnTx = tx.field0 as LNTransaction;
+          logger.i('LN Transaction:   Amount=${lnTx.amount}, '
+              'INfo=${lnTx.info}, Description=${lnTx.fee}, '
+              'Hash=${lnTx.hash}, NodeId=${lnTx.status.name}');
+        }
+        return true;
+      }
+      if (urlString.startsWith('lnbc')) {
+        var tx = await ecashController.proccessPayLightningBill(urlString,
+            isPay: true);
+        if (tx != null) {
+          logger.i((tx.field0 as LNTransaction).pr);
+        }
+        return true;
+      }
+    } catch (e) {
+      logger.i(e.toString(), error: e);
+    }
+    return false;
   }
 }

@@ -57,8 +57,17 @@ class BrowserBookmark extends Equatable {
   static Future<void> add(
       {required String url, String? title, String? favicon}) async {
     await DBProvider.database.writeTxn(() async {
+      // Get the maximum weight from existing bookmarks
+      final maxWeightBookmark = await DBProvider.database.browserBookmarks
+          .where()
+          .sortByWeightDesc()
+          .findFirst();
+
+      int newWeight = maxWeightBookmark?.weight ?? 0;
+
       BrowserBookmark model =
           BrowserBookmark(url: url, title: title, favicon: favicon);
+      model.weight = newWeight;
       await DBProvider.database.browserBookmarks.put(model);
     });
   }

@@ -22,6 +22,8 @@
     <string>$(FLUTTER_BUILD_NUMBER)</string>
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.social-networking</string>
+    <key>NSCameraUsageDescription</key>
+    <string>This app needs camera access to scan barcodes.</string>
     <key>CFBundleURLTypes</key>
     <array>
       <dict>

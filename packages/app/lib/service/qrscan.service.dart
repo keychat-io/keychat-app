@@ -23,16 +23,18 @@ class QrScanService {
   static QrScanService get instance => _instance ??= QrScanService._();
 
   Future<String?> handleQRScan({bool autoProcess = true}) async {
-    if (!GetPlatform.isMobile) {
+    if (!(GetPlatform.isMobile || GetPlatform.isMacOS)) {
       EasyLoading.showToast('Not available on this devices');
       return null;
     }
-    bool isGranted = await Permission.camera.request().isGranted;
-    if (!isGranted) {
-      EasyLoading.showToast('Camera permission not grant');
-      await Future.delayed(const Duration(milliseconds: 1000), () => {});
-      openAppSettings();
-      return null;
+    if (GetPlatform.isMobile) {
+      bool isGranted = await Permission.camera.request().isGranted;
+      if (!isGranted) {
+        EasyLoading.showToast('Camera permission not grant');
+        await Future.delayed(const Duration(milliseconds: 1000), () => {});
+        openAppSettings();
+        return null;
+      }
     }
     MobileScannerController mobileScannerController = MobileScannerController(
       formats: [BarcodeFormat.qrCode],

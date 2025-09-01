@@ -164,7 +164,7 @@ class MessageWidget extends StatelessWidget {
     );
   }
 
-  getFromAndToWidget(BuildContext context, Message message) {
+  Widget getFromAndToWidget(BuildContext context, Message message) {
     var style = TextStyle(
         fontSize: 12,
         color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6));
@@ -678,7 +678,7 @@ class MessageWidget extends StatelessWidget {
     'nip4WrapNip4': 'NIP4(NIP4(raw message))',
     'nip4WrapSignal': 'NIP4(Signal Protocol(raw message))'
   };
-  _showRawData(
+  Future _showRawData(
       Message message, List<NostrEventStatus> ess, NostrEventModel? event,
       {BotClientMessageModel? botClientMessageModel,
       rust_cashu.TokenInfo? payToken}) {
@@ -775,7 +775,7 @@ class MessageWidget extends StatelessWidget {
   }
 
   // for small group message, send to multi members
-  _showRawDatas(Message message, List<List<NostrEventStatus>> ess,
+  void _showRawDatas(Message message, List<List<NostrEventStatus>> ess,
       List<RoomMember> members, List<NostrEventModel?> eventLogs) {
     List result = [];
     for (var i = 0; i < ess.length; i++) {
@@ -856,7 +856,7 @@ class MessageWidget extends StatelessWidget {
                 ))));
   }
 
-  _handleForward(BuildContext context) {
+  void _handleForward(BuildContext context) {
     Get.back();
     var identity = cc.roomObs.value.getIdentity();
     if (message.isMediaType) {

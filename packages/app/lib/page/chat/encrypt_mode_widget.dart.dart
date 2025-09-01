@@ -82,7 +82,7 @@ class EncryptModeWidget extends StatelessWidget {
     );
   }
 
-  handleClick(EncryptMode? mode) async {
+  Future<void> handleClick(EncryptMode? mode) async {
     if (mode == null) return;
     Room room = cc.roomObs.value;
     if (mode == EncryptMode.signal &&

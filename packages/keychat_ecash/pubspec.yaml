@@ -24,8 +24,3 @@ dependencies:
   dio: ^5.8.0+1
   url_launcher: ^6.3.1
   flutter_svg: ^2.2.0
-
-dev_dependencies:
-  test: ^1.21.0
-  lints: ^5.1.1
-  flutter_lints: ^5.0.0

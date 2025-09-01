@@ -393,7 +393,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
     );
   }
 
-  _idKeysWidget() {
+  SettingsList _idKeysWidget() {
     return SettingsList(platform: DevicePlatform.iOS, sections: [
       SettingsSection(
         tiles: [
@@ -445,7 +445,8 @@ class AccountSettingPage extends GetView<AccountSettingController> {
     ]);
   }
 
-  _updateIdentityNameDialog(BuildContext context, Identity identity) async {
+  Future<void> _updateIdentityNameDialog(
+      BuildContext context, Identity identity) async {
     HomeController homeController = Get.find<HomeController>();
 
     await showDialog<void>(

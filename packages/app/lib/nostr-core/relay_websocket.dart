@@ -27,7 +27,7 @@ class RelayWebsocket {
   late WebsocketService ws;
   RelayWebsocket(this.relay, this.ws);
 
-  _startListen() async {
+  Future<void> _startListen() async {
     // id keys
     List<String> pubkeys = await IdentityService.instance.getListenPubkeys();
 
@@ -61,7 +61,7 @@ class RelayWebsocket {
     }
   }
 
-  sendREQ(NostrReqModel nq) {
+  dynamic sendREQ(NostrReqModel nq) {
     _statusCheck();
     if (subscriptions.keys.length < maxReqCount) {
       if (nq.pubkeys != null && nq.pubkeys!.isNotEmpty) {
@@ -99,7 +99,7 @@ class RelayWebsocket {
         channel?.connection.state is Reconnecting;
   }
 
-  _statusCheck() {
+  void _statusCheck() {
     if (channel == null) {
       throw Exception('channel is null');
     }
@@ -121,7 +121,7 @@ class RelayWebsocket {
     }
   }
 
-  sendRawREQ(String message, {bool retry = false}) {
+  void sendRawREQ(String message, {bool retry = false}) {
     try {
       _statusCheck();
       channel?.send(message);

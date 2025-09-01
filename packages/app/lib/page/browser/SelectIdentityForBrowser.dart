@@ -24,7 +24,7 @@ class _SelectIdentityForBrowserState extends State<SelectIdentityForBrowser> {
     super.initState();
   }
 
-  init() async {
+  Future<void> init() async {
     List<Identity> list =
         await IdentityService.instance.getEnableBrowserIdentityList();
     setState(() {

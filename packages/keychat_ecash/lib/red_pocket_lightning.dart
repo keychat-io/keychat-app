@@ -79,16 +79,14 @@ class _RedPocketLightningState extends State<RedPocketLightning> {
                         : _cashuInfoModel.status)),
             if (_cashuInfoModel.status == TransactionStatus.pending)
               Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                spacing: 24,
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   OutlinedButton(
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.white70),
-                      ),
+                          side: const BorderSide(color: Colors.white70)),
                       onPressed: () async {
                         EasyThrottle.throttle(
-                            'handlePayInvoice', const Duration(seconds: 2),
+                            'handlePayInvoice', const Duration(seconds: 3),
                             () async {
                           if (_cashuInfoModel.status !=
                               TransactionStatus.pending) {
@@ -109,7 +107,7 @@ class _RedPocketLightningState extends State<RedPocketLightning> {
                               .textTheme
                               .bodyMedium
                               ?.copyWith(color: Colors.white))),
-                  OutlinedButton(
+                  IconButton(
                       style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Colors.white70)),
                       onPressed: () {
@@ -117,13 +115,13 @@ class _RedPocketLightningState extends State<RedPocketLightning> {
                             ClipboardData(text: _cashuInfoModel.token));
                         EasyLoading.showSuccess('Token copied to clipboard');
                       },
-                      child: Icon(Icons.copy, color: Colors.white, size: 16)),
+                      icon: Icon(Icons.copy, color: Colors.white, size: 16)),
                   if (widget.message.isMeSend && _cashuInfoModel.hash != null)
-                    OutlinedButton(
+                    IconButton(
                         style: OutlinedButton.styleFrom(
                             side: const BorderSide(color: Colors.white70)),
                         onPressed: checkStatus,
-                        child:
+                        icon:
                             Icon(Icons.refresh, color: Colors.white, size: 16)),
                 ],
               ),

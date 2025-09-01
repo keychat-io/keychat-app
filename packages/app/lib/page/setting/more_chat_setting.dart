@@ -182,7 +182,7 @@ class MoreChatSetting extends StatelessWidget {
     ));
   }
 
-  disableNotification() {
+  Future disableNotification() {
     return Get.dialog(CupertinoAlertDialog(
       title: const Text("Alert"),
       content: Container(

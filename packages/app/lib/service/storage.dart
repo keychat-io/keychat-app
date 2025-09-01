@@ -52,7 +52,7 @@ class StorageKeyString {
 }
 
 class Storage {
-  static Future<void> setString(key, value) async {
+  static Future<void> setString(String key, String value) async {
     SharedPreferences sp = await SharedPreferences.getInstance();
     sp.setString(key, value);
     // sp.setBool(key, value);
@@ -61,7 +61,7 @@ class Storage {
     // sp.setStringList(key, value);
   }
 
-  static Future<void> setBool(key, value) async {
+  static Future<void> setBool(String key, bool value) async {
     SharedPreferences sp = await SharedPreferences.getInstance();
     sp.setBool(key, value);
   }
@@ -88,22 +88,22 @@ class Storage {
     return res;
   }
 
-  static Future<String?> getString(key) async {
+  static Future<String?> getString(String key) async {
     SharedPreferences sp = await SharedPreferences.getInstance();
     return sp.getString(key);
   }
 
-  static Future<bool?> getBool(key) async {
+  static Future<bool?> getBool(String key) async {
     SharedPreferences sp = await SharedPreferences.getInstance();
     return sp.getBool(key);
   }
 
-  static Future<List<String>> getStringList(key) async {
+  static Future<List<String>> getStringList(String key) async {
     SharedPreferences sp = await SharedPreferences.getInstance();
     return sp.getStringList(key) ?? [];
   }
 
-  static Future<void> removeString(key) async {
+  static Future<void> removeString(String key) async {
     SharedPreferences sp = await SharedPreferences.getInstance();
     sp.remove(key);
   }

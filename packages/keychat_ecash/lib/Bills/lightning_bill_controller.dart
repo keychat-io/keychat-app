@@ -46,7 +46,7 @@ class LightningBillController extends GetxController {
     return res;
   }
 
-  checkPendings(List<LNTransaction> pendings) async {
+  Future<void> checkPendings(List<LNTransaction> pendings) async {
     if (pendings.isEmpty) return;
     int length = pendings.length;
     while (true) {

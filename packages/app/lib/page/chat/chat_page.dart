@@ -661,7 +661,7 @@ class _ChatPage2State extends State<ChatPage> {
     );
   }
 
-  handleMessageSend() async {
+  Future<void> handleMessageSend() async {
     if (controller.textEditingController.text.isNotEmpty) {
       await controller.handleSubmitted();
       return;
@@ -885,7 +885,7 @@ class _ChatPage2State extends State<ChatPage> {
       style: ButtonStyle(backgroundColor: WidgetStateProperty.all(Colors.red)),
       onPressed: () async {
         await RoomService.instance.deleteRoom(controller.roomObs.value);
-        await Get.find<HomeController>()
+        Get.find<HomeController>()
             .loadIdentityRoomList(controller.roomObs.value.identityId);
         await Utils.offAllNamedRoom(Routes.root);
       },

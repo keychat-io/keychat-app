@@ -107,7 +107,7 @@ class ChatController extends GetxController {
     'Video',
     'File',
     'Sat',
-    'Lightning'
+    'Invoice'
   ];
 
   List<Function> featuresOnTaps = [];
@@ -116,7 +116,7 @@ class ChatController extends GetxController {
     roomObs.value = room;
   }
 
-  addMessage(Message message) {
+  void addMessage(Message message) {
     if (messages.isNotEmpty && messages.first.id == message.id) {
       return;
     }
@@ -179,7 +179,7 @@ class ChatController extends GetxController {
     messages.remove(message);
   }
 
-  emoticonClick(String name) {
+  void emoticonClick(String name) {
     textEditingController.text = name;
   }
 
@@ -270,7 +270,7 @@ class ChatController extends GetxController {
     }
   }
 
-  initChatPageFeatures() {
+  void initChatPageFeatures() {
     featuresOnTaps = [
       () => pickAndUploadImage(ImageSource.gallery),
       _handleSendWithCamera,
@@ -291,7 +291,7 @@ class ChatController extends GetxController {
     // }
   }
 
-  jumpToBottom(int milliseconds) {
+  void jumpToBottom(int milliseconds) {
     Timer(const Duration(milliseconds: 300), () {
       if (autoScrollController.hasClients) {
         autoScrollController.animateTo(
@@ -364,7 +364,7 @@ class ChatController extends GetxController {
     }
   }
 
-  loadAllChatFromSearchScroll() {
+  void loadAllChatFromSearchScroll() {
     messages.clear();
     DateTime from = searchDt;
     var list = MessageService.instance.listMessageBySearchSroll(
@@ -374,7 +374,7 @@ class ChatController extends GetxController {
     messages.value = List.from(messages);
   }
 
-  loadLatestMessage() async {
+  Future<void> loadLatestMessage() async {
     late DateTime from;
     if (messages.isEmpty) {
       from = DateTime.now();
@@ -547,13 +547,13 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     });
   }
 
-  openPageAction() async {
+  Future<void> openPageAction() async {
     await loadLatestMessage();
     RoomService.instance.markAllRead(
         identityId: roomObs.value.identityId, roomId: roomObs.value.id);
   }
 
-  pickAndUploadImage(ImageSource imageSource) async {
+  Future<void> pickAndUploadImage(ImageSource imageSource) async {
     EasyLoading.show(status: 'Loading...');
     XFile? xfile;
     try {
@@ -595,7 +595,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     ));
   }
 
-  pickAndUploadVideo(ImageSource imageSource) async {
+  Future<void> pickAndUploadVideo(ImageSource imageSource) async {
     EasyLoading.show(status: 'Loading...');
     XFile? xfile;
     try {
@@ -625,7 +625,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     }
   }
 
-  processClickBlank() {
+  void processClickBlank() {
     hideAdd.value = true;
     hideEmoji.value = true;
     Utils.hideKeyboard(Get.context!);
@@ -678,7 +678,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     return this;
   }
 
-  sortMessageById(List<Message> list) {
+  List<Message> sortMessageById(List<Message> list) {
     for (int i = 0; i < list.length - 1; i++) {
       Message a = list[i];
       Message b = list[i + 1];
@@ -690,7 +690,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     return list;
   }
 
-  _handleSendSats() async {
+  Future<void> _handleSendSats() async {
     CashuInfoModel? cashuInfo = await Get.bottomSheet(
         clipBehavior: Clip.hardEdge,
         shape: const RoundedRectangleBorder(
@@ -710,7 +710,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     }
   }
 
-  _handleSendLightning() async {
+  Future<void> _handleSendLightning() async {
     Transaction? transaction = await Get.bottomSheet(
         clipBehavior: Clip.hardEdge,
         shape: const RoundedRectangleBorder(
@@ -738,7 +738,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     }
   }
 
-  _handleSendWithCamera() async {
+  Future<void> _handleSendWithCamera() async {
     if (GetPlatform.isMacOS) {
       EasyLoading.showToast('Camera not supported on MacOS');
       return;
@@ -757,7 +757,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     }
   }
 
-  _initBotInfo() async {
+  Future<void> _initBotInfo() async {
     List list =
         await NostrAPI.instance.fetchMetadata([roomObs.value.toMainPubkey]);
     if (list.isEmpty) return;
@@ -800,7 +800,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     await RoomService.instance.updateRoomAndRefresh(roomObs.value);
   }
 
-  _initRoom() async {
+  Future<void> _initRoom() async {
     // group
     if (roomObs.value.type == RoomType.group) {
       if (roomObs.value.isMLSGroup) {

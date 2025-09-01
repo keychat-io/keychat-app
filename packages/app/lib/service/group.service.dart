@@ -136,7 +136,7 @@ class GroupService extends BaseChatService {
     await roomService.deleteRoom(room);
   }
 
-  selfExitGroup(Room room) async {
+  Future<void> selfExitGroup(Room room) async {
     if (await room.checkAdminByIdPubkey(room.myIdPubkey)) {
       throw Exception('admin can not exit group');
     }
@@ -160,7 +160,8 @@ class GroupService extends BaseChatService {
     await roomService.deleteRoom(room);
   }
 
-  isAdminCheck(Room room, String pubkey, RoomMember? roomMember) async {
+  Future<void> isAdminCheck(
+      Room room, String pubkey, RoomMember? roomMember) async {
     bool isAdmin = false;
     if (room.groupType == GroupType.shareKey) {
       isAdmin = await room.checkAdminByIdPubkey(pubkey);
@@ -172,7 +173,7 @@ class GroupService extends BaseChatService {
     }
   }
 
-  processChangeSignKey(
+  Future<void> processChangeSignKey(
       Room idRoom, NostrEventModel event, RoomProfile roomProfile) async {
     String? newPrikey = roomProfile.prikey;
     if (newPrikey == null) throw Exception('newPrikey is null');
@@ -195,7 +196,7 @@ class GroupService extends BaseChatService {
           room!.identityId, await rust_nostr.importKey(senderKeys: newPrikey));
       room.mykey.value = newkey;
     });
-    await Get.find<WebsocketService>()
+    Get.find<WebsocketService>()
         .listenPubkey([newPubkey], limit: 1000, kinds: [EventKinds.nip04]);
     room = await RoomService.instance.updateRoom(room, updateMykey: true);
 
@@ -220,7 +221,7 @@ class GroupService extends BaseChatService {
     updateChatControllerMembers(room.id);
   }
 
-  processGroupMessage(
+  Future<void> processGroupMessage(
       Room room, NostrEventModel event, GroupMessage groupMessage,
       {RoomMember? member,
       Room? idRoom,
@@ -293,7 +294,7 @@ class GroupService extends BaseChatService {
         await isAdminCheck(room, signPubkey, member);
         if (ext != null) {
           await room.removeMember(ext);
-          await updateChatControllerMembers(room.id);
+          updateChatControllerMembers(room.id);
 
           // Check if I am still in the group, otherwise I will be marked as kicked out of the group
           RoomMember? rm = await room.getMemberByIdPubkey(room.myIdPubkey);
@@ -317,8 +318,8 @@ class GroupService extends BaseChatService {
     await MessageService.instance.saveMessageModel(toSaveMsg, room: room);
   }
 
-  processInvite(Room idRoom, NostrEventModel event, RoomProfile roomProfile,
-      String realMessage,
+  Future<void> processInvite(Room idRoom, NostrEventModel event,
+      RoomProfile roomProfile, String realMessage,
       {Function(String error)? failedCallback}) async {
     String groupName = roomProfile.name;
     List<dynamic> users = roomProfile.users;
@@ -388,7 +389,7 @@ class GroupService extends BaseChatService {
           }
         });
         if (groupRoom != null) {
-          await Get.find<HomeController>()
+          Get.find<HomeController>()
               .loadIdentityRoomList(groupRoom!.identityId);
         }
         return;
@@ -439,7 +440,7 @@ class GroupService extends BaseChatService {
     RoomService.instance.updateChatRoomPage(groupRoom);
 
     await groupRoom.updateAllMember(users);
-    await updateChatControllerMembers(groupRoom.id);
+    updateChatControllerMembers(groupRoom.id);
 
     Message message = Message(
         identityId: groupRoom.identityId,
@@ -761,7 +762,7 @@ class GroupService extends BaseChatService {
     return SendMessageResponse(events: events, message: model);
   }
 
-  updateChatControllerMembers(int roomId) {
+  void updateChatControllerMembers(int roomId) {
     RoomService.getController(roomId)?.resetMembers();
   }
 
@@ -983,7 +984,7 @@ ${rm.idPubkey}
     await sendMessageToGroup(room, msg,
         subtype: KeyChatEventKinds.groupRemoveSingleMember, ext: rm.idPubkey);
     await room.setMemberDisable(rm);
-    await updateChatControllerMembers(room.id);
+    updateChatControllerMembers(room.id);
   }
 
   Future sendMessageToGroup(Room room, String message,

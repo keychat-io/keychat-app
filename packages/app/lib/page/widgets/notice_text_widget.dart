@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class NoticeTextWidget {
-  static _containter(String text, Color color,
+  static Container _containter(String text, Color color,
       {double fontSize = 14, double borderRadius = 4}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),

@@ -107,7 +107,7 @@ String generateRandomAESKey() {
   return hex.encode(randomBytes);
 }
 
-getPublicKeyDisplay(String publicKey, [int size = 6]) {
+String getPublicKeyDisplay(String publicKey, [int size = 6]) {
   int length = publicKey.length;
   if (length < 4) return publicKey;
   if (publicKey.startsWith('npub') || publicKey.startsWith('nsec')) {
@@ -227,7 +227,7 @@ class Utils {
     }
   }
 
-  static bottomSheedAndHideStatusBar(Widget widget) async {
+  static Future<void> bottomSheedAndHideStatusBar(Widget widget) async {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
     await Get.bottomSheet(
         clipBehavior: Clip.antiAlias,
@@ -1084,7 +1084,7 @@ class Utils {
     }
   }
 
-  static enableImportDB() {
+  static void enableImportDB() {
     Get.dialog(CupertinoAlertDialog(
       title: const Text("Alert"),
       content: const Text(
@@ -1110,7 +1110,7 @@ class Utils {
     ));
   }
 
-  static _showEnterDecryptionPwdDialog(File file) {
+  static void _showEnterDecryptionPwdDialog(File file) {
     TextEditingController passwordController = TextEditingController();
 
     Get.dialog(

@@ -20,7 +20,7 @@ class _SelectAvatarState extends State<SelectAvatar> {
     handleRefresh();
   }
 
-  handleRefresh() {
+  void handleRefresh() {
     setState(() {
       randomStrList = List.generate(8, (index) {
         return Random().nextInt(99999999).toString();

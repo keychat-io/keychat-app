@@ -262,7 +262,8 @@ class SignalChatService extends BaseChatService {
     }
   }
 
-  processListenAddrs(String address, String mapKey) async {
+  Future<(List<String>, List<String>)> processListenAddrs(
+      String address, String mapKey) async {
     List<String> sourceList = await Storage.getStringList(mapKey);
 
     // null
@@ -288,7 +289,7 @@ class SignalChatService extends BaseChatService {
     return (addList, removeList);
   }
 
-  _processHelloMessage(
+  Future<void> _processHelloMessage(
       Room room,
       NostrEventModel event,
       KeychatMessage keychatMessage,
@@ -435,7 +436,7 @@ ${relays.join('\n')}
         realMessage: 'Rejected');
 
     await RoomService.instance.updateRoomAndRefresh(room);
-    await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
+    Get.find<HomeController>().loadIdentityRoomList(room.identityId);
   }
 
   // decrypt the first signal message
@@ -500,7 +501,7 @@ ${relays.join('\n')}
         pubkey: room.toMainPubkey,
         name: prekeyMessageModel.name);
     await RoomService.instance.updateRoomAndRefresh(room);
-    await Get.find<HomeController>().loadIdentityRoomList(room.identityId);
+    Get.find<HomeController>().loadIdentityRoomList(room.identityId);
 
     KeychatMessage? km;
     try {

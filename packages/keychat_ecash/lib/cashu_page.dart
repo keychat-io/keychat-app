@@ -547,7 +547,7 @@ class CashuPage extends GetView<EcashController> {
         ));
   }
 
-  _handleReceive() {
+  void _handleReceive() {
     Get.bottomSheet(
         ignoreSafeArea: false,
         clipBehavior: Clip.antiAlias,
@@ -592,7 +592,7 @@ class CashuPage extends GetView<EcashController> {
         ]));
   }
 
-  _handleSend() {
+  void _handleSend() {
     Get.bottomSheet(
       SettingsList(platform: DevicePlatform.iOS, sections: [
         SettingsSection(tiles: [

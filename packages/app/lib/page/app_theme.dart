@@ -2,7 +2,7 @@ import 'package:app/page/theme.dart';
 import 'package:flutter/material.dart';
 
 class AppThemeCustom {
-  static light() {
+  static ThemeData light() {
     return ThemeData(
         splashColor: Colors.transparent,
         splashFactory: NoSplash.splashFactory,
@@ -15,7 +15,7 @@ class AppThemeCustom {
         colorScheme: MaterialTheme.lightScheme());
   }
 
-  static dark() {
+  static ThemeData dark() {
     return ThemeData(
         splashColor: Colors.transparent,
         splashFactory: NoSplash.splashFactory,

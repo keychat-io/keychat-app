@@ -29,7 +29,7 @@ class _WebStorePageState extends State<WebStorePage> {
     super.initState();
   }
 
-  init() async {
+  Future<void> init() async {
     if (homeController.recommendWebstore.isEmpty) {
       await homeController.loadAppRemoteConfig();
     }

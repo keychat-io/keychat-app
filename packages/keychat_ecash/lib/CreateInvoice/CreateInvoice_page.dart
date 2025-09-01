@@ -1,7 +1,5 @@
-// ignore_for_file: depend_on_referenced_packages
-
 import 'package:app/page/theme.dart';
-import 'package:keychat_ecash/components/SelectMint.dart';
+// import 'package:keychat_ecash/components/SelectMint.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
@@ -35,9 +33,9 @@ class CreateInvoicePage extends StatelessWidget {
                 decoration:
                     BoxDecoration(color: Theme.of(context).colorScheme.surface),
                 child: Column(children: [
-                  SelectMint(controller.selectedMint.value, (mint) {
-                    controller.selectedMint.value = mint;
-                  }),
+                  // SelectMint(controller.selectedMint.value, (mint) {
+                  //   controller.selectedMint.value = mint;
+                  // }),
                   const SizedBox(height: 10),
                   Form(
                     child: Expanded(

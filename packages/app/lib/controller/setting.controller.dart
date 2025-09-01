@@ -152,13 +152,13 @@ class SettingController extends GetxController with StateMixin<Type> {
     }
   }
 
-  getViewKeychatFutures() async {
+  Future<bool> getViewKeychatFutures() async {
     int res =
         await Storage.getIntOrZero(StorageKeyString.getViewKeychatFutures);
     return res == 1;
   }
 
-  setViewKeychatFutures() async {
+  Future<void> setViewKeychatFutures() async {
     await Storage.setInt(StorageKeyString.getViewKeychatFutures, 1);
     viewKeychatFutures.value = true;
   }
@@ -176,12 +176,12 @@ class SettingController extends GetxController with StateMixin<Type> {
     }
   }
 
-  setSelectedMediaServer(String server) async {
+  Future<void> setSelectedMediaServer(String server) async {
     selectedMediaServer.value = server;
     await Storage.setString(StorageKeyString.selectedMediaServer, server);
   }
 
-  setMediaServers(List<String> servers) async {
+  Future<void> setMediaServers(List<String> servers) async {
     mediaServers.value = servers;
     await Storage.setStringList(StorageKeyString.mediaServers, servers);
   }

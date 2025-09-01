@@ -80,8 +80,7 @@ class _RedPocketCashuState extends State<RedPocketCashu> {
                         : _cashuInfoModel.status)),
             if (_cashuInfoModel.status == TransactionStatus.pending)
               Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                spacing: 24,
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   OutlinedButton(
                       style: OutlinedButton.styleFrom(
@@ -89,7 +88,7 @@ class _RedPocketCashuState extends State<RedPocketCashu> {
                       ),
                       onPressed: () async {
                         EasyThrottle.throttle(
-                            'handleReceiveToken', const Duration(seconds: 2),
+                            'handleReceiveToken', const Duration(seconds: 3),
                             () async {
                           if (_cashuInfoModel.status !=
                               TransactionStatus.pending) {
@@ -102,6 +101,8 @@ class _RedPocketCashuState extends State<RedPocketCashu> {
                                   retry: true);
 
                           if (model != null) {
+                            logger.d(
+                                'handleReceiveToken status: ${model.status.name}');
                             updateMessageEcashStatus(model.status);
                           }
                         });
@@ -111,7 +112,7 @@ class _RedPocketCashuState extends State<RedPocketCashu> {
                               .textTheme
                               .bodyMedium
                               ?.copyWith(color: Colors.white))),
-                  OutlinedButton(
+                  IconButton(
                       style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Colors.white70)),
                       onPressed: () {
@@ -119,13 +120,13 @@ class _RedPocketCashuState extends State<RedPocketCashu> {
                             ClipboardData(text: _cashuInfoModel.token));
                         EasyLoading.showSuccess('Token copied to clipboard');
                       },
-                      child: Icon(Icons.copy, color: Colors.white, size: 16)),
+                      icon: Icon(Icons.copy, color: Colors.white, size: 16)),
                   if (_cashuInfoModel.id != null)
-                    OutlinedButton(
+                    IconButton(
                         style: OutlinedButton.styleFrom(
                             side: const BorderSide(color: Colors.white70)),
                         onPressed: checkStatus,
-                        child:
+                        icon:
                             Icon(Icons.refresh, color: Colors.white, size: 16)),
                 ],
               ),

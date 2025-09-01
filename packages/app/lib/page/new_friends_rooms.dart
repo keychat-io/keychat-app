@@ -24,7 +24,7 @@ class _AnonymousRoomsState extends State<AnonymousRooms> {
     super.initState();
   }
 
-  _updateRoom(Room room) {
+  void _updateRoom(Room room) {
     List<Room> newList = [];
     for (Room r in list) {
       if (r.id == room.id) {
@@ -37,7 +37,7 @@ class _AnonymousRoomsState extends State<AnonymousRooms> {
     });
   }
 
-  _removeRoom(Room room) {
+  void _removeRoom(Room room) {
     List<Room> newList = [];
     for (Room r in list) {
       if (r.id != room.id) {

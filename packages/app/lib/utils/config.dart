@@ -12,14 +12,14 @@ class Config {
   // Avoid self instance
   Config._();
   static String _env = 'prod';
-  static get env => _env;
+  static String get env => _env;
 
-  init(String env) {
+  void init(String env) {
     _env = env;
     logger.e('🚀🚀🚀🚀🚀🚀 Env: $_env 🚀🚀🚀🚀🚀🚀');
   }
 
-  static isProd() {
+  static bool isProd() {
     return _env == 'prod';
   }
 
@@ -30,7 +30,7 @@ class Config {
     'prod': config_prod.config
   };
 
-  static getEnvConfig(name) {
+  static dynamic getEnvConfig(String name) {
     return _config[_env][name] ?? default_config.config[name];
   }
 }

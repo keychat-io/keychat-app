@@ -272,7 +272,7 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
     return '$hours hours';
   }
 
-  handleDBSettting(BuildContext context) async {
+  Future<void> handleDBSettting(BuildContext context) async {
     HomeController hc = Get.find<HomeController>();
     Get.bottomSheet(
         clipBehavior: Clip.antiAlias,
@@ -414,7 +414,7 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
     hc.checkRunStatus.value = false;
   }
 
-  deleteAccount(BuildContext context) {
+  Future deleteAccount(BuildContext context) {
     return Get.dialog(CupertinoAlertDialog(
       title: const Text("Logout All Identity?"),
       content: const Text(
@@ -432,7 +432,7 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
             onPressed: () async {
               EasyLoading.show(status: 'Processing...');
               try {
-                await DBProvider.instance.deleteAll();
+                DBProvider.instance.deleteAll();
                 await FileService.instance
                     .deleteAllFolder(); // delete all files
                 await Get.find<WebsocketService>().stopListening();

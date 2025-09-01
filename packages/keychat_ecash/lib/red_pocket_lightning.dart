@@ -1,5 +1,7 @@
+import 'package:app/utils.dart';
 import 'package:flutter/services.dart';
-import 'package:keychat_ecash/utils.dart';
+import 'package:get/get.dart';
+import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 
 import 'package:app/models/embedded/cashu_info.dart';
@@ -9,17 +11,18 @@ import 'package:app/service/message.service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:easy_debounce/easy_throttle.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
-class RedPocket extends StatefulWidget {
+class RedPocketLightning extends StatefulWidget {
   final Message message;
 
-  const RedPocket({super.key, required this.message});
+  const RedPocketLightning({super.key, required this.message});
 
   @override
-  _RedPocketState createState() => _RedPocketState();
+  _RedPocketLightningState createState() => _RedPocketLightningState();
 }
 
-class _RedPocketState extends State<RedPocket> {
+class _RedPocketLightningState extends State<RedPocketLightning> {
   late CashuInfoModel _cashuInfoModel;
 
   @override
@@ -34,16 +37,13 @@ class _RedPocketState extends State<RedPocket> {
     return Container(
         constraints: const BoxConstraints(maxWidth: 350),
         alignment: Alignment.center,
-        padding: EdgeInsets.only(bottom: 8),
+        padding: EdgeInsets.only(top: 8, bottom: 8),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color.fromARGB(255, 245, 67, 39),
-              Color.fromARGB(255, 255, 149, 0)
-            ],
+            colors: [Color(0xFF380F49), Color(0xFF123678), Color(0xFF7D3D15)],
           ),
         ),
         child: Column(
@@ -52,8 +52,8 @@ class _RedPocketState extends State<RedPocket> {
           children: [
             ListTile(
                 leading: SizedBox(
-                    width: 32,
-                    child: Image.asset('assets/images/BTC.png',
+                    width: 48,
+                    child: Image.asset('assets/images/lightning.png',
                         fit: BoxFit.contain)),
                 title: Text(
                     _cashuInfoModel.amount > 0
@@ -88,48 +88,77 @@ class _RedPocketState extends State<RedPocket> {
                       ),
                       onPressed: () async {
                         EasyThrottle.throttle(
-                            'handleReceiveToken', const Duration(seconds: 2),
+                            'handlePayInvoice', const Duration(seconds: 2),
                             () async {
                           if (_cashuInfoModel.status !=
                               TransactionStatus.pending) {
                             return;
                           }
-                          CashuInfoModel? model =
-                              await CashuUtil.handleReceiveToken(
-                                  token: _cashuInfoModel.token,
-                                  messageId: widget.message.id,
-                                  retry: true);
-
-                          if (model != null) {
-                            if (model.status != _cashuInfoModel.status) {
-                              widget.message.cashuInfo = model;
-                              await MessageService.instance
-                                  .updateMessage(widget.message);
-                              setState(() {
-                                _cashuInfoModel = model;
-                              });
-                            }
-                          }
+                          var tx = await Get.find<EcashController>()
+                              .proccessPayLightningBill(_cashuInfoModel.token,
+                                  isPay: true, paidCallback: () {
+                            updateMessageEcashStatus(TransactionStatus.success);
+                          });
+                          if (tx == null) return;
+                          var lnTx = tx.field0 as LNTransaction;
+                          updateMessageEcashStatus(lnTx.status);
                         });
                       },
-                      child: Text('Redeem',
+                      child: Text('Pay Invoice',
                           style: Theme.of(context)
                               .textTheme
                               .bodyMedium
                               ?.copyWith(color: Colors.white))),
                   OutlinedButton(
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.white70),
-                      ),
+                          side: const BorderSide(color: Colors.white70)),
                       onPressed: () {
                         Clipboard.setData(
                             ClipboardData(text: _cashuInfoModel.token));
                         EasyLoading.showSuccess('Token copied to clipboard');
                       },
                       child: Icon(Icons.copy, color: Colors.white, size: 16)),
+                  if (widget.message.isMeSend && _cashuInfoModel.hash != null)
+                    OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.white70)),
+                        onPressed: checkStatus,
+                        child:
+                            Icon(Icons.refresh, color: Colors.white, size: 16)),
                 ],
               ),
           ],
         ));
+  }
+
+  Future<void> checkStatus() async {
+    String? hash = _cashuInfoModel.hash;
+    if (hash == null) {
+      EasyLoading.showError('No id found');
+      return;
+    }
+    try {
+      logger.d('checkStatus id: $hash');
+      Transaction item = await rust_cashu.checkTransaction(id: hash);
+      LNTransaction ln = item.field0 as LNTransaction;
+      await updateMessageEcashStatus(ln.status);
+    } catch (e, s) {
+      String msg = Utils.getErrorMessage(e);
+      EasyLoading.showError(msg);
+      logger.e('checkStatus error: $e', stackTrace: s);
+    }
+  }
+
+  Future<void> updateMessageEcashStatus(TransactionStatus status) async {
+    if (_cashuInfoModel.status == status) {
+      EasyLoading.showInfo('Status: ${status.name.toUpperCase()}');
+      return;
+    }
+    _cashuInfoModel.status = status;
+    widget.message.cashuInfo = _cashuInfoModel;
+    await MessageService.instance.updateMessage(widget.message);
+    setState(() {
+      _cashuInfoModel = _cashuInfoModel;
+    });
   }
 }

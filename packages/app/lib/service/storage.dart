@@ -31,6 +31,8 @@ class StorageKeyString {
   static const String desktopBrowserSidebarWidth =
       'desktop_browser_sidebar_width';
 
+  static const String desktopBrowserTabs = 'desktopBrowserTabs';
+
   static String getSignalAliceKey(String myPubkey, String bobPubkey) {
     return "aliceKey:$myPubkey-$bobPubkey";
   }

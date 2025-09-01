@@ -4,7 +4,7 @@ description: Keychat is a chat app, built on Bitcoin Ecash , Nostr Protocol and 
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.35.3+6422
+version: 1.35.4+6423
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
@@ -70,7 +70,6 @@ dependencies:
   flutter_secure_storage: ^10.0.0-beta.4
   avatar_plus: ^0.0.5
   freezed_annotation: ^3.0.0
-  barcode_scan2: ^4.5.1
   intl: ^0.20.2
   firebase_core: ^3.15.1
   firebase_messaging: ^15.2.9
@@ -99,6 +98,7 @@ dependencies:
       url: https://github.com/KasemJaffer/receive_sharing_intent
   custom_refresh_indicator: ^4.0.1
   local_auth: ^2.3.0
+  ai_barcode_scanner: ^7.0.0
 
 dev_dependencies:
   flutter_test:

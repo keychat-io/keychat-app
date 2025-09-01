@@ -1,8 +1,6 @@
-import 'package:app/global.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/services.dart';
 import 'package:keychat_ecash/Bills/lightning_bill_controller.dart';
-import 'package:keychat_ecash/Bills/lightning_transaction.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -14,14 +12,14 @@ class CreateInvoiceController extends GetxController {
   final int? defaultAmount;
   CreateInvoiceController({this.defaultAmount});
 
-  EcashController cashuController = Get.find<EcashController>();
+  EcashController ecashController = Get.find<EcashController>();
   LightningBillController lightningBillController =
       Get.find<LightningBillController>();
   late TextEditingController textController;
   RxString selectedMint = ''.obs;
   @override
   void onInit() {
-    selectedMint.value = cashuController.latestMintUrl.value;
+    selectedMint.value = ecashController.latestMintUrl.value;
     textController = TextEditingController();
     if (defaultAmount != null) {
       textController.text = defaultAmount.toString();
@@ -54,22 +52,14 @@ class CreateInvoiceController extends GetxController {
       EasyLoading.show(status: 'Generating...');
       Transaction tr = await rust_cashu.requestMint(
           amount: BigInt.from(amount), activeMint: selectedMint.value);
-      LNTransaction ln = tr.field0 as LNTransaction;
-      EasyLoading.dismiss();
+      Utils.getGetxController<LightningBillController>()?.getTransactions();
       EasyLoading.showToast('Create Successfully');
       textController.clear();
-      if (Get.isBottomSheetOpen ?? false) {
-        Get.back(result: tr);
-      }
-      await Get.to(() => LightningTransactionPage(transaction: ln),
-          id: GetPlatform.isDesktop ? GetXNestKey.ecash : null);
+      Get.back(result: tr);
     } catch (e, s) {
       String msg = Utils.getErrorMessage(e);
-      EasyLoading.showToast('Exception: $msg');
       logger.e(msg, error: e, stackTrace: s);
+      EasyLoading.showToast(msg);
     }
-    var ecashController = Get.find<EcashController>();
-    await ecashController.refreshController.requestRefresh();
-    await ecashController.requestPageRefresh();
   }
 }

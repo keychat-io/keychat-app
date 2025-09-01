@@ -38,6 +38,7 @@ enum MessageMediaType {
   botOneTimePaymentRequest,
   groupInvitationInfo,
   groupInvitationRequesting,
+  lightningInvoice,
 }
 
 enum RequestConfrimEnum { none, request, approved, rejected, expired }

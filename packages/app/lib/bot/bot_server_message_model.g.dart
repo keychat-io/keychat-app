@@ -43,6 +43,7 @@ const _$MessageMediaTypeEnumMap = {
   MessageMediaType.botOneTimePaymentRequest: 'botOneTimePaymentRequest',
   MessageMediaType.groupInvitationInfo: 'groupInvitationInfo',
   MessageMediaType.groupInvitationRequesting: 'groupInvitationRequesting',
+  MessageMediaType.lightningInvoice: 'lightningInvoice',
 };
 
 _$BotMessageDataImpl _$$BotMessageDataImplFromJson(Map<String, dynamic> json) =>

@@ -101,7 +101,8 @@ class CashuUtil {
     } catch (e, s) {
       EasyLoading.dismiss();
       String message = Utils.getErrorMessage(e);
-      if (message.contains('11001')) {
+      logger.e('receive error: $message', error: e, stackTrace: s);
+      if (message.contains('11001') || message.contains('10002')) {
         EasyLoading.showError('Exception: Token already spent.');
         if (messageId != null) {
           await MessageService.instance.updateMessageCashuStatus(messageId);
@@ -110,7 +111,6 @@ class CashuUtil {
         EasyLoading.showError('Error! $message',
             duration: const Duration(seconds: 3));
       }
-      logger.e('receive error: $message', error: e, stackTrace: s);
     }
     return null;
   }

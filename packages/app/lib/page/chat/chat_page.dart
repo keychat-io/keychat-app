@@ -624,7 +624,7 @@ class _ChatPage2State extends State<ChatPage> {
       physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.all(8.0),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: GetPlatform.isDesktop ? 5 : 4,
+        crossAxisCount: GetPlatform.isDesktop ? 6 : 4,
       ),
       itemCount: controller.featuresIcons.length,
       itemBuilder: (context, index) {

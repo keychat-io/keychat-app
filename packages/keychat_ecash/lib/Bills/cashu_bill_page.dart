@@ -150,7 +150,7 @@ class CashuBillPage extends GetView<EcashBillController> {
                                           .textTheme
                                           .bodyLarge),
                                   subtitle: textSmallGray(Get.context!,
-                                      '$feeString - ${formatTime(transaction.timestamp.toInt())}'),
+                                      '$feeString - ${formatTime(transaction.timestamp.toInt() * 1000)}'),
                                   trailing: CashuUtil.getStatusIcon(
                                       transaction.status));
                             })))))));

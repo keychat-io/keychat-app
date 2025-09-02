@@ -205,9 +205,10 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
                                       OpenFilex.open(filePath);
                                     }
                                   } catch (e) {
-                                    Share.shareXFiles([XFile(filePath)],
+                                    SharePlus.instance.share(ShareParams(
+                                        previewThumbnail: XFile(filePath),
                                         subject: FileService.instance
-                                            .getDisplayFileName(fileFullName));
+                                            .getDisplayFileName(fileFullName)));
                                   }
                                 },
                               );

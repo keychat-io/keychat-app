@@ -105,12 +105,8 @@ class _MyQRCodeState extends State<MyQRCode> {
                           style: OutlinedButton.styleFrom(
                               side: const BorderSide(color: Colors.grey)),
                           onPressed: () {
-                            final box =
-                                context.findRenderObject() as RenderBox?;
-
-                            Share.share(url,
-                                sharePositionOrigin:
-                                    box!.localToGlobal(Offset.zero) & box.size);
+                            SharePlus.instance
+                                .share(ShareParams(uri: Uri.tryParse(url)));
                           },
                           icon: const Icon(Icons.share, color: Colors.white),
                           label: const Text("Share",

@@ -108,7 +108,7 @@ class _CashuTransactionPageState extends State<LightningTransactionPage> {
             ),
             textSmallGray(
               context,
-              'Created At: ${DateTime.fromMillisecondsSinceEpoch(tx.timestamp.toInt()).toIso8601String()}',
+              'Created At: ${DateTime.fromMillisecondsSinceEpoch(tx.timestamp.toInt() * 1000).toIso8601String()}',
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 16),

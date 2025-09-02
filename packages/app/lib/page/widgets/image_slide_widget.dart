@@ -121,7 +121,10 @@ class _NewPageState extends State<SlidesImageViewWidget> {
                   color: Colors.white,
                 ),
                 onPressed: () {
-                  Share.shareXFiles([XFile(_files[_currentIndex].path)]);
+                  SharePlus.instance.share(ShareParams(
+                      previewThumbnail: XFile(_files[_currentIndex].path),
+                      subject: FileService.instance
+                          .getDisplayFileName(_files[_currentIndex].path)));
                 },
               )),
         ),

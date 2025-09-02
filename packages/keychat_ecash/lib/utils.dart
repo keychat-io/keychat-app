@@ -84,7 +84,8 @@ class CashuUtil {
     ));
   }
 
-  static bool isValidEcashToken(String unit) => unit == 'sat' || unit == 'usdt';
+  static bool isValidEcashToken(String unit) =>
+      true; // unit == 'sat' || unit == 'usdt';
 
   static Future<CashuInfoModel?> _processReceive(
       {required String token, bool retry = false, int? messageId}) async {

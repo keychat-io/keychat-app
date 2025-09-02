@@ -76,7 +76,10 @@ class ImagePreviewWidget extends StatelessWidget {
                             color: Colors.white,
                           ),
                           onPressed: () {
-                            Share.shareXFiles([XFile(file.path)]);
+                            SharePlus.instance.share(ShareParams(
+                                previewThumbnail: XFile(file.path),
+                                subject: FileService.instance
+                                    .getDisplayFileName(file.path)));
                           },
                         ))
                   ],

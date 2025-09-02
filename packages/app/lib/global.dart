@@ -14,6 +14,7 @@ class KeychatGlobal {
   static const String baseFilePath = 'file';
   static const String signalProcotolDBFile = 'signal_procotol.db';
   static const String ecashDBFile = 'ecash.db';
+  static const String ecashDBFileV2 = 'ecash_v2.db';
   static const String mlsDBFile = 'mls.db3';
   static const String notifycationServer = 'https://notify.keychat.io/v2';
   static const String mainWebsite = 'https://www.keychat.io';

@@ -61,55 +61,58 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
                 padding: const EdgeInsets.only(
                     left: 16, right: 16, bottom: 16, top: 4),
                 child: Column(children: [
-                  Form(
-                    autovalidateMode: AutovalidateMode.onUserInteraction,
-                    child: Expanded(
+                  Expanded(
+                    child: Form(
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
                         child: Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          child: TextField(
-                            controller: receiveTextController,
-                            textInputAction: TextInputAction.done,
-                            autofocus: true,
-                            maxLines: 2,
-                            minLines: 1,
-                            decoration: InputDecoration(
-                                labelText: 'Paste Cashu Token',
-                                hintText: 'Paste Cashu Token',
-                                border: const OutlineInputBorder(),
-                                suffixIcon: IconButton(
-                                  icon: const Icon(Icons.paste),
+                          children: [
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 10),
+                              child: TextField(
+                                controller: receiveTextController,
+                                textInputAction: TextInputAction.done,
+                                autofocus: true,
+                                maxLines: 2,
+                                minLines: 1,
+                                decoration: InputDecoration(
+                                    labelText: 'Paste Cashu Token',
+                                    hintText: 'Paste Cashu Token',
+                                    border: const OutlineInputBorder(),
+                                    suffixIcon: IconButton(
+                                      icon: const Icon(Icons.paste),
+                                      onPressed: () async {
+                                        final clipboardData =
+                                            await Clipboard.getData(
+                                                'text/plain');
+                                        if (clipboardData != null) {
+                                          final pastedText = clipboardData.text;
+                                          if (pastedText != null &&
+                                              pastedText != '') {
+                                            receiveTextController.text =
+                                                pastedText;
+                                          }
+                                        }
+                                      },
+                                    )),
+                              ),
+                            ),
+                            if (decodedModel != null)
+                              ListTile(
+                                title: Text(
+                                    '+${decodedModel?.amount} ${decodedModel!.unit?.toString().toString()}'),
+                                subtitle: Text(decodedModel!.mint),
+                              ),
+                            const SizedBox(height: 8),
+                            if (GetPlatform.isMobile || GetPlatform.isMacOS)
+                              OutlinedButton.icon(
                                   onPressed: () async {
-                                    final clipboardData =
-                                        await Clipboard.getData('text/plain');
-                                    if (clipboardData != null) {
-                                      final pastedText = clipboardData.text;
-                                      if (pastedText != null &&
-                                          pastedText != '') {
-                                        receiveTextController.text = pastedText;
-                                      }
-                                    }
+                                    QrScanService.instance.handleQRScan();
                                   },
-                                )),
-                          ),
-                        ),
-                        if (decodedModel != null)
-                          ListTile(
-                            title: Text(
-                                '+${decodedModel?.amount} ${decodedModel!.unit?.toString().toString()}'),
-                            subtitle: Text(decodedModel!.mint),
-                          ),
-                        const SizedBox(height: 8),
-                        if (GetPlatform.isMobile || GetPlatform.isMacOS)
-                          OutlinedButton.icon(
-                              onPressed: () async {
-                                QrScanService.instance.handleQRScan();
-                              },
-                              icon: const Icon(Icons.qr_code_scanner),
-                              label: const Text('Scan'))
-                      ],
-                    )),
+                                  icon: const Icon(Icons.qr_code_scanner),
+                                  label: const Text('Scan'))
+                          ],
+                        )),
                   ),
                   FilledButton(
                     style: ButtonStyle(

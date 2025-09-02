@@ -144,13 +144,8 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                             child: const Text('QR Code')),
                         CupertinoActionSheetAction(
                             onPressed: () {
-                              final box =
-                                  context.findRenderObject() as RenderBox?;
-
-                              Share.share(url,
-                                  sharePositionOrigin:
-                                      box!.localToGlobal(Offset.zero) &
-                                          box.size);
+                              SharePlus.instance
+                                  .share(ShareParams(uri: Uri.tryParse(url)));
                               Get.back();
                             },
                             child: const Text('Share')),

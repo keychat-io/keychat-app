@@ -92,7 +92,8 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                     Text(
                         '${tx.io == TransactionDirection.outgoing ? "Mint Send" : (tx.io == TransactionDirection.split ? "Split Send" : "Mint Receive")} Fee: ${tx.fee.toString()} ${tx.unit}',
                         textAlign: TextAlign.center),
-                  textSmallGray(context, formatTime(tx.timestamp.toInt()),
+                  textSmallGray(
+                      context, formatTime(tx.timestamp.toInt() * 1000),
                       textAlign: TextAlign.center),
                   textSmallGray(context, tx.mintUrl,
                       textAlign: TextAlign.center),

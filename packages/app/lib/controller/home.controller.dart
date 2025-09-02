@@ -496,8 +496,6 @@ class HomeController extends GetxController
           logger.e('initNotifycation error', error: e, stackTrace: s);
         });
       });
-    } else {
-      Get.find<EcashController>().initWithoutIdentity();
     }
     FlutterNativeSplash.remove(); // close splash page
     WidgetsBinding.instance.addObserver(this);

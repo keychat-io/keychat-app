@@ -67,64 +67,65 @@ class MediaRelaySettings extends GetView<SettingController> {
           ],
         ),
         body: Obx(() => controller.mediaServers.isNotEmpty
-            ? SettingsList(platform: DevicePlatform.iOS, sections: [
-                SettingsSection(
-                  margin: const EdgeInsetsDirectional.symmetric(horizontal: 16),
-                  tiles: controller.mediaServers.map((String url) {
-                    Uri uri = Uri.parse(url);
-                    bool isKeychat = uri.host.contains('keychat.io');
-                    return SettingsTile.navigation(
-                      title: Text(isKeychat ? uri.host : url),
-                      leading: Radio(
-                          value: url,
-                          groupValue: controller.selectedMediaServer.value,
-                          onChanged: (value) {
-                            controller.setSelectedMediaServer(url);
-                            EasyLoading.showSuccess('Successed');
-                          }),
-                      onPressed: (context) {
-                        if (isKeychat) {
-                          Get.to(() => KeychatS3Protocol());
-                          return;
-                        }
-                        Get.bottomSheet(SettingsList(sections: [
-                          SettingsSection(
-                            title: Text(url),
-                            tiles: [
-                              SettingsTile.navigation(
-                                title: const Text("View"),
-                                onPressed: (context) {
-                                  Get.back();
-                                  Get.find<MultiWebviewController>()
-                                      .launchWebview(initUrl: url);
-                                },
-                              ),
-                              SettingsTile(
-                                title: const Text("Copy URL"),
-                                onPressed: (context) {
-                                  Get.back();
-                                  Clipboard.setData(ClipboardData(text: url));
-                                  EasyLoading.showSuccess(
-                                      'Copied to clipboard');
-                                },
-                              ),
-                              SettingsTile(
-                                title: const Text("Delete",
-                                    style: TextStyle(color: Colors.red)),
-                                onPressed: (context) {
-                                  Get.back();
-                                  controller.removeMediaServer(url);
-                                  EasyLoading.showSuccess('Removed');
-                                },
-                              ),
-                            ],
-                          )
-                        ]));
-                      },
-                    );
-                  }).toList(),
-                )
-              ])
+            ? RadioGroup(
+                groupValue: controller.selectedMediaServer.value,
+                onChanged: (value) {
+                  controller.setSelectedMediaServer(value as String);
+                  EasyLoading.showSuccess('Successed');
+                },
+                child: SettingsList(platform: DevicePlatform.iOS, sections: [
+                  SettingsSection(
+                    margin:
+                        const EdgeInsetsDirectional.symmetric(horizontal: 16),
+                    tiles: controller.mediaServers.map((String url) {
+                      Uri uri = Uri.parse(url);
+                      bool isKeychat = uri.host.contains('keychat.io');
+                      return SettingsTile.navigation(
+                        title: Text(isKeychat ? uri.host : url),
+                        leading: Radio<String>(value: url),
+                        onPressed: (context) {
+                          if (isKeychat) {
+                            Get.to(() => KeychatS3Protocol());
+                            return;
+                          }
+                          Get.bottomSheet(SettingsList(sections: [
+                            SettingsSection(
+                              title: Text(url),
+                              tiles: [
+                                SettingsTile.navigation(
+                                  title: const Text("View"),
+                                  onPressed: (context) {
+                                    Get.back();
+                                    Get.find<MultiWebviewController>()
+                                        .launchWebview(initUrl: url);
+                                  },
+                                ),
+                                SettingsTile(
+                                  title: const Text("Copy URL"),
+                                  onPressed: (context) {
+                                    Get.back();
+                                    Clipboard.setData(ClipboardData(text: url));
+                                    EasyLoading.showSuccess(
+                                        'Copied to clipboard');
+                                  },
+                                ),
+                                SettingsTile(
+                                  title: const Text("Delete",
+                                      style: TextStyle(color: Colors.red)),
+                                  onPressed: (context) {
+                                    Get.back();
+                                    controller.removeMediaServer(url);
+                                    EasyLoading.showSuccess('Removed');
+                                  },
+                                ),
+                              ],
+                            )
+                          ]));
+                        },
+                      );
+                    }).toList(),
+                  )
+                ]))
             : const Center(child: Text("No media relay configured yet"))));
   }
 

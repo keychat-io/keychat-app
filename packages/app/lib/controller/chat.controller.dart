@@ -27,7 +27,6 @@ import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart'
     show Transaction, TransactionStatus;
-import 'package:keychat_rust_ffi_plugin/index.dart' show Transaction;
 import 'package:mime/mime.dart' show extensionFromMime;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -723,9 +722,9 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
         ..token = invoice.token
         ..mint = invoice.mintUrl
         ..status = invoice.status
-        ..hash = invoice.hash
-        ..expiredAt =
-            DateTime.fromMillisecondsSinceEpoch(invoice.timestamp.toInt());
+        ..hash = invoice.id
+        ..expiredAt = DateTime.fromMillisecondsSinceEpoch(
+            invoice.timestamp.toInt() * 1000);
       await RoomService.instance.sendMessage(roomObs.value, invoice.token,
           realMessage: cim.toString(),
           mediaType: MessageMediaType.lightningInvoice);

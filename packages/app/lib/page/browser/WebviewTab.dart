@@ -909,7 +909,7 @@ class _WebviewTabState extends State<WebviewTab> {
 
     switch (value) {
       case 'share':
-        Share.share(uri.toString());
+        SharePlus.instance.share(ShareParams(uri: uri));
         break;
       case 'shareToRooms':
         Identity identity = Get.find<HomeController>().getSelectedIdentity();

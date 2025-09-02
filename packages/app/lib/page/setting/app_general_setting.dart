@@ -35,17 +35,27 @@ class AppGeneralSetting extends StatefulWidget {
 class _AppGeneralSettingState extends State<AppGeneralSetting> {
   late SettingController controller;
   bool _biometricsEnabled = false;
+  late String startupTabName;
+  HomeController hc = Get.find<HomeController>();
 
   @override
   void initState() {
     super.initState();
     controller = Get.find<SettingController>();
+    setStartupTabName();
     _biometricsEnabled = controller.biometricsEnabled.value;
+  }
+
+  void setStartupTabName() {
+    setState(() {
+      startupTabName = hc.defaultTabConfig.entries
+          .firstWhere((entry) => entry.value == hc.defaultSelectedTab.value)
+          .key;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    HomeController hc = Get.find<HomeController>();
     return Scaffold(
         appBar: AppBar(
           centerTitle: true,
@@ -135,31 +145,30 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
               SettingsTile.navigation(
                 leading: const Icon(CupertinoIcons.home),
                 title: const Text("Startup Tab"),
+                value: Text(startupTabName),
                 onPressed: (context) async {
-                  Get.bottomSheet(
-                      clipBehavior: Clip.antiAlias,
-                      shape: const RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.vertical(top: Radius.circular(4))),
-                      Scaffold(
-                          appBar: AppBar(
-                            title: Text('Default startup tab'),
-                          ),
-                          body: Column(
-                            children: hc.defaultTabConfig.entries.map((entry) {
-                              return RadioListTile<dynamic>(
-                                title: Text(entry.key),
-                                value: entry.value,
-                                groupValue: hc.defaultSelectedTab.value,
-                                onChanged: (value) {
-                                  if (value == null) return;
-                                  hc.setDefaultSelectedTab(value);
-                                  EasyLoading.showSuccess('Set successfully');
-                                  Get.back();
-                                },
-                              );
-                            }).toList(),
-                          )));
+                  showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return RadioGroup(
+                            groupValue: hc.defaultSelectedTab.value,
+                            onChanged: (value) {
+                              if (value == null) return;
+                              hc.setDefaultSelectedTab(value);
+                              EasyLoading.showSuccess('Set successfully');
+                              setStartupTabName();
+                              Get.back();
+                            },
+                            child: SimpleDialog(
+                                title: const Text('Select startup tab'),
+                                children: hc.defaultTabConfig.entries
+                                    .map((entry) => ListTile(
+                                          leading:
+                                              Radio<int>(value: entry.value),
+                                          title: Text(entry.key),
+                                        ))
+                                    .toList()));
+                      });
                 },
               ),
               SettingsTile.navigation(

@@ -199,9 +199,10 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
             OpenFilex.open(dir);
             return;
           }
-          Share.shareXFiles([XFile(sourceFile.path)],
+          SharePlus.instance.share(ShareParams(
+              previewThumbnail: XFile(sourceFile.path),
               subject: FileService.instance
-                  .getDisplayFileName(sourceFile.path.split('/').last));
+                  .getDisplayFileName(sourceFile.path.split('/').last)));
         },
         icon: const Icon(CupertinoIcons.share));
   }

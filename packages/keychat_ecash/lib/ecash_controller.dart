@@ -1,10 +1,12 @@
 import 'dart:async' show FutureOr;
 import 'dart:convert' show jsonDecode;
 
+import 'package:app/app.dart';
 import 'package:app/models/embedded/relay_file_fee.dart';
 import 'package:app/models/models.dart';
 import 'package:app/rust_api.dart';
 import 'package:app/service/relay.service.dart';
+import 'package:app/service/secure_storage.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:keychat_ecash/Bills/ecash_bill_controller.dart';
@@ -16,10 +18,6 @@ import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-
-import 'package:app/global.dart';
-
-import 'package:app/utils.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -36,7 +34,7 @@ class EcashController extends GetxController {
   RxInt totalSats = 0.obs;
   RxString latestMintUrl = KeychatGlobal.defaultCashuMintURL.obs;
   RxInt pendingCount = 0.obs;
-  RxList<Mint> mints = <Mint>[].obs;
+  RxList<MintCashu> mints = <MintCashu>[].obs;
 
   Identity? currentIdentity;
   late ScrollController scrollController;
@@ -91,17 +89,6 @@ class EcashController extends GetxController {
     return cim.token;
   }
 
-  Future initWithoutIdentity() async {
-    try {
-      await rust_cashu.initDb(
-          dbpath: '$dbPath${KeychatGlobal.ecashDBFile}', dev: kDebugMode);
-      logger.i('rust api init success');
-    } catch (e, s) {
-      logger.e('init cashu error', error: e, stackTrace: s);
-    }
-    await _initCashu();
-  }
-
   Future<void> _initCashu() async {
     const maxAttempts = 3;
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
@@ -116,6 +103,7 @@ class EcashController extends GetxController {
         mints.addAll(res);
         cashuInitFailed.value = false;
         cashuInitFailed.refresh();
+        await upgradeToV2();
         break;
       } catch (e, s) {
         logger.d(e.toString(), error: e, stackTrace: s);
@@ -131,15 +119,60 @@ class EcashController extends GetxController {
     }
   }
 
-  Future initIdentity(Identity identity) async {
+  // move cashu token to v2
+  Future<void> upgradeToV2() async {
+    logger.i('Starting upgradeToV2 process');
+    bool upgradeToV2 =
+        await Storage.getBool(StorageKeyString.upgradeToV2) ?? false;
+    // if (upgradeToV2) return;
+    List<String> tokens = [];
+    logger
+        .i('Upgrade not completed yet, starting token migration from v1 to v2');
+    try {
+      tokens = await rust_cashu.cashuV1InitSendAll(
+          dbpath: '$dbPath${KeychatGlobal.ecashDBFile}',
+          words:
+              "medal sail elegant icon extra urban broom wrist tourist toast daughter frog");
+      logger.i('Found ${tokens.length} tokens to migrate: $tokens');
+    } catch (e, s) {
+      String msg = Utils.getErrorMessage(e);
+      EasyLoading.showError('Failed to fetch tokens: $msg');
+      logger.e('Failed to fetch tokens from v1 database: $msg', stackTrace: s);
+    }
+
+    List<String> failedTokens = [];
+    for (int i = 0; i < tokens.length; i++) {
+      try {
+        logger.d('Receiving token ${i + 1}/${tokens.length}');
+        await rust_cashu.receiveToken(encodedToken: tokens[i]);
+        logger.d('Successfully received token ${i + 1}/${tokens.length}');
+      } catch (e, s) {
+        String msg = Utils.getErrorMessage(e);
+        logger.e('Failed to receive token ${tokens[i]}: $msg', stackTrace: s);
+        failedTokens.add(tokens[i]);
+      }
+    }
+    if (failedTokens.isEmpty) {
+      logger.i('All tokens migrated successfully, marking upgrade as complete');
+      await Storage.setBool(StorageKeyString.upgradeToV2, true);
+      requestPageRefresh();
+    } else {
+      logger.w(
+          'Some tokens failed to migrate, upgrade not marked as complete: $failedTokens');
+    }
+  }
+
+  Future<void> initIdentity(Identity identity) async {
     currentIdentity = identity;
 
     try {
       final stopwatch = Stopwatch()..start();
+      String words = await SecureStorage.instance.getOrCreatePhraseWords();
       await rust_cashu.initDb(
-          dbpath: '$dbPath${KeychatGlobal.ecashDBFile}',
+          dbpath: '$dbPath${KeychatGlobal.ecashDBFileV2}',
           dev: kDebugMode,
-          words: await identity.getMnemonic());
+          words: words);
+
       stopwatch.stop();
       logger.i('ecash init completed in ${stopwatch.elapsedMilliseconds}ms');
     } catch (e, s) {
@@ -287,7 +320,7 @@ class EcashController extends GetxController {
     }
   }
 
-  Future initMintUrl() async {
+  Future<void> initMintUrl() async {
     mints.value = await rust_cashu.getMints();
     if (mints.isEmpty) {
       await rust_cashu.addMint(url: KeychatGlobal.defaultCashuMintURL);
@@ -316,10 +349,10 @@ class EcashController extends GetxController {
   Future restore() async {
     if (currentIdentity == null) return;
     String? mnemonic = await currentIdentity!.getMnemonic();
-    for (Mint m in mints) {
-      Nuts? nuts = m.info?.nuts;
+    for (MintCashu m in mints) {
+      Map? nuts = m.info?.nuts;
       if (nuts == null) continue;
-      if (nuts.nut09.supported) {
+      if (nuts['nut09'] != null) {
         await rust_cashu.restore(
           mintUrl: m.url,
           words: mnemonic,
@@ -330,22 +363,20 @@ class EcashController extends GetxController {
   }
 
   bool supportMint(String mint) {
-    for (Mint m in mints) {
+    for (MintCashu m in mints) {
       if (m.url == mint) {
-        Nuts? nuts = m.info?.nuts;
+        Map? nuts = m.info?.nuts;
         if (nuts == null) return false;
-        return !nuts.nut04.disabled;
       }
     }
     return true;
   }
 
   bool supportMelt(String mint) {
-    for (Mint m in mints) {
+    for (MintCashu m in mints) {
       if (m.url == mint) {
-        Nuts? nuts = m.info?.nuts;
+        Map? nuts = m.info?.nuts;
         if (nuts == null) return false;
-        return !nuts.nut05.disabled;
       }
     }
     return true;

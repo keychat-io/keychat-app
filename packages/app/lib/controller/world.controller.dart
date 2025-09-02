@@ -11,7 +11,7 @@ import '../constants.dart';
 
 class WorldController extends GetxController with GetTickerProviderStateMixin {
   var count = 0.obs;
-  increment() => count++;
+  RxInt increment() => count++;
   late TabController tabController;
   RxMap<String, List<dynamic>> feeds = <String, List<dynamic>>{
     "bitcoin": [],
@@ -40,14 +40,14 @@ class WorldController extends GetxController with GetTickerProviderStateMixin {
     super.onClose();
   }
 
-  getFeeds(List<String> list) {
+  void getFeeds(List<String> list) {
     for (var element in list) {
       feeds[element] = [];
       getFeed(element);
     }
   }
 
-  getFeed(String tag) async {
+  Future<String> getFeed(String tag) async {
     // id ??= generate64RandomHexChars();
 
     String id = '${tag}_${Random().nextInt(1000000)}';
@@ -69,7 +69,7 @@ class WorldController extends GetxController with GetTickerProviderStateMixin {
     return id;
   }
 
-  processEvent(NostrEventModel event) {
+  void processEvent(NostrEventModel event) {
     String? topic = event.subscriptionId?.split('_')[0];
     if (topic == null) return;
     if (feeds[topic] == null) return;

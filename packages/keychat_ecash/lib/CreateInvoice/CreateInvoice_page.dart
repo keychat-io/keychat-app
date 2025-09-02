@@ -37,8 +37,8 @@ class CreateInvoicePage extends StatelessWidget {
                   //   controller.selectedMint.value = mint;
                   // }),
                   const SizedBox(height: 10),
-                  Form(
-                    child: Expanded(
+                  Expanded(
+                    child: Form(
                         child: Column(children: [
                       TextField(
                           style: const TextStyle(fontSize: 20),

@@ -24,7 +24,6 @@ class _AddGroupPageState extends State<AddGroupPage>
     with TickerProviderStateMixin {
   GroupService groupService = GroupService.instance;
   ContactService contactService = ContactService.instance;
-  GroupType selectedGroupType = GroupType.mls;
   late TextEditingController _groupNameController;
   GroupType groupType = GroupType.mls;
   List<String> relays = [];
@@ -137,72 +136,63 @@ class _AddGroupPageState extends State<AddGroupPage>
                 },
                 child: const Text('Next'))),
         body: SafeArea(
-          child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 16),
-              child: SingleChildScrollView(
+            child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 16),
+          child: SingleChildScrollView(
+              child: RadioGroup(
+                  groupValue: groupType,
+                  onChanged: (value) {
+                    if (value == null) return;
+                    FocusScope.of(context).unfocus();
+                    setState(() {
+                      groupType = value;
+                    });
+                  },
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                    Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: TextFormField(
-                          controller: _groupNameController,
-                          decoration: const InputDecoration(
-                            labelText: 'Group Name',
-                            border: OutlineInputBorder(),
-                          ),
-                        )),
-                    Container(
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 8, horizontal: 16),
-                        child: Text("Select Group Mode",
-                            style: Theme.of(context).textTheme.titleMedium)),
-                    ListTile(
-                        title: Text("Large Group - MLS Protocol",
-                            style: Theme.of(context).textTheme.titleSmall),
-                        subtitle: Text(
-                            RoomUtil.getGroupModeDescription(GroupType.mls),
-                            style: Theme.of(context).textTheme.bodySmall),
-                        leading: Radio<GroupType>(
-                          value: GroupType.mls,
-                          groupValue: groupType,
-                          onChanged: (value) {
-                            FocusScope.of(context).unfocus();
-                            setState(() {
-                              groupType = value as GroupType;
-                              selectedGroupType = GroupType.mls;
-                            });
-                          },
+                        Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: TextFormField(
+                              controller: _groupNameController,
+                              decoration: const InputDecoration(
+                                labelText: 'Group Name',
+                                border: OutlineInputBorder(),
+                              ),
+                            )),
+                        Container(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 8, horizontal: 16),
+                            child: Text("Select Group Mode",
+                                style:
+                                    Theme.of(context).textTheme.titleMedium)),
+                        ListTile(
+                            title: Text("Large Group - MLS Protocol",
+                                style: Theme.of(context).textTheme.titleSmall),
+                            subtitle: Text(
+                                RoomUtil.getGroupModeDescription(GroupType.mls),
+                                style: Theme.of(context).textTheme.bodySmall),
+                            leading: Radio<GroupType>(value: GroupType.mls),
+                            selected: groupType == GroupType.mls,
+                            selectedTileColor: Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withValues(alpha: 0.1)),
+                        ListTile(
+                          selectedTileColor: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withValues(alpha: 0.1),
+                          title: Text('Small Group - Signal Protocol',
+                              style: Theme.of(context).textTheme.titleSmall),
+                          subtitle: Text(
+                              RoomUtil.getGroupModeDescription(
+                                  GroupType.sendAll),
+                              style: Theme.of(context).textTheme.bodySmall),
+                          selected: groupType == GroupType.sendAll,
+                          leading: Radio<GroupType>(value: GroupType.sendAll),
                         ),
-                        selected: selectedGroupType == GroupType.mls,
-                        selectedTileColor: Theme.of(context)
-                            .colorScheme
-                            .primary
-                            .withValues(alpha: 0.1)),
-                    ListTile(
-                      selectedTileColor: Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withValues(alpha: 0.1),
-                      title: Text('Small Group - Signal Protocol',
-                          style: Theme.of(context).textTheme.titleSmall),
-                      subtitle: Text(
-                          RoomUtil.getGroupModeDescription(GroupType.sendAll),
-                          style: Theme.of(context).textTheme.bodySmall),
-                      selected: selectedGroupType == GroupType.sendAll,
-                      leading: Radio<GroupType>(
-                        value: GroupType.sendAll,
-                        groupValue: groupType,
-                        onChanged: (value) {
-                          FocusScope.of(context).unfocus();
-                          setState(() {
-                            groupType = value as GroupType;
-                            selectedGroupType = GroupType.sendAll;
-                          });
-                        },
-                      ),
-                    ),
-                  ]))),
-        ));
+                      ]))),
+        )));
   }
 }

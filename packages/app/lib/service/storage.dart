@@ -49,6 +49,8 @@ class StorageKeyString {
 
   static const String mobileKeepAlive = 'mobileKeepAlive';
   static const String biometricsAuthTime = 'biometricsAuthTime';
+
+  static const String upgradeToV2 = 'upgradeToV2';
 }
 
 class Storage {

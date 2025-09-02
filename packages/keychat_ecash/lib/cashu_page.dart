@@ -409,7 +409,7 @@ class CashuPage extends GetView<EcashController> {
                                             .textTheme
                                             .bodyLarge),
                                     subtitle: textSmallGray(Get.context!,
-                                        '$feeString - ${formatTime(transaction.timestamp.toInt())}'),
+                                        '$feeString - ${formatTime(transaction.timestamp.toInt() * 1000)}'),
                                     trailing: CashuUtil.getStatusIcon(
                                         transaction.status),
                                     onTap: () {
@@ -513,7 +513,8 @@ class CashuPage extends GetView<EcashController> {
                                             Get.context!,
                                             DateTime.fromMillisecondsSinceEpoch(
                                                     transaction.timestamp
-                                                        .toInt())
+                                                            .toInt() *
+                                                        1000)
                                                 .toIso8601String())
                                       ],
                                     ),

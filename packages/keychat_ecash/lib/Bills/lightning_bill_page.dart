@@ -102,7 +102,9 @@ class LightningBillPage extends GetView<LightningBillController> {
                                       textSmallGray(
                                           Get.context!,
                                           DateTime.fromMillisecondsSinceEpoch(
-                                                  transaction.timestamp.toInt())
+                                                  transaction.timestamp
+                                                          .toInt() *
+                                                      1000)
                                               .toIso8601String())
                                     ],
                                   ),

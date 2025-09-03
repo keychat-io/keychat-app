@@ -616,6 +616,7 @@ class RoomService extends BaseChatService {
     BotClientMessageModel? cmm;
     try {
       cmm = BotClientMessageModel.fromJson(jsonDecode(message));
+      // ignore: empty_catches
     } catch (e) {}
     if (cmm == null) {
       cmm ??= BotClientMessageModel(

@@ -3,7 +3,6 @@ import 'dart:convert' show jsonDecode;
 
 import 'package:app/app.dart';
 import 'package:app/models/embedded/relay_file_fee.dart';
-import 'package:app/models/models.dart';
 import 'package:app/rust_api.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/secure_storage.dart';
@@ -97,9 +96,6 @@ class EcashController extends GetxController {
         var res = await rust_cashu.initCashu(
             prepareSatsOnceTime: KeychatGlobal.cashuPrepareAmount);
         logger.i('initCashu success');
-        for (var item in res) {
-          logger.d('${item.url} ${item.info?.nuts}');
-        }
         mints.addAll(res);
         cashuInitFailed.value = false;
         cashuInitFailed.refresh();
@@ -130,9 +126,7 @@ class EcashController extends GetxController {
         .i('Upgrade not completed yet, starting token migration from v1 to v2');
     try {
       tokens = await rust_cashu.cashuV1InitSendAll(
-          dbpath: '$dbPath${KeychatGlobal.ecashDBFile}',
-          words:
-              "medal sail elegant icon extra urban broom wrist tourist toast daughter frog");
+          dbpath: '$dbPath${KeychatGlobal.ecashDBFile}');
       logger.i('Found ${tokens.length} tokens to migrate: $tokens');
     } catch (e, s) {
       String msg = Utils.getErrorMessage(e);

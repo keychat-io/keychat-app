@@ -115,14 +115,14 @@ class NostrEventModel {
   /// assert(partialEvent.isValid() == true);
   /// ```
   factory NostrEventModel.partial({
-    id = "",
-    pubkey = "",
-    createdAt = 0,
-    kind = 1,
-    tags = const <List<String>>[],
-    content = "",
-    sig = "",
-    subscriptionId,
+    String id = "",
+    String pubkey = "",
+    int createdAt = 0,
+    int kind = 1,
+    List<List<String>> tags = const <List<String>>[],
+    String content = "",
+    String sig = "",
+    String? subscriptionId,
     bool verify = false,
   }) {
     return NostrEventModel(

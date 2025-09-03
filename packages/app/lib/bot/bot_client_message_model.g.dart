@@ -6,9 +6,9 @@ part of 'bot_client_message_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$BotClientMessageModelImpl _$$BotClientMessageModelImplFromJson(
+_BotClientMessageModel _$BotClientMessageModelFromJson(
         Map<String, dynamic> json) =>
-    _$BotClientMessageModelImpl(
+    _BotClientMessageModel(
       type: $enumDecode(_$MessageMediaTypeEnumMap, json['type']),
       message: json['message'] as String,
       id: json['id'] as String?,
@@ -16,8 +16,8 @@ _$BotClientMessageModelImpl _$$BotClientMessageModelImplFromJson(
       payToken: json['payToken'] as String?,
     );
 
-Map<String, dynamic> _$$BotClientMessageModelImplToJson(
-        _$BotClientMessageModelImpl instance) =>
+Map<String, dynamic> _$BotClientMessageModelToJson(
+        _BotClientMessageModel instance) =>
     <String, dynamic>{
       'type': _$MessageMediaTypeEnumMap[instance.type]!,
       'message': instance.message,

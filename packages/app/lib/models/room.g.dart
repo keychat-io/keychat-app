@@ -209,7 +209,7 @@ const RoomSchema = CollectionSchema(
   getId: _roomGetId,
   getLinks: _roomGetLinks,
   attach: _roomAttach,
-  version: '3.2.0-dev.2',
+  version: '3.3.0-dev.1',
 );
 
 int _roomEstimateSize(

@@ -5,7 +5,7 @@ part 'bot_server_message_model.freezed.dart';
 part 'bot_server_message_model.g.dart';
 
 @freezed
-class BotServerMessageModel with _$BotServerMessageModel {
+abstract class BotServerMessageModel with _$BotServerMessageModel {
   const factory BotServerMessageModel(
       {
       // botText,botSelectionRequest,botPricePerMessageRequest,botOneTimePaymentRequest,
@@ -21,7 +21,7 @@ class BotServerMessageModel with _$BotServerMessageModel {
 }
 
 @freezed
-class BotMessageData with _$BotMessageData {
+abstract class BotMessageData with _$BotMessageData {
   const factory BotMessageData(
       {required String name,
       required String description,

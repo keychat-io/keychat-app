@@ -88,7 +88,7 @@ class EcashController extends GetxController {
     return cim.token;
   }
 
-  Future<void> _initCashu() async {
+  Future<void> _initCashuMints() async {
     const maxAttempts = 3;
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
       try {
@@ -99,7 +99,6 @@ class EcashController extends GetxController {
         mints.addAll(res);
         cashuInitFailed.value = false;
         cashuInitFailed.refresh();
-        await upgradeToV2();
         break;
       } catch (e, s) {
         logger.d(e.toString(), error: e, stackTrace: s);
@@ -117,10 +116,9 @@ class EcashController extends GetxController {
 
   // move cashu token to v2
   Future<void> upgradeToV2() async {
+    bool upgraded = Storage.getBool(StorageKeyString.upgradeToV2) ?? false;
+    if (upgraded) return;
     logger.i('Starting upgradeToV2 process');
-    bool upgradeToV2 =
-        await Storage.getBool(StorageKeyString.upgradeToV2) ?? false;
-    // if (upgradeToV2) return;
     List<String> tokens = [];
     logger
         .i('Upgrade not completed yet, starting token migration from v1 to v2');
@@ -133,6 +131,9 @@ class EcashController extends GetxController {
       EasyLoading.showError('Failed to fetch tokens: $msg');
       logger.e('Failed to fetch tokens from v1 database: $msg', stackTrace: s);
     }
+
+    await rust_cashu.initDbCashuOnce(
+        dbpath: '$dbPath${KeychatGlobal.ecashDBFileV2}');
 
     List<String> failedTokens = [];
     for (int i = 0; i < tokens.length; i++) {
@@ -159,20 +160,14 @@ class EcashController extends GetxController {
   Future<void> initIdentity(Identity identity) async {
     currentIdentity = identity;
 
-    try {
-      final stopwatch = Stopwatch()..start();
-      String words = await SecureStorage.instance.getOrCreatePhraseWords();
-      await rust_cashu.initDb(
-          dbpath: '$dbPath${KeychatGlobal.ecashDBFileV2}',
-          dev: kDebugMode,
-          words: words);
+    await upgradeToV2();
 
-      stopwatch.stop();
-      logger.i('ecash init completed in ${stopwatch.elapsedMilliseconds}ms');
-    } catch (e, s) {
-      logger.e(e.toString(), error: e, stackTrace: s);
-    }
-    await _initCashu();
+    String words = await SecureStorage.instance.getOrCreatePhraseWords();
+    await rust_cashu.initDb(
+        dbpath: '$dbPath${KeychatGlobal.ecashDBFileV2}',
+        dev: kDebugMode,
+        words: words);
+    await _initCashuMints();
   }
 
   @override

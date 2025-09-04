@@ -324,7 +324,7 @@ $content'''
     if (relay != null) {
       key = '$key:$relay';
     }
-    int lastMessageAt = await Storage.getIntOrZero(key);
+    int lastMessageAt = Storage.getIntOrZero(key);
 
     if (lastMessageAt > 0) {
       return DateTime.fromMillisecondsSinceEpoch(lastMessageAt * 1000)

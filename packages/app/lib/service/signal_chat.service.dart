@@ -264,7 +264,7 @@ class SignalChatService extends BaseChatService {
 
   Future<(List<String>, List<String>)> processListenAddrs(
       String address, String mapKey) async {
-    List<String> sourceList = await Storage.getStringList(mapKey);
+    List<String> sourceList = Storage.getStringList(mapKey);
 
     // null
     if (sourceList.isEmpty) {

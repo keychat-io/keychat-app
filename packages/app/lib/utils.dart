@@ -123,7 +123,7 @@ int getRegistrationId(String pubkey) {
 }
 
 Future<ThemeMode> getThemeMode() async {
-  String? res = await Storage.getString(StorageKeyString.themeMode);
+  String? res = Storage.getString(StorageKeyString.themeMode);
   if (res == null) return ThemeMode.system;
   if (ThemeMode.dark.name == res) return ThemeMode.dark;
   if (ThemeMode.system.name == res) return ThemeMode.system;
@@ -736,8 +736,7 @@ class Utils {
   }
 
   static Future<List> getWebRTCServers() async {
-    String? config =
-        await Storage.getString(StorageKeyString.defaultWebRTCServers);
+    String? config = Storage.getString(StorageKeyString.defaultWebRTCServers);
     if (config != null) {
       try {
         return jsonDecode(config);

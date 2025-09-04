@@ -160,7 +160,7 @@ Let's start an encrypted chat.''';
       });
       // excute auto delete message by user setting
       int timestamp =
-          await Storage.getIntOrZero(StorageKeyString.autoDeleteMessageDays);
+          Storage.getIntOrZero(StorageKeyString.autoDeleteMessageDays);
       if (timestamp > 0 &&
           DateTime.now()
                   .difference(DateTime.fromMillisecondsSinceEpoch(timestamp))

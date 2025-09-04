@@ -14,7 +14,7 @@ class _BiometricAuthScreenState extends State<BiometricAuthScreen> {
   @override
   void initState() {
     super.initState();
-    // auth();
+    auth();
   }
 
   Future auth() async {
@@ -42,10 +42,7 @@ class _BiometricAuthScreenState extends State<BiometricAuthScreen> {
         child: Scaffold(
           body: Center(
             child: FilledButton(
-                onPressed: () {
-                  auth();
-                },
-                child: const Text('Unlock Keychat')),
+                onPressed: auth, child: const Text('Unlock Keychat')),
           ),
         ));
   }

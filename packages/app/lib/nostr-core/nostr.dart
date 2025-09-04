@@ -94,7 +94,7 @@ class NostrAPI {
   Future<void> _proccessEOSE(Relay relay, List res) async {
     subscriptionIdEose.add(res[1]);
     String key = '${StorageKeyString.lastMessageAt}:${relay.url}';
-    int lastMessageAt = await Storage.getIntOrZero(key);
+    int lastMessageAt = Storage.getIntOrZero(key);
     if (lastMessageAt == 0) return;
 
     DateTime? messageTime = await MessageService.instance.getLastMessageTime();
@@ -427,7 +427,7 @@ class NostrAPI {
       NostrAPI._lastMessageAtMap[url] = [];
 
       String key = '${StorageKeyString.lastMessageAt}:$url';
-      int lastMessageAt = await Storage.getIntOrZero(key);
+      int lastMessageAt = Storage.getIntOrZero(key);
       if (lastAt > lastMessageAt) {
         await Storage.setInt(key, lastAt);
       }

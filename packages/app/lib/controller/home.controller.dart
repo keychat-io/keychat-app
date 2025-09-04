@@ -95,7 +95,7 @@ class HomeController extends GetxController
 
   // run when app start
   Future loadSelectedTab() async {
-    int? res = await Storage.getInt(StorageKeyString.defaultSelectedTabIndex);
+    int? res = Storage.getInt(StorageKeyString.defaultSelectedTabIndex);
     res ??= -1;
     defaultSelectedTab.value = res;
     if (res > -1) {
@@ -103,7 +103,7 @@ class HomeController extends GetxController
       return;
     }
     // use the last opened tab
-    res = await Storage.getIntOrZero(StorageKeyString.selectedTabIndex);
+    res = Storage.getIntOrZero(StorageKeyString.selectedTabIndex);
     selectedTabIndex = res;
   }
 
@@ -111,7 +111,7 @@ class HomeController extends GetxController
   Future createAIIdentity(List<Identity> existsIdentity, String idName) async {
     String key = '${StorageKeyString.taskCreateIdentity}:$idName';
     if (existsIdentity.isEmpty) return;
-    int res = await Storage.getIntOrZero(key);
+    int res = Storage.getIntOrZero(key);
     if (res == 1) return;
     for (var identity in existsIdentity) {
       if (identity.name == idName) return;
@@ -284,7 +284,7 @@ class HomeController extends GetxController
   }
 
   Future initTips(String name, RxBool toSetValue) async {
-    var res = await Storage.getIntOrZero(name);
+    var res = Storage.getIntOrZero(name);
     toSetValue.value = res == 0 ? true : false;
   }
 
@@ -428,8 +428,7 @@ class HomeController extends GetxController
 
     int initialIndex = 0;
     if (firstUnreadIndex == -1) {
-      var saved =
-          await Storage.getIntOrZero(StorageKeyString.homeSelectedTabIndex);
+      var saved = Storage.getIntOrZero(StorageKeyString.homeSelectedTabIndex);
       if (saved < mys.length) {
         initialIndex = saved;
       }

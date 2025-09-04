@@ -23,7 +23,7 @@ class _KeepAliveHostsState extends State<KeepAliveHosts> {
   }
 
   Future<void> _loadHosts() async {
-    hosts = await Storage.getStringList(StorageKeyString.mobileKeepAlive);
+    hosts = Storage.getStringList(StorageKeyString.mobileKeepAlive);
     setState(() {});
   }
 

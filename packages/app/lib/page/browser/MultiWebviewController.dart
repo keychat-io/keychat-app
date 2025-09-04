@@ -234,7 +234,7 @@ class MultiWebviewController extends GetxController {
   }
 
   Future loadConfig() async {
-    String? localConfig = await Storage.getString(KeychatGlobal.browserConfig);
+    String? localConfig = Storage.getString(KeychatGlobal.browserConfig);
     if (localConfig == null) {
       localConfig = jsonEncode({
         "enableHistory": true,
@@ -248,7 +248,7 @@ class MultiWebviewController extends GetxController {
     config.value = jsonDecode(localConfig);
 
     // text zoom
-    int? textSize = await Storage.getInt(KeychatGlobal.browserTextSize);
+    int? textSize = Storage.getInt(KeychatGlobal.browserTextSize);
     if (textSize != null) {
       kInitialTextSize.value = textSize;
     }
@@ -310,7 +310,7 @@ class MultiWebviewController extends GetxController {
 
     // load search engine
     defaultSearchEngineObx.value =
-        (await Storage.getString('defaultSearchEngine') ?? defaultSearchEngine);
+        (Storage.getString('defaultSearchEngine') ?? defaultSearchEngine);
 
     await loadConfig();
     await loadKeepAlive();
@@ -411,7 +411,7 @@ class MultiWebviewController extends GetxController {
 
     try {
       String? savedTabs =
-          await Storage.getString(StorageKeyString.desktopBrowserTabs);
+          Storage.getString(StorageKeyString.desktopBrowserTabs);
       if (savedTabs == null || savedTabs.isEmpty) return;
 
       List<dynamic> tabData = jsonDecode(savedTabs);
@@ -634,7 +634,7 @@ window.addEventListener('DOMContentLoaded', function(event) {
     if (!GetPlatform.isMobile) return;
 
     List<String> hosts =
-        await Storage.getStringList(StorageKeyString.mobileKeepAlive);
+        Storage.getStringList(StorageKeyString.mobileKeepAlive);
     // for init
     if (hosts.isEmpty) {
       hosts = ['jumble.social'];

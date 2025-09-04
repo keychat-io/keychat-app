@@ -197,8 +197,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                             // Get the room ID to use as part of the storage key
                             String storageKey =
                                 'UpdateMyGroupKey:${cc.roomObs.value.id}';
-                            int? lastUpdateTime =
-                                await Storage.getInt(storageKey);
+                            int? lastUpdateTime = Storage.getInt(storageKey);
                             int now = DateTime.now().millisecondsSinceEpoch;
 
                             // Check if it's been less than a day since the last update

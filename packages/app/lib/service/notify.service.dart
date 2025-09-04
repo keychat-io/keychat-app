@@ -157,7 +157,7 @@ class NotifyService {
     var homeController = Get.find<HomeController>();
 
     int settingNotifyStatus =
-        await Storage.getIntOrZero(StorageKeyString.settingNotifyStatus);
+        Storage.getIntOrZero(StorageKeyString.settingNotifyStatus);
     if (settingNotifyStatus == NotifySettingStatus.disable) {
       homeController.notificationStatus.value = false;
       return;
@@ -204,7 +204,7 @@ class NotifyService {
     fcmToken ??= await FirebaseMessaging.instance
         .getToken()
         .timeout(const Duration(seconds: 8), onTimeout: () async {
-      fcmToken = await Storage.getString(StorageKeyString.notificationFCMToken);
+      fcmToken = Storage.getString(StorageKeyString.notificationFCMToken);
       loggerNoLine.d('Load FCMToken from local: $fcmToken');
       if (fcmToken != null) return fcmToken;
       Get.showSnackbar(

@@ -41,7 +41,7 @@ class SettingController extends GetxController with StateMixin<Type> {
 
     // viewKeychatFutures.value = await getViewKeychatFutures();
     autoCleanMessageDays.value =
-        await Storage.getIntOrZero(StorageKeyString.autoDeleteMessageDays);
+        Storage.getIntOrZero(StorageKeyString.autoDeleteMessageDays);
 
     // avatar folder
     avatarsFolder = '${appFolder.path}/avatars';
@@ -93,7 +93,7 @@ class SettingController extends GetxController with StateMixin<Type> {
     biometricsEnabled.value = status;
 
     biometricsAuthTime.value =
-        await Storage.getIntOrZero(StorageKeyString.biometricsAuthTime);
+        Storage.getIntOrZero(StorageKeyString.biometricsAuthTime);
   }
 
   Future setBiometricsStatus(bool status) async {
@@ -153,8 +153,7 @@ class SettingController extends GetxController with StateMixin<Type> {
   }
 
   Future<bool> getViewKeychatFutures() async {
-    int res =
-        await Storage.getIntOrZero(StorageKeyString.getViewKeychatFutures);
+    int res = Storage.getIntOrZero(StorageKeyString.getViewKeychatFutures);
     return res == 1;
   }
 
@@ -164,13 +163,12 @@ class SettingController extends GetxController with StateMixin<Type> {
   }
 
   Future<void> initMediaServer() async {
-    String? res = await Storage.getString(StorageKeyString.selectedMediaServer);
+    String? res = Storage.getString(StorageKeyString.selectedMediaServer);
     if (res != null) {
       selectedMediaServer.value = res;
     }
 
-    List<String> servers =
-        await Storage.getStringList(StorageKeyString.mediaServers);
+    List<String> servers = Storage.getStringList(StorageKeyString.mediaServers);
     if (servers.isNotEmpty) {
       mediaServers.value = servers;
     }

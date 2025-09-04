@@ -39,7 +39,7 @@ class DBProvider {
   }
 
   static Future<void> performMigrationIfNeeded(Isar isar) async {
-    int currentVersion = await Storage.getIntOrZero(StorageKeyString.dbVersion);
+    int currentVersion = Storage.getIntOrZero(StorageKeyString.dbVersion);
     if (currentVersion < 30) {
       currentVersion = 34;
     }

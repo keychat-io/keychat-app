@@ -29,7 +29,7 @@ class DesktopController extends GetxController {
 
   Future<void> _loadRoomListWidth() async {
     double? savedWidth = double.tryParse(
-        (await Storage.getString(StorageKeyString.desktopRoomListWidth)) ??
+        (Storage.getString(StorageKeyString.desktopRoomListWidth)) ??
             roomListWidth.value.toString());
     if (savedWidth != null && savedWidth >= 100 && savedWidth <= 400) {
       roomListWidth.value = savedWidth;
@@ -38,9 +38,9 @@ class DesktopController extends GetxController {
 
   // Add this method to load browser sidebar width
   Future<void> _loadBrowserSidebarWidth() async {
-    double? savedWidth = double.tryParse((await Storage.getString(
-            StorageKeyString.desktopBrowserSidebarWidth)) ??
-        browserSidebarWidth.value.toString());
+    double? savedWidth = double.tryParse(
+        (Storage.getString(StorageKeyString.desktopBrowserSidebarWidth)) ??
+            browserSidebarWidth.value.toString());
     if (savedWidth != null && savedWidth >= 100 && savedWidth <= 400) {
       browserSidebarWidth.value = savedWidth;
     }

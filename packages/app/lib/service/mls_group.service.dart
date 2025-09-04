@@ -746,7 +746,7 @@ class MlsGroupService extends BaseChatService {
             '${StorageKeyString.mlsPKTimestamp}:${identity.secp256k1PKHex}';
 
         // Check if key package has expired (30 days)
-        String? lastUploadTime = await Storage.getString(timestampKey);
+        String? lastUploadTime = Storage.getString(timestampKey);
         bool isExpired = false;
         if (lastUploadTime != null) {
           int timestamp = int.tryParse(lastUploadTime) ?? 0;
@@ -763,7 +763,7 @@ class MlsGroupService extends BaseChatService {
         }
 
         if (toRelay != null) {
-          List mlsStates = await Storage.getStringList(stateKey);
+          List mlsStates = Storage.getStringList(stateKey);
           if (mlsStates.contains(toRelay)) {
             // loggerNoLine.i(
             //     'Key package already uploaded to relay: $toRelay for identity: ${identity.secp256k1PKHex}');
@@ -782,7 +782,7 @@ class MlsGroupService extends BaseChatService {
                 required String eventId,
                 required bool status,
                 String? errorMessage}) async {
-          List mlsStates = await Storage.getStringList(stateKey);
+          List mlsStates = Storage.getStringList(stateKey);
           if (status) {
             loggerNoLine.i(
                 'Key package uploaded successfully: ${identity.secp256k1PKHex}');
@@ -1116,7 +1116,7 @@ class MlsGroupService extends BaseChatService {
   // cache event for 10443
   Future<String> _getOrCreateEvent(
       Identity identity, String statePK, List<String> onlineRelays) async {
-    String? state = await Storage.getString(statePK);
+    String? state = Storage.getString(statePK);
     if (state != null) {
       loggerNoLine.i(
           'Keypackage already exists: ${identity.secp256k1PKHex}, use cached');

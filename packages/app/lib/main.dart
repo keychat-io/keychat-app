@@ -5,6 +5,7 @@ import 'package:app/global.dart';
 import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/service/chatx.service.dart';
+import 'package:app/service/storage.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:app/utils/MyCustomScrollBehavior.dart';
@@ -93,7 +94,7 @@ Future<SettingController> initServices() async {
   await SystemChrome.setPreferredOrientations(
       [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   await dotenv.load(fileName: ".env");
-
+  await Storage.init();
   await RustLib.init();
   String env = const String.fromEnvironment("MYENV", defaultValue: "prod");
   env_config.Config.instance.init(env);

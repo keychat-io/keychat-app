@@ -1,6 +1,9 @@
-// lib/common/Storage.dart
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:app/utils.dart';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class StorageKeyString {
@@ -54,65 +57,92 @@ class StorageKeyString {
 }
 
 class Storage {
+  static SharedPreferences? _sp;
+
+  // Add a getter that ensures SharedPreferences is initialized
+  static SharedPreferences get sp {
+    if (_sp == null) {
+      throw StateError('Storage not initialized. Call Storage.init() first.');
+    }
+    return _sp!;
+  }
+
+  static Future init() async {
+    try {
+      _sp = await SharedPreferences.getInstance();
+    } catch (error) {
+      Directory appSupportDirectory = await getApplicationSupportDirectory();
+      String appDataPath =
+          path.join(appSupportDirectory.path, 'shared_preferences.json');
+      logger.e(
+          'Failed to load the preferences file at $appDataPath. Attempting to repair it.');
+      await _repairPreferences(appDataPath);
+
+      try {
+        _sp = await SharedPreferences.getInstance();
+      } catch (error) {
+        logger.e(
+            'Failed to repair the preferences file. Deleting the file and proceeding with a fresh configuration.');
+        await File(appDataPath).delete();
+        _sp = await SharedPreferences.getInstance();
+      }
+    }
+  }
+
+  static Future<void> _repairPreferences(String appDataPath) async {
+    List<int> contents = await File(appDataPath).readAsBytes();
+    var contentsGrowable = List<int>.from(contents); // Make the list growable
+
+    // Remove any NUL characters
+    contentsGrowable.removeWhere((item) => item == 0);
+
+    await File(appDataPath).writeAsBytes(contentsGrowable);
+  }
+
   static Future<void> setString(String key, String value) async {
-    SharedPreferences sp = await SharedPreferences.getInstance();
-    sp.setString(key, value);
-    // sp.setBool(key, value);
-    // sp.setDouble(key, value);
-    // sp.setInt(key, value);
-    // sp.setStringList(key, value);
+    await sp.setString(key, value);
   }
 
   static Future<void> setBool(String key, bool value) async {
-    SharedPreferences sp = await SharedPreferences.getInstance();
-    sp.setBool(key, value);
+    await sp.setBool(key, value);
   }
 
   static Future<void> setStringList(String key, List<String> value) async {
-    SharedPreferences sp = await SharedPreferences.getInstance();
-    sp.setStringList(key, value);
+    await sp.setStringList(key, value);
   }
 
   static Future<void> setInt(String key, int value) async {
-    SharedPreferences sp = await SharedPreferences.getInstance();
-    sp.setInt(key, value);
+    await sp.setInt(key, value);
   }
 
   static Future<int?> getInt(String key) async {
-    SharedPreferences sp = await SharedPreferences.getInstance();
     return sp.getInt(key);
   }
 
   static Future<int> getIntOrZero(String key) async {
-    SharedPreferences sp = await SharedPreferences.getInstance();
     var res = sp.getInt(key);
     if (res == null) return 0;
     return res;
   }
 
   static Future<String?> getString(String key) async {
-    SharedPreferences sp = await SharedPreferences.getInstance();
     return sp.getString(key);
   }
 
   static Future<bool?> getBool(String key) async {
-    SharedPreferences sp = await SharedPreferences.getInstance();
     return sp.getBool(key);
   }
 
   static Future<List<String>> getStringList(String key) async {
-    SharedPreferences sp = await SharedPreferences.getInstance();
     return sp.getStringList(key) ?? [];
   }
 
   static Future<void> removeString(String key) async {
-    SharedPreferences sp = await SharedPreferences.getInstance();
-    sp.remove(key);
+    await sp.remove(key);
   }
 
   static Future<void> clearAll() async {
-    SharedPreferences sp = await SharedPreferences.getInstance();
-    sp.clear();
+    await sp.clear();
   }
 
   static Future<void> setLocalStorageMap(String key, Map sourceMap) async {

@@ -122,7 +122,7 @@ jobs:
 
   build-windows:
     # if: false # Temporarily disabled for testing
-    runs-on: windows-latest
+    runs-on: windows-2022
     needs: get-version
     steps:
       - name: Checkout

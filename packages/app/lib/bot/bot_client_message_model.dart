@@ -5,7 +5,7 @@ part 'bot_client_message_model.freezed.dart';
 part 'bot_client_message_model.g.dart';
 
 @freezed
-class BotClientMessageModel with _$BotClientMessageModel {
+abstract class BotClientMessageModel with _$BotClientMessageModel {
   const factory BotClientMessageModel({
     required MessageMediaType type,
     required String message,

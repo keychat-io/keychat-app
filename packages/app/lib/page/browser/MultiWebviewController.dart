@@ -99,6 +99,7 @@ class MultiWebviewController extends GetxController {
       if (tabs.isEmpty) {
         addNewTab();
         setCurrentTabIndex(0);
+        saveDesktopTabs();
         return;
       }
     }
@@ -107,6 +108,7 @@ class MultiWebviewController extends GetxController {
     } else {
       setCurrentTabIndex(currentIndex);
     }
+    saveDesktopTabs();
   }
 
   void removeTab(String tabId) {

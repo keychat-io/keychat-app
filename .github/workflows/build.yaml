@@ -122,7 +122,7 @@ jobs:
 
   build-windows:
     # if: false # Temporarily disabled for testing
-    runs-on: windows-latest
+    runs-on: windows-2022
     needs: get-version
     steps:
       - name: Checkout
@@ -152,11 +152,6 @@ jobs:
           melos bootstrap
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v2
-      - name: Compile .ISS to .EXE Installer
-        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
-        with:
-          path: src/setup.iss
-          options: /O+
       - name: Build-Windows-APP
         working-directory: ./packages/app/
         run: |

@@ -61,9 +61,7 @@ class QrScanService {
     } catch (e) {
       logger.e('Failed to process QR result: $e');
       handleText(result);
-      return result;
     }
-    handleText(result);
     return result;
   }
 

@@ -35,6 +35,32 @@ class _ImportSeedPhrase extends State<ImportSeedPhrase> {
     return Scaffold(
         appBar: AppBar(
             centerTitle: true, title: const Text("Import from Seed Phrase")),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+        floatingActionButton: Center(
+            child: Container(
+                constraints: BoxConstraints(maxWidth: 400),
+                width: double.infinity,
+                child: FilledButton(
+                  child: const Text('Next'),
+                  onPressed: () async {
+                    String input = _privateKeyController.text.trim();
+
+                    if (input.isEmpty) {
+                      EasyLoading.showError(
+                          'Please enter your seed phrase (12 or 24 words)');
+                      return;
+                    }
+                    List<String> words = input.split(' ');
+                    if (words.length != 24 && words.length != 12) {
+                      EasyLoading.showError(
+                          'Seed phrase must be exactly 24 words');
+                      return;
+                    }
+                    var res =
+                        await Get.to(() => CreateAccount(mnemonic: input));
+                    Get.back(result: res);
+                  },
+                ))),
         body: SafeArea(
           child: Padding(
               padding:
@@ -85,32 +111,6 @@ class _ImportSeedPhrase extends State<ImportSeedPhrase> {
                                             }
                                           }))),
                             ]))),
-                    Center(
-                        child: Container(
-                            constraints: BoxConstraints(maxWidth: 400),
-                            width: double.infinity,
-                            child: FilledButton(
-                              child: const Text('Next'),
-                              onPressed: () async {
-                                String input =
-                                    _privateKeyController.text.trim();
-
-                                if (input.isEmpty) {
-                                  EasyLoading.showError(
-                                      'Please enter your seed phrase (12 or 24 words)');
-                                  return;
-                                }
-                                List<String> words = input.split(' ');
-                                if (words.length != 24 && words.length != 12) {
-                                  EasyLoading.showError(
-                                      'Seed phrase must be exactly 24 words');
-                                  return;
-                                }
-                                var res = await Get.to(
-                                    () => CreateAccount(mnemonic: input));
-                                Get.back(result: res);
-                              },
-                            )))
                   ])),
         ));
   }

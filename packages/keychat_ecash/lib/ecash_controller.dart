@@ -125,6 +125,11 @@ class EcashController extends GetxController {
     try {
       tokens = await rust_cashu.cashuV1InitSendAll(
           dbpath: '$dbPath${KeychatGlobal.ecashDBFile}');
+      if (tokens.isEmpty) {
+        logger.i('No tokens found to migrate, marking upgrade as complete');
+        await Storage.setBool(StorageKeyString.upgradeToV2, true);
+        return;
+      }
       logger.i('Found ${tokens.length} tokens to migrate: $tokens');
     } catch (e, s) {
       String msg = Utils.getErrorMessage(e);

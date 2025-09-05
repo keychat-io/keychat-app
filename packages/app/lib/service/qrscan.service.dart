@@ -4,6 +4,7 @@ import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/page/chat/create_contact_page.dart';
 import 'package:app/page/components.dart';
 import 'package:ai_barcode_scanner/ai_barcode_scanner.dart';
+import 'package:bip21_uri/bip21_uri.dart' show bip21;
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
@@ -51,61 +52,126 @@ class QrScanService {
             }
           },
         ));
+
+    if (result == null || result.isEmpty || !autoProcess) return result;
     debugPrint("Barcode detected: $result");
 
-    if (result != null && autoProcess) {
-      processQRResult(result);
+    try {
+      await processQRResult(result);
+    } catch (e) {
+      logger.e('Failed to process QR result: $e');
+      handleText(result);
+      return result;
     }
+    handleText(result);
     return result;
   }
 
   Future processQRResult(String str) async {
-    if (str.startsWith('http://') || str.startsWith('https://')) {
-      handleUrl(str);
-      return;
+    final trimmedStr = str.trim();
+
+    // Handle URLs first
+    if (_isUrl(trimmedStr)) {
+      return handleUrl(trimmedStr);
     }
-    EcashController ecashController = Get.find<EcashController>();
-    if (str.startsWith('cashu')) {
-      return ecashController.proccessCashuAString(str);
+
+    // Handle Keychat app links
+    if (trimmedStr.startsWith('${KeychatGlobal.mainWebsite}/u/')) {
+      return _handleKeychatAppLink(trimmedStr);
     }
-    // lightning invoice
-    if (str.startsWith('lightning:')) {
-      str = str.replaceFirst('lightning:', '');
-      return ecashController.proccessPayLightningBill(str);
+
+    final ecashController = Get.find<EcashController>();
+
+    // Handle Ecash tokens
+    if (trimmedStr.startsWith('cashu')) {
+      return ecashController.proccessCashuString(trimmedStr);
     }
-    if (str.startsWith('lnbc')) {
-      return ecashController.proccessPayLightningBill(str);
+
+    // Handle Lightning invoices and related formats
+    if (_isLightningInvoice(trimmedStr)) {
+      final cleanInvoice = trimmedStr.startsWith('lightning:')
+          ? trimmedStr.replaceFirst('lightning:', '')
+          : trimmedStr;
+      return ecashController.proccessPayLightningBill(cleanInvoice);
     }
-    if (str.toUpperCase().startsWith('LNURL') || isEmail(str)) {
-      showModalBottomSheetWidget(Get.context!, '', PayInvoicePage(invoce: str),
+
+    // Handle LNURL and email addresses
+    if (trimmedStr.toUpperCase().startsWith('LNURL') || isEmail(trimmedStr)) {
+      showModalBottomSheetWidget(
+          Get.context!, '', PayInvoicePage(invoce: trimmedStr),
           showAppBar: false);
       return;
     }
-    if (str.startsWith('${KeychatGlobal.mainWebsite}/u/')) {
-      try {
-        Get.find<HomeController>().handleAppLink(Uri.tryParse(str));
-      } catch (e) {
-        logger.e('Failed to handle app link: $e');
-      }
-      return;
+
+    // Handle Bitcoin URIs
+    if (trimmedStr.startsWith('bitcoin:')) {
+      return handleBitcoinUri(trimmedStr, ecashController);
     }
-    if (str.startsWith('npub') || str.length == 64) {
-      Get.bottomSheet(AddtoContactsPage(str),
+
+    // Handle Nostr public keys
+    if (_isNostrPubkey(trimmedStr)) {
+      Get.bottomSheet(AddtoContactsPage(trimmedStr),
           isScrollControlled: true, ignoreSafeArea: false);
       return;
     }
-    bool isBase = isBase64(str);
-    if (isBase) {
-      QRUserModel model;
-      try {
-        model = QRUserModel.fromShortString(str);
-      } catch (e) {
-        return handleText(str);
+
+    // Handle Base64 encoded user data
+    if (isBase64(trimmedStr)) {
+      return _handleBase64UserData(trimmedStr);
+    }
+  }
+
+  bool _isUrl(String str) {
+    return str.startsWith('http://') || str.startsWith('https://');
+  }
+
+  bool _isLightningInvoice(String str) {
+    final upperStr = str.toUpperCase();
+    return str.startsWith('lightning:') ||
+        upperStr.startsWith('LNBC') ||
+        upperStr.startsWith('LN01');
+  }
+
+  bool _isNostrPubkey(String str) {
+    return str.startsWith('npub') || str.length == 64;
+  }
+
+  Future<void> _handleKeychatAppLink(String str) async {
+    try {
+      final uri = Uri.tryParse(str);
+      if (uri != null) {
+        Get.find<HomeController>().handleAppLink(uri);
+        return;
       }
-      await RoomUtil.processUserQRCode(model);
-      return;
+    } catch (e) {
+      logger.e('Failed to handle Keychat app link: $e');
     }
     return handleText(str);
+  }
+
+  Future<void> handleBitcoinUri(
+      String str, EcashController ecashController) async {
+    try {
+      final decoded = bip21.decode(str);
+      final lightningInvoice = decoded.lightningInvoice;
+      if (lightningInvoice != null && lightningInvoice.isNotEmpty) {
+        await ecashController.proccessPayLightningBill(lightningInvoice);
+        return;
+      }
+    } catch (e) {
+      logger.e('Failed to decode Bitcoin URI: $e');
+    }
+    return handleText(str);
+  }
+
+  Future<void> _handleBase64UserData(String str) async {
+    try {
+      final model = QRUserModel.fromShortString(str);
+      await RoomUtil.processUserQRCode(model);
+    } catch (e) {
+      logger.e('Failed to process Base64 user data: $e');
+      return handleText(str);
+    }
   }
 
   dynamic handleUrl(String url) {

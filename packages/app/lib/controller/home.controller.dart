@@ -13,6 +13,7 @@ import 'package:app/service/file.service.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/notify.service.dart';
+import 'package:app/service/qrscan.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app/service/storage.dart';
@@ -683,7 +684,11 @@ class HomeController extends GetxController
         break;
       case 'cashu':
         String input = _getDeeplinkData(uri);
-        Get.find<EcashController>().proccessCashuAString(input);
+        Get.find<EcashController>().proccessCashuString(input);
+        break;
+      case 'bitcoin':
+        QrScanService.instance
+            .handleBitcoinUri(uri.toString(), Get.find<EcashController>());
         break;
 
       default:

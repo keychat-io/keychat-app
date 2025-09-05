@@ -99,6 +99,9 @@ dependencies:
   custom_refresh_indicator: ^4.0.1
   local_auth: ^2.3.0
   ai_barcode_scanner: ^7.0.0
+  bip21_uri:
+    git:
+      url: https://github.com/keychat-io/dart-bip21-uri.git
 
 dev_dependencies:
   flutter_test:

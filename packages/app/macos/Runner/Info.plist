@@ -28,6 +28,14 @@
     <array>
       <dict>
         <key>CFBundleTypeRole</key>
+        <string>Editor</string>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>ShareMedia-$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+        </array>
+      </dict>
+      <dict>
+        <key>CFBundleTypeRole</key>
         <string>Viewer</string>
         <key>CFBundleURLIconFile</key>
         <string>https://www.keychat.io/assets/img/logo.png</string>
@@ -36,42 +44,11 @@
         <key>CFBundleURLSchemes</key>
         <array>
           <string>keychat</string>
-        </array>
-      </dict>
-      <dict>
-        <key>CFBundleTypeRole</key>
-        <string>Viewer</string>
-        <key>CFBundleURLIconFile</key>
-        <string>https://www.keychat.io/assets/img/logo.png</string>
-        <key>CFBundleURLName</key>
-        <string>com.keychat.test</string>
-        <key>CFBundleURLSchemes</key>
-        <array>
-          <string>lightning</string>
-        </array>
-      </dict>
-      <dict>
-        <key>CFBundleTypeRole</key>
-        <string>Viewer</string>
-        <key>CFBundleURLIconFile</key>
-        <string>https://www.keychat.io/assets/img/logo.png</string>
-        <key>CFBundleURLName</key>
-        <string>com.keychat.test</string>
-        <key>CFBundleURLSchemes</key>
-        <array>
-          <string>nostr</string>
-        </array>
-      </dict>
-      <dict>
-        <key>CFBundleTypeRole</key>
-        <string>Viewer</string>
-        <key>CFBundleURLIconFile</key>
-        <string>https://www.keychat.io/assets/img/logo.png</string>
-        <key>CFBundleURLName</key>
-        <string>com.keychat.test</string>
-        <key>CFBundleURLSchemes</key>
-        <array>
           <string>lnurlp</string>
+          <string>lightning</string>
+          <string>nostr</string>
+          <string>cashu</string>
+          <string>bitcoin</string>
         </array>
       </dict>
     </array>

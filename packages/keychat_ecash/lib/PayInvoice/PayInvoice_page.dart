@@ -2,6 +2,7 @@
 import 'package:app/page/theme.dart';
 import 'package:app/service/qrscan.service.dart';
 import 'package:app/utils.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
@@ -50,13 +51,27 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
     return Scaffold(
         resizeToAvoidBottomInset: false,
         appBar: AppBar(
-            leading: Container(),
-            centerTitle: true,
-            title: Text('Send to Lightning Wallet',
-                style: Theme.of(context).textTheme.bodyMedium)),
+          leading: Container(),
+          centerTitle: true,
+          title: Text('Send to Lightning Wallet',
+              style: Theme.of(context).textTheme.bodyMedium),
+          actions: [
+            if (widget.showScanButton &&
+                (GetPlatform.isMobile || GetPlatform.isMacOS))
+              IconButton(
+                  onPressed: () async {
+                    String? result = await QrScanService.instance
+                        .handleQRScan(autoProcess: false);
+                    if (result != null) {
+                      controller.textController.text = result;
+                    }
+                  },
+                  icon: const Icon(CupertinoIcons.qrcode_viewfinder)),
+          ],
+        ),
         body: SafeArea(
             child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 child: Column(children: [
                   Expanded(
                     child: Form(
@@ -72,7 +87,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                             if (widget.isPay == false)
                               Padding(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 10),
+                                    horizontal: 8, vertical: 8),
                                 child: TextField(
                                   controller: controller.textController,
                                   textInputAction: TextInputAction.done,
@@ -96,19 +111,6 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                       )),
                                 ),
                               ),
-                            if (widget.showScanButton &&
-                                (GetPlatform.isMobile || GetPlatform.isMacOS))
-                              OutlinedButton.icon(
-                                  onPressed: () async {
-                                    String? result = await QrScanService
-                                        .instance
-                                        .handleQRScan(autoProcess: false);
-                                    if (result != null) {
-                                      controller.textController.text = result;
-                                    }
-                                  },
-                                  icon: const Icon(Icons.qr_code_scanner),
-                                  label: const Text('Scan')),
                             Obx(() => FutureBuilder(future: () async {
                                   if (controller
                                       .selectedInvoice.value.isEmpty) {
@@ -139,7 +141,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.center,
                                       children: [
-                                        const SizedBox(height: 16),
+                                        const SizedBox(height: 8),
                                         RichText(
                                           text: TextSpan(
                                             children: [
@@ -166,7 +168,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                         )),
                   ),
                   Obx(() => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.only(bottom: 8.0),
                       child: cashuController
                               .supportMint(controller.selectedMint.value)
                           ? FilledButton(
@@ -202,7 +204,7 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                   }
                                 });
                               },
-                              child: const Text('Pay'),
+                              child: const Text('Pay Invoice'),
                             )
                           : FilledButton(
                               onPressed: null,

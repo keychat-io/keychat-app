@@ -15,6 +15,7 @@ import 'package:app/page/browser/SelectIdentityForBrowser.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/SignerService.dart';
 import 'package:app/service/identity.service.dart';
+import 'package:app/service/qrscan.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/utils.dart';
 import 'package:auto_size_text_plus/auto_size_text_plus.dart';
@@ -1438,7 +1439,7 @@ img {
   Future<bool> handleSpecialUrls(String urlString) async {
     try {
       if (urlString.startsWith('cashu')) {
-        ecashController.proccessCashuAString(urlString);
+        ecashController.proccessCashuString(urlString);
         return true;
       }
       // lightning invoice
@@ -1457,7 +1458,12 @@ img {
       }
       if (urlString.startsWith('lnbc')) {
         await ecashController.proccessPayLightningBill(urlString, isPay: true);
-
+        return true;
+      }
+      // Handle Bitcoin URIs
+      if (urlString.startsWith('bitcoin:')) {
+        await QrScanService.instance
+            .handleBitcoinUri(urlString, ecashController);
         return true;
       }
     } catch (e) {

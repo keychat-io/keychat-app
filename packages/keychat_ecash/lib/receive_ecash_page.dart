@@ -1,5 +1,6 @@
 import 'package:app/service/qrscan.service.dart';
 import 'package:app/utils.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -56,10 +57,17 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
               centerTitle: true,
               leading: Container(),
               title: const Text('Receive Ecash'),
+              actions: [
+                if (GetPlatform.isMobile || GetPlatform.isMacOS)
+                  IconButton(
+                      onPressed: () async {
+                        QrScanService.instance.handleQRScan();
+                      },
+                      icon: const Icon(CupertinoIcons.qrcode_viewfinder))
+              ],
             ),
             body: Padding(
-                padding: const EdgeInsets.only(
-                    left: 16, right: 16, bottom: 16, top: 4),
+                padding: const EdgeInsets.all(8.0),
                 child: Column(children: [
                   Expanded(
                     child: Form(
@@ -103,14 +111,6 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
                                     '+${decodedModel?.amount} ${decodedModel!.unit?.toString().toString()}'),
                                 subtitle: Text(decodedModel!.mint),
                               ),
-                            const SizedBox(height: 8),
-                            if (GetPlatform.isMobile || GetPlatform.isMacOS)
-                              OutlinedButton.icon(
-                                  onPressed: () async {
-                                    QrScanService.instance.handleQRScan();
-                                  },
-                                  icon: const Icon(Icons.qr_code_scanner),
-                                  label: const Text('Scan'))
                           ],
                         )),
                   ),

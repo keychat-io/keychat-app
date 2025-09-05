@@ -84,6 +84,13 @@
         <data android:scheme="nostr" />
       </intent-filter>
 
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <data android:scheme="bitcoin" />
+      </intent-filter>
+
       <!-- receive_sharing_intent -->
       <!--TODO:  Add this filter, if you want support opening files into your app-->
       <intent-filter>

@@ -386,14 +386,15 @@ class EcashController extends GetxController {
     refreshController.refreshCompleted();
   }
 
-  Future proccessCashuAString(String str,
+  Future proccessCashuString(String str,
       [Function(String str)? callback]) async {
     try {
       CashuInfoModel cashu = await RustAPI.decodeToken(encodedToken: str);
       Get.dialog(CashuReceiveWidget(cashuinfo: cashu));
     } catch (e) {
+      logger.e('Failed to process Cashu string: $e');
       if (callback == null) {
-        rethrow;
+        throw Exception('Invalid Cashu Token');
       }
       return callback(str);
     }

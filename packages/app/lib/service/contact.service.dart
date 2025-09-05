@@ -113,13 +113,7 @@ class ContactService {
       List<String> remain = crk.receiveKeys.sublist(index - 1);
       crk.receiveKeys = remain;
       Get.find<WebsocketService>().removePubkeyFromSubscription(pubkey);
-
-      if (Get.find<HomeController>().debugModel.value == false) {
-        crk.removeReceiveKeys = [
-          ...crk.removeReceiveKeys,
-          ...removeReceiveKeys
-        ];
-      }
+      crk.removeReceiveKeys = [...crk.removeReceiveKeys, ...removeReceiveKeys];
 
       await _saveReceiveKey(crk);
     } finally {

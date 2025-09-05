@@ -130,6 +130,7 @@ class EcashController extends GetxController {
         await Storage.setBool(StorageKeyString.upgradeToV2, true);
         return;
       }
+      await Storage.setStringList(StorageKeyString.upgradeToV2Tokens, tokens);
       logger.i('Found ${tokens.length} tokens to migrate: $tokens');
     } catch (e, s) {
       String msg = Utils.getErrorMessage(e);
@@ -152,9 +153,10 @@ class EcashController extends GetxController {
         failedTokens.add(tokens[i]);
       }
     }
-    if (failedTokens.isEmpty) {
+    if (tokens.isNotEmpty && failedTokens.isEmpty) {
       logger.i('All tokens migrated successfully, marking upgrade as complete');
       await Storage.setBool(StorageKeyString.upgradeToV2, true);
+      await Storage.removeString(StorageKeyString.upgradeToV2Tokens);
       requestPageRefresh();
     } else {
       logger.w(

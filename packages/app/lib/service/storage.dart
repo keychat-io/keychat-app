@@ -54,6 +54,7 @@ class StorageKeyString {
   static const String biometricsAuthTime = 'biometricsAuthTime';
 
   static const String upgradeToV2 = 'upgradeToV2';
+  static const String upgradeToV2Tokens = 'upgradeToV2Tokens';
 }
 
 class Storage {

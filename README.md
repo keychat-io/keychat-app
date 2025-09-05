@@ -104,7 +104,7 @@ Keychat implements the following nips:
 
 ## Universal Link
 ### Add a contact from pubkey
-`https://www.keychat.io/u/xxx`
+`https://www.keychat.io/u/?k=xxx`
 
 Demo: [https://www.keychat.io/u/?k=npub1h0uj825jgcr9lzxyp37ehasuenq070707pj63je07n8mkcsg3u0qnsrwx8](https://www.keychat.io/u/?k=npub1h0uj825jgcr9lzxyp37ehasuenq070707pj63je07n8mkcsg3u0qnsrwx8)
 

@@ -347,12 +347,12 @@ class EcashController extends GetxController {
     String? mnemonic = await currentIdentity!.getMnemonic();
     for (MintCashu m in mints) {
       Map? nuts = m.info?.nuts;
-      if (nuts == null) continue;
-      if (nuts['nut09'] != null) {
-        await rust_cashu.restore(
-          mintUrl: m.url,
-          words: mnemonic,
-        );
+      logger.d('restore mint ${m.url} nuts: $nuts');
+      try {
+        var res = await rust_cashu.restore(mintUrl: m.url, words: mnemonic);
+        logger.d('restore mint ${res.$1.toInt()} proofs: ${res.$2.toInt()}');
+      } catch (e) {
+        logger.e('Failed to restore mint ${m.url}: $e');
       }
     }
     await getBalance();

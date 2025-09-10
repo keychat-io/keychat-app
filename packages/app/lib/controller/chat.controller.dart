@@ -15,7 +15,6 @@ import 'package:app/service/message.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/utils.dart';
-import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -30,7 +29,6 @@ import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart'
 import 'package:mime/mime.dart' show extensionFromMime;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
@@ -50,7 +48,6 @@ class ChatController extends GetxController {
 
   RxInt statsSend = 0.obs;
   RxInt statsReceive = 0.obs;
-  RxInt unreadIndex = (-1).obs;
   RxList<Room> kpaIsNullRooms = <Room>[].obs; // for signal group chat
   int searchMsgIndex = -1;
   DateTime searchDt = DateTime.now();
@@ -70,6 +67,9 @@ class ChatController extends GetxController {
   // show Message's from and to address
   RxBool showFromAndTo = false.obs;
 
+  // Prevent duplicate upload flag
+  bool _isUploading = false;
+
   // private chat
   Rx<Contact> roomContact = Contact(pubkey: '', npubkey: '', identityId: 0).obs;
 
@@ -86,8 +86,8 @@ class ChatController extends GetxController {
 
   late FocusNode chatContentFocus;
   late FocusNode keyboardFocus;
-  late AutoScrollController autoScrollController;
   late ScrollController textFieldScrollController;
+  late ScrollController scrollController;
   DateTime lastMessageAddedAt = DateTime.now();
 
   final List<String> featuresIcons = [
@@ -127,13 +127,13 @@ class ChatController extends GetxController {
     }
     lastMessageAddedAt = DateTime.now();
 
-    if (!autoScrollController.hasClients) {
+    if (!scrollController.hasClients) {
       messages.insert(index, message);
       jumpToBottom(100);
       return;
     }
     try {
-      if (autoScrollController.position.pixels <= 300) {
+      if (scrollController.position.pixels <= 300) {
         messages.insert(index, message);
         jumpToBottom(100);
         return;
@@ -292,8 +292,8 @@ class ChatController extends GetxController {
 
   void jumpToBottom(int milliseconds) {
     Timer(const Duration(milliseconds: 300), () {
-      if (autoScrollController.hasClients) {
-        autoScrollController.animateTo(
+      if (scrollController.hasClients) {
+        scrollController.animateTo(
           0.0,
           duration: Duration(milliseconds: milliseconds),
           curve: Curves.easeIn,
@@ -314,9 +314,6 @@ class ChatController extends GetxController {
         isRead: false,
         limit: 200);
     if (unreads.isNotEmpty) {
-      if (unreads.length > 12) {
-        unreadIndex.value = unreads.length - 1;
-      }
       RoomService.instance.markAllRead(
           identityId: roomObs.value.identityId, roomId: roomObs.value.id);
     }
@@ -329,15 +326,10 @@ class ChatController extends GetxController {
 
   Future<void> checkPendingEcash() async {
     for (var message in messages) {
-      if (message.mediaType == MessageMediaType.cashuA) {
+      if (message.mediaType == MessageMediaType.cashuA ||
+          message.mediaType == MessageMediaType.lightningInvoice) {
         if (message.cashuInfo?.status == TransactionStatus.pending) {
           await checkEcashStatus(message, message.cashuInfo?.id);
-        }
-      }
-
-      if (message.mediaType == MessageMediaType.lightningInvoice) {
-        if (message.cashuInfo?.status == TransactionStatus.pending) {
-          await checkEcashStatus(message, message.cashuInfo?.hash);
         }
       }
     }
@@ -432,7 +424,7 @@ class ChatController extends GetxController {
     keyboardFocus.dispose();
     textEditingController.dispose();
     textFieldScrollController.dispose();
-    autoScrollController.dispose();
+    scrollController.dispose();
     super.onClose();
   }
 
@@ -447,26 +439,7 @@ class ChatController extends GetxController {
 
     textFieldScrollController = ScrollController();
     textEditingController = TextEditingController();
-    autoScrollController = AutoScrollController(axis: Axis.vertical);
-
-    autoScrollController.addListener(() {
-      EasyDebounce.debounce(
-          'autoScrollController.addListener', Duration(milliseconds: 200), () {
-        bool isCurrent = DBProvider.instance.isCurrentPage(roomObs.value.id);
-        if (!isCurrent) {
-          messagesMore.clear();
-          searchMsgIndex = -1;
-        }
-        if (messagesMore.isNotEmpty &&
-            autoScrollController.position.pixels <= 100) {
-          messages.addAll(sortMessageById(messagesMore));
-          messages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
-          messages.value = List.from(messages);
-
-          messagesMore.clear();
-        }
-      });
-    });
+    scrollController = ScrollController();
 
     // load draft
     String? textFiledDraft = RoomDraft.instance.getDraft(roomObs.value.id);
@@ -537,9 +510,9 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     // jump to bottom after 200ms
     Future.delayed(const Duration(milliseconds: 200), () {
       Timer(const Duration(milliseconds: 300), () {
-        if (autoScrollController.positions.isNotEmpty &&
-            autoScrollController.hasClients) {
-          autoScrollController.jumpTo(0.0);
+        if (scrollController.positions.isNotEmpty &&
+            scrollController.hasClients) {
+          scrollController.jumpTo(0.0);
         }
       });
     });
@@ -552,6 +525,12 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
   }
 
   Future<void> pickAndUploadImage(ImageSource imageSource) async {
+    // Prevent duplicate clicks
+    if (_isUploading) {
+      EasyLoading.showToast('File uploading, please wait...');
+      return;
+    }
+
     EasyLoading.show(status: 'Loading...');
     XFile? xfile;
     try {
@@ -583,9 +562,18 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
         CupertinoDialogAction(
           isDefaultAction: true,
           onPressed: () async {
-            await FileService.instance.handleSendMediaFile(
-                roomObs.value, xfile!, MessageMediaType.image, true);
-            Get.back();
+            if (_isUploading) {
+              EasyLoading.showToast('File uploading, please wait...');
+              return;
+            }
+            _isUploading = true;
+            try {
+              await FileService.instance.handleSendMediaFile(
+                  roomObs.value, xfile!, MessageMediaType.image, true);
+              Get.back();
+            } finally {
+              _isUploading = false;
+            }
           },
           child: const Text('Send'),
         ),
@@ -594,6 +582,12 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
   }
 
   Future<void> pickAndUploadVideo(ImageSource imageSource) async {
+    // Prevent duplicate clicks
+    if (_isUploading) {
+      EasyLoading.showToast('File uploading, please wait...');
+      return;
+    }
+
     EasyLoading.show(status: 'Loading...');
     XFile? xfile;
     try {
@@ -606,6 +600,8 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     }
 
     if (xfile == null) return;
+
+    _isUploading = true;
     try {
       EasyLoading.showProgress(0.2, status: 'Encrypting and Uploading...');
 
@@ -619,6 +615,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
       EasyLoading.showError(msg, duration: const Duration(seconds: 3));
       logger.e('encrypt And SendFile', error: e, stackTrace: s);
     } finally {
+      _isUploading = false;
       hideAdd.trigger(true);
     }
   }
@@ -741,6 +738,13 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
       EasyLoading.showToast('Camera not supported on MacOS');
       return;
     }
+
+    // Prevent duplicate clicks
+    if (_isUploading) {
+      EasyLoading.showToast('File uploading, please wait...');
+      return;
+    }
+
     bool isGranted = true;
     if (GetPlatform.isMobile || GetPlatform.isWindows) {
       isGranted = await Permission.camera.request().isGranted;
@@ -1073,8 +1077,17 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
             bytes: imageBytes, mimeType: mimeType, name: suggestedName);
         bool isImage = FileService.instance.isImageFile(xfile.path);
         if (!isImage) {
-          await FileService.instance
-              .handleSendMediaFile(roomObs.value, xfile, type, compress);
+          if (_isUploading) {
+            EasyLoading.showToast('File uploading, please wait...');
+            return;
+          }
+          _isUploading = true;
+          try {
+            await FileService.instance
+                .handleSendMediaFile(roomObs.value, xfile, type, compress);
+          } finally {
+            _isUploading = false;
+          }
           return;
         }
         await Get.dialog(CupertinoAlertDialog(
@@ -1092,9 +1105,18 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
             CupertinoDialogAction(
               isDefaultAction: true,
               onPressed: () async {
-                await FileService.instance.handleSendMediaFile(
-                    roomObs.value, xfile, MessageMediaType.image, true);
-                Get.back();
+                if (_isUploading) {
+                  EasyLoading.showToast('File uploading, please wait...');
+                  return;
+                }
+                _isUploading = true;
+                try {
+                  await FileService.instance.handleSendMediaFile(
+                      roomObs.value, xfile, MessageMediaType.image, true);
+                  Get.back();
+                } finally {
+                  _isUploading = false;
+                }
               },
               child: const Text('Send'),
             ),

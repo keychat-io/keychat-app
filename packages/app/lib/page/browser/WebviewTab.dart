@@ -1386,27 +1386,20 @@ img {
 
   Future<void> refreshPage([WebUri? uri]) async {
     EasyDebounce.debounce('webviewRefreshPage', Duration(seconds: 1), () async {
-      try {
-        uri ??= await tc.webViewController
-            ?.getUrl()
-            .timeout(Duration(seconds: 1), onTimeout: () {
-          return WebUri(widget.initUrl);
-        });
+      uri ??= await tc.webViewController?.getUrl().timeout(Duration(seconds: 1),
+          onTimeout: () {
+        return WebUri(widget.initUrl);
+      });
+      tc.webViewController?.evaluateJavascript(source: "1 + 1").then((value) {
+        if (value != 2) return;
+        tc.webViewController?.reload(); // window.location.reload();
+      }).timeout(Duration(seconds: 2), onTimeout: () async {
         await tc.webViewController
             ?.loadUrl(urlRequest: URLRequest(url: uri))
-            .timeout(Duration(seconds: 3));
-        loggerNoLine.i('Reloaded: ${uri.toString()}');
-      } catch (e) {
-        loggerNoLine.i('Reload failed: $e');
-
-        // Recreate the webview by updating state
-        InAppWebViewKeepAlive? newKa =
-            await controller.refreshKeepAliveObject(widget.initUrl);
-        setState(() {
-          inAppWebViewKeepAlive = newKa;
-          pageStorageKey = null;
+            .timeout(Duration(seconds: 3), onTimeout: () async {
+          EasyLoading.showError('Failed to reload page, Please reopen tab.');
         });
-      }
+      });
     });
   }
 

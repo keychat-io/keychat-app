@@ -1,5 +1,6 @@
 import 'dart:collection' show UnmodifiableListView;
 import 'dart:convert' show jsonDecode;
+import 'dart:math' show Random;
 
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
@@ -76,6 +77,7 @@ class _WebviewTabState extends State<WebviewTab> {
   // Add scroll position tracking
   Map<String, Map<String, dynamic>> urlScrollPositions = {};
   bool needRestorePosition = false;
+  late WebUri currentUri;
 
   @override
   void initState() {
@@ -84,10 +86,11 @@ class _WebviewTabState extends State<WebviewTab> {
     tc = controller.getOrCreateController(
         widget.initUrl, widget.initTitle, widget.uniqueKey);
     ecashController = Get.find<EcashController>();
-    initDomain = WebUri(widget.initUrl).host;
+    currentUri = WebUri(widget.initUrl);
+    initDomain = currentUri.host;
     pageStorageKey = PageStorageKey(initDomain);
 
-    initBrowserConnect(WebUri(widget.initUrl));
+    initBrowserConnect(currentUri);
     initPullToRefreshController();
     super.initState();
     if (widget.initUrl != KeychatGlobal.newTab) {
@@ -98,7 +101,7 @@ class _WebviewTabState extends State<WebviewTab> {
           setState(() {
             inAppWebViewKeepAlive = newKa;
             state = WebviewTabState.failed;
-            pageStorageKey = null;
+            pageStorageKey = PageStorageKey(Random().nextInt(1 << 32));
           });
         }
       });
@@ -507,7 +510,9 @@ class _WebviewTabState extends State<WebviewTab> {
             await downloadFile(url.toString());
             return NavigationActionPolicy.DOWNLOAD;
           }
-
+          if (['http', 'https'].contains(uri.scheme)) {
+            currentUri = uri;
+          }
           if (["http", "https", "data", "javascript", "about"]
               .contains(uri.scheme)) {
             return NavigationActionPolicy.ALLOW;
@@ -1346,28 +1351,27 @@ img {
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: TextButton(
-                onPressed: () {
-                  // Show full content in a dialog
-                  Get.dialog(
-                    AlertDialog(
-                      title: Text(title),
-                      content: SingleChildScrollView(
-                        child: Text(
-                          content,
-                          style: TextStyle(fontFamily: 'monospace'),
+                  onPressed: () {
+                    // Show full content in a dialog
+                    Get.dialog(
+                      AlertDialog(
+                        title: Text(title),
+                        content: SingleChildScrollView(
+                          child: Text(
+                            content,
+                            style: TextStyle(fontFamily: 'monospace'),
+                          ),
                         ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Get.back(),
+                            child: Text('Close'),
+                          ),
+                        ],
                       ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Get.back(),
-                          child: Text('Close'),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                child: Text('Show full content'),
-              ),
+                    );
+                  },
+                  child: Text('Show full content')),
             ),
         ],
       ),
@@ -1385,22 +1389,17 @@ img {
   }
 
   Future<void> refreshPage([WebUri? uri]) async {
-    EasyDebounce.debounce('webviewRefreshPage', Duration(seconds: 1), () async {
-      uri ??= await tc.webViewController?.getUrl().timeout(Duration(seconds: 1),
-          onTimeout: () {
-        return WebUri(widget.initUrl);
+    try {
+      uri ??= await tc.webViewController?.getUrl() ?? currentUri;
+      await tc.webViewController?.loadUrl(urlRequest: URLRequest(url: uri));
+    } catch (e) {
+      // ⛔ A MacOSInAppWebViewController was used after being disposed.
+      // ⛔ Once the MacOSInAppWebViewController has been disposed, it can no longer be used.
+      logger.e(e.toString(), error: e);
+      setState(() {
+        pageStorageKey = PageStorageKey(Random().nextInt(1 << 32));
       });
-      tc.webViewController?.evaluateJavascript(source: "1 + 1").then((value) {
-        if (value != 2) return;
-        tc.webViewController?.reload(); // window.location.reload();
-      }).timeout(Duration(seconds: 2), onTimeout: () async {
-        await tc.webViewController
-            ?.loadUrl(urlRequest: URLRequest(url: uri))
-            .timeout(Duration(seconds: 3), onTimeout: () async {
-          EasyLoading.showError('Failed to reload page, Please reopen tab.');
-        });
-      });
-    });
+    }
   }
 
   void initPullToRefreshController() {
@@ -1410,22 +1409,7 @@ img {
         ? null
         : PullToRefreshController(
             settings: PullToRefreshSettings(color: KeychatGlobal.primaryColor),
-            onRefresh: () async {
-              if (tc.webViewController == null) {
-                return refreshPage();
-              }
-              WebUri? url;
-              try {
-                url = await tc.webViewController
-                    ?.getUrl()
-                    .timeout(Duration(seconds: 1), onTimeout: () {
-                  return WebUri(widget.initUrl);
-                });
-              } catch (e) {
-                url = WebUri(widget.initUrl);
-              }
-              await refreshPage(url);
-            });
+            onRefresh: refreshPage);
   }
 
   // Add new method to handle special URLs

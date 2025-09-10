@@ -6,6 +6,7 @@ import 'package:app/controller/chat.controller.dart';
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/page/widgets/image_slide_widget.dart';
 import 'package:app/service/file.service.dart';
+import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
@@ -97,8 +98,11 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
               FileService.instance.downloadForMessage(
                   widget.message, msgFileInfo!, callback: _init,
                   onReceiveProgress: (int count, int total) {
-                setState(() {
-                  downloadProgress = (count / total * 100).toStringAsFixed(2);
+                EasyDebounce.debounce(
+                    'downloadProgress', const Duration(milliseconds: 300), () {
+                  setState(() {
+                    downloadProgress = (count / total * 100).toStringAsFixed(2);
+                  });
                 });
               });
             },
@@ -112,7 +116,7 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
     if (fileStatus == FileStatus.downloading) {
       return Wrap(
         children: [
-          widget.errorCallback(text: '[Downloading]: $downloadProgress%'),
+          widget.errorCallback(text: '[Downloading]- $downloadProgress%'),
           IconButton(
             onPressed: () {},
             icon: Icon(Icons.downloading_rounded,

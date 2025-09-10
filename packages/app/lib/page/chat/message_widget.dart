@@ -13,12 +13,8 @@ import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/file.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
-// import 'package:flutter_json_view/flutter_json_view.dart';
-
 import 'package:isar_community/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
-
-// import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -597,13 +593,13 @@ class MessageWidget extends StatelessWidget {
           ),
         ),
         RoomUtil.getMarkdownView(
-            message.realMessage ?? message.content, markdownConfig),
+            message.realMessage ?? message.content, markdownConfig, message.id),
       ],
     ));
   }
 
-  Widget _textCallback({String? text, Widget? child}) {
-    child ??= RoomUtil.getMarkdownView(text ?? 'null', markdownConfig);
+  Widget _textCallback({String? text, Widget? child, int? id}) {
+    child ??= RoomUtil.getMarkdownView(text ?? 'null', markdownConfig, id);
     return GestureDetector(
       onDoubleTap: messageOnDoubleTap,
       child: ConstrainedBox(

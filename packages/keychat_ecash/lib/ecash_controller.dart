@@ -156,7 +156,7 @@ class EcashController extends GetxController {
     if (tokens.isNotEmpty && failedTokens.isEmpty) {
       logger.i('All tokens migrated successfully, marking upgrade as complete');
       await Storage.setBool(StorageKeyString.upgradeToV2, true);
-      await Storage.removeString(StorageKeyString.upgradeToV2Tokens);
+      await Storage.remove(StorageKeyString.upgradeToV2Tokens);
       requestPageRefresh();
     } else {
       logger.w(

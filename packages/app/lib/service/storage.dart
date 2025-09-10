@@ -138,7 +138,7 @@ class Storage {
     return sp.getStringList(key) ?? [];
   }
 
-  static Future<void> removeString(String key) async {
+  static Future<void> remove(String key) async {
     await sp.remove(key);
   }
 

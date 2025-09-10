@@ -1,4 +1,3 @@
-import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/page/browser/BrowserSetting.dart';
 import 'package:app/page/login/AccountSetting/AccountSetting_bindings.dart';
@@ -6,7 +5,10 @@ import 'package:app/page/login/SelectModeToCreateID.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/page/setting/app_general_setting.dart';
 import 'package:app/page/setting/more_chat_setting.dart';
+import 'package:app/service/storage.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show ClipboardData, Clipboard;
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:app/controller/home.controller.dart';
 
@@ -18,15 +20,34 @@ import 'package:pub_semver/pub_semver.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:app/models/models.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 import 'AccountSetting/AccountSetting_page.dart';
 
-class MinePage extends GetView<SettingController> {
+class MinePage extends StatefulWidget {
   const MinePage({super.key});
 
   @override
+  State<MinePage> createState() => _MinePageState();
+}
+
+class _MinePageState extends State<MinePage> {
+  late HomeController homeController;
+  List<String> v1EcashTokens = [];
+  @override
+  void initState() {
+    super.initState();
+    homeController = Get.find<HomeController>();
+    loadV1EcashToken();
+  }
+
+  void loadV1EcashToken() async {
+    var list = Storage.getStringList(StorageKeyString.upgradeToV2Tokens);
+    setState(() {
+      v1EcashTokens = list;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    HomeController homeController = Get.find<HomeController>();
     return Scaffold(
         appBar: AppBar(
           centerTitle: true,
@@ -78,26 +99,25 @@ class MinePage extends GetView<SettingController> {
                             })
                       ]),
                   if (GetPlatform.isMobile)
-                    SettingsSection(
-                        margin: const EdgeInsetsDirectional.symmetric(
-                            horizontal: 16, vertical: 16),
-                        tiles: [
-                          SettingsTile.navigation(
-                            leading: const Icon(
-                              CupertinoIcons.bitcoin,
-                              color: Color(0xfff2a900),
-                            ),
-                            value: Text(
-                                '${Utils.getGetxController<EcashController>()?.totalSats.value.toString() ?? '-'} ${EcashTokenSymbol.sat.name}'),
-                            onPressed: (context) async {
-                              Get.toNamed(Routes.ecash);
-                            },
-                            title: const Text("Bitcoin Ecash"),
-                          ),
-                        ]),
+                    SettingsSection(tiles: [
+                      SettingsTile.navigation(
+                        leading: const Icon(
+                          CupertinoIcons.bitcoin,
+                          color: Color(0xfff2a900),
+                        ),
+                        value: Text(
+                            '${Utils.getGetxController<EcashController>()?.totalSats.value.toString() ?? '-'} ${EcashTokenSymbol.sat.name}'),
+                        onPressed: (context) async {
+                          Get.toNamed(Routes.ecash);
+                        },
+                        title: const Text("Bitcoin Ecash"),
+                      ),
+                      if (v1EcashTokens.isNotEmpty) migrateEcash()
+                    ]),
+                  // Desktop, migrate ecash tokens
+                  if (GetPlatform.isDesktop && v1EcashTokens.isNotEmpty)
+                    SettingsSection(tiles: [migrateEcash()]),
                   SettingsSection(
-                    margin: const EdgeInsetsDirectional.symmetric(
-                        horizontal: 16, vertical: 16),
                     tiles: [
                       SettingsTile.navigation(
                         leading: const Icon(CupertinoIcons.chat_bubble),
@@ -132,8 +152,6 @@ class MinePage extends GetView<SettingController> {
                     ],
                   ),
                   SettingsSection(
-                    margin: const EdgeInsetsDirectional.symmetric(
-                        horizontal: 16, vertical: 16),
                     tiles: [
                       SettingsTile(
                         leading: const Icon(Icons.verified_outlined),
@@ -225,5 +243,87 @@ class MinePage extends GetView<SettingController> {
           }));
     }
     return res;
+  }
+
+  SettingsTile migrateEcash() {
+    return SettingsTile.navigation(
+        leading: const Icon(Icons.warning_amber, color: Color(0xfff2a900)),
+        title: const Text("Migrate Tokens"),
+        description: Text(
+            '''${v1EcashTokens.length} cashu tokens may need to be migrated.
+Try using https://wallet.cashu.me/ to receive tokens.
+If you have already received it, please ignore it.''',
+            style: TextStyle(color: Colors.red)),
+        onPressed: (_) {
+          Get.bottomSheet(
+              clipBehavior: Clip.antiAlias,
+              shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
+              Scaffold(
+                appBar: AppBar(
+                  title: const Text('Migrate Tokens'),
+                  actions: [
+                    IconButton(
+                        onPressed: () {
+                          Get.dialog(
+                            CupertinoAlertDialog(
+                              title: const Text('Delete All Tokens'),
+                              content: const Text(
+                                  'Are you sure you want to delete all ecash tokens? This action cannot be undone.'),
+                              actions: [
+                                CupertinoDialogAction(
+                                  child: const Text('Cancel'),
+                                  onPressed: () {
+                                    Get.back();
+                                  },
+                                ),
+                                CupertinoDialogAction(
+                                  isDestructiveAction: true,
+                                  child: const Text('Delete'),
+                                  onPressed: () {
+                                    Storage.remove(
+                                        StorageKeyString.upgradeToV2Tokens);
+                                    setState(() {
+                                      v1EcashTokens.clear();
+                                    });
+                                    Get.back();
+                                    Get.back();
+                                    EasyLoading.showSuccess(
+                                        'All tokens deleted');
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.delete))
+                  ],
+                ),
+                body: SettingsList(
+                  platform: DevicePlatform.iOS,
+                  sections: [
+                    SettingsSection(
+                      tiles: v1EcashTokens
+                          .map((token) => SettingsTile(
+                                title: Text(
+                                  token.length > 50
+                                      ? '${token.substring(0, 50)}...'
+                                      : token,
+                                  style:
+                                      const TextStyle(fontFamily: 'monospace'),
+                                ),
+                                trailing: const Icon(Icons.copy),
+                                onPressed: (context) {
+                                  Clipboard.setData(ClipboardData(text: token));
+                                  EasyLoading.showSuccess(
+                                      'Token copied to clipboard');
+                                },
+                              ))
+                          .toList(),
+                    ),
+                  ],
+                ),
+              ));
+        });
   }
 }

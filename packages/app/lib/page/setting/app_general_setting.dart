@@ -21,7 +21,6 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:settings_ui/settings_ui.dart';
@@ -38,7 +37,6 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
   bool _biometricsEnabled = false;
   late String startupTabName;
   HomeController hc = Get.find<HomeController>();
-  List<String> v1EcashTokens = [];
 
   @override
   void initState() {
@@ -46,14 +44,6 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
     controller = Get.find<SettingController>();
     setStartupTabName();
     _biometricsEnabled = controller.biometricsEnabled.value;
-    loadV1EcashToken();
-  }
-
-  void loadV1EcashToken() async {
-    var list = Storage.getStringList(StorageKeyString.upgradeToV2Tokens);
-    setState(() {
-      v1EcashTokens = list;
-    });
   }
 
   void setStartupTabName() {
@@ -263,26 +253,6 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                   title: const Text("Database Setting"),
                   onPressed: handleDBSettting)
             ]),
-            if (v1EcashTokens.isNotEmpty)
-              SettingsSection(tiles: [
-                SettingsTile.navigation(
-                    leading: const Icon(
-                      CupertinoIcons.bitcoin,
-                      color: Colors.red,
-                    ),
-                    title: const Text("Ecash Tokens"),
-                    description: Text(
-                        '''${v1EcashTokens.length} cashu tokens may need to be migrated.
-Try using https://wallet.cashu.me/ to receive tokens.
-If you have already received it, please ignore it.''',
-                        style: TextStyle(color: Colors.red)),
-                    onPressed: (_) {
-                      Clipboard.setData(
-                          ClipboardData(text: v1EcashTokens.join(', ')));
-                      EasyLoading.showSuccess(
-                          'Copied ${v1EcashTokens.length} tokens to clipboard');
-                    })
-              ]),
             SettingsSection(tiles: [
               SettingsTile.navigation(
                   leading: const Icon(

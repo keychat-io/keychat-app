@@ -56,11 +56,7 @@ class CashuBillPage extends GetView<EcashBillController> {
                             Text('Failed: $failed'),
                             if (errors.isNotEmpty)
                               Column(
-                                children: errors
-                                    .map((e) => Text(
-                                          e,
-                                        ))
-                                    .toList(),
+                                children: errors.map((e) => Text(e)).toList(),
                               )
                           ],
                         ),

@@ -755,9 +755,9 @@ class MlsGroupService extends BaseChatService {
         }
 
         if (forceUpload || isExpired) {
-          await Storage.removeString(stateKey);
-          await Storage.removeString(statePK);
-          await Storage.removeString(timestampKey);
+          await Storage.remove(stateKey);
+          await Storage.remove(statePK);
+          await Storage.remove(timestampKey);
           loggerNoLine.i(
               'Key package expired or force upload for identity: ${identity.secp256k1PKHex}');
         }

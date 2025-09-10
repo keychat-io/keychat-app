@@ -654,9 +654,10 @@ Let's start an encrypted chat.''';
     return rooms;
   }
 
-  static Widget getMarkdownView(String text, MarkdownConfig config) {
+  static Widget getMarkdownView(String data, MarkdownConfig config, [int? id]) {
     return MarkdownBlock(
-        data: text,
+        key: id != null ? ObjectKey('mk:$id') : null,
+        data: data,
         selectable: false,
         config: config,
         generator: MarkdownGenerator(
@@ -692,16 +693,18 @@ Let's start an encrypted chat.''';
                 .launchWebview(initUrl: message.content);
           },
           placeholderWidget: errorCallback(
-              child: getMarkdownView(message.content, markdownConfig)),
+              child:
+                  getMarkdownView(message.content, markdownConfig, message.id)),
           showMultimedia: false,
           errorBody: '',
           errorWidget: errorCallback(
-              child: getMarkdownView(message.content, markdownConfig)));
+              child: getMarkdownView(
+                  message.content, markdownConfig, message.id)));
     }
 
     return errorCallback(
-        child: getMarkdownView(
-            message.realMessage ?? message.content, markdownConfig));
+        child: getMarkdownView(message.realMessage ?? message.content,
+            markdownConfig, message.id));
   }
 
   static Widget _imageTextView(Message message, ChatController cc,
@@ -734,7 +737,7 @@ Let's start an encrypted chat.''';
     switch (fileInfo.status) {
       case FileStatus.downloading:
         return Row(children: [
-          errorCallback(text: 'Loading...'),
+          errorCallback(text: 'Downloading...'),
           const SpinKitFadingCircle(
             color: Color(0xfff0aa35),
             size: 25.0,

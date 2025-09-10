@@ -429,7 +429,8 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
       content: const Text(
           '''All app data will be deleted after logging out, so please make sure you have backed it up. 
 
-Please make sure you have backed up your seed phrase and contacts. This cannot be undone.'''),
+Please make sure you have backed up your seed phrase and contacts. This cannot be undone.''',
+          style: TextStyle(color: Colors.red)),
       actions: <Widget>[
         CupertinoDialogAction(
           child: const Text('Cancel'),
@@ -455,15 +456,19 @@ Please make sure you have backed up your seed phrase and contacts. This cannot b
                   // ignore: empty_catches
                 } catch (e) {}
                 NotifyService.clearAll();
+                if (kReleaseMode) {
+                  EasyLoading.showSuccess('Logout successfully, App will exit');
+                  await Future.delayed(const Duration(seconds: 2));
+                  exit(0);
+                }
+                // for debug mode, just go to login page
+                EasyLoading.showSuccess('Logout successfully');
                 Get.offAllNamed(Routes.login);
               } catch (e, s) {
-                EasyLoading.showError(e.toString(),
-                    duration: const Duration(seconds: 2));
-                logger.e('reset all', error: e, stackTrace: s);
-              } finally {
-                await Future.delayed(const Duration(seconds: 2));
-                EasyLoading.dismiss();
-                kReleaseMode && exit(0);
+                String msg = Utils.getErrorMessage(e);
+                logger.e(msg, error: e, stackTrace: s);
+                EasyLoading.showError(msg,
+                    duration: const Duration(seconds: 4));
               }
             }),
       ],

@@ -339,6 +339,7 @@ class EcashController extends GetxController {
 
   Future addMintUrl(String mint) async {
     await rust_cashu.addMint(url: mint);
+    mints.value = await rust_cashu.getMints();
     await getBalance();
   }
 

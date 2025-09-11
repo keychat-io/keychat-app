@@ -39,7 +39,6 @@ String newlineChar = String.fromCharCode(13);
 
 class ChatController extends GetxController {
   RxList<Message> messages = <Message>[].obs;
-  List<Message> messagesMore = <Message>[];
   RxList<Message> inputReplys = <Message>[].obs;
   RxString inputText = ''.obs;
   RxBool inputTextIsAdd = true.obs;
@@ -130,22 +129,12 @@ class ChatController extends GetxController {
     }
     lastMessageAddedAt = DateTime.now();
 
-    if (!scrollController.hasClients) {
-      messages.insert(index, message);
+    messages.insert(index, message);
+    if (scrollController.hasClients &&
+        scrollController.position.pixels <= 300) {
       jumpToBottom(100);
       return;
     }
-    try {
-      if (scrollController.position.pixels <= 300) {
-        messages.insert(index, message);
-        jumpToBottom(100);
-        return;
-      }
-      // ignore: empty_catches
-    } catch (e, s) {
-      logger.e('addMessage ${e.toString()}', stackTrace: s);
-    }
-    messagesMore.add(message);
   }
 
   void addMetionName(String name) {

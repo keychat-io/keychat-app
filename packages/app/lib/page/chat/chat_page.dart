@@ -157,87 +157,69 @@ class _ChatPage2State extends State<ChatPage> {
                           ? const Color(0xFF000000)
                           : const Color(0xffededed),
                       padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Listener(
-                          onPointerMove: (event) {
-                            if (event.delta.dy < -10 && isFromSearch) {
-                              List<Message> msgs =
-                                  controller.loadMoreChatFromSearchSroll();
-                              if (msgs.isNotEmpty) {
-                                controller.messages
-                                    .addAll(controller.sortMessageById(msgs));
-                                controller.messages.value =
-                                    controller.messages.toSet().toList();
-                                controller.messages.sort(((a, b) =>
-                                    b.createdAt.compareTo(a.createdAt)));
-                              }
-                            }
-                          },
-                          child: Obx(
-                            () => CustomMaterialIndicator(
-                                onRefresh: controller.loadMoreChatHistory,
-                                displacement: 20,
-                                backgroundColor: Colors.white,
-                                trigger: IndicatorTrigger.bothEdges,
-                                triggerMode: IndicatorTriggerMode.anywhere,
-                                controller: controller.indicatorController,
-                                indicatorBuilder: (context, c) {
-                                  return Padding(
-                                    padding: const EdgeInsets.all(6.0),
-                                    child: CircularProgressIndicator(
-                                        color: KeychatGlobal.primaryColor,
-                                        value: c.state.isLoading
-                                            ? null
-                                            : min(c.value, 1.0)),
-                                  );
-                                },
-                                child: ListView.builder(
-                                  reverse: true,
-                                  shrinkWrap: true,
-                                  itemCount: controller.messages.length,
-                                  controller: controller.scrollController,
-                                  itemBuilder:
-                                      (BuildContext context, int index) {
-                                    Message message =
-                                        controller.messages[index];
+                      child: CustomMaterialIndicator(
+                        onRefresh: controller.loadMoreChatHistory,
+                        displacement: 20,
+                        backgroundColor: Colors.white,
+                        trigger: IndicatorTrigger.bothEdges,
+                        triggerMode: IndicatorTriggerMode.anywhere,
+                        controller: controller.indicatorController,
+                        indicatorBuilder: (context, c) {
+                          return Padding(
+                            padding: const EdgeInsets.all(6.0),
+                            child: CircularProgressIndicator(
+                                color: KeychatGlobal.primaryColor,
+                                value: c.state.isLoading
+                                    ? null
+                                    : min(c.value, 1.0)),
+                          );
+                        },
+                        child: Obx(() => ListView.builder(
+                              reverse: true,
+                              shrinkWrap: true,
+                              itemCount: controller.messages.length,
+                              controller: controller.scrollController,
+                              itemBuilder: (BuildContext context, int index) {
+                                Message message = controller.messages[index];
 
-                                    RoomMember? rm;
-                                    if (!message.isMeSend &&
-                                        controller.roomObs.value.type ==
-                                            RoomType.group) {
-                                      rm = controller.getMemberByIdPubkey(
-                                          message.idPubkey);
-                                      if (rm != null) {
-                                        message.senderName = rm.name;
-                                      }
-                                    }
+                                RoomMember? rm;
+                                if (!message.isMeSend &&
+                                    controller.roomObs.value.type ==
+                                        RoomType.group) {
+                                  rm = controller
+                                      .getMemberByIdPubkey(message.idPubkey);
+                                  if (rm != null) {
+                                    message.senderName = rm.name;
+                                  }
+                                }
 
-                                    return MessageWidget(
-                                      key: ObjectKey('msg:${message.id}'),
-                                      myAavtar: myAavtar,
-                                      index: index,
-                                      isGroup: isGroup,
-                                      roomMember: rm,
-                                      cc: controller,
-                                      screenWidth: Get.width,
-                                      toDisplayNameColor: Get.isDarkMode
-                                          ? Colors.white54
-                                          : Colors.black54,
-                                      backgroundColor: message.isMeSend
-                                          ? KeychatGlobal.secondaryColor
-                                          : Get.isDarkMode
-                                              ? const Color(0xFF2c2c2c)
-                                              : const Color(0xFFFFFFFF),
-                                      fontColor: Get.isDarkMode
-                                          ? Colors.white
-                                          : Colors.black87,
-                                      markdownConfig:
-                                          Get.isDarkMode || message.isMeSend
-                                              ? markdownDarkConfig
-                                              : markdownLightConfig,
-                                    );
-                                  },
-                                )),
-                          )))),
+                                return MessageWidget(
+                                  key: ObjectKey('msg:${message.id}'),
+                                  myAavtar: myAavtar,
+                                  index: index,
+                                  isGroup: isGroup,
+                                  roomMember: rm,
+                                  cc: controller,
+                                  screenWidth: Get.width,
+                                  toDisplayNameColor: Get.isDarkMode
+                                      ? Colors.white54
+                                      : Colors.black54,
+                                  backgroundColor: message.isMeSend
+                                      ? KeychatGlobal.secondaryColor
+                                      : Get.isDarkMode
+                                          ? const Color(0xFF2c2c2c)
+                                          : const Color(0xFFFFFFFF),
+                                  fontColor: Get.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
+                                  markdownConfig:
+                                      Get.isDarkMode || message.isMeSend
+                                          ? markdownDarkConfig
+                                          : markdownLightConfig,
+                                );
+                              },
+                            )),
+                      ))),
               Obx(() => getSendMessageInput(context, controller))
             ],
           ),

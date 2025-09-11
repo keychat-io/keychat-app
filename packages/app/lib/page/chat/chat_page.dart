@@ -36,8 +36,6 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPage2State extends State<ChatPage> {
   late ChatController controller;
-  DateTime searchDt = DateTime.now();
-  bool isFromSearch = false;
   HomeController hc = Get.find<HomeController>();
 
   late Widget myAavtar;
@@ -179,17 +177,17 @@ class _ChatPage2State extends State<ChatPage> {
                                 onRefresh: controller.loadMoreChatHistory,
                                 displacement: 20,
                                 backgroundColor: Colors.white,
-                                trigger: IndicatorTrigger.trailingEdge,
+                                trigger: IndicatorTrigger.bothEdges,
                                 triggerMode: IndicatorTriggerMode.anywhere,
+                                controller: controller.indicatorController,
                                 indicatorBuilder: (context, c) {
                                   return Padding(
                                     padding: const EdgeInsets.all(6.0),
                                     child: CircularProgressIndicator(
-                                      color: KeychatGlobal.primaryColor,
-                                      value: c.state.isLoading
-                                          ? null
-                                          : min(c.value, 1.0),
-                                    ),
+                                        color: KeychatGlobal.primaryColor,
+                                        value: c.state.isLoading
+                                            ? null
+                                            : min(c.value, 1.0)),
                                   );
                                 },
                                 child: ListView.builder(
@@ -656,7 +654,6 @@ class _ChatPage2State extends State<ChatPage> {
     await Get.toNamed(
         route.replaceFirst(':id', controller.roomObs.value.id.toString()),
         id: GetPlatform.isDesktop ? GetXNestKey.room : null);
-    await controller.openPageAction();
     return;
   }
 
@@ -941,6 +938,7 @@ class _ChatPage2State extends State<ChatPage> {
   Room _getRoomAndInit(BuildContext context) {
     Room? room = widget.room;
     int? roomId = widget.room?.id;
+    int searchMessageId = -1;
     if (room == null) {
       if (Get.parameters['id'] != null) {
         roomId = int.parse(Get.parameters['id']!);
@@ -951,8 +949,7 @@ class _ChatPage2State extends State<ChatPage> {
         try {
           Map<String, dynamic> arguments = Get.arguments;
           room = arguments['room'];
-          isFromSearch = arguments['isFromSearch'];
-          searchDt = arguments['searchDt'];
+          searchMessageId = arguments['messageId'] ?? -1;
         } catch (e) {
           // only one arguments, not in Json format
           room = Get.arguments as Room;
@@ -961,12 +958,8 @@ class _ChatPage2State extends State<ChatPage> {
     }
     controller =
         Utils.getGetxController<ChatController>(tag: roomId.toString()) ??
-            Get.put(ChatController(room!), tag: roomId.toString());
-
-    if (isFromSearch) {
-      controller.searchMsgIndex = 1;
-      controller.searchDt = searchDt;
-    }
+            Get.put(ChatController(room!, mId: searchMessageId),
+                tag: roomId.toString());
     return room!;
   }
 

@@ -2,19 +2,16 @@ import 'package:app/app.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 class LightningBillController extends GetxController {
   RxList<Transaction> transactions = <Transaction>[].obs;
   RxBool status = false.obs;
   bool run = true;
-  late RefreshController refreshController;
 
   @override
   void onInit() {
     super.onInit();
-    refreshController = RefreshController();
     Future.delayed(Duration(seconds: 1)).then((_) {
       getTransactions().then((list) {
         status.value = true;
@@ -26,14 +23,11 @@ class LightningBillController extends GetxController {
   @override
   onClose() {
     run = false;
-    refreshController.dispose();
     super.onClose();
   }
 
-  Future<List<Transaction>> getTransactions({
-    int offset = 0,
-    int limit = 15,
-  }) async {
+  Future<List<Transaction>> getTransactions(
+      {int offset = 0, int limit = 15}) async {
     List<Transaction> list = await rust_cashu.getLnTransactionsWithOffset(
         offset: BigInt.from(offset), limit: BigInt.from(limit));
     list.sort((a, b) => b.timestamp.compareTo(a.timestamp));

@@ -15,6 +15,7 @@ import 'package:app/service/message.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/utils.dart';
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -49,8 +50,7 @@ class ChatController extends GetxController {
   RxInt statsSend = 0.obs;
   RxInt statsReceive = 0.obs;
   RxList<Room> kpaIsNullRooms = <Room>[].obs; // for signal group chat
-  int searchMsgIndex = -1;
-  DateTime searchDt = DateTime.now();
+  late int searchMessageId; // click message from search page
   int messageLimitPerPage = 30;
 
   // hide add button
@@ -88,6 +88,8 @@ class ChatController extends GetxController {
   late FocusNode keyboardFocus;
   late ScrollController textFieldScrollController;
   late ScrollController scrollController;
+  late IndicatorController indicatorController;
+
   DateTime lastMessageAddedAt = DateTime.now();
 
   final List<String> featuresIcons = [
@@ -111,8 +113,9 @@ class ChatController extends GetxController {
 
   List<Function> featuresOnTaps = [];
 
-  ChatController(Room room) {
+  ChatController(Room room, {int mId = -1}) {
     roomObs.value = room;
+    searchMessageId = mId;
   }
 
   void addMessage(Message message) {
@@ -302,7 +305,20 @@ class ChatController extends GetxController {
     });
   }
 
-  Future loadAllChat() async {
+  Future<void> loadAllChat({int searchMsgIndex = -1}) async {
+    if (searchMsgIndex >= 0) {
+      // fetch some old messages
+      if (searchMsgIndex > 3) {
+        searchMsgIndex = searchMsgIndex - 3;
+      }
+      await _loadLatestMessages(searchMsgIndex);
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (scrollController.hasClients) {
+          scrollController.jumpTo(scrollController.position.maxScrollExtent);
+        }
+      });
+      return;
+    }
     List<Message> list = await MessageService.instance.getMessagesByView(
         roomId: roomObs.value.id,
         maxId: maxMessageId,
@@ -312,16 +328,37 @@ class ChatController extends GetxController {
         roomId: roomObs.value.id,
         maxId: maxMessageId,
         isRead: false,
-        limit: 200);
+        limit: 999);
     if (unreads.isNotEmpty) {
       RoomService.instance.markAllRead(
           identityId: roomObs.value.identityId, roomId: roomObs.value.id);
     }
     unreads.addAll(list);
-    messages.value = sortMessageById(unreads.toList());
-    messages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
-    messages.value = List.from(messages);
+    List<Message> mlist = sortMessageById(unreads.toList());
+    mlist.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    messages.value = mlist;
     checkPendingEcash();
+  }
+
+  Future<int> _loadLatestMessages(int searchMsgIndex, {int limit = 15}) async {
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (scrollController.hasClients) {
+        scrollController.jumpTo(scrollController.position.maxScrollExtent);
+      }
+    });
+    var sortedNewMessages = await MessageService.instance
+        .listLatestMessageByTime(
+            roomId: roomObs.value.id, messageId: searchMsgIndex, limit: limit);
+
+    if (sortedNewMessages.isEmpty) {
+      EasyLoading.showToast('No more messages to load');
+      return 0;
+    }
+
+    sortedNewMessages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
+    messages.insertAll(0, sortedNewMessages);
+    messages.value = List.from(messages);
+    return sortedNewMessages.length;
   }
 
   Future<void> checkPendingEcash() async {
@@ -354,35 +391,6 @@ class ChatController extends GetxController {
     }
   }
 
-  void loadAllChatFromSearchScroll() {
-    messages.clear();
-    DateTime from = searchDt;
-    var list = MessageService.instance.listMessageBySearchSroll(
-        roomId: roomObs.value.id, from: from, limit: 7);
-    messages.addAll(sortMessageById(list));
-    messages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
-    messages.value = List.from(messages);
-  }
-
-  Future<void> loadLatestMessage() async {
-    late DateTime from;
-    if (messages.isEmpty) {
-      from = DateTime.now();
-    } else {
-      from = messages.first.createdAt;
-    }
-    List<Message> list = await MessageService.instance
-        .listLatestMessage(roomId: roomObs.value.id, from: from);
-    Map<int, Message> msgs = {};
-    for (var element in messages) {
-      msgs[element.id] = element;
-    }
-    List<Message> list2 = msgs.values.toList();
-    list2.addAll(list);
-    list2.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
-    messages.value = list2;
-  }
-
   List<Message> loadMoreChatFromSearchSroll() {
     if (messages.isEmpty) return [];
 
@@ -398,18 +406,25 @@ class ChatController extends GetxController {
   }
 
   Future loadMoreChatHistory() async {
-    if (messages.isEmpty) {
+    if (messages.isEmpty) return;
+    if (indicatorController.direction == AxisDirection.up) {
+      _loadLatestMessages(messages.first.id, limit: messageLimitPerPage);
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (scrollController.hasClients) {
+          scrollController.jumpTo(scrollController.position.maxScrollExtent);
+        }
+      });
       return;
     }
-
-    // Load more messages
-    DateTime from = messages.last.createdAt;
-    var sortedNewMessages = await MessageService.instance.listMessageByTime(
-        roomId: roomObs.value.id, from: from, limit: messageLimitPerPage);
+    // indicatorController.direction == AxisDirection.down
+    var sortedNewMessages = await MessageService.instance.listOldMessageByTime(
+        roomId: roomObs.value.id,
+        messageId: messages.last.id,
+        limit: messageLimitPerPage);
 
     if (sortedNewMessages.isEmpty) {
       EasyLoading.showToast('No more messages to load');
-      return; // No new messages to load
+      return;
     }
 
     sortedNewMessages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
@@ -425,6 +440,7 @@ class ChatController extends GetxController {
     textEditingController.dispose();
     textFieldScrollController.dispose();
     scrollController.dispose();
+    indicatorController.dispose();
     super.onClose();
   }
 
@@ -440,6 +456,7 @@ class ChatController extends GetxController {
     textFieldScrollController = ScrollController();
     textEditingController = TextEditingController();
     scrollController = ScrollController();
+    indicatorController = IndicatorController();
 
     // load draft
     String? textFiledDraft = RoomDraft.instance.getDraft(roomObs.value.id);
@@ -459,11 +476,8 @@ class ChatController extends GetxController {
       RoomDraft.instance.setDraft(roomObs.value.id, newText);
     });
     await _initRoom();
-    await loadAllChat();
+    await loadAllChat(searchMsgIndex: searchMessageId);
     isLatestMessageNip04();
-    if (searchMsgIndex > 0) {
-      loadAllChatFromSearchScroll();
-    }
     initChatPageFeatures();
     super.onInit();
   }
@@ -516,12 +530,6 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
         }
       });
     });
-  }
-
-  Future<void> openPageAction() async {
-    await loadLatestMessage();
-    RoomService.instance.markAllRead(
-        identityId: roomObs.value.identityId, roomId: roomObs.value.id);
   }
 
   Future<void> pickAndUploadImage(ImageSource imageSource) async {

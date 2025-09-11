@@ -4,6 +4,7 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/models/contact.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/models/message.dart';
+import 'package:app/models/room.dart';
 import 'package:app/page/theme.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/message.service.dart';
@@ -11,8 +12,6 @@ import 'package:app/service/room.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
-import '../models/room.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -214,8 +213,7 @@ class _SearchPageState extends State<SearchPage> {
                   if (room == null) return;
                   await Utils.offAndToNamedRoom(room, {
                     "room": room,
-                    "searchDt": _searchResults[index].data.createdAt,
-                    "isFromSearch": true
+                    "messageId": (_searchResults[index].data as Message).id,
                   });
                 },
                 // leading: const Text("Message:"),

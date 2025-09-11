@@ -37,7 +37,6 @@ import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart'
     show SharedMediaFile, ReceiveSharingIntent, SharedMediaType;
 import '../utils/remote_config.dart' as remote_config;
@@ -47,7 +46,6 @@ class HomeController extends GetxController
   IdentityService identityService = IdentityService.instance;
   RxMap<int, Identity> chatIdentities = <int, Identity>{}.obs;
   RxMap<int, Identity> allIdentities = <int, Identity>{}.obs;
-  Map<int, RefreshController> refreshControllers = {};
   RxInt allUnReadCount = 0.obs;
   bool isAppBadgeSupported = false;
 
@@ -298,9 +296,6 @@ class HomeController extends GetxController
       allIdentities[id] = list[i];
       if (list[i].enableChat) {
         chatIdentities[id] = list[i];
-        if (refreshControllers[id] == null) {
-          refreshControllers[id] = RefreshController();
-        }
       }
     }
     return chatIdentities.values.toList();
@@ -360,10 +355,6 @@ class HomeController extends GetxController
         unReadSum = unReadSum + item.unReadCount + item.anonymousUnReadCount;
       }
       setUnreadCount(unReadSum.toInt());
-
-      if (refreshControllers[identityId] == null) {
-        refreshControllers[identityId] = RefreshController();
-      }
     });
   }
 
@@ -419,9 +410,6 @@ class HomeController extends GetxController
         ..unReadCount = unReadCount
         ..anonymousUnReadCount = anonymousUnReadCount
         ..rooms = rooms;
-      if (refreshControllers[id] == null) {
-        refreshControllers[id] = RefreshController();
-      }
     }
 
     tabBodyDatas.value = thisTabBodyDatas;
@@ -462,9 +450,6 @@ class HomeController extends GetxController
     WidgetsBinding.instance.removeObserver(this);
     subscription.cancel();
     _connectionCheckTimer.cancel();
-    refreshControllers.forEach((key, value) {
-      value.dispose();
-    });
     Get.find<WebsocketService>().stopListening();
     if (Get.context != null) {
       Utils.hideKeyboard(Get.context!);

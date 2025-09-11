@@ -53,7 +53,6 @@ dependencies:
   cached_network_image: ^3.4.1
   queue: ^3.1.0+2
   mutex: ^3.0.1
-  pull_to_refresh_flutter3: ^2.0.2
   dropdown_button2: ^2.3.9
   easy_debounce: ^2.0.3
   carousel_slider: ^5.0.0

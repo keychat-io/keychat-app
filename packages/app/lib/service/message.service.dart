@@ -368,17 +368,27 @@ $content'''
         .findAll();
   }
 
-  Future<List<Message>> listMessageByTime({
-    required int roomId,
-    required DateTime from,
-    limit = 100,
-  }) async {
+  Future<List<Message>> listOldMessageByTime(
+      {required int roomId, required int messageId, limit = 100}) async {
     Isar database = DBProvider.database;
 
     return database.messages
         .filter()
         .roomIdEqualTo(roomId)
-        .createdAtLessThan(from)
+        .idLessThan(messageId)
+        .sortByCreatedAtDesc()
+        .limit(limit)
+        .findAll();
+  }
+
+  Future<List<Message>> listLatestMessageByTime(
+      {required int roomId, required int messageId, limit = 100}) async {
+    Isar database = DBProvider.database;
+
+    return database.messages
+        .filter()
+        .roomIdEqualTo(roomId)
+        .idGreaterThan(messageId)
         .sortByCreatedAtDesc()
         .limit(limit)
         .findAll();
@@ -476,21 +486,6 @@ $content'''
     msgEqual.addAll(msgLess);
     msgEqual.addAll(msgMore);
     return msgEqual;
-  }
-
-  Future<List<Message>> listLatestMessage({
-    required int roomId,
-    required DateTime from,
-    limit = 100,
-  }) async {
-    Isar database = DBProvider.database;
-
-    return database.messages
-        .filter()
-        .roomIdEqualTo(roomId)
-        .createdAtGreaterThan(from)
-        .limit(limit)
-        .findAll();
   }
 
   Future<List<Message>> listMySendingMessage({

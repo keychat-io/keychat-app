@@ -1,10 +1,10 @@
 import 'package:app/models/browser/browser_history.dart';
 import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/utils.dart';
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 
 class BrowserHistoryPage extends StatefulWidget {
   const BrowserHistoryPage({super.key});
@@ -15,19 +15,16 @@ class BrowserHistoryPage extends StatefulWidget {
 
 class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
   Map<String, List<BrowserHistory>> groupedHistory = {};
-  late RefreshController refreshController;
   late MultiWebviewController controller;
   @override
   void initState() {
     controller = Get.find<MultiWebviewController>();
-    refreshController = RefreshController();
     loadData(limit: 20, offset: 0);
     super.initState();
   }
 
   @override
   void dispose() {
-    refreshController.dispose();
     super.dispose();
   }
 
@@ -64,16 +61,16 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
                 })
           ],
         ),
-        body: SmartRefresher(
-            enablePullUp: true,
-            enablePullDown: false,
-            onLoading: () async {
+        body: CustomMaterialIndicator(
+            onRefresh: () async {
               int amount = groupedHistory.values.fold<int>(0,
                   (previousValue, element) => previousValue + element.length);
               await loadData(limit: 20, offset: amount);
-              refreshController.loadComplete();
             },
-            controller: refreshController,
+            displacement: 20,
+            backgroundColor: Colors.white,
+            trigger: IndicatorTrigger.trailingEdge,
+            triggerMode: IndicatorTriggerMode.anywhere,
             child: ListView.builder(
               itemCount: groupedHistory.length,
               itemBuilder: (context, index) {

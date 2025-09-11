@@ -507,7 +507,6 @@ class MessageWidget extends StatelessWidget {
                   await Get.toNamed(Routes.roomSettingContact
                       .replaceFirst(':id', cc.roomObs.value.id.toString()));
                 }
-                await cc.openPageAction();
               },
               child: Utils.getRandomAvatar(
                   message.idPubkey.isNotEmpty

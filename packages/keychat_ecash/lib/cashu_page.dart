@@ -15,8 +15,8 @@ import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_ecash/receive_ecash_page.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import 'package:settings_ui/settings_ui.dart';
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 
 class CashuPage extends GetView<EcashController> {
   const CashuPage({super.key});
@@ -65,7 +65,7 @@ class CashuPage extends GetView<EcashController> {
             if (GetPlatform.isDesktop)
               IconButton(
                   onPressed: () {
-                    controller.refreshController.requestRefresh();
+                    // controller.refreshController.requestRefresh();
                   },
                   icon: const Icon(CupertinoIcons.refresh)),
             IconButton(
@@ -85,10 +85,12 @@ class CashuPage extends GetView<EcashController> {
               padding: GetPlatform.isDesktop
                   ? const EdgeInsets.all(8)
                   : const EdgeInsets.all(0),
-              child: SmartRefresher(
-                enablePullDown: true,
+              child: CustomMaterialIndicator(
                 onRefresh: controller.requestPageRefresh,
-                controller: controller.refreshController,
+                displacement: 20,
+                backgroundColor: Colors.white,
+                trigger: IndicatorTrigger.leadingEdge,
+                triggerMode: IndicatorTriggerMode.anywhere,
                 child: ListView(
                   children: [
                     Padding(
@@ -572,7 +574,6 @@ class CashuPage extends GetView<EcashController> {
                 Transaction ln = result;
                 await Get.to(() => LightningTransactionPage(transaction: ln),
                     id: GetPlatform.isDesktop ? GetXNestKey.ecash : null);
-                controller.refreshController.requestRefresh();
                 controller.requestPageRefresh();
               },
             ),

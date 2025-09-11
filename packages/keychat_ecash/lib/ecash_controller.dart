@@ -15,12 +15,11 @@ import 'package:keychat_ecash/cashu_receive.dart';
 import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
-import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'NostrWalletConnect/NostrWalletConnect_controller.dart';
 
 class EcashController extends GetxController {
@@ -38,14 +37,14 @@ class EcashController extends GetxController {
   Identity? currentIdentity;
   late ScrollController scrollController;
   late TextEditingController nameController;
-  late RefreshController refreshController;
   late EcashBillController ecashBillController;
   late LightningBillController lightningBillController;
+  late IndicatorController indicatorController;
   @override
   void onInit() async {
     scrollController = ScrollController();
     nameController = TextEditingController();
-    refreshController = RefreshController();
+    indicatorController = IndicatorController();
     ecashBillController = Get.put(EcashBillController());
     lightningBillController = Get.put(LightningBillController());
     super.onInit();
@@ -181,7 +180,7 @@ class EcashController extends GetxController {
   void onClose() {
     nameController.dispose();
     scrollController.dispose();
-    refreshController.dispose();
+    indicatorController.dispose();
     super.onClose();
   }
 
@@ -391,7 +390,6 @@ class EcashController extends GetxController {
           ?.checkPendings(pendings);
       // ignore: empty_catches
     } catch (e) {}
-    refreshController.refreshCompleted();
   }
 
   Future proccessCashuString(String str,

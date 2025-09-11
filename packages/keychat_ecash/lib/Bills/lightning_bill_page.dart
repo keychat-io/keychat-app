@@ -1,7 +1,6 @@
 // ignore_for_file: depend_on_referenced_packages
 
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
-
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:keychat_ecash/Bills/lightning_bill_controller.dart';
 import 'package:keychat_ecash/Bills/lightning_transaction.dart';
 import 'package:keychat_ecash/utils.dart';
@@ -11,7 +10,6 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 
 class LightningBillPage extends GetView<LightningBillController> {
   const LightningBillPage({super.key});
@@ -19,10 +17,7 @@ class LightningBillPage extends GetView<LightningBillController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          centerTitle: true,
-          title: const Text('Lightning Bills'),
-        ),
+        appBar: AppBar(centerTitle: true, title: const Text('Lightning Bills')),
         body: Center(
             child: Container(
                 constraints: const BoxConstraints(maxWidth: 800),
@@ -40,20 +35,13 @@ class LightningBillPage extends GetView<LightningBillController> {
                               color: Color.fromARGB(255, 141, 123, 243),
                               size: 40.0,
                             )))
-                    : Obx(() => SmartRefresher(
-                        enablePullDown: true,
-                        onRefresh: () async {
-                          await rust_cashu.checkPending();
-                          await controller.getTransactions();
-                          controller.refreshController.refreshCompleted();
-                        },
-                        enablePullUp: true,
-                        onLoading: () async {
-                          await controller.getTransactions(
-                              offset: controller.transactions.length);
-                          controller.refreshController.loadComplete();
-                        },
-                        controller: controller.refreshController,
+                    : Obx(() => CustomMaterialIndicator(
+                        onRefresh: () async => await controller.getTransactions(
+                            offset: controller.transactions.length),
+                        displacement: 20,
+                        backgroundColor: Colors.white,
+                        trigger: IndicatorTrigger.trailingEdge,
+                        triggerMode: IndicatorTriggerMode.anywhere,
                         child: ListView.separated(
                             separatorBuilder: (BuildContext context2,
                                     int index) =>

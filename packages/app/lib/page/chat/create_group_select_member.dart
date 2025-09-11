@@ -8,7 +8,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import 'package:app/models/models.dart';
 
 class CreateGroupSelectMember extends StatefulWidget {
@@ -34,8 +33,6 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
 
   List<Map<String, dynamic>> users = [];
 
-  final RefreshController _refreshController =
-      RefreshController(initialRefresh: true);
   bool pageLoading = true;
 
   @override
@@ -80,7 +77,6 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
   void dispose() {
     _userNameController.dispose();
     _scrollController.dispose();
-    _refreshController.dispose();
     super.dispose();
   }
 

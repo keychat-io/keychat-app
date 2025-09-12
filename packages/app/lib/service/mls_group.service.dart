@@ -1160,7 +1160,7 @@ class MlsGroupService extends BaseChatService {
             .getListenKeyFromExportSecret(
                 nostrId: room.myIdPubkey, groupId: room.toMainPubkey)
             .timeout(Duration(seconds: 2));
-
+        logger.i("[MLS] Fetched new pubkey for room ${room.id}: $newPubkey");
         if (room.onetimekey == null || room.onetimekey != newPubkey) {
           loggerNoLine.i('[MLS] Room ${room.id} update onetime key $newPubkey');
           room.onetimekey = newPubkey;

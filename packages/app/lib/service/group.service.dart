@@ -151,12 +151,12 @@ class GroupService extends BaseChatService {
     }
 
     RoomMember? rm = await room.getMemberByIdPubkey(room.myIdPubkey);
-    if (rm == null) return;
-
-    String message =
-        '[System] ${rm.name} exit group, waiting for admin commit.';
-    int subtype = KeyChatEventKinds.groupSelfLeave;
-    await sendMessageToGroup(room, message, subtype: subtype);
+    if (rm != null) {
+      String message =
+          '[System] ${rm.name} exit group, waiting for admin commit.';
+      int subtype = KeyChatEventKinds.groupSelfLeave;
+      await sendMessageToGroup(room, message, subtype: subtype);
+    }
     await roomService.deleteRoom(room);
   }
 

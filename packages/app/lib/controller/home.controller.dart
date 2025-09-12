@@ -186,7 +186,9 @@ class HomeController extends GetxController
         _pausedBefore = false;
         break;
       case AppLifecycleState.inactive:
-        isBlurred.value = true;
+        if (GetPlatform.isMobile) {
+          isBlurred.value = true;
+        }
         break;
       case AppLifecycleState.hidden:
         break;

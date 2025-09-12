@@ -10,6 +10,7 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/page/FileExplore.dart';
 import 'package:app/page/login/OnboardingPage2.dart';
 import 'package:app/page/routes.dart';
+import 'package:app/page/setting/BiometricAuthScreen.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/file.service.dart';
 import 'package:app/service/notify.service.dart';
@@ -442,6 +443,24 @@ Please make sure you have backed up your seed phrase and contacts. This cannot b
             isDestructiveAction: true,
             child: const Text('Logout'),
             onPressed: () async {
+              // Biometrics Auth
+              if (GetPlatform.isMobile) {
+                bool isBiometricsEnable =
+                    await SecureStorage.instance.isBiometricsEnable();
+                if (isBiometricsEnable) {
+                  bool? authed = await Get.to(
+                      () => const BiometricAuthScreen(
+                          autoAuth: false,
+                          canPop: true,
+                          title: 'Authenticate to Logout'),
+                      fullscreenDialog: true,
+                      popGesture: true,
+                      transition: Transition.fadeIn);
+                  if (authed == null || !authed) {
+                    return;
+                  }
+                }
+              }
               EasyLoading.show(status: 'Processing...');
               try {
                 DBProvider.instance.deleteAll();

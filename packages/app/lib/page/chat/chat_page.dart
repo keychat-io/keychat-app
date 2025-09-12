@@ -1,6 +1,7 @@
 import 'dart:async' show Timer;
 import 'dart:convert' show jsonDecode;
 import 'dart:math' show Random, min;
+import 'dart:ui' show ImageFilter;
 
 import 'package:app/app.dart';
 import 'package:app/controller/chat.controller.dart';
@@ -84,140 +85,153 @@ class _ChatPage2State extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-          scrolledUnderElevation: 0.0,
-          elevation: 0.0,
-          backgroundColor: Get.isDarkMode
-              ? const Color(0xFF000000)
-              : const Color(0xffededed),
-          centerTitle: true,
-          title: Obx(() => Wrap(
-                direction: Axis.horizontal,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  controller.roomObs.value.type != RoomType.group
-                      ? getRoomTitle(controller.roomObs.value.getRoomName(),
-                          controller.roomObs.value.isMute, null)
-                      : getRoomTitle(
-                          controller.roomObs.value.getRoomName(),
-                          controller.roomObs.value.isMute,
-                          controller.enableMembers.length.toString()),
-                  if (controller.roomObs.value.type == RoomType.bot)
-                    const Padding(
-                        padding: EdgeInsets.only(left: 5),
-                        child:
-                            Icon(Icons.android_outlined, color: Colors.purple))
-                ],
-              )),
-          actions: [
-            Obx(() => controller.roomObs.value.status != RoomStatus.approving
-                ? IconButton(
-                    onPressed: goToSetting,
-                    icon: const Icon(Icons.more_horiz),
-                  )
-                : Container())
-          ],
-        ),
-        body: GestureDetector(
-          onTap: controller.processClickBlankArea,
-          onPanUpdate: (details) {
-            if (GetPlatform.isIOS && details.delta.dx < -10) {
-              goToSetting();
-            }
-          },
-          child: Column(
-            children: <Widget>[
-              Obx(() => debugWidget(hc)),
-              if (controller.roomObs.value.isSendAllGroup)
-                Obx(() => _kpaIsNull(controller)),
-              Obx(() => controller.roomObs.value.signalDecodeError
-                  ? MyErrorText(
-                      errorText: 'Messages decrypted failed',
-                      action: TextButton(
-                          child: const Text('Fix it',
-                              style: TextStyle(color: Colors.white)),
-                          onPressed: () async {
-                            await SignalChatService.instance.sendHelloMessage(
-                                controller.roomObs.value,
-                                controller.roomObs.value.getIdentity());
-                            EasyLoading.showInfo('Request sent successfully.');
-                          }),
+    return Stack(children: [
+      Scaffold(
+          appBar: AppBar(
+            scrolledUnderElevation: 0.0,
+            elevation: 0.0,
+            backgroundColor: Get.isDarkMode
+                ? const Color(0xFF000000)
+                : const Color(0xffededed),
+            centerTitle: true,
+            title: Obx(() => Wrap(
+                  direction: Axis.horizontal,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    controller.roomObs.value.type != RoomType.group
+                        ? getRoomTitle(controller.roomObs.value.getRoomName(),
+                            controller.roomObs.value.isMute, null)
+                        : getRoomTitle(
+                            controller.roomObs.value.getRoomName(),
+                            controller.roomObs.value.isMute,
+                            controller.enableMembers.length.toString()),
+                    if (controller.roomObs.value.type == RoomType.bot)
+                      const Padding(
+                          padding: EdgeInsets.only(left: 5),
+                          child: Icon(Icons.android_outlined,
+                              color: Colors.purple))
+                  ],
+                )),
+            actions: [
+              Obx(() => controller.roomObs.value.status != RoomStatus.approving
+                  ? IconButton(
+                      onPressed: goToSetting,
+                      icon: const Icon(Icons.more_horiz),
                     )
-                  : const SizedBox()),
-              Expanded(
-                  child: Container(
-                      color: Get.isDarkMode
-                          ? const Color(0xFF000000)
-                          : const Color(0xffededed),
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: CustomMaterialIndicator(
-                        onRefresh: controller.pullToLoadMessages,
-                        displacement: 4,
-                        trigger: IndicatorTrigger.bothEdges,
-                        triggerMode: IndicatorTriggerMode.anywhere,
-                        controller: controller.indicatorController,
-                        indicatorBuilder: (context, c) {
-                          return Padding(
-                            padding: const EdgeInsets.all(6.0),
-                            child: CircularProgressIndicator(
-                                color: KeychatGlobal.primaryColor,
-                                value: c.state.isLoading
-                                    ? null
-                                    : min(c.value, 1.0)),
-                          );
-                        },
-                        child: Obx(() => ListView.builder(
-                              key: PageStorageKey<String>(
-                                  'chatlistview:${controller.roomObs.value.id}'),
-                              reverse: true,
-                              shrinkWrap: true,
-                              itemCount: controller.messages.length,
-                              controller: controller.scrollController,
-                              itemBuilder: (BuildContext context, int index) {
-                                Message message = controller.messages[index];
-                                RoomMember? rm;
-                                if (!message.isMeSend &&
-                                    controller.roomObs.value.type ==
-                                        RoomType.group) {
-                                  rm = controller
-                                      .getMemberByIdPubkey(message.idPubkey);
-                                  if (rm != null) {
-                                    message.senderName = rm.name;
-                                  }
-                                }
-
-                                return MessageWidget(
-                                  key: ObjectKey('msg:${message.id}'),
-                                  myAavtar: myAvatar,
-                                  index: index,
-                                  isGroup: isGroup,
-                                  roomMember: rm,
-                                  cc: controller,
-                                  screenWidth: Get.width,
-                                  toDisplayNameColor: Get.isDarkMode
-                                      ? Colors.white54
-                                      : Colors.black54,
-                                  backgroundColor: message.isMeSend
-                                      ? KeychatGlobal.secondaryColor
-                                      : Get.isDarkMode
-                                          ? const Color(0xFF2c2c2c)
-                                          : const Color(0xFFFFFFFF),
-                                  fontColor: Get.isDarkMode
-                                      ? Colors.white
-                                      : Colors.black87,
-                                  markdownConfig:
-                                      Get.isDarkMode || message.isMeSend
-                                          ? markdownDarkConfig
-                                          : markdownLightConfig,
-                                );
-                              },
-                            )),
-                      ))),
-              Obx(() => getSendMessageInput(context, controller))
+                  : Container())
             ],
           ),
-        ));
+          body: GestureDetector(
+            onTap: controller.processClickBlankArea,
+            onPanUpdate: (details) {
+              if (GetPlatform.isIOS && details.delta.dx < -10) {
+                goToSetting();
+              }
+            },
+            child: Column(
+              children: <Widget>[
+                Obx(() => debugWidget(hc)),
+                if (controller.roomObs.value.isSendAllGroup)
+                  Obx(() => _kpaIsNull(controller)),
+                Obx(() => controller.roomObs.value.signalDecodeError
+                    ? MyErrorText(
+                        errorText: 'Messages decrypted failed',
+                        action: TextButton(
+                            child: const Text('Fix it',
+                                style: TextStyle(color: Colors.white)),
+                            onPressed: () async {
+                              await SignalChatService.instance.sendHelloMessage(
+                                  controller.roomObs.value,
+                                  controller.roomObs.value.getIdentity());
+                              EasyLoading.showInfo(
+                                  'Request sent successfully.');
+                            }),
+                      )
+                    : const SizedBox()),
+                Expanded(
+                    child: Container(
+                        color: Get.isDarkMode
+                            ? const Color(0xFF000000)
+                            : const Color(0xffededed),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: CustomMaterialIndicator(
+                          onRefresh: controller.pullToLoadMessages,
+                          displacement: 4,
+                          trigger: IndicatorTrigger.bothEdges,
+                          triggerMode: IndicatorTriggerMode.anywhere,
+                          controller: controller.indicatorController,
+                          indicatorBuilder: (context, c) {
+                            return Padding(
+                              padding: const EdgeInsets.all(6.0),
+                              child: CircularProgressIndicator(
+                                  color: KeychatGlobal.primaryColor,
+                                  value: c.state.isLoading
+                                      ? null
+                                      : min(c.value, 1.0)),
+                            );
+                          },
+                          child: Obx(() => ListView.builder(
+                                key: PageStorageKey<String>(
+                                    'chatlistview:${controller.roomObs.value.id}'),
+                                reverse: true,
+                                shrinkWrap: true,
+                                itemCount: controller.messages.length,
+                                controller: controller.scrollController,
+                                itemBuilder: (BuildContext context, int index) {
+                                  Message message = controller.messages[index];
+                                  RoomMember? rm;
+                                  if (!message.isMeSend &&
+                                      controller.roomObs.value.type ==
+                                          RoomType.group) {
+                                    rm = controller
+                                        .getMemberByIdPubkey(message.idPubkey);
+                                    if (rm != null) {
+                                      message.senderName = rm.name;
+                                    }
+                                  }
+
+                                  return MessageWidget(
+                                    key: ObjectKey('msg:${message.id}'),
+                                    myAavtar: myAvatar,
+                                    index: index,
+                                    isGroup: isGroup,
+                                    roomMember: rm,
+                                    cc: controller,
+                                    screenWidth: Get.width,
+                                    toDisplayNameColor: Get.isDarkMode
+                                        ? Colors.white54
+                                        : Colors.black54,
+                                    backgroundColor: message.isMeSend
+                                        ? KeychatGlobal.secondaryColor
+                                        : Get.isDarkMode
+                                            ? const Color(0xFF2c2c2c)
+                                            : const Color(0xFFFFFFFF),
+                                    fontColor: Get.isDarkMode
+                                        ? Colors.white
+                                        : Colors.black87,
+                                    markdownConfig:
+                                        Get.isDarkMode || message.isMeSend
+                                            ? markdownDarkConfig
+                                            : markdownLightConfig,
+                                  );
+                                },
+                              )),
+                        ))),
+                Obx(() => getSendMessageInput(context, controller))
+              ],
+            ),
+          )), // Privacy protection blur layer
+      Obx(() => GetPlatform.isMobile && hc.isBlurred.value
+          ? Positioned.fill(
+              child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                  child: Container(
+                      color: Colors.black.withAlpha(50),
+                      child: const Center(
+                          child: Icon(CupertinoIcons.lock_shield_fill,
+                              size: 80, color: Colors.white)))))
+          : const SizedBox.shrink())
+    ]);
   }
 
   Widget getSendMessageInput(BuildContext context, ChatController controller) {

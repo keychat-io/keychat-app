@@ -73,6 +73,9 @@ class HomeController extends GetxController
 
   DateTime? pausedTime;
 
+  // Privacy protection blur effect
+  RxBool isBlurred = false.obs;
+
   RxInt defaultSelectedTab =
       (-1).obs; // 0: chat, 1: browser, -1: last opened tab
   int selectedTabIndex = 0; // main bottom tab index
@@ -148,6 +151,7 @@ class HomeController extends GetxController
     switch (state) {
       case AppLifecycleState.resumed:
         resumed = true;
+        isBlurred.value = false;
 
         // if app running background > 10s
         bool wasAppBackgroundedTooLong = false;
@@ -176,8 +180,15 @@ class HomeController extends GetxController
         });
 
         // check biometrics
-        await biometricsAuth(_pausedBefore);
+        if (_pausedBefore) {
+          await biometricsAuth(true);
+        }
         _pausedBefore = false;
+        break;
+      case AppLifecycleState.inactive:
+        isBlurred.value = true;
+        break;
+      case AppLifecycleState.hidden:
         break;
       case AppLifecycleState.paused:
         resumed = false;
@@ -186,8 +197,6 @@ class HomeController extends GetxController
         break;
       case AppLifecycleState.detached:
         // app been killed
-        break;
-      default:
         break;
     }
   }
@@ -211,7 +220,7 @@ class HomeController extends GetxController
       }
     }
 
-    await Get.to(() => const BiometricAuthScreen(),
+    await Get.to(() => const BiometricAuthScreen(autoAuth: true),
         fullscreenDialog: true,
         popGesture: false,
         transition: Transition.fadeIn);

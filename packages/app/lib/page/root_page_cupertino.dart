@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:app/global.dart';
 import 'package:app/page/browser/BrowserNewTab.dart';
 import 'package:app/utils.dart';
@@ -24,6 +26,7 @@ class _CupertinoRootPageState extends State<CupertinoRootPage> {
   int _selectedIndex = 0;
   List pages = [];
   late HomeController homeController;
+
   @override
   void initState() {
     pages = [RoomList(), BrowserNewTab(), MinePage()];
@@ -34,62 +37,85 @@ class _CupertinoRootPageState extends State<CupertinoRootPage> {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoTabScaffold(
-        resizeToAvoidBottomInset: true,
-        controller: homeController.cupertinoTabController,
-        tabBar: CupertinoTabBar(
-          onTap: (int index) {
-            setState(() {
-              _selectedIndex = index;
-            });
-            if (EasyLoading.isShow) {
-              EasyLoading.dismiss();
-            }
-            if (GetPlatform.isMobile) {
-              HapticFeedback.lightImpact();
-            }
-            if (index == pages.length - 1) {
-              EasyThrottle.throttle(
-                  'loadCashuABalance', const Duration(seconds: 1), () {
-                Utils.getGetxController<EcashController>()
-                    ?.requestPageRefresh();
+    return Stack(
+      children: [
+        CupertinoTabScaffold(
+            resizeToAvoidBottomInset: true,
+            controller: homeController.cupertinoTabController,
+            tabBar: CupertinoTabBar(
+              onTap: (int index) {
+                setState(() {
+                  _selectedIndex = index;
+                });
+                if (EasyLoading.isShow) {
+                  EasyLoading.dismiss();
+                }
+                if (GetPlatform.isMobile) {
+                  HapticFeedback.lightImpact();
+                }
+                if (index == pages.length - 1) {
+                  EasyThrottle.throttle(
+                      'loadCashuABalance', const Duration(seconds: 1), () {
+                    Utils.getGetxController<EcashController>()
+                        ?.requestPageRefresh();
+                  });
+                }
+              },
+              iconSize: 26,
+              currentIndex: _selectedIndex,
+              items: [
+                BottomNavigationBarItem(
+                    label: 'Chats',
+                    activeIcon: Obx(() => Badge(
+                        backgroundColor: Colors.red,
+                        textColor: Colors.white,
+                        label: Text('${homeController.allUnReadCount.value}'),
+                        isLabelVisible: homeController.allUnReadCount.value > 0,
+                        child: const Icon(CupertinoIcons.chat_bubble_fill,
+                            color: KeychatGlobal.primaryColor, size: 26))),
+                    icon: Obx(() => Badge(
+                        backgroundColor: Colors.red,
+                        textColor: Colors.white,
+                        label: Text('${homeController.allUnReadCount.value}'),
+                        isLabelVisible: homeController.allUnReadCount.value > 0,
+                        child:
+                            const Icon(CupertinoIcons.chat_bubble, size: 26)))),
+                const BottomNavigationBarItem(
+                    label: 'Browser',
+                    icon: Icon(CupertinoIcons.compass),
+                    activeIcon: Icon(CupertinoIcons.compass_fill,
+                        color: KeychatGlobal.primaryColor)),
+                const BottomNavigationBarItem(
+                    label: 'Me',
+                    activeIcon: Icon(CupertinoIcons.person_fill,
+                        color: KeychatGlobal.primaryColor),
+                    icon: Icon(CupertinoIcons.person))
+              ],
+            ),
+            tabBuilder: (BuildContext context, int index) {
+              return CupertinoTabView(builder: (BuildContext context) {
+                return pages[index];
               });
-            }
-          },
-          iconSize: 26,
-          currentIndex: _selectedIndex,
-          items: [
-            BottomNavigationBarItem(
-                label: 'Chats',
-                activeIcon: Obx(() => Badge(
-                    backgroundColor: Colors.red,
-                    textColor: Colors.white,
-                    label: Text('${homeController.allUnReadCount.value}'),
-                    isLabelVisible: homeController.allUnReadCount.value > 0,
-                    child: const Icon(CupertinoIcons.chat_bubble_fill,
-                        color: KeychatGlobal.primaryColor, size: 26))),
-                icon: Obx(() => Badge(
-                    backgroundColor: Colors.red,
-                    textColor: Colors.white,
-                    label: Text('${homeController.allUnReadCount.value}'),
-                    isLabelVisible: homeController.allUnReadCount.value > 0,
-                    child: const Icon(CupertinoIcons.chat_bubble, size: 26)))),
-            const BottomNavigationBarItem(
-                label: 'Browser',
-                icon: Icon(CupertinoIcons.compass),
-                activeIcon: Icon(CupertinoIcons.compass_fill,
-                    color: KeychatGlobal.primaryColor)),
-            const BottomNavigationBarItem(
-                label: 'Me',
-                activeIcon: Icon(CupertinoIcons.person_fill,
-                    color: KeychatGlobal.primaryColor),
-                icon: Icon(CupertinoIcons.person))
-          ],
-        ),
-        tabBuilder: (BuildContext context, int index) {
-          return CupertinoTabView(builder: (BuildContext context) {
-            return pages[index];
-          });
-        });
+            }),
+        // Privacy protection blur layer
+        Obx(() => GetPlatform.isMobile && homeController.isBlurred.value
+            ? Positioned.fill(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                  child: Container(
+                    color: Colors.black.withAlpha(50),
+                    child: const Center(
+                      child: Icon(
+                        CupertinoIcons.lock_shield_fill,
+                        size: 80,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              )
+            : const SizedBox.shrink()),
+      ],
+    );
   }
 }

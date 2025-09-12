@@ -67,9 +67,10 @@ class CashuUtil {
                 await ec.addMintUrl(decoded.mint);
                 EasyLoading.showToast('Added');
               } catch (e, s) {
-                EasyLoading.showError('Add Failed: ${e.toString()}',
+                String msg = Utils.getErrorMessage(e);
+                logger.e(msg, error: e, stackTrace: s);
+                EasyLoading.showError('Add Failed: $msg',
                     duration: const Duration(seconds: 3));
-                logger.e(e.toString(), error: e, stackTrace: s);
                 Get.back(result: null);
                 return;
               }

@@ -366,7 +366,7 @@ class _SearchPageState extends State<SearchPage> {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+          color: Theme.of(context).colorScheme.outline.withAlpha(25),
           width: 1,
         ),
       ),
@@ -387,14 +387,13 @@ class _SearchPageState extends State<SearchPage> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Utils.getRandomAvatar(
-                    message.idPubkey,
-                    height: 40,
-                    width: 40,
-                  ),
-                ),
+                room != null
+                    ? Utils.getAvatarDot(room)
+                    : Utils.getRandomAvatar(
+                        message.idPubkey,
+                        height: 40,
+                        width: 40,
+                      ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(

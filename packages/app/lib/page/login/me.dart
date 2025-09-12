@@ -280,9 +280,11 @@ If you have already received it, please ignore it.''',
                                 CupertinoDialogAction(
                                   isDestructiveAction: true,
                                   child: const Text('Delete'),
-                                  onPressed: () {
-                                    Storage.remove(
+                                  onPressed: () async {
+                                    await Storage.remove(
                                         StorageKeyString.upgradeToV2Tokens);
+                                    await Storage.setBool(
+                                        StorageKeyString.upgradeToV2, true);
                                     setState(() {
                                       v1EcashTokens.clear();
                                     });

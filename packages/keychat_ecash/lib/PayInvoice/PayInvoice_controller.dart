@@ -63,18 +63,16 @@ class PayInvoiceController extends GetxController {
           'PayInvoiceController: confirmToPayInvoice: mint: $mint, invoice: $invoice');
       Transaction tx =
           await rust_cashu.melt(invoice: invoice, activeMint: mint);
-      logger.i('PayInvoiceController: confirmToPayInvoice: tx: ${tx.field0}');
+      logger.i('PayInvoiceController: confirmToPayInvoice: tx: $tx');
       EasyLoading.showSuccess('Success');
 
       textController.clear();
       cc.requestPageRefresh();
       if (!isPay) {
         if (GetPlatform.isDesktop) {
-          await Get.bottomSheet(LightningTransactionPage(
-              transaction: tx.field0 as LNTransaction));
+          await Get.bottomSheet(LightningTransactionPage(transaction: tx));
         } else {
-          await Get.to(() => LightningTransactionPage(
-              transaction: tx.field0 as LNTransaction));
+          await Get.to(() => LightningTransactionPage(transaction: tx));
         }
       }
       return tx;

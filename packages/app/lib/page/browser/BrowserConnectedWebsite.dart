@@ -1,10 +1,10 @@
 import 'package:app/models/browser/browser_connect.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/utils.dart';
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 
 class BrowserConnectedWebsite extends StatefulWidget {
   final Identity identity;
@@ -17,17 +17,14 @@ class BrowserConnectedWebsite extends StatefulWidget {
 
 class _BrowserConnectedWebsiteState extends State<BrowserConnectedWebsite> {
   List<BrowserConnect> urls = [];
-  late RefreshController refreshController;
   @override
   void initState() {
-    refreshController = RefreshController();
     loadData(pubkey: widget.identity.secp256k1PKHex, limit: 20, offset: 0);
     super.initState();
   }
 
   @override
   void dispose() {
-    refreshController.dispose();
     super.dispose();
   }
 
@@ -35,17 +32,17 @@ class _BrowserConnectedWebsiteState extends State<BrowserConnectedWebsite> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(title: const Text('Logged-in Websites')),
-        body: SmartRefresher(
-            enablePullUp: true,
-            enablePullDown: false,
-            onLoading: () async {
+        body: CustomMaterialIndicator(
+            onRefresh: () async {
               await loadData(
                   pubkey: widget.identity.secp256k1PKHex,
                   limit: 20,
                   offset: urls.length);
-              refreshController.loadComplete();
             },
-            controller: refreshController,
+            displacement: 20,
+            backgroundColor: Colors.white,
+            trigger: IndicatorTrigger.trailingEdge,
+            triggerMode: IndicatorTriggerMode.anywhere,
             child: ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),

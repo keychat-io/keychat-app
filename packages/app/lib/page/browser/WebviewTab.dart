@@ -1,5 +1,6 @@
 import 'dart:collection' show UnmodifiableListView;
 import 'dart:convert' show jsonDecode;
+import 'dart:math' show Random;
 
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
@@ -15,6 +16,7 @@ import 'package:app/page/browser/SelectIdentityForBrowser.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/SignerService.dart';
 import 'package:app/service/identity.service.dart';
+import 'package:app/service/qrscan.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/utils.dart';
 import 'package:auto_size_text_plus/auto_size_text_plus.dart';
@@ -67,7 +69,6 @@ class _WebviewTabState extends State<WebviewTab> {
   late WebviewTabController tc;
   bool pageFailed = false;
   WebviewTabState state = WebviewTabState.start;
-  InAppWebViewKeepAlive? inAppWebViewKeepAlive;
   PageStorageKey? pageStorageKey;
   late String initDomain;
   PullToRefreshController? pullToRefreshController;
@@ -75,29 +76,27 @@ class _WebviewTabState extends State<WebviewTab> {
   // Add scroll position tracking
   Map<String, Map<String, dynamic>> urlScrollPositions = {};
   bool needRestorePosition = false;
+  late WebUri currentUri;
 
   @override
   void initState() {
-    inAppWebViewKeepAlive = widget.keepAlive;
     controller = Get.find<MultiWebviewController>();
     tc = controller.getOrCreateController(
         widget.initUrl, widget.initTitle, widget.uniqueKey);
     ecashController = Get.find<EcashController>();
-    initDomain = WebUri(widget.initUrl).host;
+    currentUri = WebUri(widget.initUrl);
+    initDomain = currentUri.host;
     pageStorageKey = PageStorageKey(initDomain);
 
-    initBrowserConnect(WebUri(widget.initUrl));
+    initBrowserConnect(currentUri);
     initPullToRefreshController();
     super.initState();
     if (widget.initUrl != KeychatGlobal.newTab) {
       Future.delayed(Duration(seconds: 1)).then((_) async {
         if (state == WebviewTabState.start) {
-          InAppWebViewKeepAlive? newKa =
-              await controller.refreshKeepAliveObject(widget.initUrl);
           setState(() {
-            inAppWebViewKeepAlive = newKa;
             state = WebviewTabState.failed;
-            pageStorageKey = null;
+            pageStorageKey = PageStorageKey(Random().nextInt(1 << 32));
           });
         }
       });
@@ -291,13 +290,9 @@ class _WebviewTabState extends State<WebviewTab> {
                                             .contains(initDomain),
                                         onChanged: (value) async {
                                           if (value) {
-                                            InAppWebViewKeepAlive? newKa =
-                                                await controller
-                                                    .enableKeepAlive(
-                                                        initDomain);
-                                            setState(() {
-                                              inAppWebViewKeepAlive = newKa;
-                                            });
+                                            await controller
+                                                .enableKeepAlive(initDomain);
+
                                             Get.back();
                                             EasyLoading.showSuccess(
                                                 'KeepAlive Enabled. Take effect after restarting the page.');
@@ -378,7 +373,7 @@ class _WebviewTabState extends State<WebviewTab> {
               child: Column(children: <Widget>[
                 Expanded(
                     child: Stack(children: [
-                  _getWebview(pageStorageKey, inAppWebViewKeepAlive),
+                  _getWebview(pageStorageKey),
                   Obx(() => tc.progress.value < 1.0
                       ? LinearProgressIndicator(
                           value:
@@ -389,10 +384,10 @@ class _WebviewTabState extends State<WebviewTab> {
         )));
   }
 
-  Widget _getWebview([PageStorageKey? key, InAppWebViewKeepAlive? keepAlive]) {
+  Widget _getWebview([PageStorageKey? key]) {
     return InAppWebView(
       key: key,
-      keepAlive: GetPlatform.isDesktop ? null : keepAlive,
+      keepAlive: GetPlatform.isDesktop ? null : widget.keepAlive,
       webViewEnvironment: controller.webViewEnvironment,
       initialUrlRequest: URLRequest(url: WebUri(tc.url.value)),
       initialSettings: tc.settings,
@@ -506,7 +501,9 @@ class _WebviewTabState extends State<WebviewTab> {
             await downloadFile(url.toString());
             return NavigationActionPolicy.DOWNLOAD;
           }
-
+          if (['http', 'https'].contains(uri.scheme)) {
+            currentUri = uri;
+          }
           if (["http", "https", "data", "javascript", "about"]
               .contains(uri.scheme)) {
             return NavigationActionPolicy.ALLOW;
@@ -586,7 +583,6 @@ class _WebviewTabState extends State<WebviewTab> {
         if (!isForMainFrame || isCancel) {
           return;
         }
-        this.controller.removeKeepAlive(widget.initUrl);
         pullToRefreshController?.endRefreshing();
         if (error.description.contains('domain=WebKitErrorDomain, code=102')) {
           return renderAssetAsHtml(controller, request);
@@ -744,15 +740,7 @@ class _WebviewTabState extends State<WebviewTab> {
     }
 
     if (method == 'pageFailedToRefresh') {
-      controller.removeKeepAlive(widget.initUrl);
-      if (inAppWebViewKeepAlive == null) {
-        refreshPage();
-        return null;
-      }
-
-      setState(() {
-        inAppWebViewKeepAlive = null;
-      });
+      refreshPage();
       return null;
     }
 
@@ -909,7 +897,7 @@ class _WebviewTabState extends State<WebviewTab> {
 
     switch (value) {
       case 'share':
-        Share.share(uri.toString());
+        SharePlus.instance.share(ShareParams(uri: uri));
         break;
       case 'shareToRooms':
         Identity identity = Get.find<HomeController>().getSelectedIdentity();
@@ -1178,7 +1166,7 @@ img {
           if (tr == null) {
             return 'Error: Payment failed or cancelled';
           }
-          return (tr.field0 as LNTransaction).pr;
+          return tr.token;
         } catch (e) {
           String msg = Utils.getErrorMessage(e);
           return 'Error: - $msg';
@@ -1201,7 +1189,7 @@ img {
                   borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
               CreateInvoicePage(amount: invoiceAmount));
           if (result != null) {
-            return (result.field0 as LNTransaction).pr;
+            return result.token;
           }
         } catch (e, s) {
           logger.e(e.toString(), stackTrace: s);
@@ -1345,28 +1333,27 @@ img {
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: TextButton(
-                onPressed: () {
-                  // Show full content in a dialog
-                  Get.dialog(
-                    AlertDialog(
-                      title: Text(title),
-                      content: SingleChildScrollView(
-                        child: Text(
-                          content,
-                          style: TextStyle(fontFamily: 'monospace'),
+                  onPressed: () {
+                    // Show full content in a dialog
+                    Get.dialog(
+                      AlertDialog(
+                        title: Text(title),
+                        content: SingleChildScrollView(
+                          child: Text(
+                            content,
+                            style: TextStyle(fontFamily: 'monospace'),
+                          ),
                         ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Get.back(),
+                            child: Text('Close'),
+                          ),
+                        ],
                       ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Get.back(),
-                          child: Text('Close'),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                child: Text('Show full content'),
-              ),
+                    );
+                  },
+                  child: Text('Show full content')),
             ),
         ],
       ),
@@ -1384,29 +1371,17 @@ img {
   }
 
   Future<void> refreshPage([WebUri? uri]) async {
-    EasyDebounce.debounce('webviewRefreshPage', Duration(seconds: 1), () async {
-      try {
-        uri ??= await tc.webViewController
-            ?.getUrl()
-            .timeout(Duration(seconds: 1), onTimeout: () {
-          return WebUri(widget.initUrl);
-        });
-        await tc.webViewController
-            ?.loadUrl(urlRequest: URLRequest(url: uri))
-            .timeout(Duration(seconds: 3));
-        loggerNoLine.i('Reloaded: ${uri.toString()}');
-      } catch (e) {
-        loggerNoLine.i('Reload failed: $e');
-
-        // Recreate the webview by updating state
-        InAppWebViewKeepAlive? newKa =
-            await controller.refreshKeepAliveObject(widget.initUrl);
-        setState(() {
-          inAppWebViewKeepAlive = newKa;
-          pageStorageKey = null;
-        });
-      }
-    });
+    try {
+      uri ??= await tc.webViewController?.getUrl() ?? currentUri;
+      await tc.webViewController?.loadUrl(urlRequest: URLRequest(url: uri));
+    } catch (e) {
+      // ⛔ A MacOSInAppWebViewController was used after being disposed.
+      // ⛔ Once the MacOSInAppWebViewController has been disposed, it can no longer be used.
+      logger.e(e.toString(), error: e);
+      setState(() {
+        pageStorageKey = PageStorageKey(Random().nextInt(1 << 32));
+      });
+    }
   }
 
   void initPullToRefreshController() {
@@ -1416,29 +1391,14 @@ img {
         ? null
         : PullToRefreshController(
             settings: PullToRefreshSettings(color: KeychatGlobal.primaryColor),
-            onRefresh: () async {
-              if (tc.webViewController == null) {
-                return refreshPage();
-              }
-              WebUri? url;
-              try {
-                url = await tc.webViewController
-                    ?.getUrl()
-                    .timeout(Duration(seconds: 1), onTimeout: () {
-                  return WebUri(widget.initUrl);
-                });
-              } catch (e) {
-                url = WebUri(widget.initUrl);
-              }
-              await refreshPage(url);
-            });
+            onRefresh: refreshPage);
   }
 
   // Add new method to handle special URLs
   Future<bool> handleSpecialUrls(String urlString) async {
     try {
       if (urlString.startsWith('cashu')) {
-        ecashController.proccessCashuAString(urlString);
+        ecashController.proccessCashuString(urlString);
         return true;
       }
       // lightning invoice
@@ -1452,22 +1412,17 @@ img {
               PayInvoicePage(invoce: str, isPay: false, showScanButton: false));
           return true;
         }
-        var tx =
-            await ecashController.proccessPayLightningBill(str, isPay: true);
-        if (tx != null) {
-          var lnTx = tx.field0 as LNTransaction;
-          logger.i('LN Transaction:   Amount=${lnTx.amount}, '
-              'INfo=${lnTx.info}, Description=${lnTx.fee}, '
-              'Hash=${lnTx.hash}, NodeId=${lnTx.status.name}');
-        }
+        await ecashController.proccessPayLightningBill(str, isPay: true);
         return true;
       }
       if (urlString.startsWith('lnbc')) {
-        var tx = await ecashController.proccessPayLightningBill(urlString,
-            isPay: true);
-        if (tx != null) {
-          logger.i((tx.field0 as LNTransaction).pr);
-        }
+        await ecashController.proccessPayLightningBill(urlString, isPay: true);
+        return true;
+      }
+      // Handle Bitcoin URIs
+      if (urlString.startsWith('bitcoin:')) {
+        await QrScanService.instance
+            .handleBitcoinUri(urlString, ecashController);
         return true;
       }
     } catch (e) {

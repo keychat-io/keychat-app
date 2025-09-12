@@ -31,7 +31,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:isar_community/isar.dart';
-import 'package:keychat_rust_ffi_plugin/index.dart' hide Contact;
+import 'package:keychat_rust_ffi_plugin/index.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
@@ -123,7 +123,7 @@ int getRegistrationId(String pubkey) {
 }
 
 Future<ThemeMode> getThemeMode() async {
-  String? res = await Storage.getString(StorageKeyString.themeMode);
+  String? res = Storage.getString(StorageKeyString.themeMode);
   if (res == null) return ThemeMode.system;
   if (ThemeMode.dark.name == res) return ThemeMode.dark;
   if (ThemeMode.system.name == res) return ThemeMode.system;
@@ -736,8 +736,7 @@ class Utils {
   }
 
   static Future<List> getWebRTCServers() async {
-    String? config =
-        await Storage.getString(StorageKeyString.defaultWebRTCServers);
+    String? config = Storage.getString(StorageKeyString.defaultWebRTCServers);
     if (config != null) {
       try {
         return jsonDecode(config);

@@ -21,7 +21,7 @@ enum MessageEncryptType {
 
 enum MessageMediaType {
   text,
-  cashuA,
+  cashu,
   image,
   video,
   contact,

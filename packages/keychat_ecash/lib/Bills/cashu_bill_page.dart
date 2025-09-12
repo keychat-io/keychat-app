@@ -1,5 +1,6 @@
 // ignore_for_file: depend_on_referenced_packages
 
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:keychat_ecash/Bills/ecash_bill_controller.dart';
 import 'package:keychat_ecash/Bills/cashu_transaction.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
@@ -14,7 +15,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
-import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 
 class CashuBillPage extends GetView<EcashBillController> {
   const CashuBillPage({super.key});
@@ -56,11 +56,7 @@ class CashuBillPage extends GetView<EcashBillController> {
                             Text('Failed: $failed'),
                             if (errors.isNotEmpty)
                               Column(
-                                children: errors
-                                    .map((e) => Text(
-                                          e,
-                                        ))
-                                    .toList(),
+                                children: errors.map((e) => Text(e)).toList(),
                               )
                           ],
                         ),
@@ -102,20 +98,20 @@ class CashuBillPage extends GetView<EcashBillController> {
                               color: Color.fromARGB(255, 141, 123, 243),
                               size: 40.0,
                             )))
-                    : Obx(() => SmartRefresher(
-                        enablePullDown: true,
+                    : Obx(() => CustomMaterialIndicator(
                         onRefresh: () async {
-                          await rust_cashu.checkPending();
-                          await controller.getTransactions();
-                          controller.refreshController.refreshCompleted();
+                          int offset = controller.transactions.length;
+                          if (controller.indicatorController.edge ==
+                              IndicatorEdge.leading) {
+                            offset = 0;
+                          }
+                          await controller.getTransactions(offset: offset);
                         },
-                        enablePullUp: true,
-                        onLoading: () async {
-                          await controller.getTransactions(
-                              offset: controller.transactions.length);
-                          controller.refreshController.loadComplete();
-                        },
-                        controller: controller.refreshController,
+                        displacement: 20,
+                        backgroundColor: Colors.white,
+                        trigger: IndicatorTrigger.bothEdges,
+                        triggerMode: IndicatorTriggerMode.anywhere,
+                        controller: controller.indicatorController,
                         child: ListView.separated(
                             separatorBuilder: (BuildContext context2,
                                     int index) =>
@@ -126,10 +122,10 @@ class CashuBillPage extends GetView<EcashBillController> {
                                 ),
                             itemCount: controller.transactions.length,
                             itemBuilder: (BuildContext context, int index) {
-                              CashuTransaction transaction =
+                              Transaction transaction =
                                   controller.transactions[index];
                               String feeString =
-                                  'Fee: ${transaction.fee ?? BigInt.from(0)} ${transaction.unit}';
+                                  'Fee: ${transaction.fee} ${transaction.unit}';
                               return ListTile(
                                   key: Key(index.toString()),
                                   dense: true,
@@ -150,7 +146,7 @@ class CashuBillPage extends GetView<EcashBillController> {
                                           .textTheme
                                           .bodyLarge),
                                   subtitle: textSmallGray(Get.context!,
-                                      '$feeString - ${formatTime(transaction.time.toInt())}'),
+                                      '$feeString - ${formatTime(transaction.timestamp.toInt() * 1000)}'),
                                   trailing: CashuUtil.getStatusIcon(
                                       transaction.status));
                             })))))));

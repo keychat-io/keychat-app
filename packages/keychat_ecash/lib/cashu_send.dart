@@ -140,7 +140,7 @@ class _CashuSendPageState extends State<CashuSendPage> {
                                   : null);
                         } catch (e, s) {
                           String msg = Utils.getErrorMessage(e);
-                          if (msg.startsWith('11001')) {
+                          if (msg.contains('Spent')) {
                             await rust_cashu.checkProofs();
                             EasyLoading.showError(
                                 'Exception: Token already spent. Please retry',

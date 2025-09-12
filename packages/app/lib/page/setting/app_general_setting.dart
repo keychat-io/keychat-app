@@ -10,6 +10,7 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/page/FileExplore.dart';
 import 'package:app/page/login/OnboardingPage2.dart';
 import 'package:app/page/routes.dart';
+import 'package:app/page/setting/BiometricAuthScreen.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/file.service.dart';
 import 'package:app/service/notify.service.dart';
@@ -35,17 +36,27 @@ class AppGeneralSetting extends StatefulWidget {
 class _AppGeneralSettingState extends State<AppGeneralSetting> {
   late SettingController controller;
   bool _biometricsEnabled = false;
+  late String startupTabName;
+  HomeController hc = Get.find<HomeController>();
 
   @override
   void initState() {
     super.initState();
     controller = Get.find<SettingController>();
+    setStartupTabName();
     _biometricsEnabled = controller.biometricsEnabled.value;
+  }
+
+  void setStartupTabName() {
+    setState(() {
+      startupTabName = hc.defaultTabConfig.entries
+          .firstWhere((entry) => entry.value == hc.defaultSelectedTab.value)
+          .key;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    HomeController hc = Get.find<HomeController>();
     return Scaffold(
         appBar: AppBar(
           centerTitle: true,
@@ -135,31 +146,30 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
               SettingsTile.navigation(
                 leading: const Icon(CupertinoIcons.home),
                 title: const Text("Startup Tab"),
+                value: Text(startupTabName),
                 onPressed: (context) async {
-                  Get.bottomSheet(
-                      clipBehavior: Clip.antiAlias,
-                      shape: const RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.vertical(top: Radius.circular(4))),
-                      Scaffold(
-                          appBar: AppBar(
-                            title: Text('Default startup tab'),
-                          ),
-                          body: Column(
-                            children: hc.defaultTabConfig.entries.map((entry) {
-                              return RadioListTile<dynamic>(
-                                title: Text(entry.key),
-                                value: entry.value,
-                                groupValue: hc.defaultSelectedTab.value,
-                                onChanged: (value) {
-                                  if (value == null) return;
-                                  hc.setDefaultSelectedTab(value);
-                                  EasyLoading.showSuccess('Set successfully');
-                                  Get.back();
-                                },
-                              );
-                            }).toList(),
-                          )));
+                  showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return RadioGroup(
+                            groupValue: hc.defaultSelectedTab.value,
+                            onChanged: (value) {
+                              if (value == null) return;
+                              hc.setDefaultSelectedTab(value);
+                              EasyLoading.showSuccess('Set successfully');
+                              setStartupTabName();
+                              Get.back();
+                            },
+                            child: SimpleDialog(
+                                title: const Text('Select startup tab'),
+                                children: hc.defaultTabConfig.entries
+                                    .map((entry) => ListTile(
+                                          leading:
+                                              Radio<int>(value: entry.value),
+                                          title: Text(entry.key),
+                                        ))
+                                    .toList()));
+                      });
                 },
               ),
               SettingsTile.navigation(
@@ -418,7 +428,10 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
     return Get.dialog(CupertinoAlertDialog(
       title: const Text("Logout All Identity?"),
       content: const Text(
-          "Please make sure you have backed up your seed phrase and contacts. This cannot be undone."),
+          '''All app data will be deleted after logging out, so please make sure you have backed it up. 
+
+Please make sure you have backed up your seed phrase and contacts. This cannot be undone.''',
+          style: TextStyle(color: Colors.red)),
       actions: <Widget>[
         CupertinoDialogAction(
           child: const Text('Cancel'),
@@ -430,6 +443,24 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
             isDestructiveAction: true,
             child: const Text('Logout'),
             onPressed: () async {
+              // Biometrics Auth
+              if (GetPlatform.isMobile) {
+                bool isBiometricsEnable =
+                    await SecureStorage.instance.isBiometricsEnable();
+                if (isBiometricsEnable) {
+                  bool? authed = await Get.to(
+                      () => const BiometricAuthScreen(
+                          autoAuth: false,
+                          canPop: true,
+                          title: 'Authenticate to Logout'),
+                      fullscreenDialog: true,
+                      popGesture: true,
+                      transition: Transition.fadeIn);
+                  if (authed == null || !authed) {
+                    return;
+                  }
+                }
+              }
               EasyLoading.show(status: 'Processing...');
               try {
                 DBProvider.instance.deleteAll();
@@ -444,15 +475,19 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                   // ignore: empty_catches
                 } catch (e) {}
                 NotifyService.clearAll();
+                if (kReleaseMode) {
+                  EasyLoading.showSuccess('Logout successfully, App will exit');
+                  await Future.delayed(const Duration(seconds: 2));
+                  exit(0);
+                }
+                // for debug mode, just go to login page
+                EasyLoading.showSuccess('Logout successfully');
                 Get.offAllNamed(Routes.login);
               } catch (e, s) {
-                EasyLoading.showError(e.toString(),
-                    duration: const Duration(seconds: 2));
-                logger.e('reset all', error: e, stackTrace: s);
-              } finally {
-                await Future.delayed(const Duration(seconds: 2));
-                EasyLoading.dismiss();
-                kReleaseMode && exit(0);
+                String msg = Utils.getErrorMessage(e);
+                logger.e(msg, error: e, stackTrace: s);
+                EasyLoading.showError(msg,
+                    duration: const Duration(seconds: 4));
               }
             }),
       ],

@@ -31,55 +31,57 @@ class EncryptModeWidget extends StatelessWidget {
     ];
 
     return Padding(
-      padding: const EdgeInsets.only(right: 10, left: 10),
-      child: Column(children: [
-        Card(
-            child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          child: Flex(
-            direction: Axis.vertical,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Obx(() => ListTile(
-                    title: Text('Signal Protocol',
-                        style: Theme.of(context).textTheme.titleMedium),
-                    subtitle: const Text('Security and Privacy Level: ⭐⭐⭐⭐⭐'),
-                    leading: Radio<EncryptMode>(
-                        value: EncryptMode.signal,
-                        groupValue: cc.roomObs.value.encryptMode,
-                        onChanged: handleClick),
-                    onTap: () {
-                      handleClick(EncryptMode.signal);
-                    },
-                  )),
-              ...(signalIntro.map((e) => textSmallGray(context, e)).toList()),
-            ],
-          ),
-        )),
-        Card(
-            child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Obx(() => ListTile(
-                    title: Text('Nostr nip17 Protocol',
-                        style: Theme.of(context).textTheme.titleMedium),
-                    subtitle: const Text('Security and Privacy Level: ⭐'),
-                    leading: Radio<EncryptMode>(
-                        value: EncryptMode.nip04,
-                        groupValue: cc.roomObs.value.encryptMode,
-                        onChanged: handleClick),
-                    onTap: () {
-                      handleClick(EncryptMode.nip04);
-                    },
-                  )),
-              ...(nostrIntro.map((e) => textSmallGray(context, e)).toList()),
-            ],
-          ),
-        )),
-      ]),
-    );
+        padding: const EdgeInsets.only(right: 10, left: 10),
+        child: RadioGroup<EncryptMode>(
+          groupValue: cc.roomObs.value.encryptMode,
+          onChanged: handleClick,
+          child: Column(children: [
+            Card(
+                child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              child: Flex(
+                direction: Axis.vertical,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Obx(() => ListTile(
+                        title: Text('Signal Protocol',
+                            style: Theme.of(context).textTheme.titleMedium),
+                        subtitle:
+                            const Text('Security and Privacy Level: ⭐⭐⭐⭐⭐'),
+                        leading: Radio<EncryptMode>(value: EncryptMode.signal),
+                        onTap: () {
+                          handleClick(EncryptMode.signal);
+                        },
+                      )),
+                  ...(signalIntro
+                      .map((e) => textSmallGray(context, e))
+                      .toList()),
+                ],
+              ),
+            )),
+            Card(
+                child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Obx(() => ListTile(
+                        title: Text('Nostr nip17 Protocol',
+                            style: Theme.of(context).textTheme.titleMedium),
+                        subtitle: const Text('Security and Privacy Level: ⭐'),
+                        leading: Radio<EncryptMode>(value: EncryptMode.nip04),
+                        onTap: () {
+                          handleClick(EncryptMode.nip04);
+                        },
+                      )),
+                  ...(nostrIntro
+                      .map((e) => textSmallGray(context, e))
+                      .toList()),
+                ],
+              ),
+            )),
+          ]),
+        ));
   }
 
   Future<void> handleClick(EncryptMode? mode) async {

@@ -1,4 +1,5 @@
 import 'package:app/page/components.dart';
+import 'package:app/service/secure_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 import 'package:app/utils.dart';
@@ -156,10 +157,7 @@ class _CreateAccountState extends State<CreateAccount> {
   }
 
   void generateAccount(String? mnemonic) async {
-    if (mnemonic == null) {
-      var account = await rust_nostr.generateFromMnemonic();
-      mnemonic = account.mnemonic!;
-    }
+    mnemonic ??= await SecureStorage.instance.getOrCreatePhraseWords();
 
     List<Secp256k1Account> list = [];
     try {

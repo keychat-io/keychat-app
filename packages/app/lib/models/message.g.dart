@@ -477,7 +477,7 @@ const _MessageencryptTypeValueEnumMap = {
 };
 const _MessagemediaTypeEnumValueMap = {
   'text': 0,
-  'cashuA': 1,
+  'cashu': 1,
   'image': 2,
   'video': 3,
   'contact': 4,
@@ -496,7 +496,7 @@ const _MessagemediaTypeEnumValueMap = {
 };
 const _MessagemediaTypeValueEnumMap = {
   0: MessageMediaType.text,
-  1: MessageMediaType.cashuA,
+  1: MessageMediaType.cashu,
   2: MessageMediaType.image,
   3: MessageMediaType.video,
   4: MessageMediaType.contact,

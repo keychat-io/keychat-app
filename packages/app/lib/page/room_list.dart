@@ -8,10 +8,10 @@ import 'package:app/page/widgets/RelayStatus.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:auto_size_text_plus/auto_size_text_plus.dart';
 import 'package:badges/badges.dart' as badges;
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import 'RecommendBots/RecommendBots.dart';
 import 'components.dart';
 
@@ -78,16 +78,14 @@ class RoomList extends GetView<HomeController> {
           children: controller.tabBodyDatas.keys.map((identityId) {
             TabData data = controller.tabBodyDatas[identityId]!;
             List rooms = data.rooms;
-            return SmartRefresher(
-                enablePullDown: true,
-                header: const WaterDropHeader(),
-                controller: controller.refreshControllers[identityId] ??
-                    RefreshController(),
-                onRefresh: () async {
-                  // reconnect websocket
-                  await Get.find<WebsocketService>().start();
-                  controller.refreshControllers[identityId]?.refreshCompleted();
-                },
+            return CustomMaterialIndicator(
+                key: GlobalObjectKey('roomlist_tab_indicator_$identityId'),
+                onRefresh: () async =>
+                    await Get.find<WebsocketService>().start(),
+                displacement: 20,
+                backgroundColor: Colors.white,
+                trigger: IndicatorTrigger.leadingEdge,
+                triggerMode: IndicatorTriggerMode.anywhere,
                 child: ListView.separated(
                   key: ObjectKey('roomlist_tab_$identityId'),
                   padding: const EdgeInsets.only(

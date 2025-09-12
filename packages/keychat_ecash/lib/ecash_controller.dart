@@ -1,10 +1,11 @@
 import 'dart:async' show FutureOr;
 import 'dart:convert' show jsonDecode;
 
+import 'package:app/app.dart';
 import 'package:app/models/embedded/relay_file_fee.dart';
-import 'package:app/models/models.dart';
 import 'package:app/rust_api.dart';
 import 'package:app/service/relay.service.dart';
+import 'package:app/service/secure_storage.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:keychat_ecash/Bills/ecash_bill_controller.dart';
@@ -14,16 +15,11 @@ import 'package:keychat_ecash/cashu_receive.dart';
 import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
-import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-
-import 'package:app/global.dart';
-
-import 'package:app/utils.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'NostrWalletConnect/NostrWalletConnect_controller.dart';
 
 class EcashController extends GetxController {
@@ -36,19 +32,19 @@ class EcashController extends GetxController {
   RxInt totalSats = 0.obs;
   RxString latestMintUrl = KeychatGlobal.defaultCashuMintURL.obs;
   RxInt pendingCount = 0.obs;
-  RxList<Mint> mints = <Mint>[].obs;
+  RxList<MintCashu> mints = <MintCashu>[].obs;
 
   Identity? currentIdentity;
   late ScrollController scrollController;
   late TextEditingController nameController;
-  late RefreshController refreshController;
   late EcashBillController ecashBillController;
   late LightningBillController lightningBillController;
+  late IndicatorController indicatorController;
   @override
   void onInit() async {
     scrollController = ScrollController();
     nameController = TextEditingController();
-    refreshController = RefreshController();
+    indicatorController = IndicatorController();
     ecashBillController = Get.put(EcashBillController());
     lightningBillController = Get.put(LightningBillController());
     super.onInit();
@@ -91,18 +87,7 @@ class EcashController extends GetxController {
     return cim.token;
   }
 
-  Future initWithoutIdentity() async {
-    try {
-      await rust_cashu.initDb(
-          dbpath: '$dbPath${KeychatGlobal.ecashDBFile}', dev: kDebugMode);
-      logger.i('rust api init success');
-    } catch (e, s) {
-      logger.e('init cashu error', error: e, stackTrace: s);
-    }
-    await _initCashu();
-  }
-
-  Future<void> _initCashu() async {
+  Future<void> _initCashuMints() async {
     const maxAttempts = 3;
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
       try {
@@ -110,9 +95,6 @@ class EcashController extends GetxController {
         var res = await rust_cashu.initCashu(
             prepareSatsOnceTime: KeychatGlobal.cashuPrepareAmount);
         logger.i('initCashu success');
-        for (var item in res) {
-          logger.d('${item.url} ${item.info?.nuts}');
-        }
         mints.addAll(res);
         cashuInitFailed.value = false;
         cashuInitFailed.refresh();
@@ -131,28 +113,74 @@ class EcashController extends GetxController {
     }
   }
 
-  Future initIdentity(Identity identity) async {
+  // move cashu token to v2
+  Future<void> upgradeToV2() async {
+    bool upgraded = Storage.getBool(StorageKeyString.upgradeToV2) ?? false;
+    if (upgraded) return;
+    logger.i('Starting upgradeToV2 process');
+    List<String> tokens = [];
+    logger
+        .i('Upgrade not completed yet, starting token migration from v1 to v2');
+    try {
+      tokens = await rust_cashu.cashuV1InitSendAll(
+          dbpath: '$dbPath${KeychatGlobal.ecashDBFile}');
+      if (tokens.isEmpty) {
+        logger.i('No tokens found to migrate, marking upgrade as complete');
+        await Storage.setBool(StorageKeyString.upgradeToV2, true);
+        return;
+      }
+      await Storage.setStringList(StorageKeyString.upgradeToV2Tokens, tokens);
+      logger.i('Found ${tokens.length} tokens to migrate: $tokens');
+    } catch (e, s) {
+      String msg = Utils.getErrorMessage(e);
+      EasyLoading.showError('Failed to fetch tokens: $msg');
+      logger.e('Failed to fetch tokens from v1 database: $msg', stackTrace: s);
+    }
+
+    await rust_cashu.initDbCashuOnce(
+        dbpath: '$dbPath${KeychatGlobal.ecashDBFileV2}');
+
+    List<String> failedTokens = [];
+    for (int i = 0; i < tokens.length; i++) {
+      try {
+        logger.d('Receiving token ${i + 1}/${tokens.length}');
+        await rust_cashu.receiveToken(encodedToken: tokens[i]);
+        logger.d('Successfully received token ${i + 1}/${tokens.length}');
+      } catch (e, s) {
+        String msg = Utils.getErrorMessage(e);
+        logger.e('Failed to receive token ${tokens[i]}: $msg', stackTrace: s);
+        failedTokens.add(tokens[i]);
+      }
+    }
+    if (tokens.isNotEmpty && failedTokens.isEmpty) {
+      logger.i('All tokens migrated successfully, marking upgrade as complete');
+      await Storage.setBool(StorageKeyString.upgradeToV2, true);
+      await Storage.remove(StorageKeyString.upgradeToV2Tokens);
+      requestPageRefresh();
+    } else {
+      logger.w(
+          'Some tokens failed to migrate, upgrade not marked as complete: $failedTokens');
+    }
+  }
+
+  Future<void> initIdentity(Identity identity) async {
     currentIdentity = identity;
 
-    try {
-      final stopwatch = Stopwatch()..start();
-      await rust_cashu.initDb(
-          dbpath: '$dbPath${KeychatGlobal.ecashDBFile}',
-          dev: kDebugMode,
-          words: await identity.getMnemonic());
-      stopwatch.stop();
-      logger.i('ecash init completed in ${stopwatch.elapsedMilliseconds}ms');
-    } catch (e, s) {
-      logger.e(e.toString(), error: e, stackTrace: s);
-    }
-    await _initCashu();
+    await upgradeToV2();
+
+    String words = await SecureStorage.instance.getOrCreatePhraseWords();
+    await rust_cashu.initDb(
+        dbpath: '$dbPath${KeychatGlobal.ecashDBFileV2}',
+        dev: kDebugMode,
+        words: words);
+    await _initCashuMints();
   }
 
   @override
   void onClose() {
     nameController.dispose();
     scrollController.dispose();
-    refreshController.dispose();
+    indicatorController.dispose();
     super.onClose();
   }
 
@@ -287,7 +315,7 @@ class EcashController extends GetxController {
     }
   }
 
-  Future initMintUrl() async {
+  Future<void> initMintUrl() async {
     mints.value = await rust_cashu.getMints();
     if (mints.isEmpty) {
       await rust_cashu.addMint(url: KeychatGlobal.defaultCashuMintURL);
@@ -310,42 +338,41 @@ class EcashController extends GetxController {
 
   Future addMintUrl(String mint) async {
     await rust_cashu.addMint(url: mint);
+    mints.value = await rust_cashu.getMints();
     await getBalance();
   }
 
   Future restore() async {
     if (currentIdentity == null) return;
     String? mnemonic = await currentIdentity!.getMnemonic();
-    for (Mint m in mints) {
-      Nuts? nuts = m.info?.nuts;
-      if (nuts == null) continue;
-      if (nuts.nut09.supported) {
-        await rust_cashu.restore(
-            mint: m.url,
-            words: mnemonic,
-            sleepmsAfterCheckABatch: BigInt.from(1000));
+    for (MintCashu m in mints) {
+      Map? nuts = m.info?.nuts;
+      logger.d('restore mint ${m.url} nuts: $nuts');
+      try {
+        var res = await rust_cashu.restore(mintUrl: m.url, words: mnemonic);
+        logger.d('restore mint ${res.$1.toInt()} proofs: ${res.$2.toInt()}');
+      } catch (e) {
+        logger.e('Failed to restore mint ${m.url}: $e');
       }
     }
     await getBalance();
   }
 
   bool supportMint(String mint) {
-    for (Mint m in mints) {
+    for (MintCashu m in mints) {
       if (m.url == mint) {
-        Nuts? nuts = m.info?.nuts;
+        Map? nuts = m.info?.nuts;
         if (nuts == null) return false;
-        return !nuts.nut04.disabled;
       }
     }
     return true;
   }
 
   bool supportMelt(String mint) {
-    for (Mint m in mints) {
+    for (MintCashu m in mints) {
       if (m.url == mint) {
-        Nuts? nuts = m.info?.nuts;
+        Map? nuts = m.info?.nuts;
         if (nuts == null) return false;
-        return !nuts.nut05.disabled;
       }
     }
     return true;
@@ -363,17 +390,17 @@ class EcashController extends GetxController {
           ?.checkPendings(pendings);
       // ignore: empty_catches
     } catch (e) {}
-    refreshController.refreshCompleted();
   }
 
-  Future proccessCashuAString(String str,
+  Future proccessCashuString(String str,
       [Function(String str)? callback]) async {
     try {
       CashuInfoModel cashu = await RustAPI.decodeToken(encodedToken: str);
       Get.dialog(CashuReceiveWidget(cashuinfo: cashu));
     } catch (e) {
+      logger.e('Failed to process Cashu string: $e');
       if (callback == null) {
-        rethrow;
+        throw Exception('Invalid Cashu Token');
       }
       return callback(str);
     }

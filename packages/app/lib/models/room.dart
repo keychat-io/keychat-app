@@ -149,11 +149,9 @@ class Room extends Equatable {
   List<Object?> get props => [
         id,
         toMainPubkey,
-        mykey,
         createdAt,
         unReadCount,
         name,
-        // groupChat
       ];
 
   String get myIdPubkey => getIdentity().secp256k1PKHex;

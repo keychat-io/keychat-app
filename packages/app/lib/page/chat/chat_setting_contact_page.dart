@@ -2,6 +2,7 @@ import 'package:app/controller/chat.controller.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app/page/chat/search_messages_page.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
@@ -207,6 +208,17 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                 if (cc.roomObs.value.encryptMode == EncryptMode.signal &&
                     GetPlatform.isIOS)
                   RoomUtil.muteSection(cc)
+              ]),
+              SettingsSection(tiles: [
+                SettingsTile.navigation(
+                  leading: const Icon(CupertinoIcons.search),
+                  title: const Text('Search History'),
+                  onPressed: (context) async {
+                    Get.to(
+                        () => SearchMessagesPage(roomId: cc.roomObs.value.id),
+                        id: GetPlatform.isDesktop ? GetXNestKey.room : null);
+                  },
+                ),
               ]),
               SettingsSection(tiles: [
                 RoomUtil.mediaSection(cc),

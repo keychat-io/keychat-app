@@ -15,8 +15,8 @@ import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_ecash/receive_ecash_page.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import 'package:settings_ui/settings_ui.dart';
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 
 class CashuPage extends GetView<EcashController> {
   const CashuPage({super.key});
@@ -65,7 +65,7 @@ class CashuPage extends GetView<EcashController> {
             if (GetPlatform.isDesktop)
               IconButton(
                   onPressed: () {
-                    controller.refreshController.requestRefresh();
+                    // controller.refreshController.requestRefresh();
                   },
                   icon: const Icon(CupertinoIcons.refresh)),
             IconButton(
@@ -85,10 +85,12 @@ class CashuPage extends GetView<EcashController> {
               padding: GetPlatform.isDesktop
                   ? const EdgeInsets.all(8)
                   : const EdgeInsets.all(0),
-              child: SmartRefresher(
-                enablePullDown: true,
+              child: CustomMaterialIndicator(
                 onRefresh: controller.requestPageRefresh,
-                controller: controller.refreshController,
+                displacement: 20,
+                backgroundColor: Colors.white,
+                trigger: IndicatorTrigger.leadingEdge,
+                triggerMode: IndicatorTriggerMode.anywhere,
                 child: ListView(
                   children: [
                     Padding(
@@ -394,12 +396,12 @@ class CashuPage extends GetView<EcashController> {
                                           ? billLimit
                                           : controller.ecashBillController
                                               .transactions.length)
-                                  .map((CashuTransaction transaction) {
+                                  .map((Transaction transaction) {
                                   String feeString =
-                                      'Fee: ${transaction.fee ?? BigInt.from(0)} ${transaction.unit}';
+                                      'Fee: ${transaction.fee} ${transaction.unit}';
                                   return ListTile(
                                     key: Key(transaction.id +
-                                        transaction.time.toString()),
+                                        transaction.timestamp.toString()),
                                     dense: true,
                                     leading: CashuUtil.getTransactionIcon(
                                         transaction.io),
@@ -409,7 +411,7 @@ class CashuPage extends GetView<EcashController> {
                                             .textTheme
                                             .bodyLarge),
                                     subtitle: textSmallGray(Get.context!,
-                                        '$feeString - ${formatTime(transaction.time.toInt())}'),
+                                        '$feeString - ${formatTime(transaction.timestamp.toInt() * 1000)}'),
                                     trailing: CashuUtil.getStatusIcon(
                                         transaction.status),
                                     onTap: () {
@@ -486,10 +488,10 @@ class CashuPage extends GetView<EcashController> {
                                           ? billLimit
                                           : controller.lightningBillController
                                               .transactions.length)
-                                  .map((LNTransaction transaction) {
+                                  .map((Transaction transaction) {
                                   return ListTile(
-                                    key: Key(transaction.hash +
-                                        transaction.time.toString()),
+                                    key: Key(transaction.id +
+                                        transaction.timestamp.toString()),
                                     dense: true,
                                     leading: CashuUtil.getTransactionIcon(
                                         transaction.io),
@@ -506,13 +508,15 @@ class CashuPage extends GetView<EcashController> {
                                       children: [
                                         textSmallGray(
                                           Get.context!,
-                                          transaction.pr,
+                                          transaction.token,
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                         textSmallGray(
                                             Get.context!,
                                             DateTime.fromMillisecondsSinceEpoch(
-                                                    transaction.time.toInt())
+                                                    transaction.timestamp
+                                                            .toInt() *
+                                                        1000)
                                                 .toIso8601String())
                                       ],
                                     ),
@@ -567,10 +571,9 @@ class CashuPage extends GetView<EcashController> {
                             BorderRadius.vertical(top: Radius.circular(4))),
                     const CreateInvoicePage());
                 if (result == null) return;
-                LNTransaction ln = result.field0 as LNTransaction;
+                Transaction ln = result;
                 await Get.to(() => LightningTransactionPage(transaction: ln),
                     id: GetPlatform.isDesktop ? GetXNestKey.ecash : null);
-                controller.refreshController.requestRefresh();
                 controller.requestPageRefresh();
               },
             ),

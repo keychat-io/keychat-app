@@ -228,9 +228,7 @@ class NostrWalletConnectController extends GetxController {
             };
           }
         } else {
-          var lnTx = tx.field0 as LNTransaction;
-
-          if (lnTx.status != TransactionStatus.success) {
+          if (tx.status != TransactionStatus.success) {
             toSendMessage = {
               "result_type": "pay_invoice",
               "error": {"code": "PAYMENT_FAILED", "message": "PAYMENT FAILED"},
@@ -239,8 +237,8 @@ class NostrWalletConnectController extends GetxController {
             toSendMessage = {
               "result_type": "pay_invoice",
               "result": {
-                "preimage": lnTx.hash,
-                "fees_paid": lnTx.fee?.toInt() ?? 0,
+                "preimage": tx.id,
+                "fees_paid": tx.fee.toInt(),
               }
             };
           }

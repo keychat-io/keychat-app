@@ -15,7 +15,7 @@ import 'package:app/service/message.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/utils.dart';
-import 'package:easy_debounce/easy_debounce.dart';
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -26,12 +26,10 @@ import 'package:isar_community/isar.dart';
 import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart'
-    show LNTransaction, TransactionStatus;
-import 'package:keychat_rust_ffi_plugin/index.dart' show Transaction;
+    show Transaction, TransactionStatus;
 import 'package:mime/mime.dart' show extensionFromMime;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
@@ -41,7 +39,6 @@ String newlineChar = String.fromCharCode(13);
 
 class ChatController extends GetxController {
   RxList<Message> messages = <Message>[].obs;
-  List<Message> messagesMore = <Message>[];
   RxList<Message> inputReplys = <Message>[].obs;
   RxString inputText = ''.obs;
   RxBool inputTextIsAdd = true.obs;
@@ -51,10 +48,8 @@ class ChatController extends GetxController {
 
   RxInt statsSend = 0.obs;
   RxInt statsReceive = 0.obs;
-  RxInt unreadIndex = (-1).obs;
   RxList<Room> kpaIsNullRooms = <Room>[].obs; // for signal group chat
-  int searchMsgIndex = -1;
-  DateTime searchDt = DateTime.now();
+  late int searchMessageId; // click message from search page
   int messageLimitPerPage = 30;
 
   // hide add button
@@ -70,6 +65,9 @@ class ChatController extends GetxController {
 
   // show Message's from and to address
   RxBool showFromAndTo = false.obs;
+
+  // Prevent duplicate upload flag
+  bool _isUploading = false;
 
   // private chat
   Rx<Contact> roomContact = Contact(pubkey: '', npubkey: '', identityId: 0).obs;
@@ -87,8 +85,10 @@ class ChatController extends GetxController {
 
   late FocusNode chatContentFocus;
   late FocusNode keyboardFocus;
-  late AutoScrollController autoScrollController;
   late ScrollController textFieldScrollController;
+  late final ScrollController scrollController;
+  late IndicatorController indicatorController;
+
   DateTime lastMessageAddedAt = DateTime.now();
 
   final List<String> featuresIcons = [
@@ -112,8 +112,46 @@ class ChatController extends GetxController {
 
   List<Function> featuresOnTaps = [];
 
-  ChatController(Room room) {
+  ChatController(Room room, {this.searchMessageId = -1}) {
     roomObs.value = room;
+  }
+
+  @override
+  void onInit() async {
+    scrollController = ScrollController();
+    chatContentFocus = FocusNode();
+    keyboardFocus = FocusNode();
+    if (GetPlatform.isDesktop) {
+      chatContentFocus.requestFocus();
+      messageLimitPerPage = 100;
+    }
+
+    textFieldScrollController = ScrollController();
+    textEditingController = TextEditingController();
+    indicatorController = IndicatorController();
+
+    // load draft
+    String? textFiledDraft = RoomDraft.instance.getDraft(roomObs.value.id);
+    if (textEditingController.text.isEmpty && textFiledDraft != null) {
+      textEditingController.text = textFiledDraft;
+    }
+
+    textEditingController.addListener(() {
+      String newText = textEditingController.text;
+      if (newText.contains(newlineChar)) {
+        textEditingController.text = newText.replaceAll(newlineChar, '\n');
+        return;
+      }
+
+      inputTextIsAdd.value = newText.length >= inputText.value.length;
+      inputText.value = newText;
+      RoomDraft.instance.setDraft(roomObs.value.id, newText);
+    });
+    await _initRoom();
+    await loadAllChat(searchMsgIndex: searchMessageId);
+    isLatestMessageNip04();
+    initChatPageFeatures();
+    super.onInit();
   }
 
   void addMessage(Message message) {
@@ -128,22 +166,11 @@ class ChatController extends GetxController {
     }
     lastMessageAddedAt = DateTime.now();
 
-    if (!autoScrollController.hasClients) {
-      messages.insert(index, message);
+    messages.insert(index, message);
+    if (scrollController.hasClients &&
+        scrollController.position.pixels <= 400) {
       jumpToBottom(100);
-      return;
     }
-    try {
-      if (autoScrollController.position.pixels <= 300) {
-        messages.insert(index, message);
-        jumpToBottom(100);
-        return;
-      }
-      // ignore: empty_catches
-    } catch (e, s) {
-      logger.e('addMessage ${e.toString()}', stackTrace: s);
-    }
-    messagesMore.add(message);
   }
 
   void addMetionName(String name) {
@@ -293,8 +320,8 @@ class ChatController extends GetxController {
 
   void jumpToBottom(int milliseconds) {
     Timer(const Duration(milliseconds: 300), () {
-      if (autoScrollController.hasClients) {
-        autoScrollController.animateTo(
+      if (scrollController.hasClients) {
+        scrollController.animateTo(
           0.0,
           duration: Duration(milliseconds: milliseconds),
           curve: Curves.easeIn,
@@ -303,7 +330,20 @@ class ChatController extends GetxController {
     });
   }
 
-  Future loadAllChat() async {
+  Future<void> loadAllChat({int searchMsgIndex = -1}) async {
+    // fetch some old messages
+    if (searchMsgIndex >= 0) {
+      if (searchMsgIndex > 3) {
+        searchMsgIndex = searchMsgIndex - 3;
+      }
+      await _loadLatestMessages(searchMsgIndex);
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (scrollController.hasClients) {
+          scrollController.jumpTo(scrollController.position.maxScrollExtent);
+        }
+      });
+      return;
+    }
     List<Message> list = await MessageService.instance.getMessagesByView(
         roomId: roomObs.value.id,
         maxId: maxMessageId,
@@ -313,32 +353,42 @@ class ChatController extends GetxController {
         roomId: roomObs.value.id,
         maxId: maxMessageId,
         isRead: false,
-        limit: 200);
+        limit: 999);
     if (unreads.isNotEmpty) {
-      if (unreads.length > 12) {
-        unreadIndex.value = unreads.length - 1;
-      }
       RoomService.instance.markAllRead(
           identityId: roomObs.value.identityId, roomId: roomObs.value.id);
     }
     unreads.addAll(list);
-    messages.value = sortMessageById(unreads.toList());
-    messages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
-    messages.value = List.from(messages);
+    List<Message> mlist = sortMessageById(unreads.toList());
+    mlist.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    messages.value = mlist;
     checkPendingEcash();
+  }
+
+  Future<int> _loadLatestMessages(int searchMsgIndex) async {
+    var sortedNewMessages = await MessageService.instance
+        .listLatestMessageByTime(
+            roomId: roomObs.value.id,
+            messageId: searchMsgIndex,
+            limit: messageLimitPerPage);
+
+    if (sortedNewMessages.isEmpty) {
+      EasyLoading.showToast('No more messages');
+      return 0;
+    }
+
+    sortedNewMessages.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    messages.insertAll(0, sortedNewMessages);
+    messages.value = List.from(messages);
+    return sortedNewMessages.length;
   }
 
   Future<void> checkPendingEcash() async {
     for (var message in messages) {
-      if (message.mediaType == MessageMediaType.cashuA) {
+      if (message.mediaType == MessageMediaType.cashu ||
+          message.mediaType == MessageMediaType.lightningInvoice) {
         if (message.cashuInfo?.status == TransactionStatus.pending) {
           await checkEcashStatus(message, message.cashuInfo?.id);
-        }
-      }
-
-      if (message.mediaType == MessageMediaType.lightningInvoice) {
-        if (message.cashuInfo?.status == TransactionStatus.pending) {
-          await checkEcashStatus(message, message.cashuInfo?.hash);
         }
       }
     }
@@ -351,8 +401,7 @@ class ChatController extends GetxController {
 
     try {
       logger.d('checkLNStatus id: $id');
-      Transaction item = await rust_cashu.checkTransaction(id: id);
-      LNTransaction ln = item.field0 as LNTransaction;
+      Transaction ln = await rust_cashu.checkTransaction(id: id);
       if (message.cashuInfo!.status == ln.status) {
         return;
       }
@@ -362,35 +411,6 @@ class ChatController extends GetxController {
       String msg = Utils.getErrorMessage(e);
       logger.e('checkStatus error: $msg', stackTrace: s);
     }
-  }
-
-  void loadAllChatFromSearchScroll() {
-    messages.clear();
-    DateTime from = searchDt;
-    var list = MessageService.instance.listMessageBySearchSroll(
-        roomId: roomObs.value.id, from: from, limit: 7);
-    messages.addAll(sortMessageById(list));
-    messages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
-    messages.value = List.from(messages);
-  }
-
-  Future<void> loadLatestMessage() async {
-    late DateTime from;
-    if (messages.isEmpty) {
-      from = DateTime.now();
-    } else {
-      from = messages.first.createdAt;
-    }
-    List<Message> list = await MessageService.instance
-        .listLatestMessage(roomId: roomObs.value.id, from: from);
-    Map<int, Message> msgs = {};
-    for (var element in messages) {
-      msgs[element.id] = element;
-    }
-    List<Message> list2 = msgs.values.toList();
-    list2.addAll(list);
-    list2.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
-    messages.value = list2;
   }
 
   List<Message> loadMoreChatFromSearchSroll() {
@@ -407,22 +427,24 @@ class ChatController extends GetxController {
     return list;
   }
 
-  Future loadMoreChatHistory() async {
-    if (messages.isEmpty) {
+  Future pullToLoadMessages() async {
+    if (messages.isEmpty) return;
+    if (indicatorController.edge == IndicatorEdge.leading) {
+      _loadLatestMessages(messages.first.id);
+      return;
+    }
+    // trailing
+    var sortedNewMessages = await MessageService.instance.listOldMessageByTime(
+        roomId: roomObs.value.id,
+        messageId: messages.last.id,
+        limit: messageLimitPerPage);
+
+    if (sortedNewMessages.isEmpty) {
+      EasyLoading.showToast('No more messages');
       return;
     }
 
-    // Load more messages
-    DateTime from = messages.last.createdAt;
-    var sortedNewMessages = await MessageService.instance.listMessageByTime(
-        roomId: roomObs.value.id, from: from, limit: messageLimitPerPage);
-
-    if (sortedNewMessages.isEmpty) {
-      EasyLoading.showToast('No more messages to load');
-      return; // No new messages to load
-    }
-
-    sortedNewMessages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
+    sortedNewMessages.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     messages.addAll(sortedNewMessages);
     messages.value = List.from(messages);
   }
@@ -434,67 +456,8 @@ class ChatController extends GetxController {
     keyboardFocus.dispose();
     textEditingController.dispose();
     textFieldScrollController.dispose();
-    autoScrollController.dispose();
+    indicatorController.dispose();
     super.onClose();
-  }
-
-  @override
-  void onInit() async {
-    chatContentFocus = FocusNode();
-    keyboardFocus = FocusNode();
-    if (GetPlatform.isDesktop) {
-      chatContentFocus.requestFocus();
-      messageLimitPerPage = 100;
-    }
-
-    textFieldScrollController = ScrollController();
-    textEditingController = TextEditingController();
-    autoScrollController = AutoScrollController(axis: Axis.vertical);
-
-    autoScrollController.addListener(() {
-      EasyDebounce.debounce(
-          'autoScrollController.addListener', Duration(milliseconds: 200), () {
-        bool isCurrent = DBProvider.instance.isCurrentPage(roomObs.value.id);
-        if (!isCurrent) {
-          messagesMore.clear();
-          searchMsgIndex = -1;
-        }
-        if (messagesMore.isNotEmpty &&
-            autoScrollController.position.pixels <= 100) {
-          messages.addAll(sortMessageById(messagesMore));
-          messages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
-          messages.value = List.from(messages);
-
-          messagesMore.clear();
-        }
-      });
-    });
-
-    // load draft
-    String? textFiledDraft = RoomDraft.instance.getDraft(roomObs.value.id);
-    if (textEditingController.text.isEmpty && textFiledDraft != null) {
-      textEditingController.text = textFiledDraft;
-    }
-
-    textEditingController.addListener(() {
-      String newText = textEditingController.text;
-      if (newText.contains(newlineChar)) {
-        textEditingController.text = newText.replaceAll(newlineChar, '\n');
-        return;
-      }
-
-      inputTextIsAdd.value = newText.length >= inputText.value.length;
-      inputText.value = newText;
-      RoomDraft.instance.setDraft(roomObs.value.id, newText);
-    });
-    await _initRoom();
-    await loadAllChat();
-    isLatestMessageNip04();
-    if (searchMsgIndex > 0) {
-      loadAllChatFromSearchScroll();
-    }
-    initChatPageFeatures();
-    super.onInit();
   }
 
   // check if the latest message is nip04
@@ -534,26 +497,13 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     }
   }
 
-  @override
-  onReady() {
-    // jump to bottom after 200ms
-    Future.delayed(const Duration(milliseconds: 200), () {
-      Timer(const Duration(milliseconds: 300), () {
-        if (autoScrollController.positions.isNotEmpty &&
-            autoScrollController.hasClients) {
-          autoScrollController.jumpTo(0.0);
-        }
-      });
-    });
-  }
-
-  Future<void> openPageAction() async {
-    await loadLatestMessage();
-    RoomService.instance.markAllRead(
-        identityId: roomObs.value.identityId, roomId: roomObs.value.id);
-  }
-
   Future<void> pickAndUploadImage(ImageSource imageSource) async {
+    // Prevent duplicate clicks
+    if (_isUploading) {
+      EasyLoading.showToast('File uploading, please wait...');
+      return;
+    }
+
     EasyLoading.show(status: 'Loading...');
     XFile? xfile;
     try {
@@ -585,9 +535,18 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
         CupertinoDialogAction(
           isDefaultAction: true,
           onPressed: () async {
-            await FileService.instance.handleSendMediaFile(
-                roomObs.value, xfile!, MessageMediaType.image, true);
-            Get.back();
+            if (_isUploading) {
+              EasyLoading.showToast('File uploading, please wait...');
+              return;
+            }
+            _isUploading = true;
+            try {
+              await FileService.instance.handleSendMediaFile(
+                  roomObs.value, xfile!, MessageMediaType.image, true);
+              Get.back();
+            } finally {
+              _isUploading = false;
+            }
           },
           child: const Text('Send'),
         ),
@@ -596,6 +555,12 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
   }
 
   Future<void> pickAndUploadVideo(ImageSource imageSource) async {
+    // Prevent duplicate clicks
+    if (_isUploading) {
+      EasyLoading.showToast('File uploading, please wait...');
+      return;
+    }
+
     EasyLoading.show(status: 'Loading...');
     XFile? xfile;
     try {
@@ -608,6 +573,8 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     }
 
     if (xfile == null) return;
+
+    _isUploading = true;
     try {
       EasyLoading.showProgress(0.2, status: 'Encrypting and Uploading...');
 
@@ -621,11 +588,12 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
       EasyLoading.showError(msg, duration: const Duration(seconds: 3));
       logger.e('encrypt And SendFile', error: e, stackTrace: s);
     } finally {
+      _isUploading = false;
       hideAdd.trigger(true);
     }
   }
 
-  void processClickBlank() {
+  void processClickBlankArea() {
     hideAdd.value = true;
     hideEmoji.value = true;
     Utils.hideKeyboard(Get.context!);
@@ -700,8 +668,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     try {
       logger.d(cashuInfo.toString());
       await RoomService.instance.sendMessage(roomObs.value, cashuInfo.token,
-          realMessage: cashuInfo.toString(),
-          mediaType: MessageMediaType.cashuA);
+          realMessage: cashuInfo.toString(), mediaType: MessageMediaType.cashu);
       hideAdd.value = true; // close features section
     } catch (e, s) {
       String msg = Utils.getErrorMessage(e);
@@ -711,23 +678,23 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
   }
 
   Future<void> _handleSendLightning() async {
-    Transaction? transaction = await Get.bottomSheet(
+    Transaction? invoice = await Get.bottomSheet(
         clipBehavior: Clip.hardEdge,
         shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
         const CreateInvoicePage());
-    if (transaction == null) return;
-    LNTransaction invoice = transaction.field0 as LNTransaction;
+    if (invoice == null) return;
 
     try {
       CashuInfoModel cim = CashuInfoModel()
         ..amount = invoice.amount.toInt()
-        ..token = invoice.pr
-        ..mint = invoice.mint
+        ..token = invoice.token
+        ..mint = invoice.mintUrl
         ..status = invoice.status
-        ..hash = invoice.hash
-        ..expiredAt = DateTime.fromMillisecondsSinceEpoch(invoice.time.toInt());
-      await RoomService.instance.sendMessage(roomObs.value, invoice.pr,
+        ..hash = invoice.id
+        ..expiredAt = DateTime.fromMillisecondsSinceEpoch(
+            invoice.timestamp.toInt() * 1000);
+      await RoomService.instance.sendMessage(roomObs.value, invoice.token,
           realMessage: cim.toString(),
           mediaType: MessageMediaType.lightningInvoice);
       hideAdd.value = true; // close features section
@@ -743,6 +710,13 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
       EasyLoading.showToast('Camera not supported on MacOS');
       return;
     }
+
+    // Prevent duplicate clicks
+    if (_isUploading) {
+      EasyLoading.showToast('File uploading, please wait...');
+      return;
+    }
+
     bool isGranted = true;
     if (GetPlatform.isMobile || GetPlatform.isWindows) {
       isGranted = await Permission.camera.request().isGranted;
@@ -1075,8 +1049,17 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
             bytes: imageBytes, mimeType: mimeType, name: suggestedName);
         bool isImage = FileService.instance.isImageFile(xfile.path);
         if (!isImage) {
-          await FileService.instance
-              .handleSendMediaFile(roomObs.value, xfile, type, compress);
+          if (_isUploading) {
+            EasyLoading.showToast('File uploading, please wait...');
+            return;
+          }
+          _isUploading = true;
+          try {
+            await FileService.instance
+                .handleSendMediaFile(roomObs.value, xfile, type, compress);
+          } finally {
+            _isUploading = false;
+          }
           return;
         }
         await Get.dialog(CupertinoAlertDialog(
@@ -1094,9 +1077,18 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
             CupertinoDialogAction(
               isDefaultAction: true,
               onPressed: () async {
-                await FileService.instance.handleSendMediaFile(
-                    roomObs.value, xfile, MessageMediaType.image, true);
-                Get.back();
+                if (_isUploading) {
+                  EasyLoading.showToast('File uploading, please wait...');
+                  return;
+                }
+                _isUploading = true;
+                try {
+                  await FileService.instance.handleSendMediaFile(
+                      roomObs.value, xfile, MessageMediaType.image, true);
+                  Get.back();
+                } finally {
+                  _isUploading = false;
+                }
               },
               child: const Text('Send'),
             ),
@@ -1110,5 +1102,11 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
         });
       }
     });
+  }
+
+  // from search page
+  Future<void> loadFromMessageId(int messageId) async {
+    messages.clear();
+    await loadAllChat(searchMsgIndex: messageId);
   }
 }

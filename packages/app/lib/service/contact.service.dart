@@ -1,5 +1,4 @@
 import 'package:app/app.dart';
-import 'package:app/controller/home.controller.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:get/get.dart';
@@ -113,13 +112,7 @@ class ContactService {
       List<String> remain = crk.receiveKeys.sublist(index - 1);
       crk.receiveKeys = remain;
       Get.find<WebsocketService>().removePubkeyFromSubscription(pubkey);
-
-      if (Get.find<HomeController>().debugModel.value == false) {
-        crk.removeReceiveKeys = [
-          ...crk.removeReceiveKeys,
-          ...removeReceiveKeys
-        ];
-      }
+      crk.removeReceiveKeys = [...crk.removeReceiveKeys, ...removeReceiveKeys];
 
       await _saveReceiveKey(crk);
     } finally {

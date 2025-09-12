@@ -41,107 +41,111 @@ class _ImportNsec extends State<ImportNsec> {
     return Scaffold(
         appBar:
             AppBar(centerTitle: true, title: const Text("Import from Nsec")),
-        body: SafeArea(
-          child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
-              child: Column(children: [
-                Form(
-                    autovalidateMode: AutovalidateMode.onUserInteraction,
-                    child: Expanded(
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                          TextField(
-                              controller: nameController,
-                              textInputAction: TextInputAction.next,
-                              autofocus: true,
-                              decoration: const InputDecoration(
-                                  labelText: 'My Nickname',
-                                  hintText: 'Show to friends',
-                                  border: OutlineInputBorder())),
-                          const SizedBox(height: 16),
-                          TextField(
-                              controller: _privateKeyController,
-                              textInputAction: TextInputAction.done,
-                              minLines: 1,
-                              maxLines: 2,
-                              focusNode: focusNode2,
-                              decoration: InputDecoration(
-                                  labelText: 'Nsec / Hex Private Key',
-                                  hintText: 'Nsec / Hex Private Key',
-                                  border: const OutlineInputBorder(),
-                                  suffixIcon: IconButton(
-                                      icon: const Icon(Icons.paste),
-                                      onPressed: () async {
-                                        final clipboardData =
-                                            await Clipboard.getData(
-                                                'text/plain');
-                                        if (clipboardData != null) {
-                                          final pastedText = clipboardData.text;
-                                          if (pastedText != null &&
-                                              pastedText != '') {
-                                            _privateKeyController.text =
-                                                pastedText;
-                                            _privateKeyController.selection =
-                                                TextSelection.fromPosition(
-                                                    TextPosition(
-                                                        offset:
-                                                            _privateKeyController
-                                                                .text.length));
-                                          }
-                                        }
-                                      }))),
-                        ]))),
-                Center(
-                    child: Container(
-                        constraints: BoxConstraints(maxWidth: 400),
-                        width: double.infinity,
-                        child: FilledButton(
-                          child: const Text('Confirm'),
-                          onPressed: () async {
-                            String name = nameController.text.trim();
-                            String input = _privateKeyController.text.trim();
-                            if (name.isEmpty) {
-                              EasyLoading.showError('Please enter a nickname');
-                              return;
-                            }
-                            if (input.isEmpty) {
-                              EasyLoading.showError(
-                                  'Please enter a Nsec / Hex Private Key');
-                              return;
-                            }
-                            try {
-                              if (input.startsWith('nsec')) {
-                                input = rust_nostr.getHexPrikeyByBech32(
-                                    bech32: input);
-                              }
-                              String hexPubkey = rust_nostr
-                                  .getHexPubkeyByPrikey(prikey: input);
-                              Identity? exist = await IdentityService.instance
-                                  .getIdentityByNostrPubkey(hexPubkey);
-                              if (exist != null) {
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+        floatingActionButton: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                      child: Container(
+                          constraints: BoxConstraints(maxWidth: 400),
+                          width: double.infinity,
+                          child: FilledButton(
+                            child: const Text('Confirm'),
+                            onPressed: () async {
+                              String name = nameController.text.trim();
+                              String input = _privateKeyController.text.trim();
+                              if (name.isEmpty) {
                                 EasyLoading.showError(
-                                    'This prikey already exists');
+                                    'Please enter a nickname');
                                 return;
                               }
-                              var newIdentity = await IdentityService.instance
-                                  .createIdentityByPrikey(
-                                      name: name,
-                                      prikey: input,
-                                      hexPubkey: hexPubkey);
-                              EasyLoading.showSuccess('Import successfully');
-                              Get.back(result: newIdentity);
-                            } catch (e, s) {
-                              String msg = Utils.getErrorMessage(e);
-                              logger.e('Import failed',
-                                  error: e, stackTrace: s);
-                              EasyLoading.showToast('Import failed: $msg');
-                            }
-                          },
-                        )))
-              ])),
+                              if (input.isEmpty) {
+                                EasyLoading.showError(
+                                    'Please enter a Nsec / Hex Private Key');
+                                return;
+                              }
+                              try {
+                                if (input.startsWith('nsec')) {
+                                  input = rust_nostr.getHexPrikeyByBech32(
+                                      bech32: input);
+                                }
+                                String hexPubkey = rust_nostr
+                                    .getHexPubkeyByPrikey(prikey: input);
+                                Identity? exist = await IdentityService.instance
+                                    .getIdentityByNostrPubkey(hexPubkey);
+                                if (exist != null) {
+                                  EasyLoading.showError(
+                                      'This prikey already exists');
+                                  return;
+                                }
+                                var newIdentity = await IdentityService.instance
+                                    .createIdentityByPrikey(
+                                        name: name,
+                                        prikey: input,
+                                        hexPubkey: hexPubkey);
+                                EasyLoading.showSuccess('Import successfully');
+                                Get.back(result: newIdentity);
+                              } catch (e, s) {
+                                String msg = Utils.getErrorMessage(e);
+                                logger.e('Import failed',
+                                    error: e, stackTrace: s);
+                                EasyLoading.showToast('Import failed: $msg');
+                              }
+                            },
+                          )))
+                ])),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
+            child: Form(
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      TextField(
+                          controller: nameController,
+                          textInputAction: TextInputAction.next,
+                          autofocus: true,
+                          decoration: const InputDecoration(
+                              labelText: 'My Nickname',
+                              hintText: 'Show to friends',
+                              border: OutlineInputBorder())),
+                      const SizedBox(height: 16),
+                      TextField(
+                          controller: _privateKeyController,
+                          textInputAction: TextInputAction.done,
+                          minLines: 1,
+                          maxLines: 2,
+                          focusNode: focusNode2,
+                          decoration: InputDecoration(
+                              labelText: 'Nsec / Hex Private Key',
+                              hintText: 'Nsec / Hex Private Key',
+                              border: const OutlineInputBorder(),
+                              suffixIcon: IconButton(
+                                  icon: const Icon(Icons.paste),
+                                  onPressed: () async {
+                                    final clipboardData =
+                                        await Clipboard.getData('text/plain');
+                                    if (clipboardData != null) {
+                                      final pastedText = clipboardData.text;
+                                      if (pastedText != null &&
+                                          pastedText != '') {
+                                        _privateKeyController.text = pastedText;
+                                        _privateKeyController.selection =
+                                            TextSelection.fromPosition(
+                                                TextPosition(
+                                                    offset:
+                                                        _privateKeyController
+                                                            .text.length));
+                                      }
+                                    }
+                                  }))),
+                    ])),
+          ),
         ));
   }
 }

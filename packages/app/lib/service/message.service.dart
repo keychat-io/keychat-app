@@ -324,7 +324,7 @@ $content'''
     if (relay != null) {
       key = '$key:$relay';
     }
-    int lastMessageAt = await Storage.getIntOrZero(key);
+    int lastMessageAt = Storage.getIntOrZero(key);
 
     if (lastMessageAt > 0) {
       return DateTime.fromMillisecondsSinceEpoch(lastMessageAt * 1000)
@@ -368,18 +368,28 @@ $content'''
         .findAll();
   }
 
-  Future<List<Message>> listMessageByTime({
-    required int roomId,
-    required DateTime from,
-    limit = 100,
-  }) async {
+  Future<List<Message>> listOldMessageByTime(
+      {required int roomId, required int messageId, limit = 100}) async {
     Isar database = DBProvider.database;
 
     return database.messages
         .filter()
         .roomIdEqualTo(roomId)
-        .createdAtLessThan(from)
+        .idLessThan(messageId)
         .sortByCreatedAtDesc()
+        .limit(limit)
+        .findAll();
+  }
+
+  Future<List<Message>> listLatestMessageByTime(
+      {required int roomId, required int messageId, limit = 100}) async {
+    Isar database = DBProvider.database;
+
+    return database.messages
+        .filter()
+        .roomIdEqualTo(roomId)
+        .idGreaterThan(messageId)
+        .sortByCreatedAt()
         .limit(limit)
         .findAll();
   }
@@ -412,99 +422,6 @@ $content'''
         .sortByCreatedAtDesc()
         .limit(limit)
         .findFirstSync();
-  }
-
-  Future<List<Message>> listMessageBySearch({
-    required int roomId,
-    required DateTime from,
-    limit = 10,
-  }) async {
-    Isar database = DBProvider.database;
-    List<Message> msgEqual = await database.messages
-        .filter()
-        .roomIdEqualTo(roomId)
-        .createdAtEqualTo(from)
-        .sortByCreatedAtDesc()
-        .limit(limit)
-        .findAll();
-    List<Message> msgLess = await database.messages
-        .filter()
-        .roomIdEqualTo(roomId)
-        .createdAtLessThan(from)
-        .sortByCreatedAtDesc()
-        .limit(limit)
-        .findAll();
-    List<Message> msgMore = await database.messages
-        .filter()
-        .roomIdEqualTo(roomId)
-        .createdAtGreaterThan(from)
-        .sortByCreatedAt()
-        .limit(limit)
-        .findAll();
-    msgEqual.addAll(msgLess);
-    msgEqual.addAll(msgMore);
-    return msgEqual;
-  }
-
-  List<Message> listMessageBySearchSroll({
-    required int roomId,
-    required DateTime from,
-    limit = 10,
-  }) {
-    Isar database = DBProvider.database;
-    List<Message> msgEqual = database.messages
-        .filter()
-        .roomIdEqualTo(roomId)
-        .createdAtEqualTo(from)
-        .sortByCreatedAtDesc()
-        .limit(limit)
-        .findAllSync();
-    List<Message> msgLess = database.messages
-        .filter()
-        .roomIdEqualTo(roomId)
-        .createdAtLessThan(from)
-        .sortByCreatedAtDesc()
-        .limit(limit)
-        .findAllSync();
-    List<Message> msgMore = database.messages
-        .filter()
-        .roomIdEqualTo(roomId)
-        .createdAtGreaterThan(from)
-        .sortByCreatedAt()
-        .limit(limit)
-        .findAllSync();
-    msgEqual.addAll(msgLess);
-    msgEqual.addAll(msgMore);
-    return msgEqual;
-  }
-
-  Future<List<Message>> listLatestMessage({
-    required int roomId,
-    required DateTime from,
-    limit = 100,
-  }) async {
-    Isar database = DBProvider.database;
-
-    return database.messages
-        .filter()
-        .roomIdEqualTo(roomId)
-        .createdAtGreaterThan(from)
-        .limit(limit)
-        .findAll();
-  }
-
-  Future<List<Message>> listMySendingMessage({
-    required int roomId,
-    limit = 10,
-  }) async {
-    return DBProvider.database.messages
-        .filter()
-        .roomIdEqualTo(roomId)
-        .sentEqualTo(SendStatusType.sending)
-        .isMeSendEqualTo(true)
-        .sortByCreatedAtDesc()
-        .limit(limit)
-        .findAll();
   }
 
   Future<DateTime?> getLastMessageTime() async {
@@ -594,7 +511,7 @@ $content'''
 
   Future<Message> _fillTypeForMessage(Message m, bool isBot) async {
     // cashu token
-    if (m.mediaType == MessageMediaType.cashuA ||
+    if (m.mediaType == MessageMediaType.cashu ||
         m.content.startsWith('cashu')) {
       return await _cashuMessage(m);
     }
@@ -649,7 +566,7 @@ $content'''
         cim = await RustAPI.decodeToken(encodedToken: model.content);
         cim.id = null; // local id
       }
-      model.mediaType = MessageMediaType.cashuA;
+      model.mediaType = MessageMediaType.cashu;
       model.cashuInfo = cim;
       // ignore: empty_catches
     } catch (e) {}

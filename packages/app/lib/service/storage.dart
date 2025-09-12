@@ -52,6 +52,9 @@ class StorageKeyString {
 
   static const String mobileKeepAlive = 'mobileKeepAlive';
   static const String biometricsAuthTime = 'biometricsAuthTime';
+
+  static const String upgradeToV2 = 'upgradeToV2';
+  static const String upgradeToV2Tokens = 'upgradeToV2Tokens';
 }
 
 class Storage {
@@ -113,29 +116,29 @@ class Storage {
     await sp.setInt(key, value);
   }
 
-  static Future<int?> getInt(String key) async {
+  static int? getInt(String key) {
     return sp.getInt(key);
   }
 
-  static Future<int> getIntOrZero(String key) async {
+  static int getIntOrZero(String key) {
     var res = sp.getInt(key);
     if (res == null) return 0;
     return res;
   }
 
-  static Future<String?> getString(String key) async {
+  static String? getString(String key) {
     return sp.getString(key);
   }
 
-  static Future<bool?> getBool(String key) async {
+  static bool? getBool(String key) {
     return sp.getBool(key);
   }
 
-  static Future<List<String>> getStringList(String key) async {
+  static List<String> getStringList(String key) {
     return sp.getStringList(key) ?? [];
   }
 
-  static Future<void> removeString(String key) async {
+  static Future<void> remove(String key) async {
     await sp.remove(key);
   }
 
@@ -144,7 +147,7 @@ class Storage {
   }
 
   static Future<void> setLocalStorageMap(String key, Map sourceMap) async {
-    String? res = await Storage.getString(key);
+    String? res = Storage.getString(key);
     Map map = {};
     if (res != null) {
       map = jsonDecode(res);
@@ -156,7 +159,7 @@ class Storage {
   }
 
   static Future<Map> getLocalStorageMap(String key) async {
-    String? res = await Storage.getString(key);
+    String? res = Storage.getString(key);
     Map map = {};
     if (res != null) {
       try {

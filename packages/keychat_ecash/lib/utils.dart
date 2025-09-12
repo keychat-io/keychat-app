@@ -38,14 +38,13 @@ class CashuUtil {
       logger.e('receive error 2', error: e, stackTrace: s);
       return null;
     }
-    if (!isValidEcashToken(decoded.unit ?? EcashTokenSymbol.sat.name)) {
+    if (!isValidEcashToken(decoded.unit.toString())) {
       EasyLoading.showError('Error! Invalid token symbol.',
           duration: const Duration(seconds: 2));
       return null;
     }
 
-    bool existMint =
-        ec.existMint(decoded.mint, decoded.unit ?? EcashTokenSymbol.sat.name);
+    bool existMint = ec.existMint(decoded.mint, decoded.unit.toString());
     if (existMint) {
       return await _processReceive(
           token: token, retry: retry, messageId: messageId);
@@ -68,9 +67,10 @@ class CashuUtil {
                 await ec.addMintUrl(decoded.mint);
                 EasyLoading.showToast('Added');
               } catch (e, s) {
-                EasyLoading.showError('Add Failed: ${e.toString()}',
+                String msg = Utils.getErrorMessage(e);
+                logger.e(msg, error: e, stackTrace: s);
+                EasyLoading.showError('Add Failed: $msg',
                     duration: const Duration(seconds: 3));
-                logger.e(e.toString(), error: e, stackTrace: s);
                 Get.back(result: null);
                 return;
               }
@@ -85,7 +85,8 @@ class CashuUtil {
     ));
   }
 
-  static bool isValidEcashToken(String unit) => unit == 'sat' || unit == 'usdt';
+  static bool isValidEcashToken(String unit) =>
+      true; // unit == 'sat' || unit == 'usdt';
 
   static Future<CashuInfoModel?> _processReceive(
       {required String token, bool retry = false, int? messageId}) async {
@@ -102,7 +103,7 @@ class CashuUtil {
       EasyLoading.dismiss();
       String message = Utils.getErrorMessage(e);
       logger.e('receive error: $message', error: e, stackTrace: s);
-      if (message.contains('11001') || message.contains('10002')) {
+      if (message.contains('Spent')) {
         EasyLoading.showError('Exception: Token already spent.');
         if (messageId != null) {
           await MessageService.instance.updateMessageCashuStatus(messageId);
@@ -130,7 +131,7 @@ class CashuUtil {
     }
     var ct = await rust_cashu.send(
         amount: BigInt.from(amount), activeMint: filledMint);
-    return CashuInfoModel.fromRustModel(ct.field0 as CashuTransaction);
+    return CashuInfoModel.fromRustModel(ct);
   }
 
   static Future<CashuInfoModel> getStamp(
@@ -147,7 +148,7 @@ class CashuUtil {
     // }
     var ct =
         await rust_cashu.sendStamp(amount: BigInt.from(amount), mints: mints);
-    return CashuInfoModel.fromRustModel(ct.field0 as CashuTransaction);
+    return CashuInfoModel.fromRustModel(ct);
   }
 
   static Widget getStatusIcon(TransactionStatus status) {
@@ -210,7 +211,7 @@ class CashuUtil {
         radius: 18,
         backgroundColor: Get.isDarkMode ? Colors.white10 : Colors.grey.shade300,
         child: Icon(
-          direction == TransactionDirection.out
+          direction == TransactionDirection.outgoing
               ? CupertinoIcons.arrow_up
               : (direction == TransactionDirection.split
                   ? CupertinoIcons.arrow_left_right
@@ -220,22 +221,22 @@ class CashuUtil {
         ));
   }
 
-  static String getCashuAmount(CashuTransaction transaction) {
+  static String getCashuAmount(Transaction transaction) {
     switch (transaction.io) {
-      case TransactionDirection.out:
+      case TransactionDirection.outgoing:
         return '-${transaction.amount.toString()}';
-      case TransactionDirection.in_:
+      case TransactionDirection.incoming:
         return '+${transaction.amount.toString()}';
       case TransactionDirection.split:
         return transaction.amount.toString();
     }
   }
 
-  static String getLNAmount(LNTransaction transaction) {
+  static String getLNAmount(Transaction transaction) {
     switch (transaction.io) {
-      case TransactionDirection.out:
+      case TransactionDirection.outgoing:
         return '-${transaction.amount.toString()}';
-      case TransactionDirection.in_:
+      case TransactionDirection.incoming:
         return '+${transaction.amount.toString()}';
       case TransactionDirection.split:
         return transaction.amount.toString();

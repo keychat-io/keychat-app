@@ -1,13 +1,12 @@
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/components.dart';
 import 'package:app/utils.dart';
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 import 'package:markdown_widget/markdown_widget.dart';
-
-import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 
 import '../controller/world.controller.dart';
 
@@ -49,14 +48,12 @@ class WorldPage extends StatelessWidget {
                   );
                   // return const Text('loading...');
                 }
-                RefreshController refreshController = RefreshController();
-                return SmartRefresher(
-                    enablePullDown: true,
-                    onRefresh: () async {
-                      worldController.getFeed(e);
-                      refreshController.refreshCompleted();
-                    },
-                    controller: refreshController,
+                return CustomMaterialIndicator(
+                    onRefresh: () => worldController.getFeed(e),
+                    displacement: 20,
+                    backgroundColor: Colors.white,
+                    trigger: IndicatorTrigger.leadingEdge,
+                    triggerMode: IndicatorTriggerMode.anywhere,
                     child: ListView.separated(
                         shrinkWrap: true,
                         itemCount: list.length,

@@ -167,7 +167,7 @@ void showModalBottomSheetWidget(BuildContext context, String title, Widget body,
   if (!showAppBar) {
     showCupertinoSheet(
         context: context,
-        pageBuilder: (context) => Scaffold(
+        builder: (context) => Scaffold(
               body: Center(
                 child: Stack(
                   children: [
@@ -190,7 +190,7 @@ void showModalBottomSheetWidget(BuildContext context, String title, Widget body,
   }
   showCupertinoSheet(
       context: context,
-      pageBuilder: (context) => Scaffold(
+      builder: (context) => Scaffold(
           appBar: getSheetAppBar(context, title, callback), body: body));
 }
 
@@ -217,7 +217,7 @@ void showFitSheetWidget(BuildContext context, String title, List<Widget> bodys,
     {bool showAppBar = true, Function? callback}) {
   showCupertinoSheet(
     context: context,
-    pageBuilder: (context) => SafeArea(
+    builder: (context) => SafeArea(
         top: false,
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           if (showAppBar) getSheetAppBar(context, title, callback),

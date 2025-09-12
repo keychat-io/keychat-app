@@ -157,9 +157,6 @@ class MultiWebviewController extends GetxController {
             initUrl = 'https://searx.tiekoetter.com/search?q=$initUrl';
             break;
         }
-        if (GetPlatform.isMobile) {
-          await refreshKeepAliveObject(initUrl);
-        }
       }
     }
     uri = Uri.tryParse(initUrl);
@@ -234,7 +231,7 @@ class MultiWebviewController extends GetxController {
   }
 
   Future loadConfig() async {
-    String? localConfig = await Storage.getString(KeychatGlobal.browserConfig);
+    String? localConfig = Storage.getString(KeychatGlobal.browserConfig);
     if (localConfig == null) {
       localConfig = jsonEncode({
         "enableHistory": true,
@@ -248,7 +245,7 @@ class MultiWebviewController extends GetxController {
     config.value = jsonDecode(localConfig);
 
     // text zoom
-    int? textSize = await Storage.getInt(KeychatGlobal.browserTextSize);
+    int? textSize = Storage.getInt(KeychatGlobal.browserTextSize);
     if (textSize != null) {
       kInitialTextSize.value = textSize;
     }
@@ -310,10 +307,10 @@ class MultiWebviewController extends GetxController {
 
     // load search engine
     defaultSearchEngineObx.value =
-        (await Storage.getString('defaultSearchEngine') ?? defaultSearchEngine);
+        (Storage.getString('defaultSearchEngine') ?? defaultSearchEngine);
 
     await loadConfig();
-    await loadKeepAlive();
+    await loadKeepAlive(true);
     loadFavorite();
     initWebview();
     deleteOldHistories();
@@ -411,7 +408,7 @@ class MultiWebviewController extends GetxController {
 
     try {
       String? savedTabs =
-          await Storage.getString(StorageKeyString.desktopBrowserTabs);
+          Storage.getString(StorageKeyString.desktopBrowserTabs);
       if (savedTabs == null || savedTabs.isEmpty) return;
 
       List<dynamic> tabData = jsonDecode(savedTabs);
@@ -579,22 +576,9 @@ window.addEventListener('DOMContentLoaded', function(event) {
     if (host == null || host.isEmpty) {
       host = url;
     }
-    logger.d('enableKeepAlive host: $host');
     mobileKeepAlive[host] = InAppWebViewKeepAlive();
     await Storage.setStringList(
         StorageKeyString.mobileKeepAlive, mobileKeepAlive.keys.toList());
-    return mobileKeepAlive[host]!;
-  }
-
-  Future<InAppWebViewKeepAlive?> refreshKeepAliveObject(String url) async {
-    if (GetPlatform.isDesktop) {
-      return null;
-    }
-    String? host = Uri.tryParse(url)?.host;
-    if (host == null || host.isEmpty) {
-      host = url;
-    }
-    mobileKeepAlive[host] = InAppWebViewKeepAlive();
     return mobileKeepAlive[host]!;
   }
 
@@ -607,10 +591,8 @@ window.addEventListener('DOMContentLoaded', function(event) {
         StorageKeyString.mobileKeepAlive, mobileKeepAlive.keys.toList());
   }
 
-  Null removeKeepAlive(String url) {
-    if (GetPlatform.isDesktop) {
-      return null;
-    }
+  void removeKeepAlive(String url) {
+    if (GetPlatform.isDesktop) return;
     logger.d('removeKeepAlive url: $url');
     String? host = Uri.tryParse(url)?.host;
     if (host == null || host.isEmpty) {
@@ -630,13 +612,13 @@ window.addEventListener('DOMContentLoaded', function(event) {
     return mobileKeepAlive.keys.toList();
   }
 
-  Future<void> loadKeepAlive() async {
+  Future<void> loadKeepAlive([bool isInit = false]) async {
     if (!GetPlatform.isMobile) return;
 
     List<String> hosts =
-        await Storage.getStringList(StorageKeyString.mobileKeepAlive);
+        Storage.getStringList(StorageKeyString.mobileKeepAlive);
     // for init
-    if (hosts.isEmpty) {
+    if (isInit && hosts.isEmpty) {
       hosts = ['jumble.social'];
       await Storage.setStringList(StorageKeyString.mobileKeepAlive, hosts);
     }

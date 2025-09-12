@@ -4,7 +4,7 @@ description: Keychat is a chat app, built on Bitcoin Ecash , Nostr Protocol and 
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.35.6+6428
+version: 1.36.1+6434
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
@@ -35,7 +35,7 @@ dependencies:
   keychat_ecash: 1.0.0
   isar_community: 3.3.0-dev.1
   isar_community_flutter_libs: 3.3.0-dev.1
-  share_plus: ^10.1.2
+  share_plus: ^11.1.0
   flutter_linkify: ^6.0.0
   permission_handler: ^12.0.0+1
   qr_flutter: ^4.1.0
@@ -48,12 +48,11 @@ dependencies:
   photo_view: ^0.15.0
   image_picker: ^1.2.0 # select image
   any_link_preview: ^3.0.2 # show link preview in chat content
-  flutter_dotenv: ^5.2.1
+  flutter_dotenv: ^6.0.0
   logger: ^2.6.1
   cached_network_image: ^3.4.1
   queue: ^3.1.0+2
   mutex: ^3.0.1
-  pull_to_refresh_flutter3: ^2.0.2
   dropdown_button2: ^2.3.9
   easy_debounce: ^2.0.3
   carousel_slider: ^5.0.0
@@ -61,7 +60,6 @@ dependencies:
   video_player: ^2.9.2
   video_compress: ^3.1.4
   markdown_widget: ^2.3.2+8
-  scroll_to_index: ^3.0.1
   connectivity_plus: ^6.1.5
   open_filex: ^4.7.0
   timer_builder: ^2.0.0
@@ -71,8 +69,8 @@ dependencies:
   avatar_plus: ^0.0.5
   freezed_annotation: ^3.1.0
   intl: ^0.20.2
-  firebase_core: ^3.15.1
-  firebase_messaging: ^15.2.9
+  firebase_core: ^4.1.0
+  firebase_messaging: ^16.0.1
   async_queue: ^2.0.2
   url_launcher: ^6.3.2
   flutter_inappwebview: ^6.2.0-beta.2
@@ -99,6 +97,9 @@ dependencies:
   custom_refresh_indicator: ^4.0.1
   local_auth: ^2.3.0
   ai_barcode_scanner: ^7.0.0
+  bip21_uri:
+    git:
+      url: https://github.com/keychat-io/dart-bip21-uri.git
 
 dev_dependencies:
   flutter_test:

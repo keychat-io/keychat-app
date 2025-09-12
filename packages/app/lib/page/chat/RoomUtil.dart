@@ -33,7 +33,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart' hide Contact;
+import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:settings_ui/settings_ui.dart';
 
@@ -160,7 +160,7 @@ Let's start an encrypted chat.''';
       });
       // excute auto delete message by user setting
       int timestamp =
-          await Storage.getIntOrZero(StorageKeyString.autoDeleteMessageDays);
+          Storage.getIntOrZero(StorageKeyString.autoDeleteMessageDays);
       if (timestamp > 0 &&
           DateTime.now()
                   .difference(DateTime.fromMillisecondsSinceEpoch(timestamp))
@@ -185,11 +185,7 @@ Let's start an encrypted chat.''';
       DateTime fromAt = DateTime.now().subtract(const Duration(days: 180));
       var start = BigInt.from(fromAt.millisecondsSinceEpoch);
       rust_cashu.removeTransactions(
-          unixTimestampMsLe: start, kind: TransactionStatus.success);
-      rust_cashu.removeTransactions(
-          unixTimestampMsLe: start, kind: TransactionStatus.expired);
-      rust_cashu.removeTransactions(
-          unixTimestampMsLe: start, kind: TransactionStatus.failed);
+          unixTimestampLe: start, status: TransactionStatus.success);
     } catch (e, s) {
       logger.e('executeAutoDelete:${e.toString()}', stackTrace: s);
     }
@@ -658,9 +654,10 @@ Let's start an encrypted chat.''';
     return rooms;
   }
 
-  static Widget getMarkdownView(String text, MarkdownConfig config) {
+  static Widget getMarkdownView(String data, MarkdownConfig config, [int? id]) {
     return MarkdownBlock(
-        data: text,
+        key: id != null ? ObjectKey('mk:$id') : null,
+        data: data,
         selectable: false,
         config: config,
         generator: MarkdownGenerator(
@@ -696,16 +693,18 @@ Let's start an encrypted chat.''';
                 .launchWebview(initUrl: message.content);
           },
           placeholderWidget: errorCallback(
-              child: getMarkdownView(message.content, markdownConfig)),
+              child:
+                  getMarkdownView(message.content, markdownConfig, message.id)),
           showMultimedia: false,
           errorBody: '',
           errorWidget: errorCallback(
-              child: getMarkdownView(message.content, markdownConfig)));
+              child: getMarkdownView(
+                  message.content, markdownConfig, message.id)));
     }
 
     return errorCallback(
-        child: getMarkdownView(
-            message.realMessage ?? message.content, markdownConfig));
+        child: getMarkdownView(message.realMessage ?? message.content,
+            markdownConfig, message.id));
   }
 
   static Widget _imageTextView(Message message, ChatController cc,
@@ -738,7 +737,7 @@ Let's start an encrypted chat.''';
     switch (fileInfo.status) {
       case FileStatus.downloading:
         return Row(children: [
-          errorCallback(text: 'Loading...'),
+          errorCallback(text: 'Downloading...'),
           const SpinKitFadingCircle(
             color: Color(0xfff0aa35),
             size: 25.0,
@@ -788,7 +787,7 @@ Let's start an encrypted chat.''';
           return _imageTextView(message, cc, errorCallback);
         case MessageMediaType.file:
           return FileMessageWidget(message, errorCallback);
-        case MessageMediaType.cashuA:
+        case MessageMediaType.cashu:
           if (message.cashuInfo != null) {
             return RedPocketCashu(
                 key: Key('cashu:${message.id}'), message: message);

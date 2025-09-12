@@ -129,11 +129,11 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
                           onPressed: () async {
                             String filePath =
                                 '${Get.find<SettingController>().appFolder.path}${msgFileInfo.localPath!}';
-
-                            await Share.shareXFiles([XFile(filePath)],
+                            SharePlus.instance.share(ShareParams(
+                                previewThumbnail: XFile(filePath),
                                 subject: FileService.instance
                                     .getDisplayFileName(
-                                        msgFileInfo.localPath!));
+                                        msgFileInfo.localPath!)));
                           },
                           icon: const Icon(CupertinoIcons.share),
                           label: const Text('More'))),

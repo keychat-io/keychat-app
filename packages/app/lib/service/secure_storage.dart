@@ -42,6 +42,16 @@ class SecureStorage {
     return await storage.read(key: mnemonicKey);
   }
 
+  Future<String> getOrCreatePhraseWords() async {
+    String? words = await getPhraseWords();
+    if (words == null) {
+      var account = await rust_nostr.generateFromMnemonic();
+      words = account.mnemonic!;
+    }
+    await writePhraseWordsWhenNotExist(words);
+    return words;
+  }
+
   Future<String?> readPrikey(String pubkey) async {
     if (keys.containsKey(pubkey)) {
       return keys[pubkey];

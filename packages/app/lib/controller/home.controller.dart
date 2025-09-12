@@ -13,6 +13,7 @@ import 'package:app/service/file.service.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/notify.service.dart';
+import 'package:app/service/qrscan.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app/service/storage.dart';
@@ -33,12 +34,9 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
-import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart'
     show SharedMediaFile, ReceiveSharingIntent, SharedMediaType;
 import '../utils/remote_config.dart' as remote_config;
@@ -48,7 +46,6 @@ class HomeController extends GetxController
   IdentityService identityService = IdentityService.instance;
   RxMap<int, Identity> chatIdentities = <int, Identity>{}.obs;
   RxMap<int, Identity> allIdentities = <int, Identity>{}.obs;
-  Map<int, RefreshController> refreshControllers = {};
   RxInt allUnReadCount = 0.obs;
   bool isAppBadgeSupported = false;
 
@@ -76,6 +73,9 @@ class HomeController extends GetxController
 
   DateTime? pausedTime;
 
+  // Privacy protection blur effect
+  RxBool isBlurred = false.obs;
+
   RxInt defaultSelectedTab =
       (-1).obs; // 0: chat, 1: browser, -1: last opened tab
   int selectedTabIndex = 0; // main bottom tab index
@@ -97,7 +97,7 @@ class HomeController extends GetxController
 
   // run when app start
   Future loadSelectedTab() async {
-    int? res = await Storage.getInt(StorageKeyString.defaultSelectedTabIndex);
+    int? res = Storage.getInt(StorageKeyString.defaultSelectedTabIndex);
     res ??= -1;
     defaultSelectedTab.value = res;
     if (res > -1) {
@@ -105,7 +105,7 @@ class HomeController extends GetxController
       return;
     }
     // use the last opened tab
-    res = await Storage.getIntOrZero(StorageKeyString.selectedTabIndex);
+    res = Storage.getIntOrZero(StorageKeyString.selectedTabIndex);
     selectedTabIndex = res;
   }
 
@@ -113,7 +113,7 @@ class HomeController extends GetxController
   Future createAIIdentity(List<Identity> existsIdentity, String idName) async {
     String key = '${StorageKeyString.taskCreateIdentity}:$idName';
     if (existsIdentity.isEmpty) return;
-    int res = await Storage.getIntOrZero(key);
+    int res = Storage.getIntOrZero(key);
     if (res == 1) return;
     for (var identity in existsIdentity) {
       if (identity.name == idName) return;
@@ -151,6 +151,7 @@ class HomeController extends GetxController
     switch (state) {
       case AppLifecycleState.resumed:
         resumed = true;
+        isBlurred.value = false;
 
         // if app running background > 10s
         bool wasAppBackgroundedTooLong = false;
@@ -179,8 +180,15 @@ class HomeController extends GetxController
         });
 
         // check biometrics
-        await biometricsAuth(_pausedBefore);
+        if (_pausedBefore) {
+          await biometricsAuth(true);
+        }
         _pausedBefore = false;
+        break;
+      case AppLifecycleState.inactive:
+        isBlurred.value = true;
+        break;
+      case AppLifecycleState.hidden:
         break;
       case AppLifecycleState.paused:
         resumed = false;
@@ -189,8 +197,6 @@ class HomeController extends GetxController
         break;
       case AppLifecycleState.detached:
         // app been killed
-        break;
-      default:
         break;
     }
   }
@@ -214,7 +220,7 @@ class HomeController extends GetxController
       }
     }
 
-    await Get.to(() => const BiometricAuthScreen(),
+    await Get.to(() => const BiometricAuthScreen(autoAuth: true),
         fullscreenDialog: true,
         popGesture: false,
         transition: Transition.fadeIn);
@@ -286,7 +292,7 @@ class HomeController extends GetxController
   }
 
   Future initTips(String name, RxBool toSetValue) async {
-    var res = await Storage.getIntOrZero(name);
+    var res = Storage.getIntOrZero(name);
     toSetValue.value = res == 0 ? true : false;
   }
 
@@ -299,9 +305,6 @@ class HomeController extends GetxController
       allIdentities[id] = list[i];
       if (list[i].enableChat) {
         chatIdentities[id] = list[i];
-        if (refreshControllers[id] == null) {
-          refreshControllers[id] = RefreshController();
-        }
       }
     }
     return chatIdentities.values.toList();
@@ -361,10 +364,6 @@ class HomeController extends GetxController
         unReadSum = unReadSum + item.unReadCount + item.anonymousUnReadCount;
       }
       setUnreadCount(unReadSum.toInt());
-
-      if (refreshControllers[identityId] == null) {
-        refreshControllers[identityId] = RefreshController();
-      }
     });
   }
 
@@ -420,9 +419,6 @@ class HomeController extends GetxController
         ..unReadCount = unReadCount
         ..anonymousUnReadCount = anonymousUnReadCount
         ..rooms = rooms;
-      if (refreshControllers[id] == null) {
-        refreshControllers[id] = RefreshController();
-      }
     }
 
     tabBodyDatas.value = thisTabBodyDatas;
@@ -430,8 +426,7 @@ class HomeController extends GetxController
 
     int initialIndex = 0;
     if (firstUnreadIndex == -1) {
-      var saved =
-          await Storage.getIntOrZero(StorageKeyString.homeSelectedTabIndex);
+      var saved = Storage.getIntOrZero(StorageKeyString.homeSelectedTabIndex);
       if (saved < mys.length) {
         initialIndex = saved;
       }
@@ -462,12 +457,8 @@ class HomeController extends GetxController
     tabController.dispose();
     _intentSub.cancel();
     WidgetsBinding.instance.removeObserver(this);
-    rust_cashu.closeDb();
     subscription.cancel();
     _connectionCheckTimer.cancel();
-    refreshControllers.forEach((key, value) {
-      value.dispose();
-    });
     Get.find<WebsocketService>().stopListening();
     if (Get.context != null) {
       Utils.hideKeyboard(Get.context!);
@@ -499,8 +490,6 @@ class HomeController extends GetxController
           logger.e('initNotifycation error', error: e, stackTrace: s);
         });
       });
-    } else {
-      Get.find<EcashController>().initWithoutIdentity();
     }
     FlutterNativeSplash.remove(); // close splash page
     WidgetsBinding.instance.addObserver(this);
@@ -689,7 +678,11 @@ class HomeController extends GetxController
         break;
       case 'cashu':
         String input = _getDeeplinkData(uri);
-        Get.find<EcashController>().proccessCashuAString(input);
+        Get.find<EcashController>().proccessCashuString(input);
+        break;
+      case 'bitcoin':
+        QrScanService.instance
+            .handleBitcoinUri(uri.toString(), Get.find<EcashController>());
         break;
 
       default:
@@ -768,14 +761,8 @@ class HomeController extends GetxController
           PayInvoicePage(invoce: input, isPay: false, showScanButton: false));
       return;
     }
-    var tx = await Get.find<EcashController>()
+    await Get.find<EcashController>()
         .proccessPayLightningBill(input, isPay: true);
-    if (tx != null) {
-      var lnTx = tx.field0 as LNTransaction;
-      logger.i('LN Transaction:   Amount=${lnTx.amount}, '
-          'INfo=${lnTx.info}, Description=${lnTx.fee}, '
-          'Hash=${lnTx.hash}, NodeId=${lnTx.status.name}');
-    }
   }
 
   late StreamSubscription _intentSub;

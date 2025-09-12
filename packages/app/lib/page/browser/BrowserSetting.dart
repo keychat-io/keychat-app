@@ -59,26 +59,42 @@ class _BrowserSettingState extends State<BrowserSetting> {
                                 Get.to(() => BrowserConnectedWebsite(identity));
                               }))
                           .toList()),
-                SettingsSection(
-                    title: const Text('Default Search Engine'),
-                    tiles: BrowserEngine.values
-                        .map((str) => SettingsTile(
-                              leading: Radio<String>(
-                                  value: str.name,
-                                  groupValue:
-                                      controller.defaultSearchEngineObx.value,
-                                  onChanged: (value) {
-                                    if (value == null) return;
-                                    controller.defaultSearchEngineObx.value =
-                                        value;
-                                    Storage.setString(
-                                        'defaultSearchEngine', value);
-                                    EasyLoading.showSuccess('Success');
-                                  }),
-                              title:
-                                  Text(Utils.capitalizeFirstLetter(str.name)),
-                            ))
-                        .toList()),
+                SettingsSection(tiles: [
+                  SettingsTile.navigation(
+                    title: const Text("Search Engine"),
+                    leading: const Icon(Icons.search),
+                    value: Text(controller.defaultSearchEngineObx.value),
+                    onPressed: (context) {
+                      showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return RadioGroup(
+                                groupValue:
+                                    controller.defaultSearchEngineObx.value,
+                                onChanged: (value) {
+                                  if (value == null) return;
+                                  controller.defaultSearchEngineObx.value =
+                                      value;
+                                  Storage.setString(
+                                      'defaultSearchEngine', value);
+                                  EasyLoading.showSuccess('Success');
+                                  Get.back();
+                                },
+                                child: SimpleDialog(
+                                    title: const Text('Select Search Engine'),
+                                    children: BrowserEngine.values
+                                        .map((str) => ListTile(
+                                              leading: Radio<String>(
+                                                  value: str.name),
+                                              title: Text(
+                                                  Utils.capitalizeFirstLetter(
+                                                      str.name)),
+                                            ))
+                                        .toList()));
+                          });
+                    },
+                  )
+                ]),
                 SettingsSection(
                   tiles: [
                     SettingsTile.switchTile(
@@ -117,20 +133,21 @@ class _BrowserSettingState extends State<BrowserSetting> {
                           int? selectedDays = await showDialog<int>(
                             context: context,
                             builder: (BuildContext context) {
-                              return SimpleDialog(
-                                title: const Text('Select Retention Period'),
-                                children: [1, 7, 30].map((days) {
-                                  return RadioListTile<int>(
-                                    title: Text(
-                                        '$days ${days == 1 ? 'Day' : 'Days'}'),
-                                    value: days,
-                                    groupValue: controller
-                                            .config['historyRetentionDays'] ??
-                                        30,
-                                    onChanged: selectRetentionPeriod,
-                                  );
-                                }).toList(),
-                              );
+                              return RadioGroup(
+                                  groupValue: controller
+                                          .config['historyRetentionDays'] ??
+                                      30,
+                                  onChanged: selectRetentionPeriod,
+                                  child: SimpleDialog(
+                                    title:
+                                        const Text('Select Retention Period'),
+                                    children: [1, 7, 30].map((days) {
+                                      return RadioListTile<int>(
+                                          title: Text(
+                                              '$days ${days == 1 ? 'Day' : 'Days'}'),
+                                          value: days);
+                                    }).toList(),
+                                  ));
                             },
                           );
 
@@ -153,11 +170,11 @@ class _BrowserSettingState extends State<BrowserSetting> {
     });
   }
 
-  Future<void> selectRetentionPeriod(int? value) async {
+  Future<void> selectRetentionPeriod(Object? value) async {
     if (value == null) return;
-    controller.setConfig('historyRetentionDays', value);
+    controller.setConfig('historyRetentionDays', value as int);
     EasyLoading.showSuccess('Success');
     await controller.deleteOldHistories();
-    Get.back();
+    Get.back(result: value);
   }
 }

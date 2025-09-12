@@ -1,4 +1,5 @@
 import 'package:app/app.dart';
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
@@ -8,10 +9,12 @@ class LightningBillController extends GetxController {
   RxList<Transaction> transactions = <Transaction>[].obs;
   RxBool status = false.obs;
   bool run = true;
+  late IndicatorController indicatorController;
 
   @override
   void onInit() {
     super.onInit();
+    indicatorController = IndicatorController();
     Future.delayed(Duration(seconds: 1)).then((_) {
       getTransactions().then((list) {
         status.value = true;
@@ -23,6 +26,7 @@ class LightningBillController extends GetxController {
   @override
   onClose() {
     run = false;
+    indicatorController.dispose();
     super.onClose();
   }
 

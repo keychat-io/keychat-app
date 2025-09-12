@@ -385,7 +385,7 @@ class ChatController extends GetxController {
 
   Future<void> checkPendingEcash() async {
     for (var message in messages) {
-      if (message.mediaType == MessageMediaType.cashuA ||
+      if (message.mediaType == MessageMediaType.cashu ||
           message.mediaType == MessageMediaType.lightningInvoice) {
         if (message.cashuInfo?.status == TransactionStatus.pending) {
           await checkEcashStatus(message, message.cashuInfo?.id);
@@ -668,8 +668,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     try {
       logger.d(cashuInfo.toString());
       await RoomService.instance.sendMessage(roomObs.value, cashuInfo.token,
-          realMessage: cashuInfo.toString(),
-          mediaType: MessageMediaType.cashuA);
+          realMessage: cashuInfo.toString(), mediaType: MessageMediaType.cashu);
       hideAdd.value = true; // close features section
     } catch (e, s) {
       String msg = Utils.getErrorMessage(e);

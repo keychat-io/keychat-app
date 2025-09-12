@@ -511,7 +511,7 @@ $content'''
 
   Future<Message> _fillTypeForMessage(Message m, bool isBot) async {
     // cashu token
-    if (m.mediaType == MessageMediaType.cashuA ||
+    if (m.mediaType == MessageMediaType.cashu ||
         m.content.startsWith('cashu')) {
       return await _cashuMessage(m);
     }
@@ -566,7 +566,7 @@ $content'''
         cim = await RustAPI.decodeToken(encodedToken: model.content);
         cim.id = null; // local id
       }
-      model.mediaType = MessageMediaType.cashuA;
+      model.mediaType = MessageMediaType.cashu;
       model.cashuInfo = cim;
       // ignore: empty_catches
     } catch (e) {}

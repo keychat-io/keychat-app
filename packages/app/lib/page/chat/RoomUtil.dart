@@ -787,7 +787,7 @@ Let's start an encrypted chat.''';
           return _imageTextView(message, cc, errorCallback);
         case MessageMediaType.file:
           return FileMessageWidget(message, errorCallback);
-        case MessageMediaType.cashuA:
+        case MessageMediaType.cashu:
           if (message.cashuInfo != null) {
             return RedPocketCashu(
                 key: Key('cashu:${message.id}'), message: message);

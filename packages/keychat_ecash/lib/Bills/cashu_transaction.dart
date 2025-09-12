@@ -52,120 +52,131 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
     return Scaffold(
         appBar:
             AppBar(centerTitle: true, title: const Text('Cashu Transaction')),
-        body: Center(
-            child: Container(
-                constraints: const BoxConstraints(maxWidth: 800),
-                width: double.infinity,
-                padding: GetPlatform.isDesktop
-                    ? const EdgeInsets.all(8)
-                    : const EdgeInsets.all(0),
-                child: ListView(children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CashuStatus.getStatusIcon(tx.status, 40),
-                      const SizedBox(width: 10),
-                      RichText(
-                          text: TextSpan(
-                        text: tx.amount.toString(),
-                        children: <TextSpan>[
-                          TextSpan(
-                            text: ' ${EcashTokenSymbol.sat.name}',
-                            style: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
+        body: Padding(
+            padding: EdgeInsetsGeometry.symmetric(horizontal: 8),
+            child: Center(
+                child: Container(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    width: double.infinity,
+                    padding: GetPlatform.isDesktop
+                        ? const EdgeInsets.all(8)
+                        : const EdgeInsets.all(0),
+                    child: ListView(children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CashuStatus.getStatusIcon(tx.status, 40),
+                          const SizedBox(width: 10),
+                          RichText(
+                              text: TextSpan(
+                            text: tx.amount.toString(),
+                            children: <TextSpan>[
+                              TextSpan(
+                                text: ' ${EcashTokenSymbol.sat.name}',
+                                style: const TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(
+                                  height: 1.0,
+                                  fontSize: 40,
+                                ),
+                          )),
                         ],
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              height: 1.0,
-                              fontSize: 40,
-                            ),
-                      )),
-                    ],
-                  ),
-                  SizedBox(height: 8),
-                  if (tx.token.length < 3000)
-                    Padding(
-                        padding: EdgeInsetsDirectional.symmetric(vertical: 16),
-                        child: Center(
-                            child: Utils.genQRImage(tx.token, size: maxWidth))),
-                  if (tx.fee != BigInt.from(0))
-                    Text(
-                        '${tx.io == TransactionDirection.outgoing ? "Mint Send" : (tx.io == TransactionDirection.split ? "Split Send" : "Mint Receive")} Fee: ${tx.fee.toString()} ${tx.unit}',
-                        textAlign: TextAlign.center),
-                  textSmallGray(
-                      context, formatTime(tx.timestamp.toInt() * 1000),
-                      textAlign: TextAlign.center),
-                  textSmallGray(context, tx.mintUrl,
-                      textAlign: TextAlign.center),
-                  SizedBox(height: 8),
-                  Text(tx.token,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center),
-                  SizedBox(height: 8),
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    runAlignment: WrapAlignment.center,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    direction: Axis.vertical,
-                    spacing: 16,
-                    children: [
-                      FilledButton.icon(
-                          onPressed: () {
-                            Clipboard.setData(ClipboardData(text: tx.token));
-                            EasyLoading.showToast('Copied');
-                          },
-                          style: ButtonStyle(
-                              minimumSize:
-                                  WidgetStateProperty.all(Size(maxWidth, 48))),
-                          icon: const Icon(Icons.copy),
-                          label: const Text('Copy Token')),
-                      if (tx.status == TransactionStatus.pending)
-                        OutlinedButton.icon(
-                            icon: const Icon(CupertinoIcons.arrow_down),
-                            style: ButtonStyle(
-                                minimumSize: WidgetStateProperty.all(
-                                    Size(maxWidth, 48))),
-                            onPressed: () async {
-                              EasyThrottle.throttle('Receiving_ecash',
-                                  const Duration(milliseconds: 2000), () async {
-                                try {
-                                  EasyLoading.show(status: 'Receiving...');
-                                  CashuInfoModel cm =
-                                      await RustAPI.receiveToken(
-                                          encodedToken: tx.token);
-                                  if (cm.status == TransactionStatus.success) {
-                                    EasyLoading.showSuccess('Success');
-                                    Transaction tx1 = Transaction(
-                                        id: tx.id,
-                                        status: cm.status,
-                                        io: tx.io,
-                                        timestamp: tx.timestamp,
-                                        amount: tx.amount,
-                                        mintUrl: tx.mintUrl,
-                                        token: tx.token,
-                                        kind: TransactionKind.cashu,
-                                        fee: tx.fee,
-                                        metadata: {});
-                                    Get.find<EcashController>().getBalance();
-                                    Utils.getGetxController<
-                                            EcashBillController>()
-                                        ?.getTransactions();
-                                    setState(() {
-                                      tx = tx1;
-                                    });
-                                  }
-                                } catch (e) {
-                                  EasyLoading.dismiss();
-                                  String msg = Utils.getErrorMessage(e);
+                      ),
+                      SizedBox(height: 8),
+                      if (tx.token.length < 3000)
+                        Padding(
+                            padding:
+                                EdgeInsetsDirectional.symmetric(vertical: 16),
+                            child: Center(
+                                child: Utils.genQRImage(tx.token,
+                                    size: maxWidth))),
+                      if (tx.fee != BigInt.from(0))
+                        Text(
+                            '${tx.io == TransactionDirection.outgoing ? "Mint Send" : (tx.io == TransactionDirection.split ? "Split Send" : "Mint Receive")} Fee: ${tx.fee.toString()} ${tx.unit}',
+                            textAlign: TextAlign.center),
+                      textSmallGray(
+                          context, formatTime(tx.timestamp.toInt() * 1000),
+                          textAlign: TextAlign.center),
+                      textSmallGray(context, tx.mintUrl,
+                          textAlign: TextAlign.center),
+                      SizedBox(height: 8),
+                      Text(tx.token,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center),
+                      SizedBox(height: 16),
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        runAlignment: WrapAlignment.center,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        direction: Axis.vertical,
+                        spacing: 16,
+                        children: [
+                          FilledButton.icon(
+                              onPressed: () {
+                                Clipboard.setData(
+                                    ClipboardData(text: tx.token));
+                                EasyLoading.showToast('Copied');
+                              },
+                              style: ButtonStyle(
+                                  minimumSize: WidgetStateProperty.all(
+                                      Size(maxWidth, 48))),
+                              icon: const Icon(Icons.copy),
+                              label: const Text('Copy Token')),
+                          if (tx.status == TransactionStatus.pending)
+                            OutlinedButton.icon(
+                                icon: const Icon(CupertinoIcons.arrow_down),
+                                style: ButtonStyle(
+                                    minimumSize: WidgetStateProperty.all(
+                                        Size(maxWidth, 48))),
+                                onPressed: () async {
+                                  EasyThrottle.throttle('Receiving_ecash',
+                                      const Duration(milliseconds: 2000),
+                                      () async {
+                                    try {
+                                      EasyLoading.show(status: 'Receiving...');
+                                      CashuInfoModel cm =
+                                          await RustAPI.receiveToken(
+                                              encodedToken: tx.token);
+                                      if (cm.status ==
+                                          TransactionStatus.success) {
+                                        EasyLoading.showSuccess('Success');
+                                        Transaction tx1 = Transaction(
+                                            id: tx.id,
+                                            status: cm.status,
+                                            io: tx.io,
+                                            timestamp: tx.timestamp,
+                                            amount: tx.amount,
+                                            mintUrl: tx.mintUrl,
+                                            token: tx.token,
+                                            kind: TransactionKind.cashu,
+                                            fee: tx.fee,
+                                            metadata: {});
+                                        Get.find<EcashController>()
+                                            .getBalance();
+                                        Utils.getGetxController<
+                                                EcashBillController>()
+                                            ?.getTransactions();
+                                        setState(() {
+                                          tx = tx1;
+                                        });
+                                      }
+                                    } catch (e) {
+                                      EasyLoading.dismiss();
+                                      String msg = Utils.getErrorMessage(e);
 
-                                  EasyLoading.showToast(msg);
-                                }
-                              });
-                            },
-                            label: const Text('Receive')),
-                    ],
-                  ),
-                ]))));
+                                      EasyLoading.showToast(msg);
+                                    }
+                                  });
+                                },
+                                label: const Text('Receive')),
+                        ],
+                      ),
+                    ])))));
   }
 }

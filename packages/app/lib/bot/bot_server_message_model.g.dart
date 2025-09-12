@@ -28,7 +28,7 @@ Map<String, dynamic> _$BotServerMessageModelToJson(
 
 const _$MessageMediaTypeEnumMap = {
   MessageMediaType.text: 'text',
-  MessageMediaType.cashuA: 'cashuA',
+  MessageMediaType.cashu: 'cashu',
   MessageMediaType.image: 'image',
   MessageMediaType.video: 'video',
   MessageMediaType.contact: 'contact',

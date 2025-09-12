@@ -1,4 +1,5 @@
 import 'package:app/utils.dart';
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
@@ -8,13 +9,20 @@ import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 class EcashBillController extends GetxController {
   RxList<Transaction> transactions = <Transaction>[].obs;
   RxBool status = false.obs;
-
+  late IndicatorController indicatorController;
   final Map<String, bool> _activeChecks = {};
 
   @override
   void onInit() async {
+    indicatorController = IndicatorController();
     initPageData();
     super.onInit();
+  }
+
+  @override
+  void onClose() {
+    indicatorController.dispose();
+    super.onClose();
   }
 
   void initPageData() {
@@ -29,7 +37,7 @@ class EcashBillController extends GetxController {
     });
   }
 
-  Future getTransactions({int offset = 0, int limit = 15}) async {
+  Future getTransactions({int offset = 0, int limit = 30}) async {
     List<Transaction> list = await rust_cashu.getCashuTransactionsWithOffset(
         offset: BigInt.from(offset), limit: BigInt.from(limit));
     list.sort((a, b) => b.timestamp.compareTo(a.timestamp));

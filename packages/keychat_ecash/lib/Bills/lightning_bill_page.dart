@@ -36,12 +36,19 @@ class LightningBillPage extends GetView<LightningBillController> {
                               size: 40.0,
                             )))
                     : Obx(() => CustomMaterialIndicator(
-                        onRefresh: () async => await controller.getTransactions(
-                            offset: controller.transactions.length),
+                        onRefresh: () async {
+                          int offset = controller.transactions.length;
+                          if (controller.indicatorController.edge ==
+                              IndicatorEdge.leading) {
+                            offset = 0;
+                          }
+                          await controller.getTransactions(offset: offset);
+                        },
                         displacement: 20,
                         backgroundColor: Colors.white,
-                        trigger: IndicatorTrigger.trailingEdge,
+                        trigger: IndicatorTrigger.bothEdges,
                         triggerMode: IndicatorTriggerMode.anywhere,
+                        controller: controller.indicatorController,
                         child: ListView.separated(
                             separatorBuilder: (BuildContext context2,
                                     int index) =>

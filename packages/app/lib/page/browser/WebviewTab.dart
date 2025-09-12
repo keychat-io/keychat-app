@@ -69,7 +69,6 @@ class _WebviewTabState extends State<WebviewTab> {
   late WebviewTabController tc;
   bool pageFailed = false;
   WebviewTabState state = WebviewTabState.start;
-  InAppWebViewKeepAlive? inAppWebViewKeepAlive;
   PageStorageKey? pageStorageKey;
   late String initDomain;
   PullToRefreshController? pullToRefreshController;
@@ -81,7 +80,6 @@ class _WebviewTabState extends State<WebviewTab> {
 
   @override
   void initState() {
-    inAppWebViewKeepAlive = widget.keepAlive;
     controller = Get.find<MultiWebviewController>();
     tc = controller.getOrCreateController(
         widget.initUrl, widget.initTitle, widget.uniqueKey);
@@ -96,10 +94,7 @@ class _WebviewTabState extends State<WebviewTab> {
     if (widget.initUrl != KeychatGlobal.newTab) {
       Future.delayed(Duration(seconds: 1)).then((_) async {
         if (state == WebviewTabState.start) {
-          InAppWebViewKeepAlive? newKa =
-              await controller.refreshKeepAliveObject(widget.initUrl);
           setState(() {
-            inAppWebViewKeepAlive = newKa;
             state = WebviewTabState.failed;
             pageStorageKey = PageStorageKey(Random().nextInt(1 << 32));
           });
@@ -295,13 +290,9 @@ class _WebviewTabState extends State<WebviewTab> {
                                             .contains(initDomain),
                                         onChanged: (value) async {
                                           if (value) {
-                                            InAppWebViewKeepAlive? newKa =
-                                                await controller
-                                                    .enableKeepAlive(
-                                                        initDomain);
-                                            setState(() {
-                                              inAppWebViewKeepAlive = newKa;
-                                            });
+                                            await controller
+                                                .enableKeepAlive(initDomain);
+
                                             Get.back();
                                             EasyLoading.showSuccess(
                                                 'KeepAlive Enabled. Take effect after restarting the page.');
@@ -382,7 +373,7 @@ class _WebviewTabState extends State<WebviewTab> {
               child: Column(children: <Widget>[
                 Expanded(
                     child: Stack(children: [
-                  _getWebview(pageStorageKey, inAppWebViewKeepAlive),
+                  _getWebview(pageStorageKey),
                   Obx(() => tc.progress.value < 1.0
                       ? LinearProgressIndicator(
                           value:
@@ -393,10 +384,10 @@ class _WebviewTabState extends State<WebviewTab> {
         )));
   }
 
-  Widget _getWebview([PageStorageKey? key, InAppWebViewKeepAlive? keepAlive]) {
+  Widget _getWebview([PageStorageKey? key]) {
     return InAppWebView(
       key: key,
-      keepAlive: GetPlatform.isDesktop ? null : keepAlive,
+      keepAlive: GetPlatform.isDesktop ? null : widget.keepAlive,
       webViewEnvironment: controller.webViewEnvironment,
       initialUrlRequest: URLRequest(url: WebUri(tc.url.value)),
       initialSettings: tc.settings,
@@ -592,7 +583,6 @@ class _WebviewTabState extends State<WebviewTab> {
         if (!isForMainFrame || isCancel) {
           return;
         }
-        this.controller.removeKeepAlive(widget.initUrl);
         pullToRefreshController?.endRefreshing();
         if (error.description.contains('domain=WebKitErrorDomain, code=102')) {
           return renderAssetAsHtml(controller, request);
@@ -750,15 +740,7 @@ class _WebviewTabState extends State<WebviewTab> {
     }
 
     if (method == 'pageFailedToRefresh') {
-      controller.removeKeepAlive(widget.initUrl);
-      if (inAppWebViewKeepAlive == null) {
-        refreshPage();
-        return null;
-      }
-
-      setState(() {
-        inAppWebViewKeepAlive = null;
-      });
+      refreshPage();
       return null;
     }
 

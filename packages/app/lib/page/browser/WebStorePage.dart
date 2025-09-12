@@ -58,7 +58,7 @@ class _WebStorePageState extends State<WebStorePage> {
                 },
                 displacement: 20,
                 backgroundColor: Colors.white,
-                trigger: IndicatorTrigger.trailingEdge,
+                trigger: IndicatorTrigger.leadingEdge,
                 triggerMode: IndicatorTriggerMode.anywhere,
                 child: ListView.builder(
                     itemCount: homeController.recommendWebstore.entries.length,

@@ -389,7 +389,7 @@ $content'''
         .filter()
         .roomIdEqualTo(roomId)
         .idGreaterThan(messageId)
-        .sortByCreatedAtDesc()
+        .sortByCreatedAt()
         .limit(limit)
         .findAll();
   }
@@ -422,84 +422,6 @@ $content'''
         .sortByCreatedAtDesc()
         .limit(limit)
         .findFirstSync();
-  }
-
-  Future<List<Message>> listMessageBySearch({
-    required int roomId,
-    required DateTime from,
-    limit = 10,
-  }) async {
-    Isar database = DBProvider.database;
-    List<Message> msgEqual = await database.messages
-        .filter()
-        .roomIdEqualTo(roomId)
-        .createdAtEqualTo(from)
-        .sortByCreatedAtDesc()
-        .limit(limit)
-        .findAll();
-    List<Message> msgLess = await database.messages
-        .filter()
-        .roomIdEqualTo(roomId)
-        .createdAtLessThan(from)
-        .sortByCreatedAtDesc()
-        .limit(limit)
-        .findAll();
-    List<Message> msgMore = await database.messages
-        .filter()
-        .roomIdEqualTo(roomId)
-        .createdAtGreaterThan(from)
-        .sortByCreatedAt()
-        .limit(limit)
-        .findAll();
-    msgEqual.addAll(msgLess);
-    msgEqual.addAll(msgMore);
-    return msgEqual;
-  }
-
-  List<Message> listMessageBySearchSroll({
-    required int roomId,
-    required DateTime from,
-    limit = 10,
-  }) {
-    Isar database = DBProvider.database;
-    List<Message> msgEqual = database.messages
-        .filter()
-        .roomIdEqualTo(roomId)
-        .createdAtEqualTo(from)
-        .sortByCreatedAtDesc()
-        .limit(limit)
-        .findAllSync();
-    List<Message> msgLess = database.messages
-        .filter()
-        .roomIdEqualTo(roomId)
-        .createdAtLessThan(from)
-        .sortByCreatedAtDesc()
-        .limit(limit)
-        .findAllSync();
-    List<Message> msgMore = database.messages
-        .filter()
-        .roomIdEqualTo(roomId)
-        .createdAtGreaterThan(from)
-        .sortByCreatedAt()
-        .limit(limit)
-        .findAllSync();
-    msgEqual.addAll(msgLess);
-    msgEqual.addAll(msgMore);
-    return msgEqual;
-  }
-
-  Future<List<Message>> listMySendingMessage({
-    required int roomId,
-    limit = 10,
-  }) async {
-    return DBProvider.database.messages
-        .filter()
-        .roomIdEqualTo(roomId)
-        .sentEqualTo(SendStatusType.sending)
-        .isMeSendEqualTo(true)
-        .sortByCreatedAtDesc()
-        .limit(limit)
-        .findAll();
   }
 
   Future<DateTime?> getLastMessageTime() async {

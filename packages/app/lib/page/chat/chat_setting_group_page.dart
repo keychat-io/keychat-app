@@ -1,6 +1,7 @@
 import 'package:app/app.dart';
 // import 'package:app/page/chat/ForwardSelectRoom.dart';
 import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app/page/chat/search_messages_page.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:easy_debounce/easy_throttle.dart';
@@ -344,8 +345,21 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                         cc.roomObs.value.isMLSGroup)
                       RoomUtil.muteSection(cc),
                   ]),
+                  SettingsSection(tiles: [
+                    SettingsTile.navigation(
+                      leading: const Icon(CupertinoIcons.search),
+                      title: const Text('Search History'),
+                      onPressed: (context) async {
+                        Get.to(
+                            () =>
+                                SearchMessagesPage(roomId: cc.roomObs.value.id),
+                            id: GetPlatform.isDesktop
+                                ? GetXNestKey.room
+                                : null);
+                      },
+                    ),
+                  ]),
                   payToRelaySection(),
-                  // receiveInPostOffice(),
                   dangerZoom(context)
                 ],
               )),

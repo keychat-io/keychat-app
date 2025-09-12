@@ -86,7 +86,7 @@ class ChatController extends GetxController {
   late FocusNode chatContentFocus;
   late FocusNode keyboardFocus;
   late ScrollController textFieldScrollController;
-  late ScrollController scrollController;
+  late final ScrollController scrollController;
   late IndicatorController indicatorController;
 
   DateTime lastMessageAddedAt = DateTime.now();
@@ -112,9 +112,46 @@ class ChatController extends GetxController {
 
   List<Function> featuresOnTaps = [];
 
-  ChatController(Room room, {int mId = -1}) {
+  ChatController(Room room, {this.searchMessageId = -1}) {
     roomObs.value = room;
-    searchMessageId = mId;
+  }
+
+  @override
+  void onInit() async {
+    scrollController = ScrollController();
+    chatContentFocus = FocusNode();
+    keyboardFocus = FocusNode();
+    if (GetPlatform.isDesktop) {
+      chatContentFocus.requestFocus();
+      messageLimitPerPage = 100;
+    }
+
+    textFieldScrollController = ScrollController();
+    textEditingController = TextEditingController();
+    indicatorController = IndicatorController();
+
+    // load draft
+    String? textFiledDraft = RoomDraft.instance.getDraft(roomObs.value.id);
+    if (textEditingController.text.isEmpty && textFiledDraft != null) {
+      textEditingController.text = textFiledDraft;
+    }
+
+    textEditingController.addListener(() {
+      String newText = textEditingController.text;
+      if (newText.contains(newlineChar)) {
+        textEditingController.text = newText.replaceAll(newlineChar, '\n');
+        return;
+      }
+
+      inputTextIsAdd.value = newText.length >= inputText.value.length;
+      inputText.value = newText;
+      RoomDraft.instance.setDraft(roomObs.value.id, newText);
+    });
+    await _initRoom();
+    await loadAllChat(searchMsgIndex: searchMessageId);
+    isLatestMessageNip04();
+    initChatPageFeatures();
+    super.onInit();
   }
 
   void addMessage(Message message) {
@@ -131,9 +168,8 @@ class ChatController extends GetxController {
 
     messages.insert(index, message);
     if (scrollController.hasClients &&
-        scrollController.position.pixels <= 300) {
+        scrollController.position.pixels <= 400) {
       jumpToBottom(100);
-      return;
     }
   }
 
@@ -295,8 +331,8 @@ class ChatController extends GetxController {
   }
 
   Future<void> loadAllChat({int searchMsgIndex = -1}) async {
+    // fetch some old messages
     if (searchMsgIndex >= 0) {
-      // fetch some old messages
       if (searchMsgIndex > 3) {
         searchMsgIndex = searchMsgIndex - 3;
       }
@@ -329,22 +365,19 @@ class ChatController extends GetxController {
     checkPendingEcash();
   }
 
-  Future<int> _loadLatestMessages(int searchMsgIndex, {int limit = 15}) async {
-    Future.delayed(const Duration(milliseconds: 200), () {
-      if (scrollController.hasClients) {
-        scrollController.jumpTo(scrollController.position.maxScrollExtent);
-      }
-    });
+  Future<int> _loadLatestMessages(int searchMsgIndex) async {
     var sortedNewMessages = await MessageService.instance
         .listLatestMessageByTime(
-            roomId: roomObs.value.id, messageId: searchMsgIndex, limit: limit);
+            roomId: roomObs.value.id,
+            messageId: searchMsgIndex,
+            limit: messageLimitPerPage);
 
     if (sortedNewMessages.isEmpty) {
-      EasyLoading.showToast('No more messages to load');
+      EasyLoading.showToast('No more messages');
       return 0;
     }
 
-    sortedNewMessages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
+    sortedNewMessages.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     messages.insertAll(0, sortedNewMessages);
     messages.value = List.from(messages);
     return sortedNewMessages.length;
@@ -394,29 +427,24 @@ class ChatController extends GetxController {
     return list;
   }
 
-  Future loadMoreChatHistory() async {
+  Future pullToLoadMessages() async {
     if (messages.isEmpty) return;
-    if (indicatorController.direction == AxisDirection.up) {
-      _loadLatestMessages(messages.first.id, limit: messageLimitPerPage);
-      Future.delayed(const Duration(milliseconds: 200), () {
-        if (scrollController.hasClients) {
-          scrollController.jumpTo(scrollController.position.maxScrollExtent);
-        }
-      });
+    if (indicatorController.edge == IndicatorEdge.leading) {
+      _loadLatestMessages(messages.first.id);
       return;
     }
-    // indicatorController.direction == AxisDirection.down
+    // trailing
     var sortedNewMessages = await MessageService.instance.listOldMessageByTime(
         roomId: roomObs.value.id,
         messageId: messages.last.id,
         limit: messageLimitPerPage);
 
     if (sortedNewMessages.isEmpty) {
-      EasyLoading.showToast('No more messages to load');
+      EasyLoading.showToast('No more messages');
       return;
     }
 
-    sortedNewMessages.sort(((a, b) => b.createdAt.compareTo(a.createdAt)));
+    sortedNewMessages.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     messages.addAll(sortedNewMessages);
     messages.value = List.from(messages);
   }
@@ -428,47 +456,8 @@ class ChatController extends GetxController {
     keyboardFocus.dispose();
     textEditingController.dispose();
     textFieldScrollController.dispose();
-    scrollController.dispose();
     indicatorController.dispose();
     super.onClose();
-  }
-
-  @override
-  void onInit() async {
-    chatContentFocus = FocusNode();
-    keyboardFocus = FocusNode();
-    if (GetPlatform.isDesktop) {
-      chatContentFocus.requestFocus();
-      messageLimitPerPage = 100;
-    }
-
-    textFieldScrollController = ScrollController();
-    textEditingController = TextEditingController();
-    scrollController = ScrollController();
-    indicatorController = IndicatorController();
-
-    // load draft
-    String? textFiledDraft = RoomDraft.instance.getDraft(roomObs.value.id);
-    if (textEditingController.text.isEmpty && textFiledDraft != null) {
-      textEditingController.text = textFiledDraft;
-    }
-
-    textEditingController.addListener(() {
-      String newText = textEditingController.text;
-      if (newText.contains(newlineChar)) {
-        textEditingController.text = newText.replaceAll(newlineChar, '\n');
-        return;
-      }
-
-      inputTextIsAdd.value = newText.length >= inputText.value.length;
-      inputText.value = newText;
-      RoomDraft.instance.setDraft(roomObs.value.id, newText);
-    });
-    await _initRoom();
-    await loadAllChat(searchMsgIndex: searchMessageId);
-    isLatestMessageNip04();
-    initChatPageFeatures();
-    super.onInit();
   }
 
   // check if the latest message is nip04
@@ -506,19 +495,6 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
         ));
       }
     }
-  }
-
-  @override
-  onReady() {
-    // jump to bottom after 200ms
-    Future.delayed(const Duration(milliseconds: 200), () {
-      Timer(const Duration(milliseconds: 300), () {
-        if (scrollController.positions.isNotEmpty &&
-            scrollController.hasClients) {
-          scrollController.jumpTo(0.0);
-        }
-      });
-    });
   }
 
   Future<void> pickAndUploadImage(ImageSource imageSource) async {
@@ -617,7 +593,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     }
   }
 
-  void processClickBlank() {
+  void processClickBlankArea() {
     hideAdd.value = true;
     hideEmoji.value = true;
     Utils.hideKeyboard(Get.context!);
@@ -1127,5 +1103,11 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
         });
       }
     });
+  }
+
+  // from search page
+  Future<void> loadFromMessageId(int messageId) async {
+    messages.clear();
+    await loadAllChat(searchMsgIndex: messageId);
   }
 }

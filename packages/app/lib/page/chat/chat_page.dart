@@ -38,16 +38,21 @@ class _ChatPage2State extends State<ChatPage> {
   late ChatController controller;
   HomeController hc = Get.find<HomeController>();
 
-  late Widget myAavtar;
+  late Widget myAvatar;
   bool isGroup = false;
   late MarkdownConfig markdownDarkConfig;
   late MarkdownConfig markdownLightConfig;
   bool isSendGreeting = false;
 
   @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
   void initState() {
-    Room room = _getRoomAndInit(context);
-    myAavtar = Utils.getRandomAvatar(room.getIdentity().secp256k1PKHex,
+    Room room = _getRoomAndInit();
+    myAvatar = Utils.getRandomAvatar(room.getIdentity().secp256k1PKHex,
         httpAvatar: room.getIdentity().avatarFromRelay, height: 40, width: 40);
     isGroup = room.type == RoomType.group;
     markdownDarkConfig = MarkdownConfig.darkConfig.copy(configs: [
@@ -75,11 +80,6 @@ class _ChatPage2State extends State<ChatPage> {
               color: Colors.blue, decoration: TextDecoration.none)),
     ]);
     super.initState();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 
   @override
@@ -114,22 +114,16 @@ class _ChatPage2State extends State<ChatPage> {
             Obx(() => controller.roomObs.value.status != RoomStatus.approving
                 ? IconButton(
                     onPressed: goToSetting,
-                    icon: const Icon(
-                      Icons.more_horiz,
-                    ),
+                    icon: const Icon(Icons.more_horiz),
                   )
                 : Container())
           ],
         ),
         body: GestureDetector(
-          onTap: () {
-            controller.processClickBlank();
-          },
+          onTap: controller.processClickBlankArea,
           onPanUpdate: (details) {
-            if (GetPlatform.isIOS) {
-              if (details.delta.dx < -10) {
-                goToSetting();
-              }
+            if (GetPlatform.isIOS && details.delta.dx < -10) {
+              goToSetting();
             }
           },
           child: Column(
@@ -158,9 +152,8 @@ class _ChatPage2State extends State<ChatPage> {
                           : const Color(0xffededed),
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: CustomMaterialIndicator(
-                        onRefresh: controller.loadMoreChatHistory,
-                        displacement: 20,
-                        backgroundColor: Colors.white,
+                        onRefresh: controller.pullToLoadMessages,
+                        displacement: 4,
                         trigger: IndicatorTrigger.bothEdges,
                         triggerMode: IndicatorTriggerMode.anywhere,
                         controller: controller.indicatorController,
@@ -175,13 +168,14 @@ class _ChatPage2State extends State<ChatPage> {
                           );
                         },
                         child: Obx(() => ListView.builder(
+                              key: PageStorageKey<String>(
+                                  'chatlistview:${controller.roomObs.value.id}'),
                               reverse: true,
                               shrinkWrap: true,
                               itemCount: controller.messages.length,
                               controller: controller.scrollController,
                               itemBuilder: (BuildContext context, int index) {
                                 Message message = controller.messages[index];
-
                                 RoomMember? rm;
                                 if (!message.isMeSend &&
                                     controller.roomObs.value.type ==
@@ -195,7 +189,7 @@ class _ChatPage2State extends State<ChatPage> {
 
                                 return MessageWidget(
                                   key: ObjectKey('msg:${message.id}'),
-                                  myAavtar: myAavtar,
+                                  myAavtar: myAvatar,
                                   index: index,
                                   isGroup: isGroup,
                                   roomMember: rm,
@@ -917,10 +911,19 @@ class _ChatPage2State extends State<ChatPage> {
                 fontSize: 16))));
   }
 
-  Room _getRoomAndInit(BuildContext context) {
+  int? tryGetMessageId() {
+    try {
+      Map<String, dynamic> arguments = Get.arguments;
+      return arguments['messageId'];
+      // ignore: empty_catches
+    } catch (e) {}
+    return null;
+  }
+
+  Room _getRoomAndInit() {
     Room? room = widget.room;
     int? roomId = widget.room?.id;
-    int searchMessageId = -1;
+    int? searchMessageId = tryGetMessageId();
     if (room == null) {
       if (Get.parameters['id'] != null) {
         roomId = int.parse(Get.parameters['id']!);
@@ -931,17 +934,24 @@ class _ChatPage2State extends State<ChatPage> {
         try {
           Map<String, dynamic> arguments = Get.arguments;
           room = arguments['room'];
-          searchMessageId = arguments['messageId'] ?? -1;
         } catch (e) {
-          // only one arguments, not in Json format
           room = Get.arguments as Room;
         }
       }
     }
-    controller =
-        Utils.getGetxController<ChatController>(tag: roomId.toString()) ??
-            Get.put(ChatController(room!, mId: searchMessageId),
-                tag: roomId.toString());
+    var exist = Utils.getGetxController<ChatController>(tag: roomId.toString());
+    if (exist != null) {
+      controller = exist;
+      if (searchMessageId != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          controller.loadFromMessageId(searchMessageId);
+        });
+      }
+    } else {
+      controller = Get.put(
+          ChatController(room!, searchMessageId: searchMessageId ?? -1),
+          tag: roomId.toString());
+    }
     return room!;
   }
 

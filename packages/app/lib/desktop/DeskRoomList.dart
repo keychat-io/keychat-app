@@ -67,8 +67,10 @@ class DeskRoomList extends GetView<DesktopController> {
                     } catch (e) {
                       room = (settings.arguments as Map)['room'] as Room;
                     }
+                    Get.routing.args = settings.arguments;
                     return GetPageRoute(
                         transition: Transition.fadeIn,
+                        settings: settings,
                         page: () =>
                             ChatPage(key: ValueKey(roomId), room: room));
                   }

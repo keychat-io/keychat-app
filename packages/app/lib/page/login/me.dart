@@ -49,121 +49,118 @@ class _MinePageState extends State<MinePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          centerTitle: true,
-          title: GestureDetector(
-            child: const Text('Me'),
-            onTap: () {
-              homeController.troggleDebugModel();
-            },
-          ),
+      appBar: AppBar(
+        centerTitle: true,
+        title: GestureDetector(
+          child: const Text('Me'),
+          onTap: () {
+            homeController.troggleDebugModel();
+          },
         ),
-        floatingActionButton: kDebugMode
-            ? ElevatedButton(
-                onPressed: () async {
-                  try {} catch (e) {
-                    logger.e('Failed to process QR result: $e');
-                  }
-                },
-                child: Text('Test'),
-              )
-            : null,
-        body: Container(
-          padding: EdgeInsets.only(
-              bottom: GetPlatform.isMobile ? kMinInteractiveDimension : 0),
-          child: Obx(() => SettingsList(
-                platform: DevicePlatform.iOS,
-                sections: [
-                  SettingsSection(
-                      margin: const EdgeInsetsDirectional.only(
-                          start: 16, end: 16, bottom: 16, top: 0),
-                      title: const Text('Chat / Browser ID'),
-                      tiles: [
-                        ...getIDList(context,
-                            homeController.allIdentities.values.toList()),
-                        SettingsTile(
-                            title: const Text("Create ID"),
-                            trailing: Icon(CupertinoIcons.add,
-                                color: Theme.of(Get.context!)
-                                    .iconTheme
-                                    .color
-                                    ?.withValues(alpha: 0.5),
-                                size: 22),
-                            onPressed: (context) async {
-                              Get.bottomSheet(
-                                  clipBehavior: Clip.antiAlias,
-                                  shape: const RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.vertical(
-                                          top: Radius.circular(4))),
-                                  const SelectModeToCreateId());
-                            })
-                      ]),
-                  if (GetPlatform.isMobile)
-                    SettingsSection(tiles: [
-                      SettingsTile.navigation(
-                        leading: const Icon(
-                          CupertinoIcons.bitcoin,
-                          color: Color(0xfff2a900),
-                        ),
-                        value: Text(
-                            '${Utils.getGetxController<EcashController>()?.totalSats.value.toString() ?? '-'} ${EcashTokenSymbol.sat.name}'),
+      ),
+      floatingActionButton: kDebugMode
+          ? ElevatedButton(
+              onPressed: () async {
+                try {} catch (e) {
+                  logger.e('Failed to process QR result: $e');
+                }
+              },
+              child: Text('Test'),
+            )
+          : null,
+      body: Obx(() => SettingsList(
+            platform: DevicePlatform.iOS,
+            sections: [
+              SettingsSection(
+                  margin: const EdgeInsetsDirectional.only(
+                      start: 16, end: 16, bottom: 16, top: 0),
+                  title: const Text('Chat / Browser ID'),
+                  tiles: [
+                    ...getIDList(
+                        context, homeController.allIdentities.values.toList()),
+                    SettingsTile(
+                        title: const Text("Create ID"),
+                        trailing: Icon(CupertinoIcons.add,
+                            color: Theme.of(Get.context!)
+                                .iconTheme
+                                .color
+                                ?.withValues(alpha: 0.5),
+                            size: 22),
                         onPressed: (context) async {
-                          Get.toNamed(Routes.ecash);
-                        },
-                        title: const Text("Bitcoin Ecash"),
-                      ),
-                      if (v1EcashTokens.isNotEmpty) migrateEcash()
-                    ]),
-                  // Desktop, migrate ecash tokens
-                  if (GetPlatform.isDesktop && v1EcashTokens.isNotEmpty)
-                    SettingsSection(tiles: [migrateEcash()]),
-                  SettingsSection(
-                    tiles: [
-                      SettingsTile.navigation(
-                        leading: const Icon(CupertinoIcons.chat_bubble),
-                        title: const Text("Chat Settings"),
-                        onPressed: (context) async {
-                          Get.to(() => const MoreChatSetting(),
-                              id: GetPlatform.isDesktop
-                                  ? GetXNestKey.setting
-                                  : null);
-                        },
-                      ),
-                      if (!GetPlatform.isLinux)
-                        SettingsTile.navigation(
-                            title: const Text("Browser Settings"),
-                            leading: const Icon(CupertinoIcons.compass),
-                            onPressed: (context) async {
-                              Get.to(() => const BrowserSetting(),
-                                  id: GetPlatform.isDesktop
-                                      ? GetXNestKey.setting
-                                      : null);
-                            }),
-                      SettingsTile.navigation(
-                        leading: const Icon(CupertinoIcons.settings),
-                        title: const Text("App Settings"),
-                        onPressed: (context) {
-                          Get.to(() => const AppGeneralSetting(),
-                              id: GetPlatform.isDesktop
-                                  ? GetXNestKey.setting
-                                  : null);
-                        },
-                      ),
-                    ],
+                          Get.bottomSheet(
+                              clipBehavior: Clip.antiAlias,
+                              shape: const RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.vertical(
+                                      top: Radius.circular(4))),
+                              const SelectModeToCreateId());
+                        })
+                  ]),
+              if (GetPlatform.isMobile)
+                SettingsSection(tiles: [
+                  SettingsTile.navigation(
+                    leading: const Icon(
+                      CupertinoIcons.bitcoin,
+                      color: Color(0xfff2a900),
+                    ),
+                    value: Text(
+                        '${Utils.getGetxController<EcashController>()?.totalSats.value.toString() ?? '-'} ${EcashTokenSymbol.sat.name}'),
+                    onPressed: (context) async {
+                      Get.toNamed(Routes.ecash);
+                    },
+                    title: const Text("Bitcoin Ecash"),
                   ),
-                  SettingsSection(
-                    tiles: [
-                      SettingsTile(
-                        leading: const Icon(Icons.verified_outlined),
-                        title: const Text("App Version"),
-                        value: getVersionCode(homeController),
-                        onPressed: (context) {},
-                      ),
-                    ],
+                  if (v1EcashTokens.isNotEmpty) migrateEcash()
+                ]),
+              // Desktop, migrate ecash tokens
+              if (GetPlatform.isDesktop && v1EcashTokens.isNotEmpty)
+                SettingsSection(tiles: [migrateEcash()]),
+              SettingsSection(
+                tiles: [
+                  SettingsTile.navigation(
+                    leading: const Icon(CupertinoIcons.chat_bubble),
+                    title: const Text("Chat Settings"),
+                    onPressed: (context) async {
+                      Get.to(() => const MoreChatSetting(),
+                          id: GetPlatform.isDesktop
+                              ? GetXNestKey.setting
+                              : null);
+                    },
+                  ),
+                  if (!GetPlatform.isLinux)
+                    SettingsTile.navigation(
+                        title: const Text("Browser Settings"),
+                        leading: const Icon(CupertinoIcons.compass),
+                        onPressed: (context) async {
+                          Get.to(() => const BrowserSetting(),
+                              id: GetPlatform.isDesktop
+                                  ? GetXNestKey.setting
+                                  : null);
+                        }),
+                  SettingsTile.navigation(
+                    leading: const Icon(CupertinoIcons.settings),
+                    title: const Text("App Settings"),
+                    onPressed: (context) {
+                      Get.to(() => const AppGeneralSetting(),
+                          id: GetPlatform.isDesktop
+                              ? GetXNestKey.setting
+                              : null);
+                    },
                   ),
                 ],
-              )),
-        ));
+              ),
+              SettingsSection(
+                tiles: [
+                  SettingsTile(
+                    leading: const Icon(Icons.verified_outlined),
+                    title: const Text("App Version"),
+                    value: getVersionCode(homeController),
+                    onPressed: (context) {},
+                  ),
+                ],
+              ),
+            ],
+          )),
+    );
   }
 
   Widget getVersionCode(HomeController homeController) {
@@ -195,7 +192,7 @@ class _MinePageState extends State<MinePage> {
           launchUrl(Uri.parse(url), mode: LaunchMode.platformDefault);
           return;
         }
-        const url = 'https://www.keychat.io';
+        const url = 'https://github.com/keychat-io/keychat-app/releases';
         launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
       },
       child: Wrap(

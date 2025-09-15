@@ -102,19 +102,12 @@ class _CupertinoRootPageState extends State<CupertinoRootPage> {
           Obx(() => homeController.isBlurred.value
               ? Positioned.fill(
                   child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-                    child: Container(
-                      color: Colors.black.withAlpha(30),
-                      child: const Center(
-                        child: Icon(
-                          CupertinoIcons.lock_shield_fill,
-                          size: 80,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                )
+                      filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                      child: Container(
+                          color: Colors.black.withAlpha(30),
+                          child: const Center(
+                              child: Icon(CupertinoIcons.lock_shield_fill,
+                                  size: 80, color: Colors.white)))))
               : const SizedBox.shrink()),
       ],
     );

@@ -183,7 +183,7 @@ Let's start an encrypted chat.''';
 
       // room setting > global setting
       DateTime fromAt = DateTime.now().subtract(const Duration(days: 180));
-      var start = BigInt.from(fromAt.millisecondsSinceEpoch);
+      var start = BigInt.from(fromAt.second);
       rust_cashu.removeTransactions(
           unixTimestampLe: start, status: TransactionStatus.success);
     } catch (e, s) {

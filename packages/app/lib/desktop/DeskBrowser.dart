@@ -114,26 +114,22 @@ class _DeskBrowserState extends State<DeskBrowser> {
             },
           ))),
       MouseRegion(
-        cursor: SystemMouseCursors.resizeLeftRight,
-        child: GestureDetector(
-          onHorizontalDragUpdate: (details) {
-            desktopController.setBrowserSidebarWidth(
-              desktopController.browserSidebarWidth.value + details.delta.dx,
-            );
-          },
-          child: Container(
-            width: 1,
-            decoration: BoxDecoration(
-              border: Border(
-                right: BorderSide(
-                  color: Theme.of(context).dividerColor.withAlpha(30),
+          cursor: SystemMouseCursors.resizeLeftRight,
+          child: GestureDetector(
+              onHorizontalDragUpdate: (details) {
+                desktopController.setBrowserSidebarWidth(
+                  desktopController.browserSidebarWidth.value +
+                      details.delta.dx,
+                );
+              },
+              child: Container(
                   width: 1,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
+                  decoration: BoxDecoration(
+                      border: Border(
+                    right: BorderSide(
+                        color: Theme.of(context).dividerColor.withAlpha(30),
+                        width: 1),
+                  ))))),
       Expanded(
           child: IndexedStack(
         key: stackKey,

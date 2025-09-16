@@ -1,8 +1,11 @@
+import 'dart:math' show Random;
+
 import 'package:app/app.dart';
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kDebugMode, kIsWeb;
+import 'package:flutter/material.dart' show PageStorageKey;
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:get/get.dart';
 
@@ -10,16 +13,19 @@ class WebviewTabController extends GetxController {
   Rx<BrowserConnect> browserConnect = BrowserConnect(host: '', pubkey: '').obs;
   RxBool canGoBack = false.obs;
   RxBool canGoForward = false.obs;
-  InAppWebViewController? webViewController;
+  InAppWebViewController? inAppWebViewController;
   RxString title = ''.obs;
   RxString url = ''.obs;
   RxDouble progress = 0.1.obs;
   String? favicon;
+  Rx<PageStorageKey> pageStorageKey = PageStorageKey('').obs;
   late MultiWebviewController multiWebviewController;
   late String uniqueKey;
   WebviewTabController(String key, String initUrl, String? initTitle) {
     uniqueKey = key;
     url.value = initUrl;
+    String domain = Uri.parse(initUrl).host;
+    pageStorageKey.value = PageStorageKey<String>(domain);
     if (initTitle != null && initTitle.isNotEmpty) {
       title.value = initTitle;
     }
@@ -33,7 +39,7 @@ class WebviewTabController extends GetxController {
     if (title.value == url.value) {
       multiWebviewController.removeKeepAlive(url.value);
     }
-    webViewController?.dispose();
+    inAppWebViewController?.dispose();
     super.onClose();
   }
 
@@ -67,16 +73,16 @@ class WebviewTabController extends GetxController {
     await multiWebviewController.setTextsize(textSize);
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       settings.textZoom = textSize;
-      await webViewController?.setSettings(settings: settings);
+      await inAppWebViewController?.setSettings(settings: settings);
     } else {
       // update current text size
       logger.i(
           'updateTextSize: $textSize, ${multiWebviewController.kTextSizeSourceJS}');
-      await webViewController?.evaluateJavascript(
+      await inAppWebViewController?.evaluateJavascript(
           source: multiWebviewController.kTextSizeSourceJS);
 
       // update the User Script for the next page load
-      await webViewController?.removeUserScript(
+      await inAppWebViewController?.removeUserScript(
           userScript: multiWebviewController.textSizeUserScript);
       multiWebviewController.textSizeUserScript = UserScript(source: """
 window.addEventListener('DOMContentLoaded', function(event) {
@@ -85,13 +91,13 @@ window.addEventListener('DOMContentLoaded', function(event) {
   document.body.style.fontSize = '$textSize%';
 });
 """, injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START);
-      await webViewController?.addUserScript(
+      await inAppWebViewController?.addUserScript(
           userScript: multiWebviewController.textSizeUserScript);
     }
   }
 
   void setWebViewController(InAppWebViewController controller, String initUrl) {
-    webViewController = controller;
+    inAppWebViewController = controller;
     if (GetPlatform.isDesktop) return;
     // Init data for keep alive on mobile
     controller.getTitle().then((value) {
@@ -129,6 +135,20 @@ window.addEventListener('DOMContentLoaded', function(event) {
       browserConnect.value = BrowserConnect(host: '', pubkey: '');
     } else {
       browserConnect.value = value;
+    }
+  }
+
+  Future<void> checkWebViewControllerAlive() async {
+    if (inAppWebViewController == null) return;
+    try {
+      await inAppWebViewController!.getUrl();
+      logger.d('tabController alive: $url');
+    } catch (e) {
+      logger.d('tabController dispose: $url');
+      // ⛔ A MacOSInAppWebViewController was used after being disposed.
+      // ⛔ Once the MacOSInAppWebViewController has been disposed, it can no longer be used.
+      pageStorageKey.value =
+          PageStorageKey<String>(Random().nextInt(1 << 32).toString());
     }
   }
 }

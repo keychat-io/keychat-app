@@ -3,7 +3,6 @@ import 'dart:io'
 
 import 'package:app/page/log_viewer.dart';
 import 'package:app/service/file.service.dart';
-import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';

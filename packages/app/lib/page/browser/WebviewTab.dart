@@ -42,8 +42,6 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
-enum WebviewTabState { start, success, failed, error }
-
 class WebviewTab extends StatefulWidget {
   final String uniqueKey;
   final String initUrl;
@@ -65,11 +63,9 @@ class WebviewTab extends StatefulWidget {
 
 class _WebviewTabState extends State<WebviewTab> {
   late EcashController ecashController;
-  late MultiWebviewController controller;
-  late WebviewTabController tc;
+  late MultiWebviewController multiWebviewController;
+  late WebviewTabController tabController;
   bool pageFailed = false;
-  WebviewTabState state = WebviewTabState.start;
-  PageStorageKey? pageStorageKey;
   late String initDomain;
   PullToRefreshController? pullToRefreshController;
 
@@ -80,39 +76,27 @@ class _WebviewTabState extends State<WebviewTab> {
 
   @override
   void initState() {
-    controller = Get.find<MultiWebviewController>();
-    tc = controller.getOrCreateController(
+    multiWebviewController = Get.find<MultiWebviewController>();
+    tabController = multiWebviewController.getOrCreateController(
         widget.initUrl, widget.initTitle, widget.uniqueKey);
     ecashController = Get.find<EcashController>();
     currentUri = WebUri(widget.initUrl);
     initDomain = currentUri.host;
-    pageStorageKey = PageStorageKey(initDomain);
 
     initBrowserConnect(currentUri);
     initPullToRefreshController();
     super.initState();
-    if (widget.initUrl != KeychatGlobal.newTab) {
-      Future.delayed(Duration(seconds: 1)).then((_) async {
-        if (state == WebviewTabState.start) {
-          setState(() {
-            state = WebviewTabState.failed;
-            pageStorageKey = PageStorageKey(Random().nextInt(1 << 32));
-          });
-        }
-      });
-    }
   }
 
   Future<void> menuOpened() async {
-    var uri = await tc.webViewController?.getUrl();
-    if (uri == null) return;
-    initBrowserConnect(uri);
-    controller.updateTabData(uniqueId: widget.uniqueKey, url: uri.toString());
+    initBrowserConnect(currentUri);
+    multiWebviewController.updateTabData(
+        uniqueId: widget.uniqueKey, url: currentUri.toString());
   }
 
   void initBrowserConnect(WebUri uri) {
     BrowserConnect.getByHost(uri.host).then((value) {
-      tc.setBrowserConnect(value);
+      tabController.setBrowserConnect(value);
     });
   }
 
@@ -121,7 +105,7 @@ class _WebviewTabState extends State<WebviewTab> {
     if (widget.initUrl == KeychatGlobal.newTab) return BrowserNewTab();
 
     return Obx(() => PopScope(
-        canPop: !tc.canGoBack.value,
+        canPop: !tabController.canGoBack.value,
         onPopInvokedWithResult: (didPop, d) {
           if (didPop) return;
           goBackOrPop();
@@ -145,13 +129,15 @@ class _WebviewTabState extends State<WebviewTab> {
                                 padding:
                                     const EdgeInsets.symmetric(horizontal: 2),
                                 onPressed: () {
-                                  controller.removeTab(widget.uniqueKey);
+                                  multiWebviewController
+                                      .removeTab(widget.uniqueKey);
                                 },
                                 icon: const Icon(Icons.close)),
                             IconButton(
-                                onPressed: tc.canGoForward.value
+                                onPressed: tabController.canGoForward.value
                                     ? () {
-                                        tc.webViewController?.goForward();
+                                        tabController.inAppWebViewController
+                                            ?.goForward();
                                       }
                                     : null,
                                 icon: const Icon(Icons.arrow_forward)),
@@ -162,10 +148,10 @@ class _WebviewTabState extends State<WebviewTab> {
                       Expanded(
                           child: Center(
                               child: AutoSizeText(
-                                  controller.removeHttpPrefix(
-                                      tc.title.value.isEmpty
-                                          ? tc.url.value
-                                          : tc.title.value),
+                                  multiWebviewController.removeHttpPrefix(
+                                      tabController.title.value.isEmpty
+                                          ? tabController.url.value
+                                          : tabController.title.value),
                                   minFontSize: 10,
                                   stepGranularity: 2,
                                   maxFontSize: 16,
@@ -173,15 +159,21 @@ class _WebviewTabState extends State<WebviewTab> {
                                   overflow: TextOverflow.clip)))
                     ])
                   : AutoSizeText(
-                      controller.removeHttpPrefix(tc.title.value.isEmpty
-                          ? tc.url.value
-                          : tc.title.value),
+                      multiWebviewController.removeHttpPrefix(
+                          tabController.title.value.isEmpty
+                              ? tabController.url.value
+                              : tabController.title.value),
                       minFontSize: 10,
                       stepGranularity: 2,
                       maxFontSize: 16,
                       maxLines: 1,
                       overflow: TextOverflow.clip),
               actions: [
+                IconButton(
+                    onPressed: () {
+                      tabController.inAppWebViewController?.dispose();
+                    },
+                    icon: Icon(Icons.abc)),
                 PopupMenuButton<String>(
                   onOpened: menuOpened,
                   onSelected: popupMenuSelected,
@@ -189,7 +181,7 @@ class _WebviewTabState extends State<WebviewTab> {
                     return [
                       PopupMenuItem(
                         value: 'tools',
-                        child: getPopTools(tc.url.value),
+                        child: getPopTools(tabController.url.value),
                       ),
                       PopupMenuItem(
                         value: 'refresh',
@@ -203,7 +195,9 @@ class _WebviewTabState extends State<WebviewTab> {
                         value: 'bookmark',
                         child: Row(spacing: 16, children: [
                           FutureBuilder(future: () async {
-                            final url = await tc.webViewController?.getUrl();
+                            final url = await tabController
+                                .inAppWebViewController
+                                ?.getUrl();
                             if (url == null) return null;
                             return await DBProvider.database.browserBookmarks
                                 .filter()
@@ -277,7 +271,8 @@ class _WebviewTabState extends State<WebviewTab> {
                               leading: Transform.scale(
                                   scale: 0.6,
                                   child: FutureBuilder(future: (() async {
-                                    await controller.loadKeepAlive();
+                                    await multiWebviewController
+                                        .loadKeepAlive();
                                   })(), builder: (context, snapshot) {
                                     if (snapshot.hasData) {
                                       return Icon(
@@ -286,11 +281,12 @@ class _WebviewTabState extends State<WebviewTab> {
                                       );
                                     }
                                     return Switch(
-                                        value: controller.mobileKeepAlive.keys
+                                        value: multiWebviewController
+                                            .mobileKeepAlive.keys
                                             .contains(initDomain),
                                         onChanged: (value) async {
                                           if (value) {
-                                            await controller
+                                            await multiWebviewController
                                                 .enableKeepAlive(initDomain);
 
                                             Get.back();
@@ -298,7 +294,7 @@ class _WebviewTabState extends State<WebviewTab> {
                                                 'KeepAlive Enabled. Take effect after restarting the page.');
                                             return;
                                           }
-                                          await controller
+                                          await multiWebviewController
                                               .disableKeepAlive(initDomain);
                                           Get.back();
                                           EasyLoading.showSuccess(
@@ -311,7 +307,7 @@ class _WebviewTabState extends State<WebviewTab> {
                                   style:
                                       Theme.of(context).textTheme.bodyLarge)),
                         ),
-                      if (tc.browserConnect.value.host == "")
+                      if (tabController.browserConnect.value.host == "")
                         PopupMenuItem(
                           value: 'clear',
                           child: Row(spacing: 12, children: [
@@ -325,7 +321,7 @@ class _WebviewTabState extends State<WebviewTab> {
                         value: 'divider',
                         child: Divider(),
                       ),
-                      if (tc.browserConnect.value.host != "")
+                      if (tabController.browserConnect.value.host != "")
                         PopupMenuItem(
                           value: 'disconnect',
                           child: Row(spacing: 12, children: [
@@ -350,8 +346,9 @@ class _WebviewTabState extends State<WebviewTab> {
                 if (GetPlatform.isMobile)
                   IconButton(
                       onPressed: () async {
-                        if (pageFailed || state != WebviewTabState.success) {
-                          controller.removeKeepAlive(widget.initUrl);
+                        if (pageFailed) {
+                          multiWebviewController
+                              .removeKeepAlive(widget.initUrl);
                         }
                         if (Get.isBottomSheetOpen ?? false) {
                           Get.back();
@@ -373,236 +370,234 @@ class _WebviewTabState extends State<WebviewTab> {
               child: Column(children: <Widget>[
                 Expanded(
                     child: Stack(children: [
-                  _getWebview(pageStorageKey),
-                  Obx(() => tc.progress.value < 1.0
+                  _getWebview(),
+                  Obx(() => tabController.progress.value < 1.0
                       ? LinearProgressIndicator(
-                          value:
-                              tc.progress.value < 0.1 ? 0.1 : tc.progress.value)
+                          value: tabController.progress.value < 0.1
+                              ? 0.1
+                              : tabController.progress.value)
                       : Container())
                 ]))
               ])),
         )));
   }
 
-  Widget _getWebview([PageStorageKey? key]) {
-    return InAppWebView(
-      key: key,
-      keepAlive: GetPlatform.isDesktop ? null : widget.keepAlive,
-      webViewEnvironment: controller.webViewEnvironment,
-      initialUrlRequest: URLRequest(url: WebUri(tc.url.value)),
-      initialSettings: tc.settings,
-      pullToRefreshController: pullToRefreshController,
-      initialUserScripts: UnmodifiableListView([controller.textSizeUserScript]),
-      onScrollChanged: (controller, x, y) async {
-        // Save scroll position by current URL
-        if (GetPlatform.isAndroid) {
-          EasyDebounce.debounce(
-            'saveScroll:${tc.url.value}',
-            Duration(milliseconds: 500),
-            () async {
-              WebUri? uri = await controller.getUrl();
-              if (uri == null) return;
-              String currentUrl = uri.toString();
-              if (currentUrl.isNotEmpty) {
-                urlScrollPositions[currentUrl] = {
-                  'scrollX': x,
-                  'scrollY': y,
-                  'timestamp': DateTime.now().millisecondsSinceEpoch,
-                };
-              }
-            },
-          );
-        }
-      },
-      onCreateWindow: GetPlatform.isDesktop
-          ? (controller, createWindowAction) {
-              if (createWindowAction.request.url == null) return false;
-              String urlString = createWindowAction.request.url.toString();
-
-              // Check for special URLs first
-              handleSpecialUrls(urlString).then((handled) {
-                if (handled) return;
-                // If not a special URL, create new window
-                this.controller.launchWebview(initUrl: urlString);
-              });
-              return true;
+  Widget _getWebview() {
+    return Obx(() => InAppWebView(
+          key: tabController.pageStorageKey.value,
+          keepAlive: GetPlatform.isDesktop ? null : widget.keepAlive,
+          webViewEnvironment: multiWebviewController.webViewEnvironment,
+          initialUrlRequest: URLRequest(url: WebUri(tabController.url.value)),
+          initialSettings: tabController.settings,
+          pullToRefreshController: pullToRefreshController,
+          initialUserScripts:
+              UnmodifiableListView([multiWebviewController.textSizeUserScript]),
+          onScrollChanged: (controller, x, y) async {
+            // Save scroll position by current URL
+            if (GetPlatform.isAndroid) {
+              EasyDebounce.debounce(
+                'saveScroll:${tabController.url.value}',
+                Duration(milliseconds: 500),
+                () async {
+                  WebUri? uri = await controller.getUrl();
+                  if (uri == null) return;
+                  String currentUrl = uri.toString();
+                  if (currentUrl.isNotEmpty) {
+                    urlScrollPositions[currentUrl] = {
+                      'scrollX': x,
+                      'scrollY': y,
+                      'timestamp': DateTime.now().millisecondsSinceEpoch,
+                    };
+                  }
+                },
+              );
             }
-          : null,
-      onWebViewCreated: (controller) async {
-        tc.setWebViewController(controller, widget.initUrl);
-        await controller.evaluateJavascript(source: """
+          },
+          onCreateWindow: GetPlatform.isDesktop
+              ? (controller, createWindowAction) {
+                  if (createWindowAction.request.url == null) return false;
+                  String urlString = createWindowAction.request.url.toString();
+
+                  // Check for special URLs first
+                  handleSpecialUrls(urlString).then((handled) {
+                    if (handled) return;
+                    // If not a special URL, create new window
+                    multiWebviewController.launchWebview(initUrl: urlString);
+                  });
+                  return true;
+                }
+              : null,
+          onWebViewCreated: (controller) async {
+            logger.d('onWebViewCreated ${widget.initUrl}');
+
+            // load from keepalive state; hide the progress bar
+            if (widget.isCache == true) {
+              tabController.progress.value = 1.0;
+            }
+            tabController.setWebViewController(controller, widget.initUrl);
+            await controller.evaluateJavascript(source: """
                         window.print = function(){};
                       """);
 
-        controller.evaluateJavascript(source: "1 + 1").then((value) {
-          if (value == 2) {
-            state = WebviewTabState.success;
-          }
-        });
+            controller.addJavaScriptHandler(
+                handlerName: 'keychat-nostr', callback: javascriptHandlerNostr);
+            controller.addJavaScriptHandler(
+                handlerName: 'keychat-webln', callback: javascriptHandlerWebLN);
+          },
+          onLoadStart: (controller, uri) async {
+            logger.d('onLoadStart: $uri');
+            await _checkGoBackState(uri.toString());
+          },
+          onPrintRequest: (controller, url, printJobController) async {
+            await printJobController?.cancel();
+            return false;
+          },
+          onPermissionRequest: (controller, request) async {
+            return PermissionResponse(
+                resources: request.resources,
+                action: PermissionResponseAction.GRANT);
+          },
+          onReceivedIcon: (controller, icon) {
+            // logger.i('onReceivedIcon: ${icon.toString()}');
+          },
+          shouldOverrideUrlLoading:
+              (controller, NavigationAction navigationAction) async {
+            WebUri? uri = navigationAction.request.url;
+            logger.i(
+                'shouldOverrideUrlLoading: ${uri?.toString()} download: ${navigationAction.shouldPerformDownload}');
+            if (uri == null) return NavigationActionPolicy.ALLOW;
 
-        controller.addJavaScriptHandler(
-            handlerName: 'keychat-nostr', callback: javascriptHandlerNostr);
-        controller.addJavaScriptHandler(
-            handlerName: 'keychat-webln', callback: javascriptHandlerWebLN);
-        // hide the progress bar
-        if (widget.isCache == true) {
-          tc.progress.value = 1.0;
-        }
-      },
-      onLoadStart: (controller, uri) async {
-        logger.d('onLoadStart: $uri');
-        await _checkGoBackState(uri.toString());
-      },
-      onPrintRequest: (controller, url, printJobController) async {
-        await printJobController?.cancel();
-        return false;
-      },
-      onPermissionRequest: (controller, request) async {
-        return PermissionResponse(
-            resources: request.resources,
-            action: PermissionResponseAction.GRANT);
-      },
-      onReceivedIcon: (controller, icon) {
-        // logger.i('onReceivedIcon: ${icon.toString()}');
-      },
-      shouldOverrideUrlLoading:
-          (controller, NavigationAction navigationAction) async {
-        WebUri? uri = navigationAction.request.url;
-        logger.i(
-            'shouldOverrideUrlLoading: ${uri?.toString()} download: ${navigationAction.shouldPerformDownload}');
-        if (uri == null) return NavigationActionPolicy.ALLOW;
+            try {
+              var str = uri.toString();
 
-        try {
-          var str = uri.toString();
+              // Handle special URLs
+              if (await handleSpecialUrls(str)) {
+                return NavigationActionPolicy.CANCEL;
+              }
 
-          // Handle special URLs
-          if (await handleSpecialUrls(str)) {
-            return NavigationActionPolicy.CANCEL;
-          }
+              if (isPdfUrl(str) &&
+                  !str.startsWith('https://docs.google.com/gview')) {
+                final googleDocsUrl =
+                    'https://docs.google.com/gview?embedded=true&url=${Uri.encodeFull(str)}';
+                logger.i('load pdf: $googleDocsUrl');
+                await controller.loadUrl(
+                    urlRequest:
+                        URLRequest(url: WebUri.uri(Uri.parse(googleDocsUrl))));
+                return NavigationActionPolicy.CANCEL;
+              }
 
-          if (isPdfUrl(str) &&
-              !str.startsWith('https://docs.google.com/gview')) {
-            final googleDocsUrl =
-                'https://docs.google.com/gview?embedded=true&url=${Uri.encodeFull(str)}';
-            logger.i('load pdf: $googleDocsUrl');
-            await controller.loadUrl(
-                urlRequest:
-                    URLRequest(url: WebUri.uri(Uri.parse(googleDocsUrl))));
-            return NavigationActionPolicy.CANCEL;
-          }
+              // download file
 
-          // download file
-
-          final shouldPerformDownload =
-              navigationAction.shouldPerformDownload ?? false;
-          final url = navigationAction.request.url;
-          if ((shouldPerformDownload && url != null) ||
-              url.toString().startsWith("blob:") == true) {
-            await downloadFile(url.toString());
-            return NavigationActionPolicy.DOWNLOAD;
-          }
-          if (['http', 'https'].contains(uri.scheme)) {
-            currentUri = uri;
-          }
-          if (["http", "https", "data", "javascript", "about"]
-              .contains(uri.scheme)) {
-            return NavigationActionPolicy.ALLOW;
-          }
-          try {
-            await launchUrl(uri);
-          } catch (e) {
-            if (e is PlatformException) {
-              EasyLoading.showError('Failed to open link: ${e.message}');
-              return NavigationActionPolicy.CANCEL;
+              final shouldPerformDownload =
+                  navigationAction.shouldPerformDownload ?? false;
+              final url = navigationAction.request.url;
+              if ((shouldPerformDownload && url != null) ||
+                  url.toString().startsWith("blob:") == true) {
+                await downloadFile(url.toString());
+                return NavigationActionPolicy.DOWNLOAD;
+              }
+              if (['http', 'https'].contains(uri.scheme)) {
+                currentUri = uri;
+              }
+              if (["http", "https", "data", "javascript", "about"]
+                  .contains(uri.scheme)) {
+                return NavigationActionPolicy.ALLOW;
+              }
+              try {
+                await launchUrl(uri);
+              } catch (e) {
+                if (e is PlatformException) {
+                  EasyLoading.showError('Failed to open link: ${e.message}');
+                  return NavigationActionPolicy.CANCEL;
+                }
+                logger.i(e.toString(), error: e);
+                EasyLoading.showError('Failed to open link: ${e.toString()}');
+              }
+            } catch (e) {
+              logger.i(e.toString(), error: e);
             }
-            logger.i(e.toString(), error: e);
-            EasyLoading.showError('Failed to open link: ${e.toString()}');
-          }
-        } catch (e) {
-          logger.i(e.toString(), error: e);
-        }
-        return NavigationActionPolicy.CANCEL;
-      },
-      onLoadStop: (controller, url) async {
-        if (url == null) return;
-        logger.d('onLoadStop: $url');
-        await _checkGoBackState(url.toString());
-        await controller.injectJavascriptFileFromAsset(
-            assetFilePath: "assets/js/nostr.js");
-        await controller.injectJavascriptFileFromAsset(
-            assetFilePath: "assets/js/webln.js");
-        pullToRefreshController?.endRefreshing();
+            return NavigationActionPolicy.CANCEL;
+          },
+          onLoadStop: (controller, url) async {
+            if (url == null) return;
+            logger.d('onLoadStop: $url');
+            await _checkGoBackState(url.toString());
+            await controller.injectJavascriptFileFromAsset(
+                assetFilePath: "assets/js/nostr.js");
+            await controller.injectJavascriptFileFromAsset(
+                assetFilePath: "assets/js/webln.js");
+            pullToRefreshController?.endRefreshing();
+            // Restore scroll position if needed
+            if (GetPlatform.isAndroid && needRestorePosition) {
+              needRestorePosition = false;
+              restoreScrollPosition(url.toString());
+            }
+            if (url.host != initDomain) {
+              needRestorePosition = true;
+            }
+          },
+          onPageCommitVisible: (controller, url) {
+            logger.i('onPageCommitVisible:${url.toString()}');
+          },
+          onReceivedServerTrustAuthRequest: (_, challenge) async {
+            var sslError = challenge.protectionSpace.sslError;
+            logger.i(
+                'onReceivedServerTrustAuthRequest: ${challenge.protectionSpace.host} ${sslError?.code}');
 
-        state = WebviewTabState.success;
-        // Restore scroll position if needed
-        if (GetPlatform.isAndroid && needRestorePosition) {
-          needRestorePosition = false;
-          restoreScrollPosition(url.toString());
-        }
-        if (url.host != initDomain) {
-          needRestorePosition = true;
-        }
-      },
-      onPageCommitVisible: (controller, url) {
-        logger.i('onPageCommitVisible:${url.toString()}');
-      },
-      onReceivedServerTrustAuthRequest: (_, challenge) async {
-        var sslError = challenge.protectionSpace.sslError;
-        logger.i(
-            'onReceivedServerTrustAuthRequest: ${challenge.protectionSpace.host} ${sslError?.code}');
+            return ServerTrustAuthResponse(
+                action: ServerTrustAuthResponseAction.PROCEED);
+          },
+          onReceivedHttpError: (controller, request, error) async {
+            logger.i(
+                'onReceivedHttpError: ${request.url.toString()} ${error.statusCode}');
+          },
+          onDidReceiveServerRedirectForProvisionalNavigation:
+              (controller) async {
+            logger.i(
+                'onDidReceiveServerRedirectForProvisionalNavigation: ${await controller.getUrl()}');
+          },
+          onReceivedClientCertRequest: (controller, challenge) {
+            logger.i(
+                'onReceivedClientCertRequest: ${challenge.protectionSpace.host}');
+            return ClientCertResponse(action: ClientCertResponseAction.PROCEED);
+          },
+          onProgressChanged: (controller, data) {
+            if (data == 100) {
+              pullToRefreshController?.endRefreshing();
+            }
+            tabController.progress.value = data / 100;
+          },
+          onReceivedError: (InAppWebViewController controller,
+              WebResourceRequest request, error) async {
+            String url = request.url.toString();
+            logger
+                .i('onReceivedError: $url ${error.type} ${error.description}');
+            var isForMainFrame = request.isForMainFrame ?? false;
+            var isCancel = error.type == WebResourceErrorType.CANCELLED;
+            if (!isForMainFrame || isCancel) {
+              return;
+            }
+            pullToRefreshController?.endRefreshing();
+            if (error.description
+                .contains('domain=WebKitErrorDomain, code=102')) {
+              return renderAssetAsHtml(controller, request);
+            }
+            if ((GetPlatform.isIOS ||
+                    GetPlatform.isMacOS ||
+                    GetPlatform.isWindows) &&
+                error.type == WebResourceErrorType.CANCELLED) {
+              // NSURLErrorDomain
+              return;
+            }
+            if (GetPlatform.isWindows &&
+                error.type == WebResourceErrorType.CONNECTION_ABORTED) {
+              // CONNECTION_ABORTED
+              return;
+            }
 
-        return ServerTrustAuthResponse(
-            action: ServerTrustAuthResponseAction.PROCEED);
-      },
-      onReceivedHttpError: (controller, request, error) async {
-        logger.i(
-            'onReceivedHttpError: ${request.url.toString()} ${error.statusCode}');
-      },
-      onDidReceiveServerRedirectForProvisionalNavigation: (controller) async {
-        logger.i(
-            'onDidReceiveServerRedirectForProvisionalNavigation: ${await controller.getUrl()}');
-      },
-      onReceivedClientCertRequest: (controller, challenge) {
-        logger.i(
-            'onReceivedClientCertRequest: ${challenge.protectionSpace.host}');
-        return ClientCertResponse(action: ClientCertResponseAction.PROCEED);
-      },
-      onProgressChanged: (controller, data) {
-        if (data == 100) {
-          state = WebviewTabState.success;
-          pullToRefreshController?.endRefreshing();
-        }
-        tc.progress.value = data / 100;
-      },
-      onReceivedError: (InAppWebViewController controller,
-          WebResourceRequest request, error) async {
-        String url = request.url.toString();
-        logger.i('onReceivedError: $url ${error.type} ${error.description}');
-        var isForMainFrame = request.isForMainFrame ?? false;
-        var isCancel = error.type == WebResourceErrorType.CANCELLED;
-        if (!isForMainFrame || isCancel) {
-          return;
-        }
-        pullToRefreshController?.endRefreshing();
-        if (error.description.contains('domain=WebKitErrorDomain, code=102')) {
-          return renderAssetAsHtml(controller, request);
-        }
-        if ((GetPlatform.isIOS ||
-                GetPlatform.isMacOS ||
-                GetPlatform.isWindows) &&
-            error.type == WebResourceErrorType.CANCELLED) {
-          // NSURLErrorDomain
-          return;
-        }
-        if (GetPlatform.isWindows &&
-            error.type == WebResourceErrorType.CONNECTION_ABORTED) {
-          // CONNECTION_ABORTED
-          return;
-        }
-
-        var errorUrl = request.url;
-        pageFailed = true;
-        await tc.webViewController?.loadData(data: """
+            var errorUrl = request.url;
+            pageFailed = true;
+            await tabController.inAppWebViewController?.loadData(data: """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -646,27 +641,27 @@ class _WebviewTabState extends State<WebviewTab> {
     </div>
 </body>
     """, baseUrl: errorUrl, historyUrl: WebUri(widget.initUrl));
-        await _checkGoBackState(url);
-      },
-      onConsoleMessage: (controller, consoleMessage) {
-        if (kDebugMode) {
-          print('console: ${consoleMessage.message}');
-        }
-      },
-      onTitleChanged: (controller, title) async {
-        if (title == null) return;
-        updateTabInfo(widget.uniqueKey, tc.url.value, title);
-      },
-      onUpdateVisitedHistory: (controller, url, androidIsReload) {
-        // logger.i('onUpdateVisitedHistory: ${url.toString()} $androidIsReload');
-        onUpdateVisitedHistory(url);
-      },
-    );
+            await _checkGoBackState(url);
+          },
+          onConsoleMessage: (controller, consoleMessage) {
+            if (kDebugMode) {
+              print('console: ${consoleMessage.message}');
+            }
+          },
+          onTitleChanged: (controller, title) async {
+            if (title == null) return;
+            updateTabInfo(widget.uniqueKey, tabController.url.value, title);
+          },
+          onUpdateVisitedHistory: (controller, url, androidIsReload) {
+            // logger.i('onUpdateVisitedHistory: ${url.toString()} $androidIsReload');
+            onUpdateVisitedHistory(url);
+          },
+        ));
   }
 
   // Add method to restore scroll position
   Future<void> restoreScrollPosition(String url) async {
-    if (tc.webViewController == null || url.isEmpty) return;
+    if (tabController.inAppWebViewController == null || url.isEmpty) return;
 
     var savedPosition = urlScrollPositions[url];
     if (savedPosition != null) {
@@ -674,7 +669,7 @@ class _WebviewTabState extends State<WebviewTab> {
         // Wait for page to load before scrolling
         await Future.delayed(Duration(milliseconds: 500));
 
-        await tc.webViewController!.scrollTo(
+        await tabController.inAppWebViewController!.scrollTo(
           x: savedPosition['scrollX'] ?? 0,
           y: savedPosition['scrollY'] ?? 0,
         );
@@ -712,18 +707,18 @@ class _WebviewTabState extends State<WebviewTab> {
   }
 
   void goBackOrPop() {
-    tc.webViewController?.canGoBack().then((canGoBack) async {
+    tabController.inAppWebViewController?.canGoBack().then((canGoBack) async {
       logger.i('goBackOrPop: canGoBack: $canGoBack');
       if (canGoBack) {
         await pausePlayingMedia();
-        tc.webViewController?.goBack();
+        tabController.inAppWebViewController?.goBack();
         return;
       }
       if (GetPlatform.isDesktop) {
         return;
       }
-      if (pageFailed || state != WebviewTabState.success) {
-        controller.removeKeepAlive(widget.initUrl);
+      if (pageFailed) {
+        multiWebviewController.removeKeepAlive(widget.initUrl);
       }
       await pausePlayingMedia();
       Get.back();
@@ -744,9 +739,7 @@ class _WebviewTabState extends State<WebviewTab> {
       return null;
     }
 
-    WebUri? uri = await tc.webViewController?.getUrl();
-    String? host = uri?.host;
-    if (host == null) return null;
+    String? host = currentUri.host;
     Identity? identity = await getOrSelectIdentity(host);
     if (identity == null) {
       return null;
@@ -760,7 +753,7 @@ class _WebviewTabState extends State<WebviewTab> {
         var event = data[1];
 
         // Confirm signing event
-        if (!(controller.config['autoSignEvent'] ?? true)) {
+        if (!(multiWebviewController.config['autoSignEvent'] ?? true)) {
           try {
             bool confirm = await Get.bottomSheet(signEventConfirm(
                 content: event['content'] as String,
@@ -875,13 +868,13 @@ class _WebviewTabState extends State<WebviewTab> {
     if (selected != null) {
       EasyLoading.show(status: 'Processing...');
       try {
-        String? favicon =
-            await controller.getFavicon(tc.webViewController!, host);
+        String? favicon = await multiWebviewController.getFavicon(
+            tabController.inAppWebViewController!, host);
         BrowserConnect bc = BrowserConnect(
             host: host, pubkey: selected.secp256k1PKHex, favicon: favicon);
         int id = await BrowserConnect.save(bc);
         bc.id = id;
-        tc.setBrowserConnect(bc);
+        tabController.setBrowserConnect(bc);
         EasyLoading.dismiss();
       } catch (e, s) {
         logger.e(e.toString(), stackTrace: s);
@@ -892,9 +885,7 @@ class _WebviewTabState extends State<WebviewTab> {
   }
 
   Future popupMenuSelected(String value) async {
-    final uri = await tc.webViewController?.getUrl();
-    if (uri == null) return;
-
+    WebUri uri = currentUri;
     switch (value) {
       case 'share':
         SharePlus.instance.share(ShareParams(uri: uri));
@@ -913,10 +904,11 @@ class _WebviewTabState extends State<WebviewTab> {
             .findFirst();
         if (exist == null) {
           logger.i('add bookmark: ${uri.toString()}');
-          String? favicon = await controller
-              .getFavicon(tc.webViewController!, uri.host)
+          String? favicon = await multiWebviewController
+              .getFavicon(tabController.inAppWebViewController!, uri.host)
               .timeout(const Duration(seconds: 3));
-          String? siteTitle = await tc.webViewController?.getTitle();
+          String? siteTitle =
+              await tabController.inAppWebViewController?.getTitle();
           await BrowserBookmark.add(
               url: uri.toString(), favicon: favicon, title: siteTitle);
           EasyLoading.showSuccess('Added');
@@ -927,26 +919,27 @@ class _WebviewTabState extends State<WebviewTab> {
       case 'favorite':
         var exist = await BrowserFavorite.getByUrl(uri.toString());
         if (exist == null) {
-          String? favicon = await controller
-              .getFavicon(tc.webViewController!, uri.host)
+          String? favicon = await multiWebviewController
+              .getFavicon(tabController.inAppWebViewController!, uri.host)
               .timeout(const Duration(seconds: 10));
-          String? siteTitle = await tc.webViewController?.getTitle();
+          String? siteTitle =
+              await tabController.inAppWebViewController?.getTitle();
           await BrowserFavorite.add(
               url: uri.toString(), favicon: favicon, title: siteTitle);
           EasyLoading.showSuccess('Added');
         } else {
           await Get.to(() => FavoriteEdit(favorite: exist));
         }
-        await controller.loadFavorite();
+        await multiWebviewController.loadFavorite();
         break;
       case 'copy':
         Clipboard.setData(ClipboardData(text: uri.toString()));
         EasyLoading.showToast('Copied');
         break;
       case 'clear':
-        if (tc.webViewController == null) return;
-        tc.webViewController?.webStorage.localStorage.clear();
-        tc.webViewController?.webStorage.sessionStorage.clear();
+        if (tabController.inAppWebViewController == null) return;
+        tabController.inAppWebViewController?.webStorage.localStorage.clear();
+        tabController.inAppWebViewController?.webStorage.sessionStorage.clear();
         EasyLoading.showToast('Clear Success');
         refreshPage();
         break;
@@ -955,18 +948,18 @@ class _WebviewTabState extends State<WebviewTab> {
         if (res != null) {
           await BrowserConnect.delete(res.id);
         }
-        tc.webViewController?.webStorage.localStorage.clear();
-        tc.webViewController?.webStorage.sessionStorage.clear();
+        tabController.inAppWebViewController?.webStorage.localStorage.clear();
+        tabController.inAppWebViewController?.webStorage.sessionStorage.clear();
         EasyLoading.showToast('Logout Success');
 
-        tc.setBrowserConnect(null);
-        tc.canGoBack.value = false;
-        tc.canGoForward.value = false;
+        tabController.setBrowserConnect(null);
+        tabController.canGoBack.value = false;
+        tabController.canGoForward.value = false;
         refreshPage();
         break;
       case 'close':
         try {
-          controller.removeKeepAlive(widget.initUrl);
+          multiWebviewController.removeKeepAlive(initDomain);
           await pausePlayingMedia();
         } catch (e, s) {
           logger.e('Error while closing webview: $e', stackTrace: s);
@@ -984,14 +977,16 @@ class _WebviewTabState extends State<WebviewTab> {
                   body: Container(
                       padding: const EdgeInsets.all(16),
                       child: Obx(() => Slider(
-                          value: double.parse(
-                              controller.kInitialTextSize.value.toString()),
+                          value: double.parse(multiWebviewController
+                              .kInitialTextSize.value
+                              .toString()),
                           min: 50,
                           max: 300,
                           divisions: 10,
-                          label: '${controller.kInitialTextSize.value}',
+                          label:
+                              '${multiWebviewController.kInitialTextSize.value}',
                           onChanged: (value) {
-                            tc.updateTextSize(value.toInt());
+                            tabController.updateTextSize(value.toInt());
                           })))),
             ));
         break;
@@ -999,7 +994,7 @@ class _WebviewTabState extends State<WebviewTab> {
   }
 
   Future onUpdateVisitedHistory(WebUri? uri) async {
-    if (tc.webViewController == null || uri == null) return;
+    if (tabController.inAppWebViewController == null || uri == null) return;
     EasyDebounce.debounce(
         'onUpdateVisitedHistory:${uri.toString()}', Duration(milliseconds: 200),
         () async {
@@ -1007,17 +1002,19 @@ class _WebviewTabState extends State<WebviewTab> {
       if (uri.toString() == 'about:blank') {
         return;
       }
-      String? newTitle = await tc.webViewController?.getTitle();
-      String title = newTitle ?? tc.title.value;
+      String? newTitle = await tabController.inAppWebViewController?.getTitle();
+      String title = newTitle ?? tabController.title.value;
       if (title.isEmpty) {
-        title = tc.title.value;
+        title = tabController.title.value;
       }
       updateTabInfo(widget.uniqueKey, uri.toString(), title);
-      controller.addHistory(uri.toString(), title);
-      controller.getFavicon(tc.webViewController!, uri.host).then((favicon) {
-        if (favicon != null && tc.favicon != favicon) {
-          tc.favicon = favicon;
-          controller.setTabDataFavicon(
+      multiWebviewController.addHistory(uri.toString(), title);
+      multiWebviewController
+          .getFavicon(tabController.inAppWebViewController!, uri.host)
+          .then((favicon) {
+        if (favicon != null && tabController.favicon != favicon) {
+          tabController.favicon = favicon;
+          multiWebviewController.setTabDataFavicon(
               uniqueId: widget.uniqueKey, favicon: favicon);
         }
       });
@@ -1025,18 +1022,20 @@ class _WebviewTabState extends State<WebviewTab> {
   }
 
   Future _checkGoBackState(String url) async {
-    bool? canGoBack = await tc.webViewController?.canGoBack();
-    bool? canGoForward = await tc.webViewController?.canGoForward();
+    bool? canGoBack = await tabController.inAppWebViewController?.canGoBack();
+    bool? canGoForward =
+        await tabController.inAppWebViewController?.canGoForward();
     logger.i('$url canGoBack: $canGoBack, canGoForward: $canGoForward');
-    tc.canGoBack.value = canGoBack ?? false;
-    tc.canGoForward.value = canGoForward ?? false;
+    tabController.canGoBack.value = canGoBack ?? false;
+    tabController.canGoForward.value = canGoForward ?? false;
   }
 
   void updateTabInfo(String key, String url0, String title0) {
     // logger.i('updateTabInfo: $key, $url0, $title0');
-    controller.setTabData(uniqueId: widget.uniqueKey, title: title0, url: url0);
-    tc.title.value = title0;
-    tc.url.value = url0;
+    multiWebviewController.setTabData(
+        uniqueId: widget.uniqueKey, title: title0, url: url0);
+    tabController.title.value = title0;
+    tabController.url.value = url0;
   }
 
   Future<void> downloadFile(String url, [String? filename]) async {
@@ -1362,7 +1361,7 @@ img {
 
   Future<void> pausePlayingMedia() async {
     try {
-      await tc.webViewController?.evaluateJavascript(source: """
+      await tabController.inAppWebViewController?.evaluateJavascript(source: """
       document.querySelectorAll('audio, video').forEach(media => media.pause());
     """).timeout(Duration(seconds: 2));
     } catch (e) {
@@ -1372,15 +1371,16 @@ img {
 
   Future<void> refreshPage([WebUri? uri]) async {
     try {
-      uri ??= await tc.webViewController?.getUrl() ?? currentUri;
-      await tc.webViewController?.loadUrl(urlRequest: URLRequest(url: uri));
+      uri ??=
+          await tabController.inAppWebViewController?.getUrl() ?? currentUri;
+      await tabController.inAppWebViewController
+          ?.loadUrl(urlRequest: URLRequest(url: uri));
     } catch (e) {
       // ⛔ A MacOSInAppWebViewController was used after being disposed.
       // ⛔ Once the MacOSInAppWebViewController has been disposed, it can no longer be used.
       logger.e(e.toString(), error: e);
-      setState(() {
-        pageStorageKey = PageStorageKey(Random().nextInt(1 << 32));
-      });
+      tabController.pageStorageKey.value =
+          PageStorageKey<String>(Random().nextInt(1 << 32).toString());
     }
   }
 

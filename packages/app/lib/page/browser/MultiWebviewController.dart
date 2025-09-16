@@ -215,6 +215,17 @@ class MultiWebviewController extends GetxController {
       index = 0;
     }
     currentIndex = index;
+
+    if (tabs.isNotEmpty && index < tabs.length) {
+      final tab = tabs[index];
+      try {
+        final controller = Get.find<WebviewTabController>(tag: tab.uniqueKey);
+        controller.checkWebViewControllerAlive();
+      } catch (e) {
+        // ignore if controller not found
+      }
+    }
+
     updatePageTabIndex(index);
   }
 
@@ -600,16 +611,6 @@ window.addEventListener('DOMContentLoaded', function(event) {
     }
     mobileKeepAlive.remove(host);
     mobileKeepAlive.remove(url);
-  }
-
-  // Add this method to get current KeepAlive hosts count
-  int getKeepAliveHostsCount() {
-    return mobileKeepAlive.length;
-  }
-
-  // Add this method to get all KeepAlive hosts
-  List<String> getKeepAliveHosts() {
-    return mobileKeepAlive.keys.toList();
   }
 
   Future<void> loadKeepAlive([bool isInit = false]) async {

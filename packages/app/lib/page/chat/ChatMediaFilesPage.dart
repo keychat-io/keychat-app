@@ -207,6 +207,7 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
                                   } catch (e) {
                                     SharePlus.instance.share(ShareParams(
                                         previewThumbnail: XFile(filePath),
+                                        files: [XFile(filePath)],
                                         subject: FileService.instance
                                             .getDisplayFileName(fileFullName)));
                                   }

@@ -120,9 +120,9 @@ class _NewPageState extends State<SlidesImageViewWidget> {
                   CupertinoIcons.share,
                   color: Colors.white,
                 ),
-                onPressed: () {
+                onPressed: () async {
                   SharePlus.instance.share(ShareParams(
-                      previewThumbnail: XFile(_files[_currentIndex].path),
+                      files: [XFile(_files[_currentIndex].path)],
                       subject: FileService.instance
                           .getDisplayFileName(_files[_currentIndex].path)));
                 },

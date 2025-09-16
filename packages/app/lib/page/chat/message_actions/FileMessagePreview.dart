@@ -131,6 +131,7 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
                                 '${Get.find<SettingController>().appFolder.path}${msgFileInfo.localPath!}';
                             SharePlus.instance.share(ShareParams(
                                 previewThumbnail: XFile(filePath),
+                                files: [XFile(filePath)],
                                 subject: FileService.instance
                                     .getDisplayFileName(
                                         msgFileInfo.localPath!)));

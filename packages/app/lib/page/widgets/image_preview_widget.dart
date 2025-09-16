@@ -78,6 +78,7 @@ class ImagePreviewWidget extends StatelessWidget {
                           onPressed: () {
                             SharePlus.instance.share(ShareParams(
                                 previewThumbnail: XFile(file.path),
+                                files: [XFile(filePath)],
                                 subject: FileService.instance
                                     .getDisplayFileName(file.path)));
                           },

@@ -11,7 +11,6 @@ import 'package:app/page/chat/create_contact_page.dart';
 import 'package:app/page/setting/BiometricAuthScreen.dart';
 import 'package:app/service/file.service.dart';
 import 'package:app/service/identity.service.dart';
-import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/qrscan.service.dart';
 import 'package:app/service/room.service.dart';
@@ -140,14 +139,16 @@ class HomeController extends GetxController
   }
 
   bool _pausedBefore = false;
+  List<AppLifecycleState> statesForBlur = [];
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
     loggerNoLine.i('didChangeAppLifecycleState: ${state.toString()}');
     // ios: 2 options
     // apprun-> inactive -> resumed
-    // apprun->inactive -> hidden-> paused ->hidden->inactive->resumed
+    // apprun-> inactive -> hidden-> paused ->hidden->inactive->resumed
     // macos:  apprun->inactive -> resumed
+    statesForBlur.add(state);
     switch (state) {
       case AppLifecycleState.resumed:
         resumed = true;
@@ -186,9 +187,13 @@ class HomeController extends GetxController
         _pausedBefore = false;
         break;
       case AppLifecycleState.inactive:
-        if (GetPlatform.isMobile) {
-          isBlurred.value = true;
+        if (GetPlatform.isMobile && statesForBlur.length >= 2) {
+          if (statesForBlur[statesForBlur.length - 2] ==
+              AppLifecycleState.resumed) {
+            isBlurred.value = true;
+          }
         }
+        statesForBlur.clear();
         break;
       case AppLifecycleState.hidden:
         break;
@@ -520,8 +525,8 @@ class HomeController extends GetxController
       _initShareIntent();
       RoomUtil.executeAutoDelete();
       loadAppRemoteConfig();
-      List<Room> rooms = await RoomService.instance.getMlsRooms();
-      MlsGroupService.instance.fixMlsOnetimeKey(rooms);
+      // List<Room> rooms = await RoomService.instance.getMlsRooms();
+      // MlsGroupService.instance.fixMlsOnetimeKey(rooms);
     });
   }
 

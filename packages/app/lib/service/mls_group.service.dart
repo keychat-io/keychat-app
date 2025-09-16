@@ -751,7 +751,7 @@ class MlsGroupService extends BaseChatService {
         if (lastUploadTime != null) {
           int timestamp = int.tryParse(lastUploadTime) ?? 0;
           DateTime lastUpload = DateTime.fromMillisecondsSinceEpoch(timestamp);
-          isExpired = DateTime.now().difference(lastUpload).inDays >= 30;
+          isExpired = DateTime.now().difference(lastUpload).inDays >= 14;
         }
 
         if (forceUpload || isExpired) {
@@ -790,6 +790,8 @@ class MlsGroupService extends BaseChatService {
             set.add(relay);
             // cache state
             await Storage.setStringList(stateKey, List.from(set));
+            await Storage.setString(
+                timestampKey, DateTime.now().millisecondsSinceEpoch.toString());
           }
           NostrAPI.instance.removeOKCallback(eventId);
           var map = {

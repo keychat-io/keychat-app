@@ -3,6 +3,7 @@ import 'dart:io'
 
 import 'package:app/page/log_viewer.dart';
 import 'package:app/service/file.service.dart';
+import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -199,7 +200,9 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
             OpenFilex.open(dir);
             return;
           }
-          SharePlus.instance.share(ShareParams(
+
+          await SharePlus.instance.share(ShareParams(
+              files: [XFile(sourceFile.path)],
               previewThumbnail: XFile(sourceFile.path),
               subject: FileService.instance
                   .getDisplayFileName(sourceFile.path.split('/').last)));

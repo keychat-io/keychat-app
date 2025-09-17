@@ -220,8 +220,7 @@ class _MinePageState extends State<MinePage> {
       Identity identity = identities[i];
 
       res.add(SettingsTile.navigation(
-          leading: Utils.getRandomAvatar(identity.secp256k1PKHex,
-              httpAvatar: identity.avatarFromRelay, height: 30, width: 30),
+          leading: Utils.getAvatarByIdentity(identity, 32),
           title: Text(
             identity.displayName,
             overflow: TextOverflow.ellipsis,

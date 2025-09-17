@@ -6,6 +6,7 @@ import 'package:app/utils.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:path/path.dart' as path;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class DbSetting {
@@ -113,7 +114,7 @@ class DbSetting {
   }
 
   Future<bool?> exportFile(String filePath, [String? fileName]) async {
-    fileName ??= filePath.split('/').last;
+    fileName ??= path.basename(filePath);
     String? outputFile = await FilePicker.platform.saveFile(
       dialogTitle: 'Please select an output path:',
       fileName: fileName,

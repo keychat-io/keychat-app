@@ -34,6 +34,10 @@ class Identity extends Equatable {
   String? note;
   late DateTime createdAt;
   String? metadata;
+  String? lightningAddress;
+  String? avatarLocalPath; // local avatar path
+  String? avatarRemoteUrl; // remote avatar url
+  DateTime? avatarUpdatedAt; // avatar update time
 
   int index = 0;
 

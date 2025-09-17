@@ -10,6 +10,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:path/path.dart' as path;
 import 'package:share_plus/share_plus.dart';
 
 class ChatMediaFilesPage extends StatefulWidget {
@@ -183,7 +184,7 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
                               String filePath = files[index].path;
                               var file = File(filePath);
                               var stat = file.statSync();
-                              String fileFullName = filePath.split('/').last;
+                              String fileFullName = path.basename(filePath);
                               String suffix = 'File';
                               if (fileFullName.contains('.')) {
                                 suffix = fileFullName.split('.').last;
@@ -192,7 +193,7 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
                                 leading: CircleAvatar(
                                   child: Text(suffix.toUpperCase()),
                                 ),
-                                title: Text(file.path.split('/').last),
+                                title: Text(path.basename(file.path)),
                                 subtitle: Text(
                                     '${FileService.instance.getFileSizeDisplay(stat.size)}, ${DateFormat('yyyy-MM-dd HH:mm').format(stat.changed)}'),
                                 onTap: () {

@@ -22,6 +22,7 @@ import 'package:dio/dio.dart';
 import 'package:encrypt/encrypt.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
+import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
 import 'package:video_compress/video_compress.dart';
 import 'package:image/image.dart' as img;
@@ -106,7 +107,7 @@ class FileService {
       if (mfi == null || mfi.fileInfo == null) return null;
       EasyLoading.showProgress(1, status: statusMessage);
       SendMessageResponse smr = await RoomService.instance.sendMessage(
-          room, mfi.getUriString(mediaType.name, mfi.fileInfo!),
+          room, mfi.getUriString(mediaType.name),
           realMessage: mfi.toString(), mediaType: mediaType);
 
       Future.delayed(Duration(milliseconds: 500)).then((_) {
@@ -147,7 +148,7 @@ class FileService {
     final key =
         Key.fromUtf8(Random(16).nextInt(10).toString()).stretch(32, salt: salt);
     final encrypter = Encrypter(AES(key, mode: AESMode.ctr));
-    String fileName = input.path.split('/').last;
+    String fileName = path.basename(input.path);
     final encryptedBytes = encrypter
         .encryptBytes(Uint8List.fromList(await input.readAsBytes()), iv: iv);
     String sha256Result =
@@ -217,10 +218,9 @@ class FileService {
   }
 
   String getVideoThumbPath(String videoFilePath) {
-    String fullFileName = videoFilePath.split('/').last;
-    String fileDir = videoFilePath.replaceAll(fullFileName, '');
-    String fileName = fullFileName.split('.').first;
-    return '$fileDir${fileName}_thumb.jpg';
+    String fileDir = path.dirname(videoFilePath);
+    String fileName = path.basenameWithoutExtension(videoFilePath);
+    return '$fileDir/${fileName}_thumb.jpg';
   }
 
   Future<File> getOrCreateThumbForVideo(String videoFilePath) async {
@@ -366,7 +366,7 @@ class FileService {
           // try compressed video
           compressedFile = await VideoCompress.compressVideo(
             xfile.path,
-            quality: VideoQuality.MediumQuality,
+            quality: VideoQuality.DefaultQuality,
           );
           if (compressedFile?.path != null) {
             fileBytes = await File(compressedFile!.path!).readAsBytes();
@@ -434,6 +434,88 @@ class FileService {
       ..status = FileStatus.decryptSuccess;
   }
 
+  Future<MsgFileInfo?> encryptAndUploadImage(
+    String localFilePath,
+    XFile xfile, {
+    bool compress = false,
+    Function(int count, int total)? onSendProgress,
+  }) async {
+    // Create temporary file first
+    Directory tempDir = await getTemporaryDirectory();
+    String tempFileName =
+        '${DateTime.now().millisecondsSinceEpoch}_${xfile.name}';
+    File tempFile = File('${tempDir.path}/$tempFileName');
+
+    try {
+      // Write to temporary file
+      await tempFile.writeAsBytes(await xfile.readAsBytes());
+
+      String selectedMediaServer =
+          Get.find<SettingController>().selectedMediaServer.value;
+      Uri uri = Uri.parse(selectedMediaServer);
+      late FileEncryptInfo fileInfo;
+
+      if (uri.host == 'relay.keychat.io') {
+        fileInfo = await AwsS3.instance
+            .encryptAndUploadByRelay(tempFile, onSendProgress: onSendProgress);
+      } else {
+        try {
+          fileInfo = await uploadToBlossom(
+              input: tempFile, onSendProgress: onSendProgress);
+        } catch (e, s) {
+          logger.e('Upload to blossom failed: $e', stackTrace: s);
+          await Get.dialog(CupertinoAlertDialog(
+            title: Text('Upload Failed'),
+            content: Column(
+              children: [
+                Text(
+                    'Check your blossom servers, make sure your subscription is valid.'),
+                Text(
+                    'Make sure your server support uploading encrypted files.'),
+                Text('Tab:Me -> Chat Settings -> Media Relay'),
+              ],
+            ),
+            actions: [
+              CupertinoDialogAction(
+                child: Text('OK'),
+                onPressed: () {
+                  Get.back();
+                },
+              ),
+            ],
+          ));
+          return null;
+        }
+      }
+
+      // Upload successful, now write to local file
+      File localFile = File(localFilePath);
+      await localFile.parent.create(recursive: true);
+      await localFile.writeAsBytes(await tempFile.readAsBytes());
+
+      Directory appFolder = await Utils.getAppFolder();
+      String relativePath = localFile.path.replaceAll(appFolder.path, '');
+
+      return MsgFileInfo()
+        ..fileInfo = fileInfo
+        ..localPath = relativePath
+        ..url = fileInfo.url
+        ..suffix = fileInfo.suffix
+        ..key = fileInfo.key
+        ..iv = fileInfo.iv
+        ..size = fileInfo.size
+        ..hash = fileInfo.hash
+        ..updateAt = DateTime.now()
+        ..sourceName = fileInfo.sourceName
+        ..status = FileStatus.decryptSuccess;
+    } finally {
+      // Clean up temporary file
+      if (await tempFile.exists()) {
+        await tempFile.delete();
+      }
+    }
+  }
+
   Future downloadForMessage(Message message, MsgFileInfo mfi,
       {Function(MsgFileInfo fi)? callback,
       Function(int count, int total)? onReceiveProgress}) async {
@@ -467,7 +549,7 @@ class FileService {
         if (existFileHash != mfi.hash) {
           // If the hash doesn't match, rename the file and re-download
           logger.i('File hash mismatch: $existFileHash != ${mfi.hash}');
-          String fileName = newFile.path.split('/').last;
+          String fileName = path.basename(newFile.path);
           String fileNameWithoutExt = fileName.contains('.')
               ? fileName.substring(0, fileName.lastIndexOf('.'))
               : fileName;
@@ -531,7 +613,7 @@ class FileService {
     if (mfi.sourceName != null) {
       outputFilePath = '$dir${mfi.sourceName}';
     } else {
-      outputFilePath = '$dir${uri.path.split('/').last}';
+      outputFilePath = '$dir${path.basename(uri.path)}';
       if (mfi.suffix != null) {
         outputFilePath += mfi.suffix!;
       }
@@ -563,7 +645,7 @@ class FileService {
     String fullName = filePath;
     if (filePath.length < maxLength) return filePath;
     if (filePath.contains('/')) {
-      fullName = filePath.split('/').last;
+      fullName = path.basename(filePath);
     }
     if (!fullName.contains('.')) return fullName;
     String name = fullName.split('.').first;
@@ -747,8 +829,8 @@ class FileService {
 
   Future<String> getNewFilePath(
       String appDocPath, String sourceFilePath) async {
-    String fileName = sourceFilePath.split('/').last;
-    String newFilePath = appDocPath + fileName;
+    String fileName = path.basename(sourceFilePath);
+    String newFilePath = path.join(appDocPath, fileName);
     File newFile = File(newFilePath);
     bool exist = await newFile.exists();
     if (!exist) {
@@ -798,8 +880,8 @@ class FileService {
       [Function(int count, int total)? onReceiveProgress]) async {
     Dio dio = Dio();
     Directory outputDir = await getTemporaryDirectory();
-    String fileName = url.split('/').last;
-    String output = outputDir.path + fileName;
+    String fileName = path.basename(url);
+    String output = path.join(outputDir.path, fileName);
     try {
       await dio.download(url, output, onReceiveProgress: onReceiveProgress);
       return File(output);
@@ -831,7 +913,7 @@ class FileService {
     if (fileName != null) {
       outputFile = '$dir$fileName';
     } else {
-      outputFile = '$dir${input.path.split('/').last}';
+      outputFile = '$dir${path.basename(input.path)}';
       if (suffix.isNotEmpty) {
         outputFile += '.$suffix';
       }

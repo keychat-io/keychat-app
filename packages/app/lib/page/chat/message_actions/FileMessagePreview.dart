@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:path/path.dart' as path;
 import 'package:share_plus/share_plus.dart';
 
 class FileMessagePreview extends StatefulWidget {
@@ -173,7 +174,7 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
                   onPressed: () async {
                     String filePath =
                         '${Get.find<SettingController>().appFolder.path}${msgFileInfo.localPath!}';
-                    String fileName = msgFileInfo.localPath!.split('/').last;
+                    String fileName = path.basename(msgFileInfo.localPath!);
                     String? outputFile = await FilePicker.platform.saveFile(
                       dialogTitle: 'Please select an output path:',
                       fileName: fileName,

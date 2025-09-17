@@ -423,6 +423,26 @@ class Utils {
     );
   }
 
+  static Widget getAvatarByImageFile(File image,
+      {double size = 42, double radius = 100}) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(radius),
+        image: DecorationImage(
+          image: Image.file(image).image,
+          fit: BoxFit.cover,
+          scale: 0.6,
+          colorFilter: const ColorFilter.mode(
+            Colors.transparent,
+            BlendMode.colorBurn,
+          ),
+        ),
+      ),
+    );
+  }
+
   static Widget getAvatarDot(Room room, {double width = 50}) {
     int newMessageCount = room.unReadCount;
     RoomType chatType = room.type;
@@ -1185,6 +1205,44 @@ class Utils {
           ),
         ],
       ),
+    );
+  }
+
+  static String generateAvatarRandomPath() {
+    var avatarsFolder = Get.find<SettingController>().avatarsFolder;
+    String fileName = '${Utils.randomString(16)}.png';
+    return '$avatarsFolder/$fileName';
+  }
+
+  static Widget getAvatarByIdentity(Identity identity, [double size = 84]) {
+    String? avatarPath = identity.avatarLocalPath;
+    SettingController sc = Get.find<SettingController>();
+
+    // Check if local avatar file exists
+    if (avatarPath != null && avatarPath.isNotEmpty) {
+      String filePath = path.join(sc.appFolder.path, avatarPath);
+      File avatarFile = File(filePath);
+      if (avatarFile.existsSync()) {
+        if (avatarPath.toLowerCase().endsWith('.svg')) {
+          // Handle SVG files
+          return SvgPicture.file(
+            avatarFile,
+            width: size,
+            height: size,
+          );
+        } else {
+          // Handle other image types
+          return Utils.getAvatarByImageFile(avatarFile, size: size);
+        }
+      }
+    }
+
+    // Fallback to random avatar if no local file or file doesn't exist
+    return Utils.getRandomAvatar(
+      identity.secp256k1PKHex,
+      httpAvatar: identity.avatarFromRelay,
+      height: size,
+      width: size,
     );
   }
 }

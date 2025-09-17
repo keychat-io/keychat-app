@@ -280,7 +280,7 @@ class MlsGroupService extends BaseChatService {
         authors: pubkeys,
         kinds: [EventKinds.mlsNipKeypackages],
         limit: pubkeys.length,
-        since: DateTime.now().subtract(Duration(days: 365)));
+        since: DateTime.now().subtract(Duration(days: 90)));
     List<NostrEventModel> list = await ws
         .fetchInfoFromRelay(req.reqId, req.toString(), waitTimeToFill: true);
     // close req
@@ -748,26 +748,29 @@ class MlsGroupService extends BaseChatService {
         // Check if key package has expired (30 days)
         String? lastUploadTime = Storage.getString(timestampKey);
         bool isExpired = false;
+        bool needsInitialUpload = lastUploadTime == null;
+
         if (lastUploadTime != null) {
           int timestamp = int.tryParse(lastUploadTime) ?? 0;
           DateTime lastUpload = DateTime.fromMillisecondsSinceEpoch(timestamp);
-          isExpired = DateTime.now().difference(lastUpload).inDays >= 14;
+          isExpired = DateTime.now().difference(lastUpload).inDays >= 30;
         }
 
-        if (forceUpload || isExpired) {
+        if (forceUpload || isExpired || needsInitialUpload) {
           await Storage.remove(stateKey);
           await Storage.remove(statePK);
           await Storage.remove(timestampKey);
           loggerNoLine.i(
-              'Key package expired or force upload for identity: ${identity.secp256k1PKHex}');
-        }
-
-        if (toRelay != null) {
-          List mlsStates = Storage.getStringList(stateKey);
-          if (mlsStates.contains(toRelay)) {
-            // loggerNoLine.i(
-            //     'Key package already uploaded to relay: $toRelay for identity: ${identity.secp256k1PKHex}');
-            return;
+              'Key package ${needsInitialUpload ? 'needs initial upload' : 'expired or force upload'} for identity: ${identity.secp256k1PKHex}');
+        } else {
+          // Not expired and not forced, check if we need to upload
+          if (toRelay != null) {
+            List mlsStates = Storage.getStringList(stateKey);
+            if (mlsStates.contains(toRelay)) {
+              // loggerNoLine.i(
+              //     'Key package already uploaded to relay: $toRelay for identity: ${identity.secp256k1PKHex}');
+              return;
+            }
           }
         }
 

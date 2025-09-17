@@ -32,113 +32,133 @@ const IdentitySchema = CollectionSchema(
       name: r'avatarFromRelay',
       type: IsarType.string,
     ),
-    r'createdAt': PropertySchema(
+    r'avatarLocalPath': PropertySchema(
       id: 3,
+      name: r'avatarLocalPath',
+      type: IsarType.string,
+    ),
+    r'avatarRemoteUrl': PropertySchema(
+      id: 4,
+      name: r'avatarRemoteUrl',
+      type: IsarType.string,
+    ),
+    r'avatarUpdatedAt': PropertySchema(
+      id: 5,
+      name: r'avatarUpdatedAt',
+      type: IsarType.dateTime,
+    ),
+    r'createdAt': PropertySchema(
+      id: 6,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'curve25519PkHex': PropertySchema(
-      id: 4,
+      id: 7,
       name: r'curve25519PkHex',
       type: IsarType.string,
     ),
     r'curve25519SkHex': PropertySchema(
-      id: 5,
+      id: 8,
       name: r'curve25519SkHex',
       type: IsarType.string,
     ),
     r'enableBrowser': PropertySchema(
-      id: 6,
+      id: 9,
       name: r'enableBrowser',
       type: IsarType.bool,
     ),
     r'enableChat': PropertySchema(
-      id: 7,
+      id: 10,
       name: r'enableChat',
       type: IsarType.bool,
     ),
     r'fetchFromRelayAt': PropertySchema(
-      id: 8,
+      id: 11,
       name: r'fetchFromRelayAt',
       type: IsarType.dateTime,
     ),
     r'hashCode': PropertySchema(
-      id: 9,
+      id: 12,
       name: r'hashCode',
       type: IsarType.long,
     ),
     r'index': PropertySchema(
-      id: 10,
+      id: 13,
       name: r'index',
       type: IsarType.long,
     ),
     r'isDefault': PropertySchema(
-      id: 11,
+      id: 14,
       name: r'isDefault',
       type: IsarType.bool,
     ),
     r'isFromSigner': PropertySchema(
-      id: 12,
+      id: 15,
       name: r'isFromSigner',
       type: IsarType.bool,
     ),
+    r'lightningAddress': PropertySchema(
+      id: 16,
+      name: r'lightningAddress',
+      type: IsarType.string,
+    ),
     r'metadata': PropertySchema(
-      id: 13,
+      id: 17,
       name: r'metadata',
       type: IsarType.string,
     ),
     r'metadataFromRelay': PropertySchema(
-      id: 14,
+      id: 18,
       name: r'metadataFromRelay',
       type: IsarType.string,
     ),
     r'mnemonic': PropertySchema(
-      id: 15,
+      id: 19,
       name: r'mnemonic',
       type: IsarType.string,
     ),
     r'name': PropertySchema(
-      id: 16,
+      id: 20,
       name: r'name',
       type: IsarType.string,
     ),
     r'nameFromRelay': PropertySchema(
-      id: 17,
+      id: 21,
       name: r'nameFromRelay',
       type: IsarType.string,
     ),
     r'note': PropertySchema(
-      id: 18,
+      id: 22,
       name: r'note',
       type: IsarType.string,
     ),
     r'npub': PropertySchema(
-      id: 19,
+      id: 23,
       name: r'npub',
       type: IsarType.string,
     ),
     r'secp256k1PKHex': PropertySchema(
-      id: 20,
+      id: 24,
       name: r'secp256k1PKHex',
       type: IsarType.string,
     ),
     r'secp256k1SKHex': PropertySchema(
-      id: 21,
+      id: 25,
       name: r'secp256k1SKHex',
       type: IsarType.string,
     ),
     r'stringify': PropertySchema(
-      id: 22,
+      id: 26,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'versionFromRelay': PropertySchema(
-      id: 23,
+      id: 27,
       name: r'versionFromRelay',
       type: IsarType.long,
     ),
     r'weight': PropertySchema(
-      id: 24,
+      id: 28,
       name: r'weight',
       type: IsarType.long,
     )
@@ -196,6 +216,18 @@ int _identityEstimateSize(
     }
   }
   {
+    final value = object.avatarLocalPath;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.avatarRemoteUrl;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.curve25519PkHex;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -203,6 +235,12 @@ int _identityEstimateSize(
   }
   {
     final value = object.curve25519SkHex;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.lightningAddress;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -258,28 +296,32 @@ void _identitySerialize(
   writer.writeString(offsets[0], object.about);
   writer.writeString(offsets[1], object.aboutFromRelay);
   writer.writeString(offsets[2], object.avatarFromRelay);
-  writer.writeDateTime(offsets[3], object.createdAt);
-  writer.writeString(offsets[4], object.curve25519PkHex);
-  writer.writeString(offsets[5], object.curve25519SkHex);
-  writer.writeBool(offsets[6], object.enableBrowser);
-  writer.writeBool(offsets[7], object.enableChat);
-  writer.writeDateTime(offsets[8], object.fetchFromRelayAt);
-  writer.writeLong(offsets[9], object.hashCode);
-  writer.writeLong(offsets[10], object.index);
-  writer.writeBool(offsets[11], object.isDefault);
-  writer.writeBool(offsets[12], object.isFromSigner);
-  writer.writeString(offsets[13], object.metadata);
-  writer.writeString(offsets[14], object.metadataFromRelay);
-  writer.writeString(offsets[15], object.mnemonic);
-  writer.writeString(offsets[16], object.name);
-  writer.writeString(offsets[17], object.nameFromRelay);
-  writer.writeString(offsets[18], object.note);
-  writer.writeString(offsets[19], object.npub);
-  writer.writeString(offsets[20], object.secp256k1PKHex);
-  writer.writeString(offsets[21], object.secp256k1SKHex);
-  writer.writeBool(offsets[22], object.stringify);
-  writer.writeLong(offsets[23], object.versionFromRelay);
-  writer.writeLong(offsets[24], object.weight);
+  writer.writeString(offsets[3], object.avatarLocalPath);
+  writer.writeString(offsets[4], object.avatarRemoteUrl);
+  writer.writeDateTime(offsets[5], object.avatarUpdatedAt);
+  writer.writeDateTime(offsets[6], object.createdAt);
+  writer.writeString(offsets[7], object.curve25519PkHex);
+  writer.writeString(offsets[8], object.curve25519SkHex);
+  writer.writeBool(offsets[9], object.enableBrowser);
+  writer.writeBool(offsets[10], object.enableChat);
+  writer.writeDateTime(offsets[11], object.fetchFromRelayAt);
+  writer.writeLong(offsets[12], object.hashCode);
+  writer.writeLong(offsets[13], object.index);
+  writer.writeBool(offsets[14], object.isDefault);
+  writer.writeBool(offsets[15], object.isFromSigner);
+  writer.writeString(offsets[16], object.lightningAddress);
+  writer.writeString(offsets[17], object.metadata);
+  writer.writeString(offsets[18], object.metadataFromRelay);
+  writer.writeString(offsets[19], object.mnemonic);
+  writer.writeString(offsets[20], object.name);
+  writer.writeString(offsets[21], object.nameFromRelay);
+  writer.writeString(offsets[22], object.note);
+  writer.writeString(offsets[23], object.npub);
+  writer.writeString(offsets[24], object.secp256k1PKHex);
+  writer.writeString(offsets[25], object.secp256k1SKHex);
+  writer.writeBool(offsets[26], object.stringify);
+  writer.writeLong(offsets[27], object.versionFromRelay);
+  writer.writeLong(offsets[28], object.weight);
 }
 
 Identity _identityDeserialize(
@@ -289,31 +331,35 @@ Identity _identityDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Identity(
-    name: reader.readString(offsets[16]),
-    note: reader.readStringOrNull(offsets[18]),
-    npub: reader.readString(offsets[19]),
-    secp256k1PKHex: reader.readString(offsets[20]),
+    name: reader.readString(offsets[20]),
+    note: reader.readStringOrNull(offsets[22]),
+    npub: reader.readString(offsets[23]),
+    secp256k1PKHex: reader.readString(offsets[24]),
   );
   object.about = reader.readStringOrNull(offsets[0]);
   object.aboutFromRelay = reader.readStringOrNull(offsets[1]);
   object.avatarFromRelay = reader.readStringOrNull(offsets[2]);
-  object.createdAt = reader.readDateTime(offsets[3]);
-  object.curve25519PkHex = reader.readStringOrNull(offsets[4]);
-  object.curve25519SkHex = reader.readStringOrNull(offsets[5]);
-  object.enableBrowser = reader.readBool(offsets[6]);
-  object.enableChat = reader.readBool(offsets[7]);
-  object.fetchFromRelayAt = reader.readDateTimeOrNull(offsets[8]);
+  object.avatarLocalPath = reader.readStringOrNull(offsets[3]);
+  object.avatarRemoteUrl = reader.readStringOrNull(offsets[4]);
+  object.avatarUpdatedAt = reader.readDateTimeOrNull(offsets[5]);
+  object.createdAt = reader.readDateTime(offsets[6]);
+  object.curve25519PkHex = reader.readStringOrNull(offsets[7]);
+  object.curve25519SkHex = reader.readStringOrNull(offsets[8]);
+  object.enableBrowser = reader.readBool(offsets[9]);
+  object.enableChat = reader.readBool(offsets[10]);
+  object.fetchFromRelayAt = reader.readDateTimeOrNull(offsets[11]);
   object.id = id;
-  object.index = reader.readLong(offsets[10]);
-  object.isDefault = reader.readBool(offsets[11]);
-  object.isFromSigner = reader.readBool(offsets[12]);
-  object.metadata = reader.readStringOrNull(offsets[13]);
-  object.metadataFromRelay = reader.readStringOrNull(offsets[14]);
-  object.mnemonic = reader.readStringOrNull(offsets[15]);
-  object.nameFromRelay = reader.readStringOrNull(offsets[17]);
-  object.secp256k1SKHex = reader.readStringOrNull(offsets[21]);
-  object.versionFromRelay = reader.readLong(offsets[23]);
-  object.weight = reader.readLong(offsets[24]);
+  object.index = reader.readLong(offsets[13]);
+  object.isDefault = reader.readBool(offsets[14]);
+  object.isFromSigner = reader.readBool(offsets[15]);
+  object.lightningAddress = reader.readStringOrNull(offsets[16]);
+  object.metadata = reader.readStringOrNull(offsets[17]);
+  object.metadataFromRelay = reader.readStringOrNull(offsets[18]);
+  object.mnemonic = reader.readStringOrNull(offsets[19]);
+  object.nameFromRelay = reader.readStringOrNull(offsets[21]);
+  object.secp256k1SKHex = reader.readStringOrNull(offsets[25]);
+  object.versionFromRelay = reader.readLong(offsets[27]);
+  object.weight = reader.readLong(offsets[28]);
   return object;
 }
 
@@ -331,48 +377,56 @@ P _identityDeserializeProp<P>(
     case 2:
       return (reader.readStringOrNull(offset)) as P;
     case 3:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 4:
       return (reader.readStringOrNull(offset)) as P;
     case 5:
-      return (reader.readStringOrNull(offset)) as P;
-    case 6:
-      return (reader.readBool(offset)) as P;
-    case 7:
-      return (reader.readBool(offset)) as P;
-    case 8:
       return (reader.readDateTimeOrNull(offset)) as P;
+    case 6:
+      return (reader.readDateTime(offset)) as P;
+    case 7:
+      return (reader.readStringOrNull(offset)) as P;
+    case 8:
+      return (reader.readStringOrNull(offset)) as P;
     case 9:
-      return (reader.readLong(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 10:
-      return (reader.readLong(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 11:
-      return (reader.readBool(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 12:
-      return (reader.readBool(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 13:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 14:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 15:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 16:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 17:
       return (reader.readStringOrNull(offset)) as P;
     case 18:
       return (reader.readStringOrNull(offset)) as P;
     case 19:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 20:
       return (reader.readString(offset)) as P;
     case 21:
       return (reader.readStringOrNull(offset)) as P;
     case 22:
-      return (reader.readBoolOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 23:
-      return (reader.readLong(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 24:
+      return (reader.readString(offset)) as P;
+    case 25:
+      return (reader.readStringOrNull(offset)) as P;
+    case 26:
+      return (reader.readBoolOrNull(offset)) as P;
+    case 27:
+      return (reader.readLong(offset)) as P;
+    case 28:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1023,6 +1077,388 @@ extension IdentityQueryFilter
     });
   }
 
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarLocalPathIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'avatarLocalPath',
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarLocalPathIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'avatarLocalPath',
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarLocalPathEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'avatarLocalPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarLocalPathGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'avatarLocalPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarLocalPathLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'avatarLocalPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarLocalPathBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'avatarLocalPath',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarLocalPathStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'avatarLocalPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarLocalPathEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'avatarLocalPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarLocalPathContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'avatarLocalPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarLocalPathMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'avatarLocalPath',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarLocalPathIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'avatarLocalPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarLocalPathIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'avatarLocalPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarRemoteUrlIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'avatarRemoteUrl',
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarRemoteUrlIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'avatarRemoteUrl',
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarRemoteUrlEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'avatarRemoteUrl',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarRemoteUrlGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'avatarRemoteUrl',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarRemoteUrlLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'avatarRemoteUrl',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarRemoteUrlBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'avatarRemoteUrl',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarRemoteUrlStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'avatarRemoteUrl',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarRemoteUrlEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'avatarRemoteUrl',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarRemoteUrlContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'avatarRemoteUrl',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarRemoteUrlMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'avatarRemoteUrl',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarRemoteUrlIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'avatarRemoteUrl',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarRemoteUrlIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'avatarRemoteUrl',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarUpdatedAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'avatarUpdatedAt',
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarUpdatedAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'avatarUpdatedAt',
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarUpdatedAtEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'avatarUpdatedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarUpdatedAtGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'avatarUpdatedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarUpdatedAtLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'avatarUpdatedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarUpdatedAtBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'avatarUpdatedAt',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
   QueryBuilder<Identity, Identity, QAfterFilterCondition> createdAtEqualTo(
       DateTime value) {
     return QueryBuilder.apply(this, (query) {
@@ -1652,6 +2088,160 @@ extension IdentityQueryFilter
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'isFromSigner',
         value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      lightningAddressIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'lightningAddress',
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      lightningAddressIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'lightningAddress',
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      lightningAddressEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lightningAddress',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      lightningAddressGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'lightningAddress',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      lightningAddressLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'lightningAddress',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      lightningAddressBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'lightningAddress',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      lightningAddressStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'lightningAddress',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      lightningAddressEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'lightningAddress',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      lightningAddressContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'lightningAddress',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      lightningAddressMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'lightningAddress',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      lightningAddressIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lightningAddress',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      lightningAddressIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'lightningAddress',
+        value: '',
       ));
     });
   }
@@ -3127,6 +3717,42 @@ extension IdentityQuerySortBy on QueryBuilder<Identity, Identity, QSortBy> {
     });
   }
 
+  QueryBuilder<Identity, Identity, QAfterSortBy> sortByAvatarLocalPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avatarLocalPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy> sortByAvatarLocalPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avatarLocalPath', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy> sortByAvatarRemoteUrl() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avatarRemoteUrl', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy> sortByAvatarRemoteUrlDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avatarRemoteUrl', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy> sortByAvatarUpdatedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avatarUpdatedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy> sortByAvatarUpdatedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avatarUpdatedAt', Sort.desc);
+    });
+  }
+
   QueryBuilder<Identity, Identity, QAfterSortBy> sortByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -3244,6 +3870,18 @@ extension IdentityQuerySortBy on QueryBuilder<Identity, Identity, QSortBy> {
   QueryBuilder<Identity, Identity, QAfterSortBy> sortByIsFromSignerDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isFromSigner', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy> sortByLightningAddress() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lightningAddress', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy> sortByLightningAddressDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lightningAddress', Sort.desc);
     });
   }
 
@@ -3430,6 +4068,42 @@ extension IdentityQuerySortThenBy
     });
   }
 
+  QueryBuilder<Identity, Identity, QAfterSortBy> thenByAvatarLocalPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avatarLocalPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy> thenByAvatarLocalPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avatarLocalPath', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy> thenByAvatarRemoteUrl() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avatarRemoteUrl', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy> thenByAvatarRemoteUrlDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avatarRemoteUrl', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy> thenByAvatarUpdatedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avatarUpdatedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy> thenByAvatarUpdatedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avatarUpdatedAt', Sort.desc);
+    });
+  }
+
   QueryBuilder<Identity, Identity, QAfterSortBy> thenByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -3559,6 +4233,18 @@ extension IdentityQuerySortThenBy
   QueryBuilder<Identity, Identity, QAfterSortBy> thenByIsFromSignerDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isFromSigner', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy> thenByLightningAddress() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lightningAddress', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy> thenByLightningAddressDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lightningAddress', Sort.desc);
     });
   }
 
@@ -3732,6 +4418,28 @@ extension IdentityQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Identity, Identity, QDistinct> distinctByAvatarLocalPath(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'avatarLocalPath',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QDistinct> distinctByAvatarRemoteUrl(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'avatarRemoteUrl',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QDistinct> distinctByAvatarUpdatedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'avatarUpdatedAt');
+    });
+  }
+
   QueryBuilder<Identity, Identity, QDistinct> distinctByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'createdAt');
@@ -3793,6 +4501,14 @@ extension IdentityQueryWhereDistinct
   QueryBuilder<Identity, Identity, QDistinct> distinctByIsFromSigner() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isFromSigner');
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QDistinct> distinctByLightningAddress(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'lightningAddress',
+          caseSensitive: caseSensitive);
     });
   }
 
@@ -3908,6 +4624,25 @@ extension IdentityQueryProperty
     });
   }
 
+  QueryBuilder<Identity, String?, QQueryOperations> avatarLocalPathProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'avatarLocalPath');
+    });
+  }
+
+  QueryBuilder<Identity, String?, QQueryOperations> avatarRemoteUrlProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'avatarRemoteUrl');
+    });
+  }
+
+  QueryBuilder<Identity, DateTime?, QQueryOperations>
+      avatarUpdatedAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'avatarUpdatedAt');
+    });
+  }
+
   QueryBuilder<Identity, DateTime, QQueryOperations> createdAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'createdAt');
@@ -3966,6 +4701,12 @@ extension IdentityQueryProperty
   QueryBuilder<Identity, bool, QQueryOperations> isFromSignerProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isFromSigner');
+    });
+  }
+
+  QueryBuilder<Identity, String?, QQueryOperations> lightningAddressProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lightningAddress');
     });
   }
 

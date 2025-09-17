@@ -37,6 +37,7 @@ import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
+import 'package:path/path.dart' as path;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -169,11 +170,6 @@ class _WebviewTabState extends State<WebviewTab> {
                       maxLines: 1,
                       overflow: TextOverflow.clip),
               actions: [
-                IconButton(
-                    onPressed: () {
-                      tabController.inAppWebViewController?.dispose();
-                    },
-                    icon: Icon(Icons.abc)),
                 PopupMenuButton<String>(
                   onOpened: menuOpened,
                   onSelected: popupMenuSelected,
@@ -456,9 +452,6 @@ class _WebviewTabState extends State<WebviewTab> {
             return PermissionResponse(
                 resources: request.resources,
                 action: PermissionResponseAction.GRANT);
-          },
-          onReceivedIcon: (controller, icon) {
-            // logger.i('onReceivedIcon: ${icon.toString()}');
           },
           shouldOverrideUrlLoading:
               (controller, NavigationAction navigationAction) async {
@@ -904,9 +897,8 @@ class _WebviewTabState extends State<WebviewTab> {
             .findFirst();
         if (exist == null) {
           logger.i('add bookmark: ${uri.toString()}');
-          String? favicon = await multiWebviewController
-              .getFavicon(tabController.inAppWebViewController!, uri.host)
-              .timeout(const Duration(seconds: 3));
+          String? favicon = await multiWebviewController.getFavicon(
+              tabController.inAppWebViewController!, uri.host);
           String? siteTitle =
               await tabController.inAppWebViewController?.getTitle();
           await BrowserBookmark.add(
@@ -919,9 +911,8 @@ class _WebviewTabState extends State<WebviewTab> {
       case 'favorite':
         var exist = await BrowserFavorite.getByUrl(uri.toString());
         if (exist == null) {
-          String? favicon = await multiWebviewController
-              .getFavicon(tabController.inAppWebViewController!, uri.host)
-              .timeout(const Duration(seconds: 10));
+          String? favicon = await multiWebviewController.getFavicon(
+              tabController.inAppWebViewController!, uri.host);
           String? siteTitle =
               await tabController.inAppWebViewController?.getTitle();
           await BrowserFavorite.add(
@@ -1053,7 +1044,7 @@ class _WebviewTabState extends State<WebviewTab> {
         EasyLoading.showToast('No directory selected');
         return;
       }
-      filename ??= url.split('/').last;
+      filename ??= path.basename(url);
       final task = DownloadTask(
           url: url,
           filename: filename,

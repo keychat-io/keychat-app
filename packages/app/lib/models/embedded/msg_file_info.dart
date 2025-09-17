@@ -43,17 +43,17 @@ class MsgFileInfo {
 
   Map<String, dynamic> toJson() => _$MsgFileInfoToJson(this);
 
-  String getUriString(String type, FileEncryptInfo data) {
+  String getUriString(String type) {
     final Map<String, dynamic> queryParams = {
       'kctype': type,
-      'suffix': data.suffix,
-      'key': data.key,
-      'iv': data.iv,
-      'size': data.size,
-      'hash': data.hash,
-      'sourceName': data.sourceName
+      'suffix': fileInfo?.suffix,
+      'key': fileInfo?.key,
+      'iv': fileInfo?.iv,
+      'size': fileInfo?.size,
+      'hash': fileInfo?.hash,
+      'sourceName': fileInfo?.sourceName
     };
-    Uri base = Uri.parse(data.url!);
+    Uri base = Uri.parse(fileInfo?.url ?? '');
     Uri uri = Uri.https(base.host, base.path,
         queryParams.map((key, value) => MapEntry(key, value.toString())));
     return uri.toString();

@@ -10,6 +10,7 @@ import 'package:app/page/browser/BrowserTabController.dart';
 import 'package:app/page/browser/WebviewTab.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
+import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart'
@@ -414,6 +415,15 @@ class MultiWebviewController extends GetxController {
     logger.d('Saved ${tabData.length} desktop tabs');
   }
 
+  void saveDesktopTabsDebounced() {
+    if (!GetPlatform.isDesktop) return;
+    EasyDebounce.debounce(
+      'saveDesktopTabs',
+      const Duration(seconds: 1),
+      () => saveDesktopTabs(),
+    );
+  }
+
   Future<void> loadDesktopTabs() async {
     if (!GetPlatform.isDesktop) return;
 
@@ -482,7 +492,7 @@ class MultiWebviewController extends GetxController {
       }
       tabs.refresh(); // Trigger UI update since we're using GetX
 
-      saveDesktopTabs();
+      saveDesktopTabsDebounced();
     }
   }
 

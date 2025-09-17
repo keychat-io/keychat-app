@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:path/path.dart' as path;
 
 import 'package:share_plus/share_plus.dart';
 
@@ -27,7 +28,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
   late String folderName;
   @override
   void initState() {
-    folderName = widget.dir.path.split('/').last;
+    folderName = path.basename(widget.dir.path);
     if (folderName.startsWith('com.keychat')) {
       folderName = 'Files Explorer';
     }
@@ -204,7 +205,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
               files: [XFile(sourceFile.path)],
               previewThumbnail: XFile(sourceFile.path),
               subject: FileService.instance
-                  .getDisplayFileName(sourceFile.path.split('/').last)));
+                  .getDisplayFileName(path.basename(sourceFile.path))));
         },
         icon: const Icon(CupertinoIcons.share));
   }

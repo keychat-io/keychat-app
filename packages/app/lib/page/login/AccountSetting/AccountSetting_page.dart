@@ -2,6 +2,7 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/browser/browser_connect.dart';
 import 'package:app/models/db_provider.dart';
+import 'package:app/models/embedded/msg_file_info.dart';
 import 'package:app/models/identity.dart';
 
 import 'package:app/page/browser/BrowserConnectedWebsite.dart';
@@ -9,6 +10,7 @@ import 'package:app/page/components.dart';
 import 'package:app/page/contact/contact_list_page.dart';
 
 import 'package:app/page/widgets/notice_text_widget.dart';
+import 'package:app/service/file.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app/service/identity.service.dart';
@@ -24,6 +26,7 @@ import 'package:flutter/material.dart';
 import 'package:isar_community/isar.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:settings_ui/settings_ui.dart';
+import 'package:image_picker/image_picker.dart';
 import './AccountSetting_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
@@ -85,12 +88,31 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                   top: 0, left: 16, right: 16, bottom: 24),
               child: Obx(() => Column(children: [
                     Center(
-                        child: Utils.getRandomAvatar(
-                            controller.identity.value.secp256k1PKHex,
-                            httpAvatar:
-                                controller.identity.value.avatarFromRelay,
-                            height: 84,
-                            width: 84)),
+                        child: GestureDetector(
+                      onTap: () => _pickAndUploadAvatar(ImageSource.gallery),
+                      child: Stack(
+                        children: [
+                          Obx(() => Utils.getAvatarByIdentity(
+                              controller.identity.value)),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).primaryColor,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: const EdgeInsets.all(4),
+                              child: const Icon(
+                                Icons.edit,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )),
                     if (controller.identity.value.isFromSigner)
                       Container(
                           padding: const EdgeInsets.symmetric(vertical: 8),
@@ -571,5 +593,47 @@ class AccountSettingPage extends GetView<AccountSettingController> {
         ),
       ],
     ));
+  }
+
+  Future<void> _pickAndUploadAvatar(ImageSource source) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: source,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 80,
+      );
+      if (image == null) return;
+
+      EasyLoading.show(status: 'Uploading avatar...');
+      String localFilePath = Utils.generateAvatarRandomPath();
+      // Upload to server using encryptAndUploadImage
+      MsgFileInfo? mfi = await FileService.instance
+          .encryptAndUploadImage(localFilePath, image);
+      if (mfi == null || mfi.localPath == null) return;
+      logger.d('Avatar uploaded: $mfi');
+
+      // Update identity with local avatar path
+      // Remove the first path separator (either / or \) if present
+      if (mfi.localPath != null &&
+          (mfi.localPath!.startsWith('/') || mfi.localPath!.startsWith(r'\'))) {
+        localFilePath = mfi.localPath!.substring(1);
+      } else {
+        localFilePath = mfi.localPath!;
+      }
+      controller.identity.value.avatarLocalPath = localFilePath;
+      controller.identity.value.avatarRemoteUrl = mfi.getUriString('image');
+      controller.identity.value.avatarUpdatedAt = DateTime.now();
+      await IdentityService.instance.updateIdentity(controller.identity.value);
+
+      // Force refresh UI
+      controller.identity.refresh();
+      EasyLoading.showSuccess('Avatar uploaded successfully');
+    } catch (e, s) {
+      EasyLoading.showError(
+          'Failed to upload avatar: ${Utils.getErrorMessage(e)}');
+      logger.e('Avatar upload error: $e', stackTrace: s);
+    }
   }
 }

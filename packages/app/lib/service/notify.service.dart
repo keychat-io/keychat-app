@@ -19,12 +19,12 @@ import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   if (dotenv.get('FCM_API_KEY', fallback: '') != '') {
     if (Firebase.apps.isEmpty) {
-      var app = await Firebase.initializeApp(
+      final app = await Firebase.initializeApp(
           name: GetPlatform.isAndroid ? 'keychat-bg' : null,
           options: DefaultFirebaseOptions.currentPlatform);
       logger.i('Firebase initialized in background: ${app.name}');
     }
-    debugPrint("Handling a background message: ${message.messageId}");
+    debugPrint('Handling a background message: ${message.messageId}');
   }
 }
 
@@ -33,12 +33,12 @@ class NotifyService {
   static Future<bool> addPubkeys(List<String> toAddPubkeys,
       [List<String> toRemovePubkeys = const []]) async {
     if (fcmToken == null) return false;
-    bool res = await hasNotifyPermission();
+    final res = await hasNotifyPermission();
     if (!res) return false;
-    List<String> relays = Get.find<WebsocketService>().getActiveRelayString();
+    final relays = Get.find<WebsocketService>().getActiveRelayString();
     if (relays.isEmpty) return false;
     try {
-      var res =
+      final res =
           await Dio().post('${KeychatGlobal.notifycationServer}/add', data: {
         'deviceId': fcmToken,
         'pubkeys': toAddPubkeys,
@@ -46,7 +46,7 @@ class NotifyService {
         'relays': relays
       });
       logger.i('addPubkeys $toAddPubkeys, response: ${res.data}');
-      return res.data['data'] ?? true;
+      return (res.data['data'] is bool) ? res.data['data'] as bool : true;
     } on DioException catch (e) {
       logger.e('addPubkeys error: ${e.response?.data}', error: e);
     }
@@ -54,23 +54,23 @@ class NotifyService {
   }
 
   static Future<String> calculateHash(List<String> array) async {
-    List<String> sortedStrings = List.from(array)..sort();
-    String joinedArray = sortedStrings.join('');
-    return await rust_nostr.sha256Hash(data: joinedArray);
+    final sortedStrings = List<String>.from(array)..sort();
+    final joinedArray = sortedStrings.join();
+    return rust_nostr.sha256Hash(data: joinedArray);
   }
 
   static Future<bool> checkAllNotifyPermission() async {
-    bool isGrant = await NotifyService.hasNotifyPermission();
+    final isGrant = await NotifyService.hasNotifyPermission();
     if (!isGrant) return false;
 
-    bool enable = Get.find<HomeController>().notificationStatus.value;
+    final enable = Get.find<HomeController>().notificationStatus.value;
     if (!enable) return false;
     return true;
   }
 
   static Future<bool> checkHashcode(String playerId, String hashcode) async {
     try {
-      var res = await Dio().get(
+      final res = await Dio().get(
           '${KeychatGlobal.notifycationServer}/hashcode?play_id=$playerId');
       return hashcode == res.data['data'];
     } catch (e, s) {
@@ -83,7 +83,7 @@ class NotifyService {
     if (fcmToken == null) return;
     fcmToken == null;
     try {
-      var res = await Dio().post('${KeychatGlobal.notifycationServer}/delete',
+      final res = await Dio().post('${KeychatGlobal.notifycationServer}/delete',
           data: {'deviceId': fcmToken});
       logger.i('clearAll success: ${res.data}');
     } catch (e, s) {
@@ -96,54 +96,52 @@ class NotifyService {
       logger.i('Notification not working on windows and linux');
       return false;
     }
-    var s = await FirebaseMessaging.instance.getNotificationSettings();
+    final s = await FirebaseMessaging.instance.getNotificationSettings();
     if (s.authorizationStatus == AuthorizationStatus.authorized) return true;
     return false;
   }
 
   // Listening Keys: identity pubkey, mls group pubkey, signal chat receive key, onetime key
   static Future<void> syncPubkeysToServer({bool checkUpload = false}) async {
-    bool isGrant = await NotifyService.checkAllNotifyPermission();
+    final isGrant = await NotifyService.checkAllNotifyPermission();
     if (!isGrant) return;
-    List<String> toRemovePubkeys =
-        await ContactService.instance.getAllToRemoveKeys();
+    final toRemovePubkeys = await ContactService.instance.getAllToRemoveKeys();
     if (toRemovePubkeys.isNotEmpty) {
       await ContactService.instance.removeAllToRemoveKeys();
     }
 
-    bool enable = Get.find<HomeController>().notificationStatus.value;
+    final enable = Get.find<HomeController>().notificationStatus.value;
     if (!enable) return;
     if (fcmToken == null) return;
 
-    List<String> idPubkeys =
+    final idPubkeys =
         await IdentityService.instance.getListenPubkeys(skipMute: true);
-    List<String> pubkeys2 =
-        await IdentityService.instance.getRoomPubkeysSkipMute();
+    final pubkeys2 = await IdentityService.instance.getRoomPubkeysSkipMute();
 
-    List<String> relays = await RelayService.instance.getEnableList();
+    final relays = await RelayService.instance.getEnableList();
     if (toRemovePubkeys.isNotEmpty) {
       await removePubkeys(toRemovePubkeys);
     }
     if (checkUpload) {
-      String hashcode =
+      final hashcode =
           await NotifyService.calculateHash([...idPubkeys, ...pubkeys2]);
-      bool hasUploaded = await NotifyService.checkHashcode(fcmToken!, hashcode);
+      final hasUploaded =
+          await NotifyService.checkHashcode(fcmToken!, hashcode);
       if (hasUploaded) return;
     }
-    var map = {
-      "kind": 4,
-      "deviceId": fcmToken,
-      "pubkeys": [...idPubkeys, ...pubkeys2],
-      "relays": relays
+    final map = {
+      'kind': 4,
+      'deviceId': fcmToken,
+      'pubkeys': [...idPubkeys, ...pubkeys2],
+      'relays': relays
     };
     try {
-      var res = await Dio()
+      final res = await Dio()
           .post('${KeychatGlobal.notifycationServer}/init', data: map);
 
       logger.i('initNofityConfig ${res.data}');
     } on DioException catch (e, s) {
-      logger.e('initNofityConfig ${e.response?.toString()}',
-          error: e, stackTrace: s);
+      logger.e('initNofityConfig ${e.response}', error: e, stackTrace: s);
     } catch (e, s) {
       logger.e(e.toString(), error: e, stackTrace: s);
     }
@@ -154,9 +152,9 @@ class NotifyService {
       logger.i('Notification not working on windows and linux');
       return;
     }
-    var homeController = Get.find<HomeController>();
+    final homeController = Get.find<HomeController>();
 
-    int settingNotifyStatus =
+    final settingNotifyStatus =
         Storage.getIntOrZero(StorageKeyString.settingNotifyStatus);
     if (settingNotifyStatus == NotifySettingStatus.disable) {
       homeController.notificationStatus.value = false;
@@ -178,14 +176,8 @@ class NotifyService {
       }
     }
 
-    var settings = await FirebaseMessaging.instance.requestPermission(
-      alert: true,
-      announcement: false,
-      badge: true,
-      carPlay: false,
-      criticalAlert: false,
+    final settings = await FirebaseMessaging.instance.requestPermission(
       provisional: true,
-      sound: true,
     );
     logger.i('Notification Status: ${settings.authorizationStatus.name}');
     // check notification permission
@@ -216,7 +208,8 @@ class NotifyService {
               Get.back();
             },
             title: 'Notification Init Error',
-            message: '''Timeout to call device-provisioning.googleapis.com.
+            message: '''
+Timeout to call device-provisioning.googleapis.com.
 Fix:
 1. Check your network connection.
 2. Restart the app.
@@ -231,7 +224,7 @@ Fix:
     // end get fcm timeout
     if (fcmToken != null) {
       await Storage.setString(StorageKeyString.notificationFCMToken, fcmToken!);
-      RemoteMessage? initialMessage =
+      final initialMessage =
           await FirebaseMessaging.instance.getInitialMessage();
       if (initialMessage != null) {
         NotifyService.handleMessage(initialMessage);
@@ -252,9 +245,7 @@ Fix:
     });
 
     // fcm onMessageOpenedApp listen
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      NotifyService.handleMessage(message);
-    });
+    FirebaseMessaging.onMessageOpenedApp.listen(NotifyService.handleMessage);
 
     logger.i('fcmToken: $fcmToken');
     // fcm onTokenRefresh listen
@@ -262,7 +253,7 @@ Fix:
       logger.i('onTokenRefresh: $fcmToken');
       NotifyService.fcmToken = fcmToken;
       Storage.setString(StorageKeyString.notificationFCMToken, fcmToken);
-      NotifyService.syncPubkeysToServer(checkUpload: false);
+      NotifyService.syncPubkeysToServer();
     }).onError((err) {
       logger.e('onTokenRefresh', error: err);
     });
@@ -274,7 +265,7 @@ Fix:
     if (fcmToken == null) return true;
 
     try {
-      var res = await Dio().post('${KeychatGlobal.notifycationServer}/remove',
+      final res = await Dio().post('${KeychatGlobal.notifycationServer}/remove',
           data: {'deviceId': fcmToken, 'pubkeys': pubkeys});
       logger.i('removePubkeys ${res.data}');
       return true;
@@ -287,7 +278,7 @@ Fix:
   static Future updateUserSetting(bool status) async {
     Get.find<HomeController>().notificationStatus.value = status;
     Get.find<HomeController>().notificationStatus.refresh();
-    int intStatus = status ? 1 : -1;
+    final intStatus = status ? 1 : -1;
     await Storage.setInt(StorageKeyString.settingNotifyStatus, intStatus);
     if (status) {
       await NotifyService.syncPubkeysToServer();
@@ -298,21 +289,21 @@ Fix:
 
   // Handle message when app is in background or terminated
   // Open chat room if the message contains a pubkey
-  static void handleMessage(RemoteMessage message) async {
+  static Future<void> handleMessage(RemoteMessage message) async {
     if (message.data.isEmpty) return;
     if (message.data['pubkey'] != null) {
-      String pubkey = message.data['pubkey'];
+      final String pubkey = message.data['pubkey'];
       if (pubkey.isEmpty) {
         return;
       }
       if (!GetPlatform.isMobile) return;
-      Room? room = await RoomService.instance.getRoomByMyReceiveKey(pubkey);
+      final room = await RoomService.instance.getRoomByMyReceiveKey(pubkey);
       if (room == null) {
         logger.e(
             'handleMessage: Room not found. pubkey: $pubkey, event id: ${message.data['id']}');
         return;
       }
-      bool isCurrentPage = DBProvider.instance.isCurrentPage(room.id);
+      final isCurrentPage = DBProvider.instance.isCurrentPage(room.id);
       if (!isCurrentPage) {
         await Utils.toNamedRoom(room);
       }

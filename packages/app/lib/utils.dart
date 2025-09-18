@@ -759,7 +759,7 @@ class Utils {
     String? config = Storage.getString(StorageKeyString.defaultWebRTCServers);
     if (config != null) {
       try {
-        return jsonDecode(config);
+        return (jsonDecode(config) as List<dynamic>);
       } catch (e) {
         // logger.i(e, error: e);
       }
@@ -1208,20 +1208,14 @@ class Utils {
     );
   }
 
-  static String generateAvatarRandomPath() {
-    var avatarsFolder = Get.find<SettingController>().avatarsFolder;
-    String fileName = '${Utils.randomString(16)}.png';
-    return '$avatarsFolder/$fileName';
-  }
-
   static Widget getAvatarByIdentity(Identity identity, [double size = 84]) {
     String? avatarPath = identity.avatarLocalPath;
     SettingController sc = Get.find<SettingController>();
 
     // Check if local avatar file exists
     if (avatarPath != null && avatarPath.isNotEmpty) {
-      String filePath = path.join(sc.appFolder.path, avatarPath);
-      File avatarFile = File(filePath);
+      File avatarFile = File(sc.appFolder.path + avatarPath);
+      logger.d('Loading local avatar from: ${avatarFile.path}');
       if (avatarFile.existsSync()) {
         if (avatarPath.toLowerCase().endsWith('.svg')) {
           // Handle SVG files

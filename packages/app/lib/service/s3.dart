@@ -5,31 +5,29 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:app/app.dart' show Utils, logger;
 import 'package:keychat_ecash/ecash_controller.dart';
-import 'file.service.dart';
+import 'package:app/service/file.service.dart';
 
 /// Convenience class for uploading files to AWS S3
 class AwsS3 {
-  static AwsS3? _instance;
-  static AwsS3 get instance => _instance ??= AwsS3._();
   // Avoid self instance
   AwsS3._();
+  static AwsS3? _instance;
+  static AwsS3 get instance => _instance ??= AwsS3._();
 
   Future<FileEncryptInfo> encryptAndUploadByRelay(File input,
       {void Function(int, int)? onSendProgress}) async {
-    FileEncryptInfo res =
-        await FileService.instance.encryptFile(input, base64Hash: true);
-    int length = res.output.length;
-    String? ecashToken = await Utils.getGetxController<EcashController>()
+    final res = await FileService.instance.encryptFile(input, base64Hash: true);
+    final length = res.output.length;
+    final ecashToken = await Utils.getGetxController<EcashController>()
         ?.getFileUploadEcashToken(length);
 
-    Map<dynamic, dynamic> uploadParams =
-        await FileService.instance.getUploadParams(
+    final uploadParams = await FileService.instance.getUploadParams(
       cashu: ecashToken ?? '',
       length: length,
       sha256: res.hash,
     );
 
-    String result = await uploadToAWS(
+    final result = await uploadToAWS(
         uploadParams: uploadParams,
         fileBytes: res.output,
         filename: res.hash,
@@ -42,14 +40,14 @@ class AwsS3 {
 
   Future<String> uploadToAWS(
       {required Uint8List fileBytes,
-      void Function(int p1, int p2)? onSendProgress,
       required String filename,
-      required Map<dynamic, dynamic> uploadParams}) async {
+      required Map<dynamic, dynamic> uploadParams,
+      void Function(int p1, int p2)? onSendProgress}) async {
     final dio = Dio();
     logger.i('upload params: $uploadParams');
-    String endpoint = uploadParams['url']!;
-    Map<String, dynamic> headers = uploadParams['headers']!;
-    headers["Content-Type"] = "multipart/form-data";
+    final String endpoint = uploadParams['url']!;
+    final Map<String, dynamic> headers = uploadParams['headers']!;
+    headers['Content-Type'] = 'multipart/form-data';
     try {
       final response = await dio.put(endpoint,
           data: Stream.fromIterable(fileBytes.map((e) => [e])),
@@ -57,7 +55,7 @@ class AwsS3 {
           onSendProgress: onSendProgress);
 
       if (response.statusCode == 200) {
-        return uploadParams['access_url']!;
+        return uploadParams['access_url']! as String;
       }
     } on DioException catch (e, s) {
       // The request was made and the server responded with a status code

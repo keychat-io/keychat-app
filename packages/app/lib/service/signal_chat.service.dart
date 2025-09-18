@@ -313,14 +313,13 @@ class SignalChatService extends BaseChatService {
         room.version = model.time;
       }
     }
-    var contact = await ContactService.instance
-        .getOrCreateContact(room.identityId, room.toMainPubkey);
 
-    // update contact name
-    if (contact.name != model.name) {
-      contact.name = model.name;
-      await ContactService.instance.saveContact(contact);
-    }
+    Contact contact = await ContactService.instance.saveContactFromQrCode(
+        identityId: room.identityId,
+        pubkey: room.toMainPubkey,
+        name: model.name,
+        avatarRemoteUrl: model.avatar,
+        lightning: model.lightning);
     // auto send response
     Mykey? oneTimeKey = await IdentityService.instance
         .isFromOnetimeKey((sourceEvent ?? event).tags[0][1]);

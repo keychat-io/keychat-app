@@ -7,10 +7,12 @@
 
 # The following line activates a set of recommended lints for Flutter apps,
 # packages, and plugins designed to encourage good coding practices.
-include: package:flutter_lints/flutter.yaml
+include: package:very_good_analysis/analysis_options.yaml
 analyzer:
   errors:
-    invalid_annotation_target: ignore
+    # invalid_annotation_target: warning
+    argument_type_not_assignable: warning
+    invalid_assignment: warning
   exclude:
     [
       build/**,
@@ -37,5 +39,8 @@ linter:
     # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
     file_names: false
     library_private_types_in_public_api: false
+    # use_null_aware_elements: true
+    avoid_catches_without_on_clauses: false
+    inference_failure_on_function_invocation: false
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

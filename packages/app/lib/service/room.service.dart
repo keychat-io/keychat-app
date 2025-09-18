@@ -94,16 +94,12 @@ class RoomService extends BaseChatService {
 
     // 1v1 room's contact's name
     if (room.type == RoomType.common) {
-      contact ??= await ContactService.instance
-          .getContact(identityId, room.toMainPubkey);
-      contact ??= Contact(
+      await ContactService.instance.saveContactFromQrCode(
           identityId: room.identityId,
           pubkey: room.toMainPubkey,
-          npubkey: rust_nostr.getBech32PubkeyByHex(hex: room.toMainPubkey))
-        ..name = name;
-      await ContactService.instance.saveContact(contact);
-      contact = await ContactService.instance
-          .getContact(identityId, room.toMainPubkey);
+          name: contact?.name ?? name,
+          avatarRemoteUrl: contact?.avatarRemoteUrl,
+          lightning: contact?.lightning);
       room.contact = contact;
     }
     Utils.getGetxController<HomeController>()

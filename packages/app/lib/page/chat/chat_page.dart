@@ -28,8 +28,8 @@ import 'package:markdown_widget/markdown_widget.dart';
 import 'package:settings_ui/settings_ui.dart';
 
 class ChatPage extends StatefulWidget {
-  final Room? room;
   const ChatPage({this.room, super.key});
+  final Room? room;
 
   @override
   _ChatPage2State createState() => _ChatPage2State();
@@ -52,7 +52,7 @@ class _ChatPage2State extends State<ChatPage> {
 
   @override
   void initState() {
-    Room room = _getRoomAndInit();
+    final room = _getRoomAndInit();
     myAvatar = Utils.getAvatarByIdentity(room.getIdentity(), 40);
     isGroup = room.type == RoomType.group;
     markdownDarkConfig = MarkdownConfig.darkConfig.copy(configs: [
@@ -68,7 +68,7 @@ class _ChatPage2State extends State<ChatPage> {
       const PConfig(textStyle: TextStyle(color: Colors.white, fontSize: 16)),
       PreConfig.darkConfig
           .copy(textStyle: const TextStyle(color: Colors.white, fontSize: 16)),
-      BlockquoteConfig(textColor: const Color(0xFFFFFFFF))
+      const BlockquoteConfig(textColor: Color(0xFFFFFFFF))
     ]);
     markdownLightConfig = MarkdownConfig.defaultConfig.copy(configs: [
       LinkConfig(
@@ -87,23 +87,23 @@ class _ChatPage2State extends State<ChatPage> {
     return Stack(children: [
       Scaffold(
           appBar: AppBar(
-            scrolledUnderElevation: 0.0,
-            elevation: 0.0,
+            scrolledUnderElevation: 0,
+            elevation: 0,
             backgroundColor: Get.isDarkMode
                 ? const Color(0xFF000000)
                 : const Color(0xffededed),
             centerTitle: true,
             title: Obx(() => Wrap(
-                  direction: Axis.horizontal,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    controller.roomObs.value.type != RoomType.group
-                        ? getRoomTitle(controller.roomObs.value.getRoomName(),
-                            controller.roomObs.value.isMute, null)
-                        : getRoomTitle(
-                            controller.roomObs.value.getRoomName(),
-                            controller.roomObs.value.isMute,
-                            controller.enableMembers.length.toString()),
+                    if (controller.roomObs.value.type != RoomType.group)
+                      getRoomTitle(controller.roomObs.value.getRoomName(),
+                          controller.roomObs.value.isMute, null)
+                    else
+                      getRoomTitle(
+                          controller.roomObs.value.getRoomName(),
+                          controller.roomObs.value.isMute,
+                          controller.enableMembers.length.toString()),
                     if (controller.roomObs.value.type == RoomType.bot)
                       const Padding(
                           padding: EdgeInsets.only(left: 5),
@@ -161,12 +161,12 @@ class _ChatPage2State extends State<ChatPage> {
                           controller: controller.indicatorController,
                           indicatorBuilder: (context, c) {
                             return Padding(
-                              padding: const EdgeInsets.all(6.0),
+                              padding: const EdgeInsets.all(6),
                               child: CircularProgressIndicator(
                                   color: KeychatGlobal.primaryColor,
                                   value: c.state.isLoading
                                       ? null
-                                      : min(c.value, 1.0)),
+                                      : min(c.value, 1)),
                             );
                           },
                           child: Obx(() => ListView.builder(
@@ -177,7 +177,7 @@ class _ChatPage2State extends State<ChatPage> {
                                 itemCount: controller.messages.length,
                                 controller: controller.scrollController,
                                 itemBuilder: (BuildContext context, int index) {
-                                  Message message = controller.messages[index];
+                                  final message = controller.messages[index];
                                   RoomMember? rm;
                                   if (!message.isMeSend &&
                                       controller.roomObs.value.type ==
@@ -224,8 +224,8 @@ class _ChatPage2State extends State<ChatPage> {
         Obx(() => hc.isBlurred.value
             ? Positioned.fill(
                 child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-                    child: Container(
+                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    child: ColoredBox(
                         color: Colors.black.withAlpha(30),
                         child: const Center(
                             child: Icon(CupertinoIcons.lock_shield_fill,
@@ -248,16 +248,16 @@ class _ChatPage2State extends State<ChatPage> {
               EasyLoading.show(
                   status:
                       '1. Receving all messages... \n2. Sending greeting...');
-              Room room = await RoomService.instance
+              var room = await RoomService.instance
                   .getRoomByIdOrFail(controller.roomObs.value.id);
 
               while (true) {
-                String receivingKey = room.onetimekey!;
+                final receivingKey = room.onetimekey!;
                 EasyLoading.show(status: 'Receiving from: $receivingKey');
                 await MlsGroupService.instance.waitingForEose(
                     receivingKey: receivingKey,
                     relays: controller.roomObs.value.sendingRelays);
-                await Future.delayed(Duration(milliseconds: 500));
+                await Future.delayed(const Duration(milliseconds: 500));
                 room = await RoomService.instance
                     .getRoomByIdOrFail(controller.roomObs.value.id);
 
@@ -277,13 +277,13 @@ class _ChatPage2State extends State<ChatPage> {
                   .sendGreetingMessage(controller.roomObs.value);
               EasyLoading.dismiss();
             } catch (e) {
-              String msg = Utils.getErrorMessage(e);
+              final msg = Utils.getErrorMessage(e);
               EasyLoading.showError(msg);
             } finally {
               isSendGreeting = false;
             }
           },
-          child: Text('Send Greeting')));
+          child: const Text('Send Greeting')));
     }
     switch (controller.roomObs.value.status) {
       case RoomStatus.requesting:
@@ -374,7 +374,7 @@ class _ChatPage2State extends State<ChatPage> {
                               horizontal: 8, vertical: 8),
                           decoration: BoxDecoration(
                             borderRadius: const BorderRadius.all(
-                              Radius.circular(4.0),
+                              Radius.circular(4),
                             ),
                             color: Get.isDarkMode
                                 ? Colors.grey.shade800
@@ -394,17 +394,17 @@ class _ChatPage2State extends State<ChatPage> {
                             textInputAction: TextInputAction.send,
                             onEditingComplete: controller.handleSubmitted,
                             contextMenuBuilder: (context, editableTextState) {
-                              final TextSelection selection = editableTextState
+                              final selection = editableTextState
                                   .currentTextEditingValue.selection;
-                              final String text = editableTextState
+                              final text = editableTextState
                                   .currentTextEditingValue.text;
-                              final bool hasSelection = !selection.isCollapsed;
-                              final bool hasText = text.isNotEmpty;
-                              final bool canSelectAll = hasText &&
+                              final hasSelection = !selection.isCollapsed;
+                              final hasText = text.isNotEmpty;
+                              final canSelectAll = hasText &&
                                   (selection.start != 0 ||
                                       selection.end != text.length);
 
-                              List<ContextMenuButtonItem> buttonItems = [];
+                              final buttonItems = <ContextMenuButtonItem>[];
 
                               if (hasSelection) {
                                 buttonItems.add(
@@ -521,12 +521,12 @@ class _ChatPage2State extends State<ChatPage> {
 
   Padding botMenuWidget(ChatController controller, BuildContext context) {
     return Padding(
-        padding: const EdgeInsets.only(left: 0, right: 5, bottom: 5),
+        padding: const EdgeInsets.only(right: 5, bottom: 5),
         child: GestureDetector(
             onTap: () {
-              Map localConfig =
+              final Map localConfig =
                   jsonDecode(controller.roomObs.value.botLocalConfig ?? '{}');
-              Map? botPricePerMessageRequest =
+              final Map? botPricePerMessageRequest =
                   localConfig['botPricePerMessageRequest'];
               Get.bottomSheet(
                   clipBehavior: Clip.antiAlias,
@@ -580,7 +580,7 @@ class _ChatPage2State extends State<ChatPage> {
   Widget getFeaturesWidget(BuildContext context) {
     return GridView.builder(
       physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.all(8),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: GetPlatform.isDesktop ? 6 : 4,
       ),
@@ -600,7 +600,7 @@ class _ChatPage2State extends State<ChatPage> {
                           .colorScheme
                           .onSurface
                           .withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(5.0),
+                      borderRadius: BorderRadius.circular(5),
                     ),
                     child: Center(
                       child: SizedBox(
@@ -637,7 +637,7 @@ class _ChatPage2State extends State<ChatPage> {
   }
 
   Future goToSetting() async {
-    String route = Routes.roomSettingContact;
+    var route = Routes.roomSettingContact;
     if (controller.roomObs.value.type == RoomType.group) {
       route = Routes.roomSettingGroup;
     }
@@ -659,7 +659,6 @@ class _ChatPage2State extends State<ChatPage> {
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text('send: ${controller.statsSend}'),
                     Text('receive: ${controller.statsReceive}'),
@@ -673,7 +672,7 @@ class _ChatPage2State extends State<ChatPage> {
                               'Random to send message task starting',
                               duration: const Duration(seconds: 5));
                           hc.debugSendMessageRunning.value = true;
-                          int count = 0;
+                          var count = 0;
                           void randomTimer() {
                             if (!hc.debugSendMessageRunning.value) {
                               return;
@@ -747,7 +746,7 @@ class _ChatPage2State extends State<ChatPage> {
         ));
   }
 
-  void handleOnChanged(String value) async {
+  Future<void> handleOnChanged(String value) async {
     if (value.isEmpty) {
       if (!controller.hideSend.value) {
         controller.hideSend.value = true;
@@ -761,10 +760,10 @@ class _ChatPage2State extends State<ChatPage> {
       controller.hideAddIcon.value = true;
     }
     if (controller.roomObs.value.type == RoomType.group) {
-      String lastChar = value.substring(value.length - 1, value.length);
+      final lastChar = value.substring(value.length - 1, value.length);
       if (lastChar == '@' && controller.inputTextIsAdd.value) {
-        var members = controller.enableMembers.values.toList();
-        RoomMember? roomMember = await Get.bottomSheet(
+        final members = controller.enableMembers.values.toList();
+        final roomMember = await Get.bottomSheet(
             ignoreSafeArea: false,
             clipBehavior: Clip.antiAlias,
             shape: const RoundedRectangleBorder(
@@ -785,7 +784,7 @@ class _ChatPage2State extends State<ChatPage> {
                                     ?.withValues(alpha: 0.05)),
                         itemCount: members.length,
                         itemBuilder: (context, index) {
-                          RoomMember rm = members[index];
+                          final rm = members[index];
                           return ListTile(
                               onTap: () {
                                 Get.back(result: members[index]);
@@ -814,7 +813,6 @@ class _ChatPage2State extends State<ChatPage> {
 
   Widget getRoomTitle(String title, bool isMute, String? memberCount) {
     return Wrap(
-      direction: Axis.horizontal,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         Text(memberCount != null ? '$title ($memberCount)' : title),
@@ -866,10 +864,10 @@ class _ChatPage2State extends State<ChatPage> {
             FilledButton(
               onPressed: () async {
                 try {
-                  Room room = controller.roomObs.value;
+                  var room = controller.roomObs.value;
                   room = await RoomService.instance.getRoomByIdOrFail(room.id);
                   if (room.status == RoomStatus.approving) {
-                    String displayName = room.getIdentity().displayName;
+                    final displayName = room.getIdentity().displayName;
                     await SignalChatService.instance.sendMessage(
                         room, RoomUtil.getHelloMessage(displayName));
                     room.status = RoomStatus.enabled;
@@ -890,13 +888,13 @@ class _ChatPage2State extends State<ChatPage> {
             FilledButton(
               onPressed: () async {
                 try {
-                  int identityId = controller.roomObs.value.identityId;
+                  final identityId = controller.roomObs.value.identityId;
                   await RoomService.instance
                       .deleteRoom(controller.roomObs.value);
                   Get.find<HomeController>().loadIdentityRoomList(identityId);
                   await Utils.offAllNamedRoom(Routes.root);
                 } catch (e) {
-                  String msg = Utils.getErrorMessage(e);
+                  final msg = Utils.getErrorMessage(e);
                   EasyLoading.showError(msg);
                   logger.e(msg, error: e);
                 }
@@ -927,17 +925,17 @@ class _ChatPage2State extends State<ChatPage> {
 
   int? tryGetMessageId() {
     try {
-      Map<String, dynamic> arguments = Get.arguments;
-      return arguments['messageId'];
+      final Map<String, dynamic> arguments = Get.arguments;
+      return arguments['messageId'] as int?;
       // ignore: empty_catches
     } catch (e) {}
     return null;
   }
 
   Room _getRoomAndInit() {
-    Room? room = widget.room;
-    int? roomId = widget.room?.id;
-    int? searchMessageId = tryGetMessageId();
+    var room = widget.room;
+    var roomId = widget.room?.id;
+    final searchMessageId = tryGetMessageId();
     if (room == null) {
       if (Get.parameters['id'] != null) {
         roomId = int.parse(Get.parameters['id']!);
@@ -946,14 +944,15 @@ class _ChatPage2State extends State<ChatPage> {
         room = RoomService.instance.getRoomByIdSync(roomId);
       } else {
         try {
-          Map<String, dynamic> arguments = Get.arguments;
+          final Map<String, dynamic> arguments = Get.arguments;
           room = arguments['room'];
         } catch (e) {
           room = Get.arguments as Room;
         }
       }
     }
-    var exist = Utils.getGetxController<ChatController>(tag: roomId.toString());
+    final exist =
+        Utils.getGetxController<ChatController>(tag: roomId.toString());
     if (exist != null) {
       controller = exist;
       if (searchMessageId != null) {
@@ -995,7 +994,7 @@ class _ChatPage2State extends State<ChatPage> {
                           shrinkWrap: true,
                           itemCount: controller.kpaIsNullRooms.length,
                           itemBuilder: (context, index) {
-                            Room room = controller.kpaIsNullRooms[index];
+                            final room = controller.kpaIsNullRooms[index];
                             room.contact ??= ContactService.instance
                                 .getOrCreateContactSync(
                                     room.identityId, room.toMainPubkey);
@@ -1005,7 +1004,7 @@ class _ChatPage2State extends State<ChatPage> {
                               title: Text(room.getRoomName()),
                               trailing: OutlinedButton(
                                   onPressed: () async {
-                                    Room? room0 = await RoomService.instance
+                                    final room0 = await RoomService.instance
                                         .createRoomAndsendInvite(
                                             room.toMainPubkey,
                                             autoJump: false,

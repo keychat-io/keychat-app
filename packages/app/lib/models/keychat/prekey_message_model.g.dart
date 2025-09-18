@@ -14,6 +14,8 @@ PrekeyMessageModel _$PrekeyMessageModelFromJson(Map<String, dynamic> json) =>
       name: json['name'] as String,
       sig: json['sig'] as String,
       message: json['message'] as String,
+      lightning: json['lightning'] as String?,
+      avatar: json['avatar'] as String?,
     );
 
 Map<String, dynamic> _$PrekeyMessageModelToJson(PrekeyMessageModel instance) =>
@@ -24,4 +26,6 @@ Map<String, dynamic> _$PrekeyMessageModelToJson(PrekeyMessageModel instance) =>
       'sig': instance.sig,
       'name': instance.name,
       'message': instance.message,
+      if (instance.lightning case final value?) 'lightning': value,
+      if (instance.avatar case final value?) 'avatar': value,
     };

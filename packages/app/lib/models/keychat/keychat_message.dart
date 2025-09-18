@@ -12,26 +12,28 @@ import 'package:app/service/signal_chat_util.dart';
 import 'package:get/get.dart';
 import 'package:json_annotation/json_annotation.dart';
 
-import '../../service/chat.service.dart';
-import '../../service/nip4_chat.service.dart';
-import '../../service/signal_chat.service.dart';
+import 'package:app/service/chat.service.dart';
+import 'package:app/service/nip4_chat.service.dart';
+import 'package:app/service/signal_chat.service.dart';
 
 part 'keychat_message.g.dart';
 
 @JsonSerializable(includeIfNull: false)
 class KeychatMessage {
-  MessageType c;
-  late int type; // = KeyChatEventKinds.start;
-  String? msg;
-  String? name;
-  String? data;
-
   KeychatMessage(
       {required this.type,
       required this.c, // category
       this.msg,
       this.name,
       this.data});
+
+  factory KeychatMessage.fromJson(Map<String, dynamic> json) =>
+      _$KeychatMessageFromJson(json);
+  MessageType c;
+  late int type; // = KeyChatEventKinds.start;
+  String? msg;
+  String? name;
+  String? data;
   BaseChatService get service {
     switch (c) {
       case MessageType.nip04:
@@ -47,9 +49,6 @@ class KeychatMessage {
     }
   }
 
-  factory KeychatMessage.fromJson(Map<String, dynamic> json) =>
-      _$KeychatMessageFromJson(json);
-
   Map<String, dynamic> toJson() => _$KeychatMessageToJson(this);
 
   @override
@@ -57,9 +56,9 @@ class KeychatMessage {
 
   Future<KeychatMessage> setHelloMessagge(Identity identity,
       {SignalId? signalId, String? greeting, bool fromNpub = false}) async {
-    List<Mykey> oneTimeKeys =
+    final oneTimeKeys =
         await Get.find<ChatxService>().getOneTimePubkey(identity.id);
-    String onetimekey = '';
+    var onetimekey = '';
     if (oneTimeKeys.isNotEmpty) {
       onetimekey = oneTimeKeys.first.pubkey;
     }
@@ -67,27 +66,31 @@ class KeychatMessage {
     signalId ??= await SignalIdService.instance.createSignalId(identity.id);
     if (signalId == null) throw Exception('signalId is null');
 
-    Map userInfo = await SignalIdService.instance.getQRCodeData(signalId);
-    int expiredTime = DateTime.now().millisecondsSinceEpoch +
+    final Map userInfo = await SignalIdService.instance.getQRCodeData(signalId);
+    final expiredTime = DateTime.now().millisecondsSinceEpoch +
         KeychatGlobal.oneTimePubkeysLifetime * 3600 * 1000;
 
-    String content = SignalChatUtil.getToSignMessage(
+    final content = SignalChatUtil.getToSignMessage(
       nostrId: identity.secp256k1PKHex,
       signalId: signalId.pubkey,
       time: expiredTime,
     );
-    String? sig = await SignalChatUtil.signByIdentity(
+    final sig = await SignalChatUtil.signByIdentity(
         identity: identity, content: content, id: expiredTime.toString());
     if (sig == null) throw Exception('Sign failed or User denied');
-    Map<String, dynamic> data = {
+    final avatarRemoteUrl = await identity.getRemoteAvatarUrl();
+
+    final data = <String, dynamic>{
       'name': identity.displayName,
       'pubkey': identity.secp256k1PKHex,
       'curve25519PkHex': signalId.pubkey,
       'onetimekey': onetimekey,
       'time': expiredTime,
-      'relay': "",
-      "globalSign": sig,
-      ...userInfo
+      'lightning': identity.lightning,
+      'relay': '',
+      'avatar': avatarRemoteUrl,
+      'globalSign': sig,
+      ...userInfo.cast<String, dynamic>()
     };
     name = QRUserModel.fromJson(data).toString();
     msg = fromNpub
@@ -122,7 +125,7 @@ $greeting''';
   static String getFeatureMessageString(
       MessageType type, Room room, String message, int subtype,
       {String? name, String? data}) {
-    KeychatMessage km = KeychatMessage(
+    final km = KeychatMessage(
         c: type, type: subtype, msg: message, data: data, name: name);
     return km.toString();
   }

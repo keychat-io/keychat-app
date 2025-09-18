@@ -1,4 +1,4 @@
-import 'dart:convert' show jsonEncode, jsonDecode;
+import 'dart:convert' show jsonDecode, jsonEncode;
 
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/desktop/DesktopController.dart';
@@ -20,13 +20,13 @@ import 'package:isar_community/isar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class WebviewTabData {
+  WebviewTabData(
+      {required this.tab, required this.uniqueKey, required this.url});
   WebviewTab tab;
   String uniqueKey;
   String? title;
   String url;
   String? favicon;
-  WebviewTabData(
-      {required this.tab, required this.uniqueKey, required this.url});
 }
 
 class MultiWebviewController extends GetxController {
@@ -50,12 +50,12 @@ class MultiWebviewController extends GetxController {
   WebViewEnvironment? webViewEnvironment;
 
   void addNewTab() {
-    String uniqueId = generate64RandomHexChars(8);
+    final uniqueId = generate64RandomHexChars(8);
 
     // use new tab if exist
     if (GetPlatform.isMobile) {
       for (var i = 0; i < tabs.length; i++) {
-        var item = tabs[i];
+        final item = tabs[i];
         if (item.tab.initTitle == KeychatGlobal.newTab) {
           setCurrentTabIndex(i);
           return;
@@ -82,7 +82,7 @@ class MultiWebviewController extends GetxController {
         return;
       }
     }
-    String uniqueId = generate64RandomHexChars(8);
+    final uniqueId = generate64RandomHexChars(8);
     final tab = WebviewTab(
       uniqueKey: uniqueId,
       initUrl: KeychatGlobal.newTab,
@@ -113,7 +113,7 @@ class MultiWebviewController extends GetxController {
   }
 
   void removeTab(String tabId) {
-    int removeIndex = -1;
+    var removeIndex = -1;
     for (var i = 0; i < tabs.length; i++) {
       if (tabs[i].uniqueKey == tabId) {
         removeIndex = i;
@@ -136,11 +136,11 @@ class MultiWebviewController extends GetxController {
       }
       return;
     }
-    String uniqueKey = generate64RandomHexChars(8);
+    var uniqueKey = generate64RandomHexChars(8);
     Uri? uri;
     if (initUrl.startsWith('http') == false) {
       // try: domain.com
-      bool isDomain = Utils.isDomain(initUrl);
+      final isDomain = Utils.isDomain(initUrl);
       // start search engine
       if (isDomain) {
         initUrl = 'https://$initUrl';
@@ -149,14 +149,12 @@ class MultiWebviewController extends GetxController {
         switch (engine) {
           case 'google':
             initUrl = 'https://www.google.com/search?q=$initUrl';
-            break;
           case 'brave':
             initUrl = 'https://search.brave.com/search?q=$initUrl';
           case 'startpage':
             initUrl = 'https://www.startpage.com/sp/search?q=$initUrl';
           case 'searxng':
             initUrl = 'https://searx.tiekoetter.com/search?q=$initUrl';
-            break;
         }
       }
     }
@@ -233,8 +231,8 @@ class MultiWebviewController extends GetxController {
   Function(int) updatePageTabIndex = (index) {};
 
   int getLastWindowId() {
-    int windowId = 0;
-    for (var item in tabs) {
+    var windowId = 0;
+    for (final item in tabs) {
       if (item.tab.windowId > windowId) {
         windowId = item.tab.windowId + 1;
       }
@@ -243,21 +241,21 @@ class MultiWebviewController extends GetxController {
   }
 
   Future loadConfig() async {
-    String? localConfig = Storage.getString(KeychatGlobal.browserConfig);
+    var localConfig = Storage.getString(KeychatGlobal.browserConfig);
     if (localConfig == null) {
       localConfig = jsonEncode({
-        "enableHistory": true,
-        "enableBookmark": true,
-        "enableRecommend": true,
-        "historyRetentionDays": 30,
-        "autoSignEvent": true,
+        'enableHistory': true,
+        'enableBookmark': true,
+        'enableRecommend': true,
+        'historyRetentionDays': 30,
+        'autoSignEvent': true,
       });
       Storage.setString('browserConfig', localConfig);
     }
     config.value = jsonDecode(localConfig);
 
     // text zoom
-    int? textSize = Storage.getInt(KeychatGlobal.browserTextSize);
+    final textSize = Storage.getInt(KeychatGlobal.browserTextSize);
     if (textSize != null) {
       kInitialTextSize.value = textSize;
     }
@@ -271,19 +269,18 @@ class MultiWebviewController extends GetxController {
 
   BrowserHistory? lastHistory;
   Future addHistory(String url, String title, [String? favicon]) async {
-    if (!config['enableHistory']) return;
+    if (!(config['enableHistory'] as bool)) return;
 
     if (lastHistory != null) {
       if (lastHistory!.url == url) {
-        DateTime now = DateTime.now();
-        DateTime lastVisit = lastHistory!.createdAt;
+        final now = DateTime.now();
+        final lastVisit = lastHistory!.createdAt;
         if (now.difference(lastVisit).inMinutes < 1) {
           return;
         }
       }
     }
-    BrowserHistory history =
-        BrowserHistory(url: url, title: title, favicon: favicon);
+    final history = BrowserHistory(url: url, title: title, favicon: favicon);
     lastHistory = history;
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.browserHistorys.put(history);
@@ -311,7 +308,7 @@ class MultiWebviewController extends GetxController {
   }
 
   @override
-  void onInit() async {
+  Future<void> onInit() async {
     textController = TextEditingController();
     textController.addListener(() {
       input.value = textController.text.trim();
@@ -319,7 +316,7 @@ class MultiWebviewController extends GetxController {
 
     // load search engine
     defaultSearchEngineObx.value =
-        (Storage.getString('defaultSearchEngine') ?? defaultSearchEngine);
+        Storage.getString('defaultSearchEngine') ?? defaultSearchEngine;
 
     await loadConfig();
     await loadKeepAlive(true);
@@ -334,10 +331,10 @@ class MultiWebviewController extends GetxController {
   }
 
   Future<void> deleteOldHistories() async {
-    if (!config['enableHistory']) return;
+    if (!(config['enableHistory'] as bool)) return;
 
-    int retentionDays = config['historyRetentionDays'] ?? 30;
-    DateTime thresholdDate =
+    final int retentionDays = config['historyRetentionDays'] ?? 30;
+    final thresholdDate =
         DateTime.now().subtract(Duration(days: retentionDays));
 
     await DBProvider.database.writeTxn(() async {
@@ -353,7 +350,7 @@ class MultiWebviewController extends GetxController {
       final availableVersion = await WebViewEnvironment.getAvailableVersion();
       assert(availableVersion != null,
           'Failed to find an installed WebView2 Runtime or non-stable Microsoft Edge installation.');
-      String browserCacheFolder =
+      final browserCacheFolder =
           Get.find<SettingController>().browserCacheFolder;
       webViewEnvironment = await WebViewEnvironment.create(
           settings:
@@ -377,7 +374,7 @@ class MultiWebviewController extends GetxController {
       return cachedFavicon[host];
     }
     try {
-      List<Favicon> favicons = await controller.getFavicons().timeout(
+      final favicons = await controller.getFavicons().timeout(
         const Duration(seconds: 3),
         onTimeout: () {
           debugPrint('Favicon request timed out');
@@ -402,7 +399,7 @@ class MultiWebviewController extends GetxController {
   Future<void> saveDesktopTabs() async {
     if (!GetPlatform.isDesktop) return;
 
-    List<Map<String, dynamic>> tabData = tabs
+    final List<Map<String, dynamic>> tabData = tabs
         .map((tab) => {
               'url': tab.url,
               'title': tab.title ?? '',
@@ -420,7 +417,7 @@ class MultiWebviewController extends GetxController {
     EasyDebounce.debounce(
       'saveDesktopTabs',
       const Duration(seconds: 1),
-      () => saveDesktopTabs(),
+      saveDesktopTabs,
     );
   }
 
@@ -428,20 +425,19 @@ class MultiWebviewController extends GetxController {
     if (!GetPlatform.isDesktop) return;
 
     try {
-      String? savedTabs =
-          Storage.getString(StorageKeyString.desktopBrowserTabs);
+      final savedTabs = Storage.getString(StorageKeyString.desktopBrowserTabs);
       if (savedTabs == null || savedTabs.isEmpty) return;
 
-      List<dynamic> tabData = jsonDecode(savedTabs);
+      final List<dynamic> tabData = jsonDecode(savedTabs);
       logger.d('Loading ${tabData.length} desktop tabs');
 
-      for (var data in tabData) {
-        String url = data['url'] ?? '';
-        String title = data['title'] ?? '';
-        String? favicon = data['favicon'];
+      for (final data in tabData) {
+        final String url = data['url'] ?? '';
+        final String title = data['title'] ?? '';
+        final String? favicon = data['favicon'];
 
         if (url.isNotEmpty && url != KeychatGlobal.newTab) {
-          String uniqueId = generate64RandomHexChars(8);
+          final uniqueId = generate64RandomHexChars(8);
           final tab = WebviewTab(
             uniqueKey: uniqueId,
             initUrl: url,
@@ -449,7 +445,7 @@ class MultiWebviewController extends GetxController {
             windowId: getLastWindowId(),
           );
 
-          WebviewTabData tabData = WebviewTabData(
+          final tabData = WebviewTabData(
             tab: tab,
             uniqueKey: uniqueId,
             url: url,
@@ -478,10 +474,10 @@ class MultiWebviewController extends GetxController {
 
   void setTabData(
       {required String uniqueId,
-      String? title,
       required String url,
+      String? title,
       String? favicon}) {
-    int tabIndex = tabs.indexWhere((tab) => tab.uniqueKey == uniqueId);
+    final tabIndex = tabs.indexWhere((tab) => tab.uniqueKey == uniqueId);
     if (tabIndex >= 0) {
       if (title != null) {
         tabs[tabIndex].title = title;
@@ -511,7 +507,7 @@ class MultiWebviewController extends GetxController {
     }
     // for mobile
     try {
-      var controller = Get.find<WebviewTabController>(tag: uniqueKey);
+      final controller = Get.find<WebviewTabController>(tag: uniqueKey);
       logger.i('found controller $uniqueKey');
       return controller;
     } catch (e) {
@@ -522,7 +518,7 @@ class MultiWebviewController extends GetxController {
   }
 
   void setTabDataFavicon({required String uniqueId, required String favicon}) {
-    int tabIndex = tabs.indexWhere((tab) => tab.uniqueKey == uniqueId);
+    final tabIndex = tabs.indexWhere((tab) => tab.uniqueKey == uniqueId);
     if (tabIndex >= 0) {
       tabs[tabIndex].favicon = favicon;
       tabs.refresh();
@@ -593,7 +589,7 @@ window.addEventListener('DOMContentLoaded', function(event) {
     if (GetPlatform.isDesktop) {
       return null;
     }
-    String? host = Uri.tryParse(url)?.host;
+    var host = Uri.tryParse(url)?.host;
     if (host == null || host.isEmpty) {
       host = url;
     }
@@ -615,7 +611,7 @@ window.addEventListener('DOMContentLoaded', function(event) {
   void removeKeepAlive(String url) {
     if (GetPlatform.isDesktop) return;
     logger.d('removeKeepAlive url: $url');
-    String? host = Uri.tryParse(url)?.host;
+    var host = Uri.tryParse(url)?.host;
     if (host == null || host.isEmpty) {
       host = url;
     }
@@ -626,14 +622,13 @@ window.addEventListener('DOMContentLoaded', function(event) {
   Future<void> loadKeepAlive([bool isInit = false]) async {
     if (!GetPlatform.isMobile) return;
 
-    List<String> hosts =
-        Storage.getStringList(StorageKeyString.mobileKeepAlive);
+    var hosts = Storage.getStringList(StorageKeyString.mobileKeepAlive);
     // for init
     if (isInit && hosts.isEmpty) {
       hosts = ['jumble.social'];
       await Storage.setStringList(StorageKeyString.mobileKeepAlive, hosts);
     }
-    for (var item in hosts) {
+    for (final item in hosts) {
       if (!mobileKeepAlive.containsKey(item)) {
         mobileKeepAlive[item] = InAppWebViewKeepAlive();
       }

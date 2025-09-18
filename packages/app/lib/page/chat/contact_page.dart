@@ -1,4 +1,5 @@
 import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app/service/contact.service.dart';
 import 'package:avatar_plus/avatar_plus.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
@@ -103,6 +104,12 @@ class ContactPage extends StatelessWidget {
                   FilledButton(
                     onPressed: () async {
                       if (room != null) {
+                        await ContactService.instance.saveContactFromQrCode(
+                            identityId: room.identityId,
+                            pubkey: room.toMainPubkey,
+                            name: model!.name,
+                            avatarRemoteUrl: model!.avatar,
+                            lightning: model!.lightning);
                         await SignalChatService.instance
                             .resetSignalSession(room);
                         return;

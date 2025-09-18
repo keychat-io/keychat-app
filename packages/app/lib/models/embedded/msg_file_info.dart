@@ -11,7 +11,7 @@ enum FileStatus { init, downloading, downloaded, decryptSuccess, failed }
 @JsonSerializable(includeIfNull: false)
 @embedded
 class MsgFileInfo {
-  String? localPath;
+  String? localPath; // relative path in app folder
   String? url;
 
   @Enumerated(EnumType.ordinal32)

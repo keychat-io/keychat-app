@@ -1,5 +1,14 @@
+import 'dart:io' show File;
+
+import 'package:app/controller/setting.controller.dart';
+import 'package:app/models/embedded/msg_file_info.dart';
+import 'package:app/service/file.service.dart';
+import 'package:app/service/identity.service.dart';
 import 'package:app/service/secure_storage.dart';
+import 'package:app/utils.dart';
 import 'package:equatable/equatable.dart';
+import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:isar_community/isar.dart';
 
 part 'identity.g.dart';
@@ -34,10 +43,10 @@ class Identity extends Equatable {
   String? note;
   late DateTime createdAt;
   String? metadata;
-  String? lightningAddress;
+  String? lightning;
   String? avatarLocalPath; // local avatar path
   String? avatarRemoteUrl; // remote avatar url
-  DateTime? avatarUpdatedAt; // avatar update time
+  DateTime? avatarUpdatedAt; // avatar update time. expired 14 days
 
   int index = 0;
 
@@ -83,5 +92,34 @@ class Identity extends Equatable {
   Future<String?> getMnemonic() async {
     if (index == -1) return null;
     return await SecureStorage.instance.getPhraseWords();
+  }
+
+  Future<String?> getRemoteAvatarUrl() async {
+    if (avatarUpdatedAt == null || avatarRemoteUrl == null) return null;
+
+    if (DateTime.now().difference(avatarUpdatedAt!).inDays <= 14) {
+      return avatarRemoteUrl;
+    }
+    if (avatarLocalPath == null) return null;
+    try {
+      // expired but local file exists, re-upload
+      String filePath = Get.find<SettingController>().appFolder.path;
+      File file = File(filePath + avatarLocalPath!);
+      bool exists = await file.exists();
+      if (!exists) return null;
+      MsgFileInfo? mfi = await FileService.instance
+          .encryptAndUploadImage(XFile(file.path), writeToLocal: false);
+      if (mfi == null) return null;
+      mfi.sourceName = '';
+      logger.d('Avatar uploaded: $mfi');
+      avatarRemoteUrl = mfi.getUriString('image');
+      avatarUpdatedAt = DateTime.now();
+      avatarLocalPath = mfi.localPath;
+      await IdentityService.instance.updateIdentity(this);
+      return avatarRemoteUrl;
+    } catch (e, st) {
+      logger.e('Failed ${e.toString()}', stackTrace: st);
+    }
+    return null;
   }
 }

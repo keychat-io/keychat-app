@@ -1,11 +1,10 @@
 import 'dart:async' show Future, Timer;
 import 'dart:convert' show jsonDecode, jsonEncode;
-import 'dart:io' show Directory, File, FileSystemEntity;
+import 'dart:io' show Directory, File;
 
 import 'package:app/controller/home.controller.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr.dart';
-import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/RoomDraft.dart';
 import 'package:app/page/components.dart';
 import 'package:app/service/chatx.service.dart';
@@ -38,13 +37,16 @@ const int maxMessageId = 999999999999;
 String newlineChar = String.fromCharCode(13);
 
 class ChatController extends GetxController {
+  ChatController(Room room, {this.searchMessageId = -1}) {
+    roomObs.value = room;
+  }
   RxList<Message> messages = <Message>[].obs;
   RxList<Message> inputReplys = <Message>[].obs;
   RxString inputText = ''.obs;
   RxBool inputTextIsAdd = true.obs;
   RxInt messageLimit = 0.obs;
 
-  final roomObs = Room(identityId: 0, toMainPubkey: '', npub: '').obs;
+  final Rx<Room> roomObs = Room(identityId: 0, toMainPubkey: '', npub: '').obs;
 
   RxInt statsSend = 0.obs;
   RxInt statsReceive = 0.obs;
@@ -112,12 +114,8 @@ class ChatController extends GetxController {
 
   List<Function> featuresOnTaps = [];
 
-  ChatController(Room room, {this.searchMessageId = -1}) {
-    roomObs.value = room;
-  }
-
   @override
-  void onInit() async {
+  Future<void> onInit() async {
     scrollController = ScrollController();
     chatContentFocus = FocusNode();
     keyboardFocus = FocusNode();
@@ -131,13 +129,13 @@ class ChatController extends GetxController {
     indicatorController = IndicatorController();
 
     // load draft
-    String? textFiledDraft = RoomDraft.instance.getDraft(roomObs.value.id);
+    final textFiledDraft = RoomDraft.instance.getDraft(roomObs.value.id);
     if (textEditingController.text.isEmpty && textFiledDraft != null) {
       textEditingController.text = textFiledDraft;
     }
 
     textEditingController.addListener(() {
-      String newText = textEditingController.text;
+      final newText = textEditingController.text;
       if (newText.contains(newlineChar)) {
         textEditingController.text = newText.replaceAll(newlineChar, '\n');
         return;
@@ -158,7 +156,7 @@ class ChatController extends GetxController {
     if (messages.isNotEmpty && messages.first.id == message.id) {
       return;
     }
-    int index = 0;
+    var index = 0;
     if (messages.isNotEmpty) {
       if (messages[0].createdAt.isAfter(message.createdAt)) {
         index = 1;
@@ -174,14 +172,14 @@ class ChatController extends GetxController {
   }
 
   void addMetionName(String name) {
-    String text = textEditingController.text.trim();
+    var text = textEditingController.text.trim();
     if (text.isEmpty) {
       text = '@$name ';
       textEditingController.text = text;
       return;
     }
 
-    String lastChar = text.substring(text.length - 1);
+    final lastChar = text.substring(text.length - 1);
     if (lastChar != '@') {
       textEditingController.text = '${text.trim()} @$name ';
       return;
@@ -215,9 +213,9 @@ class ChatController extends GetxController {
   }
 
   Future<List<File>> getImageList(Directory directory) async {
-    List<FileSystemEntity> files = directory.listSync(recursive: true);
-    List<File> imageFiles = [];
-    for (var file in files) {
+    final files = directory.listSync(recursive: true);
+    final imageFiles = <File>[];
+    for (final file in files) {
       if (file is File && FileService.instance.isImageFile(file.path)) {
         imageFiles.add(file);
       }
@@ -229,12 +227,12 @@ class ChatController extends GetxController {
   }
 
   Future<List<Room>> getKpaIsNullRooms() async {
-    List<Room> rooms = [];
+    final rooms = <Room>[];
     if (!roomObs.value.isSendAllGroup) return rooms;
-    ChatxService cs = Get.find<ChatxService>();
+    final cs = Get.find<ChatxService>();
 
-    for (var element in memberRooms.values) {
-      var kpa = await cs.getRoomKPA(element);
+    for (final element in memberRooms.values) {
+      final kpa = await cs.getRoomKPA(element);
       if (kpa == null) {
         rooms.add(element);
       }
@@ -262,7 +260,7 @@ class ChatController extends GetxController {
       return;
     }
 
-    String text = textEditingController.text.trim();
+    final text = textEditingController.text.trim();
     if (text.isEmpty) {
       return;
     }
@@ -291,7 +289,7 @@ class ChatController extends GetxController {
       RoomService.instance.markAllReadSimple(roomObs.value);
     } catch (e, s) {
       textEditingController.text = text;
-      String msg = Utils.getErrorMessage(e);
+      final msg = Utils.getErrorMessage(e);
       logger.e('Failed: $msg', error: e, stackTrace: s);
       EasyLoading.showError(msg, duration: const Duration(seconds: 3));
     }
@@ -322,7 +320,7 @@ class ChatController extends GetxController {
     Timer(const Duration(milliseconds: 300), () {
       if (scrollController.hasClients) {
         scrollController.animateTo(
-          0.0,
+          0,
           duration: Duration(milliseconds: milliseconds),
           curve: Curves.easeIn,
         );
@@ -344,12 +342,12 @@ class ChatController extends GetxController {
       });
       return;
     }
-    List<Message> list = await MessageService.instance.getMessagesByView(
+    final list = await MessageService.instance.getMessagesByView(
         roomId: roomObs.value.id,
         maxId: maxMessageId,
         isRead: true,
         limit: messageLimitPerPage);
-    List<Message> unreads = await MessageService.instance.getMessagesByView(
+    final unreads = await MessageService.instance.getMessagesByView(
         roomId: roomObs.value.id,
         maxId: maxMessageId,
         isRead: false,
@@ -359,14 +357,14 @@ class ChatController extends GetxController {
           identityId: roomObs.value.identityId, roomId: roomObs.value.id);
     }
     unreads.addAll(list);
-    List<Message> mlist = sortMessageById(unreads.toList());
+    final mlist = sortMessageById(unreads.toList());
     mlist.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     messages.value = mlist;
     checkPendingEcash();
   }
 
   Future<int> _loadLatestMessages(int searchMsgIndex) async {
-    var sortedNewMessages = await MessageService.instance
+    final sortedNewMessages = await MessageService.instance
         .listLatestMessageByTime(
             roomId: roomObs.value.id,
             messageId: searchMsgIndex,
@@ -384,7 +382,7 @@ class ChatController extends GetxController {
   }
 
   Future<void> checkPendingEcash() async {
-    for (var message in messages) {
+    for (final message in messages) {
       if (message.mediaType == MessageMediaType.cashu ||
           message.mediaType == MessageMediaType.lightningInvoice) {
         if (message.cashuInfo?.status == TransactionStatus.pending) {
@@ -401,14 +399,14 @@ class ChatController extends GetxController {
 
     try {
       logger.d('checkLNStatus id: $id');
-      Transaction ln = await rust_cashu.checkTransaction(id: id);
+      final ln = await rust_cashu.checkTransaction(id: id);
       if (message.cashuInfo!.status == ln.status) {
         return;
       }
       message.cashuInfo!.status = ln.status;
       await MessageService.instance.updateMessageAndRefresh(message);
     } catch (e, s) {
-      String msg = Utils.getErrorMessage(e);
+      final msg = Utils.getErrorMessage(e);
       logger.e('checkStatus error: $msg', stackTrace: s);
     }
   }
@@ -416,13 +414,13 @@ class ChatController extends GetxController {
   List<Message> loadMoreChatFromSearchSroll() {
     if (messages.isEmpty) return [];
 
-    DateTime from = messages.first.createdAt;
-    Message? message =
+    final from = messages.first.createdAt;
+    final message =
         MessageService.instance.listLastestMessage(roomId: roomObs.value.id);
     if (message != null && message.createdAt == from) {
       return [];
     }
-    var list = MessageService.instance.listMessageByTimeSync(
+    final list = MessageService.instance.listMessageByTimeSync(
         roomId: roomObs.value.id, from: from, limit: messageLimitPerPage);
     return list;
   }
@@ -434,10 +432,11 @@ class ChatController extends GetxController {
       return;
     }
     // trailing
-    var sortedNewMessages = await MessageService.instance.listOldMessageByTime(
-        roomId: roomObs.value.id,
-        messageId: messages.last.id,
-        limit: messageLimitPerPage);
+    final sortedNewMessages = await MessageService.instance
+        .listOldMessageByTime(
+            roomId: roomObs.value.id,
+            messageId: messages.last.id,
+            limit: messageLimitPerPage);
 
     if (sortedNewMessages.isEmpty) {
       EasyLoading.showToast('No more messages');
@@ -466,22 +465,20 @@ class ChatController extends GetxController {
 
     if (roomObs.value.type == RoomType.common &&
         (roomObs.value.encryptMode == EncryptMode.nip04)) {
-      Message? lastMessage =
+      final lastMessage =
           messages.firstWhereOrNull((msg) => msg.isMeSend == false);
       if (lastMessage == null) return;
       if (lastMessage.encryptType == MessageEncryptType.nip4) {
         Get.dialog(CupertinoAlertDialog(
           title: const Text('Deprecated Encryption'),
-          content: const Text(
-              '''Your friends uses a deprecated encryption method-NIP04.
+          content: const Text('''
+Your friends uses a deprecated encryption method-NIP04.
 Keychat is using NIP17 and SignalProtocol, and your friends may not be able to decrypt the messages you reply to.
 '''),
           actions: [
             CupertinoDialogAction(
+              onPressed: Get.back,
               child: const Text('OK'),
-              onPressed: () {
-                Get.back();
-              },
             ),
             CupertinoDialogAction(
               child: const Text('Share One-Time Link'),
@@ -507,7 +504,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     EasyLoading.show(status: 'Loading...');
     XFile? xfile;
     try {
-      final ImagePicker picker = ImagePicker();
+      final picker = ImagePicker();
       xfile = await picker.pickImage(
         source: imageSource,
         imageQuality: 70,
@@ -527,10 +524,8 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
       ),
       actions: [
         CupertinoDialogAction(
+          onPressed: Get.back,
           child: const Text('Cancel'),
-          onPressed: () {
-            Get.back();
-          },
         ),
         CupertinoDialogAction(
           isDefaultAction: true,
@@ -564,7 +559,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     EasyLoading.show(status: 'Loading...');
     XFile? xfile;
     try {
-      final ImagePicker picker = ImagePicker();
+      final picker = ImagePicker();
       xfile = await picker.pickVideo(source: imageSource);
     } catch (e, s) {
       logger.e('pickVideo', error: e, stackTrace: s);
@@ -584,7 +579,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
       EasyLoading.dismiss();
     } catch (e, s) {
       EasyLoading.dismiss();
-      String msg = Utils.getErrorMessage(e);
+      final msg = Utils.getErrorMessage(e);
       EasyLoading.showError(msg, duration: const Duration(seconds: 3));
       logger.e('encrypt And SendFile', error: e, stackTrace: s);
     } finally {
@@ -602,14 +597,13 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
 
   Future<void> resetMembers() async {
     if (roomObs.value.isMLSGroup) {
-      Map<String, RoomMember> list =
-          await MlsGroupService.instance.getMembers(roomObs.value);
+      final list = await MlsGroupService.instance.getMembers(roomObs.value);
       enableMembers.value = list;
       members.value = list;
       // update member's avatar
       updateRoomMembersAvatar(members.keys.toList(), roomObs.value.identityId);
 
-      String? admin = await roomObs.value.getAdmin();
+      final admin = await roomObs.value.getAdmin();
       if (admin != null) {
         members[admin]!.isAdmin = true;
         enableMembers[admin]!.isAdmin = true;
@@ -627,8 +621,8 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
   }
 
   Future updateRoomMembersAvatar(List<String> pubkeys, int identityId) async {
-    for (var pubkey in pubkeys) {
-      Contact item = await fetchAndUpdateMetadata(pubkey, identityId);
+    for (final pubkey in pubkeys) {
+      final item = await fetchAndUpdateMetadata(pubkey, identityId);
       enableMembers[pubkey]?.avatarFromRelay = item.avatarFromRelay;
       enableMembers[pubkey]?.nameFromRelay = item.nameFromRelay;
 
@@ -647,9 +641,9 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
   }
 
   List<Message> sortMessageById(List<Message> list) {
-    for (int i = 0; i < list.length - 1; i++) {
-      Message a = list[i];
-      Message b = list[i + 1];
+    for (var i = 0; i < list.length - 1; i++) {
+      final a = list[i];
+      final b = list[i + 1];
       if (a.createdAt == b.createdAt && b.id > a.id) {
         list[i] = b;
         list[i + 1] = a;
@@ -659,7 +653,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
   }
 
   Future<void> _handleSendSats() async {
-    CashuInfoModel? cashuInfo = await Get.bottomSheet(
+    final cashuInfo = await Get.bottomSheet<Transaction>(
         clipBehavior: Clip.hardEdge,
         shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
@@ -671,14 +665,14 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
           realMessage: cashuInfo.toString(), mediaType: MessageMediaType.cashu);
       hideAdd.value = true; // close features section
     } catch (e, s) {
-      String msg = Utils.getErrorMessage(e);
+      final msg = Utils.getErrorMessage(e);
       logger.e(msg, error: e, stackTrace: s);
       EasyLoading.showError(msg);
     }
   }
 
   Future<void> _handleSendLightning() async {
-    Transaction? invoice = await Get.bottomSheet(
+    final invoice = await Get.bottomSheet<Transaction>(
         clipBehavior: Clip.hardEdge,
         shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
@@ -686,7 +680,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     if (invoice == null) return;
 
     try {
-      CashuInfoModel cim = CashuInfoModel()
+      final cim = CashuInfoModel()
         ..amount = invoice.amount.toInt()
         ..token = invoice.token
         ..mint = invoice.mintUrl
@@ -699,7 +693,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
           mediaType: MessageMediaType.lightningInvoice);
       hideAdd.value = true; // close features section
     } catch (e, s) {
-      String msg = Utils.getErrorMessage(e);
+      final msg = Utils.getErrorMessage(e);
       logger.e(msg, error: e, stackTrace: s);
       EasyLoading.showError(msg);
     }
@@ -717,7 +711,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
       return;
     }
 
-    bool isGranted = true;
+    var isGranted = true;
     if (GetPlatform.isMobile || GetPlatform.isWindows) {
       isGranted = await Permission.camera.request().isGranted;
     }
@@ -732,15 +726,15 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
   }
 
   Future<void> _initBotInfo() async {
-    List list =
+    final list =
         await NostrAPI.instance.fetchMetadata([roomObs.value.toMainPubkey]);
     if (list.isEmpty) return;
-    NostrEventModel res = list.last;
-    Map<String, dynamic> metadata =
-        Map<String, dynamic>.from(jsonDecode(res.content));
+    final res = list.last;
+    final metadata = Map<String, dynamic>.from(
+        jsonDecode(res.content) as Map<String, dynamic>);
     if (roomObs.value.botInfoUpdatedAt >= res.createdAt) {
-      botCommands.value =
-          List<Map<String, dynamic>>.from(metadata['commands'] ?? []);
+      botCommands.value = List<Map<String, dynamic>>.from(
+          (metadata['commands'] ?? []) as Iterable);
       return;
     }
     // not a bot account
@@ -752,22 +746,22 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     roomObs.value.status = RoomStatus.enabled;
 
     roomObs.value.botInfoUpdatedAt = res.createdAt;
-    botCommands.value =
-        List<Map<String, dynamic>>.from(metadata['commands'] ?? []);
+    botCommands.value = List<Map<String, dynamic>>.from(
+        (metadata['commands'] ?? []) as Iterable);
 
-    var metadataString = jsonEncode(metadata);
+    final metadataString = jsonEncode(metadata);
     roomObs.value.botInfo = metadataString;
-    roomObs.value.name = metadata['name'] ?? roomObs.value.name;
-    roomObs.value.description = metadata['description'];
+    roomObs.value.name = metadata['name'] as String? ?? roomObs.value.name;
+    roomObs.value.description = metadata['description'] as String?;
 
     // save config for botPricePerMessageRequest
     if (metadata['botPricePerMessageRequest'] != null) {
       try {
-        var config = jsonEncode(metadata['botPricePerMessageRequest']);
+        final config = jsonEncode(metadata['botPricePerMessageRequest']);
         await MessageService.instance.saveSystemMessage(roomObs.value, config,
             suffix: '', isMeSend: false);
       } catch (e) {
-        logger.e('botPricePerMessageRequest: ${e.toString()}',
+        logger.e('botPricePerMessageRequest: $e',
             error: e, stackTrace: StackTrace.current);
       }
     }
@@ -778,16 +772,16 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     // group
     if (roomObs.value.type == RoomType.group) {
       if (roomObs.value.isMLSGroup) {
-        Future.delayed(Duration(seconds: 2)).then((value) => {
+        Future.delayed(const Duration(seconds: 2)).then((value) => {
               MlsGroupService.instance.fixMlsOnetimeKey([roomObs.value])
             });
       }
-      return await resetMembers();
+      return resetMembers();
     }
     // private chat
     if (roomObs.value.type == RoomType.common) {
       if (roomObs.value.contact == null) {
-        Contact contact = await ContactService.instance.getOrCreateContact(
+        final contact = await ContactService.instance.getOrCreateContact(
             roomObs.value.identityId, roomObs.value.toMainPubkey);
         roomObs.value.contact = contact;
         roomContact.value = contact;
@@ -812,34 +806,38 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
   }
 
   Future<Contact> fetchAndUpdateMetadata(String pubkey, int identityId) async {
-    Map<String, dynamic> metadata = {};
+    var metadata = <String, dynamic>{};
 
-    List<Contact> contacts = await ContactService.instance.getContacts(pubkey);
+    var contacts = await ContactService.instance.getContacts(pubkey);
     if (contacts.isEmpty) {
-      var result = await ContactService.instance.createContact(
+      final result = await ContactService.instance.createContact(
           pubkey: pubkey, identityId: identityId, autoCreateFromGroup: true);
       contacts = [result];
     }
     // ignore fetch in a hour in kReleaseMode
     if (kReleaseMode && contacts.first.fetchFromRelayAt != null) {
       if (contacts.first.fetchFromRelayAt!
-          .add(Duration(days: 1))
+          .add(const Duration(days: 1))
           .isAfter(DateTime.now())) {
         return contacts.first;
       }
     }
     try {
-      var list = await NostrAPI.instance.fetchMetadata([pubkey]);
+      final list = await NostrAPI.instance.fetchMetadata([pubkey]);
       if (list.isEmpty) return contacts.first;
-      NostrEventModel res = list.last;
+      final res = list.last;
 
       loggerNoLine.i('metadata: ${res.content}');
-      metadata = Map<String, dynamic>.from(jsonDecode(res.content));
-      String? nameFromRelay = metadata['displayName'] ?? metadata['name'];
-      String? avatarFromRelay = metadata['picture'] ?? metadata['avatar'];
-      String? description =
-          metadata['description'] ?? metadata['about'] ?? metadata['bio'];
-      for (Contact contact in contacts) {
+      metadata = Map<String, dynamic>.from(
+          jsonDecode(res.content) as Map<String, dynamic>);
+      final nameFromRelay =
+          (metadata['displayName'] ?? metadata['name']) as String?;
+      final avatarFromRelay =
+          (metadata['picture'] ?? metadata['avatar']) as String?;
+      final description = (metadata['description'] ??
+          metadata['about'] ??
+          metadata['bio']) as String?;
+      for (final contact in contacts) {
         if (contact.versionFromRelay >= res.createdAt) {
           continue;
         }
@@ -860,7 +858,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
         await ContactService.instance.saveContact(contact);
       }
     } catch (e) {
-      logger.e('fetchUserMetadata: ${e.toString()}', error: e);
+      logger.e('fetchUserMetadata: $e', error: e);
     }
     return contacts.firstWhereOrNull((item) => item.identityId == identityId) ??
         contacts.first;
@@ -925,10 +923,10 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
       (Formats.webUnknown, MessageMediaType.file),
     ];
     if (reader.canProvide(Formats.fileUri)) {
-      for (int i = 0; i < fileFormats.length; i++) {
+      for (var i = 0; i < fileFormats.length; i++) {
         final format = fileFormats[i].$1;
         final mediaType = fileFormats[i].$2;
-        bool canProcess = reader.canProvide(format);
+        final canProcess = reader.canProvide(format);
         if (canProcess) {
           logger.d('Clipboard can provide: $format');
           await _readFromStream(
@@ -939,11 +937,11 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     }
 
     // _pasteFallinImage
-    for (var format in fileFormats) {
+    for (final format in fileFormats) {
       // skip plain text
       if (format.$1 == Formats.plainTextFile) continue;
       if (format.$1 == Formats.htmlFile) continue;
-      bool canProcess = reader.canProvide(format.$1);
+      final canProcess = reader.canProvide(format.$1);
       if (canProcess) {
         logger.d('_pasteFallinImage Clipboard can provide: $format');
         await _readFromStream(reader, format.$1, format.$2, false);
@@ -962,15 +960,15 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
       return;
     }
 
-    bool isFile = reader.canProvide(Formats.fileUri);
+    final isFile = reader.canProvide(Formats.fileUri);
     loggerNoLine.i('Clipboard can provide file: $isFile');
     if (isFile) {
-      return await handlePasteboardFile();
+      return handlePasteboardFile();
     }
     final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
-    String? text = clipboardData?.text;
+    final text = clipboardData?.text;
     if (text == null || text.isEmpty) {
-      return await handlePasteboardFile();
+      return handlePasteboardFile();
     }
     // plain text
     await _handlePastePlainText(text);
@@ -978,8 +976,8 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
 
   Future _handlePastePlainText(String text) async {
     loggerNoLine.i('Clipboard plain text: $text');
-    String currentText = textEditingController.text;
-    TextSelection selection = textEditingController.selection;
+    final currentText = textEditingController.text;
+    final selection = textEditingController.selection;
 
     String newText;
     int newCursorPosition;
@@ -992,7 +990,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
       newCursorPosition = selection.start + text.length;
     } else {
       // If no selection, insert at cursor position
-      int cursorPosition = selection.baseOffset;
+      var cursorPosition = selection.baseOffset;
 
       // If no cursor position is set, append to the end
       if (cursorPosition < 0) {
@@ -1017,12 +1015,12 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
       [bool compress = true]) async {
     /// Binary formats need to be read as streams
     reader.getFile(format, (DataReaderFile file) async {
-      String? suggestedName = await reader.getSuggestedName();
-      String? mimeType = format.mimeTypes?.first;
+      var suggestedName = await reader.getSuggestedName();
+      final mimeType = format.mimeTypes?.first;
 
       try {
-        Uint8List imageBytes = await file.readAll();
-        String sourceFileName = textEditingController.text.trim();
+        final imageBytes = await file.readAll();
+        final sourceFileName = textEditingController.text.trim();
         final tempDir = await getTemporaryDirectory();
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         if (suggestedName == null) {
@@ -1031,8 +1029,8 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
             suffix = extensionFromMime(mimeType);
           }
           if (sourceFileName.isNotEmpty && sourceFileName.contains('.')) {
-            String inputName = sourceFileName.split('.').first;
-            String inputSuffix = sourceFileName.split('.').last;
+            final inputName = sourceFileName.split('.').first;
+            final inputSuffix = sourceFileName.split('.').last;
             suggestedName = '$inputName.${suffix ?? inputSuffix}';
             textEditingController.clear();
           }
@@ -1045,9 +1043,9 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
         final teampFile = File(path);
         await teampFile.writeAsBytes(imageBytes);
 
-        XFile xfile = XFile(path,
+        final xfile = XFile(path,
             bytes: imageBytes, mimeType: mimeType, name: suggestedName);
-        bool isImage = FileService.instance.isImageFile(xfile.path);
+        final isImage = FileService.instance.isImageFile(xfile.path);
         if (!isImage) {
           if (_isUploading) {
             EasyLoading.showToast('File uploading, please wait...');
@@ -1069,10 +1067,8 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
           ),
           actions: [
             CupertinoDialogAction(
+              onPressed: Get.back,
               child: const Text('Cancel'),
-              onPressed: () {
-                Get.back();
-              },
             ),
             CupertinoDialogAction(
               isDefaultAction: true,
@@ -1095,9 +1091,9 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
           ],
         ));
       } catch (e, s) {
-        logger.e('_readFromStream: ${e.toString()}', stackTrace: s);
+        logger.e('_readFromStream: $e', stackTrace: s);
       } finally {
-        Future.delayed(Duration(seconds: 3)).then((_) {
+        Future.delayed(const Duration(seconds: 3)).then((_) {
           EasyLoading.dismiss();
         });
       }

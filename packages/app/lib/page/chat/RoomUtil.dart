@@ -537,7 +537,9 @@ Let's start an encrypted chat.''';
     Contact contact =
         Contact(pubkey: pubkey, npubkey: npub, identityId: identity.id)
           ..curve25519PkHex = model.curve25519PkHex
-          ..name = model.name;
+          ..name = model.name
+          ..avatarRemoteUrl = model.avatar
+          ..lightning = model.lightning;
 
     var page = ContactPage(
       identityId: identity.id,

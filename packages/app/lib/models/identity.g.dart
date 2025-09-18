@@ -97,9 +97,9 @@ const IdentitySchema = CollectionSchema(
       name: r'isFromSigner',
       type: IsarType.bool,
     ),
-    r'lightningAddress': PropertySchema(
+    r'lightning': PropertySchema(
       id: 16,
-      name: r'lightningAddress',
+      name: r'lightning',
       type: IsarType.string,
     ),
     r'metadata': PropertySchema(
@@ -240,7 +240,7 @@ int _identityEstimateSize(
     }
   }
   {
-    final value = object.lightningAddress;
+    final value = object.lightning;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -309,7 +309,7 @@ void _identitySerialize(
   writer.writeLong(offsets[13], object.index);
   writer.writeBool(offsets[14], object.isDefault);
   writer.writeBool(offsets[15], object.isFromSigner);
-  writer.writeString(offsets[16], object.lightningAddress);
+  writer.writeString(offsets[16], object.lightning);
   writer.writeString(offsets[17], object.metadata);
   writer.writeString(offsets[18], object.metadataFromRelay);
   writer.writeString(offsets[19], object.mnemonic);
@@ -352,7 +352,7 @@ Identity _identityDeserialize(
   object.index = reader.readLong(offsets[13]);
   object.isDefault = reader.readBool(offsets[14]);
   object.isFromSigner = reader.readBool(offsets[15]);
-  object.lightningAddress = reader.readStringOrNull(offsets[16]);
+  object.lightning = reader.readStringOrNull(offsets[16]);
   object.metadata = reader.readStringOrNull(offsets[17]);
   object.metadataFromRelay = reader.readStringOrNull(offsets[18]);
   object.mnemonic = reader.readStringOrNull(offsets[19]);
@@ -2092,40 +2092,36 @@ extension IdentityQueryFilter
     });
   }
 
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      lightningAddressIsNull() {
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> lightningIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'lightningAddress',
+        property: r'lightning',
       ));
     });
   }
 
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      lightningAddressIsNotNull() {
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> lightningIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'lightningAddress',
+        property: r'lightning',
       ));
     });
   }
 
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      lightningAddressEqualTo(
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> lightningEqualTo(
     String? value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'lightningAddress',
+        property: r'lightning',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      lightningAddressGreaterThan(
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> lightningGreaterThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
@@ -2133,15 +2129,14 @@ extension IdentityQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         include: include,
-        property: r'lightningAddress',
+        property: r'lightning',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      lightningAddressLessThan(
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> lightningLessThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
@@ -2149,15 +2144,14 @@ extension IdentityQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.lessThan(
         include: include,
-        property: r'lightningAddress',
+        property: r'lightning',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      lightningAddressBetween(
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> lightningBetween(
     String? lower,
     String? upper, {
     bool includeLower = true,
@@ -2166,7 +2160,7 @@ extension IdentityQueryFilter
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
-        property: r'lightningAddress',
+        property: r'lightning',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -2176,71 +2170,70 @@ extension IdentityQueryFilter
     });
   }
 
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      lightningAddressStartsWith(
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> lightningStartsWith(
     String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'lightningAddress',
+        property: r'lightning',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      lightningAddressEndsWith(
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> lightningEndsWith(
     String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'lightningAddress',
+        property: r'lightning',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      lightningAddressContains(String value, {bool caseSensitive = true}) {
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> lightningContains(
+      String value,
+      {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.contains(
-        property: r'lightningAddress',
+        property: r'lightning',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      lightningAddressMatches(String pattern, {bool caseSensitive = true}) {
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> lightningMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.matches(
-        property: r'lightningAddress',
+        property: r'lightning',
         wildcard: pattern,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      lightningAddressIsEmpty() {
+  QueryBuilder<Identity, Identity, QAfterFilterCondition> lightningIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'lightningAddress',
+        property: r'lightning',
         value: '',
       ));
     });
   }
 
   QueryBuilder<Identity, Identity, QAfterFilterCondition>
-      lightningAddressIsNotEmpty() {
+      lightningIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'lightningAddress',
+        property: r'lightning',
         value: '',
       ));
     });
@@ -3873,15 +3866,15 @@ extension IdentityQuerySortBy on QueryBuilder<Identity, Identity, QSortBy> {
     });
   }
 
-  QueryBuilder<Identity, Identity, QAfterSortBy> sortByLightningAddress() {
+  QueryBuilder<Identity, Identity, QAfterSortBy> sortByLightning() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'lightningAddress', Sort.asc);
+      return query.addSortBy(r'lightning', Sort.asc);
     });
   }
 
-  QueryBuilder<Identity, Identity, QAfterSortBy> sortByLightningAddressDesc() {
+  QueryBuilder<Identity, Identity, QAfterSortBy> sortByLightningDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'lightningAddress', Sort.desc);
+      return query.addSortBy(r'lightning', Sort.desc);
     });
   }
 
@@ -4236,15 +4229,15 @@ extension IdentityQuerySortThenBy
     });
   }
 
-  QueryBuilder<Identity, Identity, QAfterSortBy> thenByLightningAddress() {
+  QueryBuilder<Identity, Identity, QAfterSortBy> thenByLightning() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'lightningAddress', Sort.asc);
+      return query.addSortBy(r'lightning', Sort.asc);
     });
   }
 
-  QueryBuilder<Identity, Identity, QAfterSortBy> thenByLightningAddressDesc() {
+  QueryBuilder<Identity, Identity, QAfterSortBy> thenByLightningDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'lightningAddress', Sort.desc);
+      return query.addSortBy(r'lightning', Sort.desc);
     });
   }
 
@@ -4504,11 +4497,10 @@ extension IdentityQueryWhereDistinct
     });
   }
 
-  QueryBuilder<Identity, Identity, QDistinct> distinctByLightningAddress(
+  QueryBuilder<Identity, Identity, QDistinct> distinctByLightning(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'lightningAddress',
-          caseSensitive: caseSensitive);
+      return query.addDistinctBy(r'lightning', caseSensitive: caseSensitive);
     });
   }
 
@@ -4704,9 +4696,9 @@ extension IdentityQueryProperty
     });
   }
 
-  QueryBuilder<Identity, String?, QQueryOperations> lightningAddressProperty() {
+  QueryBuilder<Identity, String?, QQueryOperations> lightningProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'lightningAddress');
+      return query.addPropertyName(r'lightning');
     });
   }
 

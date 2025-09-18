@@ -1,4 +1,8 @@
+import 'dart:io' show File;
+
 import 'package:app/app.dart';
+import 'package:app/controller/setting.controller.dart';
+import 'package:app/service/file.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:get/get.dart';
@@ -364,5 +368,32 @@ class ContactService {
         .filter()
         .pubkeyEqualTo(pubkey)
         .findFirstSync();
+  }
+
+  Future<Contact> saveContactFromQrCode(
+      {required int identityId,
+      required String pubkey,
+      String? name,
+      String? avatarRemoteUrl,
+      String? lightning}) async {
+    Contact contact =
+        await ContactService.instance.getOrCreateContact(identityId, pubkey);
+    contact.name = name;
+    contact.lightning = lightning;
+    if (avatarRemoteUrl != null && avatarRemoteUrl != contact.avatarRemoteUrl) {
+      SettingController sc = Get.find<SettingController>();
+      contact.avatarRemoteUrl = avatarRemoteUrl;
+      try {
+        File decryptedFile = await FileService.instance
+            .downloadAndDecryptToPath(
+                url: avatarRemoteUrl, outputFolder: sc.avatarsFolder);
+        contact.avatarLocalPath =
+            decryptedFile.path.replaceFirst(sc.avatarsFolder, '');
+      } catch (e) {
+        logger.e('Failed to download avatar: $e');
+      }
+    }
+    await ContactService.instance.saveContact(contact);
+    return contact;
   }
 }

@@ -29,7 +29,7 @@ class _CupertinoRootPageState extends State<CupertinoRootPage> {
 
   @override
   void initState() {
-    pages = [RoomList(), BrowserNewTab(), MinePage()];
+    pages = [const RoomList(), const BrowserNewTab(), const MinePage()];
     homeController = Get.find<HomeController>();
     super.initState();
     homeController.biometricsAuth(true);
@@ -40,7 +40,6 @@ class _CupertinoRootPageState extends State<CupertinoRootPage> {
     return Stack(
       children: [
         CupertinoTabScaffold(
-            resizeToAvoidBottomInset: true,
             controller: homeController.cupertinoTabController,
             tabBar: CupertinoTabBar(
               onTap: (int index) {
@@ -94,7 +93,7 @@ class _CupertinoRootPageState extends State<CupertinoRootPage> {
             ),
             tabBuilder: (BuildContext context, int index) {
               return CupertinoTabView(builder: (BuildContext context) {
-                return pages[index];
+                return pages[index] as Widget;
               });
             }),
         // Privacy protection blur layer
@@ -102,8 +101,8 @@ class _CupertinoRootPageState extends State<CupertinoRootPage> {
           Obx(() => homeController.isBlurred.value
               ? Positioned.fill(
                   child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-                      child: Container(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: ColoredBox(
                           color: Colors.black.withAlpha(30),
                           child: const Center(
                               child: Icon(CupertinoIcons.lock_shield_fill,

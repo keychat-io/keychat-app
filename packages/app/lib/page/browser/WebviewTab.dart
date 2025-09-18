@@ -44,20 +44,20 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class WebviewTab extends StatefulWidget {
+  const WebviewTab(
+      {required this.windowId,
+      required this.uniqueKey,
+      required this.initUrl,
+      super.key,
+      this.isCache,
+      this.initTitle,
+      this.keepAlive});
   final String uniqueKey;
   final String initUrl;
   final String? initTitle;
   final int windowId;
   final InAppWebViewKeepAlive? keepAlive;
   final bool? isCache;
-  const WebviewTab(
-      {super.key,
-      required this.windowId,
-      required this.uniqueKey,
-      required this.initUrl,
-      this.isCache,
-      this.initTitle,
-      this.keepAlive});
   @override
   _WebviewTabState createState() => _WebviewTabState();
 }
@@ -103,7 +103,7 @@ class _WebviewTabState extends State<WebviewTab> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.initUrl == KeychatGlobal.newTab) return BrowserNewTab();
+    if (widget.initUrl == KeychatGlobal.newTab) return const BrowserNewTab();
 
     return Obx(() => PopScope(
         canPop: !tabController.canGoBack.value,
@@ -195,7 +195,7 @@ class _WebviewTabState extends State<WebviewTab> {
                                 .inAppWebViewController
                                 ?.getUrl();
                             if (url == null) return null;
-                            return await DBProvider.database.browserBookmarks
+                            return DBProvider.database.browserBookmarks
                                 .filter()
                                 .urlEqualTo(url.toString())
                                 .findFirst();
@@ -261,7 +261,7 @@ class _WebviewTabState extends State<WebviewTab> {
                       ),
                       if (GetPlatform.isMobile)
                         PopupMenuItem(
-                          padding: EdgeInsets.only(left: 0),
+                          padding: const EdgeInsets.only(),
                           value: 'KeepAlive',
                           child: ListTile(
                               leading: Transform.scale(
@@ -297,13 +297,13 @@ class _WebviewTabState extends State<WebviewTab> {
                                               'KeepAlive Disabled.');
                                         });
                                   })),
-                              contentPadding: EdgeInsets.all(0),
+                              contentPadding: const EdgeInsets.all(0),
                               horizontalTitleGap: 0,
                               title: Text('Keep Alive',
                                   style:
                                       Theme.of(context).textTheme.bodyLarge)),
                         ),
-                      if (tabController.browserConnect.value.host == "")
+                      if (tabController.browserConnect.value.host == '')
                         PopupMenuItem(
                           value: 'clear',
                           child: Row(spacing: 12, children: [
@@ -317,7 +317,7 @@ class _WebviewTabState extends State<WebviewTab> {
                         value: 'divider',
                         child: Divider(),
                       ),
-                      if (tabController.browserConnect.value.host != "")
+                      if (tabController.browserConnect.value.host != '')
                         PopupMenuItem(
                           value: 'disconnect',
                           child: Row(spacing: 12, children: [
@@ -393,11 +393,11 @@ class _WebviewTabState extends State<WebviewTab> {
             if (GetPlatform.isAndroid) {
               EasyDebounce.debounce(
                 'saveScroll:${tabController.url.value}',
-                Duration(milliseconds: 500),
+                const Duration(milliseconds: 500),
                 () async {
-                  WebUri? uri = await controller.getUrl();
+                  final uri = await controller.getUrl();
                   if (uri == null) return;
-                  String currentUrl = uri.toString();
+                  final currentUrl = uri.toString();
                   if (currentUrl.isNotEmpty) {
                     urlScrollPositions[currentUrl] = {
                       'scrollX': x,
@@ -412,7 +412,7 @@ class _WebviewTabState extends State<WebviewTab> {
           onCreateWindow: GetPlatform.isDesktop
               ? (controller, createWindowAction) {
                   if (createWindowAction.request.url == null) return false;
-                  String urlString = createWindowAction.request.url.toString();
+                  final urlString = createWindowAction.request.url.toString();
 
                   // Check for special URLs first
                   handleSpecialUrls(urlString).then((handled) {
@@ -427,13 +427,13 @@ class _WebviewTabState extends State<WebviewTab> {
             logger.d('onWebViewCreated ${widget.initUrl}');
 
             // load from keepalive state; hide the progress bar
-            if (widget.isCache == true) {
+            if (widget.isCache ?? false) {
               tabController.progress.value = 1.0;
             }
             tabController.setWebViewController(controller, widget.initUrl);
-            await controller.evaluateJavascript(source: """
+            await controller.evaluateJavascript(source: '''
                         window.print = function(){};
-                      """);
+                      ''');
 
             controller.addJavaScriptHandler(
                 handlerName: 'keychat-nostr', callback: javascriptHandlerNostr);
@@ -455,13 +455,13 @@ class _WebviewTabState extends State<WebviewTab> {
           },
           shouldOverrideUrlLoading:
               (controller, NavigationAction navigationAction) async {
-            WebUri? uri = navigationAction.request.url;
+            final uri = navigationAction.request.url;
             logger.i(
-                'shouldOverrideUrlLoading: ${uri?.toString()} download: ${navigationAction.shouldPerformDownload}');
+                'shouldOverrideUrlLoading: $uri download: ${navigationAction.shouldPerformDownload}');
             if (uri == null) return NavigationActionPolicy.ALLOW;
 
             try {
-              var str = uri.toString();
+              final str = uri.toString();
 
               // Handle special URLs
               if (await handleSpecialUrls(str)) {
@@ -485,14 +485,14 @@ class _WebviewTabState extends State<WebviewTab> {
                   navigationAction.shouldPerformDownload ?? false;
               final url = navigationAction.request.url;
               if ((shouldPerformDownload && url != null) ||
-                  url.toString().startsWith("blob:") == true) {
+                  url.toString().startsWith('blob:') == true) {
                 await downloadFile(url.toString());
                 return NavigationActionPolicy.DOWNLOAD;
               }
               if (['http', 'https'].contains(uri.scheme)) {
                 currentUri = uri;
               }
-              if (["http", "https", "data", "javascript", "about"]
+              if (['http', 'https', 'data', 'javascript', 'about']
                   .contains(uri.scheme)) {
                 return NavigationActionPolicy.ALLOW;
               }
@@ -504,7 +504,7 @@ class _WebviewTabState extends State<WebviewTab> {
                   return NavigationActionPolicy.CANCEL;
                 }
                 logger.i(e.toString(), error: e);
-                EasyLoading.showError('Failed to open link: ${e.toString()}');
+                EasyLoading.showError('Failed to open link: $e');
               }
             } catch (e) {
               logger.i(e.toString(), error: e);
@@ -516,9 +516,9 @@ class _WebviewTabState extends State<WebviewTab> {
             logger.d('onLoadStop: $url');
             await _checkGoBackState(url.toString());
             await controller.injectJavascriptFileFromAsset(
-                assetFilePath: "assets/js/nostr.js");
+                assetFilePath: 'assets/js/nostr.js');
             await controller.injectJavascriptFileFromAsset(
-                assetFilePath: "assets/js/webln.js");
+                assetFilePath: 'assets/js/webln.js');
             pullToRefreshController?.endRefreshing();
             // Restore scroll position if needed
             if (GetPlatform.isAndroid && needRestorePosition) {
@@ -530,10 +530,10 @@ class _WebviewTabState extends State<WebviewTab> {
             }
           },
           onPageCommitVisible: (controller, url) {
-            logger.i('onPageCommitVisible:${url.toString()}');
+            logger.i('onPageCommitVisible:$url');
           },
           onReceivedServerTrustAuthRequest: (_, challenge) async {
-            var sslError = challenge.protectionSpace.sslError;
+            final sslError = challenge.protectionSpace.sslError;
             logger.i(
                 'onReceivedServerTrustAuthRequest: ${challenge.protectionSpace.host} ${sslError?.code}');
 
@@ -541,8 +541,7 @@ class _WebviewTabState extends State<WebviewTab> {
                 action: ServerTrustAuthResponseAction.PROCEED);
           },
           onReceivedHttpError: (controller, request, error) async {
-            logger.i(
-                'onReceivedHttpError: ${request.url.toString()} ${error.statusCode}');
+            logger.i('onReceivedHttpError: ${request.url} ${error.statusCode}');
           },
           onDidReceiveServerRedirectForProvisionalNavigation:
               (controller) async {
@@ -562,11 +561,11 @@ class _WebviewTabState extends State<WebviewTab> {
           },
           onReceivedError: (InAppWebViewController controller,
               WebResourceRequest request, error) async {
-            String url = request.url.toString();
+            final url = request.url.toString();
             logger
                 .i('onReceivedError: $url ${error.type} ${error.description}');
-            var isForMainFrame = request.isForMainFrame ?? false;
-            var isCancel = error.type == WebResourceErrorType.CANCELLED;
+            final isForMainFrame = request.isForMainFrame ?? false;
+            final isCancel = error.type == WebResourceErrorType.CANCELLED;
             if (!isForMainFrame || isCancel) {
               return;
             }
@@ -588,9 +587,9 @@ class _WebviewTabState extends State<WebviewTab> {
               return;
             }
 
-            var errorUrl = request.url;
+            final errorUrl = request.url;
             pageFailed = true;
-            await tabController.inAppWebViewController?.loadData(data: """
+            await tabController.inAppWebViewController?.loadData(data: '''
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -633,7 +632,7 @@ class _WebviewTabState extends State<WebviewTab> {
         border-radius: 5px;">Refresh</button>
     </div>
 </body>
-    """, baseUrl: errorUrl, historyUrl: WebUri(widget.initUrl));
+    ''', baseUrl: errorUrl, historyUrl: WebUri(widget.initUrl));
             await _checkGoBackState(url);
           },
           onConsoleMessage: (controller, consoleMessage) {
@@ -656,11 +655,11 @@ class _WebviewTabState extends State<WebviewTab> {
   Future<void> restoreScrollPosition(String url) async {
     if (tabController.inAppWebViewController == null || url.isEmpty) return;
 
-    var savedPosition = urlScrollPositions[url];
+    final savedPosition = urlScrollPositions[url];
     if (savedPosition != null) {
       try {
         // Wait for page to load before scrolling
-        await Future.delayed(Duration(milliseconds: 500));
+        await Future.delayed(const Duration(milliseconds: 500));
 
         await tabController.inAppWebViewController!.scrollTo(
           x: savedPosition['scrollX'] ?? 0,
@@ -721,9 +720,9 @@ class _WebviewTabState extends State<WebviewTab> {
   // info coming from the JavaScript side!
   Future<Object?>? javascriptHandlerNostr(List<dynamic> data) async {
     logger.i('javascriptHandler: $data');
-    var method = data[0];
+    final method = data[0];
     if (method == 'getRelays') {
-      var relays = await RelayService.instance.getEnableList();
+      final relays = await RelayService.instance.getEnableList();
       return relays;
     }
 
@@ -732,8 +731,8 @@ class _WebviewTabState extends State<WebviewTab> {
       return null;
     }
 
-    String? host = currentUri.host;
-    Identity? identity = await getOrSelectIdentity(host);
+    final host = currentUri.host;
+    final identity = await getOrSelectIdentity(host);
     if (identity == null) {
       return null;
     }
@@ -743,17 +742,18 @@ class _WebviewTabState extends State<WebviewTab> {
       case 'getPublicKey':
         return identity.secp256k1PKHex;
       case 'signEvent':
-        var event = data[1];
+        final event = data[1];
 
         // Confirm signing event
-        if (!(multiWebviewController.config['autoSignEvent'] ?? true)) {
+        if (!(multiWebviewController.config['autoSignEvent'] as bool? ??
+            true)) {
           try {
-            bool confirm = await Get.bottomSheet(signEventConfirm(
+            final bool confirm = await Get.bottomSheet(signEventConfirm(
                 content: event['content'] as String,
                 kind: event['kind'] as int,
                 tags: (event['tags'] as List)
                     .map((e) =>
-                        List<String>.from((e.map((item) => item.toString()))))
+                        List<String>.from(e.map((item) => item.toString())))
                     .toList()));
             if (confirm != true) {
               return null;
@@ -763,51 +763,50 @@ class _WebviewTabState extends State<WebviewTab> {
             return null;
           }
         }
-        var res = await NostrAPI.instance.signEventByIdentity(
+        final res = await NostrAPI.instance.signEventByIdentity(
             identity: identity,
             content: event['content'] as String,
             createdAt: event['created_at'],
             kind: event['kind'] as int,
             tags: (event['tags'] as List)
-                .map((e) =>
-                    List<String>.from((e.map((item) => item.toString()))))
+                .map((e) => List<String>.from(e.map((item) => item.toString())))
                 .toList());
 
         return res;
       case 'nip04Encrypt':
-        String to = data[1];
-        String plaintext = data[2];
+        final String to = data[1];
+        final String plaintext = data[2];
         if (identity.isFromSigner) {
-          var ciphertext = await SignerService.instance.nip04Encrypt(
+          final ciphertext = await SignerService.instance.nip04Encrypt(
               plaintext: plaintext,
               currentUser: identity.secp256k1PKHex,
               to: to);
           return ciphertext;
         }
-        var encryptedEvent = await rust_nostr.getEncryptEvent(
+        final encryptedEvent = await rust_nostr.getEncryptEvent(
             senderKeys: await identity.getSecp256k1SKHex(),
             receiverPubkey: to,
             content: plaintext);
-        var model = NostrEventModel.fromJson(jsonDecode(encryptedEvent));
+        final model = NostrEventModel.fromJson(jsonDecode(encryptedEvent));
         return model.content;
       case 'nip04Decrypt':
-        String from = data[1];
-        String ciphertext = data[2];
+        final String from = data[1];
+        final String ciphertext = data[2];
         if (identity.isFromSigner) {
-          var plaintext = await SignerService.instance.nip04Decrypt(
+          final plaintext = await SignerService.instance.nip04Decrypt(
               ciphertext: ciphertext,
               currentUser: identity.secp256k1PKHex,
               from: from);
           return plaintext;
         }
-        var content = await rust_nostr.decrypt(
+        final content = await rust_nostr.decrypt(
             senderKeys: await identity.getSecp256k1SKHex(),
             receiverPubkey: from,
             content: ciphertext);
         return content;
       case 'nip44Encrypt':
-        String to = data[1];
-        String plaintext = data[2];
+        final String to = data[1];
+        final String plaintext = data[2];
         String ciphertext;
         if (identity.isFromSigner) {
           ciphertext = await SignerService.instance
@@ -820,14 +819,14 @@ class _WebviewTabState extends State<WebviewTab> {
         }
         return ciphertext;
       case 'nip44Decrypt':
-        String to = data[1];
-        String ciphertext = data[2];
+        final String to = data[1];
+        final String ciphertext = data[2];
         if (identity.isFromSigner) {
-          var plaintext = await SignerService.instance
+          final plaintext = await SignerService.instance
               .nip44Decrypt(ciphertext, to, identity.secp256k1PKHex);
           return plaintext;
         }
-        return await rust_nostr.decryptNip44(
+        return rust_nostr.decryptNip44(
             secretKey: await identity.getSecp256k1SKHex(),
             publicKey: to,
             content: ciphertext);
@@ -838,9 +837,9 @@ class _WebviewTabState extends State<WebviewTab> {
   }
 
   Future<Identity?> getOrSelectIdentity(String host) async {
-    BrowserConnect? bc = await BrowserConnect.getByHost(host);
+    final bc = await BrowserConnect.getByHost(host);
     if (bc != null) {
-      Identity? identity =
+      final identity =
           await IdentityService.instance.getIdentityByNostrPubkey(bc.pubkey);
       if (identity == null) {
         BrowserConnect.delete(bc.id);
@@ -853,7 +852,7 @@ class _WebviewTabState extends State<WebviewTab> {
       return null;
     }
     // select a identity
-    Identity? selected = await Get.bottomSheet(
+    final selected = await Get.bottomSheet<Identity>(
         clipBehavior: Clip.antiAlias,
         shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
@@ -861,11 +860,11 @@ class _WebviewTabState extends State<WebviewTab> {
     if (selected != null) {
       EasyLoading.show(status: 'Processing...');
       try {
-        String? favicon = await multiWebviewController.getFavicon(
+        final favicon = await multiWebviewController.getFavicon(
             tabController.inAppWebViewController!, host);
-        BrowserConnect bc = BrowserConnect(
+        final bc = BrowserConnect(
             host: host, pubkey: selected.secp256k1PKHex, favicon: favicon);
-        int id = await BrowserConnect.save(bc);
+        final id = await BrowserConnect.save(bc);
         bc.id = id;
         tabController.setBrowserConnect(bc);
         EasyLoading.dismiss();
@@ -878,28 +877,25 @@ class _WebviewTabState extends State<WebviewTab> {
   }
 
   Future popupMenuSelected(String value) async {
-    WebUri uri = currentUri;
+    final uri = currentUri;
     switch (value) {
       case 'share':
         SharePlus.instance.share(ShareParams(uri: uri));
-        break;
       case 'shareToRooms':
-        Identity identity = Get.find<HomeController>().getSelectedIdentity();
+        final identity = Get.find<HomeController>().getSelectedIdentity();
         RoomUtil.forwardTextMessage(identity, uri.toString());
-        break;
       case 'refresh':
         refreshPage();
-        break;
       case 'bookmark':
-        var exist = await DBProvider.database.browserBookmarks
+        final exist = await DBProvider.database.browserBookmarks
             .filter()
             .urlEqualTo(uri.toString())
             .findFirst();
         if (exist == null) {
-          logger.i('add bookmark: ${uri.toString()}');
-          String? favicon = await multiWebviewController.getFavicon(
+          logger.i('add bookmark: $uri');
+          final favicon = await multiWebviewController.getFavicon(
               tabController.inAppWebViewController!, uri.host);
-          String? siteTitle =
+          final siteTitle =
               await tabController.inAppWebViewController?.getTitle();
           await BrowserBookmark.add(
               url: uri.toString(), favicon: favicon, title: siteTitle);
@@ -907,13 +903,12 @@ class _WebviewTabState extends State<WebviewTab> {
         } else {
           await Get.to(() => BookmarkEdit(model: exist));
         }
-        break;
       case 'favorite':
-        var exist = await BrowserFavorite.getByUrl(uri.toString());
+        final exist = await BrowserFavorite.getByUrl(uri.toString());
         if (exist == null) {
-          String? favicon = await multiWebviewController.getFavicon(
+          final favicon = await multiWebviewController.getFavicon(
               tabController.inAppWebViewController!, uri.host);
-          String? siteTitle =
+          final siteTitle =
               await tabController.inAppWebViewController?.getTitle();
           await BrowserFavorite.add(
               url: uri.toString(), favicon: favicon, title: siteTitle);
@@ -922,20 +917,17 @@ class _WebviewTabState extends State<WebviewTab> {
           await Get.to(() => FavoriteEdit(favorite: exist));
         }
         await multiWebviewController.loadFavorite();
-        break;
       case 'copy':
         Clipboard.setData(ClipboardData(text: uri.toString()));
         EasyLoading.showToast('Copied');
-        break;
       case 'clear':
         if (tabController.inAppWebViewController == null) return;
         tabController.inAppWebViewController?.webStorage.localStorage.clear();
         tabController.inAppWebViewController?.webStorage.sessionStorage.clear();
         EasyLoading.showToast('Clear Success');
         refreshPage();
-        break;
       case 'disconnect':
-        var res = await BrowserConnect.getByHost(uri.host);
+        final res = await BrowserConnect.getByHost(uri.host);
         if (res != null) {
           await BrowserConnect.delete(res.id);
         }
@@ -947,7 +939,6 @@ class _WebviewTabState extends State<WebviewTab> {
         tabController.canGoBack.value = false;
         tabController.canGoForward.value = false;
         refreshPage();
-        break;
       case 'close':
         try {
           multiWebviewController.removeKeepAlive(initDomain);
@@ -956,7 +947,6 @@ class _WebviewTabState extends State<WebviewTab> {
           logger.e('Error while closing webview: $e', stackTrace: s);
         }
         Get.back();
-        break;
       case 'zoom':
         Get.bottomSheet(
             clipBehavior: Clip.antiAlias,
@@ -964,7 +954,7 @@ class _WebviewTabState extends State<WebviewTab> {
                 borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
             SafeArea(
               child: Scaffold(
-                  appBar: AppBar(title: Text('Zoom Text')),
+                  appBar: AppBar(title: const Text('Zoom Text')),
                   body: Container(
                       padding: const EdgeInsets.all(16),
                       child: Obx(() => Slider(
@@ -980,21 +970,20 @@ class _WebviewTabState extends State<WebviewTab> {
                             tabController.updateTextSize(value.toInt());
                           })))),
             ));
-        break;
     }
   }
 
   Future onUpdateVisitedHistory(WebUri? uri) async {
     if (tabController.inAppWebViewController == null || uri == null) return;
     EasyDebounce.debounce(
-        'onUpdateVisitedHistory:${uri.toString()}', Duration(milliseconds: 200),
+        'onUpdateVisitedHistory:$uri', const Duration(milliseconds: 200),
         () async {
       await _checkGoBackState(uri.toString());
       if (uri.toString() == 'about:blank') {
         return;
       }
-      String? newTitle = await tabController.inAppWebViewController?.getTitle();
-      String title = newTitle ?? tabController.title.value;
+      final newTitle = await tabController.inAppWebViewController?.getTitle();
+      var title = newTitle ?? tabController.title.value;
       if (title.isEmpty) {
         title = tabController.title.value;
       }
@@ -1013,8 +1002,8 @@ class _WebviewTabState extends State<WebviewTab> {
   }
 
   Future _checkGoBackState(String url) async {
-    bool? canGoBack = await tabController.inAppWebViewController?.canGoBack();
-    bool? canGoForward =
+    final canGoBack = await tabController.inAppWebViewController?.canGoBack();
+    final canGoForward =
         await tabController.inAppWebViewController?.canGoForward();
     logger.i('$url canGoBack: $canGoBack, canGoForward: $canGoForward');
     tabController.canGoBack.value = canGoBack ?? false;
@@ -1030,16 +1019,16 @@ class _WebviewTabState extends State<WebviewTab> {
   }
 
   Future<void> downloadFile(String url, [String? filename]) async {
-    EasyThrottle.throttle('downloadFile', Duration(seconds: 3), () async {
-      var permissionStatus = await Utils.getStoragePermission();
-      bool hasStoragePermission = permissionStatus.isGranted;
+    EasyThrottle.throttle('downloadFile', const Duration(seconds: 3), () async {
+      final permissionStatus = await Utils.getStoragePermission();
+      final hasStoragePermission = permissionStatus.isGranted;
 
       if (!hasStoragePermission) {
         EasyLoading.showToast('Storage permission not granted');
         return;
       }
 
-      String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
+      final selectedDirectory = await FilePicker.platform.getDirectoryPath();
       if (selectedDirectory == null) {
         EasyLoading.showToast('No directory selected');
         return;
@@ -1050,8 +1039,7 @@ class _WebviewTabState extends State<WebviewTab> {
           filename: filename,
           directory: selectedDirectory,
           updates: Updates.statusAndProgress,
-          retries: 2,
-          allowPause: false);
+          retries: 2);
       EasyLoading.showToast('Downloading $filename...');
 
       await FileDownloader().download(task, onProgress: (progress) {
@@ -1066,7 +1054,7 @@ class _WebviewTabState extends State<WebviewTab> {
 
   Future renderAssetAsHtml(
       InAppWebViewController controller, WebResourceRequest request) async {
-    String htmlContent = '''
+    final htmlContent = '''
 <html>
 <head>
 <style>
@@ -1098,7 +1086,7 @@ img {
 <body>
   <div class="container">
     <div class="img-wrapper">
-      <img src="${request.url.toString()}" alt="Image"/>
+      <img src="${request.url}" alt="Image"/>
     </div>
   </div>
 </body>
@@ -1111,10 +1099,10 @@ img {
   // info coming from the JavaScript side!
   Future<Object?> javascriptHandlerWebLN(List<dynamic> data) async {
     logger.i('javascriptHandler: $data');
-    var method = data[0];
+    final method = data[0];
     switch (method) {
       case 'getInfo':
-        Identity? identity = Get.find<EcashController>().currentIdentity;
+        var identity = Get.find<EcashController>().currentIdentity;
         identity ??= Get.find<HomeController>().getSelectedIdentity();
         return {
           'node': {
@@ -1123,56 +1111,59 @@ img {
           }
         };
       case 'signMessage':
-        Identity? identity = Get.find<EcashController>().currentIdentity;
+        var identity = Get.find<EcashController>().currentIdentity;
         identity ??= Get.find<HomeController>().getSelectedIdentity();
 
-        String message = data[1];
-        String signature = await rust_nostr.signSchnorr(
+        final String message = data[1];
+        final signature = await rust_nostr.signSchnorr(
             privateKey: await identity.getSecp256k1SKHex(), content: message);
         return {
           'signature': signature,
           'message': message,
         };
       case 'verifyMessage':
-        Identity? identity = Get.find<EcashController>().currentIdentity;
+        var identity = Get.find<EcashController>().currentIdentity;
         identity ??= Get.find<HomeController>().getSelectedIdentity();
 
-        String signature = data[1];
-        String message = data[2];
-        bool isValid = await rust_nostr.verifySchnorr(
+        final String signature = data[1];
+        final String message = data[2];
+        final isValid = await rust_nostr.verifySchnorr(
             pubkey: identity.secp256k1PKHex,
             content: message,
             sig: signature,
             hash: true);
         return isValid;
       case 'sendPayment':
-        String? lnbc = data[1];
+        final String? lnbc = data[1];
         if (lnbc == null || lnbc.isEmpty) {
           return 'Error: Invoice is empty';
         }
         try {
-          Transaction? tr =
+          final tr =
               await ecashController.proccessPayLightningBill(lnbc, isPay: true);
           if (tr == null) {
             return 'Error: Payment failed or cancelled';
           }
           return tr.token;
         } catch (e) {
-          String msg = Utils.getErrorMessage(e);
+          final msg = Utils.getErrorMessage(e);
           return 'Error: - $msg';
         }
       case 'makeInvoice':
         try {
-          Map source = data[1];
-          int amount = source['amount'] != null && source['amount'].isNotEmpty
-              ? int.parse(source['amount'] ?? '0')
+          final Map source = data[1];
+          final amount = source['amount'] != null &&
+                  source['amount'] is String &&
+                  (source['amount'] as String).isNotEmpty
+              ? int.parse(source['amount'] as String)
               : 0;
-          int defaultAmount = source['defaultAmount'] != null &&
-                  source['defaultAmount'].isNotEmpty
-              ? int.parse(source['defaultAmount'] ?? '0')
+          final defaultAmount = source['defaultAmount'] != null &&
+                  source['defaultAmount'] is String &&
+                  (source['defaultAmount'] as String).isNotEmpty
+              ? int.parse(source['defaultAmount'] as String)
               : 0;
-          int invoiceAmount = amount > 0 ? amount : defaultAmount;
-          Transaction? result = await Get.bottomSheet(
+          final invoiceAmount = amount > 0 ? amount : defaultAmount;
+          final result = await Get.bottomSheet<Transaction>(
               ignoreSafeArea: false,
               clipBehavior: Clip.antiAlias,
               shape: const RoundedRectangleBorder(
@@ -1195,7 +1186,7 @@ img {
       required int kind,
       required List<dynamic> tags}) {
     return Scaffold(
-        appBar: AppBar(title: Text('Sign Event')),
+        appBar: AppBar(title: const Text('Sign Event')),
         body: Container(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -1248,7 +1239,7 @@ img {
                       onPressed: () {
                         Get.back(result: false);
                       },
-                      child: Text('Decline'),
+                      child: const Text('Decline'),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -1257,7 +1248,7 @@ img {
                       onPressed: () {
                         Get.back(result: true);
                       },
-                      child: Text('Sign Event'),
+                      child: const Text('Sign Event'),
                     ),
                   ),
                 ],
@@ -1293,7 +1284,8 @@ img {
               const SizedBox(width: 8),
               Text(
                 title,
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -1331,19 +1323,19 @@ img {
                         content: SingleChildScrollView(
                           child: Text(
                             content,
-                            style: TextStyle(fontFamily: 'monospace'),
+                            style: const TextStyle(fontFamily: 'monospace'),
                           ),
                         ),
                         actions: [
                           TextButton(
-                            onPressed: () => Get.back(),
-                            child: Text('Close'),
+                            onPressed: Get.back,
+                            child: const Text('Close'),
                           ),
                         ],
                       ),
                     );
                   },
-                  child: Text('Show full content')),
+                  child: const Text('Show full content')),
             ),
         ],
       ),
@@ -1354,7 +1346,7 @@ img {
     try {
       await tabController.inAppWebViewController?.evaluateJavascript(source: """
       document.querySelectorAll('audio, video').forEach(media => media.pause());
-    """).timeout(Duration(seconds: 2));
+    """).timeout(const Duration(seconds: 2));
     } catch (e) {
       logger.e(e.toString(), error: e);
     }
@@ -1394,13 +1386,13 @@ img {
       }
       // lightning invoice
       if (urlString.startsWith('lightning:')) {
-        String str = urlString.replaceFirst('lightning:', '');
+        final str = urlString.replaceFirst('lightning:', '');
         if (isEmail(str) || str.toUpperCase().startsWith('LNURL')) {
           await Get.bottomSheet(
               clipBehavior: Clip.antiAlias,
               shape: const RoundedRectangleBorder(
                   borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
-              PayInvoicePage(invoce: str, isPay: false, showScanButton: false));
+              PayInvoicePage(invoce: str, showScanButton: false));
           return true;
         }
         await ecashController.proccessPayLightningBill(str, isPay: true);

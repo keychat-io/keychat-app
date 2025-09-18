@@ -24,13 +24,13 @@ import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
 
 class IdentityService {
-  static IdentityService? _instance;
-  static IdentityService get instance => _instance ??= IdentityService._();
   // Avoid self instance
   IdentityService._();
+  static IdentityService? _instance;
+  static IdentityService get instance => _instance ??= IdentityService._();
 
   Future<bool> checkPrikeyExist(String prikey) async {
-    var res = await DBProvider.database.mykeys
+    final res = await DBProvider.database.mykeys
         .filter()
         .prikeyEqualTo(prikey)
         .findFirst();
@@ -38,14 +38,14 @@ class IdentityService {
   }
 
   Future<int> count() async {
-    Isar database = DBProvider.database;
-    return await database.identitys.where().count();
+    final database = DBProvider.database;
+    return database.identitys.where().count();
   }
 
   Future createOneTimeKey(int identityId) async {
-    Isar database = DBProvider.database;
-    var keychain = await rust_nostr.generateSecp256K1();
-    var ontTimeKey = Mykey(
+    final database = DBProvider.database;
+    final keychain = await rust_nostr.generateSecp256K1();
+    final ontTimeKey = Mykey(
         prikey: keychain.prikey,
         identityId: identityId,
         pubkey: keychain.pubkey)
@@ -63,13 +63,13 @@ class IdentityService {
       required int index,
       bool isFirstAccount = false}) async {
     if (account.mnemonic == null) throw Exception('mnemonic is null');
-    Isar database = DBProvider.database;
-    HomeController homeController = Get.find<HomeController>();
-    var exist = await getIdentityByNostrPubkey(account.pubkey);
+    final database = DBProvider.database;
+    final homeController = Get.find<HomeController>();
+    final exist = await getIdentityByNostrPubkey(account.pubkey);
     if (exist != null) throw Exception('Identity already exist');
-    Identity iden = Identity(
+    final iden = Identity(
         name: name, secp256k1PKHex: account.pubkey, npub: account.pubkeyBech32)
-      ..curve25519PkHex = account.curve25519PkHex!
+      ..curve25519PkHex = account.curve25519PkHex
       ..index = index;
     await database.writeTxn(() async {
       await database.identitys.put(iden);
@@ -88,7 +88,7 @@ class IdentityService {
       Get.find<WebsocketService>()
           .listenPubkey([account.pubkey], kinds: [EventKinds.nip04]);
       Get.find<WebsocketService>().listenPubkeyNip17([account.pubkey]);
-      Identity? identity = await getIdentityByNostrPubkey(iden.secp256k1PKHex);
+      final identity = await getIdentityByNostrPubkey(iden.secp256k1PKHex);
       if (identity != null) {
         syncProfileFromRelay(iden);
       }
@@ -125,11 +125,11 @@ class IdentityService {
       {required String name,
       required String hexPubkey,
       required String prikey}) async {
-    Isar database = DBProvider.database;
-    String npub = rust_nostr.getBech32PubkeyByHex(hex: hexPubkey);
-    var exist = await getIdentityByNostrPubkey(hexPubkey);
+    final database = DBProvider.database;
+    final npub = rust_nostr.getBech32PubkeyByHex(hex: hexPubkey);
+    final exist = await getIdentityByNostrPubkey(hexPubkey);
     if (exist != null) throw Exception('Identity already exist');
-    Identity iden = Identity(name: name, secp256k1PKHex: hexPubkey, npub: npub)
+    final iden = Identity(name: name, secp256k1PKHex: hexPubkey, npub: npub)
       ..index = -1;
     await database.writeTxn(() async {
       await database.identitys.put(iden);
@@ -141,7 +141,7 @@ class IdentityService {
       Get.find<WebsocketService>()
           .listenPubkey([hexPubkey], kinds: [EventKinds.nip04]);
       Get.find<WebsocketService>().listenPubkeyNip17([hexPubkey]);
-      Identity? identity = await getIdentityByNostrPubkey(hexPubkey);
+      final identity = await getIdentityByNostrPubkey(hexPubkey);
       if (identity != null) {
         syncProfileFromRelay(iden);
       }
@@ -156,12 +156,12 @@ class IdentityService {
 
   Future<Identity> createIdentityByAmberPubkey(
       {required String name, required String pubkey}) async {
-    Isar database = DBProvider.database;
-    String hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: pubkey);
-    var exist = await getIdentityByNostrPubkey(hexPubkey);
+    final database = DBProvider.database;
+    final hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: pubkey);
+    final exist = await getIdentityByNostrPubkey(hexPubkey);
     if (exist != null) throw Exception('Identity already exist');
-    String npub = rust_nostr.getBech32PubkeyByHex(hex: hexPubkey);
-    Identity iden = Identity(name: name, secp256k1PKHex: hexPubkey, npub: npub)
+    final npub = rust_nostr.getBech32PubkeyByHex(hex: hexPubkey);
+    final iden = Identity(name: name, secp256k1PKHex: hexPubkey, npub: npub)
       ..index = -1
       ..isFromSigner = true;
     await database.writeTxn(() async {
@@ -174,7 +174,7 @@ class IdentityService {
       Get.find<WebsocketService>()
           .listenPubkey([hexPubkey], kinds: [EventKinds.nip04]);
       Get.find<WebsocketService>().listenPubkeyNip17([hexPubkey]);
-      Identity? identity = await getIdentityByNostrPubkey(hexPubkey);
+      final identity = await getIdentityByNostrPubkey(hexPubkey);
       if (identity != null) {
         syncProfileFromRelay(iden);
       }
@@ -188,11 +188,11 @@ class IdentityService {
   }
 
   Future delete(Identity identity) async {
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
 
-    int id = identity.id;
-    String secp256k1PKHex = identity.secp256k1PKHex;
-    String? curve25519PkHex = identity.curve25519PkHex;
+    final id = identity.id;
+    final secp256k1PKHex = identity.secp256k1PKHex;
+    final curve25519PkHex = identity.curve25519PkHex;
     await database.writeTxn(() async {
       await database.identitys.delete(id);
       await database.mykeys.filter().identityIdEqualTo(id).deleteAll();
@@ -201,10 +201,10 @@ class IdentityService {
           .identityIdEqualTo(id)
           .deleteAll();
 
-      List<Room> rooms =
+      final rooms =
           await database.rooms.filter().identityIdEqualTo(id).findAll();
 
-      for (var element in rooms) {
+      for (final element in rooms) {
         await database.messages.filter().roomIdEqualTo(element.id).deleteAll();
         await database.rooms.delete(element.id);
         await database.roomMembers
@@ -215,9 +215,9 @@ class IdentityService {
             .filter()
             .roomIdEqualTo(element.id)
             .deleteAll();
-        String? signalIdPubkey = element.signalIdPubkey;
+        final signalIdPubkey = element.signalIdPubkey;
         late rust_signal.KeychatIdentityKeyPair keyPair;
-        var chatxService = Get.find<ChatxService>();
+        final chatxService = Get.find<ChatxService>();
 
         if (signalIdPubkey != null) {
           keyPair =
@@ -243,36 +243,35 @@ class IdentityService {
   }
 
   Future deleteMykey(List<int> ids) async {
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
 
-    return await database.writeTxn(() async {
+    return database.writeTxn(() async {
       await database.mykeys.deleteAll(ids);
     });
   }
 
   Future<Identity?> getIdentityById(int id) async {
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
 
-    Identity? identity =
+    final identity =
         await database.identitys.filter().idEqualTo(id).findFirst();
     if (identity == null) throw Exception('identity is null');
     return identity;
   }
 
   Future<Mykey?> getMykeyByPubkey(String pubkey) async {
-    return await DBProvider.database.mykeys
+    return DBProvider.database.mykeys
         .filter()
         .pubkeyEqualTo(pubkey)
         .findFirst();
   }
 
   Future<List<String>> getListenPubkeys({bool skipMute = false}) async {
-    Set<String> pubkeys = {};
+    final pubkeys = <String>{};
 
-    List<Identity> list =
-        Get.find<HomeController>().allIdentities.values.toList();
-    List<int> skipedIdentityIDs = [];
-    for (var identity in list) {
+    final list = Get.find<HomeController>().allIdentities.values.toList();
+    final skipedIdentityIDs = <int>[];
+    for (final identity in list) {
       if (!identity.enableChat) {
         skipedIdentityIDs.add(identity.id);
         continue;
@@ -282,58 +281,58 @@ class IdentityService {
     if (pubkeys.isEmpty) return [];
 
     // sharing group 's mykey
-    List<Room> rooms = await RoomService.instance.getGroupsSharedKey();
-    for (var room in rooms) {
+    final rooms = await RoomService.instance.getGroupsSharedKey();
+    for (final room in rooms) {
       if (skipedIdentityIDs.contains(room.identityId)) {
         continue;
       }
       if (skipMute && room.isMute) {
         continue;
       }
-      String? pubkey = room.mykey.value?.pubkey;
+      final pubkey = room.mykey.value?.pubkey;
       if (pubkey != null) {
         pubkeys.add(pubkey);
       }
     }
     // my receive onetime key
-    List<Mykey> oneTimeKeys = await getOneTimeKeys();
+    final oneTimeKeys = await getOneTimeKeys();
     pubkeys.addAll(oneTimeKeys.map((e) => e.pubkey));
 
     return pubkeys.toList();
   }
 
   Future<List<Mykey>> getMykeyList() async {
-    Isar database = DBProvider.database;
-    return await database.mykeys.where().findAll();
+    final database = DBProvider.database;
+    return database.mykeys.where().findAll();
   }
 
   Future<List<Mykey>> list() async {
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
 
     return database.mykeys.where().sortByCreatedAt().findAll();
   }
 
   Future<List<Identity>> listIdentity() async {
-    return await DBProvider.database.identitys.where().findAll();
+    return DBProvider.database.identitys.where().findAll();
   }
 
   Future updateMykey(Mykey my) async {
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
 
     await database.writeTxn(() async {
-      return await database.mykeys.put(my);
+      return database.mykeys.put(my);
     });
   }
 
   Future updateIdentity(Identity identity) async {
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
     await database.writeTxn(() async {
       await database.identitys.put(identity);
     });
   }
 
   Future<Mykey?> isFromOnetimeKey(String toAddress) async {
-    var res = await DBProvider.database.mykeys
+    final res = await DBProvider.database.mykeys
         .filter()
         .isOneTimeEqualTo(true)
         .pubkeyEqualTo(toAddress)
@@ -342,7 +341,7 @@ class IdentityService {
   }
 
   Future<List<Mykey>> getOneTimeKeys() async {
-    return await DBProvider.database.mykeys
+    return DBProvider.database.mykeys
         .filter()
         .isOneTimeEqualTo(true)
         .sortByCreatedAt()
@@ -350,7 +349,7 @@ class IdentityService {
   }
 
   Future<List<Mykey>> getOneTimeKeyByIdentity(int identityId) async {
-    return await DBProvider.database.mykeys
+    return DBProvider.database.mykeys
         .filter()
         .identityIdEqualTo(identityId)
         .isOneTimeEqualTo(true)
@@ -372,18 +371,18 @@ class IdentityService {
   }
 
   Future<List<Identity>> getIdentityList() async {
-    return await DBProvider.database.identitys.where().findAll();
+    return DBProvider.database.identitys.where().findAll();
   }
 
   Future<List<Identity>> getEnableChatIdentityList() async {
-    return await DBProvider.database.identitys
+    return DBProvider.database.identitys
         .filter()
         .enableChatEqualTo(true)
         .findAll();
   }
 
   Future<List<int>> getDisableChatIdentityIDList() async {
-    var list = await DBProvider.database.identitys
+    final list = await DBProvider.database.identitys
         .filter()
         .enableChatEqualTo(false)
         .findAll();
@@ -391,21 +390,21 @@ class IdentityService {
   }
 
   Future<List<Identity>> getEnableBrowserIdentityList() async {
-    return await DBProvider.database.identitys
+    return DBProvider.database.identitys
         .filter()
         .enableBrowserEqualTo(true)
         .findAll();
   }
 
   Future<Identity?> getIdentityByNostrPubkey(String pubkey) async {
-    return await DBProvider.database.identitys
+    return DBProvider.database.identitys
         .filter()
         .secp256k1PKHexEqualTo(pubkey)
         .findFirst();
   }
 
   Future<Identity?> getIdentityBySignalPubkey(String pubkey) async {
-    return await DBProvider.database.identitys
+    return DBProvider.database.identitys
         .filter()
         .curve25519SkHexEqualTo(pubkey)
         .findFirst();
@@ -413,9 +412,10 @@ class IdentityService {
 
   Map prikeys = {};
   Future<String?> getPrikeyByPubkey(String pubkey) async {
-    if (prikeys[pubkey] != null) return prikeys[pubkey];
+    if (prikeys[pubkey] != null)
+      return Future.value(prikeys[pubkey] as String?);
 
-    List<Identity> identities = Get.find<HomeController>()
+    final identities = Get.find<HomeController>()
         .allIdentities
         .values
         .where((element) => element.secp256k1PKHex == pubkey)
@@ -427,7 +427,7 @@ class IdentityService {
       }
       prikey = await identities[0].getSecp256k1SKHex();
     } else {
-      Mykey? mykey = await IdentityService.instance.getMykeyByPubkey(pubkey);
+      final mykey = await IdentityService.instance.getMykeyByPubkey(pubkey);
       if (mykey == null) return null;
       prikey = mykey.prikey;
     }
@@ -436,19 +436,19 @@ class IdentityService {
   }
 
   Future<List<String>> getSignalRoomPubkeys() async {
-    List<int> skipedIdentityIds = await getDisableChatIdentityIDList();
+    final skipedIdentityIds = await getDisableChatIdentityIDList();
     // only listen nip04
-    List<String> signal = await ContactService.instance
+    final signal = await ContactService.instance
         .getAllReceiveKeys(skipIDs: skipedIdentityIds);
     return signal;
   }
 
   Future<List<String>> getMlsRoomPubkeys() async {
-    List<int> skipedIdentityIds = await getDisableChatIdentityIDList();
-    Set<String> mlsPubkeys = {};
+    final skipedIdentityIds = await getDisableChatIdentityIDList();
+    final mlsPubkeys = <String>{};
     // mls room's receive key
-    List<Room> mlsRooms = await RoomService.instance.getMlsRooms();
-    for (Room room in mlsRooms) {
+    final mlsRooms = await RoomService.instance.getMlsRooms();
+    for (final room in mlsRooms) {
       if (skipedIdentityIds.contains(room.identityId)) {
         continue;
       }
@@ -458,14 +458,14 @@ class IdentityService {
   }
 
   Future<List<String>> getRoomPubkeysSkipMute() async {
-    List<int> skipedIdentityIds = await getDisableChatIdentityIDList();
+    final skipedIdentityIds = await getDisableChatIdentityIDList();
     // only listen nip04
-    List<String> signal = await ContactService.instance
+    final signal = await ContactService.instance
         .getAllReceiveKeysSkipMute(skipIDs: skipedIdentityIds);
-    Set<String> mlsPubkeys = {};
+    final mlsPubkeys = <String>{};
     // mls room's receive key
-    List<Room> mlsRooms = await RoomService.instance.getMlsRoomsSkipMute();
-    for (Room room in mlsRooms) {
+    final mlsRooms = await RoomService.instance.getMlsRoomsSkipMute();
+    for (final room in mlsRooms) {
       if (skipedIdentityIds.contains(room.identityId)) {
         continue;
       }
@@ -475,19 +475,18 @@ class IdentityService {
   }
 
   Future<Identity> syncProfileFromRelay(Identity identity) async {
-    List<NostrEventModel> list =
+    final list =
         await NostrAPI.instance.fetchMetadata([identity.secp256k1PKHex]);
-    NostrEventModel res = list.last;
-    Map<String, dynamic> metadata =
-        Map<String, dynamic>.from(jsonDecode(res.content));
+    final res = list.last;
+    final metadata = Map<String, dynamic>.from(jsonDecode(res.content));
     logger.i('Sync profile from relay: $metadata');
 
     if (identity.versionFromRelay >= res.createdAt) {
       logger.d('Identity version is up to date, skip sync');
       return identity;
     }
-    String? nameFromRelay = metadata['displayName'] ?? metadata['name'];
-    String? avatarFromRelay = metadata['picture'] ?? metadata['avatar'];
+    final String? nameFromRelay = metadata['displayName'] ?? metadata['name'];
+    final String? avatarFromRelay = metadata['picture'] ?? metadata['avatar'];
 
     identity.nameFromRelay = nameFromRelay;
     if (avatarFromRelay != null && avatarFromRelay.isNotEmpty) {
@@ -496,7 +495,7 @@ class IdentityService {
         identity.avatarFromRelay = avatarFromRelay;
       }
     }
-    String? description =
+    final String? description =
         metadata['description'] ?? metadata['about'] ?? metadata['bio'];
     identity.aboutFromRelay = description;
     identity.metadataFromRelay = res.content;

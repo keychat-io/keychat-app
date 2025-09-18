@@ -19,6 +19,19 @@ enum UserStatusType { inviting, invited, blocked, removed }
 })
 // ignore: must_be_immutable
 class RoomMember extends Equatable {
+  // fetch time
+
+  RoomMember(
+      {required this.idPubkey,
+      required this.roomId,
+      required this.name,
+      this.status = UserStatusType.invited}) {
+    createdAt = DateTime.now();
+    updatedAt = DateTime.now();
+  }
+
+  factory RoomMember.fromJson(Map<String, dynamic> json) =>
+      _$RoomMemberFromJson(json);
   @JsonKey(includeToJson: false, includeFromJson: false)
   Id id = Isar.autoIncrement;
 
@@ -57,20 +70,8 @@ class RoomMember extends Equatable {
   String? avatarFromRelay; // fetch from relay
 
   @JsonKey(includeToJson: false, includeFromJson: false)
-  DateTime? fetchFromRelayAt; // fetch time
-
-  RoomMember(
-      {required this.idPubkey,
-      required this.roomId,
-      required this.name,
-      this.status = UserStatusType.invited}) {
-    createdAt = DateTime.now();
-    updatedAt = DateTime.now();
-  }
+  DateTime? fetchFromRelayAt;
   String get displayName => nameFromRelay ?? name;
-
-  factory RoomMember.fromJson(Map<String, dynamic> json) =>
-      _$RoomMemberFromJson(json);
 
   Map<String, dynamic> toJson() => _$RoomMemberToJson(this);
 

@@ -50,7 +50,7 @@ class _BrowserSettingState extends State<BrowserSetting> {
                                   width: 30),
                               title: Text(
                                 identity.displayName.length > 8
-                                    ? "${identity.displayName.substring(0, 8)}..."
+                                    ? '${identity.displayName.substring(0, 8)}...'
                                     : identity.displayName,
                                 style: Theme.of(context).textTheme.bodyLarge,
                               ),
@@ -61,7 +61,7 @@ class _BrowserSettingState extends State<BrowserSetting> {
                           .toList()),
                 SettingsSection(tiles: [
                   SettingsTile.navigation(
-                    title: const Text("Search Engine"),
+                    title: const Text('Search Engine'),
                     leading: const Icon(Icons.search),
                     value: Text(controller.defaultSearchEngineObx.value),
                     onPressed: (context) {
@@ -100,7 +100,7 @@ class _BrowserSettingState extends State<BrowserSetting> {
                     SettingsTile.switchTile(
                       initialValue: controller.config['autoSignEvent'] ?? true,
                       leading: const Icon(Icons.auto_awesome),
-                      title: const Text("Auto Sign Event"),
+                      title: const Text('Auto Sign Event'),
                       onToggle: (value) async {
                         await controller.setConfig('autoSignEvent', value);
                         EasyLoading.showSuccess('Success');
@@ -109,7 +109,7 @@ class _BrowserSettingState extends State<BrowserSetting> {
                     SettingsTile.switchTile(
                       initialValue: controller.config['enableHistory'],
                       leading: const Icon(CupertinoIcons.time),
-                      title: const Text("Enable History"),
+                      title: const Text('Enable History'),
                       onToggle: (value) async {
                         await controller.setConfig('enableHistory', value);
                         EasyLoading.showSuccess('Success');
@@ -118,19 +118,19 @@ class _BrowserSettingState extends State<BrowserSetting> {
                     if (GetPlatform.isMobile)
                       SettingsTile.navigation(
                         leading: const Icon(CupertinoIcons.heart),
-                        title: const Text("KeepAlive Hosts"),
+                        title: const Text('KeepAlive Hosts'),
                         onPressed: (context) {
-                          Get.to(() => KeepAliveHosts());
+                          Get.to(KeepAliveHosts.new);
                         },
                       ),
-                    if (controller.config['enableHistory'])
+                    if (controller.config['enableHistory'] == true)
                       SettingsTile.navigation(
-                        title: const Text("Auto-delete"),
+                        title: const Text('Auto-delete'),
                         value: Text(
                             "${controller.config['historyRetentionDays'] ?? 30} ${controller.config['historyRetentionDays'] == 1 ? 'day' : 'days'}"),
                         leading: const Icon(CupertinoIcons.delete),
                         onPressed: (context) async {
-                          int? selectedDays = await showDialog<int>(
+                          final selectedDays = await showDialog<int>(
                             context: context,
                             builder: (BuildContext context) {
                               return RadioGroup(
@@ -164,7 +164,7 @@ class _BrowserSettingState extends State<BrowserSetting> {
   }
 
   Future init() async {
-    var list = await IdentityService.instance.getEnableBrowserIdentityList();
+    final list = await IdentityService.instance.getEnableBrowserIdentityList();
     setState(() {
       identities = list;
     });

@@ -6,7 +6,7 @@ part 'qrcode_user_model.g.dart';
 
 @JsonSerializable(includeIfNull: false)
 class QRUserModel {
-  late String name;
+  late String name; // user define name
   late String pubkey;
   late String curve25519PkHex;
   late String onetimekey;
@@ -18,6 +18,8 @@ class QRUserModel {
   late String globalSign;
   String relay = "";
   int time = -1;
+  String avatar = ""; // user define
+  String lightning = ""; // user define
 
   @override
   String toString() => jsonEncode(toJson());
@@ -31,7 +33,7 @@ class QRUserModel {
 
   String toShortStringForQrcode() {
     String data =
-        "\"$name\",$relay,$pubkey,$curve25519PkHex,$onetimekey,$signedId,$signedPublic,$signedSignature,$prekeyId,$prekeyPubkey,$time,$globalSign";
+        "\"$name\",$relay,$pubkey,$curve25519PkHex,$onetimekey,$signedId,$signedPublic,$signedSignature,$prekeyId,$prekeyPubkey,$time,$globalSign,$avatar,$lightning";
 
     List<int> compressedData = gzip.encode(utf8.encode(data));
 
@@ -54,6 +56,8 @@ class QRUserModel {
       ..prekeyId = int.parse(values[8])
       ..prekeyPubkey = values[9]
       ..time = int.parse(values[10])
-      ..globalSign = values[11];
+      ..globalSign = values[11]
+      ..avatar = values[12]
+      ..lightning = values[13];
   }
 }

@@ -34,11 +34,13 @@ class Contact extends Equatable {
   String? aboutFromRelay;
   String? metadataFromRelay; // fetch from relay
   int versionFromRelay = 0; // fetch from relay
+  String? avatarLocalPath;
+  String? avatarRemoteUrl;
+  String? lightning;
 
   bool autoCreateFromGroup = false;
 
   String? about;
-  String? picture;
   DateTime? createdAt;
   DateTime? updatedAt;
   String? get displayAbout =>
@@ -82,15 +84,6 @@ class Contact extends Equatable {
   }
 
   @override
-  List<Object?> get props => [
-        id,
-        pubkey,
-        npubkey,
-        name,
-        petname,
-        about,
-        createdAt,
-        picture,
-        updatedAt
-      ];
+  List<Object?> get props =>
+      [id, pubkey, npubkey, name, petname, about, createdAt, updatedAt];
 }

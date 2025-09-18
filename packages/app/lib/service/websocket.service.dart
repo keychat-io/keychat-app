@@ -45,19 +45,18 @@ class WebsocketService extends GetxService {
   }
 
   RelayFileFee? getRelayFileFeeModel(String url) {
-    Uri uri = Uri.parse(url);
+    final uri = Uri.parse(url);
     return relayFileFeeModels[uri.host];
   }
 
   void setRelayFileFeeModel(String url, RelayFileFee fuc) {
-    Uri uri = Uri.parse(url);
+    final uri = Uri.parse(url);
     relayFileFeeModels[uri.host] = fuc;
   }
 
   Future<NostrEventStatus> addCashuToMessage(
       int roomId, NostrEventStatus eventSendStatus) async {
-    RelayMessageFee? payInfoModel =
-        relayMessageFeeModels[eventSendStatus.relay];
+    final payInfoModel = relayMessageFeeModels[eventSendStatus.relay];
     if (payInfoModel == null) return eventSendStatus;
     if (payInfoModel.amount == 0) return eventSendStatus;
     CashuInfoModel? cashuA;
@@ -67,17 +66,17 @@ class WebsocketService extends GetxService {
           token: payInfoModel.unit.name,
           mints: payInfoModel.mints);
       eventSendStatus.ecashName = payInfoModel.unit.name;
-      double amount = (payInfoModel.amount).toDouble();
+      final amount = payInfoModel.amount.toDouble();
       eventSendStatus.ecashAmount = amount;
       eventSendStatus.ecashToken = cashuA.token;
       eventSendStatus.ecashMint = cashuA.mint;
     } catch (e) {
-      String msg = Utils.getErrorMessage(e);
+      final msg = Utils.getErrorMessage(e);
       if (msg.startsWith('Insufficant')) throw Exception(ErrorMessages.noFunds);
       loggerNoLine.e('${eventSendStatus.relay} getStamp failed: $msg');
       throw Exception(msg);
     }
-    String message = eventSendStatus.rawEvent!;
+    var message = eventSendStatus.rawEvent!;
     message = message.substring(0, message.length - 1);
     message += ',"${cashuA.token}"]';
     eventSendStatus.rawEvent = message;
@@ -86,8 +85,8 @@ class WebsocketService extends GetxService {
 
   // new a websocket channel for this relay
   Future addChannel(Relay relay, {Function? connectedCallback}) async {
-    WebsocketService ws = this;
-    RelayWebsocket rw = RelayWebsocket(relay, ws);
+    final ws = this;
+    final rw = RelayWebsocket(relay, ws);
     channels[relay.url] = rw;
     if (!relay.active) {
       return;
@@ -114,7 +113,7 @@ class WebsocketService extends GetxService {
     // fix ConcurrentModificationError List.from([list??channels.values])
     await Future.wait((list ?? channels.values).map((rw) async {
       if (rw.relay.active == false) return;
-      bool relayStatus = await rw.checkOnlineStatus();
+      final relayStatus = await rw.checkOnlineStatus();
       if (!relayStatus) {
         rw.channel?.close();
         _startConnectRelay(rw);
@@ -127,9 +126,9 @@ class WebsocketService extends GetxService {
   }
 
   Future createChannels([List<Relay> list = const []]) async {
-    WebsocketService ws = this;
+    final ws = this;
     await Future.wait(list.map((Relay relay) async {
-      RelayWebsocket rw = RelayWebsocket(relay, ws);
+      final rw = RelayWebsocket(relay, ws);
       channels[relay.url] = rw;
       await _startConnectRelay(rw);
     }));
@@ -147,7 +146,7 @@ class WebsocketService extends GetxService {
   }
 
   bool existFreeRelay() {
-    for (var channel in channels.entries) {
+    for (final channel in channels.entries) {
       if (channel.value.isConnected()) {
         if (relayMessageFeeModels[channel.key]?.amount == 0) {
           return true;
@@ -168,18 +167,17 @@ class WebsocketService extends GetxService {
       logger.i('Not connected, or the relay not support nips');
       return [];
     }
-    for (RelayWebsocket rw in sockets) {
+    for (final rw in sockets) {
       rw.sendRawREQ(eventString);
     }
-    return await SubscribeResult.instance.registerSubscripton(
-        subId, sockets.length,
+    return SubscribeResult.instance.registerSubscripton(subId, sockets.length,
         wait: wait, waitTimeToFill: waitTimeToFill);
   }
 
   List<String> getActiveRelayString() {
-    List<String> res = [];
-    for (RelayWebsocket rw in List.from(channels.values)) {
-      if (rw.relay.active) {
+    final res = <String>[];
+    for (final rw in List.from(channels.values)) {
+      if (rw.relay.active == true) {
         res.add(rw.relay.url);
       }
     }
@@ -211,9 +209,9 @@ class WebsocketService extends GetxService {
   }
 
   List<String> getOnlineSocketString() {
-    List<String> res = [];
-    for (RelayWebsocket rw in List.from(channels.values)) {
-      if (rw.channel != null && rw.isConnected()) {
+    final res = <String>[];
+    for (final rw in List.from(channels.values)) {
+      if (rw.channel != null && rw.isConnected() == true) {
         res.add(rw.relay.url);
       }
     }
@@ -240,9 +238,9 @@ class WebsocketService extends GetxService {
   Future<WebsocketService> init() async {
     logger.i('start init websocket service');
     mainRelayStatus.value = RelayStatusEnum.connecting.name;
-    List<Relay> list = await rs.initRelay();
+    final list = await rs.initRelay();
     start(list);
-    int activeCount = list.where((element) => element.active).length;
+    final activeCount = list.where((element) => element.active).length;
     if (activeCount == 0) {
       mainRelayStatus.value = RelayStatusEnum.noAcitveRelay.name;
     }
@@ -250,16 +248,16 @@ class WebsocketService extends GetxService {
   }
 
   void listenPubkey(List<String> pubkeys,
-      {DateTime? since,
+      {required List<int> kinds,
+      DateTime? since,
       List<String>? relays,
-      int? limit,
-      required List<int> kinds}) {
+      int? limit}) {
     if (pubkeys.isEmpty) return;
 
     since ??= DateTime.now().subtract(const Duration(days: 7));
-    String subId = generate64RandomHexChars(16);
+    final subId = generate64RandomHexChars(16);
 
-    NostrReqModel req = NostrReqModel(
+    final req = NostrReqModel(
         reqId: subId,
         pubkeys: pubkeys,
         since: since,
@@ -281,9 +279,9 @@ class WebsocketService extends GetxService {
     if (pubkeys.isEmpty) return null;
 
     since ??= DateTime.now().subtract(const Duration(days: 2));
-    String subId = generate64RandomHexChars(16);
+    final subId = generate64RandomHexChars(16);
 
-    NostrReqModel req = NostrReqModel(
+    final req = NostrReqModel(
         reqId: subId,
         pubkeys: pubkeys,
         since: since,
@@ -301,26 +299,26 @@ class WebsocketService extends GetxService {
   }
 
   Future localFeesConfigFromLocalStorage() async {
-    Map map1 = await Storage.getLocalStorageMap(
+    final map1 = await Storage.getLocalStorageMap(
         StorageKeyString.relayMessageFeeConfig);
-    for (var entry in map1.entries) {
-      if (entry.value.keys.length > 0) {
+    for (final entry in map1.entries) {
+      if (entry.value is Map && (entry.value as Map).isNotEmpty) {
         String host = entry.key;
         if (host.startsWith('wss://')) {
-          Uri uri = Uri.parse(host);
+          final uri = Uri.parse(host);
           host = uri.host;
         }
         relayMessageFeeModels[host] = RelayMessageFee.fromJson(entry.value);
       }
     }
 
-    Map map2 =
+    final map2 =
         await Storage.getLocalStorageMap(StorageKeyString.relayFileFeeConfig);
-    for (var entry in map2.entries) {
-      if (entry.value.keys.length > 0) {
+    for (final entry in map2.entries) {
+      if (entry.value is Map && (entry.value as Map).isNotEmpty) {
         String host = entry.key;
         if (host.startsWith('wss://')) {
-          Uri uri = Uri.parse(host);
+          final uri = Uri.parse(host);
           host = uri.host;
         }
         relayFileFeeModels[host] = RelayFileFee.fromJson(entry.value);
@@ -336,44 +334,47 @@ class WebsocketService extends GetxService {
   }
 
   Future refreshMainRelayStatus() async {
-    int success = getOnlineSocket().length;
+    final success = getOnlineSocket().length;
     relayConnectedCount.value = success;
     if (success > 0) {
-      return await _setMainRelayStatus(RelayStatusEnum.connected);
+      return _setMainRelayStatus(RelayStatusEnum.connected);
     }
 
     if (success == 0) {
-      int diff =
+      final diff =
           DateTime.now().millisecondsSinceEpoch - initAt.millisecondsSinceEpoch;
       if (diff > 4000) {
-        return await _setMainRelayStatus(RelayStatusEnum.allFailed);
+        return _setMainRelayStatus(RelayStatusEnum.allFailed);
       }
     }
     await _setMainRelayStatus(RelayStatusEnum.connecting);
   }
 
   void removePubkeyFromSubscription(String pubkey) {
-    for (RelayWebsocket rw in channels.values) {
-      for (var entry in rw.subscriptions.entries) {
+    for (final rw in channels.values) {
+      final subs = rw.subscriptions;
+      for (final entry in subs.entries) {
         if (entry.value.contains(pubkey)) {
-          rw.subscriptions[entry.key]?.remove(pubkey);
+          subs[entry.key]?.remove(pubkey);
         }
       }
     }
   }
 
   void removePubkeysFromSubscription(List<String> keys) {
-    for (RelayWebsocket rw in channels.values) {
-      for (var entry in rw.subscriptions.entries) {
-        rw.subscriptions[entry.key]?.removeAll(keys);
+    for (final rw in channels.values) {
+      final subs = rw.subscriptions;
+      for (final entry in subs.entries) {
+        subs[entry.key]?.removeAll(keys);
         break;
       }
     }
   }
 
   String? getSubscriptionIdsByPubkey(String pubkey) {
-    for (RelayWebsocket rw in List.from(channels.values)) {
-      for (var entry in rw.subscriptions.entries) {
+    for (final rw in List.from(channels.values)) {
+      final subs = rw.subscriptions as Map<String, Set<String>>;
+      for (final entry in subs.entries) {
         if (entry.value.contains(pubkey)) {
           return entry.key;
         }
@@ -384,8 +385,8 @@ class WebsocketService extends GetxService {
 
   int sendMessage(String content, [List<String>? relays]) {
     if (relays != null && relays.isNotEmpty) {
-      int sent = 0;
-      for (String relay in relays) {
+      var sent = 0;
+      for (final relay in relays) {
         if (channels[relay] != null &&
             channels[relay]!.isConnected() &&
             channels[relay]!.channel != null) {
@@ -396,8 +397,8 @@ class WebsocketService extends GetxService {
       if (sent > 0) return sent;
     }
 
-    int sent = 0;
-    for (RelayWebsocket rw in channels.values) {
+    var sent = 0;
+    for (final rw in channels.values) {
       if (rw.isConnecting() || rw.isDisConnected()) {
         continue;
       }
@@ -422,7 +423,7 @@ class WebsocketService extends GetxService {
           callback}) {
     if (callback != null) {
       try {
-        var list = jsonDecode(content);
+        final list = jsonDecode(content) as List<dynamic>;
         if (list.length > 1 && list[1] != null) {
           NostrAPI.instance.setOKCallback(list[1]['id'], callback);
         }
@@ -430,8 +431,8 @@ class WebsocketService extends GetxService {
       } catch (e) {}
     }
     if (relays != null && relays.isNotEmpty) {
-      int sent = 0;
-      for (String relay in relays) {
+      var sent = 0;
+      for (final relay in relays) {
         if (channels[relay] != null &&
             channels[relay]!.isConnected() &&
             channels[relay]!.channel != null) {
@@ -442,8 +443,8 @@ class WebsocketService extends GetxService {
       if (sent > 0) return;
     }
 
-    int sent = 0;
-    for (RelayWebsocket rw in channels.values) {
+    var sent = 0;
+    for (final rw in channels.values) {
       if (rw.isConnecting() || rw.isDisConnected()) {
         continue;
       }
@@ -457,9 +458,9 @@ class WebsocketService extends GetxService {
   }
 
   void sendRawReq(String msg) {
-    List<RelayWebsocket> list = getOnlineSocket();
+    final list = getOnlineSocket();
 
-    for (RelayWebsocket rw in list) {
+    for (final rw in list) {
       rw.sendRawREQ(msg);
     }
   }
@@ -467,8 +468,8 @@ class WebsocketService extends GetxService {
   void sendReq(NostrReqModel nostrReq,
       {List<String>? relays, Function(String relay)? callback}) {
     if (relays != null && relays.isNotEmpty) {
-      int sent = 0;
-      for (String relayUrl in relays) {
+      var sent = 0;
+      for (final relayUrl in relays) {
         if (channels[relayUrl] != null && channels[relayUrl]!.isConnected()) {
           try {
             channels[relayUrl]!.sendREQ(nostrReq);
@@ -484,8 +485,8 @@ class WebsocketService extends GetxService {
       if (sent > 0) return;
     }
 
-    int sent = 0;
-    for (RelayWebsocket rw in channels.values) {
+    var sent = 0;
+    for (final rw in channels.values) {
       if (rw.isDisConnected() || rw.isConnecting()) {
         continue;
       }
@@ -528,7 +529,7 @@ class WebsocketService extends GetxService {
   }
 
   Future stopListening() async {
-    for (RelayWebsocket rw in channels.values) {
+    for (final rw in channels.values) {
       rw.channel?.close();
     }
     channels.clear();
@@ -539,7 +540,7 @@ class WebsocketService extends GetxService {
       required String eventString,
       required int roomId,
       List<String> toRelays = const []}) async {
-    List<String> activeRelays = _getTargetRelays(toRelays);
+    final activeRelays = _getTargetRelays(toRelays);
     if (activeRelays.isEmpty) {
       if (toRelays.isNotEmpty) {
         throw Exception('${toRelays.join(',')} not connected');
@@ -548,16 +549,16 @@ class WebsocketService extends GetxService {
     }
     SubscribeEventStatus.addSubscripton(event.id, activeRelays.length);
 
-    String rawEvent = "[\"EVENT\",$eventString]";
-    int success = 0;
-    List<NostrEventStatus> results = [];
-    Queue tasks = Queue(parallel: channels.keys.length);
-    for (String relay in activeRelays) {
-      RelayWebsocket? rw = channels[relay];
+    final rawEvent = '["EVENT",$eventString]';
+    var success = 0;
+    final results = <NostrEventStatus>[];
+    final tasks = Queue(parallel: channels.keys.length);
+    for (final relay in activeRelays) {
+      final rw = channels[relay];
       if (rw == null) continue;
 
       tasks.add(() async {
-        NostrEventStatus ess = NostrEventStatus(
+        var ess = NostrEventStatus(
             relay: rw.relay.url,
             eventId: event.id,
             roomId: roomId,
@@ -597,7 +598,7 @@ class WebsocketService extends GetxService {
 
     tasks.onComplete.then((c) async {
       if (success == 0) {
-        String messages = results
+        final messages = results
             .map((item) =>
                 '${item.relay}: ${item.error ?? item.sendStatus.name}')
             .toList()
@@ -608,10 +609,8 @@ class WebsocketService extends GetxService {
             content: Text(messages, textAlign: TextAlign.left),
             actions: <Widget>[
               CupertinoDialogAction(
+                onPressed: Get.back,
                 child: const Text('OK'),
-                onPressed: () {
-                  Get.back();
-                },
               ),
               CupertinoDialogAction(
                 isDefaultAction: true,
@@ -627,7 +626,7 @@ class WebsocketService extends GetxService {
       }
       // save send status to db
       await DBProvider.database.writeTxn(() async {
-        for (NostrEventStatus item in results) {
+        for (final item in results) {
           await DBProvider.database.nostrEventStatus.put(item);
         }
       });
@@ -636,7 +635,7 @@ class WebsocketService extends GetxService {
   }
 
   List<String> _getTargetRelays(List<String> toRelays) {
-    List<String> activeRelays = getActiveRelayString();
+    final activeRelays = getActiveRelayString();
     if (activeRelays.isEmpty) {
       throw Exception('No active relay');
     }
@@ -656,9 +655,9 @@ class WebsocketService extends GetxService {
         pingInterval: const Duration(seconds: 10),
         timeout: const Duration(seconds: 8),
         backoff: LinearBackoff(
-          initial: Duration(seconds: 0),
-          increment: Duration(seconds: 2),
-          maximum: Duration(seconds: 16),
+          initial: const Duration(),
+          increment: const Duration(seconds: 2),
+          maximum: const Duration(seconds: 16),
         ));
 
     rw.channel!.messages.listen((message) {

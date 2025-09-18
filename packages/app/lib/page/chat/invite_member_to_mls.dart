@@ -14,9 +14,9 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
 class InviteMemberToMLS extends StatefulWidget {
+  const InviteMemberToMLS(this.room, this.messages, {super.key});
   final Room room;
   final List<Message> messages;
-  const InviteMemberToMLS(this.room, this.messages, {super.key});
 
   @override
   State<StatefulWidget> createState() => _InviteMemberToMLSState();
@@ -24,10 +24,10 @@ class InviteMemberToMLS extends StatefulWidget {
 
 class _InviteMemberToMLSState extends State<InviteMemberToMLS>
     with TickerProviderStateMixin {
+  _InviteMemberToMLSState();
   List<Map<String, dynamic>> users = [];
   Map<String, String> cachePKs = {};
   bool isLoading = false;
-  _InviteMemberToMLSState();
 
   late ScrollController _scrollController;
 
@@ -44,13 +44,13 @@ class _InviteMemberToMLSState extends State<InviteMemberToMLS>
     super.dispose();
   }
 
-  void _completeFromContacts() async {
-    Map<String, String> selectAccounts = {};
-    List<Map<String, dynamic>> selectUsers = [];
-    List<Message> selectedMessages = [];
-    for (int i = 0; i < users.length; i++) {
-      Map<String, dynamic> contact = users[i];
-      if (contact['isCheck']) {
+  Future<void> _completeFromContacts() async {
+    final selectAccounts = <String, String>{};
+    final selectUsers = <Map<String, dynamic>>[];
+    final selectedMessages = <Message>[];
+    for (var i = 0; i < users.length; i++) {
+      final contact = users[i];
+      if (contact['isCheck'] == true) {
         selectAccounts[contact['pubkey']] = contact['name'];
         selectUsers.add(contact);
         selectedMessages.add(contact['message']);
@@ -58,20 +58,20 @@ class _InviteMemberToMLSState extends State<InviteMemberToMLS>
     }
 
     if (selectAccounts.isEmpty) {
-      EasyLoading.showError("Please select at least one user");
+      EasyLoading.showError('Please select at least one user');
       return;
     }
 
     try {
-      Room groupRoom =
+      final groupRoom =
           await RoomService.instance.getRoomByIdOrFail(widget.room.id);
-      String sender = widget.room.getIdentity().displayName;
+      final sender = widget.room.getIdentity().displayName;
 
       await MlsGroupService.instance
           .addMemeberToGroup(groupRoom, selectUsers, sender);
 
       // update message status
-      for (int i = 0; i < selectedMessages.length; i++) {
+      for (var i = 0; i < selectedMessages.length; i++) {
         selectedMessages[i].requestConfrim = RequestConfrimEnum.approved;
         await MessageService.instance
             .updateMessageAndRefresh(selectedMessages[i]);
@@ -84,24 +84,23 @@ class _InviteMemberToMLSState extends State<InviteMemberToMLS>
     }
   }
 
-  void _onLoading() async {
-    List<Map<String, dynamic>> contacts = [];
-    for (int i = 0; i < widget.messages.length; i++) {
+  Future<void> _onLoading() async {
+    final contacts = <Map<String, dynamic>>[];
+    for (var i = 0; i < widget.messages.length; i++) {
       try {
-        Message message = widget.messages[i];
-        var km = KeychatMessage.fromJson(jsonDecode(message.content));
-        GroupInvitationRequestModel gir =
-            GroupInvitationRequestModel.fromJson(jsonDecode(km.name!));
-        String npub = rust_nostr.getBech32PubkeyByHex(hex: gir.myPubkey);
+        final message = widget.messages[i];
+        final km = KeychatMessage.fromJson(jsonDecode(message.content));
+        final gir = GroupInvitationRequestModel.fromJson(jsonDecode(km.name!));
+        final npub = rust_nostr.getBech32PubkeyByHex(hex: gir.myPubkey);
         contacts.add({
-          "pubkey": gir.myPubkey,
-          "npubkey": npub,
-          "name": gir.myName,
-          "exist": false,
-          "isCheck": false,
-          "mlsPK": gir.mlsPK,
-          "isAdmin": false,
-          "message": message
+          'pubkey': gir.myPubkey,
+          'npubkey': npub,
+          'name': gir.myName,
+          'exist': false,
+          'isCheck': false,
+          'mlsPK': gir.mlsPK,
+          'isAdmin': false,
+          'message': message
         });
       } catch (e, s) {
         logger.i(e.toString(), stackTrace: s);
@@ -124,7 +123,7 @@ class _InviteMemberToMLSState extends State<InviteMemberToMLS>
               Text(widget.room.name ?? ''),
               Text(
                   style: Theme.of(context).textTheme.bodySmall,
-                  "Request to Join Group")
+                  'Request to Join Group')
             ],
           ),
           actions: [
@@ -133,7 +132,7 @@ class _InviteMemberToMLSState extends State<InviteMemberToMLS>
                 EasyThrottle.throttle('_completeFromContacts',
                     const Duration(seconds: 2), _completeFromContacts);
               },
-              child: const Text("Send Invite",
+              child: const Text('Send Invite',
                   style: TextStyle(color: Colors.white, fontSize: 12)),
             )
           ]),
@@ -141,10 +140,9 @@ class _InviteMemberToMLSState extends State<InviteMemberToMLS>
           itemCount: users.length,
           controller: _scrollController,
           itemBuilder: (context, index) {
-            Map<String, dynamic> user = users[index];
+            final user = users[index];
             return ListTile(
-                leading: Utils.getRandomAvatar(user['pubkey'],
-                    height: 40, width: 40),
+                leading: Utils.getRandomAvatar(user['pubkey']),
                 title: Text(user['name'],
                     style: Theme.of(context).textTheme.titleMedium),
                 dense: true,
@@ -152,16 +150,17 @@ class _InviteMemberToMLSState extends State<InviteMemberToMLS>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(user['npubkey'], overflow: TextOverflow.ellipsis),
-                      widget.room.groupType == GroupType.mls &&
-                              user['mlsPK'] == null
-                          ? Text('Not upload MLS keys',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(color: Colors.pink))
-                          : Container()
+                      if (widget.room.groupType == GroupType.mls &&
+                          user['mlsPK'] == null)
+                        Text('Not upload MLS keys',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(color: Colors.pink))
+                      else
+                        Container()
                     ]),
-                trailing: (user['isAdmin'] || user['exist']
+                trailing: (user['isAdmin'] == true || user['exist'] == true
                     ? const Icon(Icons.check_box, color: Colors.grey, size: 30)
                     : Checkbox(
                         value: user['isCheck'],
@@ -169,7 +168,7 @@ class _InviteMemberToMLSState extends State<InviteMemberToMLS>
                                 user['mlsPK'] == null
                             ? null
                             : (isCheck) {
-                                user['isCheck'] = isCheck!;
+                                user['isCheck'] = isCheck;
                                 setState(() {});
                               })));
           }),

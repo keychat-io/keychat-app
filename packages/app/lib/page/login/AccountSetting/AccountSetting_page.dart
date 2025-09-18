@@ -1,4 +1,5 @@
 import 'package:app/controller/home.controller.dart';
+import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/browser/browser_connect.dart';
 import 'package:app/models/db_provider.dart';
@@ -605,24 +606,32 @@ class AccountSettingPage extends GetView<AccountSettingController> {
         imageQuality: 80,
       );
       if (image == null) return;
-
+      final allowedExtensions = [
+        'jpg',
+        'jpeg',
+        'png',
+        'webp',
+        'heic',
+        'bmp',
+        'gif'
+      ];
+      final ext = image.path.split('.').last.toLowerCase();
+      if (!allowedExtensions.contains(ext)) {
+        EasyLoading.showError('Unsupported image format');
+        return;
+      }
       EasyLoading.show(status: 'Uploading avatar...');
-      String localFilePath = Utils.generateAvatarRandomPath();
+      var avatarsFolder = Get.find<SettingController>().avatarsFolder;
+      String fileName = '${Utils.randomString(16)}.$ext';
+      String localFileFullPath = '$avatarsFolder/$fileName';
       // Upload to server using encryptAndUploadImage
       MsgFileInfo? mfi = await FileService.instance
-          .encryptAndUploadImage(localFilePath, image);
+          .encryptAndUploadImage(image, localFilePath: localFileFullPath);
       if (mfi == null || mfi.localPath == null) return;
+      mfi.sourceName = '';
       logger.d('Avatar uploaded: $mfi');
 
-      // Update identity with local avatar path
-      // Remove the first path separator (either / or \) if present
-      if (mfi.localPath != null &&
-          (mfi.localPath!.startsWith('/') || mfi.localPath!.startsWith(r'\'))) {
-        localFilePath = mfi.localPath!.substring(1);
-      } else {
-        localFilePath = mfi.localPath!;
-      }
-      controller.identity.value.avatarLocalPath = localFilePath;
+      controller.identity.value.avatarLocalPath = mfi.localPath;
       controller.identity.value.avatarRemoteUrl = mfi.getUriString('image');
       controller.identity.value.avatarUpdatedAt = DateTime.now();
       await IdentityService.instance.updateIdentity(controller.identity.value);

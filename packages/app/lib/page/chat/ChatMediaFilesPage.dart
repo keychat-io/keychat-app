@@ -1,4 +1,4 @@
-import 'dart:io' show File, Directory, FileSystemEntity;
+import 'dart:io' show Directory, File, FileSystemEntity;
 
 import 'package:app/models/message.dart';
 import 'package:app/models/room.dart';
@@ -14,8 +14,8 @@ import 'package:path/path.dart' as path;
 import 'package:share_plus/share_plus.dart';
 
 class ChatMediaFilesPage extends StatefulWidget {
-  final Room room;
   const ChatMediaFilesPage(this.room, {super.key});
+  final Room room;
 
   @override
   _ChatMediaFilesPageState createState() => _ChatMediaFilesPageState();
@@ -46,16 +46,13 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
                             'Are you sure to delete all media in this chat?'),
                         actions: [
                           CupertinoDialogAction(
-                              onPressed: () {
-                                Get.back();
-                              },
-                              child: const Text('Cancel')),
+                              onPressed: Get.back, child: const Text('Cancel')),
                           CupertinoDialogAction(
                               isDestructiveAction: true,
                               onPressed: () async {
                                 EasyLoading.show(status: 'Deleting...');
                                 try {
-                                  String directory = await FileService.instance
+                                  final directory = await FileService.instance
                                       .getRoomFolder(
                                           identityId: widget.room.identityId,
                                           roomId: widget.room.id);
@@ -87,82 +84,81 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
         ),
         body: TabBarView(
           children: [
-            media.isEmpty
-                ? const Center(
-                    child: Icon(Icons.inbox, size: 60, color: Colors.grey),
-                  )
-                : GridView.builder(
-                    padding: const EdgeInsets.all(10.0),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      mainAxisSpacing: 2,
-                      crossAxisSpacing: 2,
-                    ),
-                    itemCount: media.length,
-                    itemBuilder: (context, index) {
-                      File file = media[index];
-                      late Widget child;
-                      if (FileService.instance.isImageFile(file.path)) {
-                        child = GestureDetector(
-                            onTap: () {
-                              _onTap(index);
-                            },
-                            child: FileService.instance.getImageView(file));
-                      } else if (FileService.instance.isVideoFile(file.path)) {
-                        child = FutureBuilder(
-                            future: FileService.instance
-                                .getOrCreateThumbForVideo(file.path),
-                            builder: (context, snapshot) {
-                              if (snapshot.data != null) {
-                                File thumbnailFile = snapshot.data as File;
-                                return GestureDetector(
-                                    onTap: () {
-                                      _onTap(index, thumbnailFile);
-                                    },
-                                    child: Stack(
-                                      alignment: Alignment.center,
-                                      children: <Widget>[
-                                        ClipRRect(
-                                            borderRadius:
-                                                BorderRadius.circular(4),
-                                            child: SizedBox(
-                                                width: 150,
-                                                child: Image.file(thumbnailFile,
-                                                    fit: BoxFit.contain))),
-                                        Positioned(
-                                          child: CircleAvatar(
-                                              radius: 20,
-                                              backgroundColor: Colors.grey
-                                                  .withValues(alpha: 0.8),
-                                              child: IconButton(
-                                                onPressed: () {},
-                                                icon: const Icon(
-                                                  Icons.play_arrow,
-                                                  color: Colors.white,
-                                                  size: 24,
-                                                ),
-                                              )),
-                                        ),
-                                      ],
-                                    ));
-                              }
-                              return const Text('Video File');
-                            });
-                      }
+            if (media.isEmpty)
+              const Center(
+                child: Icon(Icons.inbox, size: 60, color: Colors.grey),
+              )
+            else
+              GridView.builder(
+                padding: const EdgeInsets.all(10),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  mainAxisSpacing: 2,
+                  crossAxisSpacing: 2,
+                ),
+                itemCount: media.length,
+                itemBuilder: (context, index) {
+                  final file = media[index];
+                  late Widget child;
+                  if (FileService.instance.isImageFile(file.path)) {
+                    child = GestureDetector(
+                        onTap: () {
+                          _onTap(index);
+                        },
+                        child: FileService.instance.getImageView(file));
+                  } else if (FileService.instance.isVideoFile(file.path)) {
+                    child = FutureBuilder(
+                        future: FileService.instance
+                            .getOrCreateThumbForVideo(file.path),
+                        builder: (context, snapshot) {
+                          if (snapshot.data != null) {
+                            final thumbnailFile = snapshot.data!;
+                            return GestureDetector(
+                                onTap: () {
+                                  _onTap(index, thumbnailFile);
+                                },
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: <Widget>[
+                                    ClipRRect(
+                                        borderRadius: BorderRadius.circular(4),
+                                        child: SizedBox(
+                                            width: 150,
+                                            child: Image.file(thumbnailFile,
+                                                fit: BoxFit.contain))),
+                                    Positioned(
+                                      child: CircleAvatar(
+                                          radius: 20,
+                                          backgroundColor: Colors.grey
+                                              .withValues(alpha: 0.8),
+                                          child: IconButton(
+                                            onPressed: () {},
+                                            icon: const Icon(
+                                              Icons.play_arrow,
+                                              color: Colors.white,
+                                              size: 24,
+                                            ),
+                                          )),
+                                    ),
+                                  ],
+                                ));
+                          }
+                          return const Text('Video File');
+                        });
+                  }
 
-                      return Container(
-                          width: 90,
-                          height: 150,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(5.0),
-                          ),
-                          child: child);
-                    },
-                  ),
+                  return Container(
+                      width: 90,
+                      height: 150,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: child);
+                },
+              ),
             FutureBuilder<List<FileSystemEntity>>(
               future: _fetchFileData(),
               builder: (BuildContext context, AsyncSnapshot snapshot) {
@@ -172,7 +168,7 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
                   if (snapshot.hasError) {
                     return Center(child: Text('Error: ${snapshot.error}'));
                   } else {
-                    List<FileSystemEntity> files = snapshot.data;
+                    final files = snapshot.data as List<FileSystemEntity>;
                     return media.isEmpty
                         ? const Center(
                             child:
@@ -181,11 +177,11 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
                         : ListView.builder(
                             itemCount: files.length,
                             itemBuilder: (context, index) {
-                              String filePath = files[index].path;
-                              var file = File(filePath);
-                              var stat = file.statSync();
-                              String fileFullName = path.basename(filePath);
-                              String suffix = 'File';
+                              final filePath = files[index].path;
+                              final file = File(filePath);
+                              final stat = file.statSync();
+                              final fileFullName = path.basename(filePath);
+                              var suffix = 'File';
                               if (fileFullName.contains('.')) {
                                 suffix = fileFullName.split('.').last;
                               }
@@ -199,7 +195,7 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
                                 onTap: () {
                                   try {
                                     if (GetPlatform.isDesktop) {
-                                      String dir = filePath.substring(
+                                      final dir = filePath.substring(
                                           0, filePath.lastIndexOf('/'));
                                       OpenFilex.open(dir);
                                     } else {
@@ -226,8 +222,8 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
     );
   }
 
-  void loadMedia() async {
-    List<File> files = await FileService.instance
+  Future<void> loadMedia() async {
+    final files = await FileService.instance
         .getRoomImageAndVideo(widget.room.identityId, widget.room.id);
     setState(() {
       media = files;
@@ -249,11 +245,11 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
   }
 
   Future<List<FileSystemEntity>> _fetchFileData() async {
-    String base = await FileService.instance.getRoomFolder(
+    final base = await FileService.instance.getRoomFolder(
         identityId: widget.room.identityId,
         roomId: widget.room.id,
         type: MessageMediaType.file);
-    Directory directory = Directory(base);
+    final directory = Directory(base);
     return directory.listSync();
   }
 }

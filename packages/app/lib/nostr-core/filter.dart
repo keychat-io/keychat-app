@@ -1,5 +1,35 @@
 /// filter is a JSON object that determines what events will be sent in that subscription
 class Filter {
+  /// Default constructor
+  Filter(
+      {this.ids,
+      this.authors,
+      this.kinds,
+      this.e,
+      this.p,
+      this.r,
+      this.t,
+      this.h,
+      this.since,
+      this.until,
+      this.limit});
+
+  /// Deserialize a filter from a JSON
+  Filter.fromJson(Map<String, dynamic> json) {
+    ids = json['ids'] == null ? null : List<String>.from(json['ids']);
+    authors =
+        json['authors'] == null ? null : List<String>.from(json['authors']);
+    kinds = json['kinds'] == null ? null : List<int>.from(json['kinds']);
+    e = json['#e'] == null ? null : List<String>.from(json['#e']);
+    p = json['#p'] == null ? null : List<String>.from(json['#p']);
+    r = json['#r'] == null ? null : List<String>.from(json['#r']);
+    t = json['#t'] == null ? null : List<String>.from(json['#t']);
+    h = json['#h'] == null ? null : List<String>.from(json['#h']);
+    since = json['since'] as int?;
+    until = json['until'] as int?;
+    limit = json['limit'] as int?;
+  }
+
   /// a list of event ids or prefixes
   List<String>? ids;
 
@@ -30,39 +60,9 @@ class Filter {
   /// maximum number of events to be returned in the initial query
   int? limit;
 
-  /// Default constructor
-  Filter(
-      {this.ids,
-      this.authors,
-      this.kinds,
-      this.e,
-      this.p,
-      this.r,
-      this.t,
-      this.h,
-      this.since,
-      this.until,
-      this.limit});
-
-  /// Deserialize a filter from a JSON
-  Filter.fromJson(Map<String, dynamic> json) {
-    ids = json['ids'] == null ? null : List<String>.from(json['ids']);
-    authors =
-        json['authors'] == null ? null : List<String>.from(json['authors']);
-    kinds = json['kinds'] == null ? null : List<int>.from(json['kinds']);
-    e = json['#e'] == null ? null : List<String>.from(json['#e']);
-    p = json['#p'] == null ? null : List<String>.from(json['#p']);
-    r = json['#r'] == null ? null : List<String>.from(json['#r']);
-    t = json['#t'] == null ? null : List<String>.from(json['#t']);
-    h = json['#h'] == null ? null : List<String>.from(json['#h']);
-    since = json['since'];
-    until = json['until'];
-    limit = json['limit'];
-  }
-
   /// Serialize a filter in JSON
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = <String, dynamic>{};
+    final data = <String, dynamic>{};
     if (ids != null) {
       data['ids'] = ids;
     }

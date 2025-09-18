@@ -11,10 +11,9 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
 class BotPricePerMessageRequestWidget extends StatefulWidget {
+  const BotPricePerMessageRequestWidget(this.cc, this.message, {super.key});
   final ChatController cc;
   final Message message;
-
-  const BotPricePerMessageRequestWidget(this.cc, this.message, {super.key});
 
   @override
   _BotPricePerMessageRequestWidgetState createState() =>
@@ -27,7 +26,7 @@ class _BotPricePerMessageRequestWidgetState
   @override
   void initState() {
     try {
-      Map<String, dynamic> map = jsonDecode(widget.message.content);
+      final map = jsonDecode(widget.message.content) as Map<String, dynamic>;
       bmm = BotServerMessageModel.fromJson(map);
       // ignore: empty_catches
     } catch (e) {}
@@ -37,8 +36,8 @@ class _BotPricePerMessageRequestWidgetState
   @override
   Widget build(BuildContext context) {
     if (widget.message.confirmResult != null) {
-      Map<String, dynamic> selected =
-          (jsonDecode(widget.message.confirmResult!) as Map<String, dynamic>);
+      final selected =
+          jsonDecode(widget.message.confirmResult!) as Map<String, dynamic>;
       return perMessagePriceOptionWidget(BotMessageData.fromJson(selected),
           selected: true);
     }
@@ -46,7 +45,7 @@ class _BotPricePerMessageRequestWidgetState
         ? const SizedBox()
         : Column(children: [
             ...bmm!.priceModels.map((data) {
-              int index = (bmm!.priceModels.indexOf(data) + 1);
+              final index = bmm!.priceModels.indexOf(data) + 1;
               return perMessagePriceOptionWidget(data, index: index);
             })
           ]);
@@ -55,9 +54,9 @@ class _BotPricePerMessageRequestWidgetState
   Container perMessagePriceOptionWidget(BotMessageData data,
       {int index = 1, bool selected = false}) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4.0),
+      margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8.0),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.purple.shade200),
       ),
       child: ListTile(
@@ -66,7 +65,7 @@ class _BotPricePerMessageRequestWidgetState
           minVerticalPadding: 4,
           title: Text(data.name, style: Theme.of(context).textTheme.titleSmall),
           onTap: () {
-            String priceString = '${data.price} ${data.unit}';
+            final priceString = '${data.price} ${data.unit}';
             Get.dialog(
               CupertinoAlertDialog(
                 title: Text(data.name),
@@ -81,9 +80,7 @@ class _BotPricePerMessageRequestWidgetState
                 ),
                 actions: [
                   CupertinoDialogAction(
-                    onPressed: () {
-                      Get.back();
-                    },
+                    onPressed: Get.back,
                     child: const Text('Cancel'),
                   ),
                   CupertinoDialogAction(
@@ -93,8 +90,9 @@ class _BotPricePerMessageRequestWidgetState
                       widget.message.confirmResult = jsonEncode(data);
 
                       // save config to local db
-                      Map localConfig = jsonDecode(
-                          widget.cc.roomObs.value.botLocalConfig ?? '{}');
+                      final localConfig = jsonDecode(
+                              widget.cc.roomObs.value.botLocalConfig ?? '{}')
+                          as Map<String, dynamic>;
                       localConfig[bmm!.type.name] = data;
                       widget.cc.roomObs.value.botLocalConfig =
                           jsonEncode(localConfig);

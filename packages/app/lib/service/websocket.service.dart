@@ -303,7 +303,7 @@ class WebsocketService extends GetxService {
         StorageKeyString.relayMessageFeeConfig);
     for (final entry in map1.entries) {
       if (entry.value is Map && (entry.value as Map).isNotEmpty) {
-        String host = entry.key;
+        var host = entry.key as String;
         if (host.startsWith('wss://')) {
           final uri = Uri.parse(host);
           host = uri.host;
@@ -316,7 +316,7 @@ class WebsocketService extends GetxService {
         await Storage.getLocalStorageMap(StorageKeyString.relayFileFeeConfig);
     for (final entry in map2.entries) {
       if (entry.value is Map && (entry.value as Map).isNotEmpty) {
-        String host = entry.key;
+        var host = entry.key as String;
         if (host.startsWith('wss://')) {
           final uri = Uri.parse(host);
           host = uri.host;

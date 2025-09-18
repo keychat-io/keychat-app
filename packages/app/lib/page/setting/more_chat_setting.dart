@@ -139,9 +139,9 @@ class MoreChatSetting extends StatelessWidget {
               description: NoticeTextWidget.warning(
                   'When the notification function is turned on, receiving addresses will be uploaded to the notification server.'),
               onToggle: (res) async {
-                final bool? result =
+                final result =
                     await (res ? enableNotification() : disableNotification());
-                if (result != null && result) {
+                if (result) {
                   // close bottomsheet
                   Get.back();
                 }
@@ -182,8 +182,8 @@ class MoreChatSetting extends StatelessWidget {
     ));
   }
 
-  Future disableNotification() {
-    return Get.dialog(CupertinoAlertDialog(
+  Future<bool> disableNotification() async {
+    final res = await Get.dialog<bool>(CupertinoAlertDialog(
       title: const Text('Alert'),
       content: Container(
           color: Colors.transparent,
@@ -213,6 +213,7 @@ class MoreChatSetting extends StatelessWidget {
         ),
       ],
     ));
+    return res ?? false;
   }
 
   Future<bool> enableNotification() async {

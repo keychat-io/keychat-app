@@ -12,9 +12,9 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
 class GroupInviteConfirmAction extends StatelessWidget {
+  const GroupInviteConfirmAction(this.senderName, this.message, {super.key});
   final Message message;
   final String senderName;
-  const GroupInviteConfirmAction(this.senderName, this.message, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -22,20 +22,19 @@ class GroupInviteConfirmAction extends StatelessWidget {
       case RequestConfrimEnum.request:
         return FilledButton(
             onPressed: () async {
-              List list = jsonDecode(message.content);
+              final list = jsonDecode(message.content) as List;
 
-              String toMainPubkey = list[0];
+              final toMainPubkey = list[0] as String;
 
-              Room? groupRoom = await RoomService.instance
+              final groupRoom = await RoomService.instance
                   .getRoomByIdentity(toMainPubkey, message.identityId);
               if (groupRoom == null) throw Exception('room not found');
               // List<RoomMember> members = await groupRoom.getActiveMembers();
 
               // members = members.length > 10 ? members.sublist(0, 10) : members;
               // int membersCount = members.length;
-              Map<String, String> toJoinUserMap =
-                  Map<String, String>.from(list[1])
-                      .map((key, value) => MapEntry(key, value.toString()));
+              final toJoinUserMap =
+                  Map<String, String>.from(list[1]).map(MapEntry.new);
 
               Get.dialog(CupertinoAlertDialog(
                   title: Text('Group Name: ${groupRoom.name}'),
@@ -63,12 +62,12 @@ class GroupInviteConfirmAction extends StatelessWidget {
                           Get.back();
                           try {
                             if (groupRoom.isMLSGroup) {
-                              List<Map<String, dynamic>> users = [];
-                              List<String> invited = [];
-                              List<String> pkIsNull = [];
+                              final users = <Map<String, dynamic>>[];
+                              final invited = <String>[];
+                              final pkIsNull = <String>[];
 
-                              for (var entry in toJoinUserMap.entries) {
-                                String? pk = await MlsGroupService.instance
+                              for (final entry in toJoinUserMap.entries) {
+                                final pk = await MlsGroupService.instance
                                     .getKeyPackageFromRelay(entry.key);
                                 if (pk == null) {
                                   pkIsNull.add(entry.value);
@@ -88,15 +87,13 @@ class GroupInviteConfirmAction extends StatelessWidget {
                                   content: const Column(
                                     children: [
                                       Text(
-                                          'All users\'s keyPackage is null, They need login app first.'),
+                                          "All users's keyPackage is null, They need login app first."),
                                     ],
                                   ),
                                   actions: [
                                     CupertinoDialogAction(
+                                      onPressed: Get.back,
                                       child: const Text('OK'),
-                                      onPressed: () {
-                                        Get.back();
-                                      },
                                     ),
                                   ],
                                 ));
@@ -117,10 +114,8 @@ class GroupInviteConfirmAction extends StatelessWidget {
                                 ),
                                 actions: [
                                   CupertinoDialogAction(
+                                    onPressed: Get.back,
                                     child: const Text('OK'),
-                                    onPressed: () {
-                                      Get.back();
-                                    },
                                   ),
                                 ],
                               ));
@@ -135,7 +130,7 @@ class GroupInviteConfirmAction extends StatelessWidget {
                             MessageService.instance
                                 .updateMessageAndRefresh(message);
                           } catch (e, s) {
-                            String msg = Utils.getErrorMessage(e);
+                            final msg = Utils.getErrorMessage(e);
                             EasyLoading.showError(msg);
                             logger.e(msg, error: e, stackTrace: s);
                           }

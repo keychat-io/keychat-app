@@ -7,8 +7,8 @@ import 'package:get/get.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_controller.dart';
 
 class PayToLnurl extends StatefulWidget {
-  final Map<String, dynamic> data;
   const PayToLnurl(this.data, {super.key});
+  final Map<String, dynamic> data;
 
   @override
   _PayToLnurlState createState() => _PayToLnurlState();
@@ -73,7 +73,7 @@ class _PayToLnurlState extends State<PayToLnurl> {
                             'Amount must be greater than ${(data['minSendable'] / 1000).round()}');
                         return;
                       }
-                      var amount = int.parse(amountController.text.trim());
+                      final amount = int.parse(amountController.text.trim());
                       if (amount == 0) {
                         EasyLoading.showToast(
                             'Amount must be greater than ${(data['minSendable'] / 1000).round()}');
@@ -81,20 +81,20 @@ class _PayToLnurlState extends State<PayToLnurl> {
                       }
                       if (data['callback'] == null) {
                         EasyLoading.showToast(
-                            'Error: server\'s callback is null');
+                            "Error: server's callback is null");
                         return;
                       }
-                      String url =
-                          data['callback'] + '?amount=${amount * 1000}';
-                      var res = await Dio().get(url);
-                      pr = res.data['pr'];
+                      final url =
+                          '${data['callback'] as String}?amount=${amount * 1000}';
+                      final res = await Dio().get(url);
+                      pr = res.data['pr'] as String?;
                       if (pr == null) {
                         EasyLoading.showToast('Error: get invoice failed');
                         return;
                       }
-                      PayInvoiceController pic = Utils.getOrPutGetxController(
+                      final pic = Utils.getOrPutGetxController(
                           create: PayInvoiceController.new);
-                      var tx = await pic.confirmToPayInvoice(
+                      final tx = await pic.confirmToPayInvoice(
                           invoice: pr,
                           mint: pic.selectedMint.value,
                           isPay: true);
@@ -102,12 +102,11 @@ class _PayToLnurlState extends State<PayToLnurl> {
                     } on DioException catch (e, s) {
                       EasyLoading.showError(
                           e.response?.toString() ?? e.toString());
-                      logger.e('initNofityConfig ${e.response?.toString()}',
+                      logger.e('initNofityConfig ${e.response}',
                           error: e, stackTrace: s);
                     } catch (e, s) {
-                      logger.e('error: ${e.toString()}',
-                          error: e, stackTrace: s);
-                      EasyLoading.showError('Error: ${e.toString()}');
+                      logger.e('error: $e', error: e, stackTrace: s);
+                      EasyLoading.showError('Error: $e');
                       return;
                     } finally {
                       setState(() => isLoading = false);

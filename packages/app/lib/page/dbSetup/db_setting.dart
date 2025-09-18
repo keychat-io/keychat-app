@@ -1,5 +1,5 @@
 import 'dart:convert' show jsonDecode, jsonEncode;
-import 'dart:io' show File, Directory;
+import 'dart:io' show Directory, File;
 import 'package:app/service/secure_storage.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
@@ -13,7 +13,7 @@ class DbSetting {
   Future<List<File>> getDatabaseFiles(String path) async {
     final dir = Directory(path);
     if (!await dir.exists()) {
-      throw Exception("Directory does not exist: $path");
+      throw Exception('Directory does not exist: $path');
     }
 
     return dir
@@ -30,16 +30,16 @@ class DbSetting {
     final iv = encrypt.IV.fromLength(16);
     final encrypter = encrypt.Encrypter(encrypt.AES(key));
 
-    List<Map<String, dynamic>> encryptedFiles = [];
+    final encryptedFiles = <Map<String, dynamic>>[];
 
-    for (var file in files) {
+    for (final file in files) {
       final bytes = await file.readAsBytes();
 
       final encrypted = encrypter.encryptBytes(bytes, iv: iv);
 
       encryptedFiles.add({
-        "fileName": file.uri.pathSegments.last,
-        "encryptedData": iv.bytes + encrypted.bytes,
+        'fileName': file.uri.pathSegments.last,
+        'encryptedData': iv.bytes + encrypted.bytes,
       });
     }
 
@@ -52,7 +52,7 @@ class DbSetting {
 
     final sink = outputFile.openWrite();
 
-    for (var file in encryptedFiles) {
+    for (final file in encryptedFiles) {
       final fileName = file['fileName'] as String;
       final encryptedData = file['encryptedData'] as List<int>;
 
@@ -70,15 +70,15 @@ class DbSetting {
   Future exportDB(String encryptionKey) async {
     final fileName =
         'Keychat_db_${formatTime(DateTime.now().millisecondsSinceEpoch, 'yyyy-MM-dd_HH-mm-ss')}';
-    var appFolder = await Utils.getAppFolder();
-    String sourcePath = '${appFolder.path}/prod/database';
-    String outputPath = '$sourcePath/$fileName';
+    final appFolder = await Utils.getAppFolder();
+    final sourcePath = '${appFolder.path}/prod/database';
+    final outputPath = '$sourcePath/$fileName';
     // need export shared_preferences file to sourcePath
-    String sharedPrefsPath = '$sourcePath/shared_prefs_export.json';
+    final sharedPrefsPath = '$sourcePath/shared_prefs_export.json';
     final exportsharedPrefsFile = File(sharedPrefsPath);
     await exportSharedPreferences(exportsharedPrefsFile);
     // need export secure storage file to sourcePath
-    String secureStoragePath = '$sourcePath/secure_storage.json';
+    final secureStoragePath = '$sourcePath/secure_storage.json';
     final exportSecureStorageFile = File(secureStoragePath);
     await exportSecureStorage(exportSecureStorageFile);
     await exportAndEncryptDatabases(
@@ -93,7 +93,7 @@ class DbSetting {
     try {
       final files = await getDatabaseFiles(sourcePath);
       if (files.isEmpty) {
-        logger.e("No database files found at: $sourcePath");
+        logger.e('No database files found at: $sourcePath');
         return;
       }
 
@@ -101,7 +101,7 @@ class DbSetting {
 
       final packagedFile =
           await packageEncryptedFiles(encryptedFiles, outputPath);
-      logger.i("Encrypted package created at: ${packagedFile.path}");
+      logger.i('Encrypted package created at: ${packagedFile.path}');
 
       await exportFile(packagedFile.path, fileName);
       if (await packagedFile.exists()) {
@@ -109,13 +109,13 @@ class DbSetting {
         logger.i('File deleted: ${packagedFile.path}');
       }
     } catch (e) {
-      logger.e("Error occurred: $e");
+      logger.e('Error occurred: $e');
     }
   }
 
   Future<bool?> exportFile(String filePath, [String? fileName]) async {
     fileName ??= path.basename(filePath);
-    String? outputFile = await FilePicker.platform.saveFile(
+    final outputFile = await FilePicker.platform.saveFile(
       dialogTitle: 'Please select an output path:',
       fileName: fileName,
       bytes: await File(filePath).readAsBytes(),
@@ -127,12 +127,12 @@ class DbSetting {
       String packagePath) async {
     final packageFile = File(packagePath);
     if (!await packageFile.exists()) {
-      throw Exception("Encrypted package does not exist: $packagePath");
+      throw Exception('Encrypted package does not exist: $packagePath');
     }
 
     final bytes = await packageFile.readAsBytes();
-    int offset = 0;
-    List<Map<String, dynamic>> parsedFiles = [];
+    var offset = 0;
+    final parsedFiles = <Map<String, dynamic>>[];
 
     while (offset < bytes.length) {
       final fileNameLength =
@@ -151,8 +151,8 @@ class DbSetting {
       offset += dataLength;
 
       parsedFiles.add({
-        "fileName": fileName,
-        "encryptedData": encryptedData,
+        'fileName': fileName,
+        'encryptedData': encryptedData,
       });
     }
 
@@ -165,7 +165,7 @@ class DbSetting {
     final encrypter = encrypt.Encrypter(encrypt.AES(key));
 
     try {
-      for (var file in encryptedFiles) {
+      for (final file in encryptedFiles) {
         final encryptedData = file['encryptedData'] as List<int>;
         final fileName = file['fileName'] as String;
 
@@ -183,7 +183,7 @@ class DbSetting {
       await importSecureStorage(targetDirectory);
       return true;
     } catch (e, s) {
-      logger.e("Error occurred: $e", stackTrace: s);
+      logger.e('Error occurred: $e', stackTrace: s);
       return false;
     }
   }
@@ -194,15 +194,15 @@ class DbSetting {
       final encryptedFiles = await parseEncryptedPackage(packagePath);
 
       if (encryptedFiles.isEmpty) {
-        logger.e("No files found in the encrypted package.");
+        logger.e('No files found in the encrypted package.');
         return false;
       }
-      logger.i("Files successfully decrypted to: $targetDirectory");
+      logger.i('Files successfully decrypted to: $targetDirectory');
 
       return await decryptAndSaveFiles(
           encryptedFiles, decryptionKey, targetDirectory);
     } catch (e) {
-      logger.e("Error occurred: $e");
+      logger.e('Error occurred: $e');
       return false;
     }
   }
@@ -216,31 +216,31 @@ class DbSetting {
         if (entity is File) {
           try {
             entity.deleteSync(); // Delete the file
-            ("Deleted file: ${entity.path}");
+            'Deleted file: ${entity.path}';
           } catch (e) {
-            logger.e("Error deleting file: ${entity.path}, $e");
+            logger.e('Error deleting file: ${entity.path}, $e');
           }
         }
       });
-      logger.i("All files in $targetDirectory have been deleted.");
+      logger.i('All files in $targetDirectory have been deleted.');
     } else {
-      logger.e("Directory does not exist then create: $targetDirectory");
+      logger.e('Directory does not exist then create: $targetDirectory');
       // path need to create
       directory.createSync(recursive: true);
     }
   }
 
   Future<bool> importDB(String decryptionKey, File file) async {
-    Directory appFolder = await Utils.getAppFolder();
+    final appFolder = await Utils.getAppFolder();
 
-    String sourcePath = '${appFolder.path}/prod/database/';
+    final sourcePath = '${appFolder.path}/prod/database/';
 
     deleteAllFilesInDirectory(sourcePath);
-    return await importAndDecryptPackage(file.path, decryptionKey, sourcePath);
+    return importAndDecryptPackage(file.path, decryptionKey, sourcePath);
   }
 
   Future<File?> importFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
+    final result = await FilePicker.platform.pickFiles();
     if (result != null) {
       return File(result.files.single.path!);
     }
@@ -253,7 +253,7 @@ class DbSetting {
       await Storage.clearAll();
       final file = File('$importFilePath/shared_prefs_export.json');
       final jsonString = await file.readAsString();
-      final Map<String, dynamic> data = jsonDecode(jsonString);
+      final data = jsonDecode(jsonString) as Map<String, dynamic>;
 
       data.forEach((key, value) async {
         if (value is int) {
@@ -284,7 +284,7 @@ class DbSetting {
   Future<void> exportSharedPreferences(File exportFile) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final Map<String, dynamic> data = prefs.getKeys().fold({}, (map, key) {
+      final data = prefs.getKeys().fold({}, (map, key) {
         map[key] = prefs.get(key);
         return map;
       });
@@ -300,9 +300,9 @@ class DbSetting {
 
   Future<void> exportSecureStorage(File exportFile) async {
     try {
-      Map<String, String> allData = await SecureStorage.instance.readAll();
+      final allData = await SecureStorage.instance.readAll();
 
-      String jsonData = jsonEncode(allData);
+      final jsonData = jsonEncode(allData);
 
       await exportFile.writeAsString(jsonData);
 
@@ -316,16 +316,15 @@ class DbSetting {
     try {
       // first clear old data
       await SecureStorage.instance.clearAll();
-      String filePath = '${importFilePath}secure_storage.json';
+      final filePath = '${importFilePath}secure_storage.json';
 
-      File file = File(filePath);
-      String jsonData = await file.readAsString();
+      final file = File(filePath);
+      final jsonData = await file.readAsString();
 
-      Map<String, String> allData =
-          Map<String, String>.from(jsonDecode(jsonData));
+      final allData = Map<String, String>.from(jsonDecode(jsonData));
 
       // write secure storage
-      for (var entry in allData.entries) {
+      for (final entry in allData.entries) {
         await SecureStorage.instance.write(entry.key, entry.value);
       }
       // load then delete

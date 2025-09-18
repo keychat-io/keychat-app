@@ -291,7 +291,7 @@ $content'''
         .findFirstSync();
   }
 
-  Future getMessageById(int id) async {
+  Future<Message?> getMessageById(int id) async {
     final database = DBProvider.database;
     return database.messages.filter().idEqualTo(id).findFirst();
   }
@@ -481,7 +481,7 @@ $content'''
   }
 
   Future updateMessageCashuStatus(int id) async {
-    final Message? m = await getMessageById(id);
+    final m = await getMessageById(id);
     if (m == null) return;
     if (m.cashuInfo == null) return;
     // if (m.cashuInfo!.status == status) return;
@@ -538,7 +538,7 @@ $content'''
     if (isBot && !m.isMeSend) {
       BotServerMessageModel? bmm;
       try {
-        final Map<String, dynamic> map = jsonDecode(m.content);
+        final map = jsonDecode(m.content) as Map<String, dynamic>;
         bmm = BotServerMessageModel.fromJson(map);
         m.mediaType = bmm.type;
         m.realMessage = bmm.message;
@@ -612,7 +612,7 @@ $content'''
     final m = await getMessageByMsgId(message.msgid);
     if (m == null || m.sent == SendStatusType.success) return;
     final ess = message.rawEvents.map((e) {
-      final Map<String, dynamic> data = jsonDecode(e);
+      final data = jsonDecode(e) as Map<String, dynamic>;
       return data['id'] as String;
     }).toList();
     var isSuccess = false;

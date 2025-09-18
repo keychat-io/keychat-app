@@ -292,7 +292,7 @@ Fix:
   static Future<void> handleMessage(RemoteMessage message) async {
     if (message.data.isEmpty) return;
     if (message.data['pubkey'] != null) {
-      final String pubkey = message.data['pubkey'];
+      final pubkey = message.data['pubkey'] as String;
       if (pubkey.isEmpty) {
         return;
       }

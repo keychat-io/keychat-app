@@ -748,14 +748,14 @@ class _WebviewTabState extends State<WebviewTab> {
         if (!(multiWebviewController.config['autoSignEvent'] as bool? ??
             true)) {
           try {
-            final bool confirm = await Get.bottomSheet(signEventConfirm(
+            final confirm = await Get.bottomSheet<bool>(signEventConfirm(
                 content: event['content'] as String,
                 kind: event['kind'] as int,
                 tags: (event['tags'] as List)
                     .map((e) =>
                         List<String>.from(e.map((item) => item.toString())))
                     .toList()));
-            if (confirm != true) {
+            if (confirm == null || confirm != true) {
               return null;
             }
           } catch (e, s) {
@@ -774,8 +774,8 @@ class _WebviewTabState extends State<WebviewTab> {
 
         return res;
       case 'nip04Encrypt':
-        final String to = data[1];
-        final String plaintext = data[2];
+        final to = data[1] as String;
+        final plaintext = data[2] as String;
         if (identity.isFromSigner) {
           final ciphertext = await SignerService.instance.nip04Encrypt(
               plaintext: plaintext,
@@ -790,8 +790,8 @@ class _WebviewTabState extends State<WebviewTab> {
         final model = NostrEventModel.fromJson(jsonDecode(encryptedEvent));
         return model.content;
       case 'nip04Decrypt':
-        final String from = data[1];
-        final String ciphertext = data[2];
+        final from = data[1] as String;
+        final ciphertext = data[2] as String;
         if (identity.isFromSigner) {
           final plaintext = await SignerService.instance.nip04Decrypt(
               ciphertext: ciphertext,
@@ -805,8 +805,8 @@ class _WebviewTabState extends State<WebviewTab> {
             content: ciphertext);
         return content;
       case 'nip44Encrypt':
-        final String to = data[1];
-        final String plaintext = data[2];
+        final to = data[1] as String;
+        final plaintext = data[2] as String;
         String ciphertext;
         if (identity.isFromSigner) {
           ciphertext = await SignerService.instance
@@ -819,8 +819,8 @@ class _WebviewTabState extends State<WebviewTab> {
         }
         return ciphertext;
       case 'nip44Decrypt':
-        final String to = data[1];
-        final String ciphertext = data[2];
+        final to = data[1] as String;
+        final ciphertext = data[2] as String;
         if (identity.isFromSigner) {
           final plaintext = await SignerService.instance
               .nip44Decrypt(ciphertext, to, identity.secp256k1PKHex);
@@ -1114,7 +1114,7 @@ img {
         var identity = Get.find<EcashController>().currentIdentity;
         identity ??= Get.find<HomeController>().getSelectedIdentity();
 
-        final String message = data[1];
+        final message = data[1] as String;
         final signature = await rust_nostr.signSchnorr(
             privateKey: await identity.getSecp256k1SKHex(), content: message);
         return {
@@ -1125,8 +1125,8 @@ img {
         var identity = Get.find<EcashController>().currentIdentity;
         identity ??= Get.find<HomeController>().getSelectedIdentity();
 
-        final String signature = data[1];
-        final String message = data[2];
+        final signature = data[1] as String;
+        final message = data[2] as String;
         final isValid = await rust_nostr.verifySchnorr(
             pubkey: identity.secp256k1PKHex,
             content: message,
@@ -1134,7 +1134,7 @@ img {
             hash: true);
         return isValid;
       case 'sendPayment':
-        final String? lnbc = data[1];
+        final lnbc = data[1] as String?;
         if (lnbc == null || lnbc.isEmpty) {
           return 'Error: Invoice is empty';
         }
@@ -1151,7 +1151,7 @@ img {
         }
       case 'makeInvoice':
         try {
-          final Map source = data[1];
+          final source = data[1] as Map? ?? {};
           final amount = source['amount'] != null &&
                   source['amount'] is String &&
                   (source['amount'] as String).isNotEmpty

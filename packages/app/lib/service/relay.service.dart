@@ -240,7 +240,7 @@ class RelayService {
               receiveTimeout: const Duration(seconds: 10)));
       return res.data as Map<String, dynamic>?;
     } on DioException catch (e, s) {
-      final String? msg = e.response?.data;
+      final msg = e.response?.data as String?;
       logger.e('relay faild: ${relay.url} , $msg', stackTrace: s);
     } catch (e, s) {
       logger.e('relay faild: ${relay.url} , $e', stackTrace: s);
@@ -354,13 +354,14 @@ class RelayService {
     final Map? data = await fetchRelayNostrInfo(relay);
     if (data == null || data.isEmpty) return null;
     if (data['limitation'] != null) {
-      final bool payRequired = data['limitation']['payment_required'] ?? false;
+      final payRequired =
+          data['limitation']['payment_required'] as bool? ?? false;
       if (payRequired) {
-        final Map fees = data['fees'] ?? {};
+        final fees = data['fees'] as Map<String, dynamic>? ?? {};
         for (final map in fees.entries) {
           if (map.key == 'publication') {
             if (map.value.length == 0) continue;
-            final Map publication = fees['publication'][0];
+            final publication = fees['publication'][0] as Map<String, dynamic>;
             if (publication['method'] != null) {
               final mints = <String>[];
               final mintsList =
@@ -372,8 +373,9 @@ class RelayService {
               }
 
               final payInfo = RelayMessageFee()
-                ..amount = publication['amount']
-                ..unit = RelayMessageFee.getSymbolByName(publication['unit'])
+                ..amount = publication['amount'] as int? ?? 0
+                ..unit = RelayMessageFee.getSymbolByName(
+                    publication['unit'] as String? ?? '-')
                 ..mints = mints;
 
               return payInfo;
@@ -416,11 +418,11 @@ class RelayService {
       logger.i('fetchAndSetFileUploadConfig, $url: $map');
       if (map != null) {
         final rufc = RelayFileFee();
-        rufc.maxSize = map['maxsize'] ?? 0;
-        rufc.mints = map['mints'] ?? [];
-        rufc.prices = map['prices'] ?? [];
-        rufc.unit = map['unit'] ?? '-';
-        rufc.expired = map['expired'] ?? '-';
+        rufc.maxSize = map['maxsize'] as int? ?? 0;
+        rufc.mints = map['mints'] as List<dynamic>? ?? [];
+        rufc.prices = map['prices'] as List<dynamic>? ?? [];
+        rufc.unit = map['unit'] as String? ?? '-';
+        rufc.expired = map['expired'] as String? ?? '-';
         return rufc;
       }
     } catch (e) {

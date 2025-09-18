@@ -42,7 +42,7 @@ class IdentityService {
     return database.identitys.where().count();
   }
 
-  Future createOneTimeKey(int identityId) async {
+  Future<Mykey> createOneTimeKey(int identityId) async {
     final database = DBProvider.database;
     final keychain = await rust_nostr.generateSecp256K1();
     final ontTimeKey = Mykey(
@@ -485,8 +485,10 @@ class IdentityService {
       logger.d('Identity version is up to date, skip sync');
       return identity;
     }
-    final String? nameFromRelay = metadata['displayName'] ?? metadata['name'];
-    final String? avatarFromRelay = metadata['picture'] ?? metadata['avatar'];
+    final nameFromRelay =
+        (metadata['displayName'] ?? metadata['name']) as String?;
+    final avatarFromRelay =
+        (metadata['picture'] ?? metadata['avatar']) as String?;
 
     identity.nameFromRelay = nameFromRelay;
     if (avatarFromRelay != null && avatarFromRelay.isNotEmpty) {
@@ -495,8 +497,9 @@ class IdentityService {
         identity.avatarFromRelay = avatarFromRelay;
       }
     }
-    final String? description =
-        metadata['description'] ?? metadata['about'] ?? metadata['bio'];
+    final description = (metadata['description'] ??
+        metadata['about'] ??
+        metadata['bio']) as String?;
     identity.aboutFromRelay = description;
     identity.metadataFromRelay = res.content;
     identity.fetchFromRelayAt = DateTime.now();

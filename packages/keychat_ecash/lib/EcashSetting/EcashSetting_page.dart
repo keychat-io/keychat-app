@@ -1,17 +1,17 @@
 import 'package:app/global.dart';
 import 'package:app/service/secure_storage.dart';
-import 'package:flutter/services.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:app/utils.dart';
-import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
-import 'package:flutter/material.dart';
+import 'package:keychat_ecash/EcashSetting/EcashSetting_controller.dart';
+import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_page.dart';
+import 'package:keychat_ecash/keychat_ecash.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:settings_ui/settings_ui.dart';
-import '../NostrWalletConnect/NostrWalletConnect_page.dart';
-import './EcashSetting_controller.dart';
 
 class EcashSettingPage extends GetView<EcashSettingController> {
   const EcashSettingPage({super.key});
@@ -26,17 +26,15 @@ class EcashSettingPage extends GetView<EcashSettingController> {
             leading: const Icon(Icons.lock),
             title: const Text('Ecash Seed Phrase'),
             onPressed: (context) async {
-              String? words = await SecureStorage.instance.getPhraseWords();
+              final words = await SecureStorage.instance.getPhraseWords();
               Get.dialog(CupertinoAlertDialog(
                 title: const Text('Ecash Seed Phrase'),
                 content: Text(words ??
                     'The seed phrase for the first ID is also the seed phrase for ecash.'),
                 actions: [
                   CupertinoDialogAction(
+                    onPressed: Get.back,
                     child: const Text('OK'),
-                    onPressed: () {
-                      Get.back();
-                    },
                   ),
                   if (words != null)
                     CupertinoDialogAction(
@@ -58,7 +56,7 @@ class EcashSettingPage extends GetView<EcashSettingController> {
             onPressed: (context) async {
               try {
                 EasyLoading.show(status: 'Processing');
-                var ec = Get.find<EcashController>();
+                final ec = Get.find<EcashController>();
 
                 if (ec.currentIdentity == null) {
                   EasyLoading.showError('No mnemonic');
@@ -67,7 +65,7 @@ class EcashSettingPage extends GetView<EcashSettingController> {
                 await ec.restore();
                 await EasyLoading.showToast('Successfully');
               } catch (e, s) {
-                String msg = Utils.getErrorMessage(e);
+                final msg = Utils.getErrorMessage(e);
                 logger.e(e.toString(), error: e, stackTrace: s);
                 EasyLoading.showError(msg);
               }
@@ -77,7 +75,7 @@ class EcashSettingPage extends GetView<EcashSettingController> {
             leading: const Icon(Icons.auto_fix_high_sharp),
             title: const Text('Check Proofs'),
             description:
-                const Text('「Check Proofs」 when you can\'t send cashu token'),
+                const Text("「Check Proofs」 when you can't send cashu token"),
             onPressed: (context) async {
               try {
                 EasyLoading.show(status: 'Processing');
@@ -85,7 +83,7 @@ class EcashSettingPage extends GetView<EcashSettingController> {
                 EasyLoading.showToast('Success');
               } catch (e) {
                 EasyLoading.dismiss();
-                String msg = Utils.getErrorMessage(e);
+                final msg = Utils.getErrorMessage(e);
                 EasyLoading.showError(msg);
               }
             },
@@ -95,11 +93,10 @@ class EcashSettingPage extends GetView<EcashSettingController> {
           SettingsTile.navigation(
             leading: SvgPicture.asset(
               'assets/images/logo/nwc.svg',
-              fit: BoxFit.contain,
               width: 24,
               height: 24,
             ),
-            title: const Text("Nostr Wallet Connect"),
+            title: const Text('Nostr Wallet Connect'),
             onPressed: (context) {
               Get.to(() => const NostrWalletConnectPage(),
                   id: GetPlatform.isDesktop ? GetXNestKey.ecash : null);

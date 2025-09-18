@@ -26,13 +26,29 @@ import 'package:markdown_widget/markdown_widget.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:settings_ui/settings_ui.dart';
 
-import '../../service/message.service.dart';
-import '../components.dart';
-import 'chat_bubble.dart';
-import 'chat_bubble_clipper_4.dart';
+import 'package:app/service/message.service.dart';
+import 'package:app/page/components.dart';
+import 'package:app/page/chat/chat_bubble.dart';
+import 'package:app/page/chat/chat_bubble_clipper_4.dart';
 
 // ignore: must_be_immutable
 class MessageWidget extends StatelessWidget {
+  // late MarkdownStyleSheet markdownStyleSheet;
+
+  MessageWidget(
+      {required this.myAavtar,
+      required this.index,
+      required this.isGroup,
+      required this.cc,
+      required this.fontColor,
+      required this.backgroundColor,
+      required this.screenWidth,
+      required this.toDisplayNameColor,
+      required this.markdownConfig,
+      super.key,
+      this.roomMember}) {
+    message = cc.messages[index];
+  }
   late Message message;
   late Widget myAavtar;
   final Color fontColor;
@@ -46,22 +62,6 @@ class MessageWidget extends StatelessWidget {
   late bool isGroup;
   late Color toDisplayNameColor;
   late MarkdownConfig markdownConfig;
-  // late MarkdownStyleSheet markdownStyleSheet;
-
-  MessageWidget(
-      {super.key,
-      required this.myAavtar,
-      required this.index,
-      required this.isGroup,
-      required this.cc,
-      required this.fontColor,
-      required this.backgroundColor,
-      required this.screenWidth,
-      required this.toDisplayNameColor,
-      required this.markdownConfig,
-      this.roomMember}) {
-    message = cc.messages[index];
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +83,7 @@ class MessageWidget extends StatelessWidget {
             ),
           ),
         ),
-        message.isMeSend ? _getMessageContainer() : toTextContainer(),
+        if (message.isMeSend) _getMessageContainer() else toTextContainer(),
         Obx(() => getFromAndToWidget(context, message))
       ],
     );
@@ -110,16 +110,16 @@ class MessageWidget extends StatelessWidget {
                 // defaultVerticalAlignment: TableCellVerticalAlignment.middle,
                 // mainAxisAlignment: MainAxisAlignment.,
                 columnWidths: const {
-                  0: FixedColumnWidth(100.0),
+                  0: FixedColumnWidth(100),
                 },
                 children: [
-                  tableRow("Path", mfi.localPath ?? ''),
-                  tableRow("Url", mfi.url ?? ''),
-                  tableRow("Time", mfi.updateAt?.toIso8601String() ?? ''),
-                  tableRow("Size",
+                  tableRow('Path', mfi.localPath ?? ''),
+                  tableRow('Url', mfi.url ?? ''),
+                  tableRow('Time', mfi.updateAt?.toIso8601String() ?? ''),
+                  tableRow('Size',
                       FileService.instance.getFileSizeDisplay(mfi.size)),
-                  tableRow("IV", mfi.iv ?? ''),
-                  tableRow("Key", mfi.key ?? ''),
+                  tableRow('IV', mfi.iv ?? ''),
+                  tableRow('Key', mfi.key ?? ''),
                 ]),
             if (mfi.ecashToken != null)
               FutureBuilder(
@@ -130,8 +130,7 @@ class MessageWidget extends StatelessWidget {
                               title: const Text('Fee (Pay to FileServer)'),
                               // subtitle: Text(snapshot.data?.mint ?? ''),
                               trailing: Text(
-                                  ('${snapshot.data?.amount ?? 0} ${snapshot.data?.unit ?? 'sat'}')
-                                      .toString(),
+                                  '${snapshot.data?.amount ?? 0} ${snapshot.data?.unit ?? 'sat'}',
                                   style: Theme.of(context).textTheme.bodyLarge),
                             )
                           : Container()),
@@ -139,7 +138,7 @@ class MessageWidget extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 child: TextButton(
                   onPressed: () {
-                    String str = '''
+                    final str = '''
 {"url": "${mfi.url}",
 "IV": "${mfi.iv}",
 "Key": "${mfi.key}"}
@@ -161,7 +160,7 @@ class MessageWidget extends StatelessWidget {
   }
 
   Widget getFromAndToWidget(BuildContext context, Message message) {
-    var style = TextStyle(
+    final style = TextStyle(
         fontSize: 12,
         color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6));
     return cc.showFromAndTo.value
@@ -172,7 +171,6 @@ class MessageWidget extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (kDebugMode)
@@ -204,7 +202,7 @@ class MessageWidget extends StatelessWidget {
           seconds: KeychatGlobal.messageFailedAfterSeconds + 1)))) {
         return null;
       } else {
-        NostrEventStatus? exist = DBProvider.database.nostrEventStatus
+        final exist = DBProvider.database.nostrEventStatus
             .filter()
             .eventIdEqualTo(message.msgid)
             .isReceiveEqualTo(false)
@@ -219,12 +217,12 @@ class MessageWidget extends StatelessWidget {
         splashColor: Colors.transparent,
         onPressed: () async {
           // check status
-          var (ess, event) = await _getRawMessageData(
+          final (ess, event) = await _getRawMessageData(
               message.eventIds[0], message.rawEvents[0]);
 
           // fix message sent status
           if (message.sent != SendStatusType.success) {
-            List success = ess
+            final List success = ess
                 .where((element) => element.sendStatus == EventSendEnum.success)
                 .toList();
             if (success.isNotEmpty) {
@@ -241,18 +239,16 @@ class MessageWidget extends StatelessWidget {
                 '1. Check your network first. 2. Re-Send raw data to Relays'),
             actions: [
               CupertinoDialogAction(
+                onPressed: Get.back,
                 child: const Text('Cancel'),
-                onPressed: () {
-                  Get.back();
-                },
               ),
               CupertinoDialogAction(
                 child: const Text('Resend'),
                 onPressed: () async {
                   EasyLoading.showSuccess('Resending...');
                   logger.i('Resend system message: ${message.rawEvents}');
-                  List<String> ess = message.rawEvents.map((e) {
-                    Map<String, dynamic> data = jsonDecode(e);
+                  final ess = message.rawEvents.map((e) {
+                    final data = jsonDecode(e) as Map<String, dynamic>;
                     if (data['toIdPubkey'] != null) {
                       data.remove('toIdPubkey');
                     }
@@ -260,10 +256,9 @@ class MessageWidget extends StatelessWidget {
                   }).toList();
                   logger.i('Resend system message: $ess');
                   await Utils.waitRelayOnline();
-                  for (String item in ess) {
+                  for (final item in ess) {
                     try {
-                      NostrEventModel nem = NostrEventModel.fromJson(
-                          jsonDecode(item),
+                      final nem = NostrEventModel.fromJson(jsonDecode(item),
                           verify: false);
                       await NostrEventStatus.deleteById(nem.id);
                       await Get.find<WebsocketService>().writeNostrEvent(
@@ -331,7 +326,7 @@ class MessageWidget extends StatelessWidget {
   }
 
   Widget _getMessageContainer() {
-    var child = GestureDetector(
+    final child = GestureDetector(
         onLongPress: _handleTextLongPress,
         onSecondaryTapDown: (TapDownDetails e) {
           _onSecondaryTapDown(Get.context!, e);
@@ -342,7 +337,7 @@ class MessageWidget extends StatelessWidget {
             : _getReplyWidget());
 
     if (message.isMeSend) {
-      Widget? messageStatus = getMessageStatus();
+      final messageStatus = getMessageStatus();
       return Container(
         margin: EdgeInsets.only(
             top: 10, bottom: 10, left: messageStatus == null ? 40.0 : 0),
@@ -356,7 +351,7 @@ class MessageWidget extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: <Widget>[
                     if (messageStatus != null) messageStatus,
-                    Flexible(fit: FlexFit.loose, child: child),
+                    Flexible(child: child),
                   ],
                 ),
               ),
@@ -388,12 +383,12 @@ class MessageWidget extends StatelessWidget {
     }
 
     if (message.eventIds.length == 1 && message.rawEvents.length == 1) {
-      var (ess, event) =
+      final (ess, event) =
           await _getRawMessageData(message.eventIds[0], message.rawEvents[0]);
 
       // fix message sent status
       if (message.sent != SendStatusType.success) {
-        List success = ess
+        final List success = ess
             .where((element) => element.sendStatus == EventSendEnum.success)
             .toList();
         if (success.isNotEmpty) {
@@ -417,24 +412,24 @@ class MessageWidget extends StatelessWidget {
           botClientMessageModel: bcmm, payToken: token);
       return;
     }
-    List<List<NostrEventStatus>> result1 = [];
-    List<NostrEventModel?> result2 = [];
-    for (int i = 0; i < message.eventIds.length; i++) {
-      String? rawString =
+    final result1 = <List<NostrEventStatus>>[];
+    final result2 = <NostrEventModel?>[];
+    for (var i = 0; i < message.eventIds.length; i++) {
+      final rawString =
           message.rawEvents.length > i ? message.rawEvents[i] : null;
-      var (ess, event) =
+      final (ess, event) =
           await _getRawMessageData(message.eventIds[i], rawString);
       result1.add(ess);
       result2.add(event);
     }
 
-    List<RoomMember> members = cc.members.values.toList();
+    final members = cc.members.values.toList();
     _showRawDatas(message, result1, members, result2);
   }
 
   Future<(List<NostrEventStatus>, NostrEventModel?)> _getRawMessageData(
       String eventId, String? rawEvent) async {
-    List<NostrEventStatus> ess = await DBProvider.database.nostrEventStatus
+    final ess = await DBProvider.database.nostrEventStatus
         .filter()
         .eventIdEqualTo(eventId)
         .findAll();
@@ -447,7 +442,7 @@ class MessageWidget extends StatelessWidget {
     return (ess, event);
   }
 
-  void messageOnDoubleTap() async {
+  Future<void> messageOnDoubleTap() async {
     Utils.bottomSheedAndHideStatusBar(
         LongTextPreviewPage(message.realMessage ?? message.content));
   }
@@ -477,7 +472,7 @@ class MessageWidget extends StatelessWidget {
 
   Widget toTextContainer() {
     return Container(
-      padding: const EdgeInsets.only(top: 10.0, bottom: 10, right: 48.0),
+      padding: const EdgeInsets.only(top: 10, bottom: 10, right: 48),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -485,7 +480,7 @@ class MessageWidget extends StatelessWidget {
             margin: EdgeInsets.only(top: isGroup ? 4 : 0, right: 4),
             child: GestureDetector(
               onLongPress: () {
-                String userName = isGroup
+                final userName = isGroup
                     ? (roomMember?.name ?? 'Unknow')
                     : cc.roomObs.value.getRoomName();
                 cc.addMetionName(userName);
@@ -508,18 +503,12 @@ class MessageWidget extends StatelessWidget {
                       .replaceFirst(':id', cc.roomObs.value.id.toString()));
                 }
               },
-              child: Utils.getRandomAvatar(
-                  message.idPubkey.isNotEmpty
-                      ? message.idPubkey
-                      : cc.roomObs.value.toMainPubkey,
-                  height: 40,
-                  width: 40),
+              child: Utils.getRandomAvatar(message.idPubkey.isNotEmpty
+                  ? message.idPubkey
+                  : cc.roomObs.value.toMainPubkey),
             ),
           ),
-          Expanded(
-              child: Stack(
-                  alignment: AlignmentDirectional.topStart,
-                  children: [_getMessageContainer()]))
+          Expanded(child: Stack(children: [_getMessageContainer()]))
         ],
       ),
     );
@@ -538,15 +527,15 @@ class MessageWidget extends StatelessWidget {
                   color: fontColor.withValues(alpha: 0.7), height: 1.1),
               maxLines: 5));
     } else {
-      Message? msg =
+      final msg =
           MessageService.instance.getMessageByMsgIdSync(message.reply!.id!);
       if (msg != null) {
         if (msg.mediaType == MessageMediaType.image) {
-          MsgFileInfo mfi = MsgFileInfo.fromJson(jsonDecode(msg.realMessage!));
+          final mfi = MsgFileInfo.fromJson(jsonDecode(msg.realMessage!));
           subTitleChild =
               RoomUtil.getImageViewWidget(msg, cc, mfi, _textCallback);
         } else {
-          String content = msg.mediaType == MessageMediaType.text
+          final content = msg.mediaType == MessageMediaType.text
               ? (msg.realMessage ?? msg.content)
               : msg.mediaType.name;
           subTitleChild = Text(content,
@@ -571,7 +560,7 @@ class MessageWidget extends StatelessWidget {
                     : Theme.of(Get.context!).colorScheme.surface)
                 .withValues(alpha: 0.5),
             border: Border(
-                left: BorderSide(color: Colors.purple.shade200, width: 2.0)),
+                left: BorderSide(color: Colors.purple.shade200, width: 2)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -621,10 +610,8 @@ class MessageWidget extends StatelessWidget {
       title: const Text('Delete This Message?'),
       actions: <Widget>[
         CupertinoDialogAction(
+          onPressed: Get.back,
           child: const Text('Cancel'),
-          onPressed: () {
-            Get.back();
-          },
         ),
         CupertinoDialogAction(
           isDestructiveAction: true,
@@ -637,18 +624,18 @@ class MessageWidget extends StatelessWidget {
               if (message.mediaType == MessageMediaType.file ||
                   message.mediaType == MessageMediaType.image ||
                   message.mediaType == MessageMediaType.video) {
-                var mfi =
+                final mfi =
                     MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
                 if (mfi.localPath != null) {
-                  String filePath =
+                  final filePath =
                       '${Get.find<SettingController>().appFolder.path}${mfi.localPath}';
-                  bool fileExists = File(filePath).existsSync();
+                  final fileExists = File(filePath).existsSync();
                   if (fileExists) {
                     await File(filePath).delete();
                     if (message.mediaType == MessageMediaType.video) {
-                      String thumbail =
+                      final thumbail =
                           FileService.instance.getVideoThumbPath(filePath);
-                      bool thumbExists = await File(thumbail).exists();
+                      final thumbExists = await File(thumbail).exists();
                       if (thumbExists) {
                         await File(thumbail).delete();
                       }
@@ -677,13 +664,13 @@ class MessageWidget extends StatelessWidget {
       Message message, List<NostrEventStatus> ess, NostrEventModel? event,
       {BotClientMessageModel? botClientMessageModel,
       rust_cashu.TokenInfo? payToken}) {
-    BuildContext buildContext = Get.context!;
+    final buildContext = Get.context!;
     return Get.bottomSheet(
         isScrollControlled: true,
         ignoreSafeArea: false,
         Scaffold(
             appBar: AppBar(
-              title: Text('RawData'),
+              title: const Text('RawData'),
               centerTitle: true,
               leading: Container(),
               actions: [
@@ -716,16 +703,16 @@ class MessageWidget extends StatelessWidget {
                                   Card(
                                     child: Table(
                                       columnWidths: const {
-                                        0: FixedColumnWidth(100.0)
+                                        0: FixedColumnWidth(100)
                                       },
                                       children: [
                                         tableRow(
-                                            "Model",
+                                            'Model',
                                             botClientMessageModel.priceModel ??
                                                 ''),
-                                        tableRow("Amount",
+                                        tableRow('Amount',
                                             '${payToken?.amount.toString() ?? 0} ${payToken?.unit ?? 'sat'}'),
-                                        tableRow("Mint", payToken?.mint ?? ''),
+                                        tableRow('Mint', payToken?.mint ?? ''),
                                       ],
                                     ),
                                   )
@@ -741,29 +728,29 @@ class MessageWidget extends StatelessWidget {
                                 // defaultVerticalAlignment: TableCellVerticalAlignment.middle,
                                 // mainAxisAlignment: MainAxisAlignment.,
                                 columnWidths: const {
-                              0: FixedColumnWidth(100.0),
+                              0: FixedColumnWidth(100),
                             },
                                 // border:
                                 //     TableBorder.all(width: 0.5, color: Colors.grey.shade400),
                                 children: [
                               // tableRow('Encrypt',
                               //     encryptText[message.encryptType.name]),
-                              tableRow("ID", event.id),
-                              tableRow("Kind", event.kind.toString()),
-                              tableRow("From", event.pubkey),
-                              tableRow("To", event.tags[0][1]),
+                              tableRow('ID', event.id),
+                              tableRow('Kind', event.kind.toString()),
+                              tableRow('From', event.pubkey),
+                              tableRow('To', event.tags[0][1]),
                               tableRow(
-                                  "Time",
+                                  'Time',
                                   timestampToDateTime(event.createdAt)
                                       .toString()),
-                              tableRow("Source Content", message.content),
+                              tableRow('Source Content', message.content),
                               if (message.subEvent != null)
-                                tableRow("Sub Event", message.subEvent!),
-                              tableRow("Encrypted Content", event.content),
+                                tableRow('Sub Event', message.subEvent!),
+                              tableRow('Encrypted Content', event.content),
                               if (message.msgKeyHash != null)
-                                tableRow("Encryption Keys Hash",
+                                tableRow('Encryption Keys Hash',
                                     message.msgKeyHash ?? ''),
-                              tableRow("Sig", event.sig),
+                              tableRow('Sig', event.sig),
                             ])),
                       // JsonView.string(event.toString())
                     ])))));
@@ -772,21 +759,21 @@ class MessageWidget extends StatelessWidget {
   // for small group message, send to multi members
   void _showRawDatas(Message message, List<List<NostrEventStatus>> ess,
       List<RoomMember> members, List<NostrEventModel?> eventLogs) {
-    List result = [];
+    final result = [];
     for (var i = 0; i < ess.length; i++) {
       // NostrEvent event = NostrEvent.fromJson(jsonDecode(eventLog.snapshot));
       NostrEventModel? eventModel;
       if (eventLogs.length > i) {
         eventModel = eventLogs[i];
       }
-      List<NostrEventStatus>? es = ess[i];
+      final es = ess[i];
       if (eventModel == null) continue;
-      RoomMember? to = members
+      final to = members
           .where((element) => element.idPubkey == eventModel!.toIdPubkey)
           .firstOrNull;
       if (to == null) continue;
 
-      var data = {
+      final data = {
         'ess': es,
         'to': to,
         'eventModel': eventModel,
@@ -801,10 +788,10 @@ class MessageWidget extends StatelessWidget {
         Scaffold(
             appBar: AppBar(
               leading: Container(),
-              title: Text('RawData'),
+              title: const Text('RawData'),
               centerTitle: true,
               actions: [
-                IconButton(onPressed: Get.back, icon: Icon(Icons.close))
+                IconButton(onPressed: Get.back, icon: const Icon(Icons.close))
               ],
             ),
             body: SingleChildScrollView(
@@ -818,17 +805,18 @@ class MessageWidget extends StatelessWidget {
                         shrinkWrap: true,
                         itemCount: result.length,
                         itemBuilder: (context, index) {
-                          Map map = result[index];
+                          final map = result[index] as Map;
                           // String idPubkey = maps.keys.toList()[index];
-                          RoomMember? rm = map['to'];
-                          List<NostrEventStatus> eventSendStatus =
-                              map['ess'] ?? [];
-                          NostrEventModel? eventModel = map['eventModel'];
-                          List<NostrEventStatus> success = eventSendStatus
+                          final rm = map['to'] as RoomMember?;
+                          final eventSendStatus =
+                              map['ess'] as List<NostrEventStatus>? ?? [];
+                          final eventModel =
+                              map['eventModel'] as NostrEventModel?;
+                          final success = eventSendStatus
                               .where((element) =>
                                   element.sendStatus == EventSendEnum.success)
                               .toList();
-                          String idPubkey = eventModel?.toIdPubkey ??
+                          final idPubkey = eventModel?.toIdPubkey ??
                               eventModel?.tags[0][1] ??
                               '';
                           return ExpansionTile(
@@ -853,7 +841,7 @@ class MessageWidget extends StatelessWidget {
 
   void _handleForward(BuildContext context) {
     Get.back();
-    var identity = cc.roomObs.value.getIdentity();
+    final identity = cc.roomObs.value.getIdentity();
     if (message.isMediaType) {
       RoomUtil.forwardMediaMessage(identity,
           mediaType: message.mediaType,
@@ -871,9 +859,9 @@ class MessageWidget extends StatelessWidget {
       message.fromContact = FromContact(cc.roomObs.value.myIdPubkey,
           cc.roomObs.value.getIdentity().displayName);
     } else {
-      String senderName = cc.roomObs.value.getRoomName();
+      var senderName = cc.roomObs.value.getRoomName();
       if (cc.roomObs.value.isSendAllGroup || cc.roomObs.value.isMLSGroup) {
-        RoomMember? rm = cc.getMemberByIdPubkey(message.idPubkey);
+        final rm = cc.getMemberByIdPubkey(message.idPubkey);
         if (rm != null) {
           senderName = rm.name;
         }
@@ -886,9 +874,10 @@ class MessageWidget extends StatelessWidget {
     FocusScope.of(Get.context ?? context).requestFocus(cc.chatContentFocus);
   }
 
-  void _onSecondaryTapDown(BuildContext context, TapDownDetails e) async {
-    final RenderBox overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox;
+  Future<void> _onSecondaryTapDown(
+      BuildContext context, TapDownDetails e) async {
+    final overlay =
+        Overlay.of(context).context.findRenderObject()! as RenderBox;
     final position = RelativeRect.fromRect(
         Rect.fromPoints(
           e.globalPosition,
@@ -908,15 +897,15 @@ class MessageWidget extends StatelessWidget {
         if (message.isMediaType)
           PopupMenuItem(
             mouseCursor: SystemMouseCursors.click,
-            child: Row(
-              children: const [
+            child: const Row(
+              children: [
                 Icon(CupertinoIcons.folder_open, size: 18),
                 SizedBox(width: 8),
                 Text('View in Finder'),
               ],
             ),
             onTap: () {
-              MsgFileInfo mfi =
+              final mfi =
                   MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
               if (mfi.status != FileStatus.decryptSuccess) {
                 EasyLoading.showToast('File not decrypted');
@@ -926,25 +915,25 @@ class MessageWidget extends StatelessWidget {
                 EasyLoading.showToast('File not exist');
                 return;
               }
-              String filePath = FileService.instance.getAbsolutelyFilePath(
+              final filePath = FileService.instance.getAbsolutelyFilePath(
                   Get.find<SettingController>().appFolder.path, mfi.localPath!);
 
               // Get the directory of the file
-              String fileDir = File(filePath).parent.path;
+              final fileDir = File(filePath).parent.path;
               OpenFilex.open(fileDir);
             },
           ),
         PopupMenuItem(
           mouseCursor: SystemMouseCursors.click,
-          child: Row(
-            children: const [
+          child: const Row(
+            children: [
               Icon(Icons.copy, size: 18),
               SizedBox(width: 8),
               Text('Copy'),
             ],
           ),
           onTap: () async {
-            String content = message.content;
+            var content = message.content;
             if (message.realMessage != null &&
                 cc.roomObs.value.type == RoomType.bot) {
               content = message.realMessage!;
@@ -955,8 +944,8 @@ class MessageWidget extends StatelessWidget {
         ),
         PopupMenuItem(
           mouseCursor: SystemMouseCursors.click,
-          child: Row(
-            children: const [
+          child: const Row(
+            children: [
               Icon(CupertinoIcons.reply, size: 18),
               SizedBox(width: 8),
               Text('Reply'),
@@ -966,8 +955,8 @@ class MessageWidget extends StatelessWidget {
         ),
         PopupMenuItem(
           mouseCursor: SystemMouseCursors.click,
-          child: Row(
-            children: const [
+          child: const Row(
+            children: [
               Icon(CupertinoIcons.arrowshape_turn_up_right, size: 18),
               SizedBox(width: 8),
               Text('Forward'),
@@ -977,8 +966,8 @@ class MessageWidget extends StatelessWidget {
         ),
         PopupMenuItem(
           mouseCursor: SystemMouseCursors.click,
-          child: Row(
-            children: const [
+          child: const Row(
+            children: [
               Icon(Icons.code, size: 18),
               SizedBox(width: 8),
               Text('Raw Data'),
@@ -1011,7 +1000,7 @@ class MessageWidget extends StatelessWidget {
     );
   }
 
-  void _handleTextLongPress() async {
+  Future<void> _handleTextLongPress() async {
     await HapticFeedback.lightImpact();
     Get.bottomSheet(
       clipBehavior: Clip.antiAlias,
@@ -1029,7 +1018,7 @@ class MessageWidget extends StatelessWidget {
                   title: const Text('Copy'),
                   leading: const Icon(Icons.copy),
                   onPressed: (context) async {
-                    String conent = message.content;
+                    var conent = message.content;
                     if (message.realMessage != null &&
                         cc.roomObs.value.type == RoomType.bot) {
                       conent = message.realMessage!;

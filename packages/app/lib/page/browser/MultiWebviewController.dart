@@ -252,7 +252,7 @@ class MultiWebviewController extends GetxController {
       });
       Storage.setString('browserConfig', localConfig);
     }
-    config.value = jsonDecode(localConfig);
+    config.value = jsonDecode(localConfig) as Map<String, dynamic>;
 
     // text zoom
     final textSize = Storage.getInt(KeychatGlobal.browserTextSize);
@@ -333,7 +333,7 @@ class MultiWebviewController extends GetxController {
   Future<void> deleteOldHistories() async {
     if (!(config['enableHistory'] as bool)) return;
 
-    final int retentionDays = config['historyRetentionDays'] ?? 30;
+    final retentionDays = config['historyRetentionDays'] as int? ?? 30;
     final thresholdDate =
         DateTime.now().subtract(Duration(days: retentionDays));
 
@@ -428,13 +428,13 @@ class MultiWebviewController extends GetxController {
       final savedTabs = Storage.getString(StorageKeyString.desktopBrowserTabs);
       if (savedTabs == null || savedTabs.isEmpty) return;
 
-      final List<dynamic> tabData = jsonDecode(savedTabs);
+      final tabData = jsonDecode(savedTabs) as List<dynamic>;
       logger.d('Loading ${tabData.length} desktop tabs');
 
       for (final data in tabData) {
-        final String url = data['url'] ?? '';
-        final String title = data['title'] ?? '';
-        final String? favicon = data['favicon'];
+        final url = (data['url'] ?? '') as String;
+        final title = (data['title'] ?? '') as String;
+        final favicon = data['favicon'] as String?;
 
         if (url.isNotEmpty && url != KeychatGlobal.newTab) {
           final uniqueId = generate64RandomHexChars(8);

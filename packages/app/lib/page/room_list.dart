@@ -168,7 +168,7 @@ class RoomList extends GetView<HomeController> {
                               : const Color(0xFFEDEDED),
                           context);
                     }
-                    final Room room = rooms[index];
+                    final room = rooms[index] as Room;
                     return GestureDetector(
                         key: ObjectKey('${index}_room${room.id}'),
                         onTap: () async {

@@ -25,20 +25,20 @@ import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
 import 'package:queue/queue.dart';
 
-import '../constants.dart';
-import '../controller/chat.controller.dart';
-import '../controller/home.controller.dart';
-import '../nostr-core/nostr.dart';
-import 'contact.service.dart';
-import 'group.service.dart';
-import 'identity.service.dart';
-import 'message.service.dart';
+import 'package:app/constants.dart';
+import 'package:app/controller/chat.controller.dart';
+import 'package:app/controller/home.controller.dart';
+import 'package:app/nostr-core/nostr.dart';
+import 'package:app/service/contact.service.dart';
+import 'package:app/service/group.service.dart';
+import 'package:app/service/identity.service.dart';
+import 'package:app/service/message.service.dart';
 
 class RoomService extends BaseChatService {
-  static RoomService? _instance;
-  static RoomService get instance => _instance ??= RoomService._();
   // Avoid self instance
   RoomService._();
+  static RoomService? _instance;
+  static RoomService get instance => _instance ??= RoomService._();
   static final DBProvider dbProvider = DBProvider.instance;
   static final GroupService groupService = GroupService.instance;
   static final ContactService contactService = ContactService.instance;
@@ -64,12 +64,12 @@ class RoomService extends BaseChatService {
       String? onetimekey,
       SignalId? signalId,
       RoomType? type}) async {
-    int identityId = identity.id;
-    Room? exist = await getRoomByIdentity(toMainPubkey, identityId);
+    final identityId = identity.id;
+    final exist = await getRoomByIdentity(toMainPubkey, identityId);
     if (exist != null) return exist;
     signalId ??= await SignalIdService.instance.createSignalId(identityId);
 
-    Room room = Room(
+    var room = Room(
       toMainPubkey: toMainPubkey,
       identityId: identityId,
       status: status,
@@ -80,7 +80,7 @@ class RoomService extends BaseChatService {
       ..type = type ?? RoomType.common
       ..encryptMode = encryptMode
       ..curve25519PkHex = curve25519PkHex
-      ..signalIdPubkey = signalId!.pubkey;
+      ..signalIdPubkey = signalId.pubkey;
     // set bot room's name
     if (room.type == RoomType.bot) {
       room.name = name;
@@ -117,17 +117,17 @@ class RoomService extends BaseChatService {
   }
 
   Future deleteRoom(Room room, {bool websocketInited = true}) async {
-    Isar database = DBProvider.database;
-    int? roomMykeyId = room.mykey.value?.id;
-    String? listenPubkey = room.mykey.value?.pubkey;
-    var groupType = room.groupType;
-    var roomType = room.type;
-    int roomId = room.id;
-    String toMainPubkey = room.toMainPubkey;
-    String? mlsListenPubkey = room.onetimekey;
+    final database = DBProvider.database;
+    final roomMykeyId = room.mykey.value?.id;
+    final listenPubkey = room.mykey.value?.pubkey;
+    final groupType = room.groupType;
+    final roomType = room.type;
+    final roomId = room.id;
+    final toMainPubkey = room.toMainPubkey;
+    final mlsListenPubkey = room.onetimekey;
     // delete room's signalId
-    String? signalIdPubkey = room.signalIdPubkey;
-    List<Room> sameSignalIdrooms = [];
+    final signalIdPubkey = room.signalIdPubkey;
+    var sameSignalIdrooms = <Room>[];
     if (signalIdPubkey != null) {
       sameSignalIdrooms =
           await RoomService.instance.getRoomBySignalIdPubkey(signalIdPubkey);
@@ -192,9 +192,9 @@ class RoomService extends BaseChatService {
         }
         NotifyService.removePubkeys([mlsListenPubkey]);
       }
-      Identity? identity =
+      final identity =
           await IdentityService.instance.getIdentityById(room.identityId);
-      String? myIdPubkey = identity?.secp256k1PKHex;
+      final myIdPubkey = identity?.secp256k1PKHex;
       if (myIdPubkey != null) {
         try {
           await rust_mls.deleteGroup(
@@ -218,7 +218,7 @@ class RoomService extends BaseChatService {
   }
 
   Future<List<Room>> getGroupsSharedKey() async {
-    return await DBProvider.database.rooms
+    return DBProvider.database.rooms
         .filter()
         .typeEqualTo(RoomType.group)
         .group((q) => q
@@ -229,7 +229,7 @@ class RoomService extends BaseChatService {
   }
 
   Future<List<Room>> getMlsRooms() async {
-    return await DBProvider.database.rooms
+    return DBProvider.database.rooms
         .filter()
         .groupTypeEqualTo(GroupType.mls)
         .typeEqualTo(RoomType.group)
@@ -238,7 +238,7 @@ class RoomService extends BaseChatService {
   }
 
   Future<List<Room>> getMlsRoomsSkipMute() async {
-    return await DBProvider.database.rooms
+    return DBProvider.database.rooms
         .filter()
         .groupTypeEqualTo(GroupType.mls)
         .isMuteEqualTo(false)
@@ -249,7 +249,7 @@ class RoomService extends BaseChatService {
   // get room by send_pubkey and bob_pubkey
   Future<Room> getOrCreateRoom(String from, String to, RoomStatus initStatus,
       {String? contactName, Identity? identity, RoomType? type}) async {
-    Room? room = await getRoom(from, to, identity);
+    final room = await getRoom(from, to, identity);
     if (room != null && room.type == RoomType.common && contactName != null) {
       await ContactService.instance.updateOrCreateByRoom(room, contactName);
       return room;
@@ -259,7 +259,7 @@ class RoomService extends BaseChatService {
     if (identity == null) {
       throw Exception('no this identity');
     }
-    return await createPrivateRoom(
+    return createPrivateRoom(
         toMainPubkey: from,
         identity: identity,
         status: initStatus,
@@ -270,10 +270,10 @@ class RoomService extends BaseChatService {
 
   Future<Room> getOrCreateRoomByIdentity(
       String toMainPubkey, Identity identity, RoomStatus status) async {
-    Room? room = await getRoomByIdentity(toMainPubkey, identity.id);
+    final room = await getRoomByIdentity(toMainPubkey, identity.id);
     if (room != null) return room;
 
-    return await createPrivateRoom(
+    return createPrivateRoom(
         encryptMode: EncryptMode.nip04,
         toMainPubkey: toMainPubkey,
         identity: identity,
@@ -281,16 +281,16 @@ class RoomService extends BaseChatService {
   }
 
   Future<Room?> getRoom(String from, String to, [Identity? identity]) async {
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
 
-    Room? signalRatchetRoom = await getRoomByReceiveKey(to);
+    final signalRatchetRoom = await getRoomByReceiveKey(to);
     if (signalRatchetRoom != null) return signalRatchetRoom;
 
     // common chat. from is room mainkey, to is my identity'pubkey
-    List<Room> nip4Rooms =
+    final nip4Rooms =
         await database.rooms.filter().toMainPubkeyEqualTo(from).findAll();
 
-    for (var room in nip4Rooms) {
+    for (final room in nip4Rooms) {
       identity ??=
           await IdentityService.instance.getIdentityById(room.identityId);
       if (identity != null && identity.secp256k1PKHex == to) {
@@ -300,13 +300,13 @@ class RoomService extends BaseChatService {
 
     // group share key
     if (from == to) {
-      return await _getGroupRoom(to);
+      return _getGroupRoom(to);
     }
     return null;
   }
 
   Future<Room?> _getGroupRoom(String to) async {
-    return await DBProvider.database.rooms
+    return DBProvider.database.rooms
         .filter()
         .typeEqualTo(RoomType.group)
         .mykey((q) => q.pubkeyEqualTo(to))
@@ -314,7 +314,7 @@ class RoomService extends BaseChatService {
   }
 
   Future<Room?> getGroupByReceivePubkey(String to) async {
-    return await DBProvider.database.rooms
+    return DBProvider.database.rooms
         .filter()
         .typeEqualTo(RoomType.group)
         .mykey((q) => q.pubkeyEqualTo(to))
@@ -322,30 +322,24 @@ class RoomService extends BaseChatService {
   }
 
   Future<Room?> getRoomByOnetimeKey(String to) async {
-    return await DBProvider.database.rooms
-        .filter()
-        .onetimekeyEqualTo(to)
-        .findFirst();
+    return DBProvider.database.rooms.filter().onetimekeyEqualTo(to).findFirst();
   }
 
   Future<Room?> getRoomById(int id) async {
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
 
-    return await database.rooms.filter().idEqualTo(id).findFirst();
+    return database.rooms.filter().idEqualTo(id).findFirst();
   }
 
   Future<List<Room>> getRoomBySignalIdPubkey(String pubkey) async {
-    Isar database = DBProvider.database;
-    return await database.rooms
-        .filter()
-        .signalIdPubkeyEqualTo(pubkey)
-        .findAll();
+    final database = DBProvider.database;
+    return database.rooms.filter().signalIdPubkeyEqualTo(pubkey).findAll();
   }
 
   Future<Room?> getRoomByIdentity(String from, int identityId) async {
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
 
-    return await database.rooms
+    return database.rooms
         .filter()
         .toMainPubkeyEqualTo(from)
         .identityIdEqualTo(identityId)
@@ -353,21 +347,21 @@ class RoomService extends BaseChatService {
   }
 
   Future<Room?> getRoomAndContainSession(String from, int identityId) async {
-    Room? room = await DBProvider.database.rooms
+    final room = await DBProvider.database.rooms
         .filter()
         .toMainPubkeyEqualTo(from)
         .identityIdEqualTo(identityId)
         .findFirst();
     if (room == null) return null;
     if (room.curve25519PkHex != null) {
-      var res = await Get.find<ChatxService>().getRoomKPA(room);
+      final res = await Get.find<ChatxService>().getRoomKPA(room);
       return res == null ? null : room;
     }
     return null;
   }
 
   Future<Room> getRoomByIdOrFail(int id) async {
-    Room? exist = await getRoomById(id);
+    final exist = await getRoomById(id);
     if (exist == null) throw Exception('room is null');
     return exist;
   }
@@ -377,22 +371,22 @@ class RoomService extends BaseChatService {
   }
 
   Future<Map<String, List<Room>>> getRoomList(int indetityId) async {
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
 
-    List<Room> list = await database.rooms
+    final list = await database.rooms
         .filter()
         .identityIdEqualTo(indetityId)
         .not()
         .statusEqualTo(RoomStatus.groupUser) // not include init
         .sortByCreatedAtDesc()
         .findAll();
-    List<Room> friendsRoom = [];
-    List<Room> approving = [];
-    List<Room> requesting = [];
-    for (Room room in list) {
+    final friendsRoom = <Room>[];
+    final approving = <Room>[];
+    final requesting = <Room>[];
+    for (final room in list) {
       room.unReadCount =
           await MessageService.instance.unreadCountByRoom(room.id);
-      var lastMessageModel =
+      final lastMessageModel =
           await MessageService.instance.getLastMessageByRoom(room.id);
       if (lastMessageModel != null) {
         if (lastMessageModel.content.length > 50) {
@@ -429,7 +423,7 @@ class RoomService extends BaseChatService {
   }
 
   Future<Room> getRoomOrFail(String from, String to) async {
-    Room? room = await getRoom(from, to);
+    final room = await getRoom(from, to);
     if (room == null) throw Exception('room is null');
     return room;
   }
@@ -440,14 +434,14 @@ class RoomService extends BaseChatService {
       Relay relay,
       {NostrEventModel? sourceEvent, // parent event
       Room? room}) async {
-    String toAddress = event.tags[0][1];
+    final toAddress = event.tags[0][1];
     // group room message
     room ??= await _getGroupRoom(toAddress);
     if (room == null) {}
     if (room == null) {
       Identity? identity;
       Mykey? mykey;
-      List<Identity> identities = Utils.getGetxController<HomeController>()!
+      final identities = Utils.getGetxController<HomeController>()!
           .allIdentities
           .values
           .where((element) => element.secp256k1PKHex == toAddress)
@@ -478,11 +472,11 @@ class RoomService extends BaseChatService {
   Future proccessMessage(
       {required Room room,
       required NostrEventModel event,
+      required KeychatMessage km,
       NostrEventModel? sourceEvent,
       String? msgKeyHash,
       String? fromIdPubkey,
-      Function(String error)? failedCallback,
-      required KeychatMessage km}) async {
+      Function(String error)? failedCallback}) async {
     switch (km.type) {
       // case KeyChatEventKinds.webrtcAudioCall:
       // case KeyChatEventKinds.webrtcVideoCall:
@@ -523,7 +517,7 @@ class RoomService extends BaseChatService {
       if (km.type == KeyChatEventKinds.dm && km.name != null) {
         try {
           reply = MsgReply.fromJson(jsonDecode(km.name!));
-          decodedContent = km.msg!;
+          decodedContent = km.msg;
           // ignore: empty_catches
         } catch (e) {}
       }
@@ -563,7 +557,7 @@ class RoomService extends BaseChatService {
       String? toAddress,
       bool save = true,
       bool? isSystem}) async {
-    String? realMessageContent = realMessage;
+    var realMessageContent = realMessage;
     if (realMessage == null && reply != null) {
       realMessageContent = content;
     }
@@ -571,20 +565,20 @@ class RoomService extends BaseChatService {
 
     if (room.type == RoomType.group) {
       room = await getRoomByIdOrFail(room.id);
-      return await _sendTextMessageToGroup(room, content,
+      return _sendTextMessageToGroup(room, content,
           reply: reply, realMessage: realMessageContent, mediaType: mediaType);
     }
     if (room.type == RoomType.bot && !content.startsWith('cashu')) {
-      return await sendMessageToBot(room, room.getIdentity(), content,
+      return sendMessageToBot(room, room.getIdentity(), content,
           realMessage: realMessage);
     }
 
     SendMessageResponse map;
     encryptMode ??= room.encryptMode;
     if (encryptMode == EncryptMode.nip04) {
-      Identity identity = room.getIdentity();
+      final identity = room.getIdentity();
 
-      String sm =
+      final sm =
           KeychatMessage.getTextMessage(MessageType.nip04, content, reply);
       map = await NostrAPI.instance.sendNip17Message(room, sm, identity,
           toPubkey: toAddress ?? room.toMainPubkey,
@@ -593,7 +587,7 @@ class RoomService extends BaseChatService {
           reply: reply,
           mediaType: mediaType);
     } else {
-      String sm = realMessage == null
+      final sm = realMessage == null
           ? KeychatMessage.getTextMessage(MessageType.signal, content, reply)
           : content;
       map = await SignalChatService.instance.sendMessage(room, sm,
@@ -617,14 +611,14 @@ class RoomService extends BaseChatService {
     if (cmm == null) {
       cmm ??= BotClientMessageModel(
           type: MessageMediaType.botText, message: message);
-      BotMessageData? bmd = room.getBotMessagePriceModel();
+      final bmd = room.getBotMessagePriceModel();
       if (bmd != null && !message.startsWith('/')) {
         String? cashuTokenString;
         if (bmd.price > 0) {
-          CashuInfoModel cashuToken = await CashuUtil.getStamp(
+          final cashuToken = await CashuUtil.getStamp(
               amount: bmd.price, token: bmd.unit, mints: bmd.mints);
           cashuTokenString = cashuToken.token;
-          var ecashBill = EcashBill(
+          final ecashBill = EcashBill(
               amount: cashuToken.amount,
               unit: cashuToken.unit ?? 'sat',
               token: cashuTokenString,
@@ -641,7 +635,7 @@ class RoomService extends BaseChatService {
       realMessage = message;
     }
 
-    String toSendMessage = jsonEncode(cmm.toJson());
+    final toSendMessage = jsonEncode(cmm.toJson());
     logger.i('toSendMessage: $toSendMessage');
     if (room.encryptMode == EncryptMode.signal) {
       try {
@@ -651,7 +645,7 @@ class RoomService extends BaseChatService {
         logger.e('send signal message to bot error', error: e);
       }
     }
-    return await NostrAPI.instance.sendNip17Message(
+    return NostrAPI.instance.sendNip17Message(
       room,
       toSendMessage,
       identity,
@@ -667,12 +661,12 @@ class RoomService extends BaseChatService {
       bool save = true,
       MessageMediaType? mediaType}) async {
     final queue = Queue(parallel: 5);
-    var todo = collection.Queue.from(rooms);
-    int membersLength = todo.length;
-    for (int i = 0; i < membersLength; i++) {
+    final todo = collection.Queue.from(rooms);
+    final membersLength = todo.length;
+    for (var i = 0; i < membersLength; i++) {
       queue.add(() async {
         if (todo.isEmpty) return;
-        Room room = todo.removeFirst();
+        final room = todo.removeFirst() as Room;
         if (room.toMainPubkey == identity.secp256k1PKHex) return;
         await RoomService.instance.sendMessage(room, message,
             realMessage: realMessage, save: save, mediaType: mediaType);
@@ -682,7 +676,7 @@ class RoomService extends BaseChatService {
   }
 
   Future<ChatController?> updateChatRoomPage(Room room) async {
-    ChatController? cc = RoomService.getController(room.id);
+    final cc = RoomService.getController(room.id);
     if (cc == null) return null;
 
     if (room.type == RoomType.common) {
@@ -711,24 +705,24 @@ class RoomService extends BaseChatService {
   }
 
   Future checkWebsocketConnect() async {
-    bool netStatus =
+    final netStatus =
         Utils.getGetxController<HomeController>()!.isConnectedNetwork.value;
     if (!netStatus) {
       throw Exception('Lost Network');
     }
-    List online = Get.find<WebsocketService>().getOnlineSocketString();
+    final List online = Get.find<WebsocketService>().getOnlineSocketString();
     if (online.isEmpty) {
       throw Exception('Not connected with relay server, please retry');
     }
   }
 
   Future<Room?> getRoomByReceiveKey(String address) async {
-    ContactReceiveKey? crk = await DBProvider.database.contactReceiveKeys
+    final crk = await DBProvider.database.contactReceiveKeys
         .filter()
         .receiveKeysElementContains(address)
         .findFirst();
     if (crk == null) return null;
-    Room? room = await DBProvider.database.rooms
+    final room = await DBProvider.database.rooms
         .filter()
         .identityIdEqualTo(crk.identityId)
         .toMainPubkeyEqualTo(crk.pubkey)
@@ -746,10 +740,10 @@ class RoomService extends BaseChatService {
     await checkRoomStatus(room);
     switch (room.groupType) {
       case GroupType.mls:
-        return await MlsGroupService.instance.sendMessage(room, message,
+        return MlsGroupService.instance.sendMessage(room, message,
             reply: reply, realMessage: realMessage, mediaType: mediaType);
       case GroupType.sendAll:
-        return await groupService.sendToAllMessage(room, message,
+        return groupService.sendToAllMessage(room, message,
             reply: reply, realMessage: realMessage, mediaType: mediaType);
       case GroupType.shareKey:
       case GroupType.kdf:
@@ -768,14 +762,14 @@ class RoomService extends BaseChatService {
 
   Future<Room?> createRoomAndsendInvite(String input,
       {bool autoJump = true, Identity? identity, String? greeting}) async {
-    HomeController? hc = Utils.getGetxController<HomeController>();
+    final hc = Utils.getGetxController<HomeController>();
     if (hc == null) {
       throw Exception('home controller is null');
     }
     identity ??= hc.getSelectedIdentity();
     // input is a hex string, decode in json
     if (!(input.length == 64 || input.length == 63)) return null;
-    String hexPubkey = input;
+    var hexPubkey = input;
     if (input.startsWith('npub') && input.length == 63) {
       hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: input);
     }
@@ -787,9 +781,9 @@ class RoomService extends BaseChatService {
         room = await RoomService.instance
             .getOrCreateRoomByIdentity(hexPubkey, identity, RoomStatus.enabled);
       } else {
-        for (var iden in hc.allIdentities.values) {
+        for (final iden in hc.allIdentities.values) {
           if (iden.secp256k1PKHex == hexPubkey) {
-            throw Exception('Can not add other identity\' pubkey');
+            throw Exception("Can not add other identity' pubkey");
           }
         }
         room = await RoomService.instance.getOrCreateRoomByIdentity(
@@ -817,7 +811,7 @@ class RoomService extends BaseChatService {
   }
 
   Future markAllRead({required int identityId, required int roomId}) async {
-    var refresh = await MessageService.instance.setViewedMessage(roomId);
+    final refresh = await MessageService.instance.setViewedMessage(roomId);
     if (refresh) {
       Utils.getGetxController<HomeController>()
           ?.loadIdentityRoomList(identityId);
@@ -825,7 +819,7 @@ class RoomService extends BaseChatService {
   }
 
   Future markAllReadSimple(Room room) async {
-    Room? homeRoom =
+    final homeRoom =
         Get.find<HomeController>().getRoomByIdentity(room.identityId, room.id);
     if (homeRoom == null) return;
     if (homeRoom.unReadCount == 0) return;
@@ -835,7 +829,7 @@ class RoomService extends BaseChatService {
   Future mute(Room room, bool value) async {
     EasyThrottle.throttle(
         'mute_notification:${room.id}', const Duration(seconds: 1), () async {
-      List<String> pubkeys = [];
+      final pubkeys = <String>[];
 
       if (room.type == RoomType.group) {
         if (room.isMLSGroup && room.onetimekey != null) {
@@ -844,10 +838,10 @@ class RoomService extends BaseChatService {
           pubkeys.add(room.mykey.value!.pubkey);
         }
       } else {
-        List<String>? data = ContactService.instance.getMyReceiveKeys(room);
+        final data = ContactService.instance.getMyReceiveKeys(room);
         if (data != null) pubkeys.addAll(data);
       }
-      bool res = false;
+      var res = false;
       if (value) {
         res = await NotifyService.removePubkeys(pubkeys);
       } else {
@@ -869,16 +863,16 @@ class RoomService extends BaseChatService {
 
   // mls group , signal private chat room
   Future<Room?> getRoomByMyReceiveKey(String pubkey) async {
-    Room? room = await SignalChatService.instance.getSignalChatRoomByTo(pubkey);
+    final room = await SignalChatService.instance.getSignalChatRoomByTo(pubkey);
     if (room != null) {
       return room;
     }
-    Room? mlsRoom = await RoomService.instance.getRoomByOnetimeKey(pubkey);
+    final mlsRoom = await RoomService.instance.getRoomByOnetimeKey(pubkey);
     return mlsRoom;
   }
 
   Future<List<Room>> getCommonRoomByPubkey(String hexPubkey) async {
-    return await DBProvider.database.rooms
+    return DBProvider.database.rooms
         .filter()
         .toMainPubkeyEqualTo(hexPubkey)
         .typeEqualTo(RoomType.common)
@@ -887,9 +881,9 @@ class RoomService extends BaseChatService {
 }
 
 class SendMessageResponse {
+  SendMessageResponse({required this.events, this.message, this.msgKeyHash});
   List<NostrEventModel> events = [];
   Message? message;
   List<String>? toAddPubkeys;
   String? msgKeyHash;
-  SendMessageResponse({required this.events, this.message, this.msgKeyHash});
 }

@@ -51,7 +51,7 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
     setState(() {
       startupTabName = hc.defaultTabConfig.entries
           .firstWhere((entry) => entry.value == hc.defaultSelectedTab.value)
-          .key;
+          .key as String;
     });
   }
 
@@ -90,7 +90,7 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                                                 StorageKeyString.themeMode,
                                                 ThemeMode.system.name);
                                           },
-                                          title: const Text("System Mode"),
+                                          title: const Text('System Mode'),
                                           trailing:
                                               controller.themeMode.value ==
                                                       ThemeMode.system.name
@@ -110,7 +110,7 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                                                 StorageKeyString.themeMode,
                                                 ThemeMode.light.name);
                                           },
-                                          title: const Text("Light Mode"),
+                                          title: const Text('Light Mode'),
                                           trailing:
                                               controller.themeMode.value ==
                                                       ThemeMode.light.name
@@ -129,7 +129,7 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                                                 StorageKeyString.themeMode,
                                                 ThemeMode.dark.name);
                                           },
-                                          title: const Text("Dark Mode"),
+                                          title: const Text('Dark Mode'),
                                           trailing:
                                               controller.themeMode.value ==
                                                       ThemeMode.dark.name
@@ -142,10 +142,10 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                                       ])
                                 ])));
                   },
-                  title: const Text("Dark Mode")),
+                  title: const Text('Dark Mode')),
               SettingsTile.navigation(
                 leading: const Icon(CupertinoIcons.home),
-                title: const Text("Startup Tab"),
+                title: const Text('Startup Tab'),
                 value: Text(startupTabName),
                 onPressed: (context) async {
                   showDialog(
@@ -174,7 +174,7 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
               ),
               SettingsTile.navigation(
                 leading: const Icon(CupertinoIcons.doc),
-                title: const Text("App File Explore"),
+                title: const Text('App File Explore'),
                 onPressed: (context) async {
                   Get.to(() => FileExplorerPage(dir: controller.appFolder),
                       id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
@@ -182,7 +182,7 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
               ),
               SettingsTile.navigation(
                 leading: const Icon(CupertinoIcons.question_circle),
-                title: const Text("About Keychat"),
+                title: const Text('About Keychat'),
                 onPressed: (context) {
                   Get.to(() => const OnboardingPage2(),
                       id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
@@ -200,20 +200,20 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                       });
                     },
                     leading: const Icon(Icons.security),
-                    title: const Text("Use Device Authentication")),
+                    title: const Text('Use Device Authentication')),
                 SettingsTile.navigation(
                     leading: const Icon(CupertinoIcons.clock),
-                    title: const Text("Require authentication"),
+                    title: const Text('Require authentication'),
                     value: Obx(() => Text(
                         formatAuthTime(controller.biometricsAuthTime.value))),
                     onPressed: (_) {
-                      List<int> authTimes = [0, 1, 5, 15, 30, 60, 240, 480];
+                      final authTimes = <int>[0, 1, 5, 15, 30, 60, 240, 480];
                       showModalBottomSheetWidget(
                           context,
                           'Require authentication',
                           Obx(() => SettingsList(
                                   platform: DevicePlatform.iOS,
-                                  physics: NeverScrollableScrollPhysics(),
+                                  physics: const NeverScrollableScrollPhysics(),
                                   sections: [
                                     SettingsSection(
                                         tiles: authTimes
@@ -251,7 +251,7 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
             SettingsSection(title: const Text('Data Backup'), tiles: [
               SettingsTile.navigation(
                   leading: const Icon(Icons.storage),
-                  title: const Text("Database Setting"),
+                  title: const Text('Database Setting'),
                   onPressed: handleDBSettting)
             ]),
             SettingsSection(tiles: [
@@ -261,7 +261,7 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                     color: Colors.red,
                   ),
                   title:
-                      const Text("Logout", style: TextStyle(color: Colors.red)),
+                      const Text('Logout', style: TextStyle(color: Colors.red)),
                   onPressed: deleteAccount)
             ])
           ],
@@ -277,13 +277,13 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
       return '$minutes minutes';
     }
 
-    int hours = minutes ~/ 60;
+    final hours = minutes ~/ 60;
     if (hours == 1) return '$hours hour';
     return '$hours hours';
   }
 
   Future<void> handleDBSettting(BuildContext context) async {
-    HomeController hc = Get.find<HomeController>();
+    final hc = Get.find<HomeController>();
     Get.bottomSheet(
         clipBehavior: Clip.antiAlias,
         shape: const RoundedRectangleBorder(
@@ -301,15 +301,13 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                   onToggle: (res) async {
                     if (!res) {
                       Get.dialog(CupertinoAlertDialog(
-                        title: const Text("Stop chat?"),
+                        title: const Text('Stop chat?'),
                         content: const Text(
-                            "You will not be able to receive and send messages while the chat is stopped."),
+                            'You will not be able to receive and send messages while the chat is stopped.'),
                         actions: <Widget>[
                           CupertinoDialogAction(
+                            onPressed: Get.back,
                             child: const Text('Cancel'),
-                            onPressed: () {
-                              Get.back();
-                            },
                           ),
                           CupertinoDialogAction(
                               isDestructiveAction: true,
@@ -346,12 +344,12 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
   }
 
   void _showSetEncryptionPwdDialog(BuildContext context) {
-    TextEditingController passwordController = TextEditingController();
-    TextEditingController confirmPasswordController = TextEditingController();
+    final passwordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
 
     Get.dialog(
       CupertinoAlertDialog(
-        title: const Text("Set encryption password"),
+        title: const Text('Set encryption password'),
         content: Container(
           color: Colors.transparent,
           padding: const EdgeInsets.only(top: 15),
@@ -382,9 +380,7 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
         ),
         actions: [
           CupertinoActionSheetAction(
-            onPressed: () {
-              Get.back();
-            },
+            onPressed: Get.back,
             child: const Text('Cancel'),
           ),
           CupertinoActionSheetAction(
@@ -402,10 +398,10 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
               EasyLoading.show(status: 'Exporting...');
               try {
                 await DbSetting().exportDB(confirmPasswordController.text);
-                EasyLoading.showSuccess("Export successful");
+                EasyLoading.showSuccess('Export successful');
               } catch (e, s) {
                 logger.e(e.toString(), error: e, stackTrace: s);
-                EasyLoading.showError('Export failed: ${e.toString()}');
+                EasyLoading.showError('Export failed: $e');
               } finally {
                 await Future.delayed(const Duration(seconds: 2));
                 EasyLoading.dismiss();
@@ -418,26 +414,24 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
     );
   }
 
-  void closeAllRelays() async {
-    HomeController hc = Get.find<HomeController>();
+  Future<void> closeAllRelays() async {
+    final hc = Get.find<HomeController>();
     await Get.find<WebsocketService>().stopListening();
     hc.checkRunStatus.value = false;
   }
 
   Future deleteAccount(BuildContext context) {
     return Get.dialog(CupertinoAlertDialog(
-      title: const Text("Logout All Identity?"),
-      content: const Text(
-          '''All app data will be deleted after logging out, so please make sure you have backed it up. 
+      title: const Text('Logout All Identity?'),
+      content: const Text('''
+All app data will be deleted after logging out, so please make sure you have backed it up. 
 
 Please make sure you have backed up your seed phrase and contacts. This cannot be undone.''',
           style: TextStyle(color: Colors.red)),
       actions: <Widget>[
         CupertinoDialogAction(
+          onPressed: Get.back,
           child: const Text('Cancel'),
-          onPressed: () {
-            Get.back();
-          },
         ),
         CupertinoDialogAction(
             isDestructiveAction: true,
@@ -445,18 +439,16 @@ Please make sure you have backed up your seed phrase and contacts. This cannot b
             onPressed: () async {
               // Biometrics Auth
               if (GetPlatform.isMobile) {
-                bool isBiometricsEnable =
+                final isBiometricsEnable =
                     await SecureStorage.instance.isBiometricsEnable();
                 if (isBiometricsEnable) {
-                  bool? authed = await Get.to(
+                  final authed = await Get.to(
                       () => const BiometricAuthScreen(
-                          autoAuth: false,
-                          canPop: true,
-                          title: 'Authenticate to Logout'),
+                          canPop: true, title: 'Authenticate to Logout'),
                       fullscreenDialog: true,
                       popGesture: true,
                       transition: Transition.fadeIn);
-                  if (authed == null || !authed) {
+                  if (authed == null || authed == false) {
                     return;
                   }
                 }
@@ -484,7 +476,7 @@ Please make sure you have backed up your seed phrase and contacts. This cannot b
                 EasyLoading.showSuccess('Logout successfully');
                 Get.offAllNamed(Routes.login);
               } catch (e, s) {
-                String msg = Utils.getErrorMessage(e);
+                final msg = Utils.getErrorMessage(e);
                 logger.e(msg, error: e, stackTrace: s);
                 EasyLoading.showError(msg,
                     duration: const Duration(seconds: 4));

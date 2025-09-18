@@ -51,7 +51,7 @@ class _InviteMemberToMLSState extends State<InviteMemberToMLS>
     for (var i = 0; i < users.length; i++) {
       final contact = users[i];
       if (contact['isCheck'] == true) {
-        selectAccounts[contact['pubkey']] = contact['name'];
+        selectAccounts[contact['pubkey']] = contact['name'] as String;
         selectUsers.add(contact);
         selectedMessages.add(contact['message']);
       }

@@ -60,7 +60,7 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
     for (var i = 0; i < widget.contacts.length; i++) {
       final contact = widget.contacts[i];
       if (contact['pubkey'] != null) {
-        final String pubkey = contact['pubkey'];
+        final pubkey = contact['pubkey'] as String;
         if (result[pubkey] != null) {
           contact['mlsPK'] = result[pubkey];
         }
@@ -86,8 +86,8 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
       final Map contact = users[i];
       if (contact['isCheck'] == true) {
         var selectAccount = '';
-        selectAccount = contact['pubkey'];
-        selectAccounts[selectAccount] = contact['name'];
+        selectAccount = contact['pubkey'] as String;
+        selectAccounts[selectAccount] = contact['name'] as String;
         selectedContact.add({
           'pubkey': contact['pubkey'],
           'name': contact['name'],

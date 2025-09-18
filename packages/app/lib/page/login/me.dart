@@ -7,7 +7,7 @@ import 'package:app/page/setting/app_general_setting.dart';
 import 'package:app/page/setting/more_chat_setting.dart';
 import 'package:app/service/storage.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart' show ClipboardData, Clipboard;
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:app/controller/home.controller.dart';
@@ -20,7 +20,7 @@ import 'package:pub_semver/pub_semver.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:app/models/models.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'AccountSetting/AccountSetting_page.dart';
+import 'package:app/page/login/AccountSetting/AccountSetting_page.dart';
 
 class MinePage extends StatefulWidget {
   const MinePage({super.key});
@@ -39,8 +39,8 @@ class _MinePageState extends State<MinePage> {
     loadV1EcashToken();
   }
 
-  void loadV1EcashToken() async {
-    var list = Storage.getStringList(StorageKeyString.upgradeToV2Tokens);
+  Future<void> loadV1EcashToken() async {
+    final list = Storage.getStringList(StorageKeyString.upgradeToV2Tokens);
     setState(() {
       v1EcashTokens = list;
     });
@@ -65,7 +65,7 @@ class _MinePageState extends State<MinePage> {
                   logger.e('Failed to process QR result: $e');
                 }
               },
-              child: Text('Test'),
+              child: const Text('Test'),
             )
           : null,
       body: Obx(() => SettingsList(
@@ -73,13 +73,13 @@ class _MinePageState extends State<MinePage> {
             sections: [
               SettingsSection(
                   margin: const EdgeInsetsDirectional.only(
-                      start: 16, end: 16, bottom: 16, top: 0),
+                      start: 16, end: 16, bottom: 16),
                   title: const Text('Chat / Browser ID'),
                   tiles: [
                     ...getIDList(
                         context, homeController.allIdentities.values.toList()),
                     SettingsTile(
-                        title: const Text("Create ID"),
+                        title: const Text('Create ID'),
                         trailing: Icon(CupertinoIcons.add,
                             color: Theme.of(Get.context!)
                                 .iconTheme
@@ -107,7 +107,7 @@ class _MinePageState extends State<MinePage> {
                     onPressed: (context) async {
                       Get.toNamed(Routes.ecash);
                     },
-                    title: const Text("Bitcoin Ecash"),
+                    title: const Text('Bitcoin Ecash'),
                   ),
                   if (v1EcashTokens.isNotEmpty) migrateEcash()
                 ]),
@@ -118,7 +118,7 @@ class _MinePageState extends State<MinePage> {
                 tiles: [
                   SettingsTile.navigation(
                     leading: const Icon(CupertinoIcons.chat_bubble),
-                    title: const Text("Chat Settings"),
+                    title: const Text('Chat Settings'),
                     onPressed: (context) async {
                       Get.to(() => const MoreChatSetting(),
                           id: GetPlatform.isDesktop
@@ -128,7 +128,7 @@ class _MinePageState extends State<MinePage> {
                   ),
                   if (!GetPlatform.isLinux)
                     SettingsTile.navigation(
-                        title: const Text("Browser Settings"),
+                        title: const Text('Browser Settings'),
                         leading: const Icon(CupertinoIcons.compass),
                         onPressed: (context) async {
                           Get.to(() => const BrowserSetting(),
@@ -138,7 +138,7 @@ class _MinePageState extends State<MinePage> {
                         }),
                   SettingsTile.navigation(
                     leading: const Icon(CupertinoIcons.settings),
-                    title: const Text("App Settings"),
+                    title: const Text('App Settings'),
                     onPressed: (context) {
                       Get.to(() => const AppGeneralSetting(),
                           id: GetPlatform.isDesktop
@@ -152,7 +152,7 @@ class _MinePageState extends State<MinePage> {
                 tiles: [
                   SettingsTile(
                     leading: const Icon(Icons.verified_outlined),
-                    title: const Text("App Version"),
+                    title: const Text('App Version'),
                     value: getVersionCode(homeController),
                     onPressed: (context) {},
                   ),
@@ -164,7 +164,7 @@ class _MinePageState extends State<MinePage> {
   }
 
   Widget getVersionCode(HomeController homeController) {
-    String platform = GetPlatform.isAndroid
+    final platform = GetPlatform.isAndroid
         ? 'android'
         : GetPlatform.isIOS
             ? 'ios'
@@ -176,20 +176,21 @@ class _MinePageState extends State<MinePage> {
                         ? 'linux'
                         : 'ios';
 
-    String newVersion =
-        homeController.remoteAppConfig['${platform}Version'] ?? "0.0.0+0";
+    final newVersion =
+        homeController.remoteAppConfig['${platform}Version'] as String? ??
+            '0.0.0+0';
 
-    String localVersion =
-        homeController.remoteAppConfig['appVersion'] ?? '0.0.0+0';
+    final localVersion =
+        homeController.remoteAppConfig['appVersion'] as String? ?? '0.0.0+0';
 
-    var n = Version.parse(newVersion);
-    var l = Version.parse(localVersion);
-    bool isNewVersionAvailable = n.compareTo(l) > 0;
+    final n = Version.parse(newVersion);
+    final l = Version.parse(localVersion);
+    final isNewVersionAvailable = n.compareTo(l) > 0;
     return GestureDetector(
       onTap: () {
         if (GetPlatform.isIOS) {
           const url = 'https://apps.apple.com/app/keychat-io/id6447493752';
-          launchUrl(Uri.parse(url), mode: LaunchMode.platformDefault);
+          launchUrl(Uri.parse(url));
           return;
         }
         const url = 'https://github.com/keychat-io/keychat-app/releases';
@@ -215,9 +216,9 @@ class _MinePageState extends State<MinePage> {
   }
 
   List<SettingsTile> getIDList(BuildContext context, List identities) {
-    List<SettingsTile> res = [];
+    final res = <SettingsTile>[];
     for (var i = 0; i < identities.length; i++) {
-      Identity identity = identities[i];
+      final identity = identities[i] as Identity;
 
       res.add(SettingsTile.navigation(
           leading: Utils.getAvatarByIdentity(identity, 32),
@@ -230,9 +231,9 @@ class _MinePageState extends State<MinePage> {
                     color: Theme.of(context).colorScheme.primary)
                 : Theme.of(context).textTheme.bodyLarge,
           ),
-          value: Text(getPublicKeyDisplay(identity.npub, 6)),
+          value: Text(getPublicKeyDisplay(identity.npub)),
           onPressed: (context) async {
-            Get.to(() => AccountSettingPage(),
+            Get.to(AccountSettingPage.new,
                 arguments: identity,
                 binding: AccountSettingBindings(identity),
                 id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
@@ -244,12 +245,12 @@ class _MinePageState extends State<MinePage> {
   SettingsTile migrateEcash() {
     return SettingsTile.navigation(
         leading: const Icon(Icons.warning_amber, color: Color(0xfff2a900)),
-        title: const Text("Migrate Tokens"),
+        title: const Text('Migrate Tokens'),
         description: Text(
             '''${v1EcashTokens.length} cashu tokens may need to be migrated.
 Try using https://wallet.cashu.me/ to receive tokens.
 If you have already received it, please ignore it.''',
-            style: TextStyle(color: Colors.red)),
+            style: const TextStyle(color: Colors.red)),
         onPressed: (_) {
           Get.bottomSheet(
               clipBehavior: Clip.antiAlias,
@@ -268,10 +269,8 @@ If you have already received it, please ignore it.''',
                                   'Are you sure you want to delete all ecash tokens? This action cannot be undone.'),
                               actions: [
                                 CupertinoDialogAction(
+                                  onPressed: Get.back,
                                   child: const Text('Cancel'),
-                                  onPressed: () {
-                                    Get.back();
-                                  },
                                 ),
                                 CupertinoDialogAction(
                                   isDestructiveAction: true,

@@ -186,7 +186,7 @@ class RelayInfoPage extends GetView<RelayInfoController> {
     final fees = (controller.info['fees'] ?? {}) as Map<String, dynamic>;
     if ((controller.info['limitation']?['payment_required'] ?? false) == true) {
       if (fees['publication'].length == 1) {
-        final Map publication = fees['publication'][0];
+        final publication = fees['publication'][0] as Map<String, dynamic>;
         final mints = <String>[];
         for (final m in (publication['method']['Cashu']['mints'] as Iterable)) {
           mints.add(m);

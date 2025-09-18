@@ -46,6 +46,26 @@ enum RequestConfrimEnum { none, request, approved, rejected, expired }
 @Collection(ignore: {'props', 'relayStatusMap', 'fromContact', 'isMediaType'})
 // ignore: must_be_immutable
 class Message extends Equatable {
+  // show for message
+
+  Message(
+      {required this.msgid,
+      required this.idPubkey,
+      required this.identityId,
+      required this.roomId,
+      required this.from,
+      required this.to,
+      required this.content,
+      required this.createdAt,
+      required this.sent,
+      required this.eventIds,
+      required this.encryptType,
+      required this.rawEvents,
+      this.realMessage,
+      this.reply,
+      this.isSystem = false,
+      this.isMeSend = false,
+      this.msgKeyHash});
   Id id = Isar.autoIncrement;
 
   @Index(unique: true, composite: [CompositeIndex('identityId')])
@@ -91,26 +111,7 @@ class Message extends Equatable {
   String? subEvent;
   DateTime? receiveAt;
   List<String> rawEvents = [];
-  FromContact? fromContact; // show for message
-
-  Message(
-      {required this.msgid,
-      required this.idPubkey,
-      required this.identityId,
-      required this.roomId,
-      required this.from,
-      required this.to,
-      required this.content,
-      required this.createdAt,
-      required this.sent,
-      required this.eventIds,
-      required this.encryptType,
-      required this.rawEvents,
-      this.realMessage,
-      this.reply,
-      this.isSystem = false,
-      this.isMeSend = false,
-      this.msgKeyHash});
+  FromContact? fromContact;
 
   @override
   List<Object?> get props => [
@@ -135,20 +136,20 @@ class Message extends Equatable {
 
   MsgFileInfo? convertToMsgFileInfo() {
     if (content.startsWith('https://') || content.startsWith('http://')) {
-      Uri uri = Uri.parse(content);
+      final uri = Uri.parse(content);
       if (!uri.hasQuery) return null;
-      Map query = uri.queryParameters;
+      final Map query = uri.queryParameters;
       if (query['kctype'] == null) return null;
 
       return MsgFileInfo()
-        ..type = query['kctype']
+        ..type = query['kctype'] as String
         ..url = uri.origin + uri.path
-        ..iv = query['iv']
-        ..suffix = query['suffix']
-        ..key = query['key']
-        ..size = int.parse(query['size'] ?? 0)
-        ..hash = query['hash']
-        ..sourceName = query['sourceName']
+        ..iv = query['iv'] as String
+        ..suffix = query['suffix'] as String?
+        ..key = query['key'] as String
+        ..size = int.parse(query['size'] as String? ?? '0')
+        ..hash = query['hash'] as String
+        ..sourceName = query['sourceName'] as String
         ..status = FileStatus.init;
     }
     return null;
@@ -156,7 +157,7 @@ class Message extends Equatable {
 }
 
 class FromContact {
+  FromContact(this.pubkey, this.name);
   late String pubkey;
   late String name;
-  FromContact(this.pubkey, this.name);
 }

@@ -21,36 +21,6 @@ class BIP340VerifyError implements Exception {
 /// - "content": "arbitrary string",
 /// - "sig": "64-bytes signature of the sha256 hash of the serialized event data, which is the same as the 'id' field"
 class NostrEventModel {
-  /// 32-bytes hex-encoded sha256 of the the serialized event data (hex)
-  late String id;
-
-  /// 32-bytes hex-encoded public key of the event creator (hex)
-  late String pubkey;
-
-  /// unix timestamp in seconds
-  late int createdAt;
-
-  /// -  0: set_metadata: the content is set to a stringified JSON object {name: username, about: string, picture: url} describing the user who created the event. A relay may delete past set_metadata events once it gets a new one for the same pubkey.
-  /// -  1: text_note: the content is set to the text content of a note (anything the user wants to say). Non-plaintext notes should instead use kind 1000-10000 as described in NIP-16.
-  /// -  2: recommend_server: the content is set to the URL (e.g., wss://somerelay.com) of a relay the event creator wants to recommend to its followers.
-  late int kind;
-
-  /// The tags array can store a tag identifier as the first element of each subarray, plus arbitrary information afterward (always as strings).
-  ///
-  /// This NIP defines "p" — meaning "pubkey", which points to a pubkey of someone that is referred to in the event —, and "e" — meaning "event", which points to the id of an event this event is quoting, replying to or referring to somehow.
-  late List<List<String>> tags;
-
-  /// arbitrary string
-  String content = "";
-
-  /// 64-bytes signature of the sha256 hash of the serialized event data, which is the same as the "id" field
-  late String sig;
-
-  /// subscription_id is a random string that should be used to represent a subscription.
-  String? subscriptionId;
-
-  String? toIdPubkey;
-
   /// Default constructor
   ///
   /// verify: ensure your event isValid() –> id, signature, timestamp…
@@ -92,11 +62,6 @@ class NostrEventModel {
   }) {
     pubkey = pubkey.toLowerCase();
   }
-  bool get isSignal => kind == EventKinds.nip04 && !content.contains('?iv=');
-  bool get isNip4 => kind == EventKinds.nip04 && content.contains('?iv=');
-  MessageEncryptType get encryptType => kind == EventKinds.nip17
-      ? MessageEncryptType.nip17
-      : (isSignal ? MessageEncryptType.signal : MessageEncryptType.nip4);
 
   /// Partial constructor, you have to fill the fields yourself
   ///
@@ -115,13 +80,13 @@ class NostrEventModel {
   /// assert(partialEvent.isValid() == true);
   /// ```
   factory NostrEventModel.partial({
-    String id = "",
-    String pubkey = "",
+    String id = '',
+    String pubkey = '',
     int createdAt = 0,
     int kind = 1,
     List<List<String>> tags = const <List<String>>[],
-    String content = "",
-    String sig = "",
+    String content = '',
+    String sig = '',
     String? subscriptionId,
     bool verify = false,
   }) {
@@ -146,7 +111,7 @@ class NostrEventModel {
   /// Performances could be a reason to disable event checks
   factory NostrEventModel.fromJson(Map<String, dynamic> json,
       {bool verify = true}) {
-    var tags = ((json['tags'] ?? []) as List<dynamic>)
+    final tags = ((json['tags'] ?? []) as List<dynamic>)
         .map((e) => (e as List<dynamic>).map((e) => e as String).toList())
         .toList();
     return NostrEventModel(
@@ -158,8 +123,95 @@ class NostrEventModel {
       json['content'],
       json['sig'],
       verify: verify,
-    )..toIdPubkey = json['toIdPubkey'];
+    )..toIdPubkey = json['toIdPubkey'] as String?;
   }
+
+  /// Deserialize a nostr event message
+  /// - A Map: event JSON as defined above
+  /// - ["EVENT", event JSON as defined above]
+  /// - ["EVENT", subscription_id, event JSON as defined above]
+  /// ```dart
+  /// Event event = Event.deserialize([
+  ///   "EVENT",
+  ///   {
+  ///     "id": "67bd60e47d7fdddadebff890143167bcd7b5d28b2c3008eae40e0ac5ba0e6b34",
+  ///     "kind": 1,
+  ///     "pubkey":
+  ///         "36685fa5106b1bc03ae7bea82eded855d8f56c41db4c8bdef8099e1e0f2b2afa",
+  ///     "created_at": 1674403511,
+  ///     "content":
+  ///         "Block 773103 was just confirmed. The total value of all the non-coinbase outputs was 61,549,183,849 sats, or \$14,025,828",
+  ///     "tags": [],
+  ///     "sig":
+  ///         "4912a6850a711a876fd2443771f69e094041f7e832df65646a75c2c77989480cce9b41aa5ea3d055c16fe5beb7d11d3d5fa29b4c4046c150b09393c4d3d16eb4"
+  ///   }
+  /// ]);
+  /// ```
+  factory NostrEventModel.deserialize(dynamic input, {bool verify = true}) {
+    var json = <String, dynamic>{};
+    String? subscriptionId;
+    if (input.length == 1) {
+      json = input as Map<String, dynamic>;
+    } else if (input.length == 2) {
+      json = input[1] as Map<String, dynamic>;
+    } else if (input.length == 3) {
+      json = input[2] as Map<String, dynamic>;
+      subscriptionId = input[1] as String;
+    } else {
+      throw Exception('invalid input');
+    }
+
+    final tags = (json['tags'] as List<dynamic>)
+        .map((e) => (e as List<dynamic>).map((e) => e as String).toList())
+        .toList();
+
+    return NostrEventModel(
+      json['id'],
+      json['pubkey'],
+      json['created_at'],
+      json['kind'],
+      tags,
+      json['content'],
+      json['sig'],
+      subscriptionId: subscriptionId,
+      verify: verify,
+    );
+  }
+
+  /// 32-bytes hex-encoded sha256 of the the serialized event data (hex)
+  late String id;
+
+  /// 32-bytes hex-encoded public key of the event creator (hex)
+  late String pubkey;
+
+  /// unix timestamp in seconds
+  late int createdAt;
+
+  /// -  0: set_metadata: the content is set to a stringified JSON object {name: username, about: string, picture: url} describing the user who created the event. A relay may delete past set_metadata events once it gets a new one for the same pubkey.
+  /// -  1: text_note: the content is set to the text content of a note (anything the user wants to say). Non-plaintext notes should instead use kind 1000-10000 as described in NIP-16.
+  /// -  2: recommend_server: the content is set to the URL (e.g., wss://somerelay.com) of a relay the event creator wants to recommend to its followers.
+  late int kind;
+
+  /// The tags array can store a tag identifier as the first element of each subarray, plus arbitrary information afterward (always as strings).
+  ///
+  /// This NIP defines "p" — meaning "pubkey", which points to a pubkey of someone that is referred to in the event —, and "e" — meaning "event", which points to the id of an event this event is quoting, replying to or referring to somehow.
+  late List<List<String>> tags;
+
+  /// arbitrary string
+  String content = '';
+
+  /// 64-bytes signature of the sha256 hash of the serialized event data, which is the same as the "id" field
+  late String sig;
+
+  /// subscription_id is a random string that should be used to represent a subscription.
+  String? subscriptionId;
+
+  String? toIdPubkey;
+  bool get isSignal => kind == EventKinds.nip04 && !content.contains('?iv=');
+  bool get isNip4 => kind == EventKinds.nip04 && content.contains('?iv=');
+  MessageEncryptType get encryptType => kind == EventKinds.nip17
+      ? MessageEncryptType.nip17
+      : (isSignal ? MessageEncryptType.signal : MessageEncryptType.nip4);
 
   /// Serialize an event in JSON
   Map<String, dynamic> toJson() => {
@@ -185,68 +237,16 @@ class NostrEventModel {
     }
   }
 
-  /// Deserialize a nostr event message
-  /// - A Map: event JSON as defined above
-  /// - ["EVENT", event JSON as defined above]
-  /// - ["EVENT", subscription_id, event JSON as defined above]
-  /// ```dart
-  /// Event event = Event.deserialize([
-  ///   "EVENT",
-  ///   {
-  ///     "id": "67bd60e47d7fdddadebff890143167bcd7b5d28b2c3008eae40e0ac5ba0e6b34",
-  ///     "kind": 1,
-  ///     "pubkey":
-  ///         "36685fa5106b1bc03ae7bea82eded855d8f56c41db4c8bdef8099e1e0f2b2afa",
-  ///     "created_at": 1674403511,
-  ///     "content":
-  ///         "Block 773103 was just confirmed. The total value of all the non-coinbase outputs was 61,549,183,849 sats, or \$14,025,828",
-  ///     "tags": [],
-  ///     "sig":
-  ///         "4912a6850a711a876fd2443771f69e094041f7e832df65646a75c2c77989480cce9b41aa5ea3d055c16fe5beb7d11d3d5fa29b4c4046c150b09393c4d3d16eb4"
-  ///   }
-  /// ]);
-  /// ```
-  factory NostrEventModel.deserialize(dynamic input, {bool verify = true}) {
-    Map<String, dynamic> json = {};
-    String? subscriptionId;
-    if (input.length == 1) {
-      json = input as Map<String, dynamic>;
-    } else if (input.length == 2) {
-      json = input[1] as Map<String, dynamic>;
-    } else if (input.length == 3) {
-      json = input[2] as Map<String, dynamic>;
-      subscriptionId = input[1] as String;
-    } else {
-      throw Exception('invalid input');
-    }
-
-    var tags = (json['tags'] as List<dynamic>)
-        .map((e) => (e as List<dynamic>).map((e) => e as String).toList())
-        .toList();
-
-    return NostrEventModel(
-      json['id'],
-      json['pubkey'],
-      json['created_at'],
-      json['kind'],
-      tags,
-      json['content'],
-      json['sig'],
-      subscriptionId: subscriptionId,
-      verify: verify,
-    );
-  }
-
   List<String>? getTagsByKey(String key) {
-    Map<String, List<String>> tagsMap = {};
-    for (var tag in tags) {
+    final tagsMap = <String, List<String>>{};
+    for (final tag in tags) {
       tagsMap[tag[0]] = tag.sublist(1);
     }
     return tagsMap[key];
   }
 
   String? getTagByKey(String key) {
-    List<String>? tagsMap = getTagsByKey(key);
+    final tagsMap = getTagsByKey(key);
     return tagsMap?[0];
   }
 }

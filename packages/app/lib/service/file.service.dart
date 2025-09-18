@@ -38,12 +38,12 @@ class FileEncryptInfo {
       required this.hash,
       required this.sourceName});
   FileEncryptInfo.fromJson(Map<String, dynamic> json) {
-    output = json['output'];
-    iv = json['iv'];
-    suffix = json['suffix'];
-    key = json['key'];
-    hash = json['hash'];
-    sourceName = json['sourceName'] ?? json['hash'];
+    output = json['output'] as Uint8List;
+    iv = json['iv'] as String;
+    suffix = json['suffix'] as String;
+    key = json['key'] as String;
+    hash = json['hash'] as String; // sha256
+    sourceName = (json['sourceName'] ?? json['hash']) as String;
   }
   late Uint8List output;
   late String iv;
@@ -898,8 +898,8 @@ class FileService {
 
       if (response.statusCode == 200) {
         logger.i('Success ${random.pubkey}: ${response.data}');
-        fe.url = response.data['url'] ?? '';
-        fe.size = response.data['size'] ?? fe.size;
+        fe.url = response.data['url'] as String? ?? '';
+        fe.size = response.data['size'] as int? ?? fe.size;
         return fe;
       }
     } on DioException catch (e, s) {
@@ -907,7 +907,7 @@ class FileService {
       // that falls out of the range of 2xx and is also not 304.
       if (e.response != null) {
         logger.e('Server $server failed: ${e.response?.data}', stackTrace: s);
-        errorMessage = e.response?.data;
+        errorMessage = e.response?.data as String?;
       } else {
         errorMessage = e.message;
         logger.e('Server $server failed: ${e.message}', stackTrace: s);

@@ -13,34 +13,35 @@ import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
 import 'package:keychat_rust_ffi_plugin/api_signal.dart';
 
 class SignalIdService {
-  static SignalIdService? _instance;
   // Avoid self instance
   SignalIdService._();
+  static SignalIdService? _instance;
   static SignalIdService get instance => _instance ??= SignalIdService._();
 
-  Future createSignalId(int identityId, [bool isGroupSharedKey = false]) async {
-    Isar database = DBProvider.database;
-    var keychain = await rust_signal.generateSignalIds();
-    var signalId = SignalId(
+  Future<SignalId> createSignalId(int identityId,
+      [bool isGroupSharedKey = false]) async {
+    final database = DBProvider.database;
+    final keychain = await rust_signal.generateSignalIds();
+    final signalId = SignalId(
         prikey: hex.encode(keychain.$1),
         identityId: identityId,
         pubkey: hex.encode(keychain.$2))
       ..isGroupSharedKey = isGroupSharedKey
       ..isUsed = false;
-    ChatxService chatxService = Get.find<ChatxService>();
-    KeychatIdentityKeyPair keypair = await chatxService
-        .setupSignalStoreBySignalId(signalId.pubkey, signalId);
-    var signalPrivateKey = Uint8List.fromList(hex.decode(signalId.prikey));
-    var signKeyResult = await rust_signal.generateSignedKeyApi(
+    final chatxService = Get.find<ChatxService>();
+    final keypair = await chatxService.setupSignalStoreBySignalId(
+        signalId.pubkey, signalId);
+    final signalPrivateKey = Uint8List.fromList(hex.decode(signalId.prikey));
+    final signKeyResult = await rust_signal.generateSignedKeyApi(
         keyPair: keypair, signalIdentityPrivateKey: signalPrivateKey);
 
     signalId.signalKeyId = signKeyResult.$1;
-    Map<String, dynamic> data = {};
+    final data = <String, dynamic>{};
     data['signedId'] = signKeyResult.$1;
     data['signedPublic'] = hex.encode(signKeyResult.$2);
     data['signedSignature'] = hex.encode(signKeyResult.$3);
 
-    var prekeyResult = await rust_signal.generatePrekeyApi(keyPair: keypair);
+    final prekeyResult = await rust_signal.generatePrekeyApi(keyPair: keypair);
     data['prekeyId'] = prekeyResult.$1;
     data['prekeyPubkey'] = hex.encode(prekeyResult.$2);
     if (isGroupSharedKey) {
@@ -59,7 +60,7 @@ class SignalIdService {
   }
 
   Future<SignalId?> isFromSignalId(String toAddress) async {
-    var res = await DBProvider.database.signalIds
+    final res = await DBProvider.database.signalIds
         .filter()
         .pubkeyEqualTo(toAddress)
         .findAll();
@@ -67,7 +68,7 @@ class SignalIdService {
   }
 
   Future<List<SignalId>> getSignalAllIds() async {
-    return await DBProvider.database.signalIds
+    return DBProvider.database.signalIds
         .filter()
         .isUsedEqualTo(false)
         .sortByCreatedAt()
@@ -75,7 +76,7 @@ class SignalIdService {
   }
 
   Future<List<SignalId>> getSignalIdByIdentity(int identityId) async {
-    return await DBProvider.database.signalIds
+    return DBProvider.database.signalIds
         .filter()
         .identityIdEqualTo(identityId)
         .isUsedEqualTo(false)
@@ -84,7 +85,7 @@ class SignalIdService {
   }
 
   Future<SignalId?> getSignalId(int identityId, String pubkey) async {
-    return await DBProvider.database.signalIds
+    return DBProvider.database.signalIds
         .filter()
         .identityIdEqualTo(identityId)
         .pubkeyEqualTo(pubkey)
@@ -93,21 +94,21 @@ class SignalIdService {
 
   Future<SignalId?> getSignalIdByPubkey(String? pubkey) async {
     if (pubkey == null) return null;
-    return await DBProvider.database.signalIds
+    return DBProvider.database.signalIds
         .filter()
         .pubkeyEqualTo(pubkey)
         .findFirst();
   }
 
   Future<SignalId?> getSignalIdByKeyId(int signalKeyId) async {
-    return await DBProvider.database.signalIds
+    return DBProvider.database.signalIds
         .filter()
         .signalKeyIdEqualTo(signalKeyId)
         .findFirst();
   }
 
   Future updateSignalId(SignalId si) async {
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
     await database.writeTxn(() async {
       await database.signalIds.put(si);
     });
@@ -124,21 +125,21 @@ class SignalIdService {
     });
   }
 
-  Future getQRCodeData(SignalId signalId) async {
-    var keypair = Get.find<ChatxService>().getKeyPairBySignalId(signalId);
+  Future<Map<String, dynamic>> getQRCodeData(SignalId signalId) async {
+    final keypair = Get.find<ChatxService>().getKeyPairBySignalId(signalId);
 
-    var signalPrivateKey = Uint8List.fromList(hex.decode(signalId.prikey));
-    var res = await rust_signal.generateSignedKeyApi(
+    final signalPrivateKey = Uint8List.fromList(hex.decode(signalId.prikey));
+    final res = await rust_signal.generateSignedKeyApi(
         keyPair: keypair, signalIdentityPrivateKey: signalPrivateKey);
 
     signalId.signalKeyId = res.$1;
     await SignalIdService.instance.updateSignalId(signalId);
-    Map<String, dynamic> data = {};
+    final data = <String, dynamic>{};
     data['signedId'] = res.$1;
     data['signedPublic'] = hex.encode(res.$2);
     data['signedSignature'] = hex.encode(res.$3);
 
-    var res2 = await rust_signal.generatePrekeyApi(keyPair: keypair);
+    final res2 = await rust_signal.generatePrekeyApi(keyPair: keypair);
     data['prekeyId'] = res2.$1;
     data['prekeyPubkey'] = hex.encode(res2.$2);
     data['time'] = DateTime.now().millisecondsSinceEpoch;
@@ -150,10 +151,10 @@ class SignalIdService {
     if (roomProfile.signalKeys == null) {
       throw Exception('Signal keys is null, failed to join group.');
     }
-    SignalId? exist = await getSignalId(identityId, roomProfile.signalPubkey!);
+    final exist = await getSignalId(identityId, roomProfile.signalPubkey!);
     if (exist != null) return exist;
 
-    var signalId = SignalId(
+    final signalId = SignalId(
         prikey: roomProfile.signaliPrikey!,
         pubkey: roomProfile.signalPubkey!,
         identityId: identityId)
@@ -164,8 +165,8 @@ class SignalIdService {
       ..updatedAt = DateTime.now();
     await DBProvider.database.signalIds.put(signalId);
 
-    Map keys = jsonDecode(roomProfile.signalKeys!);
-    var keyPair = await Get.find<ChatxService>()
+    final keys = jsonDecode(roomProfile.signalKeys!) as Map<String, dynamic>;
+    final keyPair = await Get.find<ChatxService>()
         .setupSignalStoreBySignalId(signalId.pubkey, signalId);
 
     await rust_signal.storePrekeyApi(
@@ -182,7 +183,7 @@ class SignalIdService {
 
   Future<bool> deleteSignalId(SignalId? model) async {
     if (model == null) return false;
-    return await DBProvider.database.signalIds
+    return DBProvider.database.signalIds
         .filter()
         .idEqualTo(model.id)
         .deleteFirst();

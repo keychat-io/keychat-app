@@ -144,7 +144,7 @@ class NostrAPI {
 
   Future _proccessEvent02(
       NostrEventModel event, List eventList, Relay relay, String raw) async {
-    final String subscribeId = eventList[1];
+    final subscribeId = eventList[1] as String;
     switch (event.kind) {
       case EventKinds.contactList:
         await _proccessNip2(event);
@@ -166,9 +166,9 @@ class NostrAPI {
   }
 
   Future<void> _proccessWriteEventResponse(List msg, Relay relay) async {
-    final String eventId = msg[1];
-    final bool status = msg[2];
-    final String? errorMessage = msg[3];
+    final eventId = msg[1] as String;
+    final status = msg[2] as bool;
+    final errorMessage = msg[3] as String?;
     if (NostrAPI.instance.okCallback[eventId] != null) {
       NostrAPI.instance.okCallback[eventId]!(
           relay: relay.url,

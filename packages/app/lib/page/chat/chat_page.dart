@@ -525,9 +525,11 @@ class _ChatPage2State extends State<ChatPage> {
         child: GestureDetector(
             onTap: () {
               final Map localConfig =
-                  jsonDecode(controller.roomObs.value.botLocalConfig ?? '{}');
+                  jsonDecode(controller.roomObs.value.botLocalConfig ?? '{}')
+                      as Map<String, dynamic>;
               final Map? botPricePerMessageRequest =
-                  localConfig['botPricePerMessageRequest'];
+                  localConfig['botPricePerMessageRequest']
+                      as Map<String, dynamic>?;
               Get.bottomSheet(
                   clipBehavior: Clip.antiAlias,
                   shape: const RoundedRectangleBorder(
@@ -925,7 +927,7 @@ class _ChatPage2State extends State<ChatPage> {
 
   int? tryGetMessageId() {
     try {
-      final Map<String, dynamic> arguments = Get.arguments;
+      final arguments = Get.arguments as Map<String, dynamic>;
       return arguments['messageId'] as int?;
       // ignore: empty_catches
     } catch (e) {}
@@ -944,8 +946,8 @@ class _ChatPage2State extends State<ChatPage> {
         room = RoomService.instance.getRoomByIdSync(roomId);
       } else {
         try {
-          final Map<String, dynamic> arguments = Get.arguments;
-          room = arguments['room'];
+          final arguments = Get.arguments as Map<String, dynamic>;
+          room = arguments['room'] as Room?;
         } catch (e) {
           room = Get.arguments as Room;
         }

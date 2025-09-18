@@ -31,8 +31,8 @@ class _WebStorePageState extends State<WebStorePage> {
     if (homeController.recommendWebstore.isEmpty) {
       await homeController.loadAppRemoteConfig();
     }
-    List<BrowserFavorite> list = controller.favorites;
-    Set<String> urls = list.map((e) => e.url).toSet();
+    final List<BrowserFavorite> list = controller.favorites;
+    final urls = list.map((e) => e.url).toSet();
     setState(() {
       exists = urls;
     });
@@ -58,7 +58,6 @@ class _WebStorePageState extends State<WebStorePage> {
                 },
                 displacement: 20,
                 backgroundColor: Colors.white,
-                trigger: IndicatorTrigger.leadingEdge,
                 triggerMode: IndicatorTriggerMode.anywhere,
                 child: ListView.builder(
                     itemCount: homeController.recommendWebstore.entries.length,
@@ -83,7 +82,8 @@ class _WebStorePageState extends State<WebStorePage> {
                                   itemCount: entry.value.length,
                                   itemBuilder: (context, index) {
                                     final site = entry.value[index];
-                                    String url = site['url1'] ?? site['url2'];
+                                    final url = (site['url1'] ?? site['url2'])
+                                        as String;
                                     return ListTile(
                                       dense: true,
                                       contentPadding: const EdgeInsets.all(0),
@@ -93,8 +93,7 @@ class _WebStorePageState extends State<WebStorePage> {
                                           overflow: TextOverflow.fade,
                                           maxLines: 1),
                                       subtitle: textSmallGray(
-                                          context, site['description'],
-                                          maxLines: 1),
+                                          context, site['description']),
                                       onTap: () {
                                         Get.find<MultiWebviewController>()
                                             .launchWebview(

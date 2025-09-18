@@ -117,7 +117,7 @@ class _MyQRCodeState extends State<MyQRCode> {
       [int time = -1]) async {
     final Map userInfo = signalId.keys == null
         ? await SignalIdService.instance.getQRCodeData(signalId)
-        : jsonDecode(signalId.keys!);
+        : jsonDecode(signalId.keys!) as Map<String, dynamic>;
 
     final content = SignalChatUtil.getToSignMessage(
         nostrId: identity.secp256k1PKHex,

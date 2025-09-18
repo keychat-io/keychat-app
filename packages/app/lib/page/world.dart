@@ -8,14 +8,14 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 import 'package:markdown_widget/markdown_widget.dart';
 
-import '../controller/world.controller.dart';
+import 'package:app/controller/world.controller.dart';
 
 class WorldPage extends StatelessWidget {
   const WorldPage({super.key});
 
   @override
-  Widget build(context) {
-    WorldController worldController = Get.put(WorldController());
+  Widget build(BuildContext context) {
+    final worldController = Get.put(WorldController());
     return Obx(() => Scaffold(
           appBar: AppBar(
             title: TabBar(
@@ -39,11 +39,11 @@ class WorldPage extends StatelessWidget {
           body: TabBarView(
               controller: worldController.tabController,
               children: worldController.feeds.keys.map((e) {
-                List? list = worldController.feeds[e];
+                final list = worldController.feeds[e];
                 if (list == null || list.isEmpty) {
                   return const SpinKitThreeBounce(
                     color: Colors.purple,
-                    size: 30.0,
+                    size: 30,
                     duration: Duration(milliseconds: 2000),
                   );
                   // return const Text('loading...');
@@ -52,7 +52,6 @@ class WorldPage extends StatelessWidget {
                     onRefresh: () => worldController.getFeed(e),
                     displacement: 20,
                     backgroundColor: Colors.white,
-                    trigger: IndicatorTrigger.leadingEdge,
                     triggerMode: IndicatorTriggerMode.anywhere,
                     child: ListView.separated(
                         shrinkWrap: true,
@@ -62,11 +61,11 @@ class WorldPage extends StatelessWidget {
                                 color: Get.isDarkMode
                                     ? Colors.black87
                                     : Colors.white70,
-                                thickness: 1.0,
+                                thickness: 1,
                                 height: 1),
                         itemBuilder: (BuildContext context, int index) {
-                          NostrEventModel ne = list[index];
-                          String createdAt = Utils.getFormatTimeForMessage(
+                          final ne = list[index] as NostrEventModel;
+                          final createdAt = Utils.getFormatTimeForMessage(
                               DateTime.fromMillisecondsSinceEpoch(
                                   ne.createdAt * 1000));
                           return ListTile(

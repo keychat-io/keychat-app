@@ -63,7 +63,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
     for (var i = 0; i < widget.contacts.length; i++) {
       final contact = widget.contacts[i];
       if (contact['pubkey'] != null) {
-        final String pubkey = contact['pubkey'];
+        final pubkey = contact['pubkey'] as String;
         if (result[pubkey] != null) {
           contact['mlsPK'] = result[pubkey];
         }
@@ -88,7 +88,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
     for (var i = 0; i < users.length; i++) {
       final contact = users[i];
       if (contact['isCheck'] == true) {
-        selectAccounts[contact['pubkey']] = contact['name'];
+        selectAccounts[contact['pubkey']] = contact['name'] as String;
         selectUsers.add(contact);
       }
     }
@@ -290,7 +290,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
                   EasyLoading.show(status: 'Loading...');
                   final Map result = await MlsGroupService.instance
                       .getKeyPackagesFromRelay([hexPubkey]);
-                  final String? mlsPK = result[hexPubkey];
+                  final mlsPK = result[hexPubkey] as String?;
                   if (mlsPK == null) {
                     EasyLoading.dismiss();
                     EasyLoading.showError(

@@ -45,8 +45,8 @@ class AwsS3 {
       void Function(int p1, int p2)? onSendProgress}) async {
     final dio = Dio();
     logger.i('upload params: $uploadParams');
-    final String endpoint = uploadParams['url']!;
-    final Map<String, dynamic> headers = uploadParams['headers']!;
+    final endpoint = uploadParams['url']! as String;
+    final headers = uploadParams['headers']! as Map<String, dynamic>;
     headers['Content-Type'] = 'multipart/form-data';
     try {
       final response = await dio.put(endpoint,

@@ -1,7 +1,6 @@
 import 'dart:io' show File;
 
 import 'package:app/controller/chat.controller.dart';
-import 'package:app/controller/setting.controller.dart';
 import 'package:app/page/chat/message_actions/VideoPlayWidget.dart';
 import 'package:app/service/file.service.dart';
 import 'package:app/utils.dart';
@@ -23,8 +22,8 @@ class ImagePreviewWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final filePath = FileService.instance.getAbsolutelyFilePath(
-        Get.find<SettingController>().appFolder.path, localPath);
+    final filePath = FileService.instance
+        .getAbsolutelyFilePath(Utils.appFolder.path, localPath);
     final file = File(filePath);
     if (!file.existsSync()) return errorCallback(text: '[Image cleaned]');
     return GestureDetector(

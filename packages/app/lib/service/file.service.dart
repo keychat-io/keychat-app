@@ -86,17 +86,15 @@ class FileService {
   }
 
   Future<void> deleteAllByIdentity(int identity) async {
-    final appFolder = await Utils.getAppFolder();
-    final dir =
-        Directory('${appFolder.path}/${KeychatGlobal.baseFilePath}/$identity');
+    final dir = Directory(
+        '${Utils.appFolder.path}/${KeychatGlobal.baseFilePath}/$identity');
     if (dir.existsSync()) {
       await dir.delete(recursive: true);
     }
   }
 
   Future<void> deleteAllFolder() async {
-    final appFolder = await Utils.getAppFolder();
-    final dir = Directory('${appFolder.path}/${Config.env}/');
+    final dir = Directory('${Utils.appFolder.path}/${Config.env}/');
     if (dir.existsSync()) {
       await dir.delete(recursive: true);
       logger.i('delete other file');
@@ -309,10 +307,10 @@ class FileService {
         }
       }
 
-      final appFolder = await Utils.getAppFolder();
-      mfi.status = FileStatus.decryptSuccess;
-      mfi.updateAt = DateTime.now();
-      mfi.localPath = newFile.path.replaceAll(appFolder.path, '');
+      mfi
+        ..status = FileStatus.decryptSuccess
+        ..updateAt = DateTime.now()
+        ..localPath = newFile.path.replaceFirst(Utils.appFolder.path, '');
       message.realMessage = mfi.toString();
       final isCurrentPage = DBProvider.instance.isCurrentPage(message.roomId);
       if (isCurrentPage) {
@@ -326,8 +324,9 @@ class FileService {
     } catch (e, s) {
       // mark as failed
       logger.e(e.toString(), error: e, stackTrace: s);
-      mfi.status = FileStatus.failed;
-      mfi.updateAt = DateTime.now();
+      mfi
+        ..status = FileStatus.failed
+        ..updateAt = DateTime.now();
       message.realMessage = mfi.toString();
       await updateMessageAndCallback(message, mfi, callback);
     }
@@ -392,8 +391,7 @@ class FileService {
         final localFile = File(localFilePath);
         await localFile.parent.create(recursive: true);
         await localFile.writeAsBytes(await tempFile.readAsBytes());
-        final appFolder = await Utils.getAppFolder();
-        relativePath = localFile.path.replaceAll(appFolder.path, '');
+        relativePath = localFile.path.replaceFirst(Utils.appFolder.path, '');
       }
 
       return MsgFileInfo()
@@ -518,8 +516,7 @@ class FileService {
       }
     }
 
-    final appFolder = await Utils.getAppFolder();
-    final relativePath = newFile.path.replaceAll(appFolder.path, '');
+    final relativePath = newFile.path.replaceFirst(Utils.appFolder.path, '');
     return MsgFileInfo()
       ..fileInfo = fileInfo
       ..localPath = relativePath
@@ -659,15 +656,15 @@ class FileService {
       {required int identityId,
       required int roomId,
       MessageMediaType? type}) async {
-    final appFolder = await Utils.getAppFolder();
     var outputPath =
-        '${appFolder.path}/${KeychatGlobal.baseFilePath}/$identityId/$roomId/';
+        '${Utils.appFolder.path}/${KeychatGlobal.baseFilePath}/$identityId/$roomId/';
 
     if (type != null) {
       outputPath += '${type.name}/';
     }
     final dir = Directory(outputPath);
-    if (!(await dir.exists())) {
+    final exist = dir.existsSync();
+    if (!exist) {
       await dir.create(recursive: true);
     }
     return outputPath;

@@ -173,7 +173,7 @@ class HomeController extends GetxController
         EasyThrottle.throttle(
             'AppLifecycleState.resumed', const Duration(seconds: 2), () {
           NostrAPI.instance.okCallback.clear();
-          Utils.initLoggger(Get.find<SettingController>().appFolder);
+          Utils.initLoggger(Utils.appFolder);
           NotifyService.syncPubkeysToServer(checkUpload: true);
           Get.find<MultiWebviewController>().checkCurrentControllerAlive();
         });

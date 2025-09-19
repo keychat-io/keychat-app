@@ -70,8 +70,7 @@ class DbSetting {
   Future<void> exportDB(String encryptionKey) async {
     final fileName =
         'Keychat_db_${formatTime(DateTime.now().millisecondsSinceEpoch, 'yyyy-MM-dd_HH-mm-ss')}';
-    final appFolder = await Utils.getAppFolder();
-    final sourcePath = '${appFolder.path}/prod/database';
+    final sourcePath = '${Utils.appFolder.path}/prod/database';
     final outputPath = '$sourcePath/$fileName';
     // need export shared_preferences file to sourcePath
     final sharedPrefsPath = '$sourcePath/shared_prefs_export.json';
@@ -231,10 +230,7 @@ class DbSetting {
   }
 
   Future<bool> importDB(String decryptionKey, File file) async {
-    final appFolder = await Utils.getAppFolder();
-
-    final sourcePath = '${appFolder.path}/prod/database/';
-
+    final sourcePath = '${Utils.appFolder.path}/prod/database/';
     deleteAllFilesInDirectory(sourcePath);
     return importAndDecryptPackage(file.path, decryptionKey, sourcePath);
   }

@@ -1,37 +1,33 @@
 import 'dart:async';
 
 import 'package:app/controller/home.controller.dart';
-import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/browser/browser_connect.dart';
 import 'package:app/models/db_provider.dart';
-import 'package:app/models/embedded/msg_file_info.dart';
 import 'package:app/models/identity.dart';
-
 import 'package:app/page/browser/BrowserConnectedWebsite.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/contact/contact_list_page.dart';
-
+import 'package:app/page/login/AccountSetting/AccountSetting_controller.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/file.service.dart';
+import 'package:app/service/identity.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/secure_storage.dart';
-import 'package:app/service/identity.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:isar_community/isar.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
-import 'package:settings_ui/settings_ui.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:app/page/login/AccountSetting/AccountSetting_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
+import 'package:settings_ui/settings_ui.dart';
 
 class AccountSettingPage extends GetView<AccountSettingController> {
   const AccountSettingPage({super.key});
@@ -46,7 +42,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
             IconButton(
               icon: const Icon(Icons.more_vert),
               onPressed: () {
-                showModalBottomSheet(
+                showModalBottomSheet<void>(
                   context: context,
                   builder: (context) {
                     return SafeArea(
@@ -90,27 +86,30 @@ class AccountSettingPage extends GetView<AccountSettingController> {
               child: Obx(() => Column(children: [
                     Center(
                         child: GestureDetector(
-                      onTap: () => _pickAndUploadAvatar(ImageSource.gallery),
+                      onTap: () => kDebugMode
+                          ? _pickAndUploadAvatar(ImageSource.gallery)
+                          : null,
                       child: Stack(
                         children: [
                           Obx(() => Utils.getAvatarByIdentity(
                               controller.identity.value)),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).primaryColor,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              padding: const EdgeInsets.all(4),
-                              child: const Icon(
-                                Icons.edit,
-                                color: Colors.white,
-                                size: 16,
+                          if (kDebugMode)
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).primaryColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.all(4),
+                                child: const Icon(
+                                  Icons.edit,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
                               ),
                             ),
-                          ),
                         ],
                       ),
                     )),
@@ -617,7 +616,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
         return;
       }
       EasyLoading.show(status: 'Uploading avatar...');
-      final avatarsFolder = Get.find<SettingController>().avatarsFolder;
+      final avatarsFolder = Utils.avatarsFolder;
       final fileName = '${Utils.randomString(16)}.$ext';
       final localFileFullPath = '$avatarsFolder/$fileName';
       // Upload to server using encryptAndUploadImage

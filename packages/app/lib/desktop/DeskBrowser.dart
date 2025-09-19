@@ -17,13 +17,14 @@ class _DeskBrowserState extends State<DeskBrowser> {
   late MultiWebviewController controller;
   late DesktopController desktopController;
   int currentTabIndex = 0;
-  static const GlobalObjectKey<State<StatefulWidget>> stackKey =
-      GlobalObjectKey('browser_stack_desktop');
+  late GlobalObjectKey stackKey;
   final FocusNode _focusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
+
+    stackKey = const GlobalObjectKey('browser_stack_desktop');
     controller = Get.find<MultiWebviewController>();
     desktopController = Get.find<DesktopController>();
     controller.updatePageTabIndex = (int index) {

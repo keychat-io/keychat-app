@@ -1,5 +1,3 @@
-import 'dart:io' show File;
-
 import 'package:app/app.dart';
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/service/file.service.dart';
@@ -7,8 +5,8 @@ import 'package:app/service/notify.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
-import 'package:mutex/mutex.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
+import 'package:mutex/mutex.dart';
 
 class ContactService {
   // Avoid self instance
@@ -380,14 +378,13 @@ class ContactService {
     if (avatarRemoteUrl != null &&
         avatarRemoteUrl.isNotEmpty &&
         avatarRemoteUrl != contact.avatarRemoteUrl) {
-      final sc = Get.find<SettingController>();
       contact.avatarRemoteUrl = avatarRemoteUrl;
       try {
         final decryptedFile = await FileService.instance
             .downloadAndDecryptToPath(
-                url: avatarRemoteUrl, outputFolder: sc.avatarsFolder);
+                url: avatarRemoteUrl, outputFolder: Utils.avatarsFolder);
         contact.avatarLocalPath =
-            decryptedFile.path.replaceFirst(sc.appFolder.path, '');
+            decryptedFile.path.replaceFirst(Utils.appFolder.path, '');
       } catch (e) {
         logger.e('Failed to download avatar: $e');
       }

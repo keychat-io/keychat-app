@@ -16,6 +16,16 @@ part 'identity.g.dart';
 @Collection(ignore: {'props', 'displayName', 'mainMykey', 'displayAbout'})
 // ignore: must_be_immutable
 class Identity extends Equatable {
+  // fetch from relay
+
+  Identity({
+    required this.name,
+    required this.npub,
+    required this.secp256k1PKHex,
+    this.note,
+  }) {
+    createdAt = DateTime.now();
+  }
   Id id = Isar.autoIncrement;
   int weight = 0;
   bool isDefault = false;
@@ -59,16 +69,7 @@ class Identity extends Equatable {
   DateTime? fetchFromRelayAt; // fetch time
   String? aboutFromRelay; // fetch from relay
   String? metadataFromRelay; // fetch from relay
-  int versionFromRelay = 0; // fetch from relay
-
-  Identity({
-    required this.name,
-    required this.npub,
-    required this.secp256k1PKHex,
-    this.note,
-  }) {
-    createdAt = DateTime.now();
-  }
+  int versionFromRelay = 0;
 
   @override
   List get props => [
@@ -80,18 +81,17 @@ class Identity extends Equatable {
       ];
 
   Future<String> getSecp256k1SKHex() async {
-    return await SecureStorage.instance.readPrikeyOrFail(secp256k1PKHex);
+    return SecureStorage.instance.readPrikeyOrFail(secp256k1PKHex);
   }
 
   Future<String?> getCurve25519SkHex() async {
     if (curve25519PkHex == null) return null;
-    return await SecureStorage.instance
-        .readCurve25519PrikeyOrFail(curve25519PkHex!);
+    return SecureStorage.instance.readCurve25519PrikeyOrFail(curve25519PkHex!);
   }
 
   Future<String?> getMnemonic() async {
     if (index == -1) return null;
-    return await SecureStorage.instance.getPhraseWords();
+    return SecureStorage.instance.getPhraseWords();
   }
 
   Future<String?> getRemoteAvatarUrl() async {
@@ -103,11 +103,11 @@ class Identity extends Equatable {
     if (avatarLocalPath == null) return null;
     try {
       // expired but local file exists, re-upload
-      String filePath = Get.find<SettingController>().appFolder.path;
-      File file = File(filePath + avatarLocalPath!);
-      bool exists = await file.exists();
+      final filePath = Utils.appFolder.path;
+      final file = File(filePath + avatarLocalPath!);
+      final exists = file.existsSync();
       if (!exists) return null;
-      MsgFileInfo? mfi = await FileService.instance
+      final mfi = await FileService.instance
           .encryptAndUploadImage(XFile(file.path), writeToLocal: false);
       if (mfi == null) return null;
       mfi.sourceName = '';
@@ -118,7 +118,7 @@ class Identity extends Equatable {
       await IdentityService.instance.updateIdentity(this);
       return avatarRemoteUrl;
     } catch (e, st) {
-      logger.e('Failed ${e.toString()}', stackTrace: st);
+      logger.e('Failed $e', stackTrace: st);
     }
     return null;
   }

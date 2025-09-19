@@ -1,10 +1,10 @@
 import 'dart:io' show File;
 
-import 'package:app/controller/setting.controller.dart';
 import 'package:app/models/embedded/msg_file_info.dart';
 import 'package:app/models/message.dart';
 import 'package:app/page/components.dart';
 import 'package:app/service/file.service.dart';
+import 'package:app/utils.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -15,9 +15,9 @@ import 'package:path/path.dart' as path;
 import 'package:share_plus/share_plus.dart';
 
 class FileMessagePreview extends StatefulWidget {
+  const FileMessagePreview(this.message, this.mfi, {super.key});
   final Message message;
   final MsgFileInfo mfi;
-  const FileMessagePreview(this.message, this.mfi, {super.key});
 
   @override
   _FileMessagePreviewState createState() => _FileMessagePreviewState();
@@ -40,7 +40,7 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
 
   void _init(MsgFileInfo mfi) {
     if (mfi.status == FileStatus.downloading && mfi.updateAt != null) {
-      bool isTimeout = DateTime.now()
+      final isTimeout = DateTime.now()
           .subtract(const Duration(seconds: 120))
           .isAfter(mfi.updateAt!);
       if (isTimeout) {
@@ -57,9 +57,8 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
     }
     // decryptSuccess
     if (mfi.status == FileStatus.decryptSuccess && mfi.localPath != null) {
-      String filePath =
-          '${Get.find<SettingController>().appFolder.path}${mfi.localPath!}';
-      bool fileExists = File(filePath).existsSync();
+      final filePath = '${Utils.appFolder.path}${mfi.localPath!}';
+      final fileExists = File(filePath).existsSync();
 
       if (fileExists == false) {
         setState(() {
@@ -86,9 +85,9 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
                 msgFileInfo.localPath != null)
               IconButton(
                   onPressed: () async {
-                    String filePath =
-                        '${Get.find<SettingController>().appFolder.path}${msgFileInfo.localPath!}';
-                    bool fileExists = File(filePath).existsSync();
+                    final filePath =
+                        '${Utils.appFolder.path}${msgFileInfo.localPath!}';
+                    final fileExists = File(filePath).existsSync();
 
                     if (fileExists) {
                       await File(filePath).delete();
@@ -104,7 +103,6 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
             child: Center(
                 child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(msgFileInfo.fileName,
                     style: Theme.of(context).textTheme.titleMedium),
@@ -128,8 +126,8 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
                       padding: const EdgeInsets.only(top: 8),
                       child: OutlinedButton.icon(
                           onPressed: () async {
-                            String filePath =
-                                '${Get.find<SettingController>().appFolder.path}${msgFileInfo.localPath!}';
+                            final filePath =
+                                '${Utils.appFolder.path}${msgFileInfo.localPath!}';
                             SharePlus.instance.share(ShareParams(
                                 previewThumbnail: XFile(filePath),
                                 files: [XFile(filePath)],
@@ -155,10 +153,10 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
                   style:
                       ElevatedButton.styleFrom(backgroundColor: Colors.green),
                   onPressed: () {
-                    String filePath =
-                        '${Get.find<SettingController>().appFolder.path}${msgFileInfo.localPath!}';
+                    final filePath =
+                        '${Utils.appFolder.path}${msgFileInfo.localPath!}';
                     if (GetPlatform.isDesktop) {
-                      String dir =
+                      final dir =
                           filePath.substring(0, filePath.lastIndexOf('/'));
                       OpenFilex.open(dir);
                     } else {
@@ -169,13 +167,13 @@ class _FileMessagePreviewState extends State<FileMessagePreview> {
                       GetPlatform.isDesktop
                           ? 'View in Finder'
                           : 'Open in Other App',
-                      style: TextStyle(color: Colors.white))),
+                      style: const TextStyle(color: Colors.white))),
               OutlinedButton(
                   onPressed: () async {
-                    String filePath =
-                        '${Get.find<SettingController>().appFolder.path}${msgFileInfo.localPath!}';
-                    String fileName = path.basename(msgFileInfo.localPath!);
-                    String? outputFile = await FilePicker.platform.saveFile(
+                    final filePath =
+                        '${Utils.appFolder.path}${msgFileInfo.localPath!}';
+                    final fileName = path.basename(msgFileInfo.localPath!);
+                    final outputFile = await FilePicker.platform.saveFile(
                       dialogTitle: 'Please select an output path:',
                       fileName: fileName,
                       bytes: await File(filePath).readAsBytes(),

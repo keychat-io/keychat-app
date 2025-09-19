@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:app/app.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/desktop/DesktopController.dart';
+import 'package:app/page/RecommendBots/RecommendBots.dart';
 import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app/page/components.dart';
 import 'package:app/page/new_friends_rooms.dart';
 import 'package:app/page/search_page.dart';
 import 'package:app/page/widgets/RelayStatus.dart';
@@ -12,8 +16,6 @@ import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:app/page/RecommendBots/RecommendBots.dart';
-import 'package:app/page/components.dart';
 
 class RoomList extends GetView<HomeController> {
   const RoomList({super.key});
@@ -173,8 +175,8 @@ class RoomList extends GetView<HomeController> {
                         key: ObjectKey('${index}_room${room.id}'),
                         onTap: () async {
                           await Utils.toNamedRoom(room);
-                          RoomService.instance.markAllRead(
-                              identityId: room.identityId, roomId: room.id);
+                          unawaited(RoomService.instance.markAllRead(
+                              identityId: room.identityId, roomId: room.id));
                           controller.resortRoomList(room.identityId);
                         },
                         onSecondaryTapDown: (e) {

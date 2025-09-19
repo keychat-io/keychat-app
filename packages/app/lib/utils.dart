@@ -4,6 +4,7 @@ import 'dart:io' show Directory, File, FileMode, Platform, exit;
 import 'dart:math' show Random;
 
 import 'package:app/controller/setting.controller.dart';
+import 'package:app/desktop/DesktopController.dart';
 import 'package:app/global.dart';
 import 'package:app/models/contact.dart';
 import 'package:app/models/identity.dart';
@@ -37,8 +38,6 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-
-import 'package:app/desktop/DesktopController.dart';
 
 Logger logger = Logger(
     filter: kReleaseMode ? MyLogFilter() : null,
@@ -367,6 +366,7 @@ class Utils {
         ));
   }
 
+  static Directory appFolder = Directory('/');
   static Future<Directory> getAppFolder() async {
     Directory? directory;
 
@@ -393,7 +393,37 @@ class Utils {
         // For iOS, Android and other platforms
         directory = await getApplicationDocumentsDirectory();
     }
+    initDirectory(directory);
     return directory;
+  }
+
+  static String avatarsFolder = '';
+  static String browserCacheFolder = '';
+  static String browserUserDataFolder = '';
+
+  static void initDirectory(Directory directory) {
+    appFolder = directory;
+    avatarsFolder = '${directory.path}/avatars';
+    browserCacheFolder = '${directory.path}/browserCache';
+    browserUserDataFolder = '${directory.path}/browserUserData';
+
+    // avatar folder
+    avatarsFolder = '${Utils.appFolder.path}/avatars';
+    browserCacheFolder = '${Utils.appFolder.path}/browserCache';
+    browserUserDataFolder = '${Utils.appFolder.path}/browserUserData';
+    final errorsFolder = '${Utils.appFolder.path}/errors';
+
+    for (final folder in [
+      avatarsFolder,
+      browserCacheFolder,
+      browserUserDataFolder,
+      errorsFolder
+    ]) {
+      final exist = Directory(folder).existsSync();
+      if (!exist) {
+        Directory(folder).createSync(recursive: true);
+      }
+    }
   }
 
   static Widget getAssetImage(String imageUrl,
@@ -686,7 +716,10 @@ class Utils {
   static Map<String, String> avatarCache = {};
 
   static Widget getRandomAvatar(String id,
-      {double height = 40, double width = 40, String? httpAvatar}) {
+      {double height = 40,
+      double width = 40,
+      String? httpAvatar,
+      Contact? contact}) {
     // network avatar first
     if (httpAvatar != null &&
         (httpAvatar.startsWith('http://') ||
@@ -700,13 +733,24 @@ class Utils {
           size: width, placeholder: _generateRandomAvatar(id, size: width))!;
     }
     // query from contact
-    final contact = ContactService.instance.getContactSync(id);
-    if (contact?.avatarFromRelay != null) {
-      if (contact!.avatarFromRelay!.startsWith('http://') ||
-          contact.avatarFromRelay!.startsWith('https://')) {
-        avatarCache[id] = contact.avatarFromRelay!;
-        return getNetworkImage(contact.avatarFromRelay,
-            size: width, placeholder: _generateRandomAvatar(id, size: width))!;
+    contact ??= ContactService.instance.getContactSync(id);
+    if (contact != null) {
+      // from local file
+      if (contact.avatarLocalPath != null) {
+        final file = File('${Utils.appFolder.path}${contact.avatarLocalPath}');
+        if (file.existsSync()) {
+          return getAvatarByImageFile(file, size: width);
+        }
+      }
+      // from relay
+      if (contact.avatarFromRelay != null) {
+        if (contact.avatarFromRelay!.startsWith('http://') ||
+            contact.avatarFromRelay!.startsWith('https://')) {
+          avatarCache[id] = contact.avatarFromRelay!;
+          return getNetworkImage(contact.avatarFromRelay,
+              size: width,
+              placeholder: _generateRandomAvatar(id, size: width))!;
+        }
       }
     }
 
@@ -715,7 +759,7 @@ class Utils {
   }
 
   static SvgPicture _generateRandomAvatar(String id, {double size = 40}) {
-    final avatarsFolder = Get.find<SettingController>().avatarsFolder;
+    final avatarsFolder = Utils.avatarsFolder;
     final filePath = '$avatarsFolder/$id.svg';
     final file = File(filePath);
     if (file.existsSync()) {
@@ -1199,11 +1243,10 @@ class Utils {
 
   static Widget getAvatarByIdentity(Identity identity, [double size = 84]) {
     final avatarPath = identity.avatarLocalPath;
-    final sc = Get.find<SettingController>();
 
     // Check if local avatar file exists
     if (avatarPath != null && avatarPath.isNotEmpty) {
-      final avatarFile = File(sc.appFolder.path + avatarPath);
+      final avatarFile = File(Utils.appFolder.path + avatarPath);
       logger.d('Loading local avatar from: ${avatarFile.path}');
       if (avatarFile.existsSync()) {
         if (avatarPath.toLowerCase().endsWith('.svg')) {

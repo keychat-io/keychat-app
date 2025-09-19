@@ -56,7 +56,7 @@ class WebviewTabController extends GetxController {
         transparentBackground: true,
         supportMultipleWindows: GetPlatform.isDesktop,
         textZoom: multiWebviewController.kInitialTextSize.value,
-        appCachePath: Get.find<SettingController>().browserCacheFolder,
+        appCachePath: Utils.browserCacheFolder,
         iframeAllow: 'camera; microphone',
         algorithmicDarkeningAllowed: true,
         iframeAllowFullscreen: true);

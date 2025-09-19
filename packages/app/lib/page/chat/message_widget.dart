@@ -627,8 +627,7 @@ class MessageWidget extends StatelessWidget {
                 final mfi =
                     MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
                 if (mfi.localPath != null) {
-                  final filePath =
-                      '${Get.find<SettingController>().appFolder.path}${mfi.localPath}';
+                  final filePath = '${Utils.appFolder.path}${mfi.localPath}';
                   final fileExists = File(filePath).existsSync();
                   if (fileExists) {
                     await File(filePath).delete();
@@ -915,8 +914,8 @@ class MessageWidget extends StatelessWidget {
                 EasyLoading.showToast('File not exist');
                 return;
               }
-              final filePath = FileService.instance.getAbsolutelyFilePath(
-                  Get.find<SettingController>().appFolder.path, mfi.localPath!);
+              final filePath = FileService.instance
+                  .getAbsolutelyFilePath(Utils.appFolder.path, mfi.localPath!);
 
               // Get the directory of the file
               final fileDir = File(filePath).parent.path;

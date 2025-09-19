@@ -344,8 +344,7 @@ class MultiWebviewController extends GetxController {
       final availableVersion = await WebViewEnvironment.getAvailableVersion();
       assert(availableVersion != null,
           'Failed to find an installed WebView2 Runtime or non-stable Microsoft Edge installation.');
-      final browserCacheFolder =
-          Get.find<SettingController>().browserCacheFolder;
+      final browserCacheFolder = Utils.browserCacheFolder;
       webViewEnvironment = await WebViewEnvironment.create(
           settings:
               WebViewEnvironmentSettings(userDataFolder: browserCacheFolder));

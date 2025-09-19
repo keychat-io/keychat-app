@@ -1,5 +1,3 @@
-import 'dart:io' show Directory;
-
 import 'package:app/app.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:flutter/foundation.dart'
@@ -27,39 +25,15 @@ class SettingController extends GetxController with StateMixin<Type> {
     'https://nostr.download'
   ].obs;
 
-  Directory appFolder = Directory('/');
-  late String avatarsFolder;
-  late String browserCacheFolder;
-  late String browserUserDataFolder;
-
   RxInt biometricsAuthTime = RxInt(0);
 
   @override
   Future<void> onInit() async {
-    loadBiometricsStatus();
-    appFolder = await Utils.getAppFolder();
-
+    await loadBiometricsStatus();
     // viewKeychatFutures.value = await getViewKeychatFutures();
     autoCleanMessageDays.value =
         Storage.getIntOrZero(StorageKeyString.autoDeleteMessageDays);
 
-    // avatar folder
-    avatarsFolder = '${appFolder.path}/avatars';
-    browserCacheFolder = '${appFolder.path}/browserCache';
-    browserUserDataFolder = '${appFolder.path}/browserUserData';
-    final errorsFolder = '${appFolder.path}/errors';
-
-    for (final folder in [
-      avatarsFolder,
-      browserCacheFolder,
-      browserUserDataFolder,
-      errorsFolder
-    ]) {
-      Directory(folder).exists().then((res) {
-        if (res) return;
-        Directory(folder).createSync(recursive: true);
-      });
-    }
     // Catch uncaught Flutter errors
     FlutterError.onError = (FlutterErrorDetails details) {
       FlutterError.presentError(details);

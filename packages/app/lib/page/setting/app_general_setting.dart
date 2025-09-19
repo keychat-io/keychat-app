@@ -176,7 +176,7 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                 leading: const Icon(CupertinoIcons.doc),
                 title: const Text('App File Explore'),
                 onPressed: (context) async {
-                  Get.to(() => FileExplorerPage(dir: controller.appFolder),
+                  Get.to(() => FileExplorerPage(dir: Utils.appFolder),
                       id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
                 },
               ),

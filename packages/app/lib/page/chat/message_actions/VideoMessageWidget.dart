@@ -2,8 +2,6 @@ import 'dart:convert' show jsonDecode;
 import 'dart:io' show File;
 
 import 'package:app/app.dart';
-import 'package:app/controller/chat.controller.dart';
-import 'package:app/controller/setting.controller.dart';
 import 'package:app/page/widgets/image_slide_widget.dart';
 import 'package:app/service/file.service.dart';
 import 'package:easy_debounce/easy_debounce.dart';
@@ -12,9 +10,9 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
 class VideoMessageWidget extends StatefulWidget {
+  const VideoMessageWidget(this.message, this.errorCallback, {super.key});
   final Message message;
   final Widget Function({Widget? child, String? text}) errorCallback;
-  const VideoMessageWidget(this.message, this.errorCallback, {super.key});
 
   @override
   _VideoMessageWidgetState createState() => _VideoMessageWidgetState();
@@ -31,10 +29,9 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
   @override
   void initState() {
     super.initState();
-    appFolder = Get.find<SettingController>().appFolder.path;
+    appFolder = Utils.appFolder.path;
     try {
-      MsgFileInfo mfi =
-          MsgFileInfo.fromJson(jsonDecode(widget.message.realMessage!));
+      final mfi = MsgFileInfo.fromJson(jsonDecode(widget.message.realMessage!));
       _init(mfi);
     } catch (e, s) {
       logger.e(e.toString(), error: e, stackTrace: s);
@@ -43,7 +40,7 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
 
   Future<void> _init(MsgFileInfo mfi) async {
     if (mfi.status == FileStatus.downloading && mfi.updateAt != null) {
-      bool isTimeout = DateTime.now()
+      final isTimeout = DateTime.now()
           .subtract(const Duration(seconds: 120))
           .isAfter(mfi.updateAt!);
       if (isTimeout) {
@@ -60,8 +57,8 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
     }
     // decryptSuccess
     if (mfi.status == FileStatus.decryptSuccess && mfi.localPath != null) {
-      String filePath = '$appFolder${mfi.localPath!}';
-      bool fileExists = File(filePath).existsSync();
+      final filePath = '$appFolder${mfi.localPath!}';
+      final fileExists = File(filePath).existsSync();
       if (fileExists == false) {
         setState(() {
           fileStatus = FileStatus.init;
@@ -142,17 +139,17 @@ class _VideoMessageWidgetState extends State<VideoMessageWidget> {
                     backgroundColor: Colors.grey.withValues(alpha: 0.8),
                     child: IconButton(
                       onPressed: () async {
-                        ChatController? cc =
+                        final cc =
                             RoomService.getController(widget.message.roomId);
                         if (cc == null || videoPath == null) return;
-                        List<File> files = await FileService.instance
+                        final files = await FileService.instance
                             .getRoomImageAndVideo(cc.roomObs.value.identityId,
                                 cc.roomObs.value.id);
                         Get.to(
                             () => SlidesImageViewWidget(
                                 files: files.reversed.toList(),
                                 selected: File(videoPath!),
-                                file: thumbnailFile!),
+                                file: thumbnailFile),
                             transition: Transition.zoom,
                             fullscreenDialog: true);
                       },

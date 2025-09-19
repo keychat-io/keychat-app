@@ -85,7 +85,7 @@ class FileService {
     return output;
   }
 
-  Future deleteAllByIdentity(int identity) async {
+  Future<void> deleteAllByIdentity(int identity) async {
     final appFolder = await Utils.getAppFolder();
     final dir =
         Directory('${appFolder.path}/${KeychatGlobal.baseFilePath}/$identity');
@@ -94,7 +94,7 @@ class FileService {
     }
   }
 
-  Future deleteAllFolder() async {
+  Future<void> deleteAllFolder() async {
     final appFolder = await Utils.getAppFolder();
     final dir = Directory('${appFolder.path}/${Config.env}/');
     if (dir.existsSync()) {
@@ -118,7 +118,7 @@ class FileService {
     }
   }
 
-  Future deleteFolderByRoomId(int identity, int roomId) async {
+  Future<void> deleteFolderByRoomId(int identity, int roomId) async {
     final path = await getRoomFolder(identityId: identity, roomId: roomId);
     final directory = Directory(path);
     if (directory.existsSync()) {
@@ -246,7 +246,7 @@ class FileService {
     return null;
   }
 
-  Future downloadForMessage(Message message, MsgFileInfo mfi,
+  Future<void> downloadForMessage(Message message, MsgFileInfo mfi,
       {Function(MsgFileInfo fi)? callback,
       Function(int count, int total)? onReceiveProgress}) async {
     final uri = Uri.parse(message.content);

@@ -291,7 +291,7 @@ class ChatxService extends GetxService {
     return keyPair;
   }
 
-  Future deleteSignalSessionKPA(Room room) async {
+  Future<void> deleteSignalSessionKPA(Room room) async {
     if (room.curve25519PkHex == null) return;
     final identity = Get.find<HomeController>().allIdentities[room.identityId];
     if (identity == null) return;

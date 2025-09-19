@@ -55,7 +55,7 @@ class NostrWalletConnectController extends GetxController {
     super.dispose();
   }
 
-  Future initWallet({bool loadFromCache = true}) async {
+  Future<void> initWallet({bool loadFromCache = true}) async {
     final map = await Storage.getLocalStorageMap(localStorageKey);
     loggerNoLine.d('initWallet: $map');
     if (loadFromCache && map.keys.isNotEmpty) {
@@ -140,7 +140,7 @@ class NostrWalletConnectController extends GetxController {
   }
 
   Set<String> proccessedEvents = {};
-  Future processEvent(Relay relay, NostrEventModel event) async {
+  Future<void> processEvent(Relay relay, NostrEventModel event) async {
     if (!featureStatus.value) {
       logger.i('Feature:nwc is not enabled');
       return;
@@ -251,7 +251,7 @@ class NostrWalletConnectController extends GetxController {
     }
   }
 
-  Future _sendMessage(String relay, String message, {String? id}) async {
+  Future<void> _sendMessage(String relay, String message, {String? id}) async {
     loggerNoLine.d('send message: $message');
     final encrypted = await encrypt(
         senderKeys: service.value.prikey,
@@ -318,7 +318,7 @@ class NostrWalletConnectController extends GetxController {
         relay: relay.url));
   }
 
-  Future setFeatureStatus(bool value) async {
+  Future<void> setFeatureStatus(bool value) async {
     featureStatus.value = value;
     await updateLocalStorage();
     if (value) {
@@ -330,7 +330,7 @@ class NostrWalletConnectController extends GetxController {
   }
 
   String subId = '';
-  Future sendMyInfoToRelay() async {
+  Future<void> sendMyInfoToRelay() async {
     if (subId.isNotEmpty) {
       NostrAPI.instance.okCallback.remove(subId);
     }
@@ -360,7 +360,7 @@ class NostrWalletConnectController extends GetxController {
     websocketService.sendMessage('["EVENT",$info]');
   }
 
-  Future updateLocalStorage() async {
+  Future<void> updateLocalStorage() async {
     await Storage.setString(
         localStorageKey,
         jsonEncode({

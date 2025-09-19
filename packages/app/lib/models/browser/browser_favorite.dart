@@ -9,6 +9,10 @@ part 'browser_favorite.g.dart';
 })
 // ignore: must_be_immutable
 class BrowserFavorite extends Equatable {
+  BrowserFavorite({required this.url, this.title, this.favicon}) {
+    createdAt = DateTime.now();
+    updatedAt = DateTime.now();
+  }
   Id id = Isar.autoIncrement;
 
   @Index(unique: true)
@@ -20,16 +24,11 @@ class BrowserFavorite extends Equatable {
   late DateTime updatedAt;
   bool isPin = false;
 
-  BrowserFavorite({required this.url, this.title, this.favicon}) {
-    createdAt = DateTime.now();
-    updatedAt = DateTime.now();
-  }
-
   @override
   List get props => [id, url, title, favicon];
 
   static Future<List<BrowserFavorite>> getAll() async {
-    return await DBProvider.database.browserFavorites
+    return DBProvider.database.browserFavorites
         .where()
         .sortByWeight()
         .thenByUpdatedAtDesc()
@@ -51,7 +50,7 @@ class BrowserFavorite extends Equatable {
     });
   }
 
-  static Future update(BrowserFavorite site) async {
+  static Future<void> update(BrowserFavorite site) async {
     site.updatedAt = DateTime.now();
     await DBProvider.database.writeTxn(() async {
       DBProvider.database.browserFavorites.put(site);
@@ -59,7 +58,7 @@ class BrowserFavorite extends Equatable {
   }
 
   static Future<BrowserFavorite?> getByUrl(String string) async {
-    return await DBProvider.database.browserFavorites
+    return DBProvider.database.browserFavorites
         .filter()
         .urlEqualTo(string)
         .findFirst();
@@ -68,8 +67,7 @@ class BrowserFavorite extends Equatable {
   static Future<void> add(
       {required String url, String? title, String? favicon}) async {
     await DBProvider.database.writeTxn(() async {
-      BrowserFavorite model =
-          BrowserFavorite(url: url, title: title, favicon: favicon);
+      final model = BrowserFavorite(url: url, title: title, favicon: favicon);
       await DBProvider.database.browserFavorites.put(model);
     });
   }
@@ -85,7 +83,7 @@ class BrowserFavorite extends Equatable {
   static Future<void> batchUpdateWeights(
       List<BrowserFavorite> favorites) async {
     await DBProvider.database.writeTxn(() async {
-      for (int i = 0; i < favorites.length; i++) {
+      for (var i = 0; i < favorites.length; i++) {
         favorites[i].weight = i;
         favorites[i].updatedAt = DateTime.now();
         await DBProvider.database.browserFavorites.put(favorites[i]);

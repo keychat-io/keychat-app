@@ -24,7 +24,7 @@ class CupertinoRootPage extends StatefulWidget {
 
 class _CupertinoRootPageState extends State<CupertinoRootPage> {
   int _selectedIndex = 0;
-  List pages = [];
+  List<Widget> pages = [];
   late HomeController homeController;
 
   @override
@@ -32,7 +32,7 @@ class _CupertinoRootPageState extends State<CupertinoRootPage> {
     pages = [const RoomList(), const BrowserNewTab(), const MinePage()];
     homeController = Get.find<HomeController>();
     super.initState();
-    homeController.biometricsAuth(true);
+    homeController.biometricsAuth(auth: true);
   }
 
   @override
@@ -93,7 +93,7 @@ class _CupertinoRootPageState extends State<CupertinoRootPage> {
             ),
             tabBuilder: (BuildContext context, int index) {
               return CupertinoTabView(builder: (BuildContext context) {
-                return pages[index] as Widget;
+                return pages[index];
               });
             }),
         // Privacy protection blur layer

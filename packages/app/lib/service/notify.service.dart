@@ -147,7 +147,7 @@ class NotifyService {
     }
   }
 
-  static Future init() async {
+  static Future<void> init() async {
     if (GetPlatform.isLinux || GetPlatform.isWindows) {
       logger.i('Notification not working on windows and linux');
       return;
@@ -275,7 +275,7 @@ Fix:
     return false;
   }
 
-  static Future updateUserSetting(bool status) async {
+  static Future<void> updateUserSetting(bool status) async {
     Get.find<HomeController>().notificationStatus.value = status;
     Get.find<HomeController>().notificationStatus.refresh();
     final intStatus = status ? 1 : -1;

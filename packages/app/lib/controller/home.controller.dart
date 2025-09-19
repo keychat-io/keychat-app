@@ -1,10 +1,11 @@
-import 'dart:async' show StreamSubscription, Timer;
+import 'dart:async' show StreamSubscription, Timer, unawaited;
 import 'dart:convert' show jsonDecode;
 
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr.dart';
+import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/page/chat/ForwardSelectRoom.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/create_contact_page.dart';
@@ -79,12 +80,12 @@ class HomeController extends GetxController
   Map defaultTabConfig = {'Chat': 0, 'Browser': 1, 'Last opened tab': -1};
   late CupertinoTabController cupertinoTabController;
 
-  Future setDefaultSelectedTab(int index) async {
+  Future<void> setDefaultSelectedTab(int index) async {
     defaultSelectedTab.value = index;
     await Storage.setInt(StorageKeyString.defaultSelectedTabIndex, index);
   }
 
-  Future setSelectedTab(int index) async {
+  Future<void> setSelectedTab(int index) async {
     if (index < 0) {
       index = 0;
     }
@@ -93,7 +94,7 @@ class HomeController extends GetxController
   }
 
   // run when app start
-  Future loadSelectedTab() async {
+  Future<void> loadSelectedTab() async {
     var res = Storage.getInt(StorageKeyString.defaultSelectedTabIndex);
     res ??= -1;
     defaultSelectedTab.value = res;
@@ -107,7 +108,8 @@ class HomeController extends GetxController
   }
 
   // add identity AI and add AI contacts
-  Future createAIIdentity(List<Identity> existsIdentity, String idName) async {
+  Future<void> createAIIdentity(
+      List<Identity> existsIdentity, String idName) async {
     final key = '${StorageKeyString.taskCreateIdentity}:$idName';
     if (existsIdentity.isEmpty) return;
     final res = Storage.getIntOrZero(key);
@@ -156,7 +158,7 @@ class HomeController extends GetxController
               DateTime.now().difference(pausedTime!).inSeconds > 10;
         }
 
-        removeBadge();
+        unawaited(removeBadge());
 
         // websocket status
         final shouldConnect =
@@ -164,7 +166,7 @@ class HomeController extends GetxController
                 GetPlatform.isDesktop ||
                 wasAppBackgroundedTooLong;
         if (shouldConnect) {
-          Get.find<WebsocketService>().checkOnlineAndConnect();
+          unawaited(Get.find<WebsocketService>().checkOnlineAndConnect());
         }
 
         // app status
@@ -173,11 +175,12 @@ class HomeController extends GetxController
           NostrAPI.instance.okCallback.clear();
           Utils.initLoggger(Get.find<SettingController>().appFolder);
           NotifyService.syncPubkeysToServer(checkUpload: true);
+          Get.find<MultiWebviewController>().checkCurrentControllerAlive();
         });
 
         // check biometrics
         if (_pausedBefore) {
-          await biometricsAuth(true);
+          await biometricsAuth(auth: true);
         }
         _pausedBefore = false;
       case AppLifecycleState.inactive:
@@ -200,7 +203,7 @@ class HomeController extends GetxController
     }
   }
 
-  Future<void> biometricsAuth(bool auth) async {
+  Future<void> biometricsAuth({required bool auth}) async {
     if (!(auth && GetPlatform.isMobile)) return;
     if (Get.currentRoute == '/BiometricAuthScreen') return;
 
@@ -226,7 +229,7 @@ class HomeController extends GetxController
         transition: Transition.fadeIn);
   }
 
-  Future loadAppRemoteConfig() async {
+  Future<void> loadAppRemoteConfig() async {
     const url =
         'https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/config/app.json';
     // load app version
@@ -291,7 +294,7 @@ class HomeController extends GetxController
     });
   }
 
-  Future initTips(String name, RxBool toSetValue) async {
+  Future<void> initTips(String name, RxBool toSetValue) async {
     final res = Storage.getIntOrZero(name);
     toSetValue.value = res == 0 ? true : false;
   }
@@ -544,7 +547,7 @@ class HomeController extends GetxController
     await FlutterNewBadger.removeBadge();
   }
 
-  Future setTipsViewed(String name, RxBool toSetValue) async {
+  Future<void> setTipsViewed(String name, RxBool toSetValue) async {
     toSetValue.value = false;
     await Storage.setInt(name, 1);
   }
@@ -579,7 +582,7 @@ class HomeController extends GetxController
     }
   }
 
-  Future updateIdentityName(Identity identity, String name) async {
+  Future<void> updateIdentityName(Identity identity, String name) async {
     identity.name = name;
     await IdentityService.instance.updateIdentity(identity);
     final item = tabBodyDatas[identity.id];
@@ -743,7 +746,7 @@ class HomeController extends GetxController
     }
   }
 
-  Future _handleAppLinkLightning(String input) async {
+  Future<void> _handleAppLinkLightning(String input) async {
     if (isEmail(input) || input.toUpperCase().startsWith('LNURL')) {
       await Get.bottomSheet(
           clipBehavior: Clip.antiAlias,

@@ -18,6 +18,17 @@ part 'contact.g.dart';
 })
 // ignore: must_be_immutable
 class Contact extends Equatable {
+  Contact({
+    required this.identityId,
+    required this.npubkey,
+    required this.pubkey,
+  }) {
+    if (npubkey.isEmpty && pubkey.length == 64) {
+      npubkey = rust_nostr.getBech32PubkeyByHex(hex: pubkey);
+    }
+    createdAt ??= DateTime.now();
+    updatedAt ??= DateTime.now();
+  }
   Id id = Isar.autoIncrement;
 
   @Index(unique: true, composite: [CompositeIndex('identityId')])
@@ -46,9 +57,9 @@ class Contact extends Equatable {
   String? get displayAbout =>
       about != null && about!.isNotEmpty ? about : aboutFromRelay;
   String get displayName {
-    String? nickname = petname ?? name ?? nameFromRelay;
+    final nickname = petname ?? name ?? nameFromRelay;
     if (nickname == null || nickname.trim().isEmpty) {
-      int max = npubkey.length;
+      var max = npubkey.length;
       if (max > 8) {
         max = 8;
       }
@@ -64,19 +75,7 @@ class Contact extends Equatable {
   String? imageAssets;
   String? mlsPK;
 
-  Contact({
-    required this.identityId,
-    required this.npubkey,
-    required this.pubkey,
-  }) {
-    if (npubkey.isEmpty && pubkey.length == 64) {
-      npubkey = rust_nostr.getBech32PubkeyByHex(hex: pubkey);
-    }
-    createdAt ??= DateTime.now();
-    updatedAt ??= DateTime.now();
-  }
-
-  Future saveNameIfNull(String newName) async {
+  Future<void> saveNameIfNull(String newName) async {
     if (petname == null || name == null) {
       name = newName;
       await ContactService.instance.saveContact(this);

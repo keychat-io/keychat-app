@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class PayToRelayController extends GetxController {
-  final int roomId;
   PayToRelayController(this.roomId);
+  final int roomId;
   RxList<NostrEventStatus> bills = <NostrEventStatus>[].obs;
   late ScrollController scrollController;
   @override
-  void onInit() async {
+  Future<void> onInit() async {
     scrollController = ScrollController();
     bills.value = await NostrEventStatus.getPaidEvents();
     super.onInit();
@@ -20,12 +20,12 @@ class PayToRelayController extends GetxController {
     super.onClose();
   }
 
-  Future loadMore() async {
-    int lastId = 999999999;
+  Future<void> loadMore() async {
+    var lastId = 999999999;
     if (bills.isNotEmpty) {
       lastId = bills.last.id;
     }
-    var newBills = await NostrEventStatus.getPaidEvents(minId: lastId);
+    final newBills = await NostrEventStatus.getPaidEvents(minId: lastId);
     bills.addAll(newBills);
   }
 }

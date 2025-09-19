@@ -167,7 +167,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
         )));
   }
 
-  Future _createContact() async {
+  Future<void> _createContact() async {
     var input = _controller.text.trim();
     if (input.startsWith('https://www.keychat.io/u/')) {
       final uri = Uri.tryParse(input);

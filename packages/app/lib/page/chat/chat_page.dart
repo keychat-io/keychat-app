@@ -638,7 +638,7 @@ class _ChatPage2State extends State<ChatPage> {
     }
   }
 
-  Future goToSetting() async {
+  Future<void> goToSetting() async {
     var route = Routes.roomSettingContact;
     if (controller.roomObs.value.type == RoomType.group) {
       route = Routes.roomSettingGroup;

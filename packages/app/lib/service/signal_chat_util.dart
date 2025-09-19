@@ -24,7 +24,7 @@ class SignalChatUtil {
         .signMessage(content: content, pubkey: identity.secp256k1PKHex, id: id);
   }
 
-  static Future verifySignedMessage(
+  static Future<void> verifySignedMessage(
       {required PrekeyMessageModel pmm, required String signalIdPubkey}) async {
     final source = SignalChatUtil.getToSignMessage(
         nostrId: pmm.nostrId, signalId: signalIdPubkey, time: pmm.time);

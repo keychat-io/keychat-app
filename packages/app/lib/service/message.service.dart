@@ -1,25 +1,21 @@
 import 'dart:convert' show jsonDecode, jsonEncode;
 
 import 'package:app/bot/bot_server_message_model.dart';
+import 'package:app/controller/home.controller.dart';
+import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/rust_api.dart';
 import 'package:app/service/file.service.dart';
+import 'package:app/service/room.service.dart';
 import 'package:app/service/storage.dart';
+import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
-
-import 'package:app/service/room.service.dart';
-import 'package:app/models/models.dart';
-
-import 'package:app/utils.dart';
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
-
-import 'package:app/controller/chat.controller.dart';
-import 'package:app/controller/home.controller.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
+import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 
 class MessageService {
   // Avoid self instance
@@ -28,7 +24,7 @@ class MessageService {
   static MessageService get instance => _instance ??= MessageService._();
   static final DBProvider dbProvider = DBProvider.instance;
 
-  Future saveMessageModel(Message model,
+  Future<Message> saveMessageModel(Message model,
       {required Room room, bool persist = true}) async {
     model.receiveAt ??= DateTime.now();
     // none text type: media, file, cashu...
@@ -128,7 +124,7 @@ class MessageService {
     }
   }
 
-  Future saveSystemMessage(Room room, String content,
+  Future<void> saveSystemMessage(Room room, String content,
       {DateTime? createdAt,
       String suffix = 'SystemMessage',
       bool isMeSend = true}) async {
@@ -228,8 +224,7 @@ $content'''
     if (isSystem != null) model.isSystem = isSystem;
     if (mediaType != null) model.mediaType = mediaType;
 
-    return await saveMessageModel(model, persist: persist, room: room)
-        as Message;
+    return saveMessageModel(model, persist: persist, room: room);
   }
 
   Future<int> unreadCount() async {
@@ -434,14 +429,14 @@ $content'''
     return m;
   }
 
-  Future deleteMessageById(int id) async {
+  Future<void> deleteMessageById(int id) async {
     final database = DBProvider.database;
     await database.writeTxn(() async {
       await database.messages.filter().idEqualTo(id).deleteAll();
     });
   }
 
-  Future deleteMessageByRoomId(int roomId) async {
+  Future<void> deleteMessageByRoomId(int roomId) async {
     final database = DBProvider.database;
     await database.writeTxn(() async {
       await database.messages.filter().roomIdEqualTo(roomId).deleteAll();
@@ -461,7 +456,7 @@ $content'''
     return messages.isNotEmpty;
   }
 
-  Future clearUnreadMessage() async {
+  Future<void> clearUnreadMessage() async {
     final database = DBProvider.database;
     final messages =
         await database.messages.filter().isReadEqualTo(false).findAll();
@@ -474,16 +469,16 @@ $content'''
     });
   }
 
-  Future updateMessage(Message message) async {
+  Future<void> updateMessage(Message message) async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.messages.put(message);
     });
   }
 
-  Future updateMessageCashuStatus(int id) async {
+  Future<Message?> updateMessageCashuStatus(int id) async {
     final m = await getMessageById(id);
-    if (m == null) return;
-    if (m.cashuInfo == null) return;
+    if (m == null) return null;
+    if (m.cashuInfo == null) return m;
     // if (m.cashuInfo!.status == status) return;
 
     m.cashuInfo!.status = TransactionStatus.success;

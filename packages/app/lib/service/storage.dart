@@ -68,7 +68,7 @@ class Storage {
     return _sp!;
   }
 
-  static Future init() async {
+  static Future<void> init() async {
     try {
       _sp = await SharedPreferences.getInstance();
     } catch (error) {

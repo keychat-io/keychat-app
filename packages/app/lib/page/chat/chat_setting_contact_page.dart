@@ -286,7 +286,7 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
     ));
   }
 
-  Future handleUpdateName(
+  Future<void> handleUpdateName(
       ChatController cc, TextEditingController usernameController) async {
     if (usernameController.text.isEmpty) return;
     final contact0 = cc.roomContact.value;

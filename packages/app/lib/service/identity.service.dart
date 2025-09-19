@@ -187,7 +187,7 @@ class IdentityService {
     return iden;
   }
 
-  Future delete(Identity identity) async {
+  Future<void> delete(Identity identity) async {
     final database = DBProvider.database;
 
     final id = identity.id;
@@ -242,7 +242,7 @@ class IdentityService {
     NotifyService.syncPubkeysToServer();
   }
 
-  Future deleteMykey(List<int> ids) async {
+  Future<void> deleteMykey(List<int> ids) async {
     final database = DBProvider.database;
 
     return database.writeTxn(() async {
@@ -316,7 +316,7 @@ class IdentityService {
     return DBProvider.database.identitys.where().findAll();
   }
 
-  Future updateMykey(Mykey my) async {
+  Future<void> updateMykey(Mykey my) async {
     final database = DBProvider.database;
 
     await database.writeTxn(() async {
@@ -324,7 +324,7 @@ class IdentityService {
     });
   }
 
-  Future updateIdentity(Identity identity) async {
+  Future<void> updateIdentity(Identity identity) async {
     final database = DBProvider.database;
     await database.writeTxn(() async {
       await database.identitys.put(identity);
@@ -358,7 +358,7 @@ class IdentityService {
         .findAll();
   }
 
-  Future deleteExpiredOneTimeKeys() async {
+  Future<void> deleteExpiredOneTimeKeys() async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.mykeys
           .filter()

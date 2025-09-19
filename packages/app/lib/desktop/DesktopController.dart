@@ -10,8 +10,8 @@ class DesktopController extends GetxController {
   late SidebarXController sidebarXController;
   final globalKey = GlobalKey<ScaffoldState>();
 
-  final roomListWidth = 260.0.obs;
-  final browserSidebarWidth = 180.0.obs;
+  final RxDouble roomListWidth = 260.0.obs;
+  final RxDouble browserSidebarWidth = 180.0.obs;
   late HomeController hc;
 
   @override
@@ -28,7 +28,7 @@ class DesktopController extends GetxController {
   }
 
   Future<void> _loadRoomListWidth() async {
-    double? savedWidth = double.tryParse(
+    final savedWidth = double.tryParse(
         (Storage.getString(StorageKeyString.desktopRoomListWidth)) ??
             roomListWidth.value.toString());
     if (savedWidth != null && savedWidth >= 100 && savedWidth <= 400) {
@@ -38,7 +38,7 @@ class DesktopController extends GetxController {
 
   // Add this method to load browser sidebar width
   Future<void> _loadBrowserSidebarWidth() async {
-    double? savedWidth = double.tryParse(
+    final savedWidth = double.tryParse(
         (Storage.getString(StorageKeyString.desktopBrowserSidebarWidth)) ??
             browserSidebarWidth.value.toString());
     if (savedWidth != null && savedWidth >= 100 && savedWidth <= 400) {

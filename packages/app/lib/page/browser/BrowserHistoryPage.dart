@@ -132,7 +132,7 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
-  Future loadData({required int limit, required int offset}) async {
+  Future<void> loadData({required int limit, required int offset}) async {
     final list = await BrowserHistory.getAll(limit: limit, offset: offset);
     for (final history in list) {
       final dateKey = formatDateKey(history.createdAt);

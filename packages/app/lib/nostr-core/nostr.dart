@@ -119,7 +119,7 @@ class NostrAPI {
     // sendMessageFunction(serializeStr);
   }
   List<(NostrEventModel, List, String, Relay)> toProccessEventsPool = [];
-  Future _proccessEvent01(List eventList, Relay relay, String raw) async {
+  Future<void> _proccessEvent01(List eventList, Relay relay, String raw) async {
     final event = NostrEventModel.deserialize(eventList, verify: false);
     toProccessEventsPool.add((event, eventList, raw, relay));
 
@@ -142,7 +142,7 @@ class NostrAPI {
     });
   }
 
-  Future _proccessEvent02(
+  Future<void> _proccessEvent02(
       NostrEventModel event, List eventList, Relay relay, String raw) async {
     final subscribeId = eventList[1] as String;
     switch (event.kind) {
@@ -192,7 +192,7 @@ class NostrAPI {
     // }
   }
 
-  Future syncContact(String pubkey) async {
+  Future<Request> syncContact(String pubkey) async {
     final requestWithFilter = Request(utils.generate64RandomHexChars(), [
       Filter(
         kinds: [EventKinds.contactList],
@@ -423,7 +423,7 @@ class NostrAPI {
     });
   }
 
-  Future _proccessEventMessage(
+  Future<void> _proccessEventMessage(
       NostrEventModel event, List eventList, Relay relay, String raw) async {
     if (processedEventIds.contains(event.id)) {
       loggerNoLine.i('duplicate_local: ${event.id}');
@@ -502,7 +502,7 @@ class NostrAPI {
     }
   }
 
-  Future dmNip4Proccess(NostrEventModel sourceEvent, Relay relay,
+  Future<void> dmNip4Proccess(NostrEventModel sourceEvent, Relay relay,
       Function(String error) failedCallback,
       {Room? room}) async {
     final content = await decryptNip4Content(sourceEvent);
@@ -548,15 +548,16 @@ class NostrAPI {
         .receiveNip4Message(sourceEvent, content, room: room);
   }
 
-  Future _processSubEvent(NostrEventModel event, NostrEventModel subEvent,
+  Future<void> _processSubEvent(NostrEventModel event, NostrEventModel subEvent,
       Relay relay, Function(String error) failedCallback,
       {Room? room}) async {
     // nip4(nip4)
     if (subEvent.isNip4) {
       final subContent = await decryptNip4Content(subEvent);
       if (subContent == null) {
-        return Nip4ChatService.instance
+        Nip4ChatService.instance
             .receiveNip4Message(event, subEvent.serialize(), room: room);
+        return;
       }
 
       Map<String, dynamic> subDecodedContent;
@@ -564,8 +565,9 @@ class NostrAPI {
         subDecodedContent = jsonDecode(subContent) as Map<String, dynamic>;
       } catch (e) {
         logger.d('try decode error');
-        return Nip4ChatService.instance
+        Nip4ChatService.instance
             .receiveNip4Message(subEvent, subContent, sourceEvent: event);
+        return;
       }
 
       final km = getKeyChatMessageFromJson(subDecodedContent);
@@ -573,13 +575,14 @@ class NostrAPI {
         return RoomService.instance
             .processKeychatMessage(km, subEvent, relay, sourceEvent: event);
       }
-      return Nip4ChatService.instance.receiveNip4Message(subEvent, subContent);
+      Nip4ChatService.instance.receiveNip4Message(subEvent, subContent);
+      return;
     }
 
     // nip4(signal)
     room ??= await RoomService.instance
         .getOrCreateRoom(subEvent.pubkey, subEvent.tags[0][1], RoomStatus.init);
-    return SignalChatService.instance.decryptMessage(room, subEvent, relay,
+    SignalChatService.instance.decryptMessage(room, subEvent, relay,
         sourceEvent: event, failedCallback: (String msg) {
       failedCallback(msg);
       if (room != null) {
@@ -608,7 +611,7 @@ class NostrAPI {
     return res;
   }
 
-  Future _processNip17Message(NostrEventModel event, Relay relay,
+  Future<void> _processNip17Message(NostrEventModel event, Relay relay,
       Function(String) failedCallback) async {
     // mls group room. receive address is one-time-key field
     final to = event.getTagByKey(EventKindTags.pubkey)!;
@@ -641,8 +644,9 @@ class NostrAPI {
     try {
       decodedContent = jsonDecode(subEvent.content) as Map<String, dynamic>;
     } catch (e) {
-      return Nip4ChatService.instance
+      Nip4ChatService.instance
           .receiveNip4Message(subEvent, subEvent.content, sourceEvent: event);
+      return;
     }
     final km = getKeyChatMessageFromJson(decodedContent);
 

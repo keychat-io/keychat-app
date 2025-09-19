@@ -829,7 +829,7 @@ class Utils {
     }
   }
 
-  static Future initLoggger(Directory directory) async {
+  static Future<void> initLoggger(Directory directory) async {
     logger = Logger(
         filter: kReleaseMode ? MyLogFilter() : null,
         printer: PrettyPrinter(
@@ -1030,7 +1030,7 @@ class Utils {
     return null;
   }
 
-  static Future offAndToNamedRoom(Room room, [dynamic arguments]) async {
+  static Future<void> offAndToNamedRoom(Room room, [dynamic arguments]) async {
     if (GetPlatform.isMobile) {
       await Get.offAndToNamed('/room/${room.id}', arguments: arguments ?? room);
       return;
@@ -1042,7 +1042,7 @@ class Utils {
         arguments: arguments ?? room, id: GetXNestKey.room);
   }
 
-  static Future offAllNamedRoom([dynamic arguments]) async {
+  static Future<void> offAllNamedRoom([dynamic arguments]) async {
     if (GetPlatform.isMobile) {
       await Get.offAllNamed(Routes.root, arguments: arguments);
       return;
@@ -1054,7 +1054,7 @@ class Utils {
         arguments: arguments, id: GetXNestKey.room);
   }
 
-  static Future toNamedRoom(Room room, [dynamic arguments]) async {
+  static Future<void> toNamedRoom(Room room, [dynamic arguments]) async {
     if (GetPlatform.isMobile) {
       if (Get.currentRoute == '/room/${room.id}') {
         logger.i('Already in room ${room.id}, no need to navigate again');

@@ -4,14 +4,14 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
 class BiometricAuthScreen extends StatefulWidget {
-  final bool autoAuth;
-  final bool canPop;
-  final String title;
   const BiometricAuthScreen(
       {this.autoAuth = false,
       super.key,
       this.canPop = false,
       this.title = 'Unlock Keychat'});
+  final bool autoAuth;
+  final bool canPop;
+  final String title;
 
   @override
   _BiometricAuthScreenState createState() => _BiometricAuthScreenState();
@@ -24,8 +24,8 @@ class _BiometricAuthScreenState extends State<BiometricAuthScreen> {
     if (widget.autoAuth) auth();
   }
 
-  Future auth() async {
-    bool result = await Get.find<SettingController>().authenticate();
+  Future<void> auth() async {
+    final result = await Get.find<SettingController>().authenticate();
     if (!result) {
       EasyLoading.showError('Authentication failed or cancelled');
       return;

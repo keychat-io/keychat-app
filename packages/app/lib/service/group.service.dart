@@ -46,7 +46,7 @@ class GroupService extends BaseChatService {
   ContactService contactService = ContactService.instance;
   IdentityService identityService = IdentityService.instance;
 
-  Future changeMyNickname(Room room, String newName) async {
+  Future<void> changeMyNickname(Room room, String newName) async {
     final database = DBProvider.database;
 
     final rm = await database.roomMembers
@@ -63,7 +63,7 @@ class GroupService extends BaseChatService {
     });
   }
 
-  Future changeRoomName(int roomId, String newName) async {
+  Future<void> changeRoomName(int roomId, String newName) async {
     final room = await roomService.getRoomByIdOrFail(roomId);
     if (!await room.checkAdminByIdPubkey(room.myIdPubkey)) {
       throw Exception('only admin can change name');
@@ -117,7 +117,7 @@ class GroupService extends BaseChatService {
     return room;
   }
 
-  Future dissolveGroup(Room room) async {
+  Future<void> dissolveGroup(Room room) async {
     if (!await room.checkAdminByIdPubkey(room.myIdPubkey)) {
       throw Exception('Only admin can exit group');
     }
@@ -581,7 +581,7 @@ class GroupService extends BaseChatService {
     return roomProfile;
   }
 
-  Future removeMember(Room room, RoomMember rm) async {
+  Future<void> removeMember(Room room, RoomMember rm) async {
     switch (room.groupType) {
       case GroupType.sendAll:
         return _removeMemberPairwise(room, rm);
@@ -752,7 +752,7 @@ class GroupService extends BaseChatService {
     RoomService.getController(roomId)?.resetMembers();
   }
 
-  Future updateRoomMykey(Room room, Mykey newMykey) async {
+  Future<void> updateRoomMykey(Room room, Mykey newMykey) async {
     if (!room.isShareKeyGroup) {
       return;
     }
@@ -811,7 +811,7 @@ class GroupService extends BaseChatService {
   }
 
   // Send a group message to all enabled users
-  Future _invitePairwiseGroup(String realMessage, Identity identity,
+  Future<void> _invitePairwiseGroup(String realMessage, Identity identity,
       Room groupRoom, KeychatMessage km) async {
     // final queue = Queue(parallel: 5);
     final enables = (await groupRoom.getEnableMembers()).values.toList();
@@ -869,7 +869,7 @@ class GroupService extends BaseChatService {
   }
 
   // send message to users, but skip meMember
-  Future sendPrivateMessageToMembers(
+  Future<void> sendPrivateMessageToMembers(
       String realMessage, List<String> toUsers, Identity identity,
       {required Room groupRoom,
       required String content,
@@ -910,7 +910,7 @@ class GroupService extends BaseChatService {
     await queue.onComplete;
   }
 
-  Future _processHelloMessage(
+  Future<void> _processHelloMessage(
       Room groupRoom, String idPubkey, DateTime updatedAt, String name) async {
     final rm = await groupRoom.getMemberByIdPubkey(idPubkey);
     if (rm == null) {
@@ -927,7 +927,7 @@ class GroupService extends BaseChatService {
   }
 
   // Received the news that I was baned from the group
-  Future _processGroupRemoveSingleMember(
+  Future<void> _processGroupRemoveSingleMember(
       Room idRoom, KeychatMessage km, NostrEventModel event) async {
     final toMainPubkey = km.msg;
     if (toMainPubkey == null) return;
@@ -958,7 +958,7 @@ class GroupService extends BaseChatService {
     updateChatControllerMembers(groupRoom.id);
   }
 
-  Future _removeMemberPairwise(Room room, RoomMember rm) async {
+  Future<void> _removeMemberPairwise(Room room, RoomMember rm) async {
     final msg = '''Remove member: ${rm.name}
 ${rm.idPubkey}
 ''';
@@ -969,7 +969,7 @@ ${rm.idPubkey}
     updateChatControllerMembers(room.id);
   }
 
-  Future sendMessageToGroup(Room room, String message,
+  Future<SendMessageResponse?> sendMessageToGroup(Room room, String message,
       {bool save = true,
       int? subtype,
       String? ext,
@@ -986,9 +986,10 @@ ${rm.idPubkey}
       return sendToAllMessage(room, message,
           subtype: subtype, ext: ext, realMessage: realMessage);
     }
+    return null;
   }
 
-  Future sendInviteToAdmin(
+  Future<void> sendInviteToAdmin(
       Room room, Map<String, String> selectAccounts) async {
     final roomMember = await room.getAdmin();
     if (roomMember == null) {
@@ -1009,7 +1010,7 @@ ${rm.idPubkey}
         .sendMessage(adminRoom, sm.toString(), realMessage: sm.msg);
   }
 
-  Future _processinviteToGroupRequest(
+  Future<void> _processinviteToGroupRequest(
       Room room, NostrEventModel event, KeychatMessage km) async {
     RoomService.instance.receiveDM(room, event,
         decodedContent: km.name,

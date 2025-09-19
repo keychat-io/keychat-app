@@ -67,7 +67,7 @@ class DbSetting {
     return outputFile;
   }
 
-  Future exportDB(String encryptionKey) async {
+  Future<void> exportDB(String encryptionKey) async {
     final fileName =
         'Keychat_db_${formatTime(DateTime.now().millisecondsSinceEpoch, 'yyyy-MM-dd_HH-mm-ss')}';
     final appFolder = await Utils.getAppFolder();

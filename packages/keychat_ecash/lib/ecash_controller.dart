@@ -212,7 +212,7 @@ class EcashController extends GetxController {
     super.onClose();
   }
 
-  Future getPendingCount() async {
+  Future<void> getPendingCount() async {
     pendingCount.value =
         (await rust_cashu.getPendingTransactionsCount()).toInt();
   }
@@ -320,7 +320,7 @@ class EcashController extends GetxController {
     return 1;
   }
 
-  Future fetchBitcoinPrice() async {
+  Future<void> fetchBitcoinPrice() async {
     final dio = Dio();
     dio.options = BaseOptions(
         headers: {
@@ -364,13 +364,13 @@ class EcashController extends GetxController {
     await getBalance();
   }
 
-  Future addMintUrl(String mint) async {
+  Future<void> addMintUrl(String mint) async {
     await rust_cashu.addMint(url: mint);
     mints.value = await rust_cashu.getMints();
     await getBalance();
   }
 
-  Future restore() async {
+  Future<void> restore() async {
     if (currentIdentity == null) return;
     final mnemonic = await currentIdentity!.getMnemonic();
     for (final m in mints) {
@@ -406,7 +406,7 @@ class EcashController extends GetxController {
     return true;
   }
 
-  Future requestPageRefresh() async {
+  Future<void> requestPageRefresh() async {
     try {
       await rust_cashu.checkPending();
       await getBalance();
@@ -420,7 +420,7 @@ class EcashController extends GetxController {
     } catch (e) {}
   }
 
-  Future proccessCashuString(String str,
+  Future<void> proccessCashuString(String str,
       [Function(String str)? callback]) async {
     try {
       final cashu = await RustAPI.decodeToken(encodedToken: str);

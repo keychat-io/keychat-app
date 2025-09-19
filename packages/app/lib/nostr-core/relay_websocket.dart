@@ -17,6 +17,7 @@ const String _pingReq =
     '["REQ", "keychat-relay-status-check", {"kinds": [1], "limit": 1,"authors": ["bbf923aa9246065f88c40c7d9bf61cccc0ff3fcff065a8cb2ff4cfbb62088f1e"]}]';
 
 class RelayWebsocket {
+  RelayWebsocket(this.relay, this.ws);
   RelayService rs = RelayService.instance;
   late Relay relay;
   WebSocket? channel;
@@ -25,37 +26,35 @@ class RelayWebsocket {
   bool pong = false;
   Map<String, Set<String>> subscriptions = {}; // subId -> pubkeys
   late WebsocketService ws;
-  RelayWebsocket(this.relay, this.ws);
 
   Future<void> _startListen() async {
     // id keys
-    List<String> pubkeys = await IdentityService.instance.getListenPubkeys();
+    final pubkeys = await IdentityService.instance.getListenPubkeys();
 
     listenPubkeys(pubkeys, DateTime.now().subtract(const Duration(days: 2)),
         [EventKinds.nip17]);
 
     // mls group room
-    DateTime since =
+    final since =
         await MessageService.instance.getNostrListenStartAt(relay.url);
-    List<String> mlsRoomKeys =
-        await IdentityService.instance.getMlsRoomPubkeys();
+    final mlsRoomKeys = await IdentityService.instance.getMlsRoomPubkeys();
     listenPubkeys(mlsRoomKeys, since, [EventKinds.nip17]);
 
     // signal room keys
-    List<String> signalRoomKeys =
+    final signalRoomKeys =
         await IdentityService.instance.getSignalRoomPubkeys();
 
     listenPubkeys([...pubkeys, ...signalRoomKeys], since, [EventKinds.nip04]);
   }
 
-  Future listenPubkeys(
+  Future<void> listenPubkeys(
       List<String> pubkeys, DateTime since, List<int> kinds) async {
-    List<List<String>> groups = listToGroupList(pubkeys, 120);
+    final groups = listToGroupList(pubkeys, 120);
 
-    for (List<String> group in groups) {
-      String subId = generate64RandomHexChars(16);
+    for (final group in groups) {
+      final subId = generate64RandomHexChars(16);
 
-      NostrReqModel req = NostrReqModel(
+      final req = NostrReqModel(
           reqId: subId, kinds: kinds, pubkeys: group, since: since);
       sendRawREQ(req.toString());
     }
@@ -69,8 +68,8 @@ class RelayWebsocket {
       }
       return sendRawREQ(nq.toString());
     }
-    int index = sentReqCount % maxReqCount;
-    String key = subscriptions.keys.elementAt(index);
+    final index = sentReqCount % maxReqCount;
+    final key = subscriptions.keys.elementAt(index);
     if (nq.pubkeys != null && nq.pubkeys!.isNotEmpty) {
       subscriptions[key]!.addAll(nq.pubkeys!);
     }
@@ -109,14 +108,14 @@ class RelayWebsocket {
     }
   }
 
-  Future _proccessFailedEvents() async {
-    Set<String> failedEvents = ws.getFailedEvents(relay.url);
+  Future<void> _proccessFailedEvents() async {
+    final failedEvents = ws.getFailedEvents(relay.url);
     if (failedEvents.isEmpty) return;
     logger.i('proccessFailedEvents: ${failedEvents.length}');
-    List<String> tasksString = failedEvents.toList();
+    final tasksString = failedEvents.toList();
     failedEvents.clear();
-    AsyncQueue queue = AsyncQueue.autoStart();
-    for (String element in tasksString) {
+    final queue = AsyncQueue.autoStart();
+    for (final element in tasksString) {
       queue.addJob((_) => sendRawREQ(element, retry: true));
     }
   }
@@ -157,7 +156,7 @@ class RelayWebsocket {
     return false;
   }
 
-  void connectSuccess() async {
+  Future<void> connectSuccess() async {
     subscriptions.clear();
     maxReqCount = _maxReqCount;
     sentReqCount = 0;

@@ -107,14 +107,14 @@ class SignalIdService {
         .findFirst();
   }
 
-  Future updateSignalId(SignalId si) async {
+  Future<void> updateSignalId(SignalId si) async {
     final database = DBProvider.database;
     await database.writeTxn(() async {
       await database.signalIds.put(si);
     });
   }
 
-  Future deleteExpiredSignalIds() async {
+  Future<void> deleteExpiredSignalIds() async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.signalIds
           .filter()

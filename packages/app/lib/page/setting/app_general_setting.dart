@@ -420,7 +420,7 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
     hc.checkRunStatus.value = false;
   }
 
-  Future deleteAccount(BuildContext context) {
+  Future<void> deleteAccount(BuildContext context) {
     return Get.dialog(CupertinoAlertDialog(
       title: const Text('Logout All Identity?'),
       content: const Text('''

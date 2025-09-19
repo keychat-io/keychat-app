@@ -375,7 +375,7 @@ class SignalChatService extends BaseChatService {
     }
   }
 
-  Future _processRelaySyncMessage(Room room, NostrEventModel event,
+  Future<void> _processRelaySyncMessage(Room room, NostrEventModel event,
       KeychatMessage keychatMessage, NostrEventModel? sourceEvent) async {
     await RoomService.instance.receiveDM(room, event,
         realMessage: keychatMessage.msg,
@@ -384,7 +384,7 @@ class SignalChatService extends BaseChatService {
         requestConfrim: RequestConfrimEnum.request);
   }
 
-  Future sendRelaySyncMessage(Room room, List<String> relays) async {
+  Future<void> sendRelaySyncMessage(Room room, List<String> relays) async {
     final sm = KeychatMessage(
         c: MessageType.signal,
         type: KeyChatEventKinds.signalRelaySyncInvite,
@@ -399,7 +399,7 @@ ${relays.join('\n')}
         .sendMessage(room, sm.toString(), realMessage: sm.msg);
   }
 
-  Future sendHelloMessage(Room room, Identity identity,
+  Future<void> sendHelloMessage(Room room, Identity identity,
       {int type = KeyChatEventKinds.dmAddContactFromAlice,
       String? onetimekey,
       String? greeting,
@@ -418,8 +418,8 @@ ${relays.join('\n')}
         toPubkey: onetimekey, realMessage: sm.msg, isSystem: true);
   }
 
-  Future _processReject(Room room, NostrEventModel event, KeychatMessage km,
-      NostrEventModel? sourceEvent) async {
+  Future<void> _processReject(Room room, NostrEventModel event,
+      KeychatMessage km, NostrEventModel? sourceEvent) async {
     room.status = RoomStatus.rejected;
     await RoomService.instance.receiveDM(room, event,
         sourceEvent: sourceEvent,
@@ -432,7 +432,7 @@ ${relays.join('\n')}
   }
 
   // decrypt the first signal message
-  Future decryptPreKeyMessage(String to, Mykey mykey,
+  Future<void> decryptPreKeyMessage(String to, Mykey mykey,
       {required NostrEventModel event,
       required Relay relay,
       required Function(String error) failedCallback}) async {
@@ -522,7 +522,7 @@ ${relays.join('\n')}
     return RoomService.instance.getRoomByIdOrFail(roomId);
   }
 
-  Future resetSignalSession(Room room) async {
+  Future<void> resetSignalSession(Room room) async {
     EasyThrottle.throttle('ResetSessionStatus', const Duration(seconds: 3),
         () async {
       try {

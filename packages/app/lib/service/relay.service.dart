@@ -176,13 +176,13 @@ class RelayService {
     return relay;
   }
 
-  Future update(Relay relay) async {
+  Future<void> update(Relay relay) async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.relays.put(relay);
     });
   }
 
-  Future updateDefault(Relay relay, bool afterValue) async {
+  Future<void> updateDefault(Relay relay, bool afterValue) async {
     await DBProvider.database.writeTxn(() async {
       if (afterValue) {
         await DBProvider.database.relays
@@ -201,7 +201,7 @@ class RelayService {
     });
   }
 
-  Future checkDefaultRelay(List<Relay> relays) async {
+  Future<List<Relay>> checkDefaultRelay(List<Relay> relays) async {
     for (final r in relays) {
       if (r.isDefault) {
         return relays;
@@ -216,8 +216,9 @@ class RelayService {
     }
     defaultRelay.isDefault = true;
     await update(defaultRelay);
-    relays.removeWhere((element) => element.url == defaultRelay.url);
-    relays.add(defaultRelay);
+    relays
+      ..removeWhere((element) => element.url == defaultRelay.url)
+      ..add(defaultRelay);
     return relays;
   }
 
@@ -248,7 +249,7 @@ class RelayService {
     return null;
   }
 
-  Future initRelayFeeInfo([List<Relay>? relays]) async {
+  Future<void> initRelayFeeInfo([List<Relay>? relays]) async {
     try {
       try {
         Get.find<WebsocketService>();
@@ -310,7 +311,7 @@ class RelayService {
     return list;
   }
 
-  Future fetchRelayMessageFee([List<Relay>? relays]) async {
+  Future<void> fetchRelayMessageFee([List<Relay>? relays]) async {
     final ws = Get.find<WebsocketService>();
     relays ??= await getEnableRelays();
     for (final relay in relays) {
@@ -336,7 +337,7 @@ class RelayService {
         StorageKeyString.relayMessageFeeConfig, ws.relayMessageFeeModels);
   }
 
-  Future fetchRelayFileFee() async {
+  Future<void> fetchRelayFileFee() async {
     final ws = Get.find<WebsocketService>();
 
     final fuc = await initRelayFileFeeModel(KeychatGlobal.defaultFileServer);

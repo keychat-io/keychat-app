@@ -36,7 +36,8 @@ class MlsGroupService extends BaseChatService {
   static String? dbPath;
   static MlsGroupService get instance => _instance ??= MlsGroupService._();
 
-  Future addMemeberToGroup(Room groupRoom, List<Map<String, dynamic>> toUsers,
+  Future<void> addMemeberToGroup(
+      Room groupRoom, List<Map<String, dynamic>> toUsers,
       [String? sender]) async {
     final invalidPubkeys = await existExpiredMember(groupRoom);
     if (invalidPubkeys.isNotEmpty) {
@@ -173,7 +174,7 @@ class MlsGroupService extends BaseChatService {
   }
 
   // kind 445
-  Future decryptMessage(
+  Future<void> decryptMessage(
       Room room, NostrEventModel event, Function(String) failedCallback) async {
     loggerNoLine.i(
         '[MLS] decryptMessage START - eventId: ${event.id}, roomId: ${room.id}');
@@ -241,7 +242,7 @@ class MlsGroupService extends BaseChatService {
     }
   }
 
-  Future dissolve(Room room) async {
+  Future<void> dissolve(Room room) async {
     await RoomService.instance.checkWebsocketConnect();
     final res = await rust_mls.updateGroupContextExtensions(
         nostrId: room.myIdPubkey,
@@ -378,7 +379,7 @@ class MlsGroupService extends BaseChatService {
   }
 
   // kind 444
-  Future handleWelcomeEvent(
+  Future<void> handleWelcomeEvent(
       {required NostrEventModel subEvent,
       required NostrEventModel sourceEvent,
       required Relay relay}) async {
@@ -414,12 +415,12 @@ class MlsGroupService extends BaseChatService {
         realMessage: 'Invite you to join group');
   }
 
-  Future initDB(String path) async {
+  Future<void> initDB(String path) async {
     dbPath = path;
     await initIdentities();
   }
 
-  Future initIdentities([List<Identity>? identities]) async {
+  Future<void> initIdentities([List<Identity>? identities]) async {
     if (dbPath == null) {
       throw Exception('MLS dbPath is null');
     }
@@ -440,7 +441,7 @@ class MlsGroupService extends BaseChatService {
 
   @Deprecated('use proccessMLSPrososalMessage instead')
   @override
-  Future proccessMessage(
+  Future<void> proccessMessage(
       {required Room room,
       required NostrEventModel event,
       required KeychatMessage km,
@@ -462,7 +463,7 @@ class MlsGroupService extends BaseChatService {
     return groupRoom;
   }
 
-  Future removeMembers(Room room, List<RoomMember> list) async {
+  Future<void> removeMembers(Room room, List<RoomMember> list) async {
     await waitingForEose(
         receivingKey: room.onetimekey, relays: room.sendingRelays);
     await RoomService.instance.checkWebsocketConnect();
@@ -541,7 +542,7 @@ class MlsGroupService extends BaseChatService {
     return room;
   }
 
-  Future sendGreetingMessage(Room room) async {
+  Future<void> sendGreetingMessage(Room room) async {
     room.sentHelloToMLS = true;
     await selfUpdateKey(room,
         extension: {'name': room.getIdentity().displayName});
@@ -603,7 +604,7 @@ class MlsGroupService extends BaseChatService {
     return smr;
   }
 
-  Future sendJoinGroupRequest(
+  Future<void> sendJoinGroupRequest(
       GroupInvitationModel gim, Identity identity) async {
     if (gim.pubkey == identity.secp256k1PKHex) {
       throw Exception('You are already in this group');
@@ -683,7 +684,7 @@ class MlsGroupService extends BaseChatService {
     return smr;
   }
 
-  Future shareToFriends(
+  Future<void> shareToFriends(
       Room room, List<Room> toUsers, String realMessage) async {
     final gim = GroupInvitationModel(
         name: room.name ?? room.toMainPubkey,
@@ -719,7 +720,7 @@ class MlsGroupService extends BaseChatService {
     return room;
   }
 
-  Future uploadKeyPackages(
+  Future<void> uploadKeyPackages(
       {List<Identity>? identities,
       String? toRelay,
       bool forceUpload = false}) async {
@@ -819,8 +820,8 @@ class MlsGroupService extends BaseChatService {
     return (room, null);
   }
 
-  Future _proccessApplication(Room room, NostrEventModel event, String decoded,
-      Function(String) failedCallback) async {
+  Future<void> _proccessApplication(Room room, NostrEventModel event,
+      String decoded, Function(String) failedCallback) async {
     loggerNoLine.i('[MLS] Decrypting message for event: ${event.id}');
     final decryptedMsg = await rust_mls.decryptMessage(
         nostrId: room.myIdPubkey, groupId: room.toMainPubkey, msg: decoded);
@@ -845,7 +846,7 @@ class MlsGroupService extends BaseChatService {
         senderName: sender?.name ?? decryptedMsg.sender);
   }
 
-  Future _proccessTryProposalIn(Room room, NostrEventModel event,
+  Future<void> _proccessTryProposalIn(Room room, NostrEventModel event,
       String queuedMsg, Function(String) failedCallback) async {
     final res = await rust_mls.getSender(
         nostrId: room.myIdPubkey,
@@ -971,7 +972,7 @@ class MlsGroupService extends BaseChatService {
         extensions: utf8.encode(jsonEncode(map)));
   }
 
-  Future _sendInviteMessage(
+  Future<void> _sendInviteMessage(
       {required Room groupRoom,
       required Map<String, String> users,
       required String mlsWelcome}) async {
@@ -992,7 +993,7 @@ class MlsGroupService extends BaseChatService {
   }
 
   // Send a group message to all enabled users
-  Future _sendPrivateMessageToMembers(
+  Future<void> _sendPrivateMessageToMembers(
       {required String content,
       required String realMessage,
       required Room groupRoom,
@@ -1048,7 +1049,7 @@ class MlsGroupService extends BaseChatService {
     await MessageService.instance.saveMessageModel(message, room: groupRoom);
   }
 
-  Future sendSelfLeaveMessage(Room room) async {
+  Future<void> sendSelfLeaveMessage(Room room) async {
     await RoomService.instance.checkWebsocketConnect();
     final queuedMsg = await _selfUpdateKeyLocal(room, {
       'status': UserStatusType.removed.name,
@@ -1059,7 +1060,8 @@ class MlsGroupService extends BaseChatService {
         realMessage: realMessage, save: false);
   }
 
-  Future waitingForEose({String? receivingKey, List<String>? relays}) async {
+  Future<void> waitingForEose(
+      {String? receivingKey, List<String>? relays}) async {
     if (receivingKey == null) return;
     await Utils.waitRelayOnline(defaultRelays: relays);
     final subId =

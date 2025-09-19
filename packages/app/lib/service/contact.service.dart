@@ -59,14 +59,14 @@ class ContactService {
     return contact;
   }
 
-  Future deleteContact(Contact contact) async {
+  Future<void> deleteContact(Contact contact) async {
     final database = DBProvider.database;
     await database.writeTxn(() async {
       await database.contacts.filter().idEqualTo(contact.id).deleteFirst();
     });
   }
 
-  Future deleteContactByPubkey(String pubkey, int identity) async {
+  Future<void> deleteContactByPubkey(String pubkey, int identity) async {
     final database = DBProvider.database;
     final contact = await getContact(identity, pubkey);
     if (contact == null) return;
@@ -75,7 +75,7 @@ class ContactService {
     });
   }
 
-  Future deleteContactReceiveKeys(Contact contact) async {
+  Future<void> deleteContactReceiveKeys(Contact contact) async {
     final database = DBProvider.database;
     final model = await database.contactReceiveKeys
         .filter()
@@ -98,7 +98,7 @@ class ContactService {
     }
   }
 
-  Future deleteReceiveKey(
+  Future<void> deleteReceiveKey(
       int identityId, String toMainPubkey, String pubkey) async {
     await myReceiveKeyMutex.acquire();
     try {
@@ -281,7 +281,7 @@ class ContactService {
     return c;
   }
 
-  Future removeAllToRemoveKeys() async {
+  Future<void> removeAllToRemoveKeys() async {
     final list = await DBProvider.database.contactReceiveKeys
         .filter()
         .removeReceiveKeysElementIsNotEmpty()
@@ -304,7 +304,7 @@ class ContactService {
     return id;
   }
 
-  Future updateContact(
+  Future<void> updateContact(
       {required int identityId,
       required String pubkey,
       String? petname,
@@ -331,7 +331,7 @@ class ContactService {
     await saveContact(contact, sync: false);
   }
 
-  Future updateOrCreateByRoom(Room room, String? contactName) async {
+  Future<void> updateOrCreateByRoom(Room room, String? contactName) async {
     if (contactName == null) return;
     final contact = await getOrCreateContact(
       room.identityId,
@@ -343,13 +343,13 @@ class ContactService {
     }
   }
 
-  Future _saveReceiveKey(ContactReceiveKey crk) async {
+  Future<void> _saveReceiveKey(ContactReceiveKey crk) async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.contactReceiveKeys.put(crk);
     });
   }
 
-  Future updateReceiveKeyIsMute(Room room, bool value) async {
+  Future<void> updateReceiveKeyIsMute(Room room, bool value) async {
     final crk =
         await getOrCreateContactReceiveKey(room.identityId, room.toMainPubkey);
     return DBProvider.database.writeTxn(() async {

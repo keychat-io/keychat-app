@@ -100,7 +100,7 @@ class _BrowserConnectedWebsiteState extends State<BrowserConnectedWebsite> {
             )));
   }
 
-  Future loadData(
+  Future<void> loadData(
       {required String pubkey, required int limit, required int offset}) async {
     final list = await BrowserConnect.getAllByPubkey(
         pubkey: pubkey, limit: limit, offset: offset);

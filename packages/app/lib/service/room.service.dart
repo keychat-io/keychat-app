@@ -43,7 +43,7 @@ class RoomService extends BaseChatService {
   static final GroupService groupService = GroupService.instance;
   static final ContactService contactService = ContactService.instance;
 
-  Future checkRoomStatus(Room room) async {
+  Future<void> checkRoomStatus(Room room) async {
     if (room.status == RoomStatus.dissolved) {
       throw Exception('Room had been dissolved');
     }
@@ -107,7 +107,7 @@ class RoomService extends BaseChatService {
     return room;
   }
 
-  Future deleteRoomHandler(String pubkey, int identityId) async {
+  Future<void> deleteRoomHandler(String pubkey, int identityId) async {
     Room? room;
     await ContactService.instance.deleteContactByPubkey(pubkey, identityId);
     room = await RoomService.instance.getRoomByIdentity(pubkey, identityId);
@@ -116,7 +116,7 @@ class RoomService extends BaseChatService {
     }
   }
 
-  Future deleteRoom(Room room, {bool websocketInited = true}) async {
+  Future<void> deleteRoom(Room room, {bool websocketInited = true}) async {
     final database = DBProvider.database;
     final roomMykeyId = room.mykey.value?.id;
     final listenPubkey = room.mykey.value?.pubkey;
@@ -428,7 +428,7 @@ class RoomService extends BaseChatService {
     return room;
   }
 
-  Future processKeychatMessage(
+  Future<void> processKeychatMessage(
       KeychatMessage km,
       NostrEventModel event, // as subEvent
       Relay relay,
@@ -469,7 +469,7 @@ class RoomService extends BaseChatService {
   }
 
   @override
-  Future proccessMessage(
+  Future<void> proccessMessage(
       {required Room room,
       required NostrEventModel event,
       required KeychatMessage km,
@@ -498,7 +498,7 @@ class RoomService extends BaseChatService {
     }
   }
 
-  Future receiveDM(Room room, NostrEventModel event,
+  Future<void> receiveDM(Room room, NostrEventModel event,
       {bool? isSystem,
       NostrEventModel? sourceEvent,
       KeychatMessage? km,
@@ -653,7 +653,7 @@ class RoomService extends BaseChatService {
     );
   }
 
-  Future sendMessageToMultiRooms(
+  Future<void> sendMessageToMultiRooms(
       {required String message,
       required String realMessage,
       required List<Room> rooms,
@@ -704,7 +704,7 @@ class RoomService extends BaseChatService {
     updateChatRoomPage(room);
   }
 
-  Future checkWebsocketConnect() async {
+  Future<void> checkWebsocketConnect() async {
     final netStatus =
         Utils.getGetxController<HomeController>()!.isConnectedNetwork.value;
     if (!netStatus) {
@@ -810,7 +810,8 @@ class RoomService extends BaseChatService {
     return null;
   }
 
-  Future markAllRead({required int identityId, required int roomId}) async {
+  Future<void> markAllRead(
+      {required int identityId, required int roomId}) async {
     final refresh = await MessageService.instance.setViewedMessage(roomId);
     if (refresh) {
       Utils.getGetxController<HomeController>()
@@ -818,7 +819,7 @@ class RoomService extends BaseChatService {
     }
   }
 
-  Future markAllReadSimple(Room room) async {
+  Future<void> markAllReadSimple(Room room) async {
     final homeRoom =
         Get.find<HomeController>().getRoomByIdentity(room.identityId, room.id);
     if (homeRoom == null) return;
@@ -826,7 +827,7 @@ class RoomService extends BaseChatService {
     await markAllRead(identityId: room.identityId, roomId: room.id);
   }
 
-  Future mute(Room room, bool value) async {
+  Future<void> mute(Room room, bool value) async {
     EasyThrottle.throttle(
         'mute_notification:${room.id}', const Duration(seconds: 1), () async {
       final pubkeys = <String>[];

@@ -147,7 +147,7 @@ Let's start an encrypted chat.''';
   }
 
   // auto to delete messages and event logs
-  static Future executeAutoDelete() async {
+  static Future<void> executeAutoDelete() async {
     try {
       // delete nostr event log
       await DBProvider.database.writeTxn(() async {
@@ -190,7 +190,7 @@ Let's start an encrypted chat.''';
     }
   }
 
-  static Future excuteAutoDeleteRoomMessages(
+  static Future<void> excuteAutoDeleteRoomMessages(
       int identityId, int roomId, int days) async {
     if (days <= 0) return;
     final fromAt = DateTime.now().subtract(Duration(days: days));
@@ -348,7 +348,7 @@ Let's start an encrypted chat.''';
     );
   }
 
-  static Future showRoomActionSheet(BuildContext context, Room room,
+  static Future<void> showRoomActionSheet(BuildContext context, Room room,
       {Function? onDeleteHistory, Function? onDeletRoom}) async {
     if (GetPlatform.isMobile) {
       HapticFeedback.lightImpact();
@@ -509,7 +509,7 @@ Let's start an encrypted chat.''';
     );
   }
 
-  static Future processUserQRCode(QRUserModel model,
+  static Future<void> processUserQRCode(QRUserModel model,
       [bool fromAddPage = false, Identity? identity]) async {
     if (model.time <
         DateTime.now().millisecondsSinceEpoch -
@@ -839,7 +839,7 @@ Let's start an encrypted chat.''';
     return _getTextItemView(message, markdownConfig, errorCallback);
   }
 
-  static Future appendMessageOrCreate(
+  static Future<void> appendMessageOrCreate(
       String error, Room room, String content, NostrEventModel nostrEvent,
       {String? fromIdPubkey}) async {
     final message = await DBProvider.database.messages

@@ -253,7 +253,7 @@ class ChatController extends GetxController {
         .count();
   }
 
-  Future handleSubmitted() async {
+  Future<void> handleSubmitted() async {
     if (HardwareKeyboard.instance.isControlPressed ||
         HardwareKeyboard.instance.isShiftPressed ||
         HardwareKeyboard.instance.isAltPressed) {
@@ -425,7 +425,7 @@ class ChatController extends GetxController {
     return list;
   }
 
-  Future pullToLoadMessages() async {
+  Future<void> pullToLoadMessages() async {
     if (messages.isEmpty) return;
     if (indicatorController.edge == IndicatorEdge.leading) {
       _loadLatestMessages(messages.first.id);
@@ -620,7 +620,8 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     }
   }
 
-  Future updateRoomMembersAvatar(List<String> pubkeys, int identityId) async {
+  Future<void> updateRoomMembersAvatar(
+      List<String> pubkeys, int identityId) async {
     for (final pubkey in pubkeys) {
       final item = await fetchAndUpdateMetadata(pubkey, identityId);
       enableMembers[pubkey]?.avatarFromRelay = item.avatarFromRelay;
@@ -951,7 +952,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     return false;
   }
 
-  Future handlePasteboard() async {
+  Future<void> handlePasteboard() async {
     // Clipboard API is not supported on this platform.
     if (SystemClipboard.instance == null) return;
 
@@ -963,18 +964,20 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     final isFile = reader.canProvide(Formats.fileUri);
     loggerNoLine.i('Clipboard can provide file: $isFile');
     if (isFile) {
-      return handlePasteboardFile();
+      await handlePasteboardFile();
+      return;
     }
     final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
     final text = clipboardData?.text;
     if (text == null || text.isEmpty) {
-      return handlePasteboardFile();
+      await handlePasteboardFile();
+      return;
     }
     // plain text
     await _handlePastePlainText(text);
   }
 
-  Future _handlePastePlainText(String text) async {
+  Future<void> _handlePastePlainText(String text) async {
     loggerNoLine.i('Clipboard plain text: $text');
     final currentText = textEditingController.text;
     final selection = textEditingController.selection;
@@ -1010,7 +1013,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
         TextSelection.fromPosition(TextPosition(offset: newCursorPosition));
   }
 
-  Future _readFromStream(
+  Future<void> _readFromStream(
       ClipboardReader reader, SimpleFileFormat format, MessageMediaType type,
       [bool compress = true]) async {
     /// Binary formats need to be read as streams

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:app/utils.dart';
 import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
@@ -13,7 +15,7 @@ class EcashBillController extends GetxController {
   final Map<String, bool> _activeChecks = {};
 
   @override
-  void onInit() async {
+  void onInit() {
     indicatorController = IndicatorController();
     initPageData();
     super.onInit();
@@ -26,7 +28,7 @@ class EcashBillController extends GetxController {
   }
 
   void initPageData() {
-    Future.delayed(Duration(seconds: 1)).then((_) {
+    Future.delayed(const Duration(seconds: 1)).then((_) {
       rust_cashu.checkPending().then(
         (value) async {
           await Utils.getGetxController<EcashController>()?.getBalance();
@@ -37,19 +39,19 @@ class EcashBillController extends GetxController {
     });
   }
 
-  Future getTransactions({int offset = 0, int limit = 30}) async {
-    List<Transaction> list = await rust_cashu.getCashuTransactionsWithOffset(
+  Future<void> getTransactions({int offset = 0, int limit = 30}) async {
+    final list = await rust_cashu.getCashuTransactionsWithOffset(
         offset: BigInt.from(offset), limit: BigInt.from(limit));
     list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
-    List<Transaction> res = offset == 0 ? [] : transactions.toList();
-    res.addAll(list);
+    final res = offset == 0 ? <Transaction>[] : transactions.toList()
+      ..addAll(list);
     transactions.value = res;
     transactions.refresh();
   }
 
-  void startCheckPending(
-      Transaction tx, Function(Transaction ct) callback) async {
+  Future<void> startCheckPending(
+      Transaction tx, void Function(Transaction ct) callback) async {
     if (tx.status != TransactionStatus.pending) {
       callback(tx);
       return;
@@ -57,17 +59,17 @@ class EcashBillController extends GetxController {
 
     _activeChecks[tx.id] = true;
 
-    while (_activeChecks[tx.id] != null && _activeChecks[tx.id] == true) {
-      Transaction ln = await rust_cashu.checkTransaction(id: tx.id);
+    while (_activeChecks[tx.id] != null && (_activeChecks[tx.id] ?? false)) {
+      final ln = await rust_cashu.checkTransaction(id: tx.id);
       if (ln.status == TransactionStatus.success ||
           ln.status == TransactionStatus.failed) {
         callback(ln);
-        Get.find<EcashController>().requestPageRefresh();
+        unawaited(Get.find<EcashController>().requestPageRefresh());
         _activeChecks.remove(tx.id);
         return;
       }
       logger.d('Checking status: ${tx.id}');
-      await Future.delayed(const Duration(seconds: 1));
+      await Future<void>.delayed(const Duration(seconds: 1));
     }
 
     logger.d('Check stopped for transaction: ${tx.id}');

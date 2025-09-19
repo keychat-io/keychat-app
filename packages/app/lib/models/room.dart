@@ -339,7 +339,7 @@ class Room extends Equatable {
     return rm;
   }
 
-  Future updateAllMember(List<dynamic> list) async {
+  Future<void> updateAllMember(List<dynamic> list) async {
     final database = DBProvider.database;
     if (list.isEmpty) return;
     await database.writeTxn(() async {
@@ -376,7 +376,7 @@ class Room extends Equatable {
     });
   }
 
-  Future updateAllMemberTx(List<dynamic> list) async {
+  Future<void> updateAllMemberTx(List<dynamic> list) async {
     final database = DBProvider.database;
     if (list.isEmpty) return;
     for (final user in list) {
@@ -420,7 +420,7 @@ class Room extends Equatable {
     RoomService.getController(id)?.resetMembers();
   }
 
-  Future updateMember(RoomMember rm) async {
+  Future<void> updateMember(RoomMember rm) async {
     final database = DBProvider.database;
     await database.writeTxn(() async {
       await database.roomMembers.put(rm);
@@ -439,7 +439,7 @@ class Room extends Equatable {
   }
 
   // soft delete
-  Future removeMember(String idPubkey) async {
+  Future<void> removeMember(String idPubkey) async {
     final database = DBProvider.database;
     final rm = await getMemberByIdPubkey(idPubkey);
     if (rm == null) return;
@@ -450,7 +450,7 @@ class Room extends Equatable {
     });
   }
 
-  Future setMemberDisable(RoomMember rm) async {
+  Future<void> setMemberDisable(RoomMember rm) async {
     final model = await DBProvider.database.roomMembers
         .filter()
         .roomIdEqualTo(rm.roomId)
@@ -463,7 +463,7 @@ class Room extends Equatable {
     });
   }
 
-  Future setMemberDisableByPubkey(String idPubkey) async {
+  Future<void> setMemberDisableByPubkey(String idPubkey) async {
     final model = await DBProvider.database.roomMembers
         .filter()
         .roomIdEqualTo(id)
@@ -546,19 +546,7 @@ class Room extends Equatable {
     return type == RoomType.common ? identityId : 10000 + id;
   }
 
-  Future createMember(
-      String pubkey, String displayName, UserStatusType status) async {
-    final me = RoomMember(idPubkey: pubkey, name: displayName, roomId: id)
-      ..status = status
-      ..createdAt = DateTime.now()
-      ..updatedAt = DateTime.now();
-    await DBProvider.database.writeTxn(() async {
-      await DBProvider.database.roomMembers.put(me);
-    });
-    return getMemberByNostrPubkey(pubkey);
-  }
-
-  Future incrMessageCountForMember(RoomMember member) async {
+  Future<void> incrMessageCountForMember(RoomMember member) async {
     var changeMember = false;
     if (member.status != UserStatusType.invited) {
       member.status = UserStatusType.invited;
@@ -574,7 +562,8 @@ class Room extends Equatable {
   }
 
   String getDebugInfo(String error) {
-    return '''$error
+    return '''
+$error
 Room: $id, ${getRoomName()} $toMainPubkey,
 Please reset room's session: Chat Setting-> Security Settings -> Reset Session''';
   }

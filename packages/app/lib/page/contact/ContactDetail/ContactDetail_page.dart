@@ -157,7 +157,7 @@ class ContactDetailPage extends StatelessWidget {
     ));
   }
 
-  Future handleUpdateContact(
+  Future<void> handleUpdateContact(
       ContactDetailController controller, Contact contact) async {
     controller.contact.value = contact;
     await ContactService.instance.saveContact(controller.contact.value);
@@ -216,7 +216,7 @@ class ContactDetailPage extends StatelessWidget {
     );
   }
 
-  Future _showContactNameDialog(
+  Future<void> _showContactNameDialog(
       ContactDetailController controller, String preRoomName) async {
     await Get.dialog(CupertinoAlertDialog(
       title: const Text('Name'),
@@ -251,7 +251,7 @@ class ContactDetailPage extends StatelessWidget {
     ));
   }
 
-  Future handleUpdateName(ContactDetailController controller) async {
+  Future<void> handleUpdateName(ContactDetailController controller) async {
     if (controller.usernameController.text.isEmpty) return;
     final contact0 = controller.contact.value;
     contact0.petname = controller.usernameController.text.trim();

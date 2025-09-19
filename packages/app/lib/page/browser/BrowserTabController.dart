@@ -3,6 +3,7 @@ import 'dart:math' show Random;
 import 'package:app/app.dart';
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/page/browser/MultiWebviewController.dart';
+import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kDebugMode, kIsWeb;
 import 'package:flutter/material.dart' show PageStorageKey;
@@ -10,6 +11,16 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:get/get.dart';
 
 class WebviewTabController extends GetxController {
+  WebviewTabController(String key, String initUrl, String? initTitle) {
+    uniqueKey = key;
+    url.value = initUrl;
+    final domain = Uri.parse(initUrl).host;
+    pageStorageKey.value = PageStorageKey<String>(domain);
+    if (initTitle != null && initTitle.isNotEmpty) {
+      title.value = initTitle;
+    }
+    multiWebviewController = Get.find<MultiWebviewController>();
+  }
   Rx<BrowserConnect> browserConnect = BrowserConnect(host: '', pubkey: '').obs;
   RxBool canGoBack = false.obs;
   RxBool canGoForward = false.obs;
@@ -18,19 +29,9 @@ class WebviewTabController extends GetxController {
   RxString url = ''.obs;
   RxDouble progress = 0.1.obs;
   String? favicon;
-  Rx<PageStorageKey> pageStorageKey = PageStorageKey('').obs;
+  Rx<PageStorageKey> pageStorageKey = const PageStorageKey('').obs;
   late MultiWebviewController multiWebviewController;
   late String uniqueKey;
-  WebviewTabController(String key, String initUrl, String? initTitle) {
-    uniqueKey = key;
-    url.value = initUrl;
-    String domain = Uri.parse(initUrl).host;
-    pageStorageKey.value = PageStorageKey<String>(domain);
-    if (initTitle != null && initTitle.isNotEmpty) {
-      title.value = initTitle;
-    }
-    multiWebviewController = Get.find<MultiWebviewController>();
-  }
 
   late InAppWebViewSettings settings;
 
@@ -46,11 +47,6 @@ class WebviewTabController extends GetxController {
   @override
   void onInit() {
     settings = InAppWebViewSettings(
-        cacheMode: CacheMode.LOAD_DEFAULT,
-        domStorageEnabled: true,
-        databaseEnabled: true,
-        javaScriptEnabled: true,
-        allowFileAccess: true,
         allowUniversalAccessFromFileURLs: true,
         isInspectable: kDebugMode,
         allowsInlineMediaPlayback: true,
@@ -59,17 +55,16 @@ class WebviewTabController extends GetxController {
         useOnDownloadStart: true,
         transparentBackground: true,
         supportMultipleWindows: GetPlatform.isDesktop,
-        cacheEnabled: true,
         textZoom: multiWebviewController.kInitialTextSize.value,
         appCachePath: Get.find<SettingController>().browserCacheFolder,
-        iframeAllow: "camera; microphone",
+        iframeAllow: 'camera; microphone',
         algorithmicDarkeningAllowed: true,
         iframeAllowFullscreen: true);
 
     super.onInit();
   }
 
-  Future updateTextSize(int textSize) async {
+  Future<void> updateTextSize(int textSize) async {
     await multiWebviewController.setTextsize(textSize);
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       settings.textZoom = textSize;
@@ -109,8 +104,8 @@ window.addEventListener('DOMContentLoaded', function(event) {
     controller.getUrl().then((value) {
       if (value != null) {
         url.value = value.toString();
-        Uri? current = Uri.tryParse(url.value);
-        Uri? init = Uri.tryParse(initUrl);
+        final current = Uri.tryParse(url.value);
+        final init = Uri.tryParse(initUrl);
         if (init != null && current != null) {
           if (init.path != '/' && init.path != current.path) {
             controller.loadUrl(
@@ -140,15 +135,19 @@ window.addEventListener('DOMContentLoaded', function(event) {
 
   Future<void> checkWebViewControllerAlive() async {
     if (inAppWebViewController == null) return;
-    try {
-      await inAppWebViewController!.getUrl();
-      logger.d('tabController alive: $url');
-    } catch (e) {
-      logger.d('tabController dispose: $url');
-      // ⛔ A MacOSInAppWebViewController was used after being disposed.
-      // ⛔ Once the MacOSInAppWebViewController has been disposed, it can no longer be used.
-      pageStorageKey.value =
-          PageStorageKey<String>(Random().nextInt(1 << 32).toString());
-    }
+    EasyThrottle.throttle(
+        'checkWebViewControllerAlive:$url', const Duration(seconds: 1),
+        () async {
+      try {
+        await inAppWebViewController!.getUrl();
+        logger.d('tabController alive: $url');
+      } catch (e) {
+        logger.d('tabController dispose: $url');
+        // ⛔ A MacOSInAppWebViewController was used after being disposed.
+        // ⛔ Once the MacOSInAppWebViewController has been disposed, it can no longer be used.
+        pageStorageKey.value =
+            PageStorageKey<String>(Random().nextInt(1 << 32).toString());
+      }
+    });
   }
 }

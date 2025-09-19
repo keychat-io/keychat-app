@@ -375,7 +375,7 @@ class MessageWidget extends StatelessWidget {
     return child;
   }
 
-  Future _handleShowRawdata(BuildContext context) async {
+  Future<void> _handleShowRawdata(BuildContext context) async {
     Get.back<void>();
     if (message.eventIds.isEmpty) {
       EasyLoading.showInfo('Metadata Cleaned');
@@ -660,7 +660,7 @@ class MessageWidget extends StatelessWidget {
     'nip4WrapNip4': 'NIP4(NIP4(raw message))',
     'nip4WrapSignal': 'NIP4(Signal Protocol(raw message))'
   };
-  Future _showRawData(
+  Future<void> _showRawData(
       Message message, List<NostrEventStatus> ess, NostrEventModel? event,
       {BotClientMessageModel? botClientMessageModel,
       rust_cashu.TokenInfo? payToken}) {

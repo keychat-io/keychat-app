@@ -28,7 +28,7 @@ class _BrowserBookmarkPageState extends State<BrowserBookmarkPage> {
     _loadBookmarks();
   }
 
-  Future _loadFavorites() async {
+  Future<void> _loadFavorites() async {
     final list = await BrowserFavorite.getAll();
     final urls = list.map((e) => e.url).toSet();
     setState(() {

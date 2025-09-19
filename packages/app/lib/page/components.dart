@@ -430,7 +430,7 @@ void showSearchContactsPage(BuildContext context, List<Contact> contactList) {
           filter: (contact) => [contact.displayName]));
 }
 
-Future showMyQrCode(
+Future<void> showMyQrCode(
     BuildContext context, Identity identity, bool showMore) async {
   // get one time keys from db
   final oneTimeKeys =

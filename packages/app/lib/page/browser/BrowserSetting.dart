@@ -164,7 +164,7 @@ class _BrowserSettingState extends State<BrowserSetting> {
             )));
   }
 
-  Future init() async {
+  Future<void> init() async {
     final list = await IdentityService.instance.getEnableBrowserIdentityList();
     setState(() {
       identities = list;

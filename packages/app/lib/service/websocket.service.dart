@@ -84,7 +84,7 @@ class WebsocketService extends GetxService {
   }
 
   // new a websocket channel for this relay
-  Future addChannel(Relay relay, {Function? connectedCallback}) async {
+  Future<void> addChannel(Relay relay, {Function? connectedCallback}) async {
     final ws = this;
     final rw = RelayWebsocket(relay, ws);
     channels[relay.url] = rw;
@@ -107,7 +107,7 @@ class WebsocketService extends GetxService {
     failedEventsMap[relay]!.add(raw);
   }
 
-  Future checkOnlineAndConnect([List<RelayWebsocket>? list]) async {
+  Future<void> checkOnlineAndConnect([List<RelayWebsocket>? list]) async {
     initAt = DateTime.now();
     refreshMainRelayStatus();
     // fix ConcurrentModificationError List.from([list??channels.values])
@@ -125,7 +125,7 @@ class WebsocketService extends GetxService {
     failedEventsMap.remove(relay);
   }
 
-  Future createChannels([List<Relay> list = const []]) async {
+  Future<void> createChannels([List<Relay> list = const []]) async {
     final ws = this;
     await Future.wait(list.map((Relay relay) async {
       final rw = RelayWebsocket(relay, ws);
@@ -134,7 +134,7 @@ class WebsocketService extends GetxService {
     }));
   }
 
-  Future disableRelay(Relay relay) async {
+  Future<void> disableRelay(Relay relay) async {
     relay.active = false;
     relay.errorMessage = null;
     await RelayService.instance.update(relay);
@@ -298,7 +298,7 @@ class WebsocketService extends GetxService {
     return req;
   }
 
-  Future localFeesConfigFromLocalStorage() async {
+  Future<void> localFeesConfigFromLocalStorage() async {
     final map1 = await Storage.getLocalStorageMap(
         StorageKeyString.relayMessageFeeConfig);
     for (final entry in map1.entries) {
@@ -333,7 +333,7 @@ class WebsocketService extends GetxService {
     RelayService.instance.initRelayFeeInfo();
   }
 
-  Future refreshMainRelayStatus() async {
+  Future<void> refreshMainRelayStatus() async {
     final success = getOnlineSocket().length;
     relayConnectedCount.value = success;
     if (success > 0) {
@@ -503,7 +503,7 @@ class WebsocketService extends GetxService {
     if (sent == 0) throw Exception('RelayDisconnected');
   }
 
-  Future _setMainRelayStatus(RelayStatusEnum status) async {
+  Future<void> _setMainRelayStatus(RelayStatusEnum status) async {
     if (mainRelayStatus.value != status.name) {
       mainRelayStatus.value = status.name;
       loggerNoLine.d('setMainRelayStatus: ${mainRelayStatus.value}');
@@ -511,7 +511,7 @@ class WebsocketService extends GetxService {
     }
   }
 
-  Future start([List<Relay>? list]) async {
+  Future<void> start([List<Relay>? list]) async {
     if (startLock) return;
     try {
       startLock = true;
@@ -528,7 +528,7 @@ class WebsocketService extends GetxService {
     }
   }
 
-  Future stopListening() async {
+  Future<void> stopListening() async {
     for (final rw in channels.values) {
       rw.channel?.close();
     }

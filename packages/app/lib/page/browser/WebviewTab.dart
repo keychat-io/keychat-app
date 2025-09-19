@@ -876,7 +876,7 @@ class _WebviewTabState extends State<WebviewTab> {
     return selected;
   }
 
-  Future popupMenuSelected(String value) async {
+  Future<void> popupMenuSelected(String value) async {
     switch (value) {
       case 'share':
         SharePlus.instance.share(ShareParams(uri: currentUri));
@@ -972,7 +972,7 @@ class _WebviewTabState extends State<WebviewTab> {
     }
   }
 
-  Future onUpdateVisitedHistory(WebUri? uri) async {
+  Future<void> onUpdateVisitedHistory(WebUri? uri) async {
     if (tabController.inAppWebViewController == null || uri == null) return;
     EasyDebounce.debounce(
         'onUpdateVisitedHistory:$uri', const Duration(milliseconds: 200),
@@ -1001,7 +1001,7 @@ class _WebviewTabState extends State<WebviewTab> {
     });
   }
 
-  Future _checkGoBackState(String url) async {
+  Future<void> _checkGoBackState(String url) async {
     final canGoBack = await tabController.inAppWebViewController?.canGoBack();
     final canGoForward =
         await tabController.inAppWebViewController?.canGoForward();
@@ -1052,7 +1052,7 @@ class _WebviewTabState extends State<WebviewTab> {
     });
   }
 
-  Future renderAssetAsHtml(
+  Future<void> renderAssetAsHtml(
       InAppWebViewController controller, WebResourceRequest request) async {
     final htmlContent = '''
 <html>

@@ -483,7 +483,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
             CupertinoDialogAction(
               child: const Text('Share One-Time Link'),
               onPressed: () async {
-                Get.back();
+                Get.back<void>();
                 await showMyQrCode(
                     Get.context!, roomObs.value.getIdentity(), true);
               },
@@ -538,7 +538,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
             try {
               await FileService.instance.handleSendMediaFile(
                   roomObs.value, xfile!, MessageMediaType.image, true);
-              Get.back();
+              Get.back<void>();
             } finally {
               _isUploading = false;
             }
@@ -653,7 +653,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
   }
 
   Future<void> _handleSendSats() async {
-    final cashuInfo = await Get.bottomSheet<Transaction>(
+    final cashuInfo = await Get.bottomSheet<CashuInfoModel>(
         clipBehavior: Clip.hardEdge,
         shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
@@ -1081,7 +1081,7 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
                 try {
                   await FileService.instance.handleSendMediaFile(
                       roomObs.value, xfile, MessageMediaType.image, true);
-                  Get.back();
+                  Get.back<void>();
                 } finally {
                   _isUploading = false;
                 }

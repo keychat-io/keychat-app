@@ -45,7 +45,7 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
                         CupertinoDialogAction(
                             child: const Text('Cancel'),
                             onPressed: () {
-                              Get.back();
+                              Get.back<void>();
                             }),
                         CupertinoDialogAction(
                             child: const Text('Clear'),
@@ -55,7 +55,7 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
                               setState(() {
                                 groupedHistory.clear();
                               });
-                              Get.back();
+                              Get.back<void>();
                             })
                       ]));
                 })
@@ -63,7 +63,7 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
         ),
         body: CustomMaterialIndicator(
             onRefresh: () async {
-              int amount = groupedHistory.values.fold<int>(0,
+              final amount = groupedHistory.values.fold<int>(0,
                   (previousValue, element) => previousValue + element.length);
               await loadData(limit: 20, offset: amount);
             },
@@ -108,7 +108,7 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
                             Get.find<MultiWebviewController>().launchWebview(
                                 initUrl: site.url, defaultTitle: site.title);
                             if (Get.isBottomSheetOpen ?? false) {
-                              Get.back();
+                              Get.back<void>();
                             }
                           },
                           trailing: IconButton(
@@ -133,9 +133,9 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
   }
 
   Future loadData({required int limit, required int offset}) async {
-    var list = await BrowserHistory.getAll(limit: limit, offset: offset);
-    for (var history in list) {
-      String dateKey = formatDateKey(history.createdAt);
+    final list = await BrowserHistory.getAll(limit: limit, offset: offset);
+    for (final history in list) {
+      final dateKey = formatDateKey(history.createdAt);
       if (!groupedHistory.containsKey(dateKey)) {
         groupedHistory[dateKey] = [];
       }

@@ -24,13 +24,13 @@ class _SelectModeToCreateIdState extends State<SelectModeToCreateId> {
       SettingsSection(title: const Text('Create ID'), tiles: [
         SettingsTile.navigation(
           leading: const Icon(Icons.local_activity),
-          title: const Text("From Seed Phrase"),
+          title: const Text('From Seed Phrase'),
           onPressed: (context) async {
-            List<Identity> identities =
+            final identities =
                 Get.find<HomeController>().allIdentities.values.toList();
-            List<String> npubs = identities.map((e) => e.npub).toList();
-            String? mnemonic = await SecureStorage.instance.getPhraseWords();
-            var res = await Get.to(
+            final npubs = identities.map((e) => e.npub).toList();
+            final mnemonic = await SecureStorage.instance.getPhraseWords();
+            final res = await Get.to(
                 () => CreateAccount(mnemonic: mnemonic, npubs: npubs),
                 arguments: 'create');
             Get.back(result: res);
@@ -38,9 +38,9 @@ class _SelectModeToCreateIdState extends State<SelectModeToCreateId> {
         ),
         SettingsTile.navigation(
           leading: const Icon(Icons.vpn_key),
-          title: const Text("From Nsec"),
+          title: const Text('From Nsec'),
           onPressed: (context) async {
-            Identity? res = await Get.to(() => const ImportNsec());
+            final res = await Get.to(() => const ImportNsec());
             if (res != null) {
               Get.back(result: res);
               EasyLoading.showSuccess('Login success');
@@ -51,15 +51,14 @@ class _SelectModeToCreateIdState extends State<SelectModeToCreateId> {
           SettingsTile.navigation(
             leading: SvgPicture.asset(
               'assets/images/logo/amber.svg',
-              fit: BoxFit.contain,
               width: 20,
               height: 20,
             ),
-            title: const Text("Login with Amber App"),
+            title: const Text('Login with Amber App'),
             onPressed: (context) async {
-              var res = await Utils.handleAmberLogin();
+              final res = await Utils.handleAmberLogin();
               if (res != null) {
-                Get.back();
+                Get.back<void>();
                 EasyLoading.showSuccess('Login success');
               }
             },

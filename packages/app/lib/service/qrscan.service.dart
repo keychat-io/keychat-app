@@ -5,6 +5,7 @@ import 'package:app/page/chat/create_contact_page.dart';
 import 'package:app/page/components.dart';
 import 'package:ai_barcode_scanner/ai_barcode_scanner.dart';
 import 'package:bip21_uri/bip21_uri.dart' show bip21;
+import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
@@ -18,9 +19,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class QrScanService {
-  static QrScanService? _instance;
   // Avoid self instance
   QrScanService._();
+  static QrScanService? _instance;
   static QrScanService get instance => _instance ??= QrScanService._();
 
   Future<String?> handleQRScan({bool autoProcess = true}) async {
@@ -29,7 +30,7 @@ class QrScanService {
       return null;
     }
     if (GetPlatform.isMobile) {
-      bool isGranted = await Permission.camera.request().isGranted;
+      final isGranted = await Permission.camera.request().isGranted;
       if (!isGranted) {
         EasyLoading.showToast('Camera permission not grant');
         await Future.delayed(const Duration(milliseconds: 1000), () => {});
@@ -37,27 +38,30 @@ class QrScanService {
         return null;
       }
     }
-    MobileScannerController mobileScannerController = MobileScannerController(
+    final mobileScannerController = MobileScannerController(
       formats: [BarcodeFormat.qrCode],
     );
-    String? result = await Get.to(() => AiBarcodeScanner(
+    final result = await Get.to<String>(() => AiBarcodeScanner(
           controller: mobileScannerController,
           validator: (value) {
             return true;
           },
-          onDetect: (BarcodeCapture capture) {
+          onDetect: (BarcodeCapture capture) async {
             if (capture.barcodes.isNotEmpty) {
-              mobileScannerController.dispose();
-              Get.back(result: capture.barcodes.first.rawValue);
+              EasyThrottle.throttle(
+                  'qr_scan', const Duration(milliseconds: 500), () async {
+                await mobileScannerController.dispose();
+                Get.back(result: capture.barcodes.first.rawValue);
+              });
             }
           },
         ));
 
     if (result == null || result.isEmpty || !autoProcess) return result;
-    debugPrint("Barcode detected: $result");
+    debugPrint('Barcode detected: $result');
 
     try {
-      await processQRResult(result);
+      await _processQRResult(result);
     } catch (e) {
       logger.e('Failed to process QR result: $e');
       handleText(result);
@@ -65,7 +69,7 @@ class QrScanService {
     return result;
   }
 
-  Future processQRResult(String str) async {
+  Future<void> _processQRResult(String str) async {
     final trimmedStr = str.trim();
 
     // Handle URLs first
@@ -90,7 +94,8 @@ class QrScanService {
       final cleanInvoice = trimmedStr.startsWith('lightning:')
           ? trimmedStr.replaceFirst('lightning:', '')
           : trimmedStr;
-      return ecashController.proccessPayLightningBill(cleanInvoice);
+      ecashController.proccessPayLightningBill(cleanInvoice);
+      return;
     }
 
     // Handle LNURL and email addresses
@@ -108,7 +113,7 @@ class QrScanService {
 
     // Handle Nostr public keys
     if (_isNostrPubkey(trimmedStr)) {
-      Get.bottomSheet(AddtoContactsPage(trimmedStr),
+      await Get.bottomSheet<void>(AddtoContactsPage(trimmedStr),
           isScrollControlled: true, ignoreSafeArea: false);
       return;
     }
@@ -117,6 +122,8 @@ class QrScanService {
     if (isBase64(trimmedStr)) {
       return _handleBase64UserData(trimmedStr);
     }
+    handleText(str);
+    return;
   }
 
   bool _isUrl(String str) {
@@ -185,33 +192,32 @@ class QrScanService {
     }
 
     Get.dialog(CupertinoAlertDialog(
-      title: const Text("Url"),
-      content: Text(url.toString()),
+      title: const Text('Url'),
+      content: Text(url),
       actions: [
         CupertinoDialogAction(
-          child: const Text("Cancel"),
+          child: const Text('Cancel'),
           onPressed: () {
-            Get.back();
+            Get.back<void>();
           },
         ),
         CupertinoDialogAction(
-          child: const Text("Copy"),
+          child: const Text('Copy'),
           onPressed: () {
-            Clipboard.setData(ClipboardData(text: url.toString()));
-            EasyLoading.showSuccess("Copied");
-            Get.back();
+            Clipboard.setData(ClipboardData(text: url));
+            EasyLoading.showSuccess('Copied');
+            Get.back<void>();
           },
         ),
         CupertinoDialogAction(
-          child: const Text("View in browser"),
+          child: const Text('View in browser'),
           onPressed: () async {
-            Get.back();
+            Get.back<void>();
             if (url.startsWith('https:') || url.startsWith('http:')) {
-              Get.find<MultiWebviewController>()
-                  .launchWebview(initUrl: url.toString());
+              Get.find<MultiWebviewController>().launchWebview(initUrl: url);
               return;
             }
-            launchUrl(uri, mode: LaunchMode.platformDefault);
+            launchUrl(uri);
           },
         ),
       ],
@@ -220,23 +226,23 @@ class QrScanService {
   }
 
   void handleText(String str) {
-    Get.dialog(
+    Get.dialog<void>(
       CupertinoAlertDialog(
-        title: const Text("Result"),
-        content: Text(str.toString()),
+        title: const Text('Result'),
+        content: Text(str),
         actions: [
           CupertinoDialogAction(
-            child: const Text("Cancel"),
+            child: const Text('Cancel'),
             onPressed: () {
-              Get.back();
+              Get.back<void>();
             },
           ),
           CupertinoDialogAction(
-            child: const Text("Copy"),
+            child: const Text('Copy'),
             onPressed: () {
-              Get.back();
-              Clipboard.setData(ClipboardData(text: str.toString()));
-              EasyLoading.showSuccess("Copied");
+              Get.back<void>();
+              Clipboard.setData(ClipboardData(text: str));
+              EasyLoading.showSuccess('Copied');
             },
           ),
         ],

@@ -9,10 +9,10 @@ import 'package:get/get.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 
 class CashuReceiveWidget extends StatefulWidget {
+  const CashuReceiveWidget(
+      {required this.cashuinfo, super.key, this.messageId});
   final CashuInfoModel cashuinfo;
   final int? messageId;
-  const CashuReceiveWidget(
-      {super.key, required this.cashuinfo, this.messageId});
 
   @override
   _CashuReceiveWidgetState createState() => _CashuReceiveWidgetState();
@@ -56,7 +56,7 @@ class _CashuReceiveWidgetState extends State<CashuReceiveWidget> {
               : const Text('Ok'),
           onPressed: () async {
             if (btnStatus == 'OK') {
-              Get.back();
+              Get.back<void>();
               return;
             }
             if (btnStatus == 'Receiving...') {
@@ -68,10 +68,10 @@ class _CashuReceiveWidgetState extends State<CashuReceiveWidget> {
             EasyThrottle.throttle(
                 'handleReceiveToken', const Duration(seconds: 2), () async {
               if (widget.cashuinfo.status != TransactionStatus.pending) {
-                Get.back();
+                Get.back<void>();
                 return;
               }
-              CashuInfoModel? model = await CashuUtil.handleReceiveToken(
+              final model = await CashuUtil.handleReceiveToken(
                   token: widget.cashuinfo.token,
                   messageId: widget.messageId,
                   retry: true);

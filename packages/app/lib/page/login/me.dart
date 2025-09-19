@@ -246,13 +246,13 @@ class _MinePageState extends State<MinePage> {
     return SettingsTile.navigation(
         leading: const Icon(Icons.warning_amber, color: Color(0xfff2a900)),
         title: const Text('Migrate Tokens'),
-        description: Text(
-            '''${v1EcashTokens.length} cashu tokens may need to be migrated.
+        description: Text('''
+${v1EcashTokens.length} cashu tokens may need to be migrated.
 Try using https://wallet.cashu.me/ to receive tokens.
 If you have already received it, please ignore it.''',
             style: const TextStyle(color: Colors.red)),
         onPressed: (_) {
-          Get.bottomSheet(
+          Get.bottomSheet<void>(
               clipBehavior: Clip.antiAlias,
               shape: const RoundedRectangleBorder(
                   borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
@@ -278,13 +278,13 @@ If you have already received it, please ignore it.''',
                                   onPressed: () async {
                                     await Storage.remove(
                                         StorageKeyString.upgradeToV2Tokens);
-                                    await Storage.setBool(
-                                        StorageKeyString.upgradeToV2, true);
+                                    await Storage.setInt(
+                                        StorageKeyString.ecashDBVersion,
+                                        EcashDBVersion.v2);
                                     setState(() {
                                       v1EcashTokens.clear();
                                     });
-                                    Get.back();
-                                    Get.back();
+                                    Get.back<void>();
                                     EasyLoading.showSuccess(
                                         'All tokens deleted');
                                   },

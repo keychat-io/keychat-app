@@ -42,7 +42,7 @@ class EcashSettingPage extends GetView<EcashSettingController> {
                       onPressed: () async {
                         await Clipboard.setData(ClipboardData(text: words));
                         EasyLoading.showSuccess('Copied');
-                        Get.back();
+                        Get.back<void>();
                       },
                       child: const Text('Copy'),
                     )

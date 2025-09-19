@@ -15,11 +15,11 @@ import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:settings_ui/settings_ui.dart';
 
-import './ContactDetail_controller.dart';
+import 'package:app/page/contact/ContactDetail/ContactDetail_controller.dart';
 
 class ContactDetailPage extends StatelessWidget {
-  final Contact contact;
   const ContactDetailPage(this.contact, {super.key});
+  final Contact contact;
 
   SizedBox avatarSection(String url, Widget child) {
     return SizedBox(
@@ -70,12 +70,10 @@ class ContactDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    ContactDetailController controller =
-        Get.put(ContactDetailController(contact));
+    final controller = Get.put(ContactDetailController(contact));
     return SafeArea(
         child: Scaffold(
       body: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Obx(() => avatarSection2(
                 Utils.getRandomAvatar(controller.contact.value.pubkey,
@@ -85,7 +83,6 @@ class ContactDetailPage extends StatelessWidget {
                     AppBar(backgroundColor: Colors.transparent),
                     Column(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Utils.getRandomAvatar(controller.contact.value.pubkey,
                             httpAvatar:
@@ -112,25 +109,25 @@ class ContactDetailPage extends StatelessWidget {
                         SettingsSection(tiles: [
                           SettingsTile(
                             leading: const Icon(Icons.copy),
-                            title: const Text("ID Key"),
+                            title: const Text('ID Key'),
                             value: Text(getPublicKeyDisplay(
-                                controller.contact.value.npubkey, 6)),
+                                controller.contact.value.npubkey)),
                             onPressed: (context) {
                               Clipboard.setData(ClipboardData(
                                   text: controller.contact.value.npubkey));
-                              EasyLoading.showSuccess("ID Key copied");
+                              EasyLoading.showSuccess('ID Key copied');
                             },
                           ),
                           if (kDebugMode)
                             SettingsTile(
                               leading: const Icon(Icons.copy),
-                              title: const Text("Hex ID Key"),
+                              title: const Text('Hex ID Key'),
                               value: Text(getPublicKeyDisplay(
-                                  controller.contact.value.pubkey, 6)),
+                                  controller.contact.value.pubkey)),
                               onPressed: (context) {
                                 Clipboard.setData(ClipboardData(
                                     text: controller.contact.value.pubkey));
-                                EasyLoading.showSuccess("ID Key copied");
+                                EasyLoading.showSuccess('ID Key copied');
                               },
                             ),
                           // SettingsTile(
@@ -165,16 +162,16 @@ class ContactDetailPage extends StatelessWidget {
     controller.contact.value = contact;
     await ContactService.instance.saveContact(controller.contact.value);
     controller.contact.refresh();
-    Room? room = await RoomService.instance
+    final room = await RoomService.instance
         .getRoomByIdentity(contact.pubkey, contact.identityId);
     if (room != null) {
-      ChatController? cc = RoomService.getController(room.id);
+      final cc = RoomService.getController(room.id);
       if (cc != null) {
         cc.roomContact.value = contact;
         cc.roomContact.refresh();
       }
     }
-    EasyLoading.showSuccess("Updated");
+    EasyLoading.showSuccess('Updated');
   }
 
   SettingsSection dangerZoom(ContactDetailController controller) {
@@ -186,12 +183,12 @@ class ContactDetailPage extends StatelessWidget {
               const Text('Delete Contact', style: TextStyle(color: Colors.red)),
           onPressed: (context) async {
             Get.dialog(CupertinoAlertDialog(
-              title: const Text("Delete chat?"),
+              title: const Text('Delete chat?'),
               actions: <Widget>[
                 CupertinoDialogAction(
                   child: const Text('Cancel'),
                   onPressed: () {
-                    Get.back();
+                    Get.back<void>();
                   },
                 ),
                 CupertinoDialogAction(
@@ -203,10 +200,10 @@ class ContactDetailPage extends StatelessWidget {
                             controller.contact.value.pubkey,
                             controller.contact.value.identityId);
                         EasyLoading.showSuccess('Deleted');
-                        Get.back();
+                        Get.back<void>();
                         Get.back(result: false);
                       } catch (e) {
-                        String msg = Utils.getErrorMessage(e);
+                        final msg = Utils.getErrorMessage(e);
                         logger.e(msg, error: e, stackTrace: StackTrace.current);
                         EasyLoading.showError('Error: $msg');
                       }
@@ -222,7 +219,7 @@ class ContactDetailPage extends StatelessWidget {
   Future _showContactNameDialog(
       ContactDetailController controller, String preRoomName) async {
     await Get.dialog(CupertinoAlertDialog(
-      title: const Text("Name"),
+      title: const Text('Name'),
       content: Container(
         color: Colors.transparent,
         padding: const EdgeInsets.only(top: 15),
@@ -239,13 +236,13 @@ class ContactDetailPage extends StatelessWidget {
       ),
       actions: <Widget>[
         CupertinoDialogAction(
-          child: const Text("Cancel"),
+          child: const Text('Cancel'),
           onPressed: () {
-            Get.back();
+            Get.back<void>();
           },
         ),
         CupertinoDialogAction(
-          child: const Text("Confirm"),
+          child: const Text('Confirm'),
           onPressed: () async {
             await handleUpdateName(controller);
           },
@@ -256,11 +253,11 @@ class ContactDetailPage extends StatelessWidget {
 
   Future handleUpdateName(ContactDetailController controller) async {
     if (controller.usernameController.text.isEmpty) return;
-    Contact contact0 = controller.contact.value;
+    final contact0 = controller.contact.value;
     contact0.petname = controller.usernameController.text.trim();
-    int id = await ContactService.instance.saveContact(contact0);
-    Contact? contact = await ContactService.instance.getContactById(id);
+    final id = await ContactService.instance.saveContact(contact0);
+    final contact = await ContactService.instance.getContactById(id);
     await handleUpdateContact(controller, contact!);
-    Get.back();
+    Get.back<void>();
   }
 }

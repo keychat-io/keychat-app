@@ -25,16 +25,16 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
   void initState() {
     receiveTextController = TextEditingController();
     receiveTextController.addListener(() async {
-      String? text = receiveTextController.text.trim();
+      final text = receiveTextController.text.trim();
       if (text.isNotEmpty) {
         try {
-          var res = await rust_cashu.decodeToken(encodedToken: text);
+          final res = await rust_cashu.decodeToken(encodedToken: text);
 
           setState(() {
             decodedModel = res;
           });
         } catch (e) {
-          String msg = Utils.getErrorMessage(e);
+          final msg = Utils.getErrorMessage(e);
           EasyLoading.showError(msg);
         }
       }
@@ -67,7 +67,7 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
               ],
             ),
             body: Padding(
-                padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.all(8),
                 child: Column(children: [
                   Expanded(
                     child: Form(
@@ -108,7 +108,7 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
                             if (decodedModel != null)
                               ListTile(
                                 title: Text(
-                                    '+${decodedModel?.amount} ${decodedModel!.unit?.toString().toString()}'),
+                                    '+${decodedModel?.amount} ${decodedModel!.unit}'),
                                 subtitle: Text(decodedModel!.mint),
                               ),
                           ],
@@ -126,7 +126,7 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
                         if (GetPlatform.isMobile) {
                           HapticFeedback.lightImpact();
                         }
-                        String encodedToken = receiveTextController.text.trim();
+                        final encodedToken = receiveTextController.text.trim();
                         if (encodedToken.isEmpty) {
                           EasyLoading.showToast('Please input token');
                           return;
@@ -139,9 +139,9 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
                           setState(() {
                             decodedModel = null;
                           });
-                          // Get.back();
+                          // Get.back<void>();
                         } catch (e, s) {
-                          String msg = Utils.getErrorMessage(e);
+                          final msg = Utils.getErrorMessage(e);
                           EasyLoading.showToast(msg);
                           logger.e('Receive token failed',
                               error: e, stackTrace: s);

@@ -205,7 +205,7 @@ class NotifyService {
             icon: const Icon(Icons.error, color: Colors.amber, size: 24),
             duration: const Duration(seconds: 8),
             onTap: (snack) {
-              Get.back();
+              Get.back<void>();
             },
             title: 'Notification Init Error',
             message: '''

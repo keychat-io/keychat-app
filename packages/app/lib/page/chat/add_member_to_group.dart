@@ -3,10 +3,9 @@ import 'package:app/page/components.dart';
 import 'package:app/service/group.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/room.service.dart';
-import 'package:flutter/cupertino.dart';
-
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -37,9 +36,9 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
 
   @override
   void initState() {
-    super.initState();
     _pubkeyEditController = TextEditingController(text: '');
     _scrollController = ScrollController();
+    super.initState();
     _loading();
   }
 
@@ -113,8 +112,8 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
               CupertinoDialogAction(
                   child: const Text('OK'),
                   onPressed: () {
-                    Get.back();
-                    Get.back();
+                    Get.back<void>();
+                    Get.back<void>();
                   })
             ]));
       } catch (e, s) {
@@ -137,7 +136,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
             .inviteToJoinGroup(groupRoom, selectAccounts);
       }
       EasyLoading.showSuccess('Success');
-      Get.back();
+      Get.back<void>();
     } catch (e, s) {
       final msg = Utils.getErrorMessage(e);
       EasyLoading.showError(msg);
@@ -256,7 +255,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
               child: const Text('Cancel'),
               onPressed: () {
                 _pubkeyEditController.clear();
-                Get.back();
+                Get.back<void>();
               }),
           CupertinoDialogAction(
               isDefaultAction: true,
@@ -283,7 +282,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
                     }
                     alreadyExists['isCheck'] = true;
                     setState(() {});
-                    Get.back();
+                    Get.back<void>();
                     // EasyLoading.showError('User already exists in the list');
                     return;
                   }
@@ -311,7 +310,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
                   _pubkeyEditController.clear();
                   EasyLoading.dismiss();
                   EasyLoading.showSuccess('User added successfully');
-                  Get.back();
+                  Get.back<void>();
                 } catch (e, s) {
                   final msg = Utils.getErrorMessage(e);
                   logger.e(msg, error: e, stackTrace: s);

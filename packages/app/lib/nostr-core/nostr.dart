@@ -512,9 +512,9 @@ class NostrAPI {
       return;
     }
 
-    dynamic decodedContent;
+    Map<String, dynamic> decodedContent;
     try {
-      decodedContent = jsonDecode(content);
+      decodedContent = jsonDecode(content) as Map<String, dynamic>;
     } catch (e) {
       await Nip4ChatService.instance.receiveNip4Message(sourceEvent, content);
       return;
@@ -559,9 +559,9 @@ class NostrAPI {
             .receiveNip4Message(event, subEvent.serialize(), room: room);
       }
 
-      dynamic subDecodedContent;
+      Map<String, dynamic> subDecodedContent;
       try {
-        subDecodedContent = jsonDecode(subContent);
+        subDecodedContent = jsonDecode(subContent) as Map<String, dynamic>;
       } catch (e) {
         logger.d('try decode error');
         return Nip4ChatService.instance
@@ -588,7 +588,7 @@ class NostrAPI {
     });
   }
 
-  KeychatMessage? getKeyChatMessageFromJson(dynamic str) {
+  KeychatMessage? getKeyChatMessageFromJson(Map<String, dynamic> str) {
     try {
       return KeychatMessage.fromJson(str);
       // ignore: empty_catches
@@ -636,10 +636,10 @@ class NostrAPI {
           subEvent: subEvent, sourceEvent: event, relay: relay);
       return;
     }
-    dynamic decodedContent;
+    Map<String, dynamic> decodedContent;
     logger.d('subEvent: $subEvent');
     try {
-      decodedContent = jsonDecode(subEvent.content);
+      decodedContent = jsonDecode(subEvent.content) as Map<String, dynamic>;
     } catch (e) {
       return Nip4ChatService.instance
           .receiveNip4Message(subEvent, subEvent.content, sourceEvent: event);

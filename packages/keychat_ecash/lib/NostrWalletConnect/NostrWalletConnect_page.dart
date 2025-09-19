@@ -7,7 +7,7 @@ import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnectLog_page.dart';
 import 'package:settings_ui/settings_ui.dart';
-import './NostrWalletConnect_controller.dart';
+import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.dart';
 import 'dart:async';
 
 class NostrWalletConnectPage extends StatefulWidget {
@@ -58,7 +58,7 @@ class _NostrWalletConnectPageState extends State<NostrWalletConnectPage> {
                                 .textTheme
                                 .bodySmall
                                 ?.copyWith(color: Colors.red))
-                        : Text('nostr+walletconnect://')),
+                        : const Text('nostr+walletconnect://')),
                 value: controller.featureStatus.value,
                 onChanged: (bool value) {
                   controller.setFeatureStatus(value);
@@ -70,16 +70,16 @@ class _NostrWalletConnectPageState extends State<NostrWalletConnectPage> {
                   controller.subscribeAndOnlineRelays.isEmpty
               ? OutlinedButton(
                   onPressed: () {
-                    Get.to(() => RelaySetting());
+                    Get.to(RelaySetting.new);
                   },
-                  child: Text('Relay Setting'))
+                  child: const Text('Relay Setting'))
               : Container()),
-          SizedBox(height: 24),
+          const SizedBox(height: 24),
           Obx(() => controller.nwcUri.isNotEmpty &&
                   controller.featureStatus.value
               ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   ListTile(
-                    title: Text('WalletConnect URI'),
+                    title: const Text('WalletConnect URI'),
                     subtitle: textSmallGray(context, controller.nwcUri.value,
                         maxLines: 2),
                   ),
@@ -87,7 +87,7 @@ class _NostrWalletConnectPageState extends State<NostrWalletConnectPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       OutlinedButton.icon(
-                        icon: Icon(Icons.qr_code),
+                        icon: const Icon(Icons.qr_code),
                         onPressed: () {
                           showModalBottomSheetWidget(
                               context,
@@ -99,7 +99,7 @@ class _NostrWalletConnectPageState extends State<NostrWalletConnectPage> {
                                 const SizedBox(height: 64),
                                 FilledButton(
                                   onPressed: () {
-                                    Get.back();
+                                    Get.back<void>();
                                   },
                                   child: const Text('Close'),
                                 ),
@@ -109,7 +109,7 @@ class _NostrWalletConnectPageState extends State<NostrWalletConnectPage> {
                       ),
                       const SizedBox(width: 16),
                       FilledButton.icon(
-                        icon: Icon(Icons.copy),
+                        icon: const Icon(Icons.copy),
                         onPressed: () {
                           Clipboard.setData(
                                   ClipboardData(text: controller.nwcUri.value))
@@ -123,7 +123,7 @@ class _NostrWalletConnectPageState extends State<NostrWalletConnectPage> {
                   )
                 ])
               : Container()),
-          SizedBox(height: 32),
+          const SizedBox(height: 32),
           Obx(() => controller.featureStatus.value
               ? Expanded(
                   child: SettingsList(platform: DevicePlatform.iOS, sections: [

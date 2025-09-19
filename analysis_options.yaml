@@ -37,9 +37,10 @@ linter:
     # avoid_print: false  # Uncomment to disable the `avoid_print` rule
     # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
     file_names: false
-    library_private_types_in_public_api: false
+    # library_private_types_in_public_api: false
     # use_null_aware_elements: true
     avoid_catches_without_on_clauses: false
     public_member_api_docs: false
+    lines_longer_than_80_chars: false
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

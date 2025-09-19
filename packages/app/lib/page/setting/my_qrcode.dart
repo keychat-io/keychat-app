@@ -135,8 +135,8 @@ class _MyQRCodeState extends State<MyQRCode> {
       'name': identity.displayName,
       'time': time,
       'relay': '',
-      'avatar': avatarRemoteUrl,
-      'lightning': identity.lightning,
+      'avatar': avatarRemoteUrl ?? '',
+      'lightning': identity.lightning ?? '',
       'onetimekey': onetimekey,
       'globalSign': sig,
       ...userInfo.map((k, v) => MapEntry(k.toString(), v))

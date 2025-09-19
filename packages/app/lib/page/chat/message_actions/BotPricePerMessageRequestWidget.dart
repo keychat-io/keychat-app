@@ -102,7 +102,7 @@ class _BotPricePerMessageRequestWidgetState
                       await MessageService.instance
                           .updateMessageAndRefresh(widget.message);
                       EasyLoading.showSuccess('Success');
-                      Get.back();
+                      Get.back<void>();
                     },
                     isDefaultAction: true,
                     child: const Text('Confirm'),

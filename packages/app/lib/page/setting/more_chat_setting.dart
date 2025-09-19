@@ -143,7 +143,7 @@ class MoreChatSetting extends StatelessWidget {
                     await (res ? enableNotification() : disableNotification());
                 if (result) {
                   // close bottomsheet
-                  Get.back();
+                  Get.back<void>();
                 }
               },
               title: const Text('Notification status')),

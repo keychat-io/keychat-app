@@ -15,8 +15,8 @@ import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:share_plus/share_plus.dart';
 
 class AddtoContactsPage extends StatefulWidget {
-  final String defaultInput;
   const AddtoContactsPage(this.defaultInput, {super.key});
+  final String defaultInput;
 
   @override
   State<AddtoContactsPage> createState() => _SearchFriendsState();
@@ -30,7 +30,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
   @override
   void initState() {
     selectedIdentity = homeController.getSelectedIdentity();
-    _controller = TextEditingController(text: widget.defaultInput.toString());
+    _controller = TextEditingController(text: widget.defaultInput);
     _helloController = TextEditingController();
 
     super.initState();
@@ -49,11 +49,11 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
         resizeToAvoidBottomInset: false,
         appBar: AppBar(
           centerTitle: true,
-          title: const Text("Add Contact"),
+          title: const Text('Add Contact'),
           actions: [
             TextButton.icon(
                 onPressed: () async {
-                  Identity? selected = await Get.bottomSheet(
+                  final selected = await Get.bottomSheet<Identity>(
                       clipBehavior: Clip.antiAlias,
                       shape: const RoundedRectangleBorder(
                           borderRadius:
@@ -72,7 +72,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
         ),
         body: SafeArea(
             child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
           child: Column(
             children: [
               Expanded(
@@ -92,7 +92,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                                 icon: const Icon(
                                     CupertinoIcons.qrcode_viewfinder),
                                 onPressed: () async {
-                                  String? qrCode = await QrScanService.instance
+                                  final qrCode = await QrScanService.instance
                                       .handleQRScan(autoProcess: false);
                                   if (qrCode != null) _controller.text = qrCode;
                                 },
@@ -113,7 +113,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
               )),
               TextButton(
                   onPressed: () {
-                    String url =
+                    final url =
                         'https://www.keychat.io/u/?k=${selectedIdentity.npub}';
                     Get.dialog(CupertinoAlertDialog(
                       title: const Text('My Universal Link'),
@@ -123,12 +123,12 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                             onPressed: () {
                               Clipboard.setData(ClipboardData(text: url));
                               EasyLoading.showToast('Copied to clipboard');
-                              Get.back();
+                              Get.back<void>();
                             },
                             child: const Text('Copy')),
                         CupertinoActionSheetAction(
                             onPressed: () {
-                              Get.back();
+                              Get.back<void>();
                               Get.dialog(CupertinoAlertDialog(
                                 content: SizedBox(
                                     height: 240,
@@ -146,7 +146,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                             onPressed: () {
                               SharePlus.instance
                                   .share(ShareParams(uri: Uri.tryParse(url)));
-                              Get.back();
+                              Get.back<void>();
                             },
                             child: const Text('Share')),
                       ],
@@ -155,7 +155,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                   child: const Text('My Universal Link')),
               Center(
                 child: Container(
-                    constraints: BoxConstraints(maxWidth: 400),
+                    constraints: const BoxConstraints(maxWidth: 400),
                     width: double.infinity,
                     child: FilledButton(
                       onPressed: _createContact,
@@ -168,9 +168,9 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
   }
 
   Future _createContact() async {
-    String input = _controller.text.trim();
+    var input = _controller.text.trim();
     if (input.startsWith('https://www.keychat.io/u/')) {
-      Uri? uri = Uri.tryParse(input);
+      final uri = Uri.tryParse(input);
       if (uri?.queryParameters['k'] != null) {
         input = Uri.decodeComponent(uri!.queryParameters['k']!);
         logger.i('Parsed input: $input');
@@ -178,14 +178,14 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
     }
     // chat key
     if (input.length > 70) {
-      bool isBase = isBase64(input);
+      final isBase = isBase64(input);
       if (isBase) {
         QRUserModel model;
         try {
           model = QRUserModel.fromShortString(input);
           logger.i('Parsed QRUserModel: $model');
         } catch (e, s) {
-          String msg = Utils.getErrorMessage(e);
+          final msg = Utils.getErrorMessage(e);
           logger.e(msg, stackTrace: s);
           EasyLoading.showToast('Invalid Input');
           return;
@@ -199,14 +199,14 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
     // common private chat
     try {
       // check if input is a bot npub
-      String npub = rust_nostr.getBech32PubkeyByHex(hex: input);
-      String hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: npub);
-      for (var bot in homeController.recommendBots) {
+      final npub = rust_nostr.getBech32PubkeyByHex(hex: input);
+      final hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: npub);
+      for (final bot in homeController.recommendBots) {
         if (bot['npub'] != npub) {
           continue;
         }
         try {
-          Room room = await RoomService.instance.getOrCreateRoom(
+          final room = await RoomService.instance.getOrCreateRoom(
               hexPubkey, selectedIdentity.secp256k1PKHex, RoomStatus.enabled,
               contactName: bot['name'],
               type: RoomType.bot,
@@ -222,8 +222,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
         return;
       }
 
-      List<Room> rooms =
-          await RoomService.instance.getCommonRoomByPubkey(hexPubkey);
+      final rooms = await RoomService.instance.getCommonRoomByPubkey(hexPubkey);
 
       // not exist rooms
       if (rooms.isEmpty) {
@@ -246,13 +245,13 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
               subtitle: Text(
                   homeController.allIdentities[room.identityId]?.name ?? ''),
               onTap: () {
-                Get.back();
+                Get.back<void>();
                 Utils.offAndToNamedRoom(room);
               },
             );
           }).toList()));
     } catch (e, s) {
-      String msg = Utils.getErrorMessage(e);
+      final msg = Utils.getErrorMessage(e);
       logger.e(msg, stackTrace: s);
       EasyLoading.showError(msg);
     }

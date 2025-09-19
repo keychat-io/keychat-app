@@ -120,7 +120,7 @@ class _BotOneTimePaymentRequestWidgetState
                       await MessageService.instance
                           .updateMessageAndRefresh(widget.message);
                       EasyLoading.showSuccess('Success');
-                      Get.back();
+                      Get.back<void>();
                     });
                   },
                   isDefaultAction: true,

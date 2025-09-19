@@ -616,7 +616,7 @@ class WebsocketService extends GetxService {
                 isDefaultAction: true,
                 child: const Text('Relay Server >'),
                 onPressed: () {
-                  Get.back();
+                  Get.back<void>();
                   Get.to(() => const RelaySetting());
                 },
               ),

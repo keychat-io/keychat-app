@@ -37,14 +37,14 @@ class _KeepAliveHostsState extends State<KeepAliveHosts> {
               Text('Are you sure you want to remove "$host" from KeepAlive?'),
           actions: [
             CupertinoActionSheetAction(
-              onPressed: () => Get.back(),
+              onPressed: Get.back,
               child: const Text('Cancel'),
             ),
             CupertinoActionSheetAction(
               onPressed: () async {
                 await controller.disableKeepAlive(host);
                 await _loadHosts();
-                Get.back();
+                Get.back<void>();
               },
               child: const Text('Remove'),
             ),
@@ -73,7 +73,7 @@ class _KeepAliveHostsState extends State<KeepAliveHosts> {
               onPressed: () async {
                 Navigator.of(context).pop();
                 // Clear all hosts
-                for (String host in hosts) {
+                for (final host in hosts) {
                   controller.removeKeepAlive(host);
                 }
                 controller.mobileKeepAlive.clear();
@@ -132,7 +132,7 @@ class _KeepAliveHostsState extends State<KeepAliveHosts> {
           : Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(16),
                   child: Row(
                     children: [
                       const Icon(Icons.info_outline, color: Colors.blue),
@@ -173,7 +173,7 @@ class _KeepAliveHostsState extends State<KeepAliveHosts> {
                 ),
                 if (hosts.isNotEmpty)
                   Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(16),
                     child: Text(
                       '${hosts.length} host${hosts.length == 1 ? '' : 's'} configured',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(

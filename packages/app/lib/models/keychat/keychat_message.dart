@@ -64,7 +64,6 @@ class KeychatMessage {
     }
 
     signalId ??= await SignalIdService.instance.createSignalId(identity.id);
-    if (signalId == null) throw Exception('signalId is null');
 
     final Map userInfo = await SignalIdService.instance.getQRCodeData(signalId);
     final expiredTime = DateTime.now().millisecondsSinceEpoch +
@@ -86,9 +85,9 @@ class KeychatMessage {
       'curve25519PkHex': signalId.pubkey,
       'onetimekey': onetimekey,
       'time': expiredTime,
-      'lightning': identity.lightning,
       'relay': '',
-      'avatar': avatarRemoteUrl,
+      'lightning': identity.lightning ?? '',
+      'avatar': avatarRemoteUrl ?? '',
       'globalSign': sig,
       ...userInfo.cast<String, dynamic>()
     };

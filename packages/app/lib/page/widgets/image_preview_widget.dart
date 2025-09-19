@@ -12,21 +12,20 @@ import 'package:photo_view/photo_view.dart';
 import 'package:share_plus/share_plus.dart';
 
 class ImagePreviewWidget extends StatelessWidget {
+  const ImagePreviewWidget(
+      {required this.localPath,
+      required this.cc,
+      required this.errorCallback,
+      super.key});
   final String localPath;
   final ChatController cc;
   final Widget Function({Widget? child, String? text}) errorCallback;
 
-  const ImagePreviewWidget(
-      {super.key,
-      required this.localPath,
-      required this.cc,
-      required this.errorCallback});
-
   @override
   Widget build(BuildContext context) {
-    String filePath = FileService.instance.getAbsolutelyFilePath(
+    final filePath = FileService.instance.getAbsolutelyFilePath(
         Get.find<SettingController>().appFolder.path, localPath);
-    File file = File(filePath);
+    final file = File(filePath);
     if (!file.existsSync()) return errorCallback(text: '[Image cleaned]');
     return GestureDetector(
       onTap: () async {
@@ -37,18 +36,18 @@ class ImagePreviewWidget extends StatelessWidget {
         //         files: files.reversed.toList(), selected: file, file: file),
         //     transition: Transition.zoom,
         //     fullscreenDialog: true);
-        bool isImageFile = FileService.instance.isImageFile(file.path);
+        final isImageFile = FileService.instance.isImageFile(file.path);
         Widget child = const Text('Loading');
         if (isImageFile) {
           child = PhotoView.customChild(
             child: Center(child: Image.file(file, fit: BoxFit.contain)),
           );
         } else if (FileService.instance.isVideoFile(file.path)) {
-          File thumb =
+          final thumb =
               await FileService.instance.getOrCreateThumbForVideo(file.path);
           child = VideoPlayWidget(thumb, file.path, true);
         }
-        var w = Scaffold(
+        final w = Scaffold(
             floatingActionButton: SizedBox(
                 width: Get.width - 20,
                 child: Row(
@@ -63,7 +62,7 @@ class ImagePreviewWidget extends StatelessWidget {
                           color: Colors.white,
                         ),
                         onPressed: () {
-                          Get.back();
+                          Get.back<void>();
                         },
                       ),
                     ),
@@ -89,9 +88,9 @@ class ImagePreviewWidget extends StatelessWidget {
                 FloatingActionButtonLocation.miniCenterFloat,
             body: GestureDetector(
                 onVerticalDragUpdate: (DragUpdateDetails details) {
-                  double dy = details.delta.dy;
+                  final dy = details.delta.dy;
                   if (dy > 20) {
-                    Get.back();
+                    Get.back<void>();
                   }
                 },
                 child: child));

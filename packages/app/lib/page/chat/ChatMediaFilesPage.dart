@@ -65,8 +65,8 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
                                   EasyLoading.showError(e.toString());
                                 }
 
-                                Get.back();
-                                Get.back();
+                                Get.back<void>();
+                                Get.back<void>();
                               },
                               child: const Text('Delete')),
                         ],

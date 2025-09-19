@@ -18,8 +18,8 @@ import 'package:get/get.dart';
 import 'package:search_page/search_page.dart';
 import 'package:settings_ui/settings_ui.dart';
 
-import '../controller/home.controller.dart';
-import '../service/room.service.dart';
+import 'package:app/controller/home.controller.dart';
+import 'package:app/service/room.service.dart';
 
 Widget centerLoadingComponent([String title = 'loading']) {
   return Center(
@@ -27,10 +27,10 @@ Widget centerLoadingComponent([String title = 'loading']) {
     mainAxisAlignment: MainAxisAlignment.center,
     children: <Widget>[
       const CircularProgressIndicator(),
-      const SizedBox(height: 16.0),
+      const SizedBox(height: 16),
       Text(
         title,
-        style: const TextStyle(color: Colors.grey, fontSize: 16.0),
+        style: const TextStyle(color: Colors.grey, fontSize: 16),
       ),
     ],
   ));
@@ -78,22 +78,20 @@ SettingsTile settingInfoCopy(String title, String content, [Icon? icon]) {
 }
 
 Future<void> showDeleteMsgDialog(BuildContext context, Room room) async {
-  String title = "Clear chat history?";
   return showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
         return CupertinoAlertDialog(
-          content: Text(title,
-              style: const TextStyle(fontSize: 20.0),
-              textAlign: TextAlign.center),
+          content: const Text('Clear chat history?',
+              style: TextStyle(fontSize: 20), textAlign: TextAlign.center),
           actions: <Widget>[
             CupertinoDialogAction(
               child: const Text(
                 'Cancel',
               ),
               onPressed: () {
-                Get.back();
+                Get.back<void>();
               },
             ),
             CupertinoDialogAction(
@@ -102,7 +100,7 @@ Future<void> showDeleteMsgDialog(BuildContext context, Room room) async {
                 'Clear',
               ),
               onPressed: () async {
-                Get.back();
+                Get.back<void>();
                 await RoomService.instance.deleteRoomMessage(room);
                 Get.find<HomeController>()
                     .loadIdentityRoomList(room.identityId);
@@ -114,7 +112,7 @@ Future<void> showDeleteMsgDialog(BuildContext context, Room room) async {
 }
 
 Container getAppBarFlexibleSpace() {
-  var colors = Get.isDarkMode
+  final colors = Get.isDarkMode
       ? [Colors.black, Colors.black]
       : [const Color(0xffededed), const Color(0xffe6e1e5)];
   return Container(
@@ -140,10 +138,10 @@ List futuresSubtitle = [
   'Configurable relay server or deploy your own. Relay is a lightweight service that can store and transmit encrypted data.',
   'Encourage to use multiple identities in Keychat for different chat scenarios, such as private and public group chats.',
   'All contact, private key, configuration and other data are stored on your device without server interaction.',
-  'We don\'t provide any servers, collect any account or device data, or any runtime logs. Your data is entirely stored locally, ensuring perfect protection of your privacy.'
+  "We don't provide any servers, collect any account or device data, or any runtime logs. Your data is entirely stored locally, ensuring perfect protection of your privacy."
 ];
 void showModalBottomSheetKeyChatFetures(BuildContext context) {
-  List<Widget> ws = [];
+  final ws = <Widget>[];
   for (var i = 0; i < futuresTitle.length; i++) {
     ws.add(ListTile(
         leading: CircleAvatar(child: Text((i + 1).toString())),
@@ -177,7 +175,7 @@ void showModalBottomSheetWidget(BuildContext context, String title, Widget body,
                       right: 10,
                       child: IconButton(
                         onPressed: () {
-                          Get.back();
+                          Get.back<void>();
                         },
                         icon: const Icon(Icons.close),
                       ),
@@ -204,7 +202,7 @@ AppBar getSheetAppBar(BuildContext context, String title,
       IconButton(
         icon: const Icon(Icons.close),
         onPressed: () {
-          Get.back();
+          Get.back<void>();
           if (callback != null) callback();
         },
       )
@@ -257,7 +255,7 @@ Widget codeSnippet(String text) {
   return Text(
     text,
     style: TextStyle(
-      fontFamily: "Roboto Mono",
+      fontFamily: 'Roboto Mono',
       fontSize: 16,
       color: Colors.black,
       backgroundColor: Colors.grey[200],
@@ -316,7 +314,7 @@ Text textSmallGray(BuildContext context, String content,
     double lineHeight = 1.5,
     TextAlign textAlign = TextAlign.left,
     int maxLines = 1,
-    overflow = TextOverflow.ellipsis}) {
+    TextOverflow overflow = TextOverflow.ellipsis}) {
   return Text(content,
       overflow: overflow,
       maxLines: maxLines,
@@ -329,15 +327,15 @@ Text textSmallGray(BuildContext context, String content,
 }
 
 void copyAllContacts(List<Contact> contactList) {
-  final List<String> allContacts = [];
+  final allContacts = <String>[];
   allContacts.add('ContactName \t ContactAddress');
 
-  for (var contact in contactList) {
-    String contactInfo = '${contact.displayName} \t ${contact.npubkey}';
+  for (final contact in contactList) {
+    final contactInfo = '${contact.displayName} \t ${contact.npubkey}';
     allContacts.add(contactInfo);
   }
 
-  final String allContactsString = allContacts.join('\n');
+  final allContactsString = allContacts.join('\n');
 
   Clipboard.setData(ClipboardData(text: allContactsString));
 
@@ -345,19 +343,18 @@ void copyAllContacts(List<Contact> contactList) {
 }
 
 void showSearchContactsPage(BuildContext context, List<Contact> contactList) {
-  String input = "";
+  var input = '';
   showSearch(
       context: context,
       delegate: SearchPage(
           onQueryUpdate: (value) {
             input = value;
           },
-          searchLabel: "Search Friend",
+          searchLabel: 'Search Friend',
           items: contactList,
           suggestion: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 OutlinedButton(
                     onPressed: () async {
@@ -369,7 +366,7 @@ void showSearchContactsPage(BuildContext context, List<Contact> contactList) {
                           await Get.bottomSheet(AddtoContactsPage(pastedText),
                               isScrollControlled: true,
                               ignoreSafeArea: false,
-                              shape: RoundedRectangleBorder(
+                              shape: const RoundedRectangleBorder(
                                   borderRadius: BorderRadius.vertical(
                                       top: Radius.circular(16))));
                         } else {
@@ -398,7 +395,7 @@ void showSearchContactsPage(BuildContext context, List<Contact> contactList) {
                     await Get.bottomSheet(AddtoContactsPage(input),
                         isScrollControlled: true,
                         ignoreSafeArea: false,
-                        shape: RoundedRectangleBorder(
+                        shape: const RoundedRectangleBorder(
                             borderRadius: BorderRadius.vertical(
                                 top: Radius.circular(16))));
                   },
@@ -412,15 +409,15 @@ void showSearchContactsPage(BuildContext context, List<Contact> contactList) {
           builder: (contact) => ListTile(
                 onTap: () async {},
                 leading: Utils.getRandomAvatar(contact.pubkey,
-                    height: 40, width: 40, httpAvatar: contact.avatarFromRelay),
+                    httpAvatar: contact.avatarFromRelay),
                 title: Text(
-                  contact.displayName.toString(),
+                  contact.displayName,
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
                 ),
                 subtitle: Text(
                   // contact.npubkey.toString(),
-                  "${contact.npubkey.substring(0, 18)}...${contact.npubkey.substring(contact.npubkey.length - 18)}",
+                  '${contact.npubkey.substring(0, 18)}...${contact.npubkey.substring(contact.npubkey.length - 18)}',
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
                 ),
@@ -430,26 +427,26 @@ void showSearchContactsPage(BuildContext context, List<Contact> contactList) {
                   borderRadius: BorderRadius.circular(0),
                 ),
               ),
-          filter: (contact) => [contact.displayName.toString()]));
+          filter: (contact) => [contact.displayName]));
 }
 
 Future showMyQrCode(
     BuildContext context, Identity identity, bool showMore) async {
   // get one time keys from db
-  List<Mykey> oneTimeKeys =
+  final oneTimeKeys =
       await Get.find<ChatxService>().getOneTimePubkey(identity.id);
   // every time create one, due to need update signalKeyId
   late SignalId signalId;
   try {
     signalId = await SignalIdService.instance.createSignalId(identity.id);
   } catch (e, s) {
-    String msg = Utils.getErrorMessage(e);
-    logger.e('signalId: ${e.toString()}', error: e, stackTrace: s);
+    final msg = Utils.getErrorMessage(e);
+    logger.e('signalId: $e', error: e, stackTrace: s);
     EasyLoading.showError(msg);
     return;
   }
 
-  int expiredTime = DateTime.now().millisecondsSinceEpoch +
+  final expiredTime = DateTime.now().millisecondsSinceEpoch +
       KeychatGlobal.oneTimePubkeysLifetime * 3600 * 1000;
 
   Get.bottomSheet(
@@ -475,12 +472,12 @@ Widget pageLoadingSpinKit({String title = 'Loading...'}) {
           direction: Axis.vertical,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-        SizedBox(
+        const SizedBox(
             width: 100,
             height: 100,
             child: SpinKitWave(
               color: Color.fromARGB(255, 141, 123, 243),
-              size: 40.0,
+              size: 40,
             )),
         Text(title)
       ]));

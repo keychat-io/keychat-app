@@ -13,7 +13,7 @@ class KeychatGlobal {
   static const int remainReceiveKeyPerRoom = 2;
   static const String baseFilePath = 'file';
   static const String signalProcotolDBFile = 'signal_procotol.db';
-  static const String ecashDBFile = 'ecash.db';
+  static const String ecashDBFileV1 = 'ecash.db';
   static const String ecashDBFileV2 = 'ecash_v2.db';
   static const String mlsDBFile = 'mls.db3';
   static const String notifycationServer = 'https://notify.keychat.io/v2';

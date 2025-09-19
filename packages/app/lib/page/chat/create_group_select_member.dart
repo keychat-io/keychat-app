@@ -112,7 +112,7 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
             toUsers: selectedContact, groupRelays: widget.relays);
       }
       Get.find<HomeController>().loadIdentityRoomList(identity.id);
-      Get.back();
+      Get.back<void>();
       await Utils.offAndToNamedRoom(room);
     } catch (e, s) {
       final msg = Utils.getErrorMessage(e);

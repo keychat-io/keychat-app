@@ -474,11 +474,16 @@ class IdentityService {
     return <String>{...signal, ...mlsPubkeys}.toList();
   }
 
-  Future<Identity> syncProfileFromRelay(Identity identity) async {
+  Future<Identity?> syncProfileFromRelay(Identity identity) async {
     final list =
         await NostrAPI.instance.fetchMetadata([identity.secp256k1PKHex]);
+    if (list.isEmpty) {
+      logger.d(
+          'No metadata event found from relay for ${identity.secp256k1PKHex}');
+      return null;
+    }
     final res = list.last;
-    final metadata = Map<String, dynamic>.from(jsonDecode(res.content));
+    final metadata = jsonDecode(res.content) as Map<String, dynamic>;
     logger.i('Sync profile from relay: $metadata');
 
     if (identity.versionFromRelay >= res.createdAt) {

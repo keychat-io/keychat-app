@@ -151,14 +151,14 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                   showDialog(
                       context: context,
                       builder: (BuildContext context) {
-                        return RadioGroup(
+                        return RadioGroup<int>(
                             groupValue: hc.defaultSelectedTab.value,
                             onChanged: (value) {
                               if (value == null) return;
                               hc.setDefaultSelectedTab(value);
                               EasyLoading.showSuccess('Set successfully');
                               setStartupTabName();
-                              Get.back();
+                              Get.back<void>();
                             },
                             child: SimpleDialog(
                                 title: const Text('Select startup tab'),
@@ -314,7 +314,7 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                               child: const Text('Stop'),
                               onPressed: () async {
                                 closeAllRelays();
-                                Get.back();
+                                Get.back<void>();
                               }),
                         ],
                       ));
@@ -393,7 +393,7 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
               }
               await Storage.setString(
                   StorageKeyString.dbBackupPwd, confirmPasswordController.text);
-              Get.back();
+              Get.back<void>();
               await Future.delayed(const Duration(microseconds: 100));
               EasyLoading.show(status: 'Exporting...');
               try {

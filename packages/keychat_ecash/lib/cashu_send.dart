@@ -14,8 +14,8 @@ import 'package:easy_debounce/easy_throttle.dart';
 import 'package:get/get.dart';
 
 class CashuSendPage extends StatefulWidget {
-  final bool isRoom;
   const CashuSendPage(this.isRoom, {super.key});
+  final bool isRoom;
 
   @override
   _CashuSendPageState createState() => _CashuSendPageState();
@@ -34,10 +34,10 @@ class _CashuSendPageState extends State<CashuSendPage> {
   }
 
   @override
-  Widget build(context) {
+  Widget build(BuildContext context) {
     return SafeArea(
         child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             decoration:
                 BoxDecoration(color: Theme.of(context).colorScheme.surface),
             child: Column(children: [
@@ -89,13 +89,13 @@ class _CashuSendPageState extends State<CashuSendPage> {
                         if (GetPlatform.isMobile) {
                           HapticFeedback.lightImpact();
                         }
-                        String amountString =
+                        final amountString =
                             cashuController.nameController.text.trim();
                         if (amountString.isEmpty) {
                           EasyLoading.showToast('Please input amount');
                           return;
                         }
-                        int amount = 0;
+                        var amount = 0;
                         try {
                           amount = int.parse(amountString);
                         } catch (e) {
@@ -106,7 +106,7 @@ class _CashuSendPageState extends State<CashuSendPage> {
                           EasyLoading.showToast('Amount should > 0');
                           return;
                         }
-                        int balance =
+                        final balance =
                             cashuController.getBalanceByMint(selectedMint);
                         if (balance < amount) {
                           EasyLoading.showToast('Insufficient balance');
@@ -114,7 +114,7 @@ class _CashuSendPageState extends State<CashuSendPage> {
                         }
                         try {
                           EasyLoading.show(status: 'Generating...');
-                          CashuInfoModel? cashuInfoModel =
+                          final cashuInfoModel =
                               await CashuUtil.getCashuA(
                                   amount: amount, mints: [selectedMint]);
 
@@ -129,7 +129,7 @@ class _CashuSendPageState extends State<CashuSendPage> {
                             return;
                           }
                           if (Get.isBottomSheetOpen ?? false) {
-                            Get.back();
+                            Get.back<void>();
                           }
                           Get.to(
                               () => CashuTransactionPage(
@@ -139,7 +139,7 @@ class _CashuSendPageState extends State<CashuSendPage> {
                                   ? GetXNestKey.ecash
                                   : null);
                         } catch (e, s) {
-                          String msg = Utils.getErrorMessage(e);
+                          final msg = Utils.getErrorMessage(e);
                           if (msg.contains('Spent')) {
                             await rust_cashu.checkProofs();
                             EasyLoading.showError(

@@ -10,8 +10,8 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
 import 'package:app/models/models.dart';
-import '../../service/contact.service.dart';
-import '../../service/group.service.dart';
+import 'package:app/service/contact.service.dart';
+import 'package:app/service/group.service.dart';
 
 class AddGroupPage extends StatefulWidget {
   const AddGroupPage({super.key});
@@ -47,9 +47,7 @@ class _AddGroupPageState extends State<AddGroupPage>
         resizeToAvoidBottomInset: false,
         appBar: AppBar(
           leading: GestureDetector(
-              onTap: () {
-                Get.back();
-              },
+              onTap: Get.back,
               child: Padding(
                   padding: const EdgeInsets.only(left: 10),
                   child: Row(
@@ -62,43 +60,43 @@ class _AddGroupPageState extends State<AddGroupPage>
                     ],
                   ))),
           centerTitle: true,
-          title: const Text("New Group Chat"),
+          title: const Text('New Group Chat'),
         ),
         floatingActionButtonLocation:
             FloatingActionButtonLocation.miniCenterDocked,
         floatingActionButton: Container(
-            constraints: BoxConstraints(maxWidth: 400),
+            constraints: const BoxConstraints(maxWidth: 400),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             width: double.infinity,
             child: FilledButton(
                 onPressed: () async {
-                  String groupName = _groupNameController.text.trim();
+                  final groupName = _groupNameController.text.trim();
                   if (groupName.isEmpty) {
                     EasyLoading.showToast('Please input group name');
                     return;
                   }
 
-                  Identity identity =
+                  final identity =
                       Get.find<HomeController>().getSelectedIdentity();
-                  List<Contact> contactList = await ContactService.instance
-                      .getListExcludeSelf(identity.id);
+                  var contactList = await ContactService.instance
+                      .getListExcludeSelf(identity.id, identity.secp256k1PKHex);
                   contactList = contactList.reversed.toList();
-                  List<Map<String, dynamic>> list = [];
-                  for (int i = 0; i < contactList.length; i++) {
-                    var exist = false;
+                  final list = <Map<String, dynamic>>[];
+                  for (var i = 0; i < contactList.length; i++) {
+                    const exist = false;
                     list.add({
-                      "pubkey": contactList[i].pubkey,
-                      "npubkey": contactList[i].npubkey,
-                      "name": contactList[i].displayName,
-                      "exist": exist,
-                      "isCheck": false,
-                      "mlsPK": null,
-                      "isAdmin": false
+                      'pubkey': contactList[i].pubkey,
+                      'npubkey': contactList[i].npubkey,
+                      'name': contactList[i].displayName,
+                      'exist': exist,
+                      'isCheck': false,
+                      'mlsPK': null,
+                      'isAdmin': false
                     });
                   }
-                  List<String> relays = [];
+                  var relays = <String>[];
                   if (groupType == GroupType.mls) {
-                    var list = Get.find<WebsocketService>().getOnlineSocket();
+                    final list = Get.find<WebsocketService>().getOnlineSocket();
 
                     if (list.isEmpty) {
                       Get.dialog(
@@ -108,16 +106,14 @@ class _AddGroupPageState extends State<AddGroupPage>
                               'Please reconnect the relay servers or add wss://relay.keychat.io'),
                           actions: <Widget>[
                             CupertinoDialogAction(
+                              onPressed: Get.back,
                               child: const Text('Cancel'),
-                              onPressed: () {
-                                Get.back();
-                              },
                             ),
                             CupertinoDialogAction(
                               child: const Text('Message Relay'),
                               onPressed: () {
-                                Get.back();
-                                Get.to(() => RelaySetting());
+                                Get.back<void>();
+                                Get.to(RelaySetting.new);
                               },
                             ),
                           ],
@@ -137,9 +133,9 @@ class _AddGroupPageState extends State<AddGroupPage>
                 child: const Text('Next'))),
         body: SafeArea(
             child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: 16),
           child: SingleChildScrollView(
-              child: RadioGroup(
+              child: RadioGroup<GroupType>(
                   groupValue: groupType,
                   onChanged: (value) {
                     if (value == null) return;
@@ -163,16 +159,17 @@ class _AddGroupPageState extends State<AddGroupPage>
                         Container(
                             padding: const EdgeInsets.symmetric(
                                 vertical: 8, horizontal: 16),
-                            child: Text("Select Group Mode",
+                            child: Text('Select Group Mode',
                                 style:
                                     Theme.of(context).textTheme.titleMedium)),
                         ListTile(
-                            title: Text("Large Group - MLS Protocol",
+                            title: Text('Large Group - MLS Protocol',
                                 style: Theme.of(context).textTheme.titleSmall),
                             subtitle: Text(
                                 RoomUtil.getGroupModeDescription(GroupType.mls),
                                 style: Theme.of(context).textTheme.bodySmall),
-                            leading: Radio<GroupType>(value: GroupType.mls),
+                            leading:
+                                const Radio<GroupType>(value: GroupType.mls),
                             selected: groupType == GroupType.mls,
                             selectedTileColor: Theme.of(context)
                                 .colorScheme
@@ -190,7 +187,8 @@ class _AddGroupPageState extends State<AddGroupPage>
                                   GroupType.sendAll),
                               style: Theme.of(context).textTheme.bodySmall),
                           selected: groupType == GroupType.sendAll,
-                          leading: Radio<GroupType>(value: GroupType.sendAll),
+                          leading:
+                              const Radio<GroupType>(value: GroupType.sendAll),
                         ),
                       ]))),
         )));

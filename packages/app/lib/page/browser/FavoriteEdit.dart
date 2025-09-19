@@ -4,9 +4,8 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
 class FavoriteEdit extends StatefulWidget {
+  const FavoriteEdit({required this.favorite, super.key});
   final BrowserFavorite favorite;
-
-  const FavoriteEdit({super.key, required this.favorite});
 
   @override
   _FavoriteEditState createState() => _FavoriteEditState();
@@ -40,13 +39,13 @@ class _FavoriteEditState extends State<FavoriteEdit> {
                 onPressed: () async {
                   await BrowserFavorite.delete(widget.favorite.id);
                   EasyLoading.showSuccess('Deleted');
-                  Get.back();
+                  Get.back<void>();
                 },
                 icon: const Icon(Icons.delete))
           ],
         ),
         body: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(16),
             child: Column(spacing: 16, children: [
               TextField(
                 controller: _titleController,
@@ -65,7 +64,7 @@ class _FavoriteEditState extends State<FavoriteEdit> {
                   }
                   await BrowserFavorite.update(widget.favorite);
                   EasyLoading.showSuccess('Saved');
-                  Get.back();
+                  Get.back<void>();
                 },
                 child: const Text('Save'),
               )

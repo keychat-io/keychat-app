@@ -37,11 +37,11 @@ import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:path/path.dart' as path;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class WebviewTab extends StatefulWidget {
   const WebviewTab(
@@ -285,14 +285,14 @@ class _WebviewTabState extends State<WebviewTab> {
                                             await multiWebviewController
                                                 .enableKeepAlive(initDomain);
 
-                                            Get.back();
+                                            Get.back<void>();
                                             EasyLoading.showSuccess(
                                                 'KeepAlive Enabled. Take effect after restarting the page.');
                                             return;
                                           }
                                           await multiWebviewController
                                               .disableKeepAlive(initDomain);
-                                          Get.back();
+                                          Get.back<void>();
                                           EasyLoading.showSuccess(
                                               'KeepAlive Disabled.');
                                         });
@@ -347,10 +347,10 @@ class _WebviewTabState extends State<WebviewTab> {
                               .removeKeepAlive(widget.initUrl);
                         }
                         if (Get.isBottomSheetOpen ?? false) {
-                          Get.back();
+                          Get.back<void>();
                         }
                         await pausePlayingMedia();
-                        Get.back(); // exit page
+                        Get.back<void>(); // exit page
                       },
                       icon: SvgPicture.asset(
                         'assets/images/miniapp-exit.svg',
@@ -688,7 +688,7 @@ class _WebviewTabState extends State<WebviewTab> {
             icon: const Icon(Icons.copy, size: 16),
             padding: const EdgeInsets.all(0),
             onPressed: () {
-              Get.back();
+              Get.back<void>();
               Clipboard.setData(ClipboardData(text: url));
               EasyLoading.showToast('URL Copied');
             },
@@ -713,7 +713,7 @@ class _WebviewTabState extends State<WebviewTab> {
         multiWebviewController.removeKeepAlive(widget.initUrl);
       }
       await pausePlayingMedia();
-      Get.back();
+      Get.back<void>();
     });
   }
 
@@ -877,48 +877,47 @@ class _WebviewTabState extends State<WebviewTab> {
   }
 
   Future popupMenuSelected(String value) async {
-    final uri = currentUri;
     switch (value) {
       case 'share':
-        SharePlus.instance.share(ShareParams(uri: uri));
+        SharePlus.instance.share(ShareParams(uri: currentUri));
       case 'shareToRooms':
         final identity = Get.find<HomeController>().getSelectedIdentity();
-        RoomUtil.forwardTextMessage(identity, uri.toString());
+        RoomUtil.forwardTextMessage(identity, currentUri.toString());
       case 'refresh':
-        refreshPage();
+        await refreshPage();
       case 'bookmark':
         final exist = await DBProvider.database.browserBookmarks
             .filter()
-            .urlEqualTo(uri.toString())
+            .urlEqualTo(currentUri.toString())
             .findFirst();
         if (exist == null) {
-          logger.i('add bookmark: $uri');
+          logger.i('add bookmark: $currentUri');
           final favicon = await multiWebviewController.getFavicon(
-              tabController.inAppWebViewController!, uri.host);
+              tabController.inAppWebViewController!, currentUri.host);
           final siteTitle =
               await tabController.inAppWebViewController?.getTitle();
           await BrowserBookmark.add(
-              url: uri.toString(), favicon: favicon, title: siteTitle);
+              url: currentUri.toString(), favicon: favicon, title: siteTitle);
           EasyLoading.showSuccess('Added');
         } else {
           await Get.to(() => BookmarkEdit(model: exist));
         }
       case 'favorite':
-        final exist = await BrowserFavorite.getByUrl(uri.toString());
+        final exist = await BrowserFavorite.getByUrl(currentUri.toString());
         if (exist == null) {
           final favicon = await multiWebviewController.getFavicon(
-              tabController.inAppWebViewController!, uri.host);
+              tabController.inAppWebViewController!, currentUri.host);
           final siteTitle =
               await tabController.inAppWebViewController?.getTitle();
           await BrowserFavorite.add(
-              url: uri.toString(), favicon: favicon, title: siteTitle);
+              url: currentUri.toString(), favicon: favicon, title: siteTitle);
           EasyLoading.showSuccess('Added');
         } else {
           await Get.to(() => FavoriteEdit(favorite: exist));
         }
         await multiWebviewController.loadFavorite();
       case 'copy':
-        Clipboard.setData(ClipboardData(text: uri.toString()));
+        Clipboard.setData(ClipboardData(text: currentUri.toString()));
         EasyLoading.showToast('Copied');
       case 'clear':
         if (tabController.inAppWebViewController == null) return;
@@ -927,7 +926,7 @@ class _WebviewTabState extends State<WebviewTab> {
         EasyLoading.showToast('Clear Success');
         refreshPage();
       case 'disconnect':
-        final res = await BrowserConnect.getByHost(uri.host);
+        final res = await BrowserConnect.getByHost(currentUri.host);
         if (res != null) {
           await BrowserConnect.delete(res.id);
         }
@@ -946,7 +945,7 @@ class _WebviewTabState extends State<WebviewTab> {
         } catch (e, s) {
           logger.e('Error while closing webview: $e', stackTrace: s);
         }
-        Get.back();
+        Get.back<void>();
       case 'zoom':
         Get.bottomSheet(
             clipBehavior: Clip.antiAlias,
@@ -982,14 +981,15 @@ class _WebviewTabState extends State<WebviewTab> {
       if (uri.toString() == 'about:blank') {
         return;
       }
+      currentUri = uri;
       final newTitle = await tabController.inAppWebViewController?.getTitle();
       var title = newTitle ?? tabController.title.value;
       if (title.isEmpty) {
         title = tabController.title.value;
       }
       updateTabInfo(widget.uniqueKey, uri.toString(), title);
-      multiWebviewController.addHistory(uri.toString(), title);
-      multiWebviewController
+      await multiWebviewController.addHistory(uri.toString(), title);
+      await multiWebviewController
           .getFavicon(tabController.inAppWebViewController!, uri.host)
           .then((favicon) {
         if (favicon != null && tabController.favicon != favicon) {

@@ -7,8 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class BrowserConnectedWebsite extends StatefulWidget {
-  final Identity identity;
   const BrowserConnectedWebsite(this.identity, {super.key});
+  final Identity identity;
 
   @override
   _BrowserConnectedWebsiteState createState() =>
@@ -55,8 +55,8 @@ class _BrowserConnectedWebsiteState extends State<BrowserConnectedWebsite> {
               itemBuilder: (context, index) {
                 final site = urls[index];
                 return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                      vertical: 1.0, horizontal: 16.0),
+                  contentPadding:
+                      const EdgeInsets.symmetric(vertical: 1, horizontal: 16),
                   leading: Utils.getRandomAvatar(site.pubkey, width: 36),
                   title: Row(children: [
                     const Text('+'),
@@ -77,7 +77,7 @@ class _BrowserConnectedWebsiteState extends State<BrowserConnectedWebsite> {
                         CupertinoDialogAction(
                           child: const Text('Cancel'),
                           onPressed: () {
-                            Get.back();
+                            Get.back<void>();
                           },
                         ),
                         CupertinoDialogAction(
@@ -89,7 +89,7 @@ class _BrowserConnectedWebsiteState extends State<BrowserConnectedWebsite> {
                             setState(() {
                               urls = [...urls];
                             });
-                            Get.back();
+                            Get.back<void>();
                           },
                         ),
                       ],
@@ -102,7 +102,7 @@ class _BrowserConnectedWebsiteState extends State<BrowserConnectedWebsite> {
 
   Future loadData(
       {required String pubkey, required int limit, required int offset}) async {
-    var list = await BrowserConnect.getAllByPubkey(
+    final list = await BrowserConnect.getAllByPubkey(
         pubkey: pubkey, limit: limit, offset: offset);
     urls.addAll(list);
     setState(() {

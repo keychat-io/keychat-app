@@ -30,17 +30,17 @@ class CashuBillPage extends GetView<EcashBillController> {
                 onPressed: () async {
                   try {
                     EasyLoading.show(status: 'Receiving...');
-                    int success = 0;
-                    int failed = 0;
-                    List<String> errors = [];
-                    var list = await rust_cashu.getCashuPendingTransactions();
-                    for (var tx in list) {
+                    var success = 0;
+                    var failed = 0;
+                    final errors = <String>[];
+                    final list = await rust_cashu.getCashuPendingTransactions();
+                    for (final tx in list) {
                       if (tx.status == TransactionStatus.pending) {
                         try {
                           await RustAPI.receiveToken(encodedToken: tx.token);
                           success++;
                         } catch (e, s) {
-                          String msg = Utils.getErrorMessage(e);
+                          final msg = Utils.getErrorMessage(e);
                           errors.add(msg);
                           failed++;
                           logger.e('receive error', error: e, stackTrace: s);
@@ -56,14 +56,14 @@ class CashuBillPage extends GetView<EcashBillController> {
                             Text('Failed: $failed'),
                             if (errors.isNotEmpty)
                               Column(
-                                children: errors.map((e) => Text(e)).toList(),
+                                children: errors.map(Text.new).toList(),
                               )
                           ],
                         ),
                         actions: [
                           CupertinoDialogAction(
                               onPressed: () {
-                                Get.back();
+                                Get.back<void>();
                               },
                               child: const Text('OK'))
                         ]));
@@ -96,11 +96,11 @@ class CashuBillPage extends GetView<EcashBillController> {
                             height: 100,
                             child: SpinKitWave(
                               color: Color.fromARGB(255, 141, 123, 243),
-                              size: 40.0,
+                              size: 40,
                             )))
                     : Obx(() => CustomMaterialIndicator(
                         onRefresh: () async {
-                          int offset = controller.transactions.length;
+                          var offset = controller.transactions.length;
                           if (controller.indicatorController.edge ==
                               IndicatorEdge.leading) {
                             offset = 0;
@@ -122,9 +122,9 @@ class CashuBillPage extends GetView<EcashBillController> {
                                 ),
                             itemCount: controller.transactions.length,
                             itemBuilder: (BuildContext context, int index) {
-                              Transaction transaction =
+                              final transaction =
                                   controller.transactions[index];
-                              String feeString =
+                              final feeString =
                                   'Fee: ${transaction.fee} ${transaction.unit}';
                               return ListTile(
                                   key: Key(index.toString()),

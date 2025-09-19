@@ -7,12 +7,12 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
-import '../../service/identity.service.dart';
+import 'package:app/service/identity.service.dart';
 
 class CreateAccount extends StatefulWidget {
+  const CreateAccount({super.key, this.mnemonic, this.npubs = const []});
   final String? mnemonic;
   final List<String> npubs;
-  const CreateAccount({super.key, this.mnemonic, this.npubs = const []});
 
   @override
   _CreateAccountState createState() => _CreateAccountState();
@@ -64,25 +64,25 @@ class _CreateAccountState extends State<CreateAccount> {
                 children: [
                   Center(
                       child: Container(
-                          constraints: BoxConstraints(maxWidth: 400),
+                          constraints: const BoxConstraints(maxWidth: 400),
                           width: double.infinity,
                           child: FilledButton(
                             onPressed: () async {
-                              String name = textEditingController.text.trim();
+                              final name = textEditingController.text.trim();
                               if (name.isEmpty) {
                                 EasyLoading.showError(
-                                    "Please input your nickname");
+                                    'Please input your nickname');
                                 return;
                               }
                               if (selected == -1) {
-                                EasyLoading.showError("Please select a avatar");
+                                EasyLoading.showError('Please select a avatar');
                                 return;
                               }
                               try {
-                                bool isFirstAccount =
+                                final isFirstAccount =
                                     await IdentityService.instance.count() == 0;
 
-                                var identity = await IdentityService.instance
+                                final identity = await IdentityService.instance
                                     .createIdentity(
                                         name: name,
                                         account: accounts[selected],
@@ -102,8 +102,7 @@ class _CreateAccountState extends State<CreateAccount> {
         body: SafeArea(
             child: ListView(controller: scrollController, children: [
           Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: TextFormField(
                 controller: textEditingController,
                 focusNode: focusNode,
@@ -115,59 +114,58 @@ class _CreateAccountState extends State<CreateAccount> {
               )),
           const SizedBox(height: 8),
           const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              padding: EdgeInsets.symmetric(horizontal: 16),
               child: Text('Select Your Avatar')),
-          accounts.isEmpty
-              ? pageLoadingSpinKit()
-              : ListView.builder(
-                  itemCount: accounts.length,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemBuilder: (context, index) {
-                    return ListTile(
-                      onTap: () {
-                        if (widget.npubs
-                            .contains(accounts[index].pubkeyBech32)) {
-                          EasyLoading.showToast('This account already exists');
-                          return;
-                        }
-                        setState(() {
-                          selected = index;
-                        });
-                      },
-                      title: Text('#$index'),
-                      leading: Utils.getRandomAvatar(accounts[index].pubkey,
-                          height: 40, width: 40),
-                      subtitle: Text(
-                          getPublicKeyDisplay(accounts[index].pubkeyBech32, 8)),
-                      selected: selected == index,
-                      dense: true,
-                      trailing:
-                          widget.npubs.contains(accounts[index].pubkeyBech32)
-                              ? const Icon(Icons.check_circle,
-                                  color: Colors.grey, size: 24)
-                              : selected == index
-                                  ? const Icon(Icons.check_circle,
-                                      color: Colors.green, size: 24)
-                                  : null,
-                    );
-                  }),
+          if (accounts.isEmpty)
+            pageLoadingSpinKit()
+          else
+            ListView.builder(
+                itemCount: accounts.length,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    onTap: () {
+                      if (widget.npubs.contains(accounts[index].pubkeyBech32)) {
+                        EasyLoading.showToast('This account already exists');
+                        return;
+                      }
+                      setState(() {
+                        selected = index;
+                      });
+                    },
+                    title: Text('#$index'),
+                    leading: Utils.getRandomAvatar(accounts[index].pubkey),
+                    subtitle: Text(
+                        getPublicKeyDisplay(accounts[index].pubkeyBech32, 8)),
+                    selected: selected == index,
+                    dense: true,
+                    trailing:
+                        widget.npubs.contains(accounts[index].pubkeyBech32)
+                            ? const Icon(Icons.check_circle,
+                                color: Colors.grey, size: 24)
+                            : selected == index
+                                ? const Icon(Icons.check_circle,
+                                    color: Colors.green, size: 24)
+                                : null,
+                  );
+                }),
           const SizedBox(height: 100)
         ])));
   }
 
-  void generateAccount(String? mnemonic) async {
+  Future<void> generateAccount(String? mnemonic) async {
     mnemonic ??= await SecureStorage.instance.getOrCreatePhraseWords();
 
-    List<Secp256k1Account> list = [];
+    var list = <Secp256k1Account>[];
     try {
       list = await rust_nostr.importFromPhraseWith(
           phrase: mnemonic, offset: 0, count: 10);
     } catch (e) {
-      String error = Utils.getErrorMessage(e);
+      final error = Utils.getErrorMessage(e);
       EasyLoading.showError(error);
       if (widget.mnemonic != null) {
-        Get.back();
+        Get.back<void>();
       }
     }
 

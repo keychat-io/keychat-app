@@ -9,7 +9,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 
-import 'home_drop_menu.dart';
+import 'package:app/page/widgets/home_drop_menu.dart';
 
 class RelayStatus extends GetView<HomeController> {
   const RelayStatus({super.key});
@@ -17,7 +17,7 @@ class RelayStatus extends GetView<HomeController> {
   @override
   Widget build(BuildContext context) {
     // Add a reactive variable to track WebsocketService availability
-    final Rx<WebsocketService?> wsService = Rx<WebsocketService?>(null);
+    final wsService = Rx<WebsocketService?>(null);
 
     // Try to find the service with retries
     _findWebsocketService(wsService);
@@ -55,11 +55,11 @@ class RelayStatus extends GetView<HomeController> {
                     color: Colors.black,
                     icon: SpinKitDoubleBounce(
                       color: Colors.amber.shade200,
-                      size: 22.0,
+                      size: 22,
                       duration: const Duration(milliseconds: 4000),
                     ),
                     onPressed: () {
-                      _showDialogForReconnect(false, "Relays connecting");
+                      _showDialogForReconnect(false, 'Relays connecting');
                     },
                   ),
                 )
@@ -77,7 +77,7 @@ class RelayStatus extends GetView<HomeController> {
     }
 
     // If not found, start retry logic
-    int attempts = 1; // Already made 1 attempt
+    var attempts = 1; // Already made 1 attempt
     const maxAttempts = 10;
     const delay = Duration(milliseconds: 200);
 
@@ -108,8 +108,7 @@ class RelayStatus extends GetView<HomeController> {
         child: IconButton(
           icon: Icon(Icons.error, color: Colors.red.shade400),
           onPressed: () {
-            String message =
-                'All relays connecting error, please check network';
+            const message = 'All relays connecting error, please check network';
 
             _showDialogForReconnect(false, message);
           },
@@ -132,9 +131,9 @@ class RelayStatus extends GetView<HomeController> {
       content: Text(message),
       actions: [
         CupertinoDialogAction(
-          child: const Text("Cancel"),
+          child: const Text('Cancel'),
           onPressed: () async {
-            Get.back();
+            Get.back<void>();
           },
         ),
         CupertinoDialogAction(
@@ -142,9 +141,9 @@ class RelayStatus extends GetView<HomeController> {
           onPressed: () async {
             Get.find<WebsocketService>().init();
             EasyLoading.showToast('Relays connecting, please wait...');
-            Get.back();
+            Get.back<void>();
           },
-          child: const Text("Reconnect"),
+          child: const Text('Reconnect'),
         ),
       ],
     ));

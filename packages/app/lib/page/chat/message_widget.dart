@@ -228,7 +228,7 @@ class MessageWidget extends StatelessWidget {
             if (success.isNotEmpty) {
               message.sent = SendStatusType.success;
               await MessageService.instance.updateMessageAndRefresh(message);
-              Get.back();
+              Get.back<void>();
               EasyLoading.showSuccess('Sending Success');
               return;
             }
@@ -271,7 +271,7 @@ class MessageWidget extends StatelessWidget {
                   }
                   await MessageService.instance
                       .checkMessageStatus(message: message);
-                  Get.back();
+                  Get.back<void>();
                 },
               ),
             ],
@@ -286,14 +286,14 @@ class MessageWidget extends StatelessWidget {
           //       CupertinoDialogAction(
           //         child: const Text('Cancel'),
           //         onPressed: () {
-          //           Get.back();
+          //           Get.back<void>();
           //         },
           //       ),
           //       if (message.mediaType == MessageMediaType.text)
           //         CupertinoDialogAction(
           //           child: const Text('Resend'),
           //           onPressed: () async {
-          //             Get.back();
+          //             Get.back<void>();
 
           //             if (message.reply != null) {
           //               Identity identity = Get.find<HomeController>()
@@ -376,7 +376,7 @@ class MessageWidget extends StatelessWidget {
   }
 
   Future _handleShowRawdata(BuildContext context) async {
-    Get.back();
+    Get.back<void>();
     if (message.eventIds.isEmpty) {
       EasyLoading.showInfo('Metadata Cleaned');
       return;
@@ -619,7 +619,7 @@ class MessageWidget extends StatelessWidget {
           onPressed: () async {
             await MessageService.instance.deleteMessageById(message.id);
             cc.messages.remove(message);
-            Get.back();
+            Get.back<void>();
             try {
               if (message.mediaType == MessageMediaType.file ||
                   message.mediaType == MessageMediaType.image ||
@@ -840,7 +840,7 @@ class MessageWidget extends StatelessWidget {
   }
 
   void _handleForward(BuildContext context) {
-    Get.back();
+    Get.back<void>();
     final identity = cc.roomObs.value.getIdentity();
     if (message.isMediaType) {
       RoomUtil.forwardMediaMessage(identity,
@@ -854,7 +854,7 @@ class MessageWidget extends StatelessWidget {
   }
 
   void _handleReply(BuildContext context) {
-    Get.back();
+    Get.back<void>();
     if (message.isMeSend) {
       message.fromContact = FromContact(cc.roomObs.value.myIdPubkey,
           cc.roomObs.value.getIdentity().displayName);
@@ -1025,7 +1025,7 @@ class MessageWidget extends StatelessWidget {
                     }
                     Clipboard.setData(ClipboardData(text: conent));
                     EasyLoading.showToast('Copied');
-                    Get.back();
+                    Get.back<void>();
                   }),
               SettingsTile.navigation(
                   onPressed: _handleReply,
@@ -1051,7 +1051,7 @@ class MessageWidget extends StatelessWidget {
                     color: Colors.red,
                   ),
                   onPressed: (BuildContext context) {
-                    Get.back();
+                    Get.back<void>();
                     _showDeleteDialog(message);
                   },
                   title: Text(

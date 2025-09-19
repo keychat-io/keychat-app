@@ -189,7 +189,7 @@ class CashuPage extends GetView<EcashController> {
                                                 CupertinoDialogAction(
                                                   child: const Text('Cancel'),
                                                   onPressed: () async {
-                                                    Get.back();
+                                                    Get.back<void>();
                                                   },
                                                 ),
                                                 CupertinoDialogAction(
@@ -220,7 +220,7 @@ class CashuPage extends GetView<EcashController> {
                                                       EasyLoading.showSuccess(
                                                           'Added');
 
-                                                      Get.back();
+                                                      Get.back<void>();
                                                     } catch (e, s) {
                                                       logger.e(e.toString(),
                                                           error: e,
@@ -554,7 +554,7 @@ class CashuPage extends GetView<EcashController> {
             SettingsTile.navigation(
               title: const Text('Receive from Lightning Wallet'),
               onPressed: (context) async {
-                Get.back();
+                Get.back<void>();
                 final result = await Get.bottomSheet<Transaction>(
                     ignoreSafeArea: false,
                     clipBehavior: Clip.antiAlias,
@@ -572,7 +572,7 @@ class CashuPage extends GetView<EcashController> {
             SettingsTile.navigation(
               title: const Text('Receive Ecash'),
               onPressed: (context) async {
-                Get.back();
+                Get.back<void>();
                 await Get.bottomSheet(
                     ignoreSafeArea: false,
                     clipBehavior: Clip.antiAlias,
@@ -594,7 +594,7 @@ class CashuPage extends GetView<EcashController> {
           SettingsTile.navigation(
             title: const Text('Send to Lightning Wallet'),
             onPressed: (context) async {
-              Get.back();
+              Get.back<void>();
               await Get.bottomSheet(
                   clipBehavior: Clip.antiAlias,
                   shape: const RoundedRectangleBorder(
@@ -607,7 +607,7 @@ class CashuPage extends GetView<EcashController> {
           SettingsTile.navigation(
             title: const Text('Send Ecash'),
             onPressed: (context) async {
-              Get.back();
+              Get.back<void>();
               await Get.bottomSheet(
                   clipBehavior: Clip.antiAlias,
                   shape: const RoundedRectangleBorder(

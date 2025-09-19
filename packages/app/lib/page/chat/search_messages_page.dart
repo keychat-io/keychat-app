@@ -10,9 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class SearchMessagesPage extends StatefulWidget {
-  final int? roomId;
-
   const SearchMessagesPage({super.key, this.roomId});
+  final int? roomId;
 
   @override
   State<SearchMessagesPage> createState() => _SearchMessagesPageState();
@@ -28,10 +27,10 @@ class _SearchMessagesPageState extends State<SearchMessagesPage> {
   @override
   void initState() {
     super.initState();
-    int roomId = widget.roomId ?? int.parse(Get.parameters['id']!);
+    final roomId = widget.roomId ?? int.parse(Get.parameters['id']!);
     chatController = RoomService.getController(roomId);
     if (chatController == null) {
-      Get.back();
+      Get.back<void>();
       return;
     }
     room = chatController!.roomObs.value;
@@ -58,11 +57,11 @@ class _SearchMessagesPageState extends State<SearchMessagesPage> {
 
     isLoading.value = true;
     try {
-      List<Message> results = await MessageService.instance
+      final results = await MessageService.instance
           .getMessageByContent(query, room.identityId);
 
       // Filter results to only messages from current room
-      List<Message> filteredResults =
+      final filteredResults =
           results.where((message) => message.roomId == room.id).toList();
 
       searchResults.value = filteredResults;
@@ -96,8 +95,8 @@ class _SearchMessagesPageState extends State<SearchMessagesPage> {
 
   @override
   Widget build(BuildContext context) {
-    Widget myAvatar = Utils.getRandomAvatar(room.getIdentity().secp256k1PKHex,
-        httpAvatar: room.getIdentity().avatarFromRelay, height: 40, width: 40);
+    final myAvatar = Utils.getRandomAvatar(room.getIdentity().secp256k1PKHex,
+        httpAvatar: room.getIdentity().avatarFromRelay);
     return Scaffold(
       appBar: AppBar(title: const Text('Search History'), centerTitle: true),
       body: Column(
@@ -162,8 +161,8 @@ class _SearchMessagesPageState extends State<SearchMessagesPage> {
 
   Widget _buildMessageItem(Message message, Widget myAvatar) {
     // Don't show sender name for MLS groups or SendAll groups
-    bool shouldHideSenderName = !(room.isMLSGroup || room.isSendAllGroup);
-    bool showSenderName = !shouldHideSenderName && !message.isMeSend;
+    final shouldHideSenderName = !(room.isMLSGroup || room.isSendAllGroup);
+    final showSenderName = !shouldHideSenderName && !message.isMeSend;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -172,7 +171,6 @@ class _SearchMessagesPageState extends State<SearchMessagesPage> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: Theme.of(context).colorScheme.outline.withAlpha(25),
-          width: 1,
         ),
       ),
       child: Material(
@@ -190,8 +188,7 @@ class _SearchMessagesPageState extends State<SearchMessagesPage> {
                   borderRadius: BorderRadius.circular(20),
                   child: message.isMeSend
                       ? myAvatar
-                      : Utils.getRandomAvatar(message.idPubkey,
-                          height: 40, width: 40),
+                      : Utils.getRandomAvatar(message.idPubkey),
                 ),
                 const SizedBox(width: 12),
 

@@ -14,26 +14,26 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
 import 'package:settings_ui/settings_ui.dart';
-import '../../controller/home.controller.dart';
+import 'package:app/controller/home.controller.dart';
 import 'package:app/models/models.dart';
 
-import '../../service/room.service.dart';
-import '../../utils.dart';
-import '../components.dart';
+import 'package:app/service/room.service.dart';
+import 'package:app/utils.dart';
+import 'package:app/page/components.dart';
 
 // ignore: must_be_immutable
 class ContactPage extends StatelessWidget {
+  ContactPage(
+      {required this.identityId,
+      required this.contact,
+      required this.title,
+      super.key,
+      this.greeting});
   late Contact contact;
   final int identityId;
   late String title;
   QRUserModel? model;
   String? greeting;
-  ContactPage(
-      {super.key,
-      required this.identityId,
-      required this.contact,
-      required this.title,
-      this.greeting});
 
   @override
   Widget build(BuildContext context) {
@@ -69,10 +69,10 @@ class ContactPage extends StatelessWidget {
                   Clipboard.setData(ClipboardData(text: contact.npubkey));
                   return;
                 }
-                String npubkey =
+                final npubkey =
                     rust_nostr.getBech32PubkeyByHex(hex: contact.pubkey);
                 Clipboard.setData(ClipboardData(text: npubkey));
-                Get.back();
+                Get.back<void>();
               },
             ),
             if (model != null) fromQRCode(),
@@ -90,7 +90,7 @@ class ContactPage extends StatelessWidget {
           future: RoomService.instance
               .getRoomByIdentity(contact.pubkey, identityId),
           builder: (context, snapshot) {
-            Room? room = snapshot.data;
+            final room = snapshot.data;
             return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 spacing: 16,
@@ -100,7 +100,7 @@ class ContactPage extends StatelessWidget {
                         onPressed: () {
                           Utils.offAndToNamedRoom(room);
                         },
-                        child: Text('Start to Chat')),
+                        child: const Text('Start to Chat')),
                   FilledButton(
                     onPressed: () async {
                       if (room != null) {
@@ -119,7 +119,7 @@ class ContactPage extends StatelessWidget {
                         late Room room0;
                         try {
                           EasyLoading.show(status: 'Processing...');
-                          Identity identity = Get.find<HomeController>()
+                          final identity = Get.find<HomeController>()
                               .allIdentities[identityId]!;
                           room0 = await RoomService.instance.createPrivateRoom(
                               toMainPubkey: contact.pubkey,
@@ -143,10 +143,10 @@ class ContactPage extends StatelessWidget {
                               model?.signedId != null) {
                             if (model == null) {
                               EasyLoading.showError(
-                                  "Signal Session create failed. Please generate a new QR Code");
+                                  'Signal Session create failed. Please generate a new QR Code');
                               return;
                             }
-                            bool res = await Get.find<ChatxService>()
+                            final res = await Get.find<ChatxService>()
                                 .addRoomKPA(
                                     room: room0,
                                     bobSignedId: model!.signedId,
@@ -159,7 +159,7 @@ class ContactPage extends StatelessWidget {
                                         hex.decode(model!.prekeyPubkey)));
                             if (!res) {
                               EasyLoading.showError(
-                                  "Signal Session create failed. Please generate a new QR Code");
+                                  'Signal Session create failed. Please generate a new QR Code');
                               return;
                             }
                             await SignalChatService.instance.sendMessage(room0,

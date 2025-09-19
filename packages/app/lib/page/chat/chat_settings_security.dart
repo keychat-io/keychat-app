@@ -7,20 +7,20 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:settings_ui/settings_ui.dart';
 
-import '../../controller/chat.controller.dart';
-import '../../models/room.dart';
-import '../../service/signal_chat.service.dart';
-import '../components.dart';
+import 'package:app/controller/chat.controller.dart';
+import 'package:app/models/room.dart';
+import 'package:app/service/signal_chat.service.dart';
+import 'package:app/page/components.dart';
 
 class ChatSettingSecurity extends StatelessWidget {
-  final int? roomId;
   const ChatSettingSecurity({super.key, this.roomId});
+  final int? roomId;
   @override
   Widget build(BuildContext context) {
-    int id = roomId ?? int.parse(Get.parameters['id']!);
-    ChatController cc = RoomService.getController(id)!;
+    final id = roomId ?? int.parse(Get.parameters['id']!);
+    final cc = RoomService.getController(id)!;
 
-    List<String> receiveKeys =
+    final receiveKeys =
         ContactService.instance.getMyReceiveKeys(cc.roomObs.value) ?? [];
     return Scaffold(
         appBar:
@@ -48,7 +48,7 @@ class ChatSettingSecurity extends StatelessWidget {
                             CupertinoDialogAction(
                               child: const Text('OK'),
                               onPressed: () async {
-                                Get.back();
+                                Get.back<void>();
                                 await SignalChatService.instance
                                     .resetSignalSession(cc.roomObs.value);
                               },
@@ -80,7 +80,7 @@ class ChatSettingSecurity extends StatelessWidget {
                         CupertinoDialogAction(
                           child: const Text('Cancel'),
                           onPressed: () {
-                            Get.back();
+                            Get.back<void>();
                           },
                         ),
                         CupertinoDialogAction(
@@ -90,7 +90,7 @@ class ChatSettingSecurity extends StatelessWidget {
                             await RoomService.instance
                                 .updateRoomAndRefresh(cc.roomObs.value);
                             EasyLoading.showToast('Save Success');
-                            Get.back();
+                            Get.back<void>();
                           },
                           child: const Text('Delete'),
                         )
@@ -107,7 +107,7 @@ class ChatSettingSecurity extends StatelessWidget {
                             ? cc.roomObs.value.receivingRelays.join(',')
                             : '')),
                     onPressed: (context) async {
-                      List<String>? relays = await Get.bottomSheet(
+                      final relays = await Get.bottomSheet<List<String>>(
                           clipBehavior: Clip.antiAlias,
                           shape: const RoundedRectangleBorder(
                               borderRadius: BorderRadius.vertical(

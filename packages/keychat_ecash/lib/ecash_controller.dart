@@ -1,26 +1,32 @@
 import 'dart:async' show FutureOr, unawaited;
 import 'dart:convert' show jsonDecode;
+import 'dart:io' show File;
 
 import 'package:app/app.dart';
-import 'package:app/models/embedded/relay_file_fee.dart';
 import 'package:app/rust_api.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app/service/websocket.service.dart';
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/get.dart';
 import 'package:keychat_ecash/Bills/ecash_bill_controller.dart';
 import 'package:keychat_ecash/Bills/lightning_bill_controller.dart';
+import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/cashu_receive.dart';
 import 'package:keychat_ecash/utils.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
-import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
+
+class EcashDBVersion {
+  static const int v0 = 0; // not initial version
+  static const int v1 = 1; // initial version
+  static const int v2 = 2;
+}
 
 class EcashController extends GetxController {
   EcashController(this.dbPath);
@@ -113,36 +119,44 @@ class EcashController extends GetxController {
 
   // move cashu token to v2
   Future<bool> upgradeToV2() async {
-    final upgraded = Storage.getBool(StorageKeyString.upgradeToV2) ?? false;
-    if (upgraded) return false;
+    final ecashDBVersion =
+        Storage.getIntOrZero(StorageKeyString.ecashDBVersion);
+    final dbV1Path = '$dbPath${KeychatGlobal.ecashDBFileV1}';
+    final dbV2Path = '$dbPath${KeychatGlobal.ecashDBFileV2}';
+    if (ecashDBVersion == EcashDBVersion.v2) return false;
+    if (ecashDBVersion == EcashDBVersion.v0) {
+      final dbV1File = File(dbV1Path);
+      if (!dbV1File.existsSync()) {
+        logger.i('No v1 database found at $dbV1Path, skipping upgrade');
+        await Storage.setInt(
+            StorageKeyString.ecashDBVersion, EcashDBVersion.v2);
+        return false;
+      }
+    }
+    // ecashDBVersion == EcashDBVersion.v1
     logger.i('Starting upgradeToV2 process');
     var tokens = <String>[];
     var counters = '';
-    logger
-        .i('Upgrade not completed yet, starting token migration from v1 to v2');
     try {
-      final res = await rust_cashu.cashuV1InitSendAll(
-          dbpath: '$dbPath${KeychatGlobal.ecashDBFile}');
+      final res = await rust_cashu.cashuV1InitSendAll(dbpath: dbV1Path);
       tokens = res.tokens;
       counters = res.counters;
       if (tokens.isEmpty) {
         logger.i('No tokens found to migrate, marking upgrade as complete');
-        await Storage.setBool(StorageKeyString.upgradeToV2, true);
+        await Storage.setInt(
+            StorageKeyString.ecashDBVersion, EcashDBVersion.v2);
         return false;
       }
       await Storage.setStringList(StorageKeyString.upgradeToV2Tokens, tokens);
       logger.i('Found ${tokens.length} tokens to migrate: $tokens');
     } catch (e, s) {
       final msg = Utils.getErrorMessage(e);
-      EasyLoading.showError('Failed to fetch tokens: $msg');
+      await EasyLoading.showError('Failed to fetch tokens: $msg');
       logger.e('Failed to fetch tokens from v1 database: $msg', stackTrace: s);
     }
 
     final words = await SecureStorage.instance.getOrCreatePhraseWords();
-    await rust_cashu.initDb(
-        dbpath: '$dbPath${KeychatGlobal.ecashDBFileV2}',
-        dev: kDebugMode,
-        words: words);
+    await rust_cashu.initDb(dbpath: dbV2Path, dev: kDebugMode, words: words);
     await rust_cashu.initCashu(
         prepareSatsOnceTime: KeychatGlobal.cashuPrepareAmount);
     await rust_cashu.addCounters(counters: counters);
@@ -162,7 +176,8 @@ class EcashController extends GetxController {
       if (tokens.isNotEmpty && failedTokens.isEmpty) {
         logger
             .i('All tokens migrated successfully, marking upgrade as complete');
-        await Storage.setBool(StorageKeyString.upgradeToV2, true);
+        await Storage.setInt(
+            StorageKeyString.ecashDBVersion, EcashDBVersion.v2);
         await Storage.remove(StorageKeyString.upgradeToV2Tokens);
         unawaited(requestPageRefresh());
       } else {

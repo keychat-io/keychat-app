@@ -53,13 +53,13 @@ class GroupInviteConfirmAction extends StatelessWidget {
                         message.requestConfrim = RequestConfrimEnum.rejected;
                         MessageService.instance
                             .updateMessageAndRefresh(message);
-                        Get.back();
+                        Get.back<void>();
                       },
                     ),
                     CupertinoDialogAction(
                         child: const Text('Confirm'),
                         onPressed: () async {
-                          Get.back();
+                          Get.back<void>();
                           try {
                             if (groupRoom.isMLSGroup) {
                               final users = <Map<String, dynamic>>[];

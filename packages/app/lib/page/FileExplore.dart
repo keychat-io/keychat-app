@@ -13,10 +13,10 @@ import 'package:path/path.dart' as path;
 import 'package:share_plus/share_plus.dart';
 
 class FileExplorerPage extends StatefulWidget {
+  const FileExplorerPage(
+      {required this.dir, super.key, this.showDeleteButton = false});
   final Directory dir;
   final bool showDeleteButton;
-  const FileExplorerPage(
-      {super.key, required this.dir, this.showDeleteButton = false});
 
   @override
   _FileExplorerPageState createState() => _FileExplorerPageState();
@@ -37,13 +37,13 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
   }
 
   void _getFilesAndFolders(Directory dir) {
-    List<FileSystemEntity> entities = dir.listSync();
+    final entities = dir.listSync();
 
     // for (Directory subdir in entities.whereType<Directory>()) {
     //   _getFilesAndFolders(subdir);
     // }
     setState(() {
-      var list = entities.toList();
+      final list = entities.toList();
 
       list.sort((a, b) {
         if (a is Directory && b is File) {
@@ -79,7 +79,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                           CupertinoDialogAction(
                             child: const Text('Cancel'),
                             onPressed: () {
-                              Get.back();
+                              Get.back<void>();
                             },
                           ),
                           CupertinoDialogAction(
@@ -89,8 +89,8 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                               EasyLoading.showSuccess('Deleted');
                               Directory(widget.dir.path)
                                   .create(recursive: true);
-                              Get.back();
-                              Get.back();
+                              Get.back<void>();
+                              Get.back<void>();
                             },
                             child: const Text('Delete'),
                           ),
@@ -113,8 +113,8 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
       body: ListView.builder(
         itemCount: _files.length,
         itemBuilder: (BuildContext context, int index) {
-          FileSystemEntity file = _files[index];
-          FileStat stat = file.statSync();
+          final file = _files[index];
+          final stat = file.statSync();
 
           if ((file.path.endsWith('.txt') || file.path.endsWith('.log')) &&
               file is File) {
@@ -133,7 +133,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
               },
             );
           }
-          bool isDirectory = stat.type == FileSystemEntityType.directory;
+          final isDirectory = stat.type == FileSystemEntityType.directory;
           return ListTile(
             onLongPress: () {
               if (isDirectory && file.path.contains('logs')) {
@@ -143,7 +143,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
             dense: true,
             onTap: () {
               if (isDirectory) {
-                bool isLogFile =
+                final isLogFile =
                     file.path.endsWith('logs') || file.path.endsWith('errors');
                 Navigator.push(
                   context,
@@ -157,7 +157,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                 return;
               }
               if (file.path.contains('.')) {
-                Set suffixs = {
+                final Set suffixs = {
                   'db',
                   'db3',
                   '.isar',
@@ -165,7 +165,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                   'db-wal',
                   'db-shm'
                 };
-                String suffix = file.path.split('.').last;
+                final suffix = file.path.split('.').last;
                 if (suffixs.contains(suffix)) {
                   return;
                 }
@@ -179,7 +179,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                     height: 24,
                     child: Image.asset('assets/images/file.png',
                         fit: BoxFit.contain))
-                : Icon(CupertinoIcons.doc),
+                : const Icon(CupertinoIcons.doc),
             title: Text(file.path.substring(widget.dir.path.length + 1)),
             subtitle: isDirectory
                 ? null
@@ -195,7 +195,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
     return IconButton(
         onPressed: () async {
           if (GetPlatform.isDesktop) {
-            String dir =
+            final dir =
                 sourceFile.path.substring(0, sourceFile.path.lastIndexOf('/'));
             OpenFilex.open(dir);
             return;
@@ -218,7 +218,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
         CupertinoDialogAction(
           child: const Text('Cancel'),
           onPressed: () {
-            Get.back();
+            Get.back<void>();
           },
         ),
         CupertinoDialogAction(
@@ -226,7 +226,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
           onPressed: () async {
             await file.delete(recursive: file is Directory);
             EasyLoading.showSuccess('Deleted');
-            Get.back();
+            Get.back<void>();
             _getFilesAndFolders(widget.dir);
           },
           child: const Text('Delete'),

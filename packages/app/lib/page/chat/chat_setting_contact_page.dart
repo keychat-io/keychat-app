@@ -22,28 +22,27 @@ import 'package:app/models/models.dart';
 
 // ignore: must_be_immutable
 class ChatSettingContactPage extends StatefulWidget {
-  final int? roomId;
   const ChatSettingContactPage({super.key, this.roomId});
+  final int? roomId;
 
   @override
   State<StatefulWidget> createState() => _ChatSettingContactPageState();
 }
 
 class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
+  _ChatSettingContactPageState();
   Relay? relay;
 
-  _ChatSettingContactPageState();
-
   final TextEditingController _usernameController =
-      TextEditingController(text: "");
+      TextEditingController(text: '');
   late ChatController cc;
 
   @override
   void initState() {
-    int roomId = widget.roomId ?? int.parse(Get.parameters['id']!);
-    var controller = RoomService.getController(roomId);
+    final roomId = widget.roomId ?? int.parse(Get.parameters['id']!);
+    final controller = RoomService.getController(roomId);
     if (controller == null) {
-      Get.back();
+      Get.back<void>();
       return;
     }
     cc = controller;
@@ -65,7 +64,7 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(centerTitle: true, title: const Text('Chat Settings')),
-        body: Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+        body: Column(children: [
           Obx(() => Container(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Column(
@@ -104,8 +103,8 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                   if (cc.roomContact.value.displayAbout != null &&
                       cc.roomContact.value.displayAbout!.isNotEmpty)
                     Padding(
-                        padding:
-                            EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 8, horizontal: 16),
                         child: NoticeTextWidget.info(
                             cc.roomContact.value.displayAbout ?? '',
                             fontSize: 12,
@@ -113,13 +112,13 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                   if (cc.roomObs.value.description != null)
                     Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16.0, vertical: 8.0),
+                            horizontal: 16, vertical: 8),
                         child: Container(
-                          padding: const EdgeInsets.all(8.0),
+                          padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
                             color:
                                 Theme.of(context).colorScheme.surfaceContainer,
-                            borderRadius: BorderRadius.circular(8.0),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           child: textSmallGray(
                               context, cc.roomObs.value.description!,
@@ -134,13 +133,13 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                 if (kDebugMode)
                   SettingsTile(
                     leading: const Icon(Icons.copy),
-                    title: const Text("Hex ID Key"),
-                    value: Text(
-                        getPublicKeyDisplay(cc.roomContact.value.pubkey, 6)),
+                    title: const Text('Hex ID Key'),
+                    value:
+                        Text(getPublicKeyDisplay(cc.roomContact.value.pubkey)),
                     onPressed: (context) {
                       Clipboard.setData(
                           ClipboardData(text: cc.roomContact.value.pubkey));
-                      EasyLoading.showSuccess("ID Key copied");
+                      EasyLoading.showSuccess('ID Key copied');
                     },
                   ),
                 if (cc.roomObs.value.type == RoomType.common)
@@ -149,11 +148,10 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                     leading: const Icon(CupertinoIcons.pencil),
                     value: Text(cc.roomContact.value.petname ?? ''),
                     onPressed: (context) async {
-                      TextEditingController usernameController =
-                          TextEditingController(
-                              text: cc.roomContact.value.petname);
+                      final usernameController = TextEditingController(
+                          text: cc.roomContact.value.petname);
                       await Get.dialog(CupertinoAlertDialog(
-                        title: const Text("Nickname"),
+                        title: const Text('Nickname'),
                         content: Container(
                           color: Colors.transparent,
                           padding: const EdgeInsets.only(top: 15),
@@ -169,9 +167,9 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                         ),
                         actions: <Widget>[
                           CupertinoDialogAction(
-                            child: const Text("Cancel"),
+                            child: const Text('Cancel'),
                             onPressed: () {
-                              Get.back();
+                              Get.back<void>();
                             },
                           ),
                           CupertinoDialogAction(
@@ -179,7 +177,7 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                             onPressed: () async {
                               await handleUpdateName(cc, usernameController);
                             },
-                            child: const Text("Confirm"),
+                            child: const Text('Confirm'),
                           ),
                         ],
                       ));
@@ -200,7 +198,7 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                   initialValue: cc.showFromAndTo.value,
                   onToggle: (value) async {
                     cc.showFromAndTo.toggle();
-                    Get.back();
+                    Get.back<void>();
                   },
                   leading: const Icon(CupertinoIcons.mail),
                 ),
@@ -257,14 +255,14 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
 
   void deleteChatRoomDialog(BuildContext buildContext, Room room) {
     Get.dialog(CupertinoAlertDialog(
-      title: const Text("Delete Chat Room?"),
+      title: const Text('Delete Chat Room?'),
       actions: <Widget>[
         CupertinoDialogAction(
           child: const Text(
             'Cancel',
           ),
           onPressed: () async {
-            Get.back();
+            Get.back<void>();
           },
         ),
         CupertinoDialogAction(
@@ -272,14 +270,14 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
             child: const Text('Delete'),
             onPressed: () async {
               try {
-                Get.back();
+                Get.back<void>();
                 await RoomService.instance
                     .deleteRoomHandler(room.toMainPubkey, room.identityId);
                 Get.find<HomeController>()
                     .loadIdentityRoomList(room.identityId);
                 await Utils.offAllNamedRoom(Routes.root);
               } catch (e) {
-                String msg = Utils.getErrorMessage(e);
+                final msg = Utils.getErrorMessage(e);
                 logger.e(msg, error: e, stackTrace: StackTrace.current);
                 EasyLoading.showError('Error: $msg');
               }
@@ -291,12 +289,12 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
   Future handleUpdateName(
       ChatController cc, TextEditingController usernameController) async {
     if (usernameController.text.isEmpty) return;
-    Contact contact0 = cc.roomContact.value;
+    final contact0 = cc.roomContact.value;
     contact0.petname = usernameController.text.trim();
     await ContactService.instance.saveContact(contact0);
     cc.roomContact.value = contact0;
     cc.roomContact.refresh();
 
-    Get.back();
+    Get.back<void>();
   }
 }

@@ -6,24 +6,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
-import '../../service/room.service.dart';
+import 'package:app/service/room.service.dart';
 
 class EncryptModeWidget extends StatelessWidget {
+  const EncryptModeWidget({required this.cc, super.key});
   final ChatController cc;
-  const EncryptModeWidget({super.key, required this.cc});
 
   @override
   Widget build(BuildContext context) {
-    var signalIntro = [
-      '''✅ 1. Anti-Forgery
+    final signalIntro = [
+      '''
+✅ 1. Anti-Forgery
 ✅ 2. End-to-End Encryption
 ✅ 3. Forward Secrecy
 ✅ 4. Backward Secrecy
 ✅ 5. Metadata Privacy'''
     ];
 
-    var nostrIntro = [
-      '''✅ 1. Anti-Forgery
+    final nostrIntro = [
+      '''
+✅ 1. Anti-Forgery
 ✅ 2. End-to-End Encryption
 ❌ 3. Forward Secrecy
 ❌ 4. Backward Secrecy
@@ -48,7 +50,8 @@ class EncryptModeWidget extends StatelessWidget {
                             style: Theme.of(context).textTheme.titleMedium),
                         subtitle:
                             const Text('Security and Privacy Level: ⭐⭐⭐⭐⭐'),
-                        leading: Radio<EncryptMode>(value: EncryptMode.signal),
+                        leading:
+                            const Radio<EncryptMode>(value: EncryptMode.signal),
                         onTap: () {
                           handleClick(EncryptMode.signal);
                         },
@@ -69,7 +72,8 @@ class EncryptModeWidget extends StatelessWidget {
                         title: Text('Nostr nip17 Protocol',
                             style: Theme.of(context).textTheme.titleMedium),
                         subtitle: const Text('Security and Privacy Level: ⭐'),
-                        leading: Radio<EncryptMode>(value: EncryptMode.nip04),
+                        leading:
+                            const Radio<EncryptMode>(value: EncryptMode.nip04),
                         onTap: () {
                           handleClick(EncryptMode.nip04);
                         },
@@ -86,19 +90,19 @@ class EncryptModeWidget extends StatelessWidget {
 
   Future<void> handleClick(EncryptMode? mode) async {
     if (mode == null) return;
-    Room room = cc.roomObs.value;
+    final room = cc.roomObs.value;
     if (mode == EncryptMode.signal &&
         room.type == RoomType.common &&
         room.toMainPubkey == room.myIdPubkey) {
-      EasyLoading.showError('Can\'t switch to signal mode with yourself');
+      EasyLoading.showError("Can't switch to signal mode with yourself");
       return;
     }
     if (mode == EncryptMode.signal && room.curve25519PkHex == null) {
       await SignalChatService.instance
           .sendHelloMessage(room, room.getIdentity());
-      Get.back();
-      Get.back();
-      Get.back(); // back to room page
+      Get.back<void>();
+      Get.back<void>();
+      Get.back<void>(); // back to room page
       EasyLoading.showSuccess('Send Request Successfully');
       return;
     }

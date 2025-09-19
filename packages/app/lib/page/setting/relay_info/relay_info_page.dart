@@ -240,7 +240,7 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                 style: TextStyle(color: Colors.red),
               ),
               onPressed: () async {
-                Get.back();
+                Get.back<void>();
                 await showDialog<bool>(
                   context: context,
                   builder: (context) {
@@ -268,8 +268,8 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                                   ?.close();
                               ws.channels.remove(controller.relay.value.url);
 
-                              Get.back();
-                              Get.back();
+                              Get.back<void>();
+                              Get.back<void>();
                             },
                             isDestructiveAction: true,
                             child: const Text(

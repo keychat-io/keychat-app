@@ -100,7 +100,7 @@ class _WebStorePageState extends State<WebStorePage> {
                                                 initUrl: url,
                                                 defaultTitle: site['title']);
                                         if (Get.isBottomSheetOpen ?? false) {
-                                          Get.back();
+                                          Get.back<void>();
                                         }
                                       },
                                       trailing: exists.contains(url)

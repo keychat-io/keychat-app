@@ -77,7 +77,7 @@ class _InviteMemberToMLSState extends State<InviteMemberToMLS>
             .updateMessageAndRefresh(selectedMessages[i]);
       }
       EasyLoading.showSuccess('Success');
-      Get.back();
+      Get.back<void>();
     } catch (e, s) {
       EasyLoading.showError(e.toString());
       logger.e(e.toString(), error: e, stackTrace: s);

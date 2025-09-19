@@ -29,8 +29,8 @@ class _BrowserBookmarkPageState extends State<BrowserBookmarkPage> {
   }
 
   Future _loadFavorites() async {
-    List<BrowserFavorite> list = await BrowserFavorite.getAll();
-    Set<String> urls = list.map((e) => e.url).toSet();
+    final list = await BrowserFavorite.getAll();
+    final urls = list.map((e) => e.url).toSet();
     setState(() {
       exists = urls;
     });
@@ -86,7 +86,7 @@ class _BrowserBookmarkPageState extends State<BrowserBookmarkPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Bookmarks'),
+        title: const Text('Bookmarks'),
         actions: [
           TextButton(
             onPressed: _toggleEditMode,
@@ -95,9 +95,9 @@ class _BrowserBookmarkPageState extends State<BrowserBookmarkPage> {
         ],
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : _bookmarks.isEmpty
-              ? Center(
+              ? const Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -128,11 +128,11 @@ class _BrowserBookmarkPageState extends State<BrowserBookmarkPage> {
                           child: ListTile(
                             leading: bookmark.favicon != null
                                 ? Utils.getNeworkImageOrDefault(
-                                    bookmark.favicon!,
+                                    bookmark.favicon,
                                     size: 32,
                                     radius: 4,
                                   )
-                                : Icon(Icons.bookmark),
+                                : const Icon(Icons.bookmark),
                             title: Text(
                               bookmark.title ?? bookmark.url,
                               maxLines: 1,
@@ -147,11 +147,11 @@ class _BrowserBookmarkPageState extends State<BrowserBookmarkPage> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(
-                                  icon: Icon(CupertinoIcons.delete,
+                                  icon: const Icon(CupertinoIcons.delete,
                                       color: Colors.red),
                                   onPressed: () => _deleteBookmark(bookmark),
                                 ),
-                                Icon(Icons.drag_handle),
+                                const Icon(Icons.drag_handle),
                               ],
                             ),
                           ),
@@ -165,11 +165,11 @@ class _BrowserBookmarkPageState extends State<BrowserBookmarkPage> {
                         return ListTile(
                           leading: bookmark.favicon != null
                               ? Utils.getNeworkImageOrDefault(
-                                  bookmark.favicon!,
+                                  bookmark.favicon,
                                   size: 32,
                                   radius: 4,
                                 )
-                              : Icon(Icons.bookmark),
+                              : const Icon(Icons.bookmark),
                           title: Text(
                             bookmark.title ?? bookmark.url,
                             maxLines: 1,
@@ -188,39 +188,40 @@ class _BrowserBookmarkPageState extends State<BrowserBookmarkPage> {
                               defaultTitle: bookmark.title,
                             );
                             if (Get.isBottomSheetOpen ?? false) {
-                              Get.back();
+                              Get.back<void>();
                             }
                           },
                           onLongPress: _toggleEditMode,
                           trailing: Wrap(children: [
-                            exists.contains(bookmark.url)
-                                ? IconButton(
-                                    onPressed: () async {
-                                      await BrowserFavorite.deleteByUrl(
-                                          bookmark.url);
-                                      setState(() {
-                                        exists = exists..remove(bookmark.url);
-                                      });
+                            if (exists.contains(bookmark.url))
+                              IconButton(
+                                  onPressed: () async {
+                                    await BrowserFavorite.deleteByUrl(
+                                        bookmark.url);
+                                    setState(() {
+                                      exists = exists..remove(bookmark.url);
+                                    });
 
-                                      EasyLoading.showSuccess(
-                                          'Remved from Favorites');
-                                    },
-                                    icon: const Icon(Icons.check,
-                                        color: Colors.green))
-                                : IconButton(
-                                    onPressed: () async {
-                                      await BrowserFavorite.add(
-                                          url: bookmark.url,
-                                          title: bookmark.title,
-                                          favicon: bookmark.favicon);
-                                      setState(() {
-                                        exists = exists..add(bookmark.url);
-                                      });
+                                    EasyLoading.showSuccess(
+                                        'Remved from Favorites');
+                                  },
+                                  icon: const Icon(Icons.check,
+                                      color: Colors.green))
+                            else
+                              IconButton(
+                                  onPressed: () async {
+                                    await BrowserFavorite.add(
+                                        url: bookmark.url,
+                                        title: bookmark.title,
+                                        favicon: bookmark.favicon);
+                                    setState(() {
+                                      exists = exists..add(bookmark.url);
+                                    });
 
-                                      EasyLoading.showSuccess(
-                                          'Added to Favorites');
-                                    },
-                                    icon: const Icon(Icons.add)),
+                                    EasyLoading.showSuccess(
+                                        'Added to Favorites');
+                                  },
+                                  icon: const Icon(Icons.add)),
                             IconButton(
                               icon: const Icon(Icons.more_horiz),
                               onPressed: () async {

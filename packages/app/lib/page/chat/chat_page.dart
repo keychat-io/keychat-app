@@ -552,7 +552,7 @@ class _ChatPage2State extends State<ChatPage> {
                                     RoomService.instance.sendMessage(
                                         controller.roomObs.value,
                                         element['name']);
-                                    Get.back();
+                                    Get.back<void>();
                                   }),
                             )
                             .toList()),
@@ -565,7 +565,7 @@ class _ChatPage2State extends State<ChatPage> {
                               trailing: Text(
                                   '${botPricePerMessageRequest['price']} ${botPricePerMessageRequest['unit']} /message'),
                               onPressed: (context) async {
-                                Get.back();
+                                Get.back<void>();
                               })
                         ],
                       )
@@ -706,7 +706,7 @@ class _ChatPage2State extends State<ChatPage> {
                     onPressed: () {
                       MessageService.instance
                           .deleteMessageByRoomId(controller.roomObs.value.id);
-                      Get.back();
+                      Get.back<void>();
                     },
                     child: const Text('clean')),
                 OutlinedButton(

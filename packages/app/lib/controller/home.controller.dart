@@ -732,7 +732,7 @@ class HomeController extends GetxController
               title: Text(room.getRoomName()),
               subtitle: Text(allIdentities[room.identityId]?.name ?? ''),
               onTap: () {
-                Get.back();
+                Get.back<void>();
                 Utils.toNamedRoom(room);
               },
             );

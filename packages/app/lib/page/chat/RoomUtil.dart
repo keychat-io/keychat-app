@@ -43,8 +43,8 @@ class RoomUtil {
     if (maxRetry == 0) return false;
     maxRetry--;
     await Future.delayed(delay);
-    String id = event.id;
-    NostrEventStatus? nes = await DBProvider.database.nostrEventStatus
+    final id = event.id;
+    final nes = await DBProvider.database.nostrEventStatus
         .filter()
         .eventIdEqualTo(id)
         .sendStatusEqualTo(EventSendEnum.success)
@@ -58,12 +58,12 @@ class RoomUtil {
         roomId: room.id,
         toRelays: room.sendingRelays);
     logger.i('_messageReceiveCheck: ${event.id}, maxRetry: $maxRetry');
-    return await messageReceiveCheck(room, event, delay, maxRetry);
+    return messageReceiveCheck(room, event, delay, maxRetry);
   }
 
   static Future<void> forwardTextMessage(Identity identity, String content,
       [bool showContent = true]) async {
-    List<Room>? forwardRooms = await Get.to(
+    final forwardRooms = await Get.to<List<Room>>(
         () => ForwardSelectRoom(content, identity, showContent: showContent),
         fullscreenDialog: true,
         transition: Transition.downToUp);
@@ -85,7 +85,7 @@ class RoomUtil {
       {required MessageMediaType mediaType,
       required String content,
       required String realMessage}) async {
-    List<Room>? forwardRooms = await Get.to(
+    final forwardRooms = await Get.to<List<Room>>(
         () => ForwardSelectRoom(content, identity),
         fullscreenDialog: true,
         transition: Transition.downToUp);
@@ -93,8 +93,8 @@ class RoomUtil {
 
     EasyLoading.show(status: 'Sending...');
 
-    MsgFileInfo mfi = MsgFileInfo.fromJson(jsonDecode(realMessage));
-    for (Room room in forwardRooms) {
+    final mfi = MsgFileInfo.fromJson(jsonDecode(realMessage));
+    for (final room in forwardRooms) {
       await RoomService.instance.sendMessage(room, content,
           realMessage: mfi.toString(), mediaType: mediaType);
     }
@@ -111,26 +111,25 @@ class RoomUtil {
     }
     try {
       EasyLoading.show(status: 'Sending...');
-      MsgFileInfo mfi = MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
-      for (Room room in rooms) {
+      final mfi = MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
+      for (final room in rooms) {
         await RoomService.instance.sendMessage(room, message.content,
             realMessage: mfi.toString(), mediaType: message.mediaType);
       }
       EasyLoading.showSuccess('Sent');
     } catch (e, s) {
-      logger.e('forwardMediaMessageToRooms error: ${e.toString()}',
-          stackTrace: s);
+      logger.e('forwardMediaMessageToRooms error: $e', stackTrace: s);
       EasyLoading.showError('Failed to forward message');
     }
   }
 
   static GroupMessage getGroupMessage(Room room, String message,
-      {int? subtype,
-      required String pubkey,
+      {required String pubkey,
+      int? subtype,
       String? ext,
       String? sig,
       MsgReply? reply}) {
-    GroupMessage gm = GroupMessage(message: message, pubkey: pubkey, sig: sig)
+    final gm = GroupMessage(message: message, pubkey: pubkey, sig: sig)
       ..subtype = subtype
       ..ext = ext;
 
@@ -159,7 +158,7 @@ Let's start an encrypted chat.''';
             .deleteAll();
       });
       // excute auto delete message by user setting
-      int timestamp =
+      final timestamp =
           Storage.getIntOrZero(StorageKeyString.autoDeleteMessageDays);
       if (timestamp > 0 &&
           DateTime.now()
@@ -172,31 +171,31 @@ Let's start an encrypted chat.''';
       await Storage.setInt(StorageKeyString.autoDeleteMessageDays,
           DateTime.now().millisecondsSinceEpoch);
       logger.i('The auto tasks been executed');
-      List<Room> list = await DBProvider.database.rooms
+      final list = await DBProvider.database.rooms
           .filter()
           .autoDeleteDaysGreaterThan(0)
           .findAll();
-      for (Room room in list) {
+      for (final room in list) {
         await RoomUtil.excuteAutoDeleteRoomMessages(
             room.identityId, room.id, room.autoDeleteDays);
       }
 
       // room setting > global setting
-      DateTime fromAt = DateTime.now().subtract(const Duration(days: 180));
-      var start = BigInt.from(fromAt.second);
+      final fromAt = DateTime.now().subtract(const Duration(days: 180));
+      final start = BigInt.from(fromAt.second);
       rust_cashu.removeTransactions(
           unixTimestampLe: start, status: TransactionStatus.success);
     } catch (e, s) {
-      logger.e('executeAutoDelete:${e.toString()}', stackTrace: s);
+      logger.e('executeAutoDelete:$e', stackTrace: s);
     }
   }
 
   static Future excuteAutoDeleteRoomMessages(
       int identityId, int roomId, int days) async {
     if (days <= 0) return;
-    DateTime fromAt = DateTime.now().subtract(Duration(days: days));
+    final fromAt = DateTime.now().subtract(Duration(days: days));
 
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
     await database.writeTxn(() async {
       await database.messages
           .filter()
@@ -205,13 +204,13 @@ Let's start an encrypted chat.''';
           .deleteAll();
     });
 
-    String dir = await FileService.instance
+    final dir = await FileService.instance
         .getRoomFolder(identityId: identityId, roomId: roomId);
     FileService.instance.deleteFilesByTime(dir, fromAt);
   }
 
   static SettingsTile autoCleanMessage(ChatController cc) {
-    autoDeleteHandle(int day) {
+    void autoDeleteHandle(int day) {
       cc.roomObs.value.autoDeleteDays = day;
       RoomService.instance.updateRoom(cc.roomObs.value);
       cc.roomObs.refresh();
@@ -227,7 +226,7 @@ Let's start an encrypted chat.''';
         leading: const Icon(
           CupertinoIcons.calendar,
         ),
-        title: const Text("Auto Delete Messages"),
+        title: const Text('Auto Delete Messages'),
         value: Text(Utils.getDaysText(cc.roomObs.value.autoDeleteDays)),
         onPressed: (context) {
           showModalBottomSheetWidget(
@@ -235,7 +234,7 @@ Let's start an encrypted chat.''';
               'Auto Delete Messages',
               Obx(() => SettingsList(
                       platform: DevicePlatform.iOS,
-                      physics: NeverScrollableScrollPhysics(),
+                      physics: const NeverScrollableScrollPhysics(),
                       sections: [
                         SettingsSection(
                             title: const Text(
@@ -334,12 +333,12 @@ Let's start an encrypted chat.''';
     }
     if (message.mediaType == MessageMediaType.image) {
       try {
-        var mfi = MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
+        final mfi = MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
         if (mfi.localPath != null) {
           return ImageMinPreviewWidget(mfi.localPath!);
         }
       } catch (e, s) {
-        logger.e('img decoded error:${e.toString()}', stackTrace: s);
+        logger.e('img decoded error:$e', stackTrace: s);
       }
     }
 
@@ -366,7 +365,7 @@ Let's start an encrypted chat.''';
               onPressed: () async {
                 await RoomService.instance
                     .markAllRead(identityId: room.identityId, roomId: room.id);
-                Get.back();
+                Get.back<void>();
               },
               child: const Text('Mark as Read'),
             ),
@@ -378,7 +377,7 @@ Let's start an encrypted chat.''';
                 if (onDeleteHistory != null) {
                   onDeleteHistory();
                 }
-                Get.back();
+                Get.back<void>();
               },
               child: const Text('Clear History'),
             ),
@@ -400,13 +399,13 @@ Let's start an encrypted chat.''';
                     logger.e(e.toString(), error: e, stackTrace: s);
                     EasyLoading.showError(e.toString());
                   }
-                  Get.back();
+                  Get.back<void>();
                 },
                 child: const Text('Delete Room'),
               ),
             CupertinoActionSheetAction(
               onPressed: () {
-                Get.back();
+                Get.back<void>();
               },
               child: const Text('Cancel'),
             )
@@ -446,14 +445,14 @@ Let's start an encrypted chat.''';
       ),
       onPressed: (context) {
         Get.dialog(CupertinoAlertDialog(
-          title: const Text("Clean all messages?"),
+          title: const Text('Clean all messages?'),
           actions: <Widget>[
             CupertinoDialogAction(
               child: const Text(
                 'Cancel',
               ),
               onPressed: () {
-                Get.back();
+                Get.back<void>();
               },
             ),
             CupertinoDialogAction(
@@ -462,7 +461,7 @@ Let's start an encrypted chat.''';
                   'Delete',
                 ),
                 onPressed: () async {
-                  Get.back();
+                  Get.back<void>();
                   try {
                     EasyLoading.show(status: 'Processing');
                     await RoomService.instance
@@ -486,11 +485,11 @@ Let's start an encrypted chat.''';
           future:
               RoomService.instance.getRoomAndContainSession(pubkey, identityId),
           builder: (context, snapshot) {
-            Room? room = snapshot.data;
+            final room = snapshot.data;
             if (room == null) {
               return FilledButton(
                 onPressed: () async {
-                  Identity identity =
+                  final identity =
                       Get.find<HomeController>().allIdentities[identityId]!;
                   await RoomService.instance.createRoomAndsendInvite(pubkey,
                       identity: identity, greeting: greeting);
@@ -520,37 +519,39 @@ Let's start an encrypted chat.''';
     }
     identity ??= Get.find<HomeController>().getSelectedIdentity();
 
-    String pubkey = rust_nostr.getHexPubkeyByBech32(bech32: model.pubkey);
-    String npub = rust_nostr.getBech32PubkeyByHex(hex: model.pubkey);
-    String globalSign = model.globalSign;
-    var pmm = PrekeyMessageModel(
+    final pubkey = rust_nostr.getHexPubkeyByBech32(bech32: model.pubkey);
+    final npub = rust_nostr.getBech32PubkeyByHex(hex: model.pubkey);
+    final globalSign = model.globalSign;
+    final pmm = PrekeyMessageModel(
         signalId: model.curve25519PkHex,
         nostrId: model.pubkey,
         time: model.time,
         name: model.name,
         sig: globalSign,
+        avatar: model.avatar,
+        lightning: model.lightning,
         message: '');
 
     await SignalChatUtil.verifySignedMessage(
         pmm: pmm, signalIdPubkey: model.curve25519PkHex);
 
-    Contact contact =
+    final contact =
         Contact(pubkey: pubkey, npubkey: npub, identityId: identity.id)
           ..curve25519PkHex = model.curve25519PkHex
           ..name = model.name
           ..avatarRemoteUrl = model.avatar
           ..lightning = model.lightning;
 
-    var page = ContactPage(
+    final page = ContactPage(
       identityId: identity.id,
       contact: contact,
       title: 'Add Contact',
     )..model = model;
     if (fromAddPage) {
-      await Get.off(() => page);
+      await Get.off<void>(() => page);
       return;
     }
-    await Get.to(() => page);
+    await Get.to<void>(() => page);
   }
 
   static String getGroupModeName(GroupType type) {
@@ -569,7 +570,8 @@ Let's start an encrypted chat.''';
   static String getGroupModeDescription(GroupType type) {
     switch (type) {
       case GroupType.kdf:
-        return '''1. Anti-Forgery ✅
+        return '''
+1. Anti-Forgery ✅
 2. End-to-End Encryption ✅
 3. Forward Secrecy ✅
 4. Backward Secrecy 🟢60% 
@@ -577,17 +579,20 @@ Let's start an encrypted chat.''';
 6. Recommended Group Limit: <60
 ''';
       case GroupType.mls:
-        return '''1. Anti-Forgery ✅
+        return '''
+1. Anti-Forgery ✅
 2. End-to-End Encryption ✅
 3. Forward Secrecy ✅
 4. Backward Secrecy 🟢80%
 5. Metadata Privacy 🟢80%
 ''';
       case GroupType.shareKey:
-        return '''1. Members < 30
+        return '''
+1. Members < 30
 2. All members hold the same private key''';
       case GroupType.sendAll:
-        return '''1. Anti-Forgery ✅ 
+        return '''
+1. Anti-Forgery ✅ 
 2. End-to-End Encryption ✅
 3. Forward Secrecy ✅ 
 4. Backward Secrecy ✅ 
@@ -622,7 +627,7 @@ Let's start an encrypted chat.''';
   }
 
   static Widget getStatusArrowIcon(int max, int success, bool down) {
-    IconData icon = down ? Icons.arrow_downward : Icons.arrow_upward_outlined;
+    final icon = down ? Icons.arrow_downward : Icons.arrow_upward_outlined;
     if (max == success && max > 0) {
       return Icon(icon, color: Colors.green);
     }
@@ -633,7 +638,7 @@ Let's start an encrypted chat.''';
   }
 
   static List<Room> sortRoomList(List<Room> rooms) {
-    HomeController hc = Get.find<HomeController>();
+    final hc = Get.find<HomeController>();
     rooms.sort((a, b) {
       if (a.pin || b.pin) {
         if (a.pin && b.pin) {
@@ -713,7 +718,7 @@ Let's start an encrypted chat.''';
       Widget Function({Widget? child, String? text}) errorCallback) {
     if (message.realMessage != null) {
       try {
-        var mfi = MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
+        final mfi = MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
         return getImageViewWidget(message, cc, mfi, errorCallback);
         // ignore: empty_catches
       } catch (e) {}
@@ -729,7 +734,7 @@ Let's start an encrypted chat.''';
       Widget Function({Widget? child, String? text}) errorCallback) {
     if (fileInfo.updateAt != null &&
         fileInfo.status == FileStatus.downloading) {
-      bool isTimeout = DateTime.now()
+      final isTimeout = DateTime.now()
           .subtract(const Duration(seconds: 60))
           .isAfter(fileInfo.updateAt!);
       if (isTimeout) {
@@ -742,7 +747,7 @@ Let's start an encrypted chat.''';
           errorCallback(text: 'Downloading...'),
           const SpinKitFadingCircle(
             color: Color(0xfff0aa35),
-            size: 25.0,
+            size: 25,
           )
         ]);
       case FileStatus.decryptSuccess:
@@ -794,13 +799,11 @@ Let's start an encrypted chat.''';
             return RedPocketCashu(
                 key: Key('cashu:${message.id}'), message: message);
           }
-          break;
         case MessageMediaType.lightningInvoice:
           if (message.cashuInfo != null) {
             return RedPocketLightning(
                 key: Key('lightning:${message.id}'), message: message);
           }
-          break;
         case MessageMediaType.setPostOffice:
           return _getActionWidget(SetRoomRelayAction(cc, message), message,
               markdownConfig, errorCallback);
@@ -839,7 +842,7 @@ Let's start an encrypted chat.''';
   static Future appendMessageOrCreate(
       String error, Room room, String content, NostrEventModel nostrEvent,
       {String? fromIdPubkey}) async {
-    Message? message = await DBProvider.database.messages
+    final message = await DBProvider.database.messages
         .filter()
         .msgidEqualTo(nostrEvent.id)
         .findFirst();

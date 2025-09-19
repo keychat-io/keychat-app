@@ -68,7 +68,7 @@ class _BrowserSettingState extends State<BrowserSetting> {
                       showDialog(
                           context: context,
                           builder: (BuildContext context) {
-                            return RadioGroup(
+                            return RadioGroup<String>(
                                 groupValue:
                                     controller.defaultSearchEngineObx.value,
                                 onChanged: (value) {
@@ -78,7 +78,7 @@ class _BrowserSettingState extends State<BrowserSetting> {
                                   Storage.setString(
                                       'defaultSearchEngine', value);
                                   EasyLoading.showSuccess('Success');
-                                  Get.back();
+                                  Get.back<void>();
                                 },
                                 child: SimpleDialog(
                                     title: const Text('Select Search Engine'),
@@ -133,10 +133,11 @@ class _BrowserSettingState extends State<BrowserSetting> {
                           final selectedDays = await showDialog<int>(
                             context: context,
                             builder: (BuildContext context) {
-                              return RadioGroup(
-                                  groupValue: controller
-                                          .config['historyRetentionDays'] ??
-                                      30,
+                              return RadioGroup<int>(
+                                  groupValue:
+                                      controller.config['historyRetentionDays']
+                                              as int? ??
+                                          30,
                                   onChanged: selectRetentionPeriod,
                                   child: SimpleDialog(
                                     title:
@@ -172,8 +173,8 @@ class _BrowserSettingState extends State<BrowserSetting> {
 
   Future<void> selectRetentionPeriod(Object? value) async {
     if (value == null) return;
-    controller.setConfig('historyRetentionDays', value as int);
-    EasyLoading.showSuccess('Success');
+    await controller.setConfig('historyRetentionDays', value as int);
+    await EasyLoading.showSuccess('Success');
     await controller.deleteOldHistories();
     Get.back(result: value);
   }

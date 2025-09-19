@@ -56,10 +56,10 @@ class SignalChatUtil {
         nostrId: identity.secp256k1PKHex,
         time: time,
         name: identity.displayName,
-        lightning: identity.lightning,
         sig: sig,
         message: message,
-        avatar: avatarRemoteUrl);
+        lightning: identity.lightning ?? '',
+        avatar: avatarRemoteUrl ?? '');
   }
 
   static String getPrekeySigContent(List<String> ids) {

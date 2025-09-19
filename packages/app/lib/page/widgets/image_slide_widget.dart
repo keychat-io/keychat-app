@@ -13,12 +13,11 @@ import 'package:photo_view/photo_view.dart';
 import 'package:share_plus/share_plus.dart';
 
 class SlidesImageViewWidget extends StatefulWidget {
+  const SlidesImageViewWidget(
+      {required this.files, required this.selected, super.key, this.file});
   final File selected;
   final File? file;
   final List<File> files;
-
-  const SlidesImageViewWidget(
-      {super.key, required this.files, required this.selected, this.file});
   @override
   _NewPageState createState() => _NewPageState();
 }
@@ -31,7 +30,7 @@ class _NewPageState extends State<SlidesImageViewWidget> {
   void initState() {
     _files = widget.files.isEmpty ? [widget.selected] : widget.files;
 
-    int index =
+    final index =
         _files.indexWhere((element) => element.path == widget.selected.path);
     if (index == -1) {
       _files = [widget.selected];
@@ -69,7 +68,7 @@ class _NewPageState extends State<SlidesImageViewWidget> {
                   })
                 },
             height: Get.height,
-            viewportFraction: 1.0,
+            viewportFraction: 1,
             enlargeCenterPage: true,
             enableInfiniteScroll: false),
         items: _files.map((file) {
@@ -82,14 +81,14 @@ class _NewPageState extends State<SlidesImageViewWidget> {
   }
 
   Widget _getStackWidget(File file) {
-    bool isImageFile = FileService.instance.isImageFile(file.path);
+    final isImageFile = FileService.instance.isImageFile(file.path);
     return Stack(key: Key(file.path), children: <Widget>[
       if (isImageFile)
         GestureDetector(
             onVerticalDragUpdate: (DragUpdateDetails details) {
-              double dy = details.delta.dy;
+              final dy = details.delta.dy;
               if (dy > 20) {
-                Get.back();
+                Get.back<void>();
               }
             },
             child: PhotoView.customChild(
@@ -101,9 +100,8 @@ class _NewPageState extends State<SlidesImageViewWidget> {
             future: FileService.instance.getOrCreateThumbForVideo(file.path),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.done) {
-                bool selected = widget.selected.path == file.path;
-                return VideoPlayWidget(
-                    snapshot.data as File, file.path, selected);
+                final selected = widget.selected.path == file.path;
+                return VideoPlayWidget(snapshot.data!, file.path, selected);
               } else {
                 return const Center(child: CircularProgressIndicator());
               }
@@ -120,8 +118,11 @@ class _NewPageState extends State<SlidesImageViewWidget> {
                   CupertinoIcons.share,
                   color: Colors.white,
                 ),
-                onPressed: () {
-                  Share.shareXFiles([XFile(_files[_currentIndex].path)]);
+                onPressed: () async {
+                  SharePlus.instance.share(ShareParams(
+                      files: [XFile(_files[_currentIndex].path)],
+                      subject: FileService.instance
+                          .getDisplayFileName(_files[_currentIndex].path)));
                 },
               )),
         ),
@@ -137,7 +138,7 @@ class _NewPageState extends State<SlidesImageViewWidget> {
                 color: Colors.white,
               ),
               onPressed: () {
-                Get.back();
+                Get.back<void>();
               },
             ),
           )),

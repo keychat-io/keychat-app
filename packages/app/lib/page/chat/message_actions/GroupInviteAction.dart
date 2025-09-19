@@ -18,9 +18,9 @@ import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
 
 class GroupInviteAction extends StatelessWidget {
+  const GroupInviteAction(this.message, this.identity, {super.key});
   final Message message;
   final Identity identity;
-  const GroupInviteAction(this.message, this.identity, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -41,14 +41,13 @@ class GroupInviteAction extends StatelessWidget {
 
   Future<void> handlRequest() async {
     EasyThrottle.throttle('joingroup', const Duration(seconds: 2), () async {
-      NostrEventModel subEvent =
-          NostrEventModel.fromJson(jsonDecode(message.content));
-      String? groupId = subEvent.getTagByKey(EventKindTags.pubkey);
+      final subEvent = NostrEventModel.fromJson(jsonDecode(message.content));
+      final groupId = subEvent.getTagByKey(EventKindTags.pubkey);
       if (groupId == null) {
         EasyLoading.showError('Group ID is missing');
         return;
       }
-      bool? accept = await Get.bottomSheet(
+      final accept = await Get.bottomSheet(
           GroupInfoWidget(subEvent, identity.secp256k1PKHex, groupId));
       if (accept == null) return;
       message.requestConfrim = accept == true
@@ -63,8 +62,8 @@ class GroupInviteAction extends StatelessWidget {
       Room? groupRoom;
       try {
         EasyLoading.show(status: 'Processing...');
-        Isar database = DBProvider.database;
-        Room? exist = await database.rooms
+        final database = DBProvider.database;
+        final exist = await database.rooms
             .filter()
             .toMainPubkeyEqualTo(groupId)
             .findFirst();
@@ -103,11 +102,11 @@ class GroupInviteAction extends StatelessWidget {
         MlsGroupService.instance
             .uploadKeyPackages(identities: [identity], forceUpload: true);
       } catch (e, s) {
-        String msg = Utils.getErrorMessage(e);
+        var msg = Utils.getErrorMessage(e);
         logger.e(msg, error: e, stackTrace: s);
 
         // handle error to rollback the room
-        Room? room =
+        final room =
             await RoomService.instance.getRoomByIdentity(groupId, identity.id);
         if (room != null) {
           logger.e('Rollback room $groupId due to error: $msg');
@@ -131,7 +130,7 @@ class GroupInviteAction extends StatelessWidget {
               CupertinoDialogAction(
                   child: const Text('OK'),
                   onPressed: () async {
-                    Get.back();
+                    Get.back<void>();
                     await MlsGroupService.instance.uploadKeyPackages(
                         identities: [identity], forceUpload: true);
                   })

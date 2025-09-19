@@ -1,4 +1,4 @@
-import 'package:app/models/models.dart';
+import 'package:app/app.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -10,6 +10,7 @@ class AccountSettingController extends GetxController {
   TextEditingController usernameController = TextEditingController();
   TextEditingController confirmDeleteController = TextEditingController();
   RxBool isNpub = true.obs;
+
   @override
   void onInit() async {
     identity.value = identity0;

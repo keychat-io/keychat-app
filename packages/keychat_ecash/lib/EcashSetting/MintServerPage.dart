@@ -13,17 +13,6 @@ import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 class MintInfo {
-  final String? name;
-  final String? pubkey;
-  final String? version;
-  final String? description;
-  final String? descriptionLong;
-  final List<MintContactInfo>? contact;
-  final String? motd;
-  final String? iconUrl;
-  final int? time;
-  final Map<String, dynamic>? nuts;
-
   MintInfo({
     this.name,
     this.pubkey,
@@ -58,12 +47,19 @@ class MintInfo {
       nuts: json['nuts'],
     );
   }
+  final String? name;
+  final String? pubkey;
+  final String? version;
+  final String? description;
+  final String? descriptionLong;
+  final List<MintContactInfo>? contact;
+  final String? motd;
+  final String? iconUrl;
+  final int? time;
+  final Map<String, dynamic>? nuts;
 }
 
 class MintContactInfo {
-  final String method;
-  final String info;
-
   MintContactInfo({required this.method, required this.info});
 
   factory MintContactInfo.fromJson(Map<String, dynamic> json) {
@@ -72,11 +68,13 @@ class MintContactInfo {
       info: json['info'],
     );
   }
+  final String method;
+  final String info;
 }
 
 class MintServerPage extends StatefulWidget {
-  final MintBalanceClass server;
   const MintServerPage(this.server, {super.key});
+  final MintBalanceClass server;
 
   @override
   _MintServerPageState createState() => _MintServerPageState();
@@ -97,10 +95,10 @@ class _MintServerPageState extends State<MintServerPage> {
   Future<void> _fetchMintInfo() async {
     try {
       final dio = Dio();
-      dio.options.connectTimeout = Duration(seconds: 10);
-      dio.options.receiveTimeout = Duration(seconds: 10);
+      dio.options.connectTimeout = const Duration(seconds: 10);
+      dio.options.receiveTimeout = const Duration(seconds: 10);
 
-      String url = '${widget.server.mint}/v1/info';
+      var url = '${widget.server.mint}/v1/info';
       if (widget.server.mint.endsWith('/')) {
         url = '${widget.server.mint}v1/info';
       }
@@ -117,7 +115,7 @@ class _MintServerPageState extends State<MintServerPage> {
             info.nuts!.forEach((key, value) {
               if (key == '4') {
                 if (value['disabled'] == false) {
-                  for (var item in value['methods']) {
+                  for (final item in (value['methods'] as Iterable)) {
                     if (item['unit'] != null && item['description'] == true) {
                       currency.add(item['unit']);
                     }
@@ -142,7 +140,7 @@ class _MintServerPageState extends State<MintServerPage> {
     } catch (e) {
       logger.e('Error fetching mint info: $e');
       setState(() {
-        errorMessage = 'Error: ${e.toString()}';
+        errorMessage = 'Error: $e';
         isLoading = false;
       });
     }
@@ -153,7 +151,7 @@ class _MintServerPageState extends State<MintServerPage> {
     return Scaffold(
         appBar: AppBar(title: Text(mintInfo?.name ?? widget.server.mint)),
         body: isLoading
-            ? Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator())
             : Column(children: [
                 if (mintInfo != null &&
                     mintInfo?.motd != null &&
@@ -166,7 +164,7 @@ class _MintServerPageState extends State<MintServerPage> {
                       SettingsSection(tiles: [
                         SettingsTile(
                           title: Text(widget.server.mint),
-                          trailing: Icon(Icons.copy),
+                          trailing: const Icon(Icons.copy),
                           description:
                               mintInfo != null && mintInfo?.description != null
                                   ? Text(mintInfo!.description!)
@@ -182,26 +180,26 @@ class _MintServerPageState extends State<MintServerPage> {
                       // Basic info section
                       if (mintInfo != null)
                         SettingsSection(
-                          title: Text('Mint Information'),
+                          title: const Text('Mint Information'),
                           tiles: [
                             if (mintInfo?.name != null)
                               SettingsTile(
-                                title: Text('Name'),
+                                title: const Text('Name'),
                                 value: Text(mintInfo!.name!),
                               ),
                             if (mintInfo?.version != null)
                               SettingsTile(
-                                title: Text('Version'),
+                                title: const Text('Version'),
                                 value: Text(mintInfo!.version!),
                               ),
                             if (currency.isNotEmpty)
                               SettingsTile(
-                                title: Text('Currencies'),
+                                title: const Text('Currencies'),
                                 value: Text(currency.join(', ')),
                               ),
                             if (mintInfo?.pubkey != null)
                               SettingsTile(
-                                title: Text('Public Key'),
+                                title: const Text('Public Key'),
                                 value: mintInfo!.pubkey != null
                                     ? Flexible(child: Text(mintInfo!.pubkey!))
                                     : null,
@@ -213,7 +211,7 @@ class _MintServerPageState extends State<MintServerPage> {
                               ),
                             if (mintInfo?.descriptionLong != null)
                               SettingsTile(
-                                title: Text('Detailed Description'),
+                                title: const Text('Detailed Description'),
                                 description: Text(mintInfo!.descriptionLong!),
                               ),
                           ],
@@ -223,7 +221,7 @@ class _MintServerPageState extends State<MintServerPage> {
                       if (mintInfo?.contact != null &&
                           mintInfo!.contact!.isNotEmpty)
                         SettingsSection(
-                          title: Text('Contact'),
+                          title: const Text('Contact'),
                           tiles: mintInfo!.contact!
                               .map((contact) => SettingsTile(
                                     title:
@@ -250,11 +248,11 @@ class _MintServerPageState extends State<MintServerPage> {
   }
 
   SettingsSection _buildNutsSection() {
-    List<SettingsTile> nutTiles = [];
+    final nutTiles = <SettingsTile>[];
 
     mintInfo!.nuts!.forEach((nutNumber, nutData) {
-      String nutTitle = "NUT-$nutNumber";
-      String nutDescription = _formatNutData(nutData, nutNumber);
+      final nutTitle = 'NUT-$nutNumber';
+      final nutDescription = _formatNutData(nutData, nutNumber);
 
       nutTiles.add(
         SettingsTile(
@@ -273,7 +271,7 @@ class _MintServerPageState extends State<MintServerPage> {
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: Text('Close'),
+                    child: const Text('Close'),
                   ),
                 ],
               ),
@@ -284,7 +282,7 @@ class _MintServerPageState extends State<MintServerPage> {
     });
 
     return SettingsSection(
-      title: Text('Supported NUTS'),
+      title: const Text('Supported NUTS'),
       tiles: nutTiles,
     );
   }
@@ -293,7 +291,7 @@ class _MintServerPageState extends State<MintServerPage> {
     if (nutData is Map) {
       if (nutData.containsKey('supported')) {
         if (nutData['supported'] == true) {
-          return "Supported";
+          return 'Supported';
         } else if (nutData['supported'] is List) {
           return "Supported with ${(nutData['supported'] as List).length} methods";
         }
@@ -303,22 +301,22 @@ class _MintServerPageState extends State<MintServerPage> {
         return "Caching supported with ${(nutData['cached_endpoints'] as List).length} endpoints";
       } else if (nutData.containsKey('disabled') &&
           nutData['disabled'] == true) {
-        return "Disabled";
+        return 'Disabled';
       }
     }
-    return "Available";
+    return 'Available';
   }
 
   String _formatNutDataDetailed(dynamic nutData, String nutNumber) {
     if (nutData is! Map) {
-      return "No detailed information available";
+      return 'No detailed information available';
     }
 
-    StringBuffer buffer = StringBuffer();
+    final buffer = StringBuffer();
 
     // Handle supported boolean
     if (nutData.containsKey('supported') && nutData['supported'] == true) {
-      buffer.writeln("• Supported: Yes");
+      buffer.writeln('• Supported: Yes');
     }
 
     // Handle disabled flag
@@ -327,14 +325,14 @@ class _MintServerPageState extends State<MintServerPage> {
     }
 
     // Handle methods
-    if (nutData.containsKey('methods') && nutData['methods'] is List) {
-      buffer.writeln("\nMethods:");
-      for (var method in nutData['methods']) {
+    if (nutData.containsKey('methods') && nutData['methods'] is Iterable) {
+      buffer.writeln('\nMethods:');
+      for (final method in nutData['methods'] as Iterable) {
         if (method is Map) {
           buffer.writeln("\n  Method: ${method['method']}");
           method.forEach((key, value) {
             if (key != 'method') {
-              buffer.writeln("  • $key: $value");
+              buffer.writeln('  • $key: $value');
             }
           });
         }
@@ -343,8 +341,9 @@ class _MintServerPageState extends State<MintServerPage> {
 
     // Handle supported list
     if (nutData.containsKey('supported') && nutData['supported'] is List) {
-      buffer.writeln("\nSupported methods:");
-      for (var item in nutData['supported']) {
+      buffer.writeln('\nSupported methods:');
+      final supportedList = nutData['supported'] as List;
+      for (final item in supportedList) {
         if (item is Map) {
           buffer.writeln("\n  Method: ${item['method']}");
           item.forEach((key, value) {
@@ -352,7 +351,7 @@ class _MintServerPageState extends State<MintServerPage> {
               if (value is List) {
                 buffer.writeln("  • $key: ${value.join(", ")}");
               } else {
-                buffer.writeln("  • $key: $value");
+                buffer.writeln('  • $key: $value');
               }
             }
           });
@@ -361,9 +360,10 @@ class _MintServerPageState extends State<MintServerPage> {
     }
 
     // Handle cached endpoints
-    if (nutData.containsKey('cached_endpoints')) {
-      buffer.writeln("\nCached endpoints:");
-      for (var endpoint in nutData['cached_endpoints']) {
+    if (nutData.containsKey('cached_endpoints') &&
+        nutData['cached_endpoints'] is Iterable) {
+      buffer.writeln('\nCached endpoints:');
+      for (final endpoint in nutData['cached_endpoints'] as Iterable) {
         if (endpoint is Map) {
           buffer.writeln("  • ${endpoint['method']} ${endpoint['path']}");
         }
@@ -384,14 +384,14 @@ class _MintServerPageState extends State<MintServerPage> {
           title: const Text('Delete Mint', style: TextStyle(color: Colors.red)),
           onPressed: (context) async {
             try {
-              EcashController ec = Get.find<EcashController>();
+              final ec = Get.find<EcashController>();
               if (ec.mintBalances.length == 1) {
-                EasyLoading.showError('Can\'t delete the last mint');
+                EasyLoading.showError("Can't delete the last mint");
                 return;
               }
               EasyLoading.show(status: 'Processing');
 
-              int balance = ec.getBalanceByMint(widget.server.mint);
+              final balance = ec.getBalanceByMint(widget.server.mint);
               if (balance > 0) {
                 EasyLoading.showError('Please withdraw first');
                 return;
@@ -404,7 +404,7 @@ class _MintServerPageState extends State<MintServerPage> {
               Get.back(id: GetPlatform.isDesktop ? GetXNestKey.ecash : null);
             } catch (e, s) {
               EasyLoading.dismiss();
-              String msg = Utils.getErrorMessage(e);
+              final msg = Utils.getErrorMessage(e);
 
               logger.e(e.toString(), error: e, stackTrace: s);
               EasyLoading.showError(msg);

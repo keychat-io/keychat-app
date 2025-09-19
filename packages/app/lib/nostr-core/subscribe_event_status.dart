@@ -4,6 +4,7 @@ import 'package:app/service/message.service.dart';
 import 'package:isar_community/isar.dart';
 
 class MesssageToRelayEOSE {
+  MesssageToRelayEOSE(this.maxRelay);
   int maxRelay = 0;
   List<String> okRelays = [];
   Map<String, String> errors = {};
@@ -15,8 +16,6 @@ class MesssageToRelayEOSE {
       errors[url] = errorMessage ?? '';
     }
   }
-
-  MesssageToRelayEOSE(this.maxRelay);
 }
 
 class SubscribeEventStatus {
@@ -45,7 +44,7 @@ class SubscribeEventStatus {
   }
 
   static MesssageToRelayEOSE removeSubscripton(String eventId) {
-    MesssageToRelayEOSE me = _map[eventId] ?? MesssageToRelayEOSE(0);
+    final me = _map[eventId] ?? MesssageToRelayEOSE(0);
     updateEventAndMessageStatus(eventId, me);
     _map.remove(eventId);
     return me;
@@ -53,18 +52,18 @@ class SubscribeEventStatus {
 
   static void fillSubscripton(String eventId, String url, bool isSuccess,
       [String? errorMessage]) {
-    MesssageToRelayEOSE? m = _map[eventId];
+    final m = _map[eventId];
     if (m != null) {
       m.receiveRelayEOSE(url, isSuccess, errorMessage);
       return;
     }
-    MesssageToRelayEOSE me = MesssageToRelayEOSE(1);
+    final me = MesssageToRelayEOSE(1);
     me.receiveRelayEOSE(url, isSuccess, errorMessage);
     updateEventAndMessageStatus(eventId, me);
   }
 
   static bool isFilled(String eventId) {
-    MesssageToRelayEOSE? m = _map[eventId];
+    final m = _map[eventId];
     if (m == null) return false;
     return m.maxRelay == m.okRelays.length + m.errors.keys.length;
   }
@@ -73,11 +72,11 @@ class SubscribeEventStatus {
     _map.clear();
   }
 
-  static Future updateEventAndMessageStatus(
+  static Future<void> updateEventAndMessageStatus(
       String eventId, MesssageToRelayEOSE me) async {
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
 
-    List<NostrEventStatus> ess = await database.nostrEventStatus
+    final ess = await database.nostrEventStatus
         .filter()
         .eventIdEqualTo(eventId)
         .isReceiveEqualTo(false)
@@ -85,9 +84,9 @@ class SubscribeEventStatus {
 
     if (ess.isEmpty) return;
     // update sent status
-    int sentSuccessRelay = 0;
+    var sentSuccessRelay = 0;
     await database.writeTxn(() async {
-      for (NostrEventStatus es in ess) {
+      for (final es in ess) {
         if (me.okRelays.contains(es.relay)) {
           sentSuccessRelay++;
           es.sendStatus = EventSendEnum.success;
@@ -102,7 +101,7 @@ class SubscribeEventStatus {
       }
     });
     // update mesage status
-    Message? message = await database.messages
+    final message = await database.messages
         .filter()
         .eventIdsElementContains(eventId)
         .findFirst();

@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class SelectRoomRelay extends StatefulWidget {
-  final List<String> currents;
   const SelectRoomRelay(this.currents, {super.key});
+  final List<String> currents;
 
   @override
   _SelectRoomRelayState createState() => _SelectRoomRelayState();
@@ -15,7 +15,7 @@ class _SelectRoomRelayState extends State<SelectRoomRelay> {
   Set<String> selectedRelays = {};
   @override
   void initState() {
-    WebsocketService ws = Get.find<WebsocketService>();
+    final ws = Get.find<WebsocketService>();
     setState(() {
       relays = ws.getActiveRelayString();
       selectedRelays = Set<String>.from(widget.currents)
@@ -32,7 +32,7 @@ class _SelectRoomRelayState extends State<SelectRoomRelay> {
           leading: IconButton(
             icon: const Icon(Icons.close),
             onPressed: () {
-              Get.back();
+              Get.back<void>();
             },
           ),
           centerTitle: true,

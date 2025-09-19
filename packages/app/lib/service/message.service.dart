@@ -1,40 +1,36 @@
 import 'dart:convert' show jsonDecode, jsonEncode;
 
 import 'package:app/bot/bot_server_message_model.dart';
+import 'package:app/controller/home.controller.dart';
+import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/rust_api.dart';
 import 'package:app/service/file.service.dart';
+import 'package:app/service/room.service.dart';
 import 'package:app/service/storage.dart';
+import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
-
-import 'package:app/service/room.service.dart';
-import 'package:app/models/models.dart';
-
-import 'package:app/utils.dart';
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
-
-import '../controller/chat.controller.dart';
-import '../controller/home.controller.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
+import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 
 class MessageService {
-  static MessageService? _instance;
-  static MessageService get instance => _instance ??= MessageService._();
   // Avoid self instance
   MessageService._();
+  static MessageService? _instance;
+  static MessageService get instance => _instance ??= MessageService._();
   static final DBProvider dbProvider = DBProvider.instance;
 
-  Future saveMessageModel(Message model,
-      {bool persist = true, required Room room}) async {
+  Future<Message> saveMessageModel(Message model,
+      {required Room room, bool persist = true}) async {
     model.receiveAt ??= DateTime.now();
     // none text type: media, file, cashu...
     model = await _fillTypeForMessage(model, room.type == RoomType.bot);
 
-    bool isCurrentPage = false;
+    var isCurrentPage = false;
     if (!model.isRead) {
       isCurrentPage = dbProvider.isCurrentPage(model.roomId);
       if (isCurrentPage) model.isRead = true;
@@ -62,7 +58,7 @@ class MessageService {
   Future<void> _messageNotifyToPage(
       bool isCurrentPage, Message model, Room room) async {
     RoomService.getController(model.roomId)?.addMessage(model);
-    var hc = Get.find<HomeController>();
+    final hc = Get.find<HomeController>();
     hc.roomLastMessage[model.roomId] = model;
     hc.loadIdentityRoomList(model.identityId);
 
@@ -74,7 +70,7 @@ class MessageService {
       return;
     }
 
-    String content = model.mediaType == MessageMediaType.text
+    final content = model.mediaType == MessageMediaType.text
         ? (model.realMessage ?? model.content)
         : '[${model.mediaType.name}]';
 
@@ -84,9 +80,9 @@ class MessageService {
       }
       return;
     }
-    EasyThrottle.throttle('newMessageSnackbar', Duration(seconds: 2), () {
-      ChatController? cc = RoomService.getController(model.roomId);
-      bool isCurrentRoomPage = Get.currentRoute
+    EasyThrottle.throttle('newMessageSnackbar', const Duration(seconds: 2), () {
+      final cc = RoomService.getController(model.roomId);
+      final isCurrentRoomPage = Get.currentRoute
           .startsWith(Routes.room.replaceFirst(':id', room.id.toString()));
       if (Get.isSnackbarOpen) {
         try {
@@ -128,11 +124,11 @@ class MessageService {
     }
   }
 
-  Future saveSystemMessage(Room room, String content,
+  Future<void> saveSystemMessage(Room room, String content,
       {DateTime? createdAt,
       String suffix = 'SystemMessage',
       bool isMeSend = true}) async {
-    Identity identity = room.getIdentity();
+    final identity = room.getIdentity();
     await saveMessageModel(
         Message(
             msgid: Utils.randomString(16),
@@ -162,7 +158,7 @@ $content'''
 
   void refreshMessageInPage(Message message) {
     try {
-      ChatController? cc = RoomService.getController(message.roomId);
+      final cc = RoomService.getController(message.roomId);
       if (cc == null) return;
       for (var i = 0; i < cc.messages.length; i++) {
         if (cc.messages[i].id == message.id) {
@@ -197,7 +193,7 @@ $content'''
       bool? isRead,
       bool? isSystem,
       String? msgKeyHash}) async {
-    Message model = Message(
+    final model = Message(
         msgid: events[0].id,
         eventIds: events.map((e) => e.id).toList(),
         identityId: room.identityId,
@@ -215,7 +211,7 @@ $content'''
         createdAt: DateTime.fromMillisecondsSinceEpoch(
             (createdAt ?? events[0].createdAt) * 1000),
         rawEvents: events.map((e) {
-          Map m = e.toJson();
+          final Map m = e.toJson();
           m['toIdPubkey'] = e.toIdPubkey;
           return jsonEncode(m);
         }).toList())
@@ -228,20 +224,17 @@ $content'''
     if (isSystem != null) model.isSystem = isSystem;
     if (mediaType != null) model.mediaType = mediaType;
 
-    return await saveMessageModel(model, persist: persist, room: room);
+    return saveMessageModel(model, persist: persist, room: room);
   }
 
   Future<int> unreadCount() async {
-    return await DBProvider.database.messages
-        .filter()
-        .isReadEqualTo(false)
-        .count();
+    return DBProvider.database.messages.filter().isReadEqualTo(false).count();
   }
 
   Future<int> unreadCountById(int identityId) async {
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
 
-    return await database.messages
+    return database.messages
         .filter()
         .identityIdEqualTo(identityId)
         .isReadEqualTo(false)
@@ -249,9 +242,9 @@ $content'''
   }
 
   Future<int> unreadCountByRoom(int roomId) async {
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
 
-    var count = await database.messages
+    final count = await database.messages
         .filter()
         .isReadEqualTo(false)
         .roomIdEqualTo(roomId)
@@ -260,9 +253,9 @@ $content'''
   }
 
   Future<List<Message>> listMessageUnread(int roomId) async {
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
 
-    return await database.messages
+    return database.messages
         .filter()
         .roomIdEqualTo(roomId)
         .isReadEqualTo(false)
@@ -270,20 +263,17 @@ $content'''
   }
 
   Future<Future<List<Message>>> distinctByRoomId() async {
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
 
     return database.messages.where().distinctByRoomId().findAll();
   }
 
   Future<Message?> getMessageByMsgId(String id) async {
-    return await DBProvider.database.messages
-        .filter()
-        .msgidEqualTo(id)
-        .findFirst();
+    return DBProvider.database.messages.filter().msgidEqualTo(id).findFirst();
   }
 
   Future<Message?> getMessageByEventId(String id) async {
-    return await DBProvider.database.messages
+    return DBProvider.database.messages
         .filter()
         .eventIdsElementContains(id)
         .findFirst();
@@ -296,17 +286,14 @@ $content'''
         .findFirstSync();
   }
 
-  Future getMessageById(int id) async {
-    Isar database = DBProvider.database;
-    return await database.messages.filter().idEqualTo(id).findFirst();
+  Future<Message?> getMessageById(int id) async {
+    final database = DBProvider.database;
+    return database.messages.filter().idEqualTo(id).findFirst();
   }
 
   Future<List<Message>> getMessageByIdentityId(int identityId) async {
-    Isar database = DBProvider.database;
-    return await database.messages
-        .filter()
-        .identityIdEqualTo(identityId)
-        .findAll();
+    final database = DBProvider.database;
+    return database.messages.filter().identityIdEqualTo(identityId).findAll();
   }
 
   Future<List<Message>> getMessageByContent(String content, int identityId) {
@@ -320,17 +307,17 @@ $content'''
   }
 
   Future<DateTime> getNostrListenStartAt(String? relay) async {
-    String key = StorageKeyString.lastMessageAt;
+    var key = StorageKeyString.lastMessageAt;
     if (relay != null) {
       key = '$key:$relay';
     }
-    int lastMessageAt = await Storage.getIntOrZero(key);
+    final lastMessageAt = Storage.getIntOrZero(key);
 
     if (lastMessageAt > 0) {
       return DateTime.fromMillisecondsSinceEpoch(lastMessageAt * 1000)
           .subtract(const Duration(minutes: 3));
     }
-    DateTime? time = await MessageService.instance.getLastMessageTime();
+    final time = await MessageService.instance.getLastMessageTime();
     if (time != null) return time.subtract(const Duration(minutes: 30));
 
     return DateTime.now().subtract(const Duration(days: 14));
@@ -341,9 +328,9 @@ $content'''
     limit = 100,
     int offset = 0,
   }) async {
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
 
-    return await database.messages
+    return database.messages
         .filter()
         .roomIdEqualTo(roomId)
         .sortByCreatedAtDesc()
@@ -368,18 +355,28 @@ $content'''
         .findAll();
   }
 
-  Future<List<Message>> listMessageByTime({
-    required int roomId,
-    required DateTime from,
-    limit = 100,
-  }) async {
-    Isar database = DBProvider.database;
+  Future<List<Message>> listOldMessageByTime(
+      {required int roomId, required int messageId, limit = 100}) async {
+    final database = DBProvider.database;
 
     return database.messages
         .filter()
         .roomIdEqualTo(roomId)
-        .createdAtLessThan(from)
+        .idLessThan(messageId)
         .sortByCreatedAtDesc()
+        .limit(limit)
+        .findAll();
+  }
+
+  Future<List<Message>> listLatestMessageByTime(
+      {required int roomId, required int messageId, limit = 100}) async {
+    final database = DBProvider.database;
+
+    return database.messages
+        .filter()
+        .roomIdEqualTo(roomId)
+        .idGreaterThan(messageId)
+        .sortByCreatedAt()
         .limit(limit)
         .findAll();
   }
@@ -389,7 +386,7 @@ $content'''
     required DateTime from,
     limit = 100,
   }) {
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
 
     return database.messages
         .filter()
@@ -404,7 +401,7 @@ $content'''
     required int roomId,
     limit = 1,
   }) {
-    Isar database = DBProvider.database;
+    final database = DBProvider.database;
 
     return database.messages
         .filter()
@@ -414,101 +411,8 @@ $content'''
         .findFirstSync();
   }
 
-  Future<List<Message>> listMessageBySearch({
-    required int roomId,
-    required DateTime from,
-    limit = 10,
-  }) async {
-    Isar database = DBProvider.database;
-    List<Message> msgEqual = await database.messages
-        .filter()
-        .roomIdEqualTo(roomId)
-        .createdAtEqualTo(from)
-        .sortByCreatedAtDesc()
-        .limit(limit)
-        .findAll();
-    List<Message> msgLess = await database.messages
-        .filter()
-        .roomIdEqualTo(roomId)
-        .createdAtLessThan(from)
-        .sortByCreatedAtDesc()
-        .limit(limit)
-        .findAll();
-    List<Message> msgMore = await database.messages
-        .filter()
-        .roomIdEqualTo(roomId)
-        .createdAtGreaterThan(from)
-        .sortByCreatedAt()
-        .limit(limit)
-        .findAll();
-    msgEqual.addAll(msgLess);
-    msgEqual.addAll(msgMore);
-    return msgEqual;
-  }
-
-  List<Message> listMessageBySearchSroll({
-    required int roomId,
-    required DateTime from,
-    limit = 10,
-  }) {
-    Isar database = DBProvider.database;
-    List<Message> msgEqual = database.messages
-        .filter()
-        .roomIdEqualTo(roomId)
-        .createdAtEqualTo(from)
-        .sortByCreatedAtDesc()
-        .limit(limit)
-        .findAllSync();
-    List<Message> msgLess = database.messages
-        .filter()
-        .roomIdEqualTo(roomId)
-        .createdAtLessThan(from)
-        .sortByCreatedAtDesc()
-        .limit(limit)
-        .findAllSync();
-    List<Message> msgMore = database.messages
-        .filter()
-        .roomIdEqualTo(roomId)
-        .createdAtGreaterThan(from)
-        .sortByCreatedAt()
-        .limit(limit)
-        .findAllSync();
-    msgEqual.addAll(msgLess);
-    msgEqual.addAll(msgMore);
-    return msgEqual;
-  }
-
-  Future<List<Message>> listLatestMessage({
-    required int roomId,
-    required DateTime from,
-    limit = 100,
-  }) async {
-    Isar database = DBProvider.database;
-
-    return database.messages
-        .filter()
-        .roomIdEqualTo(roomId)
-        .createdAtGreaterThan(from)
-        .limit(limit)
-        .findAll();
-  }
-
-  Future<List<Message>> listMySendingMessage({
-    required int roomId,
-    limit = 10,
-  }) async {
-    return DBProvider.database.messages
-        .filter()
-        .roomIdEqualTo(roomId)
-        .sentEqualTo(SendStatusType.sending)
-        .isMeSendEqualTo(true)
-        .sortByCreatedAtDesc()
-        .limit(limit)
-        .findAll();
-  }
-
   Future<DateTime?> getLastMessageTime() async {
-    Message? m = await DBProvider.database.messages
+    final m = await DBProvider.database.messages
         .filter()
         .isMeSendEqualTo(false)
         .sortByCreatedAtDesc()
@@ -517,7 +421,7 @@ $content'''
   }
 
   Future<Message?> getLastMessageByRoom(int roomId) async {
-    Message? m = await DBProvider.database.messages
+    final m = await DBProvider.database.messages
         .filter()
         .roomIdEqualTo(roomId)
         .sortByCreatedAtDesc()
@@ -525,26 +429,26 @@ $content'''
     return m;
   }
 
-  Future deleteMessageById(int id) async {
-    Isar database = DBProvider.database;
+  Future<void> deleteMessageById(int id) async {
+    final database = DBProvider.database;
     await database.writeTxn(() async {
       await database.messages.filter().idEqualTo(id).deleteAll();
     });
   }
 
-  Future deleteMessageByRoomId(int roomId) async {
-    Isar database = DBProvider.database;
+  Future<void> deleteMessageByRoomId(int roomId) async {
+    final database = DBProvider.database;
     await database.writeTxn(() async {
       await database.messages.filter().roomIdEqualTo(roomId).deleteAll();
     });
   }
 
   Future<bool> setViewedMessage(int roomId) async {
-    List messages = await listMessageUnread(roomId);
-    Isar database = DBProvider.database;
+    final List messages = await listMessageUnread(roomId);
+    final database = DBProvider.database;
 
     await database.writeTxn(() async {
-      for (var item in messages) {
+      for (final item in messages) {
         item.isRead = true;
         await database.messages.put(item);
       }
@@ -552,29 +456,29 @@ $content'''
     return messages.isNotEmpty;
   }
 
-  Future clearUnreadMessage() async {
-    Isar database = DBProvider.database;
-    List<Message> messages =
+  Future<void> clearUnreadMessage() async {
+    final database = DBProvider.database;
+    final messages =
         await database.messages.filter().isReadEqualTo(false).findAll();
 
     await database.writeTxn(() async {
-      for (var item in messages) {
+      for (final item in messages) {
         item.isRead = true;
         await database.messages.put(item);
       }
     });
   }
 
-  Future updateMessage(Message message) async {
+  Future<void> updateMessage(Message message) async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.messages.put(message);
     });
   }
 
-  Future updateMessageCashuStatus(int id) async {
-    Message? m = await getMessageById(id);
-    if (m == null) return;
-    if (m.cashuInfo == null) return;
+  Future<Message?> updateMessageCashuStatus(int id) async {
+    final m = await getMessageById(id);
+    if (m == null) return null;
+    if (m.cashuInfo == null) return m;
     // if (m.cashuInfo!.status == status) return;
 
     m.cashuInfo!.status = TransactionStatus.success;
@@ -584,8 +488,8 @@ $content'''
   }
 
   Future<List<Message>> getCashuPendingMessage() async {
-    Isar database = DBProvider.database;
-    return await database.messages
+    final database = DBProvider.database;
+    return database.messages
         .filter()
         .cashuInfoIsNotNull()
         .cashuInfo((q) => q.statusEqualTo(TransactionStatus.pending))
@@ -594,21 +498,21 @@ $content'''
 
   Future<Message> _fillTypeForMessage(Message m, bool isBot) async {
     // cashu token
-    if (m.mediaType == MessageMediaType.cashuA ||
+    if (m.mediaType == MessageMediaType.cashu ||
         m.content.startsWith('cashu')) {
-      return await _cashuMessage(m);
+      return _cashuMessage(m);
     }
     // lightning invoice
     if (m.mediaType == MessageMediaType.lightningInvoice ||
         m.content.startsWith('lightning:') ||
         m.content.startsWith('lnbc')) {
-      return await _lightningInvoiceMessage(m);
+      return _lightningInvoiceMessage(m);
     }
 
     if (m.realMessage != null) return m;
 
     // image/video/file
-    MsgFileInfo? mfi = m.convertToMsgFileInfo();
+    final mfi = m.convertToMsgFileInfo();
     if (mfi != null) {
       m.realMessage = mfi.toString();
       if (mfi.type == MessageMediaType.image.name) {
@@ -629,7 +533,7 @@ $content'''
     if (isBot && !m.isMeSend) {
       BotServerMessageModel? bmm;
       try {
-        Map<String, dynamic> map = jsonDecode(m.content);
+        final map = jsonDecode(m.content) as Map<String, dynamic>;
         bmm = BotServerMessageModel.fromJson(map);
         m.mediaType = bmm.type;
         m.realMessage = bmm.message;
@@ -649,7 +553,7 @@ $content'''
         cim = await RustAPI.decodeToken(encodedToken: model.content);
         cim.id = null; // local id
       }
-      model.mediaType = MessageMediaType.cashuA;
+      model.mediaType = MessageMediaType.cashu;
       model.cashuInfo = cim;
       // ignore: empty_catches
     } catch (e) {}
@@ -663,12 +567,11 @@ $content'''
       if (model.isMeSend && model.realMessage != null) {
         cim = CashuInfoModel.fromJson(jsonDecode(model.realMessage!));
       } else {
-        String invoice = model.content;
+        var invoice = model.content;
         if (invoice.startsWith('lightning:')) {
           invoice = invoice.replaceFirst('lightning:', '');
         }
-        rust_cashu.InvoiceInfo ii =
-            await rust_cashu.decodeInvoice(encodedInvoice: invoice);
+        final ii = await rust_cashu.decodeInvoice(encodedInvoice: invoice);
         cim = CashuInfoModel()
           ..amount = ii.amount.toInt()
           ..token = invoice
@@ -701,15 +604,15 @@ $content'''
   }
 
   Future<void> checkMessageStatus({required Message message}) async {
-    Message? m = await getMessageByMsgId(message.msgid);
+    final m = await getMessageByMsgId(message.msgid);
     if (m == null || m.sent == SendStatusType.success) return;
-    List<String> ess = message.rawEvents.map((e) {
-      Map<String, dynamic> data = jsonDecode(e);
+    final ess = message.rawEvents.map((e) {
+      final data = jsonDecode(e) as Map<String, dynamic>;
       return data['id'] as String;
     }).toList();
-    bool isSuccess = false;
-    for (var eventId in ess) {
-      NostrEventStatus? nes = await DBProvider.database.nostrEventStatus
+    var isSuccess = false;
+    for (final eventId in ess) {
+      final nes = await DBProvider.database.nostrEventStatus
           .filter()
           .eventIdEqualTo(eventId)
           .sendStatusEqualTo(EventSendEnum.success)

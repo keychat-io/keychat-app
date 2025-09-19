@@ -18,22 +18,22 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/index.dart';
-import 'controller/home.controller.dart';
-import 'controller/setting.controller.dart';
-import 'models/db_provider.dart';
-import 'page/app_theme.dart';
-import 'page/pages.dart';
-import 'service/identity.service.dart';
-import 'utils/config.dart' as env_config;
+import 'package:app/controller/home.controller.dart';
+import 'package:app/controller/setting.controller.dart';
+import 'package:app/models/db_provider.dart';
+import 'package:app/page/app_theme.dart';
+import 'package:app/page/pages.dart';
+import 'package:app/service/identity.service.dart';
+import 'package:app/utils/config.dart' as env_config;
 
 bool isProdEnv = true;
 
 void main() async {
-  final Stopwatch stopwatch = Stopwatch()..start();
-  SettingController sc = await initServices();
+  final stopwatch = Stopwatch()..start();
+  final sc = await initServices();
 
-  bool isLogin = await IdentityService.instance.count() > 0;
-  ThemeMode themeMode = await getThemeMode();
+  final isLogin = await IdentityService.instance.count() > 0;
+  final themeMode = await getThemeMode();
   sc.themeMode.value = themeMode.name;
 
   initEasyLoading();
@@ -43,8 +43,8 @@ void main() async {
       defaultPopGesture: true,
       defaultTransition:
           GetPlatform.isDesktop ? Transition.fadeIn : Transition.cupertino);
-  String initialRoute = await getInitRoute(isLogin);
-  var getMaterialApp = GetMaterialApp(
+  final initialRoute = await getInitRoute(isLogin);
+  final getMaterialApp = GetMaterialApp(
       initialRoute: initialRoute,
       getPages: Pages.routes,
       builder: EasyLoading.init(),
@@ -59,7 +59,7 @@ void main() async {
   WidgetsBinding.instance.addPostFrameCallback((_) async {
     await WidgetsBinding.instance.endOfFrame;
     stopwatch.stop();
-    logger.i("app launched: ${stopwatch.elapsedMilliseconds} ms");
+    logger.i('app launched: ${stopwatch.elapsedMilliseconds} ms');
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
@@ -89,32 +89,32 @@ void initEasyLoading() {
 }
 
 Future<SettingController> initServices() async {
-  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   await SystemChrome.setPreferredOrientations(
       [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
-  await dotenv.load(fileName: ".env");
+  final appFolder = await Utils.getAppFolder();
+  await dotenv.load();
   await Storage.init();
   await RustLib.init();
-  String env = const String.fromEnvironment("MYENV", defaultValue: "prod");
+  const env = String.fromEnvironment('MYENV', defaultValue: 'prod');
   env_config.Config.instance.init(env);
   isProdEnv = env_config.Config.isProd();
 
-  Directory appFolder = await Utils.getAppFolder();
   // init log file
   await Utils.initLoggger(appFolder);
-  String dbPath = '${appFolder.path}/$env/database/';
-  Directory dbDirectory = Directory(dbPath);
-  dbDirectory.createSync(recursive: true);
+  final dbPath = '${appFolder.path}/$env/database/';
+  Directory(dbPath).createSync(recursive: true);
+
   logger.i('App Folder: $dbPath');
   await DBProvider.initDB(dbPath);
-  SettingController sc = Get.put(SettingController(), permanent: true);
+  final sc = Get.put(SettingController(), permanent: true);
   Get.put(EcashController(dbPath), permanent: true);
   Get.put(MultiWebviewController(), permanent: true);
   Get.putAsync(() => ChatxService().init(dbPath));
   await Get.putAsync(() => WebsocketService().init());
   Get.put(HomeController(), permanent: true);
-  Get.lazyPut(() => DesktopController(), fenix: true);
+  Get.lazyPut(DesktopController.new, fenix: true);
   return sc;
 }
 

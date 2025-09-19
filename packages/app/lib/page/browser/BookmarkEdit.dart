@@ -4,9 +4,8 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
 class BookmarkEdit extends StatefulWidget {
+  const BookmarkEdit({required this.model, super.key});
   final BrowserBookmark model;
-
-  const BookmarkEdit({super.key, required this.model});
 
   @override
   _BookmarkEditState createState() => _BookmarkEditState();
@@ -40,13 +39,13 @@ class _BookmarkEditState extends State<BookmarkEdit> {
                 onPressed: () async {
                   await BrowserBookmark.delete(widget.model.id);
                   EasyLoading.showSuccess('Deleted');
-                  Get.back();
+                  Get.back<void>();
                 },
                 icon: const Icon(Icons.delete))
           ],
         ),
         body: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(16),
             child: Column(spacing: 16, children: [
               TextField(
                 controller: _titleController,
@@ -65,7 +64,7 @@ class _BookmarkEditState extends State<BookmarkEdit> {
                   }
                   await BrowserBookmark.update(widget.model);
                   EasyLoading.showSuccess('Saved');
-                  Get.back();
+                  Get.back<void>();
                 },
                 child: const Text('Save'),
               )

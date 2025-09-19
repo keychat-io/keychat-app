@@ -5,6 +5,7 @@ import 'package:app/global.dart';
 import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/service/chatx.service.dart';
+import 'package:app/service/storage.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:app/utils/MyCustomScrollBehavior.dart';
@@ -54,19 +55,18 @@ void main() async {
       darkTheme: AppThemeCustom.dark(),
       scrollBehavior: MyCustomScrollBehavior());
 
-  // fix https://github.com/flutter/flutter/issues/119465
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarBrightness: Brightness.light,
-    statusBarIconBrightness: Brightness.dark,
-    statusBarColor: Colors.transparent,
-    systemNavigationBarColor: Colors.transparent,
-  ));
   runApp(getMaterialApp);
   WidgetsBinding.instance.addPostFrameCallback((_) async {
     await WidgetsBinding.instance.endOfFrame;
     stopwatch.stop();
     logger.i("app launched: ${stopwatch.elapsedMilliseconds} ms");
+
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarContrastEnforced: true,
+    ));
   });
 }
 
@@ -94,7 +94,7 @@ Future<SettingController> initServices() async {
   await SystemChrome.setPreferredOrientations(
       [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   await dotenv.load(fileName: ".env");
-
+  await Storage.init();
   await RustLib.init();
   String env =
       'dev3'; //const String.fromEnvironment("MYENV", defaultValue: "prod");

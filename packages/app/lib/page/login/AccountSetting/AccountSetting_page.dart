@@ -1,31 +1,33 @@
+import 'dart:async';
+
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/browser/browser_connect.dart';
 import 'package:app/models/db_provider.dart';
 import 'package:app/models/identity.dart';
-
 import 'package:app/page/browser/BrowserConnectedWebsite.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/contact/contact_list_page.dart';
-
+import 'package:app/page/login/AccountSetting/AccountSetting_controller.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
+import 'package:app/service/file.service.dart';
+import 'package:app/service/identity.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/secure_storage.dart';
-import 'package:app/service/identity.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:isar_community/isar.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
-import 'package:settings_ui/settings_ui.dart';
-import './AccountSetting_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
+import 'package:settings_ui/settings_ui.dart';
 
 class AccountSettingPage extends GetView<AccountSettingController> {
   const AccountSettingPage({super.key});
@@ -40,12 +42,11 @@ class AccountSettingPage extends GetView<AccountSettingController> {
             IconButton(
               icon: const Icon(Icons.more_vert),
               onPressed: () {
-                showModalBottomSheet(
+                showModalBottomSheet<void>(
                   context: context,
                   builder: (context) {
                     return SafeArea(
                       child: Column(
-                        mainAxisSize: MainAxisSize.max,
                         children: <Widget>[
                           const SizedBox(height: 30),
                           ListTile(
@@ -55,8 +56,8 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                               Clipboard.setData(ClipboardData(
                                   text: controller
                                       .identity.value.secp256k1PKHex));
-                              EasyLoading.showSuccess("Public Key Copied");
-                              Get.back();
+                              EasyLoading.showSuccess('Public Key Copied');
+                              Get.back<void>();
                             },
                           ),
                           ListTile(
@@ -65,7 +66,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                             title: const Text('Delete ID',
                                 style: TextStyle(color: Colors.red)),
                             onTap: () {
-                              Get.back();
+                              Get.back<void>();
                               dialogToDeleteId();
                             },
                           ),
@@ -81,16 +82,37 @@ class AccountSettingPage extends GetView<AccountSettingController> {
         body: Column(
           children: [
             Container(
-              padding: const EdgeInsets.only(
-                  top: 0, left: 16, right: 16, bottom: 24),
+              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 24),
               child: Obx(() => Column(children: [
                     Center(
-                        child: Utils.getRandomAvatar(
-                            controller.identity.value.secp256k1PKHex,
-                            httpAvatar:
-                                controller.identity.value.avatarFromRelay,
-                            height: 84,
-                            width: 84)),
+                        child: GestureDetector(
+                      onTap: () => kDebugMode
+                          ? _pickAndUploadAvatar(ImageSource.gallery)
+                          : null,
+                      child: Stack(
+                        children: [
+                          Obx(() => Utils.getAvatarByIdentity(
+                              controller.identity.value)),
+                          if (kDebugMode)
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).primaryColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.all(4),
+                                child: const Icon(
+                                  Icons.edit,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    )),
                     if (controller.identity.value.isFromSigner)
                       Container(
                           padding: const EdgeInsets.symmetric(vertical: 8),
@@ -100,16 +122,14 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                                   context: context,
                                   builder: (BuildContext context) {
                                     return CupertinoAlertDialog(
-                                      title: const Text("Notice"),
+                                      title: const Text('Notice'),
                                       content: const Text(
-                                          "Keychat app does not store your private key. Signing and encryption operations are handled by the Amber app."),
+                                          'Keychat app does not store your private key. Signing and encryption operations are handled by the Amber app.'),
                                       actions: <Widget>[
                                         CupertinoDialogAction(
                                           isDefaultAction: true,
-                                          onPressed: () {
-                                            Get.back();
-                                          },
-                                          child: const Text("OK"),
+                                          onPressed: Get.back,
+                                          child: const Text('OK'),
                                         ),
                                       ],
                                     );
@@ -123,7 +143,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                         onTap: () {
                           Clipboard.setData(ClipboardData(
                               text: controller.identity.value.npub));
-                          EasyLoading.showSuccess("Copied");
+                          EasyLoading.showSuccess('Copied');
                         },
                         child: Container(
                           padding: const EdgeInsets.all(8),
@@ -159,7 +179,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                           builder: (context, snapshot) {
                             if (snapshot.data == null) {
                               return Padding(
-                                  padding: EdgeInsets.only(top: 8),
+                                  padding: const EdgeInsets.only(top: 8),
                                   child: NoticeTextWidget.error(
                                       'Private key not found',
                                       fontSize: 12,
@@ -182,7 +202,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                           if (kDebugMode)
                             SettingsTile(
                               leading: const Icon(CupertinoIcons.person),
-                              title: const Text("Hex"),
+                              title: const Text('Hex'),
                               onPressed: (c) {
                                 debugPrint(
                                     controller.identity.value.secp256k1PKHex);
@@ -196,7 +216,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                           if (controller.identity.value.index > -1)
                             SettingsTile.navigation(
                               leading: const Icon(Icons.key),
-                              title: const Text("Seed Phrase"),
+                              title: const Text('Seed Phrase'),
                               onPressed: (context) {
                                 Get.bottomSheet(
                                     clipBehavior: Clip.antiAlias,
@@ -213,19 +233,20 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                         SettingsTile.switchTile(
                           initialValue: controller.identity.value.enableChat,
                           leading: const Icon(CupertinoIcons.chat_bubble),
-                          title: const Text("Chat ID"),
+                          title: const Text('Chat ID'),
                           onToggle: (value) async {
                             EasyThrottle.throttle(
                                 'enableChat', const Duration(seconds: 2),
                                 () async {
                               if (value == false) {
-                                int count = await DBProvider.database.identitys
+                                final count = await DBProvider
+                                    .database.identitys
                                     .filter()
                                     .enableChatEqualTo(true)
                                     .count();
                                 if (count == 1) {
                                   EasyLoading.showError(
-                                      "You cannot disable the last ID");
+                                      'You cannot disable the last ID');
                                   return;
                                 }
                               }
@@ -243,7 +264,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                         if (controller.identity.value.enableChat)
                           SettingsTile.navigation(
                             leading: const Icon(CupertinoIcons.qrcode),
-                            title: const Text("One-Time Link"),
+                            title: const Text('One-Time Link'),
                             onPressed: (context) async {
                               await showMyQrCode(
                                   context, controller.identity.value, true);
@@ -252,19 +273,19 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                         if (controller.identity.value.enableChat)
                           SettingsTile.navigation(
                             leading: const Icon(CupertinoIcons.link),
-                            title: const Text("Universal Link"),
+                            title: const Text('Universal Link'),
                             onPressed: (c) {
-                              String link =
+                              final link =
                                   '${KeychatGlobal.mainWebsite}/u/?k=${controller.identity.value.npub}';
                               Clipboard.setData(ClipboardData(text: link));
-                              EasyLoading.showSuccess("Copied");
+                              EasyLoading.showSuccess('Copied');
                             },
-                            value: Text('Copy'),
+                            value: const Text('Copy'),
                           ),
                         if (controller.identity.value.enableChat)
                           SettingsTile.navigation(
                             leading: const Icon(CupertinoIcons.person),
-                            title: const Text("NickName"),
+                            title: const Text('NickName'),
                             value: Obx(() =>
                                 Text(controller.identity.value.displayName)),
                             onPressed: (context) async {
@@ -275,22 +296,28 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                         if (controller.identity.value.enableChat)
                           SettingsTile.navigation(
                             leading: const Icon(CupertinoIcons.arrow_clockwise),
-                            title: const Text("Sync profile from relay"),
+                            title: const Text('Sync profile from relay'),
                             onPressed: (context) async {
                               try {
-                                EasyLoading.show(status: "Syncing...");
-                                Identity identity = await IdentityService
-                                    .instance
+                                unawaited(
+                                    EasyLoading.show(status: 'Syncing...'));
+                                final identity = await IdentityService.instance
                                     .syncProfileFromRelay(
                                         controller.identity.value);
+                                if (identity == null) {
+                                  await EasyLoading.showInfo(
+                                      'No profile found on relay');
+                                  return;
+                                }
                                 controller.identity.value = identity;
                                 controller.identity.refresh();
-                                EasyLoading.showSuccess("Successfully synced");
-                              } catch (e) {
-                                logger.e(
+                                await EasyLoading.showSuccess(
+                                    'Successfully synced');
+                              } catch (e, s) {
+                                logger.e('Failed to sync profile: $e',
+                                    stackTrace: s);
+                                await EasyLoading.showError(
                                     'Failed to sync profile: ${Utils.getErrorMessage(e)}');
-                                EasyLoading.showError(
-                                    "Failed to sync profile: ${Utils.getErrorMessage(e)}");
                                 return;
                               }
                             },
@@ -299,7 +326,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                           SettingsTile.navigation(
                             leading: const Icon(
                                 CupertinoIcons.person_2_square_stack_fill),
-                            title: const Text("Contact List"),
+                            title: const Text('Contact List'),
                             onPressed: (context) {
                               Get.to(
                                   () => ContactsPage(controller.identity.value),
@@ -315,16 +342,16 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                         SettingsTile.switchTile(
                           initialValue: controller.identity.value.enableBrowser,
                           leading: const Icon(CupertinoIcons.compass),
-                          title: const Text("Browser ID"),
+                          title: const Text('Browser ID'),
                           onToggle: (value) async {
                             if (value == false) {
-                              int count = await DBProvider.database.identitys
+                              final count = await DBProvider.database.identitys
                                   .filter()
                                   .enableBrowserEqualTo(true)
                                   .count();
                               if (count == 1) {
                                 EasyLoading.showError(
-                                    "You cannot disable the last ID");
+                                    'You cannot disable the last ID');
                                 return;
                               }
 
@@ -340,7 +367,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                         if (controller.identity.value.enableBrowser)
                           SettingsTile.navigation(
                             leading: const Icon(Icons.web),
-                            title: const Text("Logged-in Websites"),
+                            title: const Text('Logged-in Websites'),
                             onPressed: (context) async {
                               Get.to(() => BrowserConnectedWebsite(
                                   controller.identity.value));
@@ -357,11 +384,11 @@ class AccountSettingPage extends GetView<AccountSettingController> {
   SettingsTile _getNsec(bool showIcon) {
     return SettingsTile.navigation(
       leading: showIcon ? const Icon(Icons.key) : null,
-      title: const Text("Nsec"),
+      title: const Text('Nsec'),
       onPressed: (c) async {
-        String nsec = '';
+        var nsec = '';
         try {
-          var sk = await controller.identity.value.getSecp256k1SKHex();
+          final sk = await controller.identity.value.getSecp256k1SKHex();
           nsec = rust_nostr.getBech32PrikeyByHex(hex: sk);
         } catch (e) {
           logger.e('Failed to get Nsec: ${Utils.getErrorMessage(e)}');
@@ -369,23 +396,21 @@ class AccountSettingPage extends GetView<AccountSettingController> {
           return;
         }
         Get.dialog(CupertinoAlertDialog(
-          title: const Text("Nsec"),
+          title: const Text('Nsec'),
           content: Text(nsec),
           actions: <Widget>[
             CupertinoDialogAction(
               isDefaultAction: true,
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: nsec));
-                EasyLoading.showSuccess("Copied");
-                Get.back();
+                EasyLoading.showSuccess('Copied');
+                Get.back<void>();
               },
-              child: const Text("Copy"),
+              child: const Text('Copy'),
             ),
             CupertinoDialogAction(
-              child: const Text("Close"),
-              onPressed: () {
-                Get.back();
-              },
+              onPressed: Get.back,
+              child: const Text('Close'),
             ),
           ],
         ));
@@ -399,42 +424,40 @@ class AccountSettingPage extends GetView<AccountSettingController> {
         tiles: [
           if (kDebugMode)
             SettingsTile(
-              title: const Text("Secp256k1 Pubkey"),
+              title: const Text('Secp256k1 Pubkey'),
               description:
                   Obx(() => Text(controller.identity.value.secp256k1PKHex)),
             ),
           if (kDebugMode && controller.identity.value.curve25519PkHex != null)
             SettingsTile(
-              title: const Text("Curve25519 Pubkey"),
+              title: const Text('Curve25519 Pubkey'),
               description:
                   Text(controller.identity.value.curve25519PkHex ?? ''),
             ),
           _getNsec(false),
           SettingsTile.navigation(
-            title: const Text("Seed Phrase"),
+            title: const Text('Seed Phrase'),
             onPressed: (context) async {
-              String? mnemonic = controller.identity.value.mnemonic;
+              var mnemonic = controller.identity.value.mnemonic;
               if (mnemonic == null || mnemonic.isEmpty) {
                 mnemonic = await SecureStorage.instance.getPhraseWords();
               }
               Get.dialog(CupertinoAlertDialog(
-                title: const Text("Seed Phrase"),
+                title: const Text('Seed Phrase'),
                 content: Text(mnemonic ?? ''),
                 actions: <Widget>[
                   CupertinoDialogAction(
                     isDefaultAction: true,
                     onPressed: () {
                       Clipboard.setData(ClipboardData(text: mnemonic ?? ''));
-                      EasyLoading.showSuccess("Copied");
-                      Get.back();
+                      EasyLoading.showSuccess('Copied');
+                      Get.back<void>();
                     },
-                    child: const Text("Copy"),
+                    child: const Text('Copy'),
                   ),
                   CupertinoDialogAction(
-                    child: const Text("Close"),
-                    onPressed: () {
-                      Get.back();
-                    },
+                    onPressed: Get.back,
+                    child: const Text('Close'),
                   ),
                 ],
               ));
@@ -447,13 +470,13 @@ class AccountSettingPage extends GetView<AccountSettingController> {
 
   Future<void> _updateIdentityNameDialog(
       BuildContext context, Identity identity) async {
-    HomeController homeController = Get.find<HomeController>();
+    final homeController = Get.find<HomeController>();
 
     await showDialog<void>(
         context: context,
         builder: (BuildContext context) {
           return CupertinoAlertDialog(
-            title: const Text("Update Name"),
+            title: const Text('Update Name'),
             content: Container(
               color: Colors.transparent,
               padding: const EdgeInsets.only(top: 15),
@@ -469,16 +492,14 @@ class AccountSettingPage extends GetView<AccountSettingController> {
             ),
             actions: <Widget>[
               CupertinoDialogAction(
-                child: const Text("Cancel"),
-                onPressed: () {
-                  Get.back();
-                },
+                onPressed: Get.back,
+                child: const Text('Cancel'),
               ),
               CupertinoDialogAction(
-                child: const Text("Confirm"),
+                child: const Text('Confirm'),
                 onPressed: () async {
                   if (controller.usernameController.text.isEmpty) {
-                    EasyLoading.showError("Please input a non-empty name");
+                    EasyLoading.showError('Please input a non-empty name');
                     return;
                   }
                   identity.name = controller.usernameController.text.trim();
@@ -488,7 +509,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                   controller.usernameController.clear();
                   await homeController.loadIdentity();
                   homeController.tabBodyDatas.refresh();
-                  Get.back();
+                  Get.back<void>();
                 },
               ),
             ],
@@ -498,12 +519,12 @@ class AccountSettingPage extends GetView<AccountSettingController> {
 
   void dialogToDeleteId() {
     Get.dialog(CupertinoAlertDialog(
-      title: const Text("Delete ID?"),
+      title: const Text('Delete ID?'),
       content: Column(
         children: [
-          const Text("Please make sure you have backed up your seed phrase."),
+          const Text('Please make sure you have backed up your seed phrase.'),
           Text(
-              "Input your name ${controller.identity.value.displayName} to confirm"),
+              'Input your name ${controller.identity.value.displayName} to confirm'),
           const SizedBox(height: 10),
           TextField(
             controller: controller.confirmDeleteController,
@@ -517,31 +538,28 @@ class AccountSettingPage extends GetView<AccountSettingController> {
       ),
       actions: <Widget>[
         CupertinoDialogAction(
-          child: const Text("Cancel"),
-          onPressed: () {
-            Get.back();
-          },
+          onPressed: Get.back,
+          child: const Text('Cancel'),
         ),
         CupertinoDialogAction(
           onPressed: () async {
             if (controller.confirmDeleteController.text !=
                 controller.identity.value.displayName) {
-              EasyLoading.showError("Name does not match");
+              EasyLoading.showError('Name does not match');
               return;
             }
             controller.confirmDeleteController.clear();
-            HomeController hc = Get.find<HomeController>();
-            List<Identity> identities =
-                await IdentityService.instance.getIdentityList();
+            final hc = Get.find<HomeController>();
+            final identities = await IdentityService.instance.getIdentityList();
             if (identities.length == 1) {
-              Get.back(); // close dialog
-              EasyLoading.showError("You cannot delete the last ID");
+              Get.back<void>(); // close dialog
+              EasyLoading.showError('You cannot delete the last ID');
               return;
             }
 
-            EcashController ec = Get.find<EcashController>();
+            final ec = Get.find<EcashController>();
             if (ec.currentIdentity?.id == controller.identity.value.id) {
-              int balance = ec.getTotalByMints();
+              final balance = ec.getTotalByMints();
               if (balance > 0) {
                 EasyLoading.showError('Please withdraw all balance');
                 return;
@@ -552,24 +570,75 @@ class AccountSettingPage extends GetView<AccountSettingController> {
               await IdentityService.instance.delete(controller.identity.value);
               hc.loadRoomList(init: true);
 
-              EasyLoading.showSuccess("ID deleted");
+              EasyLoading.showSuccess('ID deleted');
               if (Get.isDialogOpen ?? false) {
-                Get.back();
+                Get.back<void>();
               }
               if (GetPlatform.isDesktop) {
                 Get.offAllNamed('/setting',
                     id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
               } else {
-                Get.back();
+                Get.back<void>();
               }
             } catch (e, s) {
               logger.e(e.toString(), error: e, stackTrace: s);
               EasyLoading.showError(e.toString());
             }
           },
-          child: const Text("Delete", style: TextStyle(color: Colors.red)),
+          child: const Text('Delete', style: TextStyle(color: Colors.red)),
         ),
       ],
     ));
+  }
+
+  Future<void> _pickAndUploadAvatar(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final image = await picker.pickImage(
+        source: source,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 80,
+      );
+      if (image == null) return;
+      final allowedExtensions = [
+        'jpg',
+        'jpeg',
+        'png',
+        'webp',
+        'heic',
+        'bmp',
+        'gif'
+      ];
+      final ext = image.path.split('.').last.toLowerCase();
+      if (!allowedExtensions.contains(ext)) {
+        EasyLoading.showError('Unsupported image format');
+        return;
+      }
+      EasyLoading.show(status: 'Uploading avatar...');
+      final avatarsFolder = Utils.avatarsFolder;
+      final fileName = '${Utils.randomString(16)}.$ext';
+      final localFileFullPath = '$avatarsFolder/$fileName';
+      // Upload to server using encryptAndUploadImage
+      final mfi = await FileService.instance
+          .encryptAndUploadImage(image, localFilePath: localFileFullPath);
+      if (mfi == null || mfi.localPath == null) return;
+      mfi.sourceName = '';
+      logger.d('Avatar uploaded: $mfi');
+
+      controller.identity.value.avatarLocalPath = mfi.localPath;
+      controller.identity.value.avatarRemoteUrl = mfi.getUriString('image');
+      controller.identity.value.avatarUpdatedAt = DateTime.now();
+      await IdentityService.instance.updateIdentity(controller.identity.value);
+
+      // Force refresh UI
+      controller.identity.refresh();
+      await EasyLoading.showSuccess('Avatar uploaded successfully');
+      await Get.find<HomeController>().loadIdentity();
+    } catch (e, s) {
+      EasyLoading.showError(
+          'Failed to upload avatar: ${Utils.getErrorMessage(e)}');
+      logger.e('Avatar upload error: $e', stackTrace: s);
+    }
   }
 }

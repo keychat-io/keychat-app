@@ -1,29 +1,29 @@
 import 'package:app/global.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
-import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:app/models/embedded/cashu_info.dart';
 import 'package:app/rust_api.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/utils.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:keychat_ecash/keychat_ecash.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 
 enum EcashTokenSymbol { sat, usdt }
 
 class MintBalanceClass {
+  MintBalanceClass(this.mint, this.token, this.balance);
   late String mint;
   late String token;
   late int balance;
-  MintBalanceClass(this.mint, this.token, this.balance);
 }
 
 class CashuUtil {
   static Future<CashuInfoModel?> handleReceiveToken(
       {required String token, bool retry = false, int? messageId}) async {
-    var ec = Get.find<EcashController>();
+    final ec = Get.find<EcashController>();
 
     if (!retry) {
       EasyLoading.show(status: 'Redeeming...');
@@ -33,64 +33,72 @@ class CashuUtil {
       decoded = await rust_cashu.decodeToken(encodedToken: token);
     } catch (e, s) {
       EasyLoading.dismiss();
-      EasyLoading.showError('Error: ${e.toString()}',
-          duration: const Duration(seconds: 3));
+      EasyLoading.showError('Error: $e', duration: const Duration(seconds: 3));
       logger.e('receive error 2', error: e, stackTrace: s);
       return null;
     }
-    if (!isValidEcashToken(decoded.unit ?? EcashTokenSymbol.sat.name)) {
+    if (!isValidEcashToken(decoded.unit.toString())) {
       EasyLoading.showError('Error! Invalid token symbol.',
           duration: const Duration(seconds: 2));
       return null;
     }
 
-    bool existMint =
-        ec.existMint(decoded.mint, decoded.unit ?? EcashTokenSymbol.sat.name);
+    final existMint = ec.existMint(decoded.mint, decoded.unit.toString());
     if (existMint) {
-      return await _processReceive(
-          token: token, retry: retry, messageId: messageId);
+      return _processReceive(token: token, retry: retry, messageId: messageId);
     }
-    EasyLoading.dismiss();
-    return await Get.dialog(CupertinoAlertDialog(
-      title: const Text('Add Mint Server?'),
-      content: Text(''' ${decoded.mint}'''),
-      actions: [
-        CupertinoDialogAction(
-            child: const Text('Cancel'),
-            onPressed: () {
-              Get.back(result: null);
-            }),
-        CupertinoDialogAction(
-            isDefaultAction: true,
-            onPressed: () async {
-              try {
-                EasyLoading.show(status: 'Processing');
-                await ec.addMintUrl(decoded.mint);
-                EasyLoading.showToast('Added');
-              } catch (e, s) {
-                EasyLoading.showError('Add Failed: ${e.toString()}',
-                    duration: const Duration(seconds: 3));
-                logger.e(e.toString(), error: e, stackTrace: s);
-                Get.back(result: null);
-                return;
-              }
+    await EasyLoading.dismiss();
+    var isAddingMint = false;
+    return Get.dialog<CashuInfoModel>(StatefulBuilder(
+      builder: (context, setState) => CupertinoAlertDialog(
+        title: const Text('Add Mint Server?'),
+        content: Text(decoded.mint),
+        actions: [
+          CupertinoDialogAction(
+              onPressed: isAddingMint ? null : () => Get.back<CashuInfoModel>(),
+              child: const Text('Cancel')),
+          CupertinoDialogAction(
+              isDefaultAction: true,
+              onPressed: isAddingMint
+                  ? null
+                  : () async {
+                      setState(() {
+                        isAddingMint = true;
+                      });
 
-              var res = await _processReceive(
-                  token: token, retry: retry, messageId: messageId);
+                      try {
+                        EasyLoading.show(status: 'Processing');
+                        await ec.addMintUrl(decoded.mint);
+                        EasyLoading.showToast('Added');
+                      } catch (e, s) {
+                        final msg = Utils.getErrorMessage(e);
+                        logger.e(msg, error: e, stackTrace: s);
+                        EasyLoading.showError('Add Failed: $msg',
+                            duration: const Duration(seconds: 3));
+                        Get.back<CashuInfoModel>();
+                        return;
+                      }
 
-              Get.back(result: res);
-            },
-            child: const Text('Add'))
-      ],
+                      final res = await _processReceive(
+                          token: token, retry: retry, messageId: messageId);
+
+                      Get.back<CashuInfoModel>(result: res);
+                    },
+              child: isAddingMint
+                  ? const CupertinoActivityIndicator()
+                  : const Text('Add'))
+        ],
+      ),
     ));
   }
 
-  static bool isValidEcashToken(String unit) => unit == 'sat' || unit == 'usdt';
+  static bool isValidEcashToken(String unit) =>
+      true; // unit == 'sat' || unit == 'usdt';
 
   static Future<CashuInfoModel?> _processReceive(
       {required String token, bool retry = false, int? messageId}) async {
     try {
-      CashuInfoModel model = await RustAPI.receiveToken(encodedToken: token);
+      final model = await RustAPI.receiveToken(encodedToken: token);
       Get.find<EcashController>().getBalance();
       if (messageId != null) {
         MessageService.instance.updateMessageCashuStatus(messageId);
@@ -100,9 +108,9 @@ class CashuUtil {
       return model;
     } catch (e, s) {
       EasyLoading.dismiss();
-      String message = Utils.getErrorMessage(e);
+      final message = Utils.getErrorMessage(e);
       logger.e('receive error: $message', error: e, stackTrace: s);
-      if (message.contains('11001') || message.contains('10002')) {
+      if (message.contains('Spent')) {
         EasyLoading.showError('Exception: Token already spent.');
         if (messageId != null) {
           await MessageService.instance.updateMessageCashuStatus(messageId);
@@ -120,17 +128,17 @@ class CashuUtil {
     required List<String> mints,
     String token = 'sat',
   }) async {
-    String filledMint = KeychatGlobal.defaultCashuMintURL;
-    EcashController controller = Get.find<EcashController>();
-    for (var mint in mints) {
+    var filledMint = KeychatGlobal.defaultCashuMintURL;
+    final controller = Get.find<EcashController>();
+    for (final mint in mints) {
       if (controller.getBalanceByMint(mint) >= amount) {
         filledMint = mint;
         break;
       }
     }
-    var ct = await rust_cashu.send(
+    final ct = await rust_cashu.send(
         amount: BigInt.from(amount), activeMint: filledMint);
-    return CashuInfoModel.fromRustModel(ct.field0 as CashuTransaction);
+    return CashuInfoModel.fromRustModel(ct);
   }
 
   static Future<CashuInfoModel> getStamp(
@@ -145,9 +153,9 @@ class CashuUtil {
     //     break;
     //   }
     // }
-    var ct =
+    final ct =
         await rust_cashu.sendStamp(amount: BigInt.from(amount), mints: mints);
-    return CashuInfoModel.fromRustModel(ct.field0 as CashuTransaction);
+    return CashuInfoModel.fromRustModel(ct);
   }
 
   static Widget getStatusIcon(TransactionStatus status) {
@@ -210,7 +218,7 @@ class CashuUtil {
         radius: 18,
         backgroundColor: Get.isDarkMode ? Colors.white10 : Colors.grey.shade300,
         child: Icon(
-          direction == TransactionDirection.out
+          direction == TransactionDirection.outgoing
               ? CupertinoIcons.arrow_up
               : (direction == TransactionDirection.split
                   ? CupertinoIcons.arrow_left_right
@@ -220,23 +228,23 @@ class CashuUtil {
         ));
   }
 
-  static String getCashuAmount(CashuTransaction transaction) {
+  static String getCashuAmount(Transaction transaction) {
     switch (transaction.io) {
-      case TransactionDirection.out:
-        return '-${transaction.amount.toString()}';
-      case TransactionDirection.in_:
-        return '+${transaction.amount.toString()}';
+      case TransactionDirection.outgoing:
+        return '-${transaction.amount}';
+      case TransactionDirection.incoming:
+        return '+${transaction.amount}';
       case TransactionDirection.split:
         return transaction.amount.toString();
     }
   }
 
-  static String getLNAmount(LNTransaction transaction) {
+  static String getLNAmount(Transaction transaction) {
     switch (transaction.io) {
-      case TransactionDirection.out:
-        return '-${transaction.amount.toString()}';
-      case TransactionDirection.in_:
-        return '+${transaction.amount.toString()}';
+      case TransactionDirection.outgoing:
+        return '-${transaction.amount}';
+      case TransactionDirection.incoming:
+        return '+${transaction.amount}';
       case TransactionDirection.split:
         return transaction.amount.toString();
     }

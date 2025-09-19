@@ -50,7 +50,7 @@ class _BrowserSettingState extends State<BrowserSetting> {
                                   width: 30),
                               title: Text(
                                 identity.displayName.length > 8
-                                    ? "${identity.displayName.substring(0, 8)}..."
+                                    ? '${identity.displayName.substring(0, 8)}...'
                                     : identity.displayName,
                                 style: Theme.of(context).textTheme.bodyLarge,
                               ),
@@ -59,32 +59,48 @@ class _BrowserSettingState extends State<BrowserSetting> {
                                 Get.to(() => BrowserConnectedWebsite(identity));
                               }))
                           .toList()),
-                SettingsSection(
-                    title: const Text('Default Search Engine'),
-                    tiles: BrowserEngine.values
-                        .map((str) => SettingsTile(
-                              leading: Radio<String>(
-                                  value: str.name,
-                                  groupValue:
-                                      controller.defaultSearchEngineObx.value,
-                                  onChanged: (value) {
-                                    if (value == null) return;
-                                    controller.defaultSearchEngineObx.value =
-                                        value;
-                                    Storage.setString(
-                                        'defaultSearchEngine', value);
-                                    EasyLoading.showSuccess('Success');
-                                  }),
-                              title:
-                                  Text(Utils.capitalizeFirstLetter(str.name)),
-                            ))
-                        .toList()),
+                SettingsSection(tiles: [
+                  SettingsTile.navigation(
+                    title: const Text('Search Engine'),
+                    leading: const Icon(Icons.search),
+                    value: Text(controller.defaultSearchEngineObx.value),
+                    onPressed: (context) {
+                      showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return RadioGroup<String>(
+                                groupValue:
+                                    controller.defaultSearchEngineObx.value,
+                                onChanged: (value) {
+                                  if (value == null) return;
+                                  controller.defaultSearchEngineObx.value =
+                                      value;
+                                  Storage.setString(
+                                      'defaultSearchEngine', value);
+                                  EasyLoading.showSuccess('Success');
+                                  Get.back<void>();
+                                },
+                                child: SimpleDialog(
+                                    title: const Text('Select Search Engine'),
+                                    children: BrowserEngine.values
+                                        .map((str) => ListTile(
+                                              leading: Radio<String>(
+                                                  value: str.name),
+                                              title: Text(
+                                                  Utils.capitalizeFirstLetter(
+                                                      str.name)),
+                                            ))
+                                        .toList()));
+                          });
+                    },
+                  )
+                ]),
                 SettingsSection(
                   tiles: [
                     SettingsTile.switchTile(
                       initialValue: controller.config['autoSignEvent'] ?? true,
                       leading: const Icon(Icons.auto_awesome),
-                      title: const Text("Auto Sign Event"),
+                      title: const Text('Auto Sign Event'),
                       onToggle: (value) async {
                         await controller.setConfig('autoSignEvent', value);
                         EasyLoading.showSuccess('Success');
@@ -93,7 +109,7 @@ class _BrowserSettingState extends State<BrowserSetting> {
                     SettingsTile.switchTile(
                       initialValue: controller.config['enableHistory'],
                       leading: const Icon(CupertinoIcons.time),
-                      title: const Text("Enable History"),
+                      title: const Text('Enable History'),
                       onToggle: (value) async {
                         await controller.setConfig('enableHistory', value);
                         EasyLoading.showSuccess('Success');
@@ -102,35 +118,37 @@ class _BrowserSettingState extends State<BrowserSetting> {
                     if (GetPlatform.isMobile)
                       SettingsTile.navigation(
                         leading: const Icon(CupertinoIcons.heart),
-                        title: const Text("KeepAlive Hosts"),
+                        title: const Text('KeepAlive Hosts'),
                         onPressed: (context) {
-                          Get.to(() => KeepAliveHosts());
+                          Get.to(KeepAliveHosts.new);
                         },
                       ),
-                    if (controller.config['enableHistory'])
+                    if (controller.config['enableHistory'] == true)
                       SettingsTile.navigation(
-                        title: const Text("Auto-delete"),
+                        title: const Text('Auto-delete'),
                         value: Text(
                             "${controller.config['historyRetentionDays'] ?? 30} ${controller.config['historyRetentionDays'] == 1 ? 'day' : 'days'}"),
                         leading: const Icon(CupertinoIcons.delete),
                         onPressed: (context) async {
-                          int? selectedDays = await showDialog<int>(
+                          final selectedDays = await showDialog<int>(
                             context: context,
                             builder: (BuildContext context) {
-                              return SimpleDialog(
-                                title: const Text('Select Retention Period'),
-                                children: [1, 7, 30].map((days) {
-                                  return RadioListTile<int>(
-                                    title: Text(
-                                        '$days ${days == 1 ? 'Day' : 'Days'}'),
-                                    value: days,
-                                    groupValue: controller
-                                            .config['historyRetentionDays'] ??
-                                        30,
-                                    onChanged: selectRetentionPeriod,
-                                  );
-                                }).toList(),
-                              );
+                              return RadioGroup<int>(
+                                  groupValue:
+                                      controller.config['historyRetentionDays']
+                                              as int? ??
+                                          30,
+                                  onChanged: selectRetentionPeriod,
+                                  child: SimpleDialog(
+                                    title:
+                                        const Text('Select Retention Period'),
+                                    children: [1, 7, 30].map((days) {
+                                      return RadioListTile<int>(
+                                          title: Text(
+                                              '$days ${days == 1 ? 'Day' : 'Days'}'),
+                                          value: days);
+                                    }).toList(),
+                                  ));
                             },
                           );
 
@@ -146,18 +164,18 @@ class _BrowserSettingState extends State<BrowserSetting> {
             )));
   }
 
-  Future init() async {
-    var list = await IdentityService.instance.getEnableBrowserIdentityList();
+  Future<void> init() async {
+    final list = await IdentityService.instance.getEnableBrowserIdentityList();
     setState(() {
       identities = list;
     });
   }
 
-  Future<void> selectRetentionPeriod(int? value) async {
+  Future<void> selectRetentionPeriod(Object? value) async {
     if (value == null) return;
-    controller.setConfig('historyRetentionDays', value);
-    EasyLoading.showSuccess('Success');
+    await controller.setConfig('historyRetentionDays', value as int);
+    await EasyLoading.showSuccess('Success');
     await controller.deleteOldHistories();
-    Get.back();
+    Get.back(result: value);
   }
 }

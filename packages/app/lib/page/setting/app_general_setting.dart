@@ -10,6 +10,7 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/page/FileExplore.dart';
 import 'package:app/page/login/OnboardingPage2.dart';
 import 'package:app/page/routes.dart';
+import 'package:app/page/setting/BiometricAuthScreen.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/file.service.dart';
 import 'package:app/service/notify.service.dart';
@@ -35,17 +36,27 @@ class AppGeneralSetting extends StatefulWidget {
 class _AppGeneralSettingState extends State<AppGeneralSetting> {
   late SettingController controller;
   bool _biometricsEnabled = false;
+  late String startupTabName;
+  HomeController hc = Get.find<HomeController>();
 
   @override
   void initState() {
     super.initState();
     controller = Get.find<SettingController>();
+    setStartupTabName();
     _biometricsEnabled = controller.biometricsEnabled.value;
+  }
+
+  void setStartupTabName() {
+    setState(() {
+      startupTabName = hc.defaultTabConfig.entries
+          .firstWhere((entry) => entry.value == hc.defaultSelectedTab.value)
+          .key as String;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    HomeController hc = Get.find<HomeController>();
     return Scaffold(
         appBar: AppBar(
           centerTitle: true,
@@ -79,7 +90,7 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                                                 StorageKeyString.themeMode,
                                                 ThemeMode.system.name);
                                           },
-                                          title: const Text("System Mode"),
+                                          title: const Text('System Mode'),
                                           trailing:
                                               controller.themeMode.value ==
                                                       ThemeMode.system.name
@@ -99,7 +110,7 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                                                 StorageKeyString.themeMode,
                                                 ThemeMode.light.name);
                                           },
-                                          title: const Text("Light Mode"),
+                                          title: const Text('Light Mode'),
                                           trailing:
                                               controller.themeMode.value ==
                                                       ThemeMode.light.name
@@ -118,7 +129,7 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                                                 StorageKeyString.themeMode,
                                                 ThemeMode.dark.name);
                                           },
-                                          title: const Text("Dark Mode"),
+                                          title: const Text('Dark Mode'),
                                           trailing:
                                               controller.themeMode.value ==
                                                       ThemeMode.dark.name
@@ -131,48 +142,47 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                                       ])
                                 ])));
                   },
-                  title: const Text("Dark Mode")),
+                  title: const Text('Dark Mode')),
               SettingsTile.navigation(
                 leading: const Icon(CupertinoIcons.home),
-                title: const Text("Startup Tab"),
+                title: const Text('Startup Tab'),
+                value: Text(startupTabName),
                 onPressed: (context) async {
-                  Get.bottomSheet(
-                      clipBehavior: Clip.antiAlias,
-                      shape: const RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.vertical(top: Radius.circular(4))),
-                      Scaffold(
-                          appBar: AppBar(
-                            title: Text('Default startup tab'),
-                          ),
-                          body: Column(
-                            children: hc.defaultTabConfig.entries.map((entry) {
-                              return RadioListTile<dynamic>(
-                                title: Text(entry.key),
-                                value: entry.value,
-                                groupValue: hc.defaultSelectedTab.value,
-                                onChanged: (value) {
-                                  if (value == null) return;
-                                  hc.setDefaultSelectedTab(value);
-                                  EasyLoading.showSuccess('Set successfully');
-                                  Get.back();
-                                },
-                              );
-                            }).toList(),
-                          )));
+                  showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return RadioGroup<int>(
+                            groupValue: hc.defaultSelectedTab.value,
+                            onChanged: (value) {
+                              if (value == null) return;
+                              hc.setDefaultSelectedTab(value);
+                              EasyLoading.showSuccess('Set successfully');
+                              setStartupTabName();
+                              Get.back<void>();
+                            },
+                            child: SimpleDialog(
+                                title: const Text('Select startup tab'),
+                                children: hc.defaultTabConfig.entries
+                                    .map((entry) => ListTile(
+                                          leading:
+                                              Radio<int>(value: entry.value),
+                                          title: Text(entry.key),
+                                        ))
+                                    .toList()));
+                      });
                 },
               ),
               SettingsTile.navigation(
                 leading: const Icon(CupertinoIcons.doc),
-                title: const Text("App File Explore"),
+                title: const Text('App File Explore'),
                 onPressed: (context) async {
-                  Get.to(() => FileExplorerPage(dir: controller.appFolder),
+                  Get.to(() => FileExplorerPage(dir: Utils.appFolder),
                       id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
                 },
               ),
               SettingsTile.navigation(
                 leading: const Icon(CupertinoIcons.question_circle),
-                title: const Text("About Keychat"),
+                title: const Text('About Keychat'),
                 onPressed: (context) {
                   Get.to(() => const OnboardingPage2(),
                       id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
@@ -190,20 +200,20 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                       });
                     },
                     leading: const Icon(Icons.security),
-                    title: const Text("Use Device Authentication")),
+                    title: const Text('Use Device Authentication')),
                 SettingsTile.navigation(
                     leading: const Icon(CupertinoIcons.clock),
-                    title: const Text("Require authentication"),
+                    title: const Text('Require authentication'),
                     value: Obx(() => Text(
                         formatAuthTime(controller.biometricsAuthTime.value))),
                     onPressed: (_) {
-                      List<int> authTimes = [0, 1, 5, 15, 30, 60, 240, 480];
+                      final authTimes = <int>[0, 1, 5, 15, 30, 60, 240, 480];
                       showModalBottomSheetWidget(
                           context,
                           'Require authentication',
                           Obx(() => SettingsList(
                                   platform: DevicePlatform.iOS,
-                                  physics: NeverScrollableScrollPhysics(),
+                                  physics: const NeverScrollableScrollPhysics(),
                                   sections: [
                                     SettingsSection(
                                         tiles: authTimes
@@ -241,7 +251,7 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
             SettingsSection(title: const Text('Data Backup'), tiles: [
               SettingsTile.navigation(
                   leading: const Icon(Icons.storage),
-                  title: const Text("Database Setting"),
+                  title: const Text('Database Setting'),
                   onPressed: handleDBSettting)
             ]),
             SettingsSection(tiles: [
@@ -251,7 +261,7 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                     color: Colors.red,
                   ),
                   title:
-                      const Text("Logout", style: TextStyle(color: Colors.red)),
+                      const Text('Logout', style: TextStyle(color: Colors.red)),
                   onPressed: deleteAccount)
             ])
           ],
@@ -267,13 +277,13 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
       return '$minutes minutes';
     }
 
-    int hours = minutes ~/ 60;
+    final hours = minutes ~/ 60;
     if (hours == 1) return '$hours hour';
     return '$hours hours';
   }
 
   Future<void> handleDBSettting(BuildContext context) async {
-    HomeController hc = Get.find<HomeController>();
+    final hc = Get.find<HomeController>();
     Get.bottomSheet(
         clipBehavior: Clip.antiAlias,
         shape: const RoundedRectangleBorder(
@@ -291,22 +301,20 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                   onToggle: (res) async {
                     if (!res) {
                       Get.dialog(CupertinoAlertDialog(
-                        title: const Text("Stop chat?"),
+                        title: const Text('Stop chat?'),
                         content: const Text(
-                            "You will not be able to receive and send messages while the chat is stopped."),
+                            'You will not be able to receive and send messages while the chat is stopped.'),
                         actions: <Widget>[
                           CupertinoDialogAction(
+                            onPressed: Get.back,
                             child: const Text('Cancel'),
-                            onPressed: () {
-                              Get.back();
-                            },
                           ),
                           CupertinoDialogAction(
                               isDestructiveAction: true,
                               child: const Text('Stop'),
                               onPressed: () async {
                                 closeAllRelays();
-                                Get.back();
+                                Get.back<void>();
                               }),
                         ],
                       ));
@@ -336,12 +344,12 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
   }
 
   void _showSetEncryptionPwdDialog(BuildContext context) {
-    TextEditingController passwordController = TextEditingController();
-    TextEditingController confirmPasswordController = TextEditingController();
+    final passwordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
 
     Get.dialog(
       CupertinoAlertDialog(
-        title: const Text("Set encryption password"),
+        title: const Text('Set encryption password'),
         content: Container(
           color: Colors.transparent,
           padding: const EdgeInsets.only(top: 15),
@@ -372,9 +380,7 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
         ),
         actions: [
           CupertinoActionSheetAction(
-            onPressed: () {
-              Get.back();
-            },
+            onPressed: Get.back,
             child: const Text('Cancel'),
           ),
           CupertinoActionSheetAction(
@@ -387,15 +393,15 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
               }
               await Storage.setString(
                   StorageKeyString.dbBackupPwd, confirmPasswordController.text);
-              Get.back();
+              Get.back<void>();
               await Future.delayed(const Duration(microseconds: 100));
               EasyLoading.show(status: 'Exporting...');
               try {
                 await DbSetting().exportDB(confirmPasswordController.text);
-                EasyLoading.showSuccess("Export successful");
+                EasyLoading.showSuccess('Export successful');
               } catch (e, s) {
                 logger.e(e.toString(), error: e, stackTrace: s);
-                EasyLoading.showError('Export failed: ${e.toString()}');
+                EasyLoading.showError('Export failed: $e');
               } finally {
                 await Future.delayed(const Duration(seconds: 2));
                 EasyLoading.dismiss();
@@ -408,28 +414,45 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
     );
   }
 
-  void closeAllRelays() async {
-    HomeController hc = Get.find<HomeController>();
+  Future<void> closeAllRelays() async {
+    final hc = Get.find<HomeController>();
     await Get.find<WebsocketService>().stopListening();
     hc.checkRunStatus.value = false;
   }
 
-  Future deleteAccount(BuildContext context) {
+  Future<void> deleteAccount(BuildContext context) {
     return Get.dialog(CupertinoAlertDialog(
-      title: const Text("Logout All Identity?"),
-      content: const Text(
-          "Please make sure you have backed up your seed phrase and contacts. This cannot be undone."),
+      title: const Text('Logout All Identity?'),
+      content: const Text('''
+All app data will be deleted after logging out, so please make sure you have backed it up. 
+
+Please make sure you have backed up your seed phrase and contacts. This cannot be undone.''',
+          style: TextStyle(color: Colors.red)),
       actions: <Widget>[
         CupertinoDialogAction(
+          onPressed: Get.back,
           child: const Text('Cancel'),
-          onPressed: () {
-            Get.back();
-          },
         ),
         CupertinoDialogAction(
             isDestructiveAction: true,
             child: const Text('Logout'),
             onPressed: () async {
+              // Biometrics Auth
+              if (GetPlatform.isMobile) {
+                final isBiometricsEnable =
+                    await SecureStorage.instance.isBiometricsEnable();
+                if (isBiometricsEnable) {
+                  final authed = await Get.to(
+                      () => const BiometricAuthScreen(
+                          canPop: true, title: 'Authenticate to Logout'),
+                      fullscreenDialog: true,
+                      popGesture: true,
+                      transition: Transition.fadeIn);
+                  if (authed == null || authed == false) {
+                    return;
+                  }
+                }
+              }
               EasyLoading.show(status: 'Processing...');
               try {
                 DBProvider.instance.deleteAll();
@@ -444,15 +467,19 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                   // ignore: empty_catches
                 } catch (e) {}
                 NotifyService.clearAll();
+                if (kReleaseMode) {
+                  EasyLoading.showSuccess('Logout successfully, App will exit');
+                  await Future.delayed(const Duration(seconds: 2));
+                  exit(0);
+                }
+                // for debug mode, just go to login page
+                EasyLoading.showSuccess('Logout successfully');
                 Get.offAllNamed(Routes.login);
               } catch (e, s) {
-                EasyLoading.showError(e.toString(),
-                    duration: const Duration(seconds: 2));
-                logger.e('reset all', error: e, stackTrace: s);
-              } finally {
-                await Future.delayed(const Duration(seconds: 2));
-                EasyLoading.dismiss();
-                kReleaseMode && exit(0);
+                final msg = Utils.getErrorMessage(e);
+                logger.e(msg, error: e, stackTrace: s);
+                EasyLoading.showError(msg,
+                    duration: const Duration(seconds: 4));
               }
             }),
       ],

@@ -5,20 +5,20 @@ import 'package:app/service/chat.service.dart';
 
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
-import '../constants.dart';
-import '../nostr-core/nostr.dart';
+import 'package:app/constants.dart';
+import 'package:app/nostr-core/nostr.dart';
 
-import '../utils.dart';
-import 'contact.service.dart';
-import 'identity.service.dart';
-import 'message.service.dart';
-import 'room.service.dart';
+import 'package:app/utils.dart';
+import 'package:app/service/contact.service.dart';
+import 'package:app/service/identity.service.dart';
+import 'package:app/service/message.service.dart';
+import 'package:app/service/room.service.dart';
 
 class Nip4ChatService extends BaseChatService {
-  static Nip4ChatService? _instance;
-  static Nip4ChatService get instance => _instance ??= Nip4ChatService._();
   // Avoid self instance
   Nip4ChatService._();
+  static Nip4ChatService? _instance;
+  static Nip4ChatService get instance => _instance ??= Nip4ChatService._();
 
   static final DBProvider dbProvider = DBProvider.instance;
   static final NostrAPI nostrAPI = NostrAPI.instance;
@@ -27,7 +27,7 @@ class Nip4ChatService extends BaseChatService {
   IdentityService identityService = IdentityService.instance;
 
   @override
-  proccessMessage(
+  Future<void> proccessMessage(
       {required Room room,
       required NostrEventModel event,
       required KeychatMessage km,
@@ -43,18 +43,17 @@ class Nip4ChatService extends BaseChatService {
           sourceEvent: sourceEvent,
           km: km,
         );
-        break;
       default:
     }
   }
 
   Future<Message> receiveNip4Message(NostrEventModel event, String content,
       {NostrEventModel? sourceEvent, Room? room}) async {
-    String to = (sourceEvent ?? event).tags[0][1];
+    final to = (sourceEvent ?? event).tags[0][1];
     room ??=
         await roomService.getOrCreateRoom(event.pubkey, to, RoomStatus.init);
 
-    return await MessageService.instance.saveMessageToDB(
+    return MessageService.instance.saveMessageToDB(
         room: room,
         events: [sourceEvent ?? event],
         senderPubkey: room.toMainPubkey,
@@ -66,7 +65,7 @@ class Nip4ChatService extends BaseChatService {
         sent: SendStatusType.success);
   }
 
-  Future saveSystemMessage(
+  Future<void> saveSystemMessage(
       {required Room room,
       required NostrEventModel event,
       required String message,
@@ -76,7 +75,7 @@ class Nip4ChatService extends BaseChatService {
       bool isSystem = true,
       String? from,
       String? to}) async {
-    Message toSaveMsg = Message(
+    final toSaveMsg = Message(
         identityId: room.identityId,
         msgid: event.id,
         eventIds: [event.id],
@@ -103,18 +102,17 @@ class Nip4ChatService extends BaseChatService {
       bool save = true,
       String? realMessage,
       String? toAddress}) async {
-    Identity identity = room.getIdentity();
+    final identity = room.getIdentity();
 
-    String mainSign = await rust_nostr.getEncryptEvent(
+    var mainSign = await rust_nostr.getEncryptEvent(
         senderKeys: await identity.getSecp256k1SKHex(),
         receiverPubkey: room.toMainPubkey,
         content: message);
 
-    mainSign = "[\"EVENT\",$mainSign]";
+    mainSign = '["EVENT",$mainSign]';
 
-    var secp256K1Account = await rust_nostr.generateSimple();
-    return await nostrAPI.sendEventMessage(
-        toAddress ?? room.toMainPubkey, mainSign,
+    final secp256K1Account = await rust_nostr.generateSimple();
+    return nostrAPI.sendEventMessage(toAddress ?? room.toMainPubkey, mainSign,
         prikey: secp256K1Account.prikey,
         from: secp256K1Account.pubkey,
         room: room,
@@ -133,8 +131,8 @@ class Nip4ChatService extends BaseChatService {
     String? realMessage,
     MessageMediaType? mediaType,
   }) async {
-    Identity identity = room.getIdentity();
-    return await nostrAPI.sendEventMessage(
+    final identity = room.getIdentity();
+    return nostrAPI.sendEventMessage(
       room.toMainPubkey,
       message,
       room: room,

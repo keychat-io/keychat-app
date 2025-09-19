@@ -13,7 +13,7 @@ class QuickSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    MultiWebviewController controller = Get.find<MultiWebviewController>();
+    final controller = Get.find<MultiWebviewController>();
 
     return Container(
         decoration: BoxDecoration(
@@ -41,13 +41,12 @@ Widget _buildQuickSectionItem(BrowserFavorite favorite,
       children: [
         controller.quickSectionItem(
             Container(
-              padding: const EdgeInsets.all(8.0),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.onSurface.withAlpha(40),
                 borderRadius: BorderRadius.circular(100),
               ),
-              child: Utils.getNeworkImageOrDefault(favorite.favicon,
-                  radius: 100, size: 30),
+              child: Utils.getNeworkImageOrDefault(favorite.favicon, size: 30),
             ),
             favorite.title?.isEmpty ?? true ? favorite.url : favorite.title!,
             favorite.url,
@@ -59,9 +58,8 @@ Widget _buildQuickSectionItem(BrowserFavorite favorite,
               if (GetPlatform.isMobile) {
                 HapticFeedback.lightImpact();
               }
-              BrowserBookmark? bb =
-                  await BrowserBookmark.getByUrl(favorite.url);
-              String title = favorite.title == null
+              final bb = await BrowserBookmark.getByUrl(favorite.url);
+              final title = favorite.title == null
                   ? favorite.url
                   : '${favorite.title} - ${favorite.url}';
               showCupertinoModalPopup(
@@ -74,7 +72,7 @@ Widget _buildQuickSectionItem(BrowserFavorite favorite,
                         await BrowserFavorite.setPin(favorite);
                         EasyLoading.showSuccess('Success');
                         controller.loadFavorite();
-                        Get.back();
+                        Get.back<void>();
                       },
                       child: const Text('Move to Top'),
                     ),
@@ -88,7 +86,7 @@ Widget _buildQuickSectionItem(BrowserFavorite favorite,
                               favicon: favorite.favicon);
                           EasyLoading.showSuccess('Added');
                           controller.loadFavorite();
-                          Get.back();
+                          Get.back<void>();
                         },
                       ),
                     CupertinoActionSheetAction(
@@ -97,7 +95,7 @@ Widget _buildQuickSectionItem(BrowserFavorite favorite,
                         await BrowserFavorite.delete(favorite.id);
                         EasyLoading.showSuccess('Removed');
                         controller.loadFavorite();
-                        Get.back();
+                        Get.back<void>();
                       },
                       child: const Text('Remove'),
                     ),
@@ -105,7 +103,7 @@ Widget _buildQuickSectionItem(BrowserFavorite favorite,
                   cancelButton: CupertinoActionSheetAction(
                     child: const Text('Cancel'),
                     onPressed: () {
-                      Get.back();
+                      Get.back<void>();
                     },
                   ),
                 ),
@@ -116,8 +114,8 @@ Widget _buildQuickSectionItem(BrowserFavorite favorite,
               if (!GetPlatform.isDesktop) {
                 return;
               }
-              final RenderBox overlay =
-                  Overlay.of(context).context.findRenderObject() as RenderBox;
+              final overlay =
+                  Overlay.of(context).context.findRenderObject()! as RenderBox;
               final position = RelativeRect.fromRect(
                   Rect.fromPoints(
                     e.globalPosition,
@@ -125,8 +123,7 @@ Widget _buildQuickSectionItem(BrowserFavorite favorite,
                   ),
                   Offset.zero & overlay.size);
 
-              BrowserBookmark? bb =
-                  await BrowserBookmark.getByUrl(favorite.url);
+              final bb = await BrowserBookmark.getByUrl(favorite.url);
 
               showMenu(
                 context: Get.context!,
@@ -177,11 +174,11 @@ Widget _buildQuickSectionItem(BrowserFavorite favorite,
                   child: Container(
                     width: 24,
                     height: 24,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: Colors.red,
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
+                    child: const Icon(
                       Icons.remove,
                       color: Colors.white,
                       size: 16,
@@ -189,7 +186,7 @@ Widget _buildQuickSectionItem(BrowserFavorite favorite,
                   ),
                 ),
               )
-            : SizedBox.shrink()),
+            : const SizedBox.shrink()),
       ],
     ),
   );
@@ -197,20 +194,19 @@ Widget _buildQuickSectionItem(BrowserFavorite favorite,
 
 // Custom ReorderableGridView implementation
 class ReorderableGridView extends StatefulWidget {
+  const ReorderableGridView.count({
+    required this.crossAxisCount,
+    required this.children,
+    required this.onReorder,
+    super.key,
+    this.shrinkWrap = false,
+    this.physics,
+  });
   final int crossAxisCount;
   final List<Widget> children;
   final Function(int, int) onReorder;
   final bool shrinkWrap;
   final ScrollPhysics? physics;
-
-  const ReorderableGridView.count({
-    super.key,
-    required this.crossAxisCount,
-    required this.children,
-    required this.onReorder,
-    this.shrinkWrap = false,
-    this.physics,
-  });
 
   @override
   State<ReorderableGridView> createState() => _ReorderableGridViewState();
@@ -225,15 +221,15 @@ class _ReorderableGridViewState extends State<ReorderableGridView> {
       itemCount: (widget.children.length / widget.crossAxisCount).ceil(),
       onReorder: (oldIndex, newIndex) {
         // Convert row indices to item indices
-        int oldItemIndex = oldIndex * widget.crossAxisCount;
-        int newItemIndex = newIndex * widget.crossAxisCount;
+        final oldItemIndex = oldIndex * widget.crossAxisCount;
+        final newItemIndex = newIndex * widget.crossAxisCount;
         widget.onReorder(oldItemIndex, newItemIndex);
       },
       itemBuilder: (context, rowIndex) {
         return Row(
           key: ValueKey(rowIndex),
           children: List.generate(widget.crossAxisCount, (colIndex) {
-            int itemIndex = rowIndex * widget.crossAxisCount + colIndex;
+            final itemIndex = rowIndex * widget.crossAxisCount + colIndex;
             if (itemIndex < widget.children.length) {
               return Expanded(child: widget.children[itemIndex]);
             }

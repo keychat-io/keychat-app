@@ -4,7 +4,14 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
 class BiometricAuthScreen extends StatefulWidget {
-  const BiometricAuthScreen({super.key});
+  const BiometricAuthScreen(
+      {this.autoAuth = false,
+      super.key,
+      this.canPop = false,
+      this.title = 'Unlock Keychat'});
+  final bool autoAuth;
+  final bool canPop;
+  final String title;
 
   @override
   _BiometricAuthScreenState createState() => _BiometricAuthScreenState();
@@ -14,11 +21,11 @@ class _BiometricAuthScreenState extends State<BiometricAuthScreen> {
   @override
   void initState() {
     super.initState();
-    // auth();
+    if (widget.autoAuth) auth();
   }
 
-  Future auth() async {
-    bool result = await Get.find<SettingController>().authenticate();
+  Future<void> auth() async {
+    final result = await Get.find<SettingController>().authenticate();
     if (!result) {
       EasyLoading.showError('Authentication failed or cancelled');
       return;
@@ -27,26 +34,27 @@ class _BiometricAuthScreenState extends State<BiometricAuthScreen> {
       Get.closeAllSnackbars();
     }
     if (Get.isBottomSheetOpen ?? false) {
-      Get.back();
+      Get.back(result: true);
     }
     if (Get.isDialogOpen ?? false) {
-      Get.back();
+      Get.back(result: true);
     }
-    Get.back();
+    Get.back(result: true);
   }
 
   @override
   Widget build(BuildContext context) {
     return PopScope(
-        canPop: false,
+        canPop: widget.canPop,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          if (widget.canPop) {
+            Get.back(result: false);
+          }
+        },
         child: Scaffold(
           body: Center(
-            child: FilledButton(
-                onPressed: () {
-                  auth();
-                },
-                child: const Text('Unlock Keychat')),
-          ),
+              child: FilledButton(onPressed: auth, child: Text(widget.title))),
         ));
   }
 }

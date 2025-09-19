@@ -1,10 +1,10 @@
 import 'package:app/models/browser/browser_history.dart';
 import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/utils.dart';
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 
 class BrowserHistoryPage extends StatefulWidget {
   const BrowserHistoryPage({super.key});
@@ -15,19 +15,16 @@ class BrowserHistoryPage extends StatefulWidget {
 
 class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
   Map<String, List<BrowserHistory>> groupedHistory = {};
-  late RefreshController refreshController;
   late MultiWebviewController controller;
   @override
   void initState() {
     controller = Get.find<MultiWebviewController>();
-    refreshController = RefreshController();
     loadData(limit: 20, offset: 0);
     super.initState();
   }
 
   @override
   void dispose() {
-    refreshController.dispose();
     super.dispose();
   }
 
@@ -48,7 +45,7 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
                         CupertinoDialogAction(
                             child: const Text('Cancel'),
                             onPressed: () {
-                              Get.back();
+                              Get.back<void>();
                             }),
                         CupertinoDialogAction(
                             child: const Text('Clear'),
@@ -58,22 +55,22 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
                               setState(() {
                                 groupedHistory.clear();
                               });
-                              Get.back();
+                              Get.back<void>();
                             })
                       ]));
                 })
           ],
         ),
-        body: SmartRefresher(
-            enablePullUp: true,
-            enablePullDown: false,
-            onLoading: () async {
-              int amount = groupedHistory.values.fold<int>(0,
+        body: CustomMaterialIndicator(
+            onRefresh: () async {
+              final amount = groupedHistory.values.fold<int>(0,
                   (previousValue, element) => previousValue + element.length);
               await loadData(limit: 20, offset: amount);
-              refreshController.loadComplete();
             },
-            controller: refreshController,
+            displacement: 20,
+            backgroundColor: Colors.white,
+            trigger: IndicatorTrigger.trailingEdge,
+            triggerMode: IndicatorTriggerMode.anywhere,
             child: ListView.builder(
               itemCount: groupedHistory.length,
               itemBuilder: (context, index) {
@@ -111,7 +108,7 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
                             Get.find<MultiWebviewController>().launchWebview(
                                 initUrl: site.url, defaultTitle: site.title);
                             if (Get.isBottomSheetOpen ?? false) {
-                              Get.back();
+                              Get.back<void>();
                             }
                           },
                           trailing: IconButton(
@@ -135,10 +132,10 @@ class _BrowserHistoryPageState extends State<BrowserHistoryPage> {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
-  Future loadData({required int limit, required int offset}) async {
-    var list = await BrowserHistory.getAll(limit: limit, offset: offset);
-    for (var history in list) {
-      String dateKey = formatDateKey(history.createdAt);
+  Future<void> loadData({required int limit, required int offset}) async {
+    final list = await BrowserHistory.getAll(limit: limit, offset: offset);
+    for (final history in list) {
+      final dateKey = formatDateKey(history.createdAt);
       if (!groupedHistory.containsKey(dateKey)) {
         groupedHistory[dateKey] = [];
       }

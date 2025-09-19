@@ -4,6 +4,7 @@ import 'dart:io' show Directory, File, FileMode, Platform, exit;
 import 'dart:math' show Random;
 
 import 'package:app/controller/setting.controller.dart';
+import 'package:app/desktop/DesktopController.dart';
 import 'package:app/global.dart';
 import 'package:app/models/contact.dart';
 import 'package:app/models/identity.dart';
@@ -31,14 +32,12 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:isar_community/isar.dart';
-import 'package:keychat_rust_ffi_plugin/index.dart' hide Contact;
+import 'package:keychat_rust_ffi_plugin/index.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-
-import 'desktop/DesktopController.dart';
 
 Logger logger = Logger(
     filter: kReleaseMode ? MyLogFilter() : null,
@@ -52,7 +51,7 @@ Logger logger = Logger(
 Logger loggerNoLine = Logger(printer: PrettyPrinter(methodCount: 0));
 
 Map deepCloneMap(Map original) {
-  Map cloned = {};
+  final Map cloned = {};
   original.forEach((key, value) {
     if (value is Map) {
       cloned[key] = deepCloneMap(value);
@@ -80,17 +79,17 @@ Id fastHash(String pubkey) {
 }
 
 String formatTime(int time, [String format = 'yyyy-MM-dd HH:mm:ss']) {
-  DateTime dateTime = DateTime.fromMillisecondsSinceEpoch(time);
+  final dateTime = DateTime.fromMillisecondsSinceEpoch(time);
   final dateFormat = DateFormat(format);
   return dateFormat.format(dateTime);
 }
 
 String formatTimeToHHmm(int time) {
-  int minutes = time ~/ 60;
-  int seconds = time % 60;
+  final minutes = time ~/ 60;
+  final seconds = time % 60;
 
-  String minutesStr = minutes.toString().padLeft(2, '0');
-  String secondsStr = seconds.toString().padLeft(2, '0');
+  final minutesStr = minutes.toString().padLeft(2, '0');
+  final secondsStr = seconds.toString().padLeft(2, '0');
 
   return '$minutesStr:$secondsStr';
 }
@@ -108,7 +107,7 @@ String generateRandomAESKey() {
 }
 
 String getPublicKeyDisplay(String publicKey, [int size = 6]) {
-  int length = publicKey.length;
+  final length = publicKey.length;
   if (length < 4) return publicKey;
   if (publicKey.startsWith('npub') || publicKey.startsWith('nsec')) {
     return '${publicKey.substring(0, size)}...${publicKey.substring(length - size)}';
@@ -123,7 +122,7 @@ int getRegistrationId(String pubkey) {
 }
 
 Future<ThemeMode> getThemeMode() async {
-  String? res = await Storage.getString(StorageKeyString.themeMode);
+  final res = Storage.getString(StorageKeyString.themeMode);
   if (res == null) return ThemeMode.system;
   if (ThemeMode.dark.name == res) return ThemeMode.dark;
   if (ThemeMode.system.name == res) return ThemeMode.system;
@@ -132,15 +131,15 @@ Future<ThemeMode> getThemeMode() async {
 }
 
 String getYearMonthDay() {
-  DateTime now = DateTime.now();
-  int year = now.year;
-  int month = now.month;
-  int day = now.day;
-  return "$year-$month-$day";
+  final now = DateTime.now();
+  final year = now.year;
+  final month = now.month;
+  final day = now.day;
+  return '$year-$month-$day';
 }
 
 bool isBase64(String str) {
-  RegExp regExp = RegExp(r'^[A-Za-z0-9+/]*={0,3}$');
+  final regExp = RegExp(r'^[A-Za-z0-9+/]*={0,3}$');
   return regExp.hasMatch(str);
 }
 
@@ -152,8 +151,8 @@ bool isEmail(String input) {
 }
 
 bool isGiphyFile(String url) {
-  RegExp domainRegex = RegExp(r'^https?:\/\/.*\.giphy\.com\/.*$');
-  RegExp imageExtensionRegex = RegExp(r'\.(gif|jpg|jpeg|png|bmp|webp)$');
+  final domainRegex = RegExp(r'^https?:\/\/.*\.giphy\.com\/.*$');
+  final imageExtensionRegex = RegExp(r'\.(gif|jpg|jpeg|png|bmp|webp)$');
 
   return domainRegex.hasMatch(url) && imageExtensionRegex.hasMatch(url);
 }
@@ -164,14 +163,14 @@ bool isPdfUrl(String url) {
 }
 
 List<List<T>> listToGroupList<T>(List<T> source, int groupSize) {
-  List<List<T>> groups = [];
+  final groups = <List<T>>[];
 
-  for (int i = 0; i < source.length; i += groupSize) {
-    int size = groupSize;
+  for (var i = 0; i < source.length; i += groupSize) {
+    var size = groupSize;
     if (source.length - i <= groupSize) {
       size = source.length - i;
     }
-    List<T> subArray = source.sublist(i, i + size);
+    final subArray = source.sublist(i, i + size);
     groups.add(subArray);
   }
 
@@ -185,7 +184,8 @@ DateTime timestampToDateTime(int timestamp) {
 class ErrorMessages {
   static String signalDecryptError = 'protobuf encoding was invalid';
   static String relayIsEmptyException = '''Relay disconnected. Please retry.''';
-  static String noFundsInfo = '''Insufficient balance to pay relay. 
+  static String noFundsInfo = '''
+Insufficient balance to pay relay. 
 Please check ecash balance and mint.''';
   static String noFunds = 'No Funds';
   static String signedPrekeyNotfound = 'signed_pre_key not found';
@@ -201,7 +201,7 @@ class MyLogFilter extends LogFilter {
 class MyOutput extends LogOutput {
   @override
   void output(OutputEvent event) {
-    for (var line in event.lines) {
+    for (final line in event.lines) {
       if (kDebugMode) {
         print(line);
       }
@@ -249,18 +249,18 @@ class Utils {
   }
 
   static String capitalizeFirstLetter(String input) {
-    if (input.isEmpty || input[0].contains(RegExp(r'[^a-zA-Z]'))) return input;
+    if (input.isEmpty || input[0].contains(RegExp('[^a-zA-Z]'))) return input;
     if (input.length == 1) return input.toUpperCase();
     return input[0].toUpperCase() + input.substring(1);
   }
 
   static Future<File> createLogFile(String dbFolder) async {
-    Directory logDir = Directory('$dbFolder/logs');
+    final logDir = Directory('$dbFolder/logs');
     logDir.createSync(recursive: true);
-    String time = getYearMonthDay();
-    File file = File('${logDir.path}/err_logs_$time.txt');
+    final time = getYearMonthDay();
+    final file = File('${logDir.path}/err_logs_$time.txt');
     if (file.existsSync()) return file;
-    String initString = '''Init File: $time \n
+    final initString = '''Init File: $time \n
  env: ${Config.env} \n
  kReleaseMode: $kReleaseMode \n
  kDebugMode: $kDebugMode \n
@@ -270,71 +270,67 @@ class Utils {
   }
 
   static String formatTimeMsg(DateTime formatDt) {
-    int milliNow = DateTime.now().millisecondsSinceEpoch;
-    int year = DateTime.now().year;
-    int day = DateTime.now().day;
-    int millisecond = formatDt.millisecondsSinceEpoch;
-    int yearIn = formatDt.year;
-    int month = formatDt.month;
-    int dayIn = formatDt.day;
-    int week = formatDt.weekday;
-    int hour = formatDt.hour;
-    int minute = formatDt.minute;
-    String monStr, dayStr, hourStr, mmStr;
-    String yearStr = yearIn.toString().substring(2, 4);
+    final milliNow = DateTime.now().millisecondsSinceEpoch;
+    final year = DateTime.now().year;
+    final day = DateTime.now().day;
+    final millisecond = formatDt.millisecondsSinceEpoch;
+    final yearIn = formatDt.year;
+    final month = formatDt.month;
+    final dayIn = formatDt.day;
+    final week = formatDt.weekday;
+    final hour = formatDt.hour;
+    final minute = formatDt.minute;
+    String monStr;
+    String dayStr;
+    String hourStr;
+    String mmStr;
+    final yearStr = yearIn.toString().substring(2, 4);
     if (hour > 12) {
-      hourStr = "${hour - 12}";
+      hourStr = '${hour - 12}';
     } else {
-      hourStr = "$hour";
+      hourStr = '$hour';
     }
 
     if (minute < 10) {
-      mmStr = "0$minute";
+      mmStr = '0$minute';
     } else {
-      mmStr = "$minute";
+      mmStr = '$minute';
     }
-    monStr = "$month";
-    dayStr = "$dayIn";
+    monStr = '$month';
+    dayStr = '$dayIn';
     // String h_m = DateUtil.formatDate(formatDt, format: DateFormats.h_m);
     if (day == dayIn && milliNow - millisecond <= 24 * 3600 * 1000) {
       if (hour >= 0 && hour < 12) {
-        return "$hourStr:$mmStr AM";
+        return '$hourStr:$mmStr AM';
       } else {
-        return "$hourStr:$mmStr PM";
+        return '$hourStr:$mmStr PM';
       }
     } else if (milliNow - millisecond <= 72 * 3600 * 1000) {
-      String weekday = "";
+      var weekday = '';
       switch (week) {
         case 1:
-          weekday = "Mon";
-          break;
+          weekday = 'Mon';
         case 2:
-          weekday = "Tue";
-          break;
+          weekday = 'Tue';
         case 3:
-          weekday = "Wed";
-          break;
+          weekday = 'Wed';
         case 4:
-          weekday = "Thu";
-          break;
+          weekday = 'Thu';
         case 5:
-          weekday = "Fri";
-          break;
+          weekday = 'Fri';
         case 6:
-          weekday = "Sat";
-          break;
+          weekday = 'Sat';
         case 7:
-          weekday = "Sun";
-          break;
+          weekday = 'Sun';
         default:
           break;
       }
       return weekday;
     } else {
       if (yearIn == year) {
-        return "$monStr/$dayStr";
+        return '$monStr/$dayStr';
       } else {
-        return "$monStr/$dayStr/$yearStr";
+        return '$monStr/$dayStr/$yearStr';
       }
     }
   }
@@ -370,6 +366,7 @@ class Utils {
         ));
   }
 
+  static Directory appFolder = Directory('/');
   static Future<Directory> getAppFolder() async {
     Directory? directory;
 
@@ -377,30 +374,56 @@ class Utils {
       case 'macos':
         // macOS: ~/Library/Application Support/<appName>
         directory = await getApplicationSupportDirectory();
-        break;
       case 'windows':
         // Windows: %APPDATA%\<appName>
-        String appData = Platform.environment['APPDATA']!;
+        final appData = Platform.environment['APPDATA']!;
         directory = Directory(path.join(appData, KeychatGlobal.appPackageName));
         if (!directory.existsSync()) {
           directory.createSync(recursive: true);
         }
-        break;
       case 'linux':
         // Linux: ~/.config/<appName>
-        String home = Platform.environment['HOME']!;
+        final home = Platform.environment['HOME']!;
         directory =
             Directory(path.join(home, '.config', KeychatGlobal.appPackageName));
         if (!directory.existsSync()) {
           directory.createSync(recursive: true);
         }
-        break;
       default:
         // For iOS, Android and other platforms
         directory = await getApplicationDocumentsDirectory();
-        break;
     }
+    initDirectory(directory);
     return directory;
+  }
+
+  static String avatarsFolder = '';
+  static String browserCacheFolder = '';
+  static String browserUserDataFolder = '';
+
+  static void initDirectory(Directory directory) {
+    appFolder = directory;
+    avatarsFolder = '${directory.path}/avatars';
+    browserCacheFolder = '${directory.path}/browserCache';
+    browserUserDataFolder = '${directory.path}/browserUserData';
+
+    // avatar folder
+    avatarsFolder = '${Utils.appFolder.path}/avatars';
+    browserCacheFolder = '${Utils.appFolder.path}/browserCache';
+    browserUserDataFolder = '${Utils.appFolder.path}/browserUserData';
+    final errorsFolder = '${Utils.appFolder.path}/errors';
+
+    for (final folder in [
+      avatarsFolder,
+      browserCacheFolder,
+      browserUserDataFolder,
+      errorsFolder
+    ]) {
+      final exist = Directory(folder).existsSync();
+      if (!exist) {
+        Directory(folder).createSync(recursive: true);
+      }
+    }
   }
 
   static Widget getAssetImage(String imageUrl,
@@ -423,14 +446,34 @@ class Utils {
     );
   }
 
+  static Widget getAvatarByImageFile(File image,
+      {double size = 42, double radius = 100}) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(radius),
+        image: DecorationImage(
+          image: Image.file(image).image,
+          fit: BoxFit.cover,
+          scale: 0.6,
+          colorFilter: const ColorFilter.mode(
+            Colors.transparent,
+            BlendMode.colorBurn,
+          ),
+        ),
+      ),
+    );
+  }
+
   static Widget getAvatarDot(Room room, {double width = 50}) {
-    int newMessageCount = room.unReadCount;
-    RoomType chatType = room.type;
+    final newMessageCount = room.unReadCount;
+    final chatType = room.type;
 
     late Widget child;
     if (chatType == RoomType.group) {
-      String account = room.getRoomName();
-      List<Color> colors = _getGroupColor(room.groupType);
+      final account = room.getRoomName();
+      final colors = _getGroupColor(room.groupType);
       child = getAvatorByName(account,
           room: room, width: width, borderRadius: 12, backgroudColors: colors);
     } else {
@@ -451,11 +494,11 @@ class Utils {
     }
     return badges.Badge(
       badgeContent: Text(
-        "$newMessageCount",
+        '$newMessageCount',
         style: const TextStyle(color: Colors.white),
       ),
       badgeAnimation: const badges.BadgeAnimation.fade(toAnimate: false),
-      position: badges.BadgePosition.topEnd(top: -8, end: -5),
+      position: badges.BadgePosition.topEnd(end: -5),
       child: child,
     );
   }
@@ -478,7 +521,7 @@ class Utils {
         ),
         child: Center(
             child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 6),
           child: AutoSizeText(_getDisplayName(account, nameLength),
               minFontSize: 10,
               stepGranularity: 2,
@@ -502,12 +545,12 @@ class Utils {
   static String getErrorMessage(Object e) {
     if (e is! AnyhowException) return e.toString();
 
-    int index = e.message.indexOf('Stack backtrace:');
-    String message = e.message;
+    final index = e.message.indexOf('Stack backtrace:');
+    var message = e.message;
     if (index != -1) {
       message = e.message.substring(0, index).trim();
     }
-    int causedByIndex = message.indexOf('Caused by:');
+    final causedByIndex = message.indexOf('Caused by:');
     if (causedByIndex != -1) {
       return message.substring(0, causedByIndex).trim();
     }
@@ -515,82 +558,78 @@ class Utils {
   }
 
   static String getFormatTimeForMessage(DateTime formatDt) {
-    int milliNow = DateTime.now().millisecondsSinceEpoch;
-    int year = DateTime.now().year;
-    int day = DateTime.now().day;
-    int millisecond = formatDt.millisecondsSinceEpoch;
-    int yearIn = formatDt.year;
-    int month = formatDt.month;
-    int dayIn = formatDt.day;
-    int week = formatDt.weekday;
-    int hour = formatDt.hour;
-    int minute = formatDt.minute;
-    String monStr, dayStr, hourStr, mmStr;
-    String yearStr = yearIn.toString().substring(2, 4);
+    final milliNow = DateTime.now().millisecondsSinceEpoch;
+    final year = DateTime.now().year;
+    final day = DateTime.now().day;
+    final millisecond = formatDt.millisecondsSinceEpoch;
+    final yearIn = formatDt.year;
+    final month = formatDt.month;
+    final dayIn = formatDt.day;
+    final week = formatDt.weekday;
+    final hour = formatDt.hour;
+    final minute = formatDt.minute;
+    String monStr;
+    String dayStr;
+    String hourStr;
+    String mmStr;
+    final yearStr = yearIn.toString().substring(2, 4);
     if (hour > 12) {
-      hourStr = "${hour - 12}";
+      hourStr = '${hour - 12}';
     } else {
-      hourStr = "$hour";
+      hourStr = '$hour';
     }
 
     if (minute < 10) {
-      mmStr = "0$minute";
+      mmStr = '0$minute';
     } else {
-      mmStr = "$minute";
+      mmStr = '$minute';
     }
-    monStr = "$month";
-    dayStr = "$dayIn";
+    monStr = '$month';
+    dayStr = '$dayIn';
     if (day == dayIn && milliNow - millisecond <= 24 * 3600 * 1000) {
       if (hour >= 0 && hour < 12) {
-        return "$hourStr:$mmStr AM";
+        return '$hourStr:$mmStr AM';
       } else {
-        return "$hourStr:$mmStr PM";
+        return '$hourStr:$mmStr PM';
       }
     } else if (milliNow - millisecond <= 72 * 3600 * 1000) {
-      String weekday = "";
+      var weekday = '';
       switch (week) {
         case 1:
-          weekday = "Mon";
-          break;
+          weekday = 'Mon';
         case 2:
-          weekday = "Tue";
-          break;
+          weekday = 'Tue';
         case 3:
-          weekday = "Wed";
-          break;
+          weekday = 'Wed';
         case 4:
-          weekday = "Thu";
-          break;
+          weekday = 'Thu';
         case 5:
-          weekday = "Fri";
-          break;
+          weekday = 'Fri';
         case 6:
-          weekday = "Sat";
-          break;
+          weekday = 'Sat';
         case 7:
-          weekday = "Sun";
-          break;
+          weekday = 'Sun';
         default:
           break;
       }
       if (hour >= 0 && hour < 12) {
-        return "$weekday $hourStr:$mmStr AM";
+        return '$weekday $hourStr:$mmStr AM';
       } else {
-        return "$weekday $hourStr:$mmStr PM";
+        return '$weekday $hourStr:$mmStr PM';
       }
     } else {
       if (yearIn == year) {
         if (hour >= 0 && hour < 12) {
-          return "$monStr/$dayStr $hourStr:$mmStr AM";
+          return '$monStr/$dayStr $hourStr:$mmStr AM';
         } else {
-          return "$monStr/$dayStr $hourStr:$mmStr PM";
+          return '$monStr/$dayStr $hourStr:$mmStr PM';
         }
         // return "$monStr/$dayStr";
       } else {
         if (hour >= 0 && hour < 12) {
-          return "$monStr/$dayStr/$yearStr $hourStr:$mmStr AM";
+          return '$monStr/$dayStr/$yearStr $hourStr:$mmStr AM';
         } else {
-          return "$monStr/$dayStr/$yearStr $hourStr:$mmStr PM";
+          return '$monStr/$dayStr/$yearStr $hourStr:$mmStr PM';
         }
         // return "$monStr/$dayStr/$yearStr";
       }
@@ -599,7 +638,7 @@ class Utils {
 
   static T? getGetxController<T>({String? tag}) {
     try {
-      T t = Get.find<T>(tag: tag);
+      final t = Get.find<T>(tag: tag);
       return t;
     } catch (e) {
       return null;
@@ -607,9 +646,9 @@ class Utils {
   }
 
   static T getOrPutGetxController<T extends GetxController>(
-      {String? tag, required T Function() create}) {
+      {required T Function() create, String? tag}) {
     try {
-      T t = Get.find<T>(tag: tag);
+      final t = Get.find<T>(tag: tag);
       return t;
     } catch (e) {
       return Get.put(create(), tag: tag);
@@ -619,14 +658,14 @@ class Utils {
   static List<String> getIntersection(List<String> list1, List<String> list2) {
     final set = Set<String>.from(list1);
 
-    return list2.where((element) => set.contains(element)).toList();
+    return list2.where(set.contains).toList();
   }
 
   static Widget? getNetworkImage(String? imageUrl,
       {double size = 36, double radius = 100, Widget? placeholder}) {
     if (imageUrl == null) return null;
 
-    if (imageUrl.toString().endsWith('svg')) {
+    if (imageUrl.endsWith('svg')) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(radius),
         child: SvgPicture.network(
@@ -677,7 +716,10 @@ class Utils {
   static Map<String, String> avatarCache = {};
 
   static Widget getRandomAvatar(String id,
-      {double height = 40, double width = 40, String? httpAvatar}) {
+      {double height = 40,
+      double width = 40,
+      String? httpAvatar,
+      Contact? contact}) {
     // network avatar first
     if (httpAvatar != null &&
         (httpAvatar.startsWith('http://') ||
@@ -691,13 +733,24 @@ class Utils {
           size: width, placeholder: _generateRandomAvatar(id, size: width))!;
     }
     // query from contact
-    Contact? contact = ContactService.instance.getContactSync(id);
-    if (contact?.avatarFromRelay != null) {
-      if (contact!.avatarFromRelay!.startsWith('http://') ||
-          contact.avatarFromRelay!.startsWith('https://')) {
-        avatarCache[id] = contact.avatarFromRelay!;
-        return getNetworkImage(contact.avatarFromRelay,
-            size: width, placeholder: _generateRandomAvatar(id, size: width))!;
+    contact ??= ContactService.instance.getContactSync(id);
+    if (contact != null) {
+      // from local file
+      if (contact.avatarLocalPath != null) {
+        final file = File('${Utils.appFolder.path}${contact.avatarLocalPath}');
+        if (file.existsSync()) {
+          return getAvatarByImageFile(file, size: width);
+        }
+      }
+      // from relay
+      if (contact.avatarFromRelay != null) {
+        if (contact.avatarFromRelay!.startsWith('http://') ||
+            contact.avatarFromRelay!.startsWith('https://')) {
+          avatarCache[id] = contact.avatarFromRelay!;
+          return getNetworkImage(contact.avatarFromRelay,
+              size: width,
+              placeholder: _generateRandomAvatar(id, size: width))!;
+        }
       }
     }
 
@@ -706,13 +759,13 @@ class Utils {
   }
 
   static SvgPicture _generateRandomAvatar(String id, {double size = 40}) {
-    var avatarsFolder = Get.find<SettingController>().avatarsFolder;
+    final avatarsFolder = Utils.avatarsFolder;
     final filePath = '$avatarsFolder/$id.svg';
     final file = File(filePath);
     if (file.existsSync()) {
       return SvgPicture.file(file, width: size, height: size);
     } else {}
-    String svgCode = AvatarPlusGen.instance.generate(id);
+    final svgCode = AvatarPlusGen.instance.generate(id);
     file.writeAsStringSync(svgCode);
     return SvgPicture.string(
       svgCode,
@@ -732,15 +785,14 @@ class Utils {
           ? PermissionStatus.granted
           : await Permission.photos.request();
     }
-    return await Permission.storage.status;
+    return Permission.storage.status;
   }
 
   static Future<List> getWebRTCServers() async {
-    String? config =
-        await Storage.getString(StorageKeyString.defaultWebRTCServers);
+    final config = Storage.getString(StorageKeyString.defaultWebRTCServers);
     if (config != null) {
       try {
-        return jsonDecode(config);
+        return jsonDecode(config) as List<dynamic>;
       } catch (e) {
         // logger.i(e, error: e);
       }
@@ -751,8 +803,8 @@ class Utils {
   }
 
   static Future<Identity?> handleAmberLogin() async {
-    TextEditingController controller = TextEditingController();
-    var focusNode = FocusNode();
+    final controller = TextEditingController();
+    final focusNode = FocusNode();
 
     return Get.dialog<Identity>(
       CupertinoAlertDialog(
@@ -767,7 +819,7 @@ class Utils {
                 decoration: const InputDecoration(
                     hintText: 'Nickname', border: OutlineInputBorder()),
                 onFieldSubmitted: (c) async {
-                  var identity = await _submitAmberLogin(controller);
+                  final identity = await _submitAmberLogin(controller);
                   Get.back(result: identity);
                 },
               ),
@@ -778,7 +830,7 @@ class Utils {
           CupertinoDialogAction(
             isDefaultAction: true,
             onPressed: () async {
-              var identity = await _submitAmberLogin(controller);
+              final identity = await _submitAmberLogin(controller);
               Get.back(result: identity);
             },
             child: const Text('Confirm'),
@@ -797,11 +849,11 @@ class Utils {
 
   static List<int> hexToBytes(String hex) {
     if (hex.length % 2 != 0) {
-      throw FormatException(
-          "Hex string must have an even number of characters.");
+      throw const FormatException(
+          'Hex string must have an even number of characters.');
     }
-    Uint8List bytes = Uint8List(hex.length ~/ 2);
-    for (int i = 0; i < hex.length; i += 2) {
+    final bytes = Uint8List(hex.length ~/ 2);
+    for (var i = 0; i < hex.length; i += 2) {
       bytes[i ~/ 2] = int.parse(hex.substring(i, i + 2), radix: 16);
     }
     return bytes;
@@ -815,13 +867,13 @@ class Utils {
   }
 
   static void hideKeyboard(BuildContext context) {
-    FocusScopeNode currentFocus = FocusScope.of(context);
+    final currentFocus = FocusScope.of(context);
     if (!currentFocus.hasPrimaryFocus && currentFocus.focusedChild != null) {
       FocusManager.instance.primaryFocus?.unfocus();
     }
   }
 
-  static Future initLoggger(Directory directory) async {
+  static Future<void> initLoggger(Directory directory) async {
     logger = Logger(
         filter: kReleaseMode ? MyLogFilter() : null,
         printer: PrettyPrinter(
@@ -878,7 +930,7 @@ class Utils {
         CupertinoDialogAction(
           child: const Text('OK'),
           onPressed: () {
-            Get.back();
+            Get.back<void>();
           },
         ),
       ],
@@ -897,7 +949,7 @@ class Utils {
         CupertinoDialogAction(
           child: const Text('Cancel'),
           onPressed: () {
-            Get.back();
+            Get.back<void>();
           },
         ),
         CupertinoDialogAction(
@@ -923,9 +975,9 @@ class Utils {
 
   static Future<List<String>> waitRelayOnline(
       {List<String>? defaultRelays}) async {
-    WebsocketService? ws = getGetxController<WebsocketService>();
+    var ws = getGetxController<WebsocketService>();
 
-    for (int initAttempts = 1; initAttempts <= 5; initAttempts++) {
+    for (var initAttempts = 1; initAttempts <= 5; initAttempts++) {
       if (ws != null) break;
       logger
           .i('Waiting for WebsocketService to initialize... ($initAttempts/5)');
@@ -937,19 +989,19 @@ class Utils {
       logger.e('Failed to initialize WebsocketService');
       return [];
     }
-    List<String> onlineRelays = ws.getOnlineSocketString();
-    List<String> activeRelays = defaultRelays ?? [];
+    var onlineRelays = ws.getOnlineSocketString();
+    var activeRelays = defaultRelays ?? [];
     if (activeRelays.isEmpty) {
       activeRelays = ws.getActiveRelayString();
     }
-    List<String> result = getIntersection(onlineRelays, activeRelays);
+    final result = getIntersection(onlineRelays, activeRelays);
     for (var checkRelayOnlineTimes = 0;
         checkRelayOnlineTimes < 5;
         checkRelayOnlineTimes++) {
       if (result.isNotEmpty) {
         return result;
       }
-      var debug = {
+      final debug = {
         checkRelayOnlineTimes: checkRelayOnlineTimes,
         'onlineRelays': onlineRelays,
         'activeRelays': activeRelays,
@@ -993,22 +1045,22 @@ class Utils {
 
   static Future<Identity?> _submitAmberLogin(
       TextEditingController controller) async {
-    String name = controller.text.trim();
+    final name = controller.text.trim();
 
     if (name.isEmpty) {
-      EasyLoading.showError("Username is required");
+      EasyLoading.showError('Username is required');
       return null;
     }
-    String? pubkey = await SignerService.instance.getPublicKey();
+    final pubkey = await SignerService.instance.getPublicKey();
     if (pubkey == null) {
-      EasyLoading.showError("Amber Not Authorized");
+      EasyLoading.showError('Amber Not Authorized');
       return null;
     }
 
     EasyLoading.show(status: 'Loading...');
 
     try {
-      var res = await IdentityService.instance.createIdentityByAmberPubkey(
+      final res = await IdentityService.instance.createIdentityByAmberPubkey(
         name: name,
         pubkey: pubkey,
       );
@@ -1017,36 +1069,36 @@ class Utils {
       return res;
     } catch (e, s) {
       logger.e('Failed to create identity: $e', stackTrace: s);
-      EasyLoading.showError("Failed to create identity: $e");
+      EasyLoading.showError('Failed to create identity: $e');
     }
     return null;
   }
 
-  static Future offAndToNamedRoom(Room room, [dynamic arguments]) async {
+  static Future<void> offAndToNamedRoom(Room room, [dynamic arguments]) async {
     if (GetPlatform.isMobile) {
       await Get.offAndToNamed('/room/${room.id}', arguments: arguments ?? room);
       return;
     }
 
-    Get.back();
+    Get.back<void>();
     Get.find<DesktopController>().selectedRoom.value = room;
     await Get.toNamed('/room/${room.id}',
         arguments: arguments ?? room, id: GetXNestKey.room);
   }
 
-  static Future offAllNamedRoom([dynamic arguments]) async {
+  static Future<void> offAllNamedRoom([dynamic arguments]) async {
     if (GetPlatform.isMobile) {
       await Get.offAllNamed(Routes.root, arguments: arguments);
       return;
     }
     if (Get.isDialogOpen ?? false) {
-      Get.back();
+      Get.back<void>();
     }
     await Get.offAndToNamed(Routes.roomEmpty,
         arguments: arguments, id: GetXNestKey.room);
   }
 
-  static Future toNamedRoom(Room room, [dynamic arguments]) async {
+  static Future<void> toNamedRoom(Room room, [dynamic arguments]) async {
     if (GetPlatform.isMobile) {
       if (Get.currentRoute == '/room/${room.id}') {
         logger.i('Already in room ${room.id}, no need to navigate again');
@@ -1065,13 +1117,13 @@ class Utils {
   }
 
   // Catch and log errors to file
-  static void logErrorToFile(String errorDetails) async {
+  static Future<void> logErrorToFile(String errorDetails) async {
     if (kDebugMode) return;
     try {
-      Directory appFolder = await getAppFolder();
+      final appFolder = await getAppFolder();
       final dateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
-      final String errorFilePath = '${appFolder.path}/errors/$dateStr.txt';
-      final File file = File(errorFilePath);
+      final errorFilePath = '${appFolder.path}/errors/$dateStr.txt';
+      final file = File(errorFilePath);
 
       if (!file.existsSync()) {
         file.createSync(recursive: true);
@@ -1086,20 +1138,20 @@ class Utils {
 
   static void enableImportDB() {
     Get.dialog(CupertinoAlertDialog(
-      title: const Text("Alert"),
+      title: const Text('Alert'),
       content: const Text(
           'Once executed, this action will permanently delete all your local data. Proceed with caution to avoid unintended consequences.'),
       actions: <Widget>[
         CupertinoDialogAction(
-          child: const Text("Cancel"),
+          child: const Text('Cancel'),
           onPressed: () {
-            Get.back();
+            Get.back<void>();
           },
         ),
         CupertinoDialogAction(
-          child: const Text("Confirm"),
+          child: const Text('Confirm'),
           onPressed: () async {
-            File? file = await DbSetting().importFile();
+            final file = await DbSetting().importFile();
             if (file == null) {
               return;
             }
@@ -1111,11 +1163,11 @@ class Utils {
   }
 
   static void _showEnterDecryptionPwdDialog(File file) {
-    TextEditingController passwordController = TextEditingController();
+    final passwordController = TextEditingController();
 
     Get.dialog(
       CupertinoAlertDialog(
-        title: const Text("Enter decryption password"),
+        title: const Text('Enter decryption password'),
         content: Container(
           color: Colors.transparent,
           padding: const EdgeInsets.only(top: 15),
@@ -1137,7 +1189,7 @@ class Utils {
         actions: [
           CupertinoActionSheetAction(
             onPressed: () {
-              Get.back();
+              Get.back<void>();
             },
             child: const Text('Cancel'),
           ),
@@ -1151,14 +1203,14 @@ class Utils {
 
               try {
                 EasyLoading.show(status: 'Decrypting...');
-                bool success =
+                final success =
                     await DbSetting().importDB(passwordController.text, file);
                 EasyLoading.dismiss();
                 if (!success) {
                   EasyLoading.showError('Decryption failed');
                   return;
                 }
-                EasyLoading.showSuccess("Decryption successful");
+                EasyLoading.showSuccess('Decryption successful');
                 Get.dialog(
                   CupertinoAlertDialog(
                     title: const Text('Restart Required'),
@@ -1186,6 +1238,37 @@ class Utils {
           ),
         ],
       ),
+    );
+  }
+
+  static Widget getAvatarByIdentity(Identity identity, [double size = 84]) {
+    final avatarPath = identity.avatarLocalPath;
+
+    // Check if local avatar file exists
+    if (avatarPath != null && avatarPath.isNotEmpty) {
+      final avatarFile = File(Utils.appFolder.path + avatarPath);
+      logger.d('Loading local avatar from: ${avatarFile.path}');
+      if (avatarFile.existsSync()) {
+        if (avatarPath.toLowerCase().endsWith('.svg')) {
+          // Handle SVG files
+          return SvgPicture.file(
+            avatarFile,
+            width: size,
+            height: size,
+          );
+        } else {
+          // Handle other image types
+          return Utils.getAvatarByImageFile(avatarFile, size: size);
+        }
+      }
+    }
+
+    // Fallback to random avatar if no local file or file doesn't exist
+    return Utils.getRandomAvatar(
+      identity.secp256k1PKHex,
+      httpAvatar: identity.avatarFromRelay,
+      height: size,
+      width: size,
     );
   }
 }

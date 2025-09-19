@@ -6,15 +6,15 @@ import 'package:get/get.dart';
 import 'package:markdown_widget/markdown_widget.dart';
 
 class LongTextPreviewPage extends StatelessWidget {
-  final String text;
   const LongTextPreviewPage(this.text, {super.key});
+  final String text;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         floatingActionButton: IconButton(
           onPressed: () {
-            Get.back();
+            Get.back<void>();
           },
           icon: const Icon(
             CupertinoIcons.clear_circled,
@@ -33,7 +33,6 @@ class LongTextPreviewPage extends StatelessWidget {
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 30),
                   child: MarkdownBlock(
                       data: text,
-                      selectable: true,
                       config: (Get.isDarkMode
                               ? MarkdownConfig.darkConfig
                               : MarkdownConfig.defaultConfig)

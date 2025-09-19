@@ -3,14 +3,14 @@ import 'package:app/service/room.service.dart';
 import 'package:app/models/models.dart';
 
 abstract class BaseChatService {
-  Future proccessMessage(
+  Future<void> proccessMessage(
       {required Room room,
       required NostrEventModel event,
+      required KeychatMessage km,
       NostrEventModel? sourceEvent,
       String? msgKeyHash,
       String? fromIdPubkey,
-      Function(String error)? failedCallback,
-      required KeychatMessage km});
+      Function(String error)? failedCallback});
 
   Future<SendMessageResponse> sendMessage(Room room, String message,
       {MessageMediaType? mediaType,

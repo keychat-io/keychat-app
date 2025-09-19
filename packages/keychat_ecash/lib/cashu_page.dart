@@ -15,57 +15,55 @@ import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_ecash/receive_ecash_page.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 import 'package:settings_ui/settings_ui.dart';
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 
 class CashuPage extends GetView<EcashController> {
   const CashuPage({super.key});
   Widget bottomBarWidget(BuildContext context) {
     return SafeArea(
-        bottom: true,
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Wrap(
-                spacing: 16,
-                runAlignment: WrapAlignment.center,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 120,
-                    child: FilledButton(
-                        onPressed: _handleSend, child: Text('Send')),
-                  ),
-                  IconButton(
-                      color: Theme.of(context).colorScheme.primary,
-                      onPressed: () {
-                        QrScanService.instance.handleQRScan();
-                      },
-                      icon: const Icon(CupertinoIcons.qrcode_viewfinder,
-                          size: 24)),
-                  SizedBox(
-                    width: 120,
-                    child: FilledButton(
-                        onPressed: _handleReceive, child: Text('Receive')),
-                  ),
-                ])
-          ],
-        ));
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Wrap(
+            spacing: 16,
+            runAlignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              SizedBox(
+                width: 120,
+                child: FilledButton(
+                    onPressed: _handleSend, child: const Text('Send')),
+              ),
+              IconButton(
+                  color: Theme.of(context).colorScheme.primary,
+                  onPressed: () {
+                    QrScanService.instance.handleQRScan();
+                  },
+                  icon: const Icon(CupertinoIcons.qrcode_viewfinder, size: 24)),
+              SizedBox(
+                width: 120,
+                child: FilledButton(
+                    onPressed: _handleReceive, child: const Text('Receive')),
+              ),
+            ])
+      ],
+    ));
   }
 
   @override
-  Widget build(context) {
-    int billLimit = GetPlatform.isDesktop ? 5 : 3;
+  Widget build(BuildContext context) {
+    final billLimit = GetPlatform.isDesktop ? 5 : 3;
 
     return Scaffold(
         appBar: AppBar(
           centerTitle: true,
-          title: const Text("Bitcoin Ecash"),
+          title: const Text('Bitcoin Ecash'),
           actions: [
             if (GetPlatform.isDesktop)
               IconButton(
                   onPressed: () {
-                    controller.refreshController.requestRefresh();
+                    // controller.refreshController.requestRefresh();
                   },
                   icon: const Icon(CupertinoIcons.refresh)),
             IconButton(
@@ -84,11 +82,12 @@ class CashuPage extends GetView<EcashController> {
               width: double.infinity,
               padding: GetPlatform.isDesktop
                   ? const EdgeInsets.all(8)
-                  : const EdgeInsets.all(0),
-              child: SmartRefresher(
-                enablePullDown: true,
+                  : EdgeInsets.zero,
+              child: CustomMaterialIndicator(
                 onRefresh: controller.requestPageRefresh,
-                controller: controller.refreshController,
+                displacement: 20,
+                backgroundColor: Colors.white,
+                triggerMode: IndicatorTriggerMode.anywhere,
                 child: ListView(
                   children: [
                     Padding(
@@ -129,8 +128,7 @@ class CashuPage extends GetView<EcashController> {
                         padding: const EdgeInsets.only(left: 10),
                         child: CarouselSlider(
                           options: CarouselOptions(
-                              height: 150.0,
-                              initialPage: 0,
+                              height: 150,
                               disableCenter: true,
                               viewportFraction: 0.5,
                               padEnds: false,
@@ -140,14 +138,14 @@ class CashuPage extends GetView<EcashController> {
                             ...controller.mintBalances,
                             '+',
                           ].map((element) {
-                            if (element == "+") {
+                            if (element == '+') {
                               return Builder(
                                 builder: (BuildContext context) {
                                   return Container(
                                       width:
                                           MediaQuery.of(context).size.width / 2,
                                       margin: const EdgeInsets.symmetric(
-                                          horizontal: 5.0),
+                                          horizontal: 5),
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(10),
                                         gradient: LinearGradient(
@@ -171,7 +169,7 @@ class CashuPage extends GetView<EcashController> {
                                             size: 48,
                                           ),
                                           onPressed: () {
-                                            var mintController =
+                                            final mintController =
                                                 TextEditingController();
                                             Get.dialog(CupertinoAlertDialog(
                                               title: const Text('Add Mint'),
@@ -191,16 +189,16 @@ class CashuPage extends GetView<EcashController> {
                                                 CupertinoDialogAction(
                                                   child: const Text('Cancel'),
                                                   onPressed: () async {
-                                                    Get.back();
+                                                    Get.back<void>();
                                                   },
                                                 ),
                                                 CupertinoDialogAction(
                                                   isDefaultAction: true,
                                                   child: const Text('Add'),
                                                   onPressed: () async {
-                                                    String input =
-                                                        mintController.text
-                                                            .trim();
+                                                    final input = mintController
+                                                        .text
+                                                        .trim();
                                                     if (input.isEmpty) {
                                                       EasyLoading.showError(
                                                           'Input is null');
@@ -222,12 +220,12 @@ class CashuPage extends GetView<EcashController> {
                                                       EasyLoading.showSuccess(
                                                           'Added');
 
-                                                      Get.back();
+                                                      Get.back<void>();
                                                     } catch (e, s) {
                                                       logger.e(e.toString(),
                                                           error: e,
                                                           stackTrace: s);
-                                                      String msg =
+                                                      final msg =
                                                           Utils.getErrorMessage(
                                                               e);
                                                       EasyLoading.showToast(
@@ -241,11 +239,11 @@ class CashuPage extends GetView<EcashController> {
                                 },
                               );
                             }
-                            var server = (element as MintBalanceClass);
+                            final server = element as MintBalanceClass;
                             return Builder(
                               builder: (BuildContext context) {
                                 // Create a unique gradient based on the mint name
-                                final int mintHash = server.mint.hashCode;
+                                final mintHash = server.mint.hashCode;
                                 final gradientColors = [
                                   KeychatGlobal.secondaryColor.withAlpha(100),
                                   Color((mintHash & 0xFFFFFF) |
@@ -258,7 +256,7 @@ class CashuPage extends GetView<EcashController> {
                                     },
                                     child: Container(
                                       margin: const EdgeInsets.symmetric(
-                                          horizontal: 5.0),
+                                          horizontal: 5),
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(10),
                                         gradient: LinearGradient(
@@ -273,7 +271,7 @@ class CashuPage extends GetView<EcashController> {
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
                                             children: [
-                                              Expanded(
+                                              const Expanded(
                                                   child: Icon(
                                                       CupertinoIcons
                                                           .bitcoin_circle,
@@ -325,8 +323,9 @@ class CashuPage extends GetView<EcashController> {
                                                       onPressed: () {
                                                         mintTap(server);
                                                       },
-                                                      icon: Icon(CupertinoIcons
-                                                          .right_chevron))
+                                                      icon: const Icon(
+                                                          CupertinoIcons
+                                                              .right_chevron))
                                                 ],
                                               )
                                             ],
@@ -341,7 +340,6 @@ class CashuPage extends GetView<EcashController> {
                             const EdgeInsets.only(top: 16, left: 16, right: 16),
                         child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Text(
                                 'Cashu Bills',
@@ -354,7 +352,7 @@ class CashuPage extends GetView<EcashController> {
                                         .bodyLarge!
                                         .color),
                                 onPressed: () {
-                                  Get.to(() => CashuBillPage(),
+                                  Get.to(CashuBillPage.new,
                                       id: GetPlatform.isDesktop
                                           ? GetXNestKey.ecash
                                           : null);
@@ -394,12 +392,12 @@ class CashuPage extends GetView<EcashController> {
                                           ? billLimit
                                           : controller.ecashBillController
                                               .transactions.length)
-                                  .map((CashuTransaction transaction) {
-                                  String feeString =
-                                      'Fee: ${transaction.fee ?? BigInt.from(0)} ${transaction.unit}';
+                                  .map((Transaction transaction) {
+                                  final feeString =
+                                      'Fee: ${transaction.fee} ${transaction.unit}';
                                   return ListTile(
                                     key: Key(transaction.id +
-                                        transaction.time.toString()),
+                                        transaction.timestamp.toString()),
                                     dense: true,
                                     leading: CashuUtil.getTransactionIcon(
                                         transaction.io),
@@ -409,7 +407,7 @@ class CashuPage extends GetView<EcashController> {
                                             .textTheme
                                             .bodyLarge),
                                     subtitle: textSmallGray(Get.context!,
-                                        '$feeString - ${formatTime(transaction.time.toInt())}'),
+                                        '$feeString - ${formatTime(transaction.timestamp.toInt() * 1000)}'),
                                     trailing: CashuUtil.getStatusIcon(
                                         transaction.status),
                                     onTap: () {
@@ -433,7 +431,6 @@ class CashuPage extends GetView<EcashController> {
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Text(
                                 'Lightning Bills',
@@ -446,7 +443,7 @@ class CashuPage extends GetView<EcashController> {
                                         .bodyLarge!
                                         .color),
                                 onPressed: () {
-                                  Get.to(() => LightningBillPage(),
+                                  Get.to(LightningBillPage.new,
                                       id: GetPlatform.isDesktop
                                           ? GetXNestKey.ecash
                                           : null);
@@ -486,10 +483,10 @@ class CashuPage extends GetView<EcashController> {
                                           ? billLimit
                                           : controller.lightningBillController
                                               .transactions.length)
-                                  .map((LNTransaction transaction) {
+                                  .map((Transaction transaction) {
                                   return ListTile(
-                                    key: Key(transaction.hash +
-                                        transaction.time.toString()),
+                                    key: Key(transaction.id +
+                                        transaction.timestamp.toString()),
                                     dense: true,
                                     leading: CashuUtil.getTransactionIcon(
                                         transaction.io),
@@ -499,20 +496,19 @@ class CashuPage extends GetView<EcashController> {
                                             .textTheme
                                             .bodyMedium),
                                     subtitle: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.start,
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
                                         textSmallGray(
                                           Get.context!,
-                                          transaction.pr,
-                                          overflow: TextOverflow.ellipsis,
+                                          transaction.token,
                                         ),
                                         textSmallGray(
                                             Get.context!,
                                             DateTime.fromMillisecondsSinceEpoch(
-                                                    transaction.time.toInt())
+                                                    transaction.timestamp
+                                                            .toInt() *
+                                                        1000)
                                                 .toIso8601String())
                                       ],
                                     ),
@@ -558,8 +554,8 @@ class CashuPage extends GetView<EcashController> {
             SettingsTile.navigation(
               title: const Text('Receive from Lightning Wallet'),
               onPressed: (context) async {
-                Get.back();
-                var result = await Get.bottomSheet(
+                Get.back<void>();
+                final result = await Get.bottomSheet<Transaction>(
                     ignoreSafeArea: false,
                     clipBehavior: Clip.antiAlias,
                     shape: const RoundedRectangleBorder(
@@ -567,17 +563,16 @@ class CashuPage extends GetView<EcashController> {
                             BorderRadius.vertical(top: Radius.circular(4))),
                     const CreateInvoicePage());
                 if (result == null) return;
-                LNTransaction ln = result.field0 as LNTransaction;
-                await Get.to(() => LightningTransactionPage(transaction: ln),
+                await Get.to(
+                    () => LightningTransactionPage(transaction: result),
                     id: GetPlatform.isDesktop ? GetXNestKey.ecash : null);
-                controller.refreshController.requestRefresh();
-                controller.requestPageRefresh();
+                await controller.requestPageRefresh();
               },
             ),
             SettingsTile.navigation(
               title: const Text('Receive Ecash'),
               onPressed: (context) async {
-                Get.back();
+                Get.back<void>();
                 await Get.bottomSheet(
                     ignoreSafeArea: false,
                     clipBehavior: Clip.antiAlias,
@@ -599,7 +594,7 @@ class CashuPage extends GetView<EcashController> {
           SettingsTile.navigation(
             title: const Text('Send to Lightning Wallet'),
             onPressed: (context) async {
-              Get.back();
+              Get.back<void>();
               await Get.bottomSheet(
                   clipBehavior: Clip.antiAlias,
                   shape: const RoundedRectangleBorder(
@@ -612,7 +607,7 @@ class CashuPage extends GetView<EcashController> {
           SettingsTile.navigation(
             title: const Text('Send Ecash'),
             onPressed: (context) async {
-              Get.back();
+              Get.back<void>();
               await Get.bottomSheet(
                   clipBehavior: Clip.antiAlias,
                   shape: const RoundedRectangleBorder(

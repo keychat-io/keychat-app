@@ -1,33 +1,34 @@
+import 'dart:async';
+
 import 'package:app/utils.dart';
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 
 class EcashBillController extends GetxController {
-  RxList<CashuTransaction> transactions = <CashuTransaction>[].obs;
+  RxList<Transaction> transactions = <Transaction>[].obs;
   RxBool status = false.obs;
-  late RefreshController refreshController;
-
+  late IndicatorController indicatorController;
   final Map<String, bool> _activeChecks = {};
 
   @override
-  void onInit() async {
-    refreshController = RefreshController();
+  void onInit() {
+    indicatorController = IndicatorController();
     initPageData();
     super.onInit();
   }
 
   @override
-  onClose() {
-    refreshController.dispose();
+  void onClose() {
+    indicatorController.dispose();
     super.onClose();
   }
 
   void initPageData() {
-    Future.delayed(Duration(seconds: 1)).then((_) {
+    Future.delayed(const Duration(seconds: 1)).then((_) {
       rust_cashu.checkPending().then(
         (value) async {
           await Utils.getGetxController<EcashController>()?.getBalance();
@@ -38,20 +39,19 @@ class EcashBillController extends GetxController {
     });
   }
 
-  Future getTransactions({int offset = 0, int limit = 15}) async {
-    List<CashuTransaction> list =
-        await rust_cashu.getCashuTransactionsWithOffset(
-            offset: BigInt.from(offset), limit: BigInt.from(limit));
-    list.sort((a, b) => b.time.compareTo(a.time));
+  Future<void> getTransactions({int offset = 0, int limit = 30}) async {
+    final list = await rust_cashu.getCashuTransactionsWithOffset(
+        offset: BigInt.from(offset), limit: BigInt.from(limit));
+    list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
-    List<CashuTransaction> res = offset == 0 ? [] : transactions.toList();
-    res.addAll(list);
+    final res = offset == 0 ? <Transaction>[] : transactions.toList()
+      ..addAll(list);
     transactions.value = res;
     transactions.refresh();
   }
 
-  void startCheckPending(
-      CashuTransaction tx, Function(CashuTransaction ct) callback) async {
+  Future<void> startCheckPending(
+      Transaction tx, void Function(Transaction ct) callback) async {
     if (tx.status != TransactionStatus.pending) {
       callback(tx);
       return;
@@ -59,24 +59,23 @@ class EcashBillController extends GetxController {
 
     _activeChecks[tx.id] = true;
 
-    while (_activeChecks[tx.id] != null && _activeChecks[tx.id] == true) {
-      Transaction item = await rust_cashu.checkTransaction(id: tx.id);
-      CashuTransaction ln = item.field0 as CashuTransaction;
+    while (_activeChecks[tx.id] != null && (_activeChecks[tx.id] ?? false)) {
+      final ln = await rust_cashu.checkTransaction(id: tx.id);
       if (ln.status == TransactionStatus.success ||
           ln.status == TransactionStatus.failed) {
         callback(ln);
-        Get.find<EcashController>().requestPageRefresh();
+        unawaited(Get.find<EcashController>().requestPageRefresh());
         _activeChecks.remove(tx.id);
         return;
       }
       logger.d('Checking status: ${tx.id}');
-      await Future.delayed(const Duration(seconds: 1));
+      await Future<void>.delayed(const Duration(seconds: 1));
     }
 
     logger.d('Check stopped for transaction: ${tx.id}');
   }
 
-  void stopCheckPending(CashuTransaction tx) {
+  void stopCheckPending(Transaction tx) {
     if (_activeChecks.containsKey(tx.id)) {
       _activeChecks.remove(tx.id);
       logger.d('Stopping check for transaction: ${tx.id}');

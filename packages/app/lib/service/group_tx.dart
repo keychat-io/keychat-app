@@ -10,16 +10,16 @@ import 'package:isar_community/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class GroupTx {
-  static GroupTx? _instance;
-  static GroupTx get instance => _instance ??= GroupTx._();
   // Avoid self instance
   GroupTx._();
+  static GroupTx? _instance;
+  static GroupTx get instance => _instance ??= GroupTx._();
 
   Future<Mykey> importMykeyTx(
       int identityId, rust_nostr.Secp256k1Account keychain,
       [int? roomId]) async {
-    Isar database = DBProvider.database;
-    Mykey? mykey = await database.mykeys
+    final database = DBProvider.database;
+    final mykey = await database.mykeys
         .filter()
         .identityIdEqualTo(identityId)
         .pubkeyEqualTo(keychain.pubkey)
@@ -30,24 +30,23 @@ class GroupTx {
         identityId: identityId,
         pubkey: keychain.pubkey)
       ..roomId = roomId;
-    var savedId = await database.mykeys.put(newUser);
+    final savedId = await database.mykeys.put(newUser);
     return (await database.mykeys.get(savedId))!;
   }
 
   Future<Room> _createGroupToDB(String toMainPubkey, String groupName,
-      {List<dynamic> members = const [],
-      required GroupType groupType,
+      {required GroupType groupType,
       required Identity identity,
       required int version,
+      List<dynamic> members = const [],
       int? roomUpdateAt,
       Mykey? sharedKey,
       List<String> sendingRelays = const [],
       String? sharedSignalID}) async {
-    Room room = Room(
+    var room = Room(
         toMainPubkey: toMainPubkey,
         npub: rust_nostr.getBech32PubkeyByHex(hex: toMainPubkey),
         identityId: identity.id,
-        status: RoomStatus.enabled,
         type: RoomType.group)
       ..mykey.value = sharedKey
       ..name = groupName
@@ -58,7 +57,7 @@ class GroupTx {
 
     room = await updateRoom(room, updateMykey: true);
     await room.updateAllMemberTx(members);
-    RoomMember? me = await room.getMemberByIdPubkey(identity.secp256k1PKHex);
+    final me = await room.getMemberByIdPubkey(identity.secp256k1PKHex);
 
     if (me != null && me.status != UserStatusType.invited) {
       me.status = UserStatusType.invited;
@@ -75,19 +74,19 @@ class GroupTx {
     return room;
   }
 
-  Future joinGroup(RoomProfile roomProfile, Identity identity,
+  Future<Room> joinGroup(RoomProfile roomProfile, Identity identity,
       [Message? message]) async {
-    String toMainPubkey = roomProfile.oldToRoomPubKey ?? roomProfile.pubkey;
-    String? toRoomPriKey = roomProfile.prikey;
-    int version = roomProfile.updatedAt;
-    List<dynamic> users = roomProfile.users;
+    final toMainPubkey = roomProfile.oldToRoomPubKey ?? roomProfile.pubkey;
+    final toRoomPriKey = roomProfile.prikey;
+    final version = roomProfile.updatedAt;
+    final users = roomProfile.users;
     Mykey? roomKey;
     if (toRoomPriKey != null) {
       roomKey = await importMykeyTx(
           identity.id, await rust_nostr.importKey(senderKeys: toRoomPriKey));
     }
 
-    Room groupRoom = await _createGroupToDB(toMainPubkey, roomProfile.name,
+    final groupRoom = await _createGroupToDB(toMainPubkey, roomProfile.name,
         sharedKey: roomKey,
         members: users,
         identity: identity,
@@ -99,7 +98,7 @@ class GroupTx {
     // import signalId for kdf group
     if (groupRoom.isKDFGroup && roomProfile.signalPubkey != null) {
       if (message != null) {
-        message.content = "******";
+        message.content = '******';
         await DBProvider.database.messages.put(message);
       }
       await SignalIdService.instance

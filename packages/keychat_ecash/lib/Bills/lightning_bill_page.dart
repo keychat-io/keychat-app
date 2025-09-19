@@ -1,7 +1,6 @@
 // ignore_for_file: depend_on_referenced_packages
 
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
-
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:keychat_ecash/Bills/lightning_bill_controller.dart';
 import 'package:keychat_ecash/Bills/lightning_transaction.dart';
 import 'package:keychat_ecash/utils.dart';
@@ -11,7 +10,6 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
 
 class LightningBillPage extends GetView<LightningBillController> {
   const LightningBillPage({super.key});
@@ -19,17 +17,14 @@ class LightningBillPage extends GetView<LightningBillController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          centerTitle: true,
-          title: const Text('Lightning Bills'),
-        ),
+        appBar: AppBar(centerTitle: true, title: const Text('Lightning Bills')),
         body: Center(
             child: Container(
                 constraints: const BoxConstraints(maxWidth: 800),
                 width: double.infinity,
                 padding: GetPlatform.isDesktop
                     ? const EdgeInsets.all(8)
-                    : const EdgeInsets.all(0),
+                    : EdgeInsets.zero,
                 child: Obx(() => !controller.status.value &&
                         controller.transactions.isEmpty
                     ? const Center(
@@ -38,22 +33,22 @@ class LightningBillPage extends GetView<LightningBillController> {
                             height: 100,
                             child: SpinKitWave(
                               color: Color.fromARGB(255, 141, 123, 243),
-                              size: 40.0,
+                              size: 40,
                             )))
-                    : Obx(() => SmartRefresher(
-                        enablePullDown: true,
+                    : Obx(() => CustomMaterialIndicator(
                         onRefresh: () async {
-                          await rust_cashu.checkPending();
-                          await controller.getTransactions();
-                          controller.refreshController.refreshCompleted();
+                          var offset = controller.transactions.length;
+                          if (controller.indicatorController.edge ==
+                              IndicatorEdge.leading) {
+                            offset = 0;
+                          }
+                          await controller.getTransactions(offset: offset);
                         },
-                        enablePullUp: true,
-                        onLoading: () async {
-                          await controller.getTransactions(
-                              offset: controller.transactions.length);
-                          controller.refreshController.loadComplete();
-                        },
-                        controller: controller.refreshController,
+                        displacement: 20,
+                        backgroundColor: Colors.white,
+                        trigger: IndicatorTrigger.bothEdges,
+                        triggerMode: IndicatorTriggerMode.anywhere,
+                        controller: controller.indicatorController,
                         child: ListView.separated(
                             separatorBuilder: (BuildContext context2,
                                     int index) =>
@@ -64,7 +59,7 @@ class LightningBillPage extends GetView<LightningBillController> {
                                 ),
                             itemCount: controller.transactions.length,
                             itemBuilder: (BuildContext context, int index) {
-                              LNTransaction transaction =
+                              final transaction =
                                   controller.transactions[index];
 
                               return ListTile(
@@ -93,15 +88,17 @@ class LightningBillPage extends GetView<LightningBillController> {
                                           .textTheme
                                           .bodyLarge),
                                   subtitle: Column(
-                                    mainAxisAlignment: MainAxisAlignment.start,
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      textSmallGray(context, transaction.mint),
+                                      textSmallGray(
+                                          context, transaction.mintUrl),
                                       textSmallGray(
                                           Get.context!,
                                           DateTime.fromMillisecondsSinceEpoch(
-                                                  transaction.time.toInt())
+                                                  transaction.timestamp
+                                                          .toInt() *
+                                                      1000)
                                               .toIso8601String())
                                     ],
                                   ),

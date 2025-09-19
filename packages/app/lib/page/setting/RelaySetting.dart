@@ -24,7 +24,7 @@ class _RelaySettingState extends State<RelaySetting> {
   @override
   void initState() {
     super.initState();
-    relayTextController = TextEditingController(text: "wss://");
+    relayTextController = TextEditingController(text: 'wss://');
     ws = Get.find<WebsocketService>();
     ws.channels.refresh();
   }
@@ -48,15 +48,15 @@ class _RelaySettingState extends State<RelaySetting> {
                   context: context,
                   builder: (BuildContext context) {
                     return CupertinoAlertDialog(
-                      title: const Text("Reconnect Relays"),
+                      title: const Text('Reconnect Relays'),
                       content: const Text(
-                          "Are you sure you want to reconnect all relays?"),
+                          'Are you sure you want to reconnect all relays?'),
                       actions: [
                         CupertinoDialogAction(
                           onPressed: () {
                             Navigator.of(context).pop();
                           },
-                          child: const Text("Cancel"),
+                          child: const Text('Cancel'),
                         ),
                         CupertinoDialogAction(
                           isDefaultAction: true,
@@ -64,7 +64,7 @@ class _RelaySettingState extends State<RelaySetting> {
                             Navigator.of(context).pop();
                             Get.find<WebsocketService>().start();
                           },
-                          child: const Text("Confirm"),
+                          child: const Text('Confirm'),
                         ),
                       ],
                     );
@@ -113,12 +113,12 @@ class _RelaySettingState extends State<RelaySetting> {
                       .toList(),
                 )
               ])
-            : const Center(child: Text("No relay configured yet"))));
+            : const Center(child: Text('No relay configured yet'))));
   }
 
   void addRelay() {
     Get.dialog(CupertinoAlertDialog(
-      title: const Text("Add Nostr Relay"),
+      title: const Text('Add Nostr Relay'),
       content: Container(
         color: Colors.transparent,
         padding: const EdgeInsets.only(top: 15),
@@ -134,26 +134,26 @@ class _RelaySettingState extends State<RelaySetting> {
       ),
       actions: <Widget>[
         CupertinoDialogAction(
-          child: const Text("Cancel"),
+          child: const Text('Cancel'),
           onPressed: () {
-            Get.back();
+            Get.back<void>();
           },
         ),
         CupertinoDialogAction(
           isDefaultAction: true,
           onPressed: () async {
-            Get.back();
-            var url = relayTextController.text.trim();
-            if (url.startsWith("ws://") || url.startsWith("wss://")) {
+            Get.back<void>();
+            final url = relayTextController.text.trim();
+            if (url.startsWith('ws://') || url.startsWith('wss://')) {
               await RelayService.instance.addAndConnect(url);
               relayTextController.clear();
               return;
             } else {
-              EasyLoading.showError("Please input right format relay");
+              EasyLoading.showError('Please input right format relay');
               relayTextController.clear();
             }
           },
-          child: const Text("Confirm"),
+          child: const Text('Confirm'),
         ),
       ],
     ));

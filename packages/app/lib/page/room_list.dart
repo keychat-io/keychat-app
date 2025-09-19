@@ -1,27 +1,28 @@
+import 'dart:async';
+
 import 'package:app/app.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/desktop/DesktopController.dart';
+import 'package:app/page/RecommendBots/RecommendBots.dart';
 import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app/page/components.dart';
 import 'package:app/page/new_friends_rooms.dart';
 import 'package:app/page/search_page.dart';
 import 'package:app/page/widgets/RelayStatus.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:auto_size_text_plus/auto_size_text_plus.dart';
 import 'package:badges/badges.dart' as badges;
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:pull_to_refresh_flutter3/pull_to_refresh_flutter3.dart';
-import 'RecommendBots/RecommendBots.dart';
-import 'components.dart';
 
 class RoomList extends GetView<HomeController> {
   const RoomList({super.key});
 
   @override
   Widget build(BuildContext context) {
-    DesktopController? desktopController =
-        Utils.getGetxController<DesktopController>();
+    final desktopController = Utils.getGetxController<DesktopController>();
 
     return Scaffold(
       appBar: AppBar(
@@ -29,7 +30,7 @@ class RoomList extends GetView<HomeController> {
           titleSpacing: 0,
           centerTitle: true,
           leadingWidth: 0,
-          actions: [RelayStatus()],
+          actions: const [RelayStatus()],
           title: PreferredSize(
               preferredSize: const Size.fromHeight(0),
               child: SizedBox(
@@ -53,9 +54,9 @@ class RoomList extends GetView<HomeController> {
                             dividerColor: Colors.transparent,
                             tabs:
                                 controller.tabBodyDatas.values.map((TabData e) {
-                              Identity identity = e.identity;
-                              var title = identity.displayName.length > 15
-                                  ? "${identity.displayName.substring(0, 15)}..."
+                              final identity = e.identity;
+                              final title = identity.displayName.length > 15
+                                  ? '${identity.displayName.substring(0, 15)}...'
                                   : identity.displayName;
                               return Tab(
                                   child: badges.Badge(
@@ -73,28 +74,24 @@ class RoomList extends GetView<HomeController> {
                     ),
                   )))),
       body: Obx(() => TabBarView(
-          key: GlobalObjectKey('roomlist_tabview'),
+          key: const GlobalObjectKey('roomlist_tabview'),
           controller: controller.tabController,
           children: controller.tabBodyDatas.keys.map((identityId) {
-            TabData data = controller.tabBodyDatas[identityId]!;
-            List rooms = data.rooms;
-            return SmartRefresher(
-                enablePullDown: true,
-                header: const WaterDropHeader(),
-                controller: controller.refreshControllers[identityId] ??
-                    RefreshController(),
-                onRefresh: () async {
-                  // reconnect websocket
-                  await Get.find<WebsocketService>().start();
-                  controller.refreshControllers[identityId]?.refreshCompleted();
-                },
+            final data = controller.tabBodyDatas[identityId]!;
+            final rooms = data.rooms;
+            return CustomMaterialIndicator(
+                key: GlobalObjectKey('roomlist_tab_indicator_$identityId'),
+                onRefresh: () async => Get.find<WebsocketService>().start(),
+                displacement: 20,
+                backgroundColor: Colors.white,
+                triggerMode: IndicatorTriggerMode.anywhere,
                 child: ListView.separated(
                   key: ObjectKey('roomlist_tab_$identityId'),
                   padding: const EdgeInsets.only(
                       bottom: kMinInteractiveDimension * 2),
                   separatorBuilder: (context2, index) {
                     if (rooms[index] is Room) {
-                      if (rooms[index].pin) {
+                      if (rooms[index].pin == true) {
                         return Container();
                       }
                       return Divider(
@@ -102,7 +99,7 @@ class RoomList extends GetView<HomeController> {
                           color: Theme.of(context)
                               .dividerColor
                               .withValues(alpha: 0.1),
-                          indent: 80.0);
+                          indent: 80);
                     }
                     return Container();
                   },
@@ -127,8 +124,8 @@ class RoomList extends GetView<HomeController> {
                             child: Row(
                               children: [
                                 Padding(
-                                    padding:
-                                        EdgeInsets.symmetric(horizontal: 8),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8),
                                     child: Icon(Icons.search,
                                         color: Theme.of(context)
                                             .colorScheme
@@ -173,13 +170,13 @@ class RoomList extends GetView<HomeController> {
                               : const Color(0xFFEDEDED),
                           context);
                     }
-                    Room room = rooms[index];
+                    final room = rooms[index] as Room;
                     return GestureDetector(
                         key: ObjectKey('${index}_room${room.id}'),
                         onTap: () async {
                           await Utils.toNamedRoom(room);
-                          RoomService.instance.markAllRead(
-                              identityId: room.identityId, roomId: room.id);
+                          unawaited(RoomService.instance.markAllRead(
+                              identityId: room.identityId, roomId: room.id));
                           controller.resortRoomList(room.identityId);
                         },
                         onSecondaryTapDown: (e) {
@@ -187,15 +184,15 @@ class RoomList extends GetView<HomeController> {
                         },
                         onLongPress: () =>
                             RoomUtil.showRoomActionSheet(context, room),
-                        child: Container(
+                        child: ColoredBox(
                             color: room.pin
                                 ? Get.isDarkMode
                                     ? const Color(0xFF202020)
                                     : const Color(0xFFEDEDED)
                                 : Colors.transparent,
                             child: Obx(() => ListTile(
-                                  contentPadding:
-                                      EdgeInsets.only(left: 16, right: 16),
+                                  contentPadding: const EdgeInsets.only(
+                                      left: 16, right: 16),
                                   leading: Utils.getAvatarDot(room),
                                   key: Key('room:${room.id}'),
                                   selected: desktopController
@@ -209,7 +206,6 @@ class RoomList extends GetView<HomeController> {
                                     children: [
                                       AutoSizeText(room.getRoomName(),
                                           minFontSize: 10,
-                                          stepGranularity: 1,
                                           maxFontSize: 18,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -219,23 +215,23 @@ class RoomList extends GetView<HomeController> {
                                       if (controller.roomLastMessage[room.id] !=
                                           null)
                                         Wrap(
-                                          direction: Axis.horizontal,
                                           children: [
                                             textSmallGray(
                                                 context,
                                                 Utils.formatTimeMsg(controller
                                                     .roomLastMessage[room.id]!
                                                     .createdAt)),
-                                            room.isMute
-                                                ? Icon(
-                                                    Icons
-                                                        .notifications_off_outlined,
-                                                    color: Theme.of(context)
-                                                        .colorScheme
-                                                        .onSurface
-                                                        .withValues(alpha: 0.6),
-                                                    size: 16)
-                                                : Container()
+                                            if (room.isMute)
+                                              Icon(
+                                                  Icons
+                                                      .notifications_off_outlined,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurface
+                                                      .withValues(alpha: 0.6),
+                                                  size: 16)
+                                            else
+                                              Container()
                                           ],
                                         ),
                                     ],
@@ -257,7 +253,7 @@ class RoomList extends GetView<HomeController> {
   Widget getNewFriendsWidget(TabData data, List<Room> rooms,
       Color pinTileBackground, BuildContext context) {
     if (rooms.isEmpty) return Container();
-    return Container(
+    return ColoredBox(
         color: pinTileBackground,
         child: ListTile(
           key: const Key('room:anonymous'),
@@ -268,7 +264,7 @@ class RoomList extends GetView<HomeController> {
               style: const TextStyle(color: Colors.white),
             ),
             badgeAnimation: const badges.BadgeAnimation.fade(toAnimate: false),
-            position: badges.BadgePosition.topEnd(top: -8, end: -5),
+            position: badges.BadgePosition.topEnd(end: -5),
             child: CircleAvatar(
               radius: 26,
               backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
@@ -303,7 +299,7 @@ class RoomList extends GetView<HomeController> {
       Color pinTileBackground, BuildContext context) {
     if (rooms.isEmpty) return Container();
 
-    return Container(
+    return ColoredBox(
         color: pinTileBackground,
         child: ListTile(
           key: const Key('room:requesting'),
@@ -311,7 +307,7 @@ class RoomList extends GetView<HomeController> {
               showBadge: rooms.isNotEmpty,
               badgeContent: Text(rooms.length.toString(),
                   style: const TextStyle(color: Colors.white)),
-              position: badges.BadgePosition.topEnd(top: -8, end: -5),
+              position: badges.BadgePosition.topEnd(end: -5),
               child: CircleAvatar(
                   radius: 26,
                   backgroundColor:
@@ -343,8 +339,8 @@ class RoomList extends GetView<HomeController> {
     if (!GetPlatform.isDesktop) {
       return;
     }
-    final RenderBox overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox;
+    final overlay =
+        Overlay.of(context).context.findRenderObject()! as RenderBox;
     final position = RelativeRect.fromRect(
         Rect.fromPoints(
           e.globalPosition,
@@ -367,15 +363,12 @@ class RoomList extends GetView<HomeController> {
           room.pinAt = DateTime.now();
           await RoomService.instance.updateRoomAndRefresh(room);
           controller.loadIdentityRoomList(room.identityId);
-          break;
         case 'mute':
           await RoomService.instance.mute(room, !room.isMute);
-          break;
         case 'read':
           await RoomService.instance
               .markAllRead(identityId: room.identityId, roomId: room.id);
           controller.resortRoomList(room.identityId);
-          break;
         default:
       }
     });

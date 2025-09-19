@@ -9,7 +9,7 @@ import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:timer_builder/timer_builder.dart';
 
 class CreateInvoiceSucessPage extends StatefulWidget {
-  final LNTransaction transaction;
+  final Transaction transaction;
   const CreateInvoiceSucessPage({super.key, required this.transaction});
 
   @override
@@ -21,7 +21,7 @@ class CreateInvoiceSucessPageState extends State<CreateInvoiceSucessPage> {
   @override
   Widget build(context) {
     int time = DateTime.now().millisecondsSinceEpoch ~/ 1000 -
-        widget.transaction.time.toInt();
+        widget.transaction.timestamp.toInt();
     return Scaffold(
         appBar: AppBar(
           title: const Text('Invoice'),
@@ -40,7 +40,7 @@ class CreateInvoiceSucessPageState extends State<CreateInvoiceSucessPage> {
                     style: const TextStyle(fontSize: 24),
                   );
                 }),
-              textSmallGray(context, widget.transaction.mint),
+              textSmallGray(context, widget.transaction.mintUrl),
               const SizedBox(
                 height: 15,
               ),
@@ -59,12 +59,12 @@ class CreateInvoiceSucessPageState extends State<CreateInvoiceSucessPage> {
                       fontSize: 34,
                     ),
               )),
-              Utils.genQRImage(widget.transaction.pr,
+              Utils.genQRImage(widget.transaction.token,
                   size: 240, embeddedImageSize: 60, embeddedImage: null),
               Expanded(
                   child: Text(
                 maxLines: 2,
-                widget.transaction.pr,
+                widget.transaction.token,
                 overflow: TextOverflow.ellipsis,
               )),
               SafeArea(
@@ -80,7 +80,7 @@ class CreateInvoiceSucessPageState extends State<CreateInvoiceSucessPage> {
                                   const Size(double.infinity, 44))),
                           onPressed: () {
                             Clipboard.setData(
-                                ClipboardData(text: widget.transaction.pr));
+                                ClipboardData(text: widget.transaction.token));
                             EasyLoading.showToast('Copied');
                           },
                           icon: const Icon(Icons.copy),

@@ -1,6 +1,7 @@
 import 'dart:async' show Timer;
 import 'dart:convert' show jsonDecode;
 import 'dart:math' show Random, min;
+import 'dart:ui' show ImageFilter;
 
 import 'package:app/app.dart';
 import 'package:app/controller/chat.controller.dart';
@@ -10,7 +11,6 @@ import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/chat/message_widget.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/routes.dart';
-import 'package:app/page/theme.dart';
 import 'package:app/page/widgets/error_text.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/contact.service.dart';
@@ -25,12 +25,11 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 import 'package:get/get.dart';
 import 'package:markdown_widget/markdown_widget.dart';
-import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:settings_ui/settings_ui.dart';
 
 class ChatPage extends StatefulWidget {
-  final Room? room;
   const ChatPage({this.room, super.key});
+  final Room? room;
 
   @override
   _ChatPage2State createState() => _ChatPage2State();
@@ -38,21 +37,23 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPage2State extends State<ChatPage> {
   late ChatController controller;
-  DateTime searchDt = DateTime.now();
-  bool isFromSearch = false;
   HomeController hc = Get.find<HomeController>();
 
-  late Widget myAavtar;
+  late Widget myAvatar;
   bool isGroup = false;
   late MarkdownConfig markdownDarkConfig;
   late MarkdownConfig markdownLightConfig;
   bool isSendGreeting = false;
 
   @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
   void initState() {
-    Room room = _getRoomAndInit(context);
-    myAavtar = Utils.getRandomAvatar(room.getIdentity().secp256k1PKHex,
-        httpAvatar: room.getIdentity().avatarFromRelay, height: 40, width: 40);
+    final room = _getRoomAndInit();
+    myAvatar = Utils.getAvatarByIdentity(room.getIdentity(), 40);
     isGroup = room.type == RoomType.group;
     markdownDarkConfig = MarkdownConfig.darkConfig.copy(configs: [
       LinkConfig(
@@ -67,7 +68,7 @@ class _ChatPage2State extends State<ChatPage> {
       const PConfig(textStyle: TextStyle(color: Colors.white, fontSize: 16)),
       PreConfig.darkConfig
           .copy(textStyle: const TextStyle(color: Colors.white, fontSize: 16)),
-      BlockquoteConfig(textColor: const Color(0xFFFFFFFF))
+      const BlockquoteConfig(textColor: Color(0xFFFFFFFF))
     ]);
     markdownLightConfig = MarkdownConfig.defaultConfig.copy(configs: [
       LinkConfig(
@@ -82,198 +83,155 @@ class _ChatPage2State extends State<ChatPage> {
   }
 
   @override
-  void dispose() {
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-          scrolledUnderElevation: 0.0,
-          elevation: 0.0,
-          backgroundColor: Get.isDarkMode
-              ? const Color(0xFF000000)
-              : const Color(0xffededed),
-          centerTitle: true,
-          title: Obx(() => Wrap(
-                direction: Axis.horizontal,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  controller.roomObs.value.type != RoomType.group
-                      ? getRoomTitle(controller.roomObs.value.getRoomName(),
+    return Stack(children: [
+      Scaffold(
+          appBar: AppBar(
+            scrolledUnderElevation: 0,
+            elevation: 0,
+            backgroundColor: Get.isDarkMode
+                ? const Color(0xFF000000)
+                : const Color(0xffededed),
+            centerTitle: true,
+            title: Obx(() => Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    if (controller.roomObs.value.type != RoomType.group)
+                      getRoomTitle(controller.roomObs.value.getRoomName(),
                           controller.roomObs.value.isMute, null)
-                      : getRoomTitle(
+                    else
+                      getRoomTitle(
                           controller.roomObs.value.getRoomName(),
                           controller.roomObs.value.isMute,
                           controller.enableMembers.length.toString()),
-                  if (controller.roomObs.value.type == RoomType.bot)
-                    const Padding(
-                        padding: EdgeInsets.only(left: 5),
-                        child:
-                            Icon(Icons.android_outlined, color: Colors.purple))
-                ],
-              )),
-          actions: [
-            Obx(() => controller.roomObs.value.status != RoomStatus.approving
-                ? IconButton(
-                    onPressed: goToSetting,
-                    icon: const Icon(
-                      Icons.more_horiz,
-                    ),
-                  )
-                : Container())
-          ],
-        ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.miniEndTop,
-        floatingActionButton: Obx(() => controller.unreadIndex.value > 1
-            ? FilledButton.icon(
-                icon: const Icon(Icons.arrow_upward, color: Colors.white),
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: MaterialTheme.lightScheme().primary),
-                onPressed: () async {
-                  await controller.autoScrollController.scrollToIndex(
-                      controller.unreadIndex.value - 3,
-                      preferPosition: AutoScrollPosition.begin);
-                  controller.autoScrollController
-                      .highlight(controller.unreadIndex.value);
-                  controller.unreadIndex.value = -1;
-                },
-                label: Text('Unread: ${controller.unreadIndex.value + 1}',
-                    style: const TextStyle(color: Colors.white)),
-              )
-            : const SizedBox()),
-        body: GestureDetector(
-            onTap: () {
-              controller.processClickBlank();
+                    if (controller.roomObs.value.type == RoomType.bot)
+                      const Padding(
+                          padding: EdgeInsets.only(left: 5),
+                          child: Icon(Icons.android_outlined,
+                              color: Colors.purple))
+                  ],
+                )),
+            actions: [
+              Obx(() => controller.roomObs.value.status != RoomStatus.approving
+                  ? IconButton(
+                      onPressed: goToSetting,
+                      icon: const Icon(Icons.more_horiz),
+                    )
+                  : Container())
+            ],
+          ),
+          body: GestureDetector(
+            onTap: controller.processClickBlankArea,
+            onPanUpdate: (details) {
+              if (GetPlatform.isIOS && details.delta.dx < -10) {
+                goToSetting();
+              }
             },
-            child: GestureDetector(
-              onPanUpdate: (details) {
-                if (GetPlatform.isIOS) {
-                  if (details.delta.dx < -10) {
-                    goToSetting();
-                  }
-                }
-              },
-              child: Column(
-                children: <Widget>[
-                  Obx(() => debugWidget(hc)),
-                  if (controller.roomObs.value.isSendAllGroup)
-                    Obx(() => _kpaIsNull(controller)),
-                  Obx(() => controller.roomObs.value.signalDecodeError
-                      ? MyErrorText(
-                          errorText: 'Messages decrypted failed',
-                          action: TextButton(
-                              child: const Text('Fix it',
-                                  style: TextStyle(color: Colors.white)),
-                              onPressed: () async {
-                                await SignalChatService.instance
-                                    .sendHelloMessage(controller.roomObs.value,
-                                        controller.roomObs.value.getIdentity());
-                                EasyLoading.showInfo(
-                                    'Request sent successfully.');
-                              }),
-                        )
-                      : const SizedBox()),
-                  Expanded(
-                      child: Container(
-                          color: Get.isDarkMode
-                              ? const Color(0xFF000000)
-                              : const Color(0xffededed),
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Listener(
-                              onPointerMove: (event) {
-                                if (event.delta.dy < -10 && isFromSearch) {
-                                  List<Message> msgs =
-                                      controller.loadMoreChatFromSearchSroll();
-                                  if (msgs.isNotEmpty) {
-                                    controller.messages.addAll(
-                                        controller.sortMessageById(msgs));
-                                    controller.messages.value =
-                                        controller.messages.toSet().toList();
-                                    controller.messages.sort(((a, b) =>
-                                        b.createdAt.compareTo(a.createdAt)));
+            child: Column(
+              children: <Widget>[
+                Obx(() => debugWidget(hc)),
+                if (controller.roomObs.value.isSendAllGroup)
+                  Obx(() => _kpaIsNull(controller)),
+                Obx(() => controller.roomObs.value.signalDecodeError
+                    ? MyErrorText(
+                        errorText: 'Messages decrypted failed',
+                        action: TextButton(
+                            child: const Text('Fix it',
+                                style: TextStyle(color: Colors.white)),
+                            onPressed: () async {
+                              await SignalChatService.instance.sendHelloMessage(
+                                  controller.roomObs.value,
+                                  controller.roomObs.value.getIdentity());
+                              EasyLoading.showInfo(
+                                  'Request sent successfully.');
+                            }),
+                      )
+                    : const SizedBox()),
+                Expanded(
+                    child: Container(
+                        color: Get.isDarkMode
+                            ? const Color(0xFF000000)
+                            : const Color(0xffededed),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: CustomMaterialIndicator(
+                          onRefresh: controller.pullToLoadMessages,
+                          displacement: 4,
+                          trigger: IndicatorTrigger.bothEdges,
+                          triggerMode: IndicatorTriggerMode.anywhere,
+                          controller: controller.indicatorController,
+                          indicatorBuilder: (context, c) {
+                            return Padding(
+                              padding: const EdgeInsets.all(6),
+                              child: CircularProgressIndicator(
+                                  color: KeychatGlobal.primaryColor,
+                                  value: c.state.isLoading
+                                      ? null
+                                      : min(c.value, 1)),
+                            );
+                          },
+                          child: Obx(() => ListView.builder(
+                                key: PageStorageKey<String>(
+                                    'chatlistview:${controller.roomObs.value.id}'),
+                                reverse: true,
+                                shrinkWrap: true,
+                                itemCount: controller.messages.length,
+                                controller: controller.scrollController,
+                                itemBuilder: (BuildContext context, int index) {
+                                  final message = controller.messages[index];
+                                  RoomMember? rm;
+                                  if (!message.isMeSend &&
+                                      controller.roomObs.value.type ==
+                                          RoomType.group) {
+                                    rm = controller
+                                        .getMemberByIdPubkey(message.idPubkey);
+                                    if (rm != null) {
+                                      message.senderName = rm.name;
+                                    }
                                   }
-                                }
-                              },
-                              child: Obx(
-                                () => CustomMaterialIndicator(
-                                    onRefresh: controller.loadMoreChatHistory,
-                                    displacement: 20,
-                                    backgroundColor: Colors.white,
-                                    trigger: IndicatorTrigger.trailingEdge,
-                                    triggerMode: IndicatorTriggerMode.anywhere,
-                                    indicatorBuilder: (context, c) {
-                                      return Padding(
-                                        padding: const EdgeInsets.all(6.0),
-                                        child: CircularProgressIndicator(
-                                          color: KeychatGlobal.primaryColor,
-                                          value: c.state.isLoading
-                                              ? null
-                                              : min(c.value, 1.0),
-                                        ),
-                                      );
-                                    },
-                                    child: ListView.builder(
-                                      reverse: true,
-                                      shrinkWrap: true,
-                                      itemCount: controller.messages.length,
-                                      itemBuilder:
-                                          (BuildContext context, int index) {
-                                        Message message =
-                                            controller.messages[index];
 
-                                        RoomMember? rm;
-                                        if (!message.isMeSend &&
-                                            controller.roomObs.value.type ==
-                                                RoomType.group) {
-                                          rm = controller.getMemberByIdPubkey(
-                                              message.idPubkey);
-                                          if (rm != null) {
-                                            message.senderName = rm.name;
-                                          }
-                                        }
-
-                                        return AutoScrollTag(
-                                            key: ValueKey(index),
-                                            controller:
-                                                controller.autoScrollController,
-                                            index: index,
-                                            highlightColor: Theme.of(context)
-                                                .colorScheme
-                                                .inversePrimary,
-                                            child: MessageWidget(
-                                              key: ObjectKey(
-                                                  'msg:${message.id}'),
-                                              myAavtar: myAavtar,
-                                              index: index,
-                                              isGroup: isGroup,
-                                              roomMember: rm,
-                                              cc: controller,
-                                              screenWidth: Get.width,
-                                              toDisplayNameColor: Get.isDarkMode
-                                                  ? Colors.white54
-                                                  : Colors.black54,
-                                              backgroundColor: message.isMeSend
-                                                  ? KeychatGlobal.secondaryColor
-                                                  : Get.isDarkMode
-                                                      ? const Color(0xFF2c2c2c)
-                                                      : const Color(0xFFFFFFFF),
-                                              fontColor: Get.isDarkMode
-                                                  ? Colors.white
-                                                  : Colors.black87,
-                                              markdownConfig: Get.isDarkMode ||
-                                                      message.isMeSend
-                                                  ? markdownDarkConfig
-                                                  : markdownLightConfig,
-                                            ));
-                                      },
-                                    )),
-                              )))),
-                  Obx(() => getSendMessageInput(context, controller))
-                ],
-              ),
-            )));
+                                  return MessageWidget(
+                                    key: ObjectKey('msg:${message.id}'),
+                                    myAavtar: myAvatar,
+                                    index: index,
+                                    isGroup: isGroup,
+                                    roomMember: rm,
+                                    cc: controller,
+                                    screenWidth: Get.width,
+                                    toDisplayNameColor: Get.isDarkMode
+                                        ? Colors.white54
+                                        : Colors.black54,
+                                    backgroundColor: message.isMeSend
+                                        ? KeychatGlobal.secondaryColor
+                                        : Get.isDarkMode
+                                            ? const Color(0xFF2c2c2c)
+                                            : const Color(0xFFFFFFFF),
+                                    fontColor: Get.isDarkMode
+                                        ? Colors.white
+                                        : Colors.black87,
+                                    markdownConfig:
+                                        Get.isDarkMode || message.isMeSend
+                                            ? markdownDarkConfig
+                                            : markdownLightConfig,
+                                  );
+                                },
+                              )),
+                        ))),
+                Obx(() => getSendMessageInput(context, controller))
+              ],
+            ),
+          )), // Privacy protection blur layer
+      if (GetPlatform.isMobile)
+        Obx(() => hc.isBlurred.value
+            ? Positioned.fill(
+                child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    child: ColoredBox(
+                        color: Colors.black.withAlpha(30),
+                        child: const Center(
+                            child: Icon(CupertinoIcons.lock_shield_fill,
+                                size: 80, color: Colors.white)))))
+            : const SizedBox.shrink())
+    ]);
   }
 
   Widget getSendMessageInput(BuildContext context, ChatController controller) {
@@ -290,16 +248,16 @@ class _ChatPage2State extends State<ChatPage> {
               EasyLoading.show(
                   status:
                       '1. Receving all messages... \n2. Sending greeting...');
-              Room room = await RoomService.instance
+              var room = await RoomService.instance
                   .getRoomByIdOrFail(controller.roomObs.value.id);
 
               while (true) {
-                String receivingKey = room.onetimekey!;
+                final receivingKey = room.onetimekey!;
                 EasyLoading.show(status: 'Receiving from: $receivingKey');
                 await MlsGroupService.instance.waitingForEose(
                     receivingKey: receivingKey,
                     relays: controller.roomObs.value.sendingRelays);
-                await Future.delayed(Duration(milliseconds: 500));
+                await Future.delayed(const Duration(milliseconds: 500));
                 room = await RoomService.instance
                     .getRoomByIdOrFail(controller.roomObs.value.id);
 
@@ -319,13 +277,13 @@ class _ChatPage2State extends State<ChatPage> {
                   .sendGreetingMessage(controller.roomObs.value);
               EasyLoading.dismiss();
             } catch (e) {
-              String msg = Utils.getErrorMessage(e);
+              final msg = Utils.getErrorMessage(e);
               EasyLoading.showError(msg);
             } finally {
               isSendGreeting = false;
             }
           },
-          child: Text('Send Greeting')));
+          child: const Text('Send Greeting')));
     }
     switch (controller.roomObs.value.status) {
       case RoomStatus.requesting:
@@ -416,7 +374,7 @@ class _ChatPage2State extends State<ChatPage> {
                               horizontal: 8, vertical: 8),
                           decoration: BoxDecoration(
                             borderRadius: const BorderRadius.all(
-                              Radius.circular(4.0),
+                              Radius.circular(4),
                             ),
                             color: Get.isDarkMode
                                 ? Colors.grey.shade800
@@ -436,17 +394,17 @@ class _ChatPage2State extends State<ChatPage> {
                             textInputAction: TextInputAction.send,
                             onEditingComplete: controller.handleSubmitted,
                             contextMenuBuilder: (context, editableTextState) {
-                              final TextSelection selection = editableTextState
+                              final selection = editableTextState
                                   .currentTextEditingValue.selection;
-                              final String text = editableTextState
+                              final text = editableTextState
                                   .currentTextEditingValue.text;
-                              final bool hasSelection = !selection.isCollapsed;
-                              final bool hasText = text.isNotEmpty;
-                              final bool canSelectAll = hasText &&
+                              final hasSelection = !selection.isCollapsed;
+                              final hasText = text.isNotEmpty;
+                              final canSelectAll = hasText &&
                                   (selection.start != 0 ||
                                       selection.end != text.length);
 
-                              List<ContextMenuButtonItem> buttonItems = [];
+                              final buttonItems = <ContextMenuButtonItem>[];
 
                               if (hasSelection) {
                                 buttonItems.add(
@@ -563,13 +521,15 @@ class _ChatPage2State extends State<ChatPage> {
 
   Padding botMenuWidget(ChatController controller, BuildContext context) {
     return Padding(
-        padding: const EdgeInsets.only(left: 0, right: 5, bottom: 5),
+        padding: const EdgeInsets.only(right: 5, bottom: 5),
         child: GestureDetector(
             onTap: () {
-              Map localConfig =
-                  jsonDecode(controller.roomObs.value.botLocalConfig ?? '{}');
-              Map? botPricePerMessageRequest =
-                  localConfig['botPricePerMessageRequest'];
+              final Map localConfig =
+                  jsonDecode(controller.roomObs.value.botLocalConfig ?? '{}')
+                      as Map<String, dynamic>;
+              final Map? botPricePerMessageRequest =
+                  localConfig['botPricePerMessageRequest']
+                      as Map<String, dynamic>?;
               Get.bottomSheet(
                   clipBehavior: Clip.antiAlias,
                   shape: const RoundedRectangleBorder(
@@ -592,7 +552,7 @@ class _ChatPage2State extends State<ChatPage> {
                                     RoomService.instance.sendMessage(
                                         controller.roomObs.value,
                                         element['name']);
-                                    Get.back();
+                                    Get.back<void>();
                                   }),
                             )
                             .toList()),
@@ -605,7 +565,7 @@ class _ChatPage2State extends State<ChatPage> {
                               trailing: Text(
                                   '${botPricePerMessageRequest['price']} ${botPricePerMessageRequest['unit']} /message'),
                               onPressed: (context) async {
-                                Get.back();
+                                Get.back<void>();
                               })
                         ],
                       )
@@ -622,7 +582,7 @@ class _ChatPage2State extends State<ChatPage> {
   Widget getFeaturesWidget(BuildContext context) {
     return GridView.builder(
       physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.all(8),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: GetPlatform.isDesktop ? 6 : 4,
       ),
@@ -642,7 +602,7 @@ class _ChatPage2State extends State<ChatPage> {
                           .colorScheme
                           .onSurface
                           .withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(5.0),
+                      borderRadius: BorderRadius.circular(5),
                     ),
                     child: Center(
                       child: SizedBox(
@@ -678,15 +638,14 @@ class _ChatPage2State extends State<ChatPage> {
     }
   }
 
-  Future goToSetting() async {
-    String route = Routes.roomSettingContact;
+  Future<void> goToSetting() async {
+    var route = Routes.roomSettingContact;
     if (controller.roomObs.value.type == RoomType.group) {
       route = Routes.roomSettingGroup;
     }
     await Get.toNamed(
         route.replaceFirst(':id', controller.roomObs.value.id.toString()),
         id: GetPlatform.isDesktop ? GetXNestKey.room : null);
-    await controller.openPageAction();
     return;
   }
 
@@ -702,7 +661,6 @@ class _ChatPage2State extends State<ChatPage> {
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text('send: ${controller.statsSend}'),
                     Text('receive: ${controller.statsReceive}'),
@@ -716,7 +674,7 @@ class _ChatPage2State extends State<ChatPage> {
                               'Random to send message task starting',
                               duration: const Duration(seconds: 5));
                           hc.debugSendMessageRunning.value = true;
-                          int count = 0;
+                          var count = 0;
                           void randomTimer() {
                             if (!hc.debugSendMessageRunning.value) {
                               return;
@@ -748,7 +706,7 @@ class _ChatPage2State extends State<ChatPage> {
                     onPressed: () {
                       MessageService.instance
                           .deleteMessageByRoomId(controller.roomObs.value.id);
-                      Get.back();
+                      Get.back<void>();
                     },
                     child: const Text('clean')),
                 OutlinedButton(
@@ -790,7 +748,7 @@ class _ChatPage2State extends State<ChatPage> {
         ));
   }
 
-  void handleOnChanged(String value) async {
+  Future<void> handleOnChanged(String value) async {
     if (value.isEmpty) {
       if (!controller.hideSend.value) {
         controller.hideSend.value = true;
@@ -804,10 +762,10 @@ class _ChatPage2State extends State<ChatPage> {
       controller.hideAddIcon.value = true;
     }
     if (controller.roomObs.value.type == RoomType.group) {
-      String lastChar = value.substring(value.length - 1, value.length);
+      final lastChar = value.substring(value.length - 1, value.length);
       if (lastChar == '@' && controller.inputTextIsAdd.value) {
-        var members = controller.enableMembers.values.toList();
-        RoomMember? roomMember = await Get.bottomSheet(
+        final members = controller.enableMembers.values.toList();
+        final roomMember = await Get.bottomSheet(
             ignoreSafeArea: false,
             clipBehavior: Clip.antiAlias,
             shape: const RoundedRectangleBorder(
@@ -828,7 +786,7 @@ class _ChatPage2State extends State<ChatPage> {
                                     ?.withValues(alpha: 0.05)),
                         itemCount: members.length,
                         itemBuilder: (context, index) {
-                          RoomMember rm = members[index];
+                          final rm = members[index];
                           return ListTile(
                               onTap: () {
                                 Get.back(result: members[index]);
@@ -857,7 +815,6 @@ class _ChatPage2State extends State<ChatPage> {
 
   Widget getRoomTitle(String title, bool isMute, String? memberCount) {
     return Wrap(
-      direction: Axis.horizontal,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         Text(memberCount != null ? '$title ($memberCount)' : title),
@@ -909,10 +866,10 @@ class _ChatPage2State extends State<ChatPage> {
             FilledButton(
               onPressed: () async {
                 try {
-                  Room room = controller.roomObs.value;
+                  var room = controller.roomObs.value;
                   room = await RoomService.instance.getRoomByIdOrFail(room.id);
                   if (room.status == RoomStatus.approving) {
-                    String displayName = room.getIdentity().displayName;
+                    final displayName = room.getIdentity().displayName;
                     await SignalChatService.instance.sendMessage(
                         room, RoomUtil.getHelloMessage(displayName));
                     room.status = RoomStatus.enabled;
@@ -933,13 +890,13 @@ class _ChatPage2State extends State<ChatPage> {
             FilledButton(
               onPressed: () async {
                 try {
-                  int identityId = controller.roomObs.value.identityId;
+                  final identityId = controller.roomObs.value.identityId;
                   await RoomService.instance
                       .deleteRoom(controller.roomObs.value);
                   Get.find<HomeController>().loadIdentityRoomList(identityId);
                   await Utils.offAllNamedRoom(Routes.root);
                 } catch (e) {
-                  String msg = Utils.getErrorMessage(e);
+                  final msg = Utils.getErrorMessage(e);
                   EasyLoading.showError(msg);
                   logger.e(msg, error: e);
                 }
@@ -968,9 +925,19 @@ class _ChatPage2State extends State<ChatPage> {
                 fontSize: 16))));
   }
 
-  Room _getRoomAndInit(BuildContext context) {
-    Room? room = widget.room;
-    int? roomId = widget.room?.id;
+  int? tryGetMessageId() {
+    try {
+      final arguments = Get.arguments as Map<String, dynamic>;
+      return arguments['messageId'] as int?;
+      // ignore: empty_catches
+    } catch (e) {}
+    return null;
+  }
+
+  Room _getRoomAndInit() {
+    var room = widget.room;
+    var roomId = widget.room?.id;
+    final searchMessageId = tryGetMessageId();
     if (room == null) {
       if (Get.parameters['id'] != null) {
         roomId = int.parse(Get.parameters['id']!);
@@ -979,23 +946,26 @@ class _ChatPage2State extends State<ChatPage> {
         room = RoomService.instance.getRoomByIdSync(roomId);
       } else {
         try {
-          Map<String, dynamic> arguments = Get.arguments;
-          room = arguments['room'];
-          isFromSearch = arguments['isFromSearch'];
-          searchDt = arguments['searchDt'];
+          final arguments = Get.arguments as Map<String, dynamic>;
+          room = arguments['room'] as Room?;
         } catch (e) {
-          // only one arguments, not in Json format
           room = Get.arguments as Room;
         }
       }
     }
-    controller =
-        Utils.getGetxController<ChatController>(tag: roomId.toString()) ??
-            Get.put(ChatController(room!), tag: roomId.toString());
-
-    if (isFromSearch) {
-      controller.searchMsgIndex = 1;
-      controller.searchDt = searchDt;
+    final exist =
+        Utils.getGetxController<ChatController>(tag: roomId.toString());
+    if (exist != null) {
+      controller = exist;
+      if (searchMessageId != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          controller.loadFromMessageId(searchMessageId);
+        });
+      }
+    } else {
+      controller = Get.put(
+          ChatController(room!, searchMessageId: searchMessageId ?? -1),
+          tag: roomId.toString());
     }
     return room!;
   }
@@ -1026,7 +996,7 @@ class _ChatPage2State extends State<ChatPage> {
                           shrinkWrap: true,
                           itemCount: controller.kpaIsNullRooms.length,
                           itemBuilder: (context, index) {
-                            Room room = controller.kpaIsNullRooms[index];
+                            final room = controller.kpaIsNullRooms[index];
                             room.contact ??= ContactService.instance
                                 .getOrCreateContactSync(
                                     room.identityId, room.toMainPubkey);
@@ -1036,7 +1006,7 @@ class _ChatPage2State extends State<ChatPage> {
                               title: Text(room.getRoomName()),
                               trailing: OutlinedButton(
                                   onPressed: () async {
-                                    Room? room0 = await RoomService.instance
+                                    final room0 = await RoomService.instance
                                         .createRoomAndsendInvite(
                                             room.toMainPubkey,
                                             autoJump: false,

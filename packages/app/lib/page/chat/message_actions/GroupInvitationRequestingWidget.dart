@@ -18,18 +18,18 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
 class GroupInvitationRequestingWidget extends StatelessWidget {
-  final ChatController cc;
-  final Message message;
-  final Widget Function({Widget? child, String? text}) errorCallabck;
   const GroupInvitationRequestingWidget(
       this.cc, this.message, this.errorCallabck,
       {super.key});
+  final ChatController cc;
+  final Message message;
+  final Widget Function({Widget? child, String? text}) errorCallabck;
 
   @override
   Widget build(BuildContext context) {
     GroupInvitationRequestModel map;
     try {
-      KeychatMessage keychatMessage =
+      final keychatMessage =
           KeychatMessage.fromJson(jsonDecode(message.content));
       map = GroupInvitationRequestModel.fromJson(
           jsonDecode(keychatMessage.name!));
@@ -50,20 +50,20 @@ class GroupInvitationRequestingWidget extends StatelessWidget {
             EasyLoading.showToast('Proccessed');
             return;
           }
-          Room? groupRoom = await RoomService.instance.getRoomByIdentity(
+          final groupRoom = await RoomService.instance.getRoomByIdentity(
               map.roomPubkey, cc.roomObs.value.getIdentity().id);
           if (groupRoom == null) {
             EasyLoading.showToast('Group not found');
             return;
           }
           if (map.myPubkey == cc.roomObs.value.myIdPubkey) {
-            EasyLoading.showToast('It\'s your message');
+            EasyLoading.showToast("It's your message");
             return;
           }
           // bulk to proccess multi requesting
-          String? requestId = message.requestId;
+          final requestId = message.requestId;
           if (requestId != null) {
-            List<Message> requests =
+            final requests =
                 await MessageService.instance.getMessageByRequestId(requestId);
             if (requests.length >= 2) {
               Get.bottomSheet(
@@ -83,7 +83,7 @@ class GroupInvitationRequestingWidget extends StatelessWidget {
               CupertinoDialogAction(
                 child: const Text('Cancel'),
                 onPressed: () {
-                  Get.back();
+                  Get.back<void>();
                 },
               ),
               CupertinoDialogAction(
@@ -94,7 +94,7 @@ class GroupInvitationRequestingWidget extends StatelessWidget {
                       'sendJoinGroupRequest', const Duration(seconds: 5),
                       () async {
                     try {
-                      List<Map<String, dynamic>> users = [
+                      final users = <Map<String, dynamic>>[
                         {
                           'pubkey': map.myPubkey,
                           'name': map.myName,
@@ -114,11 +114,11 @@ class GroupInvitationRequestingWidget extends StatelessWidget {
 
                       EasyLoading.showSuccess('Success');
                     } catch (e, s) {
-                      String msg = Utils.getErrorMessage(e);
+                      final msg = Utils.getErrorMessage(e);
                       EasyLoading.showError('Error: $msg');
                       logger.e(msg, error: e, stackTrace: s);
                     }
-                    Get.back();
+                    Get.back<void>();
                   });
                 },
               ),

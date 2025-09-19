@@ -1,19 +1,19 @@
+import 'package:app/page/setting/relay_info/relay_info_controller.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:flutter/material.dart';
 import 'package:settings_ui/settings_ui.dart';
-import './relay_info_controller.dart';
 
 class RelayInfoPage extends GetView<RelayInfoController> {
   const RelayInfoPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    WebsocketService ws = Get.find<WebsocketService>();
+    final ws = Get.find<WebsocketService>();
 
     return Scaffold(
       appBar: AppBar(
@@ -28,7 +28,6 @@ class RelayInfoPage extends GetView<RelayInfoController> {
         ],
       ),
       body: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Obx(() => Visibility(
@@ -48,14 +47,14 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                   child: SettingsList(platform: DevicePlatform.iOS, sections: [
                 SettingsSection(tiles: [
                   SettingsTile.switchTile(
-                    title: const Text("Enable"),
+                    title: const Text('Enable'),
                     initialValue: controller.relay.value.active,
                     onToggle: (bool value) async {
                       controller.relay.value.active = value;
                       await RelayService.instance
                           .update(controller.relay.value);
                       controller.relay.refresh();
-                      WebsocketService ws = Get.find<WebsocketService>();
+                      final ws = Get.find<WebsocketService>();
                       if (value) {
                         await RelayService.instance
                             .addAndConnect(controller.relay.value.url);
@@ -109,8 +108,8 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                   // ),
 
                   SettingsTile(
-                    title: const Text("ID"),
-                    value: Text(controller.info['id'] ?? ""),
+                    title: const Text('ID'),
+                    value: Text(controller.info['id'] ?? ''),
                     onPressed: (context) {
                       if (controller.info['id'] == null) return;
                       Clipboard.setData(
@@ -119,10 +118,10 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                     },
                   ),
                   SettingsTile(
-                    title: const Text("pubkey"),
+                    title: const Text('pubkey'),
                     value: Flexible(
                         child: Text(
-                      controller.info['pubkey'] ?? "",
+                      controller.info['pubkey'] ?? '',
                     )),
                     onPressed: (context) {
                       if (controller.info['pubkey'] == null) return;
@@ -137,38 +136,38 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                   title: const Text('Info'),
                   tiles: [
                     SettingsTile(
-                      title: const Text("contact"),
-                      value: Text(controller.info['contact'] ?? ""),
+                      title: const Text('contact'),
+                      value: Text(controller.info['contact'] ?? ''),
                     ),
                     SettingsTile(
-                      title: const Text("Name"),
-                      value: Text(controller.info['name'] ?? ""),
+                      title: const Text('Name'),
+                      value: Text(controller.info['name'] ?? ''),
                     ),
                     SettingsTile(
-                      title: const Text("Description"),
+                      title: const Text('Description'),
                       value: Flexible(
                           child: Text(
-                        controller.info['description'] ?? "",
+                        controller.info['description'] ?? '',
                       )),
                     ),
                     SettingsTile(
-                      title: const Text("NIPs"),
+                      title: const Text('NIPs'),
                       value: Flexible(
                           child: Text(
                         (controller.info['supported_nips'] ?? []).toString(),
                       )),
                     ),
                     SettingsTile(
-                      title: const Text("Software"),
+                      title: const Text('Software'),
                       trailing: Flexible(
                         child: Text(
-                          controller.info['software'] ?? "",
+                          controller.info['software'] ?? '',
                         ),
                       ),
                     ),
                     SettingsTile(
-                      title: const Text("Version"),
-                      value: Text(controller.info['version'] ?? ""),
+                      title: const Text('Version'),
+                      value: Text(controller.info['version'] ?? ''),
                     ),
                   ],
                 ),
@@ -179,17 +178,18 @@ class RelayInfoPage extends GetView<RelayInfoController> {
   }
 
   SettingsSection getFeesWidget() {
-    List<SettingsTile> list = [
+    final list = <SettingsTile>[
       // SettingsTile(
       //     title: const Text("payments_url"),
       //     value: Text(controller.info['fees']?['payments_url'] ?? ""))
     ];
-    Map<String, dynamic> fees = controller.info['fees'] ?? {};
-    if (controller.info['limitation']?['payment_required'] ?? false) {
+    final fees = (controller.info['fees'] ?? <String, dynamic>{})
+        as Map<String, dynamic>;
+    if ((controller.info['limitation']?['payment_required'] ?? false) == true) {
       if (fees['publication'].length == 1) {
-        Map publication = fees['publication'][0];
-        List<String> mints = [];
-        for (var m in publication['method']['Cashu']["mints"]) {
+        final publication = fees['publication'][0] as Map<String, dynamic>;
+        final mints = <String>[];
+        for (final m in (publication['method']['Cashu']['mints'] as Iterable)) {
           mints.add(m);
         }
 
@@ -209,9 +209,9 @@ class RelayInfoPage extends GetView<RelayInfoController> {
       }
     }
 
-    var st = SettingsTile(
+    final st = SettingsTile(
       title: const Text('Price'),
-      value: const Text("-"),
+      value: const Text('-'),
     );
     return SettingsSection(
         title: const Text('Fees'), tiles: list.isEmpty ? [st] : list);
@@ -219,7 +219,7 @@ class RelayInfoPage extends GetView<RelayInfoController> {
 
   @pragma('vm:entry-point')
   static Route<void> _modalBuilder(BuildContext context, Object? arguments) {
-    RelayInfoController controller = Get.find<RelayInfoController>();
+    final controller = Get.find<RelayInfoController>();
     return CupertinoModalPopupRoute<void>(
       builder: (BuildContext context) {
         return CupertinoActionSheet(
@@ -241,7 +241,7 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                 style: TextStyle(color: Colors.red),
               ),
               onPressed: () async {
-                Get.back();
+                Get.back<void>();
                 await showDialog<bool>(
                   context: context,
                   builder: (context) {
@@ -249,17 +249,14 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                         title: const Text('Delete this relay?'),
                         actions: [
                           CupertinoDialogAction(
-                            onPressed: () {
-                              Get.back();
-                            },
+                            onPressed: Get.back,
                             child: const Text(
                               'Cancel',
                             ),
                           ),
                           CupertinoDialogAction(
                             onPressed: () async {
-                              WebsocketService ws =
-                                  Get.find<WebsocketService>();
+                              final ws = Get.find<WebsocketService>();
                               if (ws.channels.length == 1) {
                                 EasyLoading.showToast('At least one relay');
                                 return;
@@ -272,8 +269,8 @@ class RelayInfoPage extends GetView<RelayInfoController> {
                                   ?.close();
                               ws.channels.remove(controller.relay.value.url);
 
-                              Get.back();
-                              Get.back();
+                              Get.back<void>();
+                              Get.back<void>();
                             },
                             isDestructiveAction: true,
                             child: const Text(

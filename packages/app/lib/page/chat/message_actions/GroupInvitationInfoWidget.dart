@@ -17,17 +17,17 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
 class GroupInvitationInfoWidget extends StatelessWidget {
+  const GroupInvitationInfoWidget(this.cc, this.message, this.errorCallabck,
+      {super.key});
   final ChatController cc;
   final Message message;
   final Widget Function({Widget? child, String? text}) errorCallabck;
-  const GroupInvitationInfoWidget(this.cc, this.message, this.errorCallabck,
-      {super.key});
 
   @override
   Widget build(BuildContext context) {
     GroupInvitationModel map;
     try {
-      KeychatMessage keychatMessage =
+      final keychatMessage =
           KeychatMessage.fromJson(jsonDecode(message.content));
       map = GroupInvitationModel.fromJson(jsonDecode(keychatMessage.name!));
     } catch (e) {
@@ -48,7 +48,7 @@ class GroupInvitationInfoWidget extends StatelessWidget {
             return;
           }
 
-          Room? exist = await RoomService.instance
+          final exist = await RoomService.instance
               .getRoomByIdentity(map.pubkey, cc.roomObs.value.identityId);
           if (exist != null) {
             if (exist.id == cc.roomObs.value.id) {
@@ -83,7 +83,7 @@ class GroupInvitationInfoWidget extends StatelessWidget {
               CupertinoDialogAction(
                 child: const Text('Cancel'),
                 onPressed: () {
-                  Get.back();
+                  Get.back<void>();
                 },
               ),
               CupertinoDialogAction(
@@ -103,11 +103,11 @@ class GroupInvitationInfoWidget extends StatelessWidget {
                       await MessageService.instance
                           .updateMessageAndRefresh(message);
                     } catch (e, s) {
-                      String msg = Utils.getErrorMessage(e);
+                      final msg = Utils.getErrorMessage(e);
                       EasyLoading.showError('Error: $msg');
                       logger.e(msg, error: e, stackTrace: s);
                     }
-                    Get.back();
+                    Get.back<void>();
                   });
                 },
               ),

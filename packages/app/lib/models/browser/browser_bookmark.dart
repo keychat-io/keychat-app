@@ -7,6 +7,10 @@ part 'browser_bookmark.g.dart';
 @Collection(ignore: {'props'})
 // ignore: must_be_immutable
 class BrowserBookmark extends Equatable {
+  BrowserBookmark({required this.url, this.title, this.favicon}) {
+    createdAt = DateTime.now();
+    updatedAt = DateTime.now();
+  }
   Id id = Isar.autoIncrement;
 
   @Index(unique: true)
@@ -18,16 +22,11 @@ class BrowserBookmark extends Equatable {
   late DateTime updatedAt;
   bool isPin = false;
 
-  BrowserBookmark({required this.url, this.title, this.favicon}) {
-    createdAt = DateTime.now();
-    updatedAt = DateTime.now();
-  }
-
   @override
   List get props => [id, url, title, favicon];
 
   static Future<List<BrowserBookmark>> getAll() async {
-    var list = await DBProvider.database.browserBookmarks
+    final list = await DBProvider.database.browserBookmarks
         .where()
         .sortByWeightDesc()
         .thenByUpdatedAtDesc()
@@ -47,7 +46,7 @@ class BrowserBookmark extends Equatable {
     });
   }
 
-  static Future update(BrowserBookmark site) async {
+  static Future<void> update(BrowserBookmark site) async {
     site.updatedAt = DateTime.now();
     await DBProvider.database.writeTxn(() async {
       DBProvider.database.browserBookmarks.put(site);
@@ -63,17 +62,16 @@ class BrowserBookmark extends Equatable {
           .sortByWeightDesc()
           .findFirst();
 
-      int newWeight = maxWeightBookmark?.weight ?? 0;
+      final newWeight = maxWeightBookmark?.weight ?? 0;
 
-      BrowserBookmark model =
-          BrowserBookmark(url: url, title: title, favicon: favicon);
+      final model = BrowserBookmark(url: url, title: title, favicon: favicon);
       model.weight = newWeight;
       await DBProvider.database.browserBookmarks.put(model);
     });
   }
 
   static Future<BrowserBookmark?>? getByUrl(String url) async {
-    return await DBProvider.database.browserBookmarks
+    return DBProvider.database.browserBookmarks
         .filter()
         .urlEqualTo(url)
         .findFirst();
@@ -82,7 +80,7 @@ class BrowserBookmark extends Equatable {
   static Future<void> batchUpdateWeights(
       List<BrowserBookmark> bookmarks) async {
     await DBProvider.database.writeTxn(() async {
-      for (int i = 0; i < bookmarks.length; i++) {
+      for (var i = 0; i < bookmarks.length; i++) {
         bookmarks[i].weight = bookmarks.length - i;
         bookmarks[i].updatedAt = DateTime.now();
         await DBProvider.database.browserBookmarks.put(bookmarks[i]);

@@ -154,7 +154,7 @@ Let's start an encrypted chat.''';
         await DBProvider.database.nostrEventStatus
             .filter()
             .createdAtLessThan(
-                DateTime.now().subtract(const Duration(days: 180)))
+                DateTime.now().subtract(const Duration(days: 60)))
             .deleteAll();
       });
       // excute auto delete message by user setting
@@ -181,9 +181,9 @@ Let's start an encrypted chat.''';
       }
 
       // room setting > global setting
-      final fromAt = DateTime.now().subtract(const Duration(days: 180));
+      final fromAt = DateTime.now().subtract(const Duration(days: 365));
       final start = BigInt.from(fromAt.second);
-      rust_cashu.removeTransactions(
+      await rust_cashu.removeTransactions(
           unixTimestampLe: start, status: TransactionStatus.success);
     } catch (e, s) {
       logger.e('executeAutoDelete:$e', stackTrace: s);

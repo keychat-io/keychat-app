@@ -121,9 +121,10 @@ class EcashController extends GetxController {
   Future<bool> upgradeToV2() async {
     final ecashDBVersion =
         Storage.getIntOrZero(StorageKeyString.ecashDBVersion);
+    if (ecashDBVersion == EcashDBVersion.v2) return false;
+
     final dbV1Path = '$dbPath${KeychatGlobal.ecashDBFileV1}';
     final dbV2Path = '$dbPath${KeychatGlobal.ecashDBFileV2}';
-    if (ecashDBVersion == EcashDBVersion.v2) return false;
     if (ecashDBVersion == EcashDBVersion.v0) {
       final dbV1File = File(dbV1Path);
       if (!dbV1File.existsSync()) {

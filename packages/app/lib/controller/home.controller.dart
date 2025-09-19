@@ -349,21 +349,21 @@ class HomeController extends GetxController
         return;
       }
       final tabBodyData =
-          tabBodyDatas[identityId] ?? TabData(chatIdentities[identityId]!);
-      tabBodyData.unReadCount = unReadCount;
-      tabBodyData.anonymousUnReadCount = anonymousUnReadCount;
-      tabBodyData.requestingUnReadCount = requestingUnReadCount;
-      tabBodyData.rooms = datas;
+          tabBodyDatas[identityId] ?? TabData(chatIdentities[identityId]!)
+            ..unReadCount = unReadCount
+            ..anonymousUnReadCount = anonymousUnReadCount
+            ..requestingUnReadCount = requestingUnReadCount
+            ..rooms = datas;
       tabBodyDatas.value = Map.from(tabBodyDatas)..[identityId] = tabBodyData;
 
       var unReadSum = 0;
-      final List keys = tabBodyDatas.keys.toList();
+      final keys = tabBodyDatas.keys.toList();
       for (var i = 0; i < keys.length; i++) {
         final e = keys[i];
         final item = tabBodyDatas[e]!;
         unReadSum = unReadSum + item.unReadCount + item.anonymousUnReadCount;
       }
-      setUnreadCount(unReadSum);
+      await setUnreadCount(unReadSum);
     });
   }
 

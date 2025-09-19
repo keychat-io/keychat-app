@@ -45,7 +45,7 @@ class NostrWalletConnectController extends GetxController {
   void onInit() {
     ecashController = Get.find<EcashController>();
     websocketService = Get.find<WebsocketService>();
-    initWallet();
+    initNostrConnectWallet();
     super.onInit();
   }
 
@@ -55,9 +55,9 @@ class NostrWalletConnectController extends GetxController {
     super.dispose();
   }
 
-  Future<void> initWallet({bool loadFromCache = true}) async {
+  Future<void> initNostrConnectWallet({bool loadFromCache = true}) async {
     final map = await Storage.getLocalStorageMap(localStorageKey);
-    loggerNoLine.d('initWallet: $map');
+    loggerNoLine.d('initNostrConnectWallet: $map');
     if (loadFromCache && map.keys.isNotEmpty) {
       client.value = Secp256k1SimpleAccount(
           pubkey: map['client']['pubkey'], prikey: map['client']['prikey']);
@@ -81,8 +81,9 @@ class NostrWalletConnectController extends GetxController {
     // Find the intersection of relays and onlineRelays
     final intersectionRelays = relays.where(onlineRelays.contains).toList();
 
-    subscribeAndOnlineRelays.clear();
-    subscribeAndOnlineRelays.addAll(intersectionRelays);
+    subscribeAndOnlineRelays
+      ..clear()
+      ..addAll(intersectionRelays);
     if (subscribeAndOnlineRelays.isEmpty) {
       nwcUri.value = '';
       return;

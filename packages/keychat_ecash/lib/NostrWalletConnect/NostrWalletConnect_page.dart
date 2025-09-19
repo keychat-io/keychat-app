@@ -141,7 +141,8 @@ class _NostrWalletConnectPageState extends State<NostrWalletConnectPage> {
                       title: const Text('Generate a new uri'),
                       onPressed: (context) async {
                         controller.stopNwc();
-                        await controller.initWallet(loadFromCache: false);
+                        await controller.initNostrConnectWallet(
+                            loadFromCache: false);
                         await controller.setFeatureStatus(true);
                       },
                     ),

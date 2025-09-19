@@ -82,7 +82,7 @@ class CashuPage extends GetView<EcashController> {
               width: double.infinity,
               padding: GetPlatform.isDesktop
                   ? const EdgeInsets.all(8)
-                  : const EdgeInsets.all(0),
+                  : EdgeInsets.zero,
               child: CustomMaterialIndicator(
                 onRefresh: controller.requestPageRefresh,
                 displacement: 20,

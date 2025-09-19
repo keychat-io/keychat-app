@@ -60,7 +60,7 @@ class _CashuTransactionPageState extends State<CashuTransactionPage> {
                     width: double.infinity,
                     padding: GetPlatform.isDesktop
                         ? const EdgeInsets.all(8)
-                        : const EdgeInsets.all(0),
+                        : EdgeInsets.zero,
                     child: ListView(children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,

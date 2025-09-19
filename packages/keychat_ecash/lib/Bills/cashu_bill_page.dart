@@ -87,7 +87,7 @@ class CashuBillPage extends GetView<EcashBillController> {
                 width: double.infinity,
                 padding: GetPlatform.isDesktop
                     ? const EdgeInsets.all(8)
-                    : const EdgeInsets.all(0),
+                    : EdgeInsets.zero,
                 child: Obx(() => !controller.status.value &&
                         controller.transactions.isEmpty
                     ? const Center(

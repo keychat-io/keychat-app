@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert' show jsonDecode, jsonEncode;
 
 import 'package:app/controller/setting.controller.dart';
@@ -243,7 +244,7 @@ class MultiWebviewController extends GetxController {
         'historyRetentionDays': 30,
         'autoSignEvent': true,
       });
-      Storage.setString('browserConfig', localConfig);
+      await Storage.setString('browserConfig', localConfig);
     }
     config.value = jsonDecode(localConfig) as Map<String, dynamic>;
 
@@ -282,7 +283,7 @@ class MultiWebviewController extends GetxController {
 
   Future<void> addSearchEngine(String engine) async {
     enableSearchEngine.add(engine);
-    Storage.setStringList('searchEngine', enableSearchEngine.toList());
+    await Storage.setStringList('searchEngine', enableSearchEngine.toList());
   }
 
   void initBrowser() {
@@ -313,9 +314,9 @@ class MultiWebviewController extends GetxController {
 
     await loadConfig();
     await loadKeepAlive(isInit: true);
-    loadFavorite();
-    initWebview();
-    deleteOldHistories();
+    unawaited(loadFavorite());
+    unawaited(initWebview());
+    unawaited(deleteOldHistories());
     await loadDesktopTabs();
     if (tabs.isEmpty && GetPlatform.isDesktop) {
       addNewTab();
@@ -357,7 +358,7 @@ class MultiWebviewController extends GetxController {
 
   Future<void> removeSearchEngine(String engine) async {
     enableSearchEngine.remove(engine);
-    Storage.setStringList('searchEngine', enableSearchEngine.toList());
+    await Storage.setStringList('searchEngine', enableSearchEngine.toList());
   }
 
   Map<String, String> cachedFavicon = {};
@@ -424,7 +425,7 @@ class MultiWebviewController extends GetxController {
       final tabData = jsonDecode(savedTabs) as List<dynamic>;
       logger.d('Loading ${tabData.length} desktop tabs');
 
-      for (final data in tabData) {
+      for (final (data as Map) in tabData) {
         final url = (data['url'] ?? '') as String;
         final title = (data['title'] ?? '') as String;
         final favicon = data['favicon'] as String?;
@@ -498,7 +499,7 @@ class MultiWebviewController extends GetxController {
       return Get.put(WebviewTabController(uniqueKey, initUrl, initTitle),
           tag: uniqueKey);
     }
-    // for mobile
+    //
     try {
       final controller = Get.find<WebviewTabController>(tag: uniqueKey);
       logger.i('found controller $uniqueKey');
@@ -632,9 +633,13 @@ window.addEventListener('DOMContentLoaded', function(event) {
   Future<void> checkCurrentControllerAlive() async {
     if (tabs.isEmpty || currentIndex > tabs.length) return;
     final tab = tabs[currentIndex];
-
-    final controller = Get.find<WebviewTabController>(tag: tab.uniqueKey);
-    await controller.checkWebViewControllerAlive();
+    try {
+      final controller = Get.find<WebviewTabController>(tag: tab.uniqueKey);
+      await controller.checkWebViewControllerAlive();
+    } catch (e) {
+      // not found WebviewTabController
+      // logger.w('error: $e');
+    }
   }
 }
 

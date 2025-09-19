@@ -376,8 +376,9 @@ class ChatController extends GetxController {
     }
 
     sortedNewMessages.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    messages.insertAll(0, sortedNewMessages);
-    messages.value = List.from(messages);
+    messages
+      ..insertAll(0, sortedNewMessages)
+      ..value = List.from(messages);
     return sortedNewMessages.length;
   }
 

@@ -1,12 +1,12 @@
+import 'package:app/page/setting/relay_info/relay_info_controller.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:flutter/material.dart';
 import 'package:settings_ui/settings_ui.dart';
-import 'package:app/page/setting/relay_info/relay_info_controller.dart';
 
 class RelayInfoPage extends GetView<RelayInfoController> {
   const RelayInfoPage({super.key});
@@ -183,7 +183,8 @@ class RelayInfoPage extends GetView<RelayInfoController> {
       //     title: const Text("payments_url"),
       //     value: Text(controller.info['fees']?['payments_url'] ?? ""))
     ];
-    final fees = (controller.info['fees'] ?? {}) as Map<String, dynamic>;
+    final fees = (controller.info['fees'] ?? <String, dynamic>{})
+        as Map<String, dynamic>;
     if ((controller.info['limitation']?['payment_required'] ?? false) == true) {
       if (fees['publication'].length == 1) {
         final publication = fees['publication'][0] as Map<String, dynamic>;

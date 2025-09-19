@@ -24,7 +24,7 @@ class LightningBillPage extends GetView<LightningBillController> {
                 width: double.infinity,
                 padding: GetPlatform.isDesktop
                     ? const EdgeInsets.all(8)
-                    : const EdgeInsets.all(0),
+                    : EdgeInsets.zero,
                 child: Obx(() => !controller.status.value &&
                         controller.transactions.isEmpty
                     ? const Center(
@@ -33,11 +33,11 @@ class LightningBillPage extends GetView<LightningBillController> {
                             height: 100,
                             child: SpinKitWave(
                               color: Color.fromARGB(255, 141, 123, 243),
-                              size: 40.0,
+                              size: 40,
                             )))
                     : Obx(() => CustomMaterialIndicator(
                         onRefresh: () async {
-                          int offset = controller.transactions.length;
+                          var offset = controller.transactions.length;
                           if (controller.indicatorController.edge ==
                               IndicatorEdge.leading) {
                             offset = 0;
@@ -59,7 +59,7 @@ class LightningBillPage extends GetView<LightningBillController> {
                                 ),
                             itemCount: controller.transactions.length,
                             itemBuilder: (BuildContext context, int index) {
-                              Transaction transaction =
+                              final transaction =
                                   controller.transactions[index];
 
                               return ListTile(
@@ -88,7 +88,6 @@ class LightningBillPage extends GetView<LightningBillController> {
                                           .textTheme
                                           .bodyLarge),
                                   subtitle: Column(
-                                    mainAxisAlignment: MainAxisAlignment.start,
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [

@@ -13,9 +13,8 @@ import 'package:easy_debounce/easy_throttle.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 class RedPocketCashu extends StatefulWidget {
+  const RedPocketCashu({required this.message, super.key});
   final Message message;
-
-  const RedPocketCashu({super.key, required this.message});
 
   @override
   _RedPocketCashuState createState() => _RedPocketCashuState();
@@ -35,7 +34,7 @@ class _RedPocketCashuState extends State<RedPocketCashu> {
     return Container(
         constraints: const BoxConstraints(maxWidth: 350),
         alignment: Alignment.center,
-        padding: EdgeInsets.only(top: 8, bottom: 8),
+        padding: const EdgeInsets.only(top: 8, bottom: 8),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           gradient: const LinearGradient(
@@ -49,7 +48,6 @@ class _RedPocketCashuState extends State<RedPocketCashu> {
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             ListTile(
                 leading: SizedBox(
@@ -94,11 +92,10 @@ class _RedPocketCashuState extends State<RedPocketCashu> {
                               TransactionStatus.pending) {
                             return;
                           }
-                          CashuInfoModel? model =
-                              await CashuUtil.handleReceiveToken(
-                                  token: _cashuInfoModel.token,
-                                  messageId: widget.message.id,
-                                  retry: true);
+                          final model = await CashuUtil.handleReceiveToken(
+                              token: _cashuInfoModel.token,
+                              messageId: widget.message.id,
+                              retry: true);
 
                           if (model != null) {
                             logger.d(
@@ -120,14 +117,15 @@ class _RedPocketCashuState extends State<RedPocketCashu> {
                             ClipboardData(text: _cashuInfoModel.token));
                         EasyLoading.showSuccess('Token copied to clipboard');
                       },
-                      icon: Icon(Icons.copy, color: Colors.white, size: 16)),
+                      icon: const Icon(Icons.copy,
+                          color: Colors.white, size: 16)),
                   if (_cashuInfoModel.id != null)
                     IconButton(
                         style: OutlinedButton.styleFrom(
                             side: const BorderSide(color: Colors.white70)),
                         onPressed: checkStatus,
-                        icon:
-                            Icon(Icons.refresh, color: Colors.white, size: 16)),
+                        icon: const Icon(Icons.refresh,
+                            color: Colors.white, size: 16)),
                 ],
               ),
           ],
@@ -141,12 +139,11 @@ class _RedPocketCashuState extends State<RedPocketCashu> {
     }
     try {
       logger.d('checkStatus id: ${_cashuInfoModel.id}');
-      Transaction item =
-          await rust_cashu.checkTransaction(id: _cashuInfoModel.id!);
-      Transaction ln = item;
+      final item = await rust_cashu.checkTransaction(id: _cashuInfoModel.id!);
+      final ln = item;
       await updateMessageEcashStatus(ln.status);
     } catch (e, s) {
-      String msg = Utils.getErrorMessage(e);
+      final msg = Utils.getErrorMessage(e);
       EasyLoading.showError(msg);
       logger.e('checkStatus error: $e', stackTrace: s);
     }

@@ -86,7 +86,7 @@ class _WebStorePageState extends State<WebStorePage> {
                                         as String;
                                     return ListTile(
                                       dense: true,
-                                      contentPadding: const EdgeInsets.all(0),
+                                      contentPadding: EdgeInsets.zero,
                                       leading: Utils.getNeworkImageOrDefault(
                                           site['img']),
                                       title: Text(site['title'],

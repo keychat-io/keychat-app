@@ -297,7 +297,7 @@ class _WebviewTabState extends State<WebviewTab> {
                                               'KeepAlive Disabled.');
                                         });
                                   })),
-                              contentPadding: const EdgeInsets.all(0),
+                              contentPadding: EdgeInsets.zero,
                               horizontalTitleGap: 0,
                               title: Text('Keep Alive',
                                   style:
@@ -686,7 +686,7 @@ class _WebviewTabState extends State<WebviewTab> {
           ),
           IconButton(
             icon: const Icon(Icons.copy, size: 16),
-            padding: const EdgeInsets.all(0),
+            padding: EdgeInsets.zero,
             onPressed: () {
               Get.back<void>();
               Clipboard.setData(ClipboardData(text: url));

@@ -57,7 +57,7 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
         pubkeys.add(contact['pubkey']);
       }
     }
-    final Map result =
+    final result =
         await MlsGroupService.instance.getKeyPackagesFromRelay(pubkeys);
     for (var i = 0; i < widget.contacts.length; i++) {
       final contact = widget.contacts[i];
@@ -169,11 +169,12 @@ class _AddMemberToGroupState extends State<AddMemberToGroup>
                   itemBuilder: (context, index) {
                     final user = users[index];
                     return ListTile(
-                        leading: Utils.getRandomAvatar(user['pubkey']),
-                        title: Text(user['name'],
+                        leading: Utils.getRandomAvatar(user['pubkey'] as String,
+                            contact: user['contact'] as Contact?),
+                        title: Text(user['name'] as String,
                             style: Theme.of(context).textTheme.titleMedium),
                         dense: true,
-                        subtitle: Text(user['npubkey'],
+                        subtitle: Text(user['npubkey'] as String,
                             overflow: TextOverflow.ellipsis),
                         trailing:
                             getAddMemeberCheckBox(widget.room.groupType, user));

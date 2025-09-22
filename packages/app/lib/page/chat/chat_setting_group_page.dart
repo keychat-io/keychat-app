@@ -36,6 +36,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
   late TextEditingController textEditingController;
   late TextEditingController userNameController;
   late String myAlias = '';
+  late Identity identity;
   bool isAdmin = false;
   @override
   void initState() {
@@ -47,7 +48,8 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
     }
     cc = controller;
     super.initState();
-    final myRoomMember = cc.getMemberByIdPubkey(cc.roomObs.value.myIdPubkey);
+    identity = cc.roomObs.value.getIdentity();
+    final myRoomMember = cc.getMemberByIdPubkey(identity.secp256k1PKHex);
     myAlias = myRoomMember?.name ?? cc.roomObs.value.getIdentity().displayName;
     isAdmin = myRoomMember?.isAdmin ?? false;
     textEditingController = TextEditingController(text: cc.roomObs.value.name);
@@ -111,8 +113,8 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                   }
                   // contacts
                   var contactList = await ContactService.instance
-                      .getListExcludeSelf(cc.roomObs.value.identityId,
-                          cc.roomObs.value.myIdPubkey);
+                      .getListExcludeSelf(
+                          cc.roomObs.value.identityId, identity.secp256k1PKHex);
                   final contacts = <Map<String, dynamic>>[];
                   contactList = contactList.reversed.toList();
                   for (var i = 0; i < contactList.length; i++) {
@@ -124,13 +126,14 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                       'pubkey': contactList[i].pubkey,
                       'npubkey': contactList[i].npubkey,
                       'name': contactList[i].displayName,
+                      'contact': contactList[i],
                       'exist': exist,
                       'isCheck': false,
                       'mlsPK': null,
                       'isAdmin': admin == contactList[i].pubkey
                     });
                   }
-                  Get.bottomSheet(
+                  await Get.bottomSheet<void>(
                       AddMemberToGroup(
                           room: cc.roomObs.value, contacts: contacts),
                       isScrollControlled: true,
@@ -405,8 +408,8 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
     );
   }
 
-  Widget getImageGridView(List<RoomMember> list) {
-    list = list
+  Widget getImageGridView(List<RoomMember> members) {
+    final list = members
         .where((e) =>
             e.status == UserStatusType.invited ||
             e.status == UserStatusType.inviting)
@@ -426,11 +429,15 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                 if (rm.name == rm.idPubkey) {
                   rm.status = UserStatusType.inviting;
                 }
+                if (rm.idPubkey == identity.secp256k1PKHex) {
+                  rm.contact?.avatarLocalPath = identity.avatarLocalPath;
+                  rm.contact?.name = identity.displayName;
+                }
                 return InkWell(
                   key: Key(rm.idPubkey),
                   onTap: () async {
-                    if (cc.roomObs.value.myIdPubkey == rm.idPubkey) {
-                      EasyLoading.showToast("It 's me");
+                    if (identity.secp256k1PKHex == rm.idPubkey) {
+                      await EasyLoading.showToast("It 's me");
                       return;
                     }
                     var contact = await ContactService.instance

@@ -457,9 +457,9 @@ class MlsGroupService extends BaseChatService {
       groupRoom.version = version;
     }
     groupRoom = await replaceListenPubkey(groupRoom);
-    await RoomService.getController(groupRoom.id)
-        ?.setRoom(groupRoom)
-        .resetMembers();
+    RoomService.getController(groupRoom.id)
+      ?..setRoom(groupRoom)
+      ..resetMembers();
     return groupRoom;
   }
 
@@ -493,7 +493,9 @@ class MlsGroupService extends BaseChatService {
     await rust_mls.selfCommit(
         nostrId: identity.secp256k1PKHex, groupId: room.toMainPubkey);
     room = await replaceListenPubkey(room);
-    RoomService.getController(room.id)?.setRoom(room).resetMembers();
+    RoomService.getController(room.id)
+      ?..setRoom(room)
+      ..resetMembers();
   }
 
   Future<Room> replaceListenPubkey(Room room) async {
@@ -556,15 +558,14 @@ class MlsGroupService extends BaseChatService {
     await RoomService.instance.checkWebsocketConnect();
     final queuedMsg = await _selfUpdateKeyLocal(room, extension);
     final identity = room.getIdentity();
-    final realMessage =
-        "Hi everyone, I'm ${extension?['name'] ?? identity.displayName}!";
+    final realMessage = '[System] ${identity.displayName} updated my group key';
     await sendEncryptedMessage(room, queuedMsg, realMessage: realMessage);
     await rust_mls.selfCommit(
         nostrId: identity.secp256k1PKHex, groupId: room.toMainPubkey);
-    room = await replaceListenPubkey(room);
+    final room0 = await replaceListenPubkey(room);
     await RoomService.getController(room.id)?.resetMembers();
 
-    return room;
+    return room0;
   }
 
   Future<SendMessageResponse> sendEncryptedMessage(Room room, String message,
@@ -946,7 +947,9 @@ class MlsGroupService extends BaseChatService {
         }
         realMessage =
             '[System] $senderName removed [${diffMembers.join(",")}] ';
-        await RoomService.getController(room.id)?.setRoom(room).resetMembers();
+        RoomService.getController(room.id)
+          ?..setRoom(room)
+          ..resetMembers();
 
       case CommitTypeResult.groupContextExtensions:
         loggerNoLine.i(

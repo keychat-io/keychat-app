@@ -65,7 +65,7 @@ class WorldPage extends StatelessWidget {
                                 height: 1),
                         itemBuilder: (BuildContext context, int index) {
                           final ne = list[index] as NostrEventModel;
-                          final createdAt = Utils.getFormatTimeForMessage(
+                          final createdAt = Utils.formatTimeForMessage(
                               DateTime.fromMillisecondsSinceEpoch(
                                   ne.createdAt * 1000));
                           return ListTile(

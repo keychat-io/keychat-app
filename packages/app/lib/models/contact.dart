@@ -41,6 +41,7 @@ class Contact extends Equatable {
   String? name; // fetch from friend
   String? nameFromRelay; // fetch from relay
   String? avatarFromRelay; // fetch from relay
+  String? avatarFromRelayLocalPath;
   DateTime? fetchFromRelayAt; // fetch time
   String? aboutFromRelay;
   String? metadataFromRelay; // fetch from relay

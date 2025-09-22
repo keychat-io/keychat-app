@@ -74,7 +74,7 @@ class MessageWidget extends StatelessWidget {
           child: Container(
             margin: const EdgeInsets.only(top: 2),
             child: Text(
-              Utils.getFormatTimeForMessage(message.createdAt),
+              Utils.formatTimeForMessage(message.createdAt),
               style: TextStyle(
                   color: Get.isDarkMode
                       ? Colors.grey.shade700

@@ -27,6 +27,7 @@ import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart'
     show Transaction, TransactionStatus;
 import 'package:mime/mime.dart' show extensionFromMime;
+import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:super_clipboard/super_clipboard.dart';
@@ -601,21 +602,23 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
       final list = await MlsGroupService.instance.getMembers(roomObs.value);
       enableMembers.value = list;
       members.value = list;
-      // update member's avatar
-      updateRoomMembersAvatar(members.keys.toList(), roomObs.value.identityId);
 
       final admin = await roomObs.value.getAdmin();
       if (admin != null) {
         members[admin]!.isAdmin = true;
         enableMembers[admin]!.isAdmin = true;
       }
+      // update member's avatar
+      await updateRoomMembersAvatar(
+          members.keys.toList(), roomObs.value.identityId);
       return;
     }
     if (roomObs.value.isSendAllGroup) {
       members.value = await roomObs.value.getMembers();
       enableMembers.value = await roomObs.value.getEnableMembers();
       // update member's avatar
-      updateRoomMembersAvatar(members.keys.toList(), roomObs.value.identityId);
+      await updateRoomMembersAvatar(
+          members.keys.toList(), roomObs.value.identityId);
       memberRooms = await roomObs.value.getEnableMemberRooms();
       kpaIsNullRooms.value = await getKpaIsNullRooms(); // get null list
     }
@@ -624,22 +627,19 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
   Future<void> updateRoomMembersAvatar(
       List<String> pubkeys, int identityId) async {
     for (final pubkey in pubkeys) {
-      final item = await fetchAndUpdateMetadata(pubkey, identityId);
-      enableMembers[pubkey]?.avatarFromRelay = item.avatarFromRelay;
-      enableMembers[pubkey]?.nameFromRelay = item.nameFromRelay;
-
-      members[pubkey]?.avatarFromRelay = item.avatarFromRelay;
-      members[pubkey]?.nameFromRelay = item.nameFromRelay;
+      final contact =
+          await ContactService.instance.getContact(identityId, pubkey);
+      enableMembers[pubkey]?.contact = contact;
+      members[pubkey]?.contact = contact;
     }
   }
 
-  ChatController setRoom(Room newRoom) {
+  void setRoom(Room newRoom) {
     roomObs.value = newRoom;
     if (newRoom.contact != null) {
       roomContact.value = newRoom.contact!;
     }
     roomObs.refresh();
-    return this;
   }
 
   List<Message> sortMessageById(List<Message> list) {
@@ -843,18 +843,35 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
         if (contact.versionFromRelay >= res.createdAt) {
           continue;
         }
+
+        // Handle avatar download if URL changed
         if (avatarFromRelay != null && avatarFromRelay.isNotEmpty) {
           if (avatarFromRelay.startsWith('http') ||
               avatarFromRelay.startsWith('https')) {
             contact.avatarFromRelay = avatarFromRelay;
+
+            // Download avatar if URL changed
+            if (contact.avatarFromRelay != contact.avatarFromRelayLocalPath) {
+              try {
+                final localPath =
+                    await _downloadAndSaveAvatar(avatarFromRelay, pubkey);
+                if (localPath != null) {
+                  contact.avatarFromRelayLocalPath = localPath;
+                }
+              } catch (e, s) {
+                logger.e('Failed to download avatar: $e',
+                    error: e, stackTrace: s);
+              }
+            }
           }
         }
 
-        contact.nameFromRelay = nameFromRelay;
-        contact.aboutFromRelay = description;
-        contact.metadataFromRelay = res.content;
-        contact.fetchFromRelayAt = DateTime.now();
-        contact.versionFromRelay = res.createdAt;
+        contact
+          ..nameFromRelay = nameFromRelay
+          ..aboutFromRelay = description
+          ..metadataFromRelay = res.content
+          ..fetchFromRelayAt = DateTime.now()
+          ..versionFromRelay = res.createdAt;
         loggerNoLine.i(
             'fetchUserMetadata: ${contact.pubkey} name: ${contact.nameFromRelay} avatar: ${contact.avatarFromRelay} ${contact.aboutFromRelay}');
         await ContactService.instance.saveContact(contact);
@@ -864,6 +881,39 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     }
     return contacts.firstWhereOrNull((item) => item.identityId == identityId) ??
         contacts.first;
+  }
+
+  /// Download avatar from URL and save to local avatars folder
+  Future<String?> _downloadAndSaveAvatar(
+      String avatarUrl, String pubkey) async {
+    try {
+      // Get file extension from URL
+      final uri = Uri.parse(avatarUrl);
+      var extension = path.extension(uri.path).toLowerCase();
+      if (extension.isEmpty) {
+        extension = '.jpg'; // Default extension
+      }
+
+      // Generate filename based on pubkey
+      final filename = '$pubkey$extension';
+      final localPath = path.join(Utils.avatarsFolder, filename);
+      final localFile = File(localPath);
+
+      // Download the file
+      final downloadedFile = await FileService.instance.downloadFile(avatarUrl);
+      if (downloadedFile != null) {
+        // Copy to avatars folder
+        await downloadedFile.copy(localPath);
+        await downloadedFile.delete(); // Clean up temp file
+
+        // Return relative path
+        return localFile.path.replaceFirst(Utils.appFolder.path, '');
+      }
+    } catch (e, s) {
+      logger.e('Failed to download avatar from $avatarUrl: $e',
+          error: e, stackTrace: s);
+    }
+    return null;
   }
 
   Future<bool> handlePasteboardFile() async {

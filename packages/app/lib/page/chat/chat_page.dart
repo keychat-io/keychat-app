@@ -53,7 +53,7 @@ class _ChatPage2State extends State<ChatPage> {
   @override
   void initState() {
     final room = _getRoomAndInit();
-    myAvatar = Utils.getAvatarByIdentity(room.getIdentity(), 40);
+    myAvatar = Utils.getAvatarByIdentity(room.getIdentity());
     isGroup = room.type == RoomType.group;
     markdownDarkConfig = MarkdownConfig.darkConfig.copy(configs: [
       LinkConfig(
@@ -765,7 +765,7 @@ class _ChatPage2State extends State<ChatPage> {
       final lastChar = value.substring(value.length - 1, value.length);
       if (lastChar == '@' && controller.inputTextIsAdd.value) {
         final members = controller.enableMembers.values.toList();
-        final roomMember = await Get.bottomSheet(
+        final roomMember = await Get.bottomSheet<RoomMember>(
             ignoreSafeArea: false,
             clipBehavior: Clip.antiAlias,
             shape: const RoundedRectangleBorder(
@@ -792,9 +792,7 @@ class _ChatPage2State extends State<ChatPage> {
                                 Get.back(result: members[index]);
                               },
                               leading: Utils.getRandomAvatar(rm.idPubkey,
-                                  height: 36,
-                                  width: 36,
-                                  httpAvatar: rm.avatarFromRelay),
+                                  height: 36, width: 36, contact: rm.contact),
                               title: Text(
                                 rm.name,
                                 maxLines: 1,
@@ -805,7 +803,7 @@ class _ChatPage2State extends State<ChatPage> {
                               ));
                         }))));
         if (roomMember != null) {
-          controller.addMetionName(roomMember.name);
+          controller.addMetionName(roomMember.displayName);
           controller.chatContentFocus.requestFocus();
           // FocusScope.of(Get.context!).requestFocus(controller.chatContentFocus);
         }

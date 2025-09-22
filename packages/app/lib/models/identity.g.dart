@@ -32,133 +32,138 @@ const IdentitySchema = CollectionSchema(
       name: r'avatarFromRelay',
       type: IsarType.string,
     ),
-    r'avatarLocalPath': PropertySchema(
+    r'avatarFromRelayLocalPath': PropertySchema(
       id: 3,
+      name: r'avatarFromRelayLocalPath',
+      type: IsarType.string,
+    ),
+    r'avatarLocalPath': PropertySchema(
+      id: 4,
       name: r'avatarLocalPath',
       type: IsarType.string,
     ),
     r'avatarRemoteUrl': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'avatarRemoteUrl',
       type: IsarType.string,
     ),
     r'avatarUpdatedAt': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'avatarUpdatedAt',
       type: IsarType.dateTime,
     ),
     r'createdAt': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'curve25519PkHex': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'curve25519PkHex',
       type: IsarType.string,
     ),
     r'curve25519SkHex': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'curve25519SkHex',
       type: IsarType.string,
     ),
     r'enableBrowser': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'enableBrowser',
       type: IsarType.bool,
     ),
     r'enableChat': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'enableChat',
       type: IsarType.bool,
     ),
     r'fetchFromRelayAt': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'fetchFromRelayAt',
       type: IsarType.dateTime,
     ),
     r'hashCode': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'hashCode',
       type: IsarType.long,
     ),
     r'index': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'index',
       type: IsarType.long,
     ),
     r'isDefault': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'isDefault',
       type: IsarType.bool,
     ),
     r'isFromSigner': PropertySchema(
-      id: 15,
+      id: 16,
       name: r'isFromSigner',
       type: IsarType.bool,
     ),
     r'lightning': PropertySchema(
-      id: 16,
+      id: 17,
       name: r'lightning',
       type: IsarType.string,
     ),
     r'metadata': PropertySchema(
-      id: 17,
+      id: 18,
       name: r'metadata',
       type: IsarType.string,
     ),
     r'metadataFromRelay': PropertySchema(
-      id: 18,
+      id: 19,
       name: r'metadataFromRelay',
       type: IsarType.string,
     ),
     r'mnemonic': PropertySchema(
-      id: 19,
+      id: 20,
       name: r'mnemonic',
       type: IsarType.string,
     ),
     r'name': PropertySchema(
-      id: 20,
+      id: 21,
       name: r'name',
       type: IsarType.string,
     ),
     r'nameFromRelay': PropertySchema(
-      id: 21,
+      id: 22,
       name: r'nameFromRelay',
       type: IsarType.string,
     ),
     r'note': PropertySchema(
-      id: 22,
+      id: 23,
       name: r'note',
       type: IsarType.string,
     ),
     r'npub': PropertySchema(
-      id: 23,
+      id: 24,
       name: r'npub',
       type: IsarType.string,
     ),
     r'secp256k1PKHex': PropertySchema(
-      id: 24,
+      id: 25,
       name: r'secp256k1PKHex',
       type: IsarType.string,
     ),
     r'secp256k1SKHex': PropertySchema(
-      id: 25,
+      id: 26,
       name: r'secp256k1SKHex',
       type: IsarType.string,
     ),
     r'stringify': PropertySchema(
-      id: 26,
+      id: 27,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'versionFromRelay': PropertySchema(
-      id: 27,
+      id: 28,
       name: r'versionFromRelay',
       type: IsarType.long,
     ),
     r'weight': PropertySchema(
-      id: 28,
+      id: 29,
       name: r'weight',
       type: IsarType.long,
     )
@@ -211,6 +216,12 @@ int _identityEstimateSize(
   }
   {
     final value = object.avatarFromRelay;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.avatarFromRelayLocalPath;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -296,32 +307,33 @@ void _identitySerialize(
   writer.writeString(offsets[0], object.about);
   writer.writeString(offsets[1], object.aboutFromRelay);
   writer.writeString(offsets[2], object.avatarFromRelay);
-  writer.writeString(offsets[3], object.avatarLocalPath);
-  writer.writeString(offsets[4], object.avatarRemoteUrl);
-  writer.writeDateTime(offsets[5], object.avatarUpdatedAt);
-  writer.writeDateTime(offsets[6], object.createdAt);
-  writer.writeString(offsets[7], object.curve25519PkHex);
-  writer.writeString(offsets[8], object.curve25519SkHex);
-  writer.writeBool(offsets[9], object.enableBrowser);
-  writer.writeBool(offsets[10], object.enableChat);
-  writer.writeDateTime(offsets[11], object.fetchFromRelayAt);
-  writer.writeLong(offsets[12], object.hashCode);
-  writer.writeLong(offsets[13], object.index);
-  writer.writeBool(offsets[14], object.isDefault);
-  writer.writeBool(offsets[15], object.isFromSigner);
-  writer.writeString(offsets[16], object.lightning);
-  writer.writeString(offsets[17], object.metadata);
-  writer.writeString(offsets[18], object.metadataFromRelay);
-  writer.writeString(offsets[19], object.mnemonic);
-  writer.writeString(offsets[20], object.name);
-  writer.writeString(offsets[21], object.nameFromRelay);
-  writer.writeString(offsets[22], object.note);
-  writer.writeString(offsets[23], object.npub);
-  writer.writeString(offsets[24], object.secp256k1PKHex);
-  writer.writeString(offsets[25], object.secp256k1SKHex);
-  writer.writeBool(offsets[26], object.stringify);
-  writer.writeLong(offsets[27], object.versionFromRelay);
-  writer.writeLong(offsets[28], object.weight);
+  writer.writeString(offsets[3], object.avatarFromRelayLocalPath);
+  writer.writeString(offsets[4], object.avatarLocalPath);
+  writer.writeString(offsets[5], object.avatarRemoteUrl);
+  writer.writeDateTime(offsets[6], object.avatarUpdatedAt);
+  writer.writeDateTime(offsets[7], object.createdAt);
+  writer.writeString(offsets[8], object.curve25519PkHex);
+  writer.writeString(offsets[9], object.curve25519SkHex);
+  writer.writeBool(offsets[10], object.enableBrowser);
+  writer.writeBool(offsets[11], object.enableChat);
+  writer.writeDateTime(offsets[12], object.fetchFromRelayAt);
+  writer.writeLong(offsets[13], object.hashCode);
+  writer.writeLong(offsets[14], object.index);
+  writer.writeBool(offsets[15], object.isDefault);
+  writer.writeBool(offsets[16], object.isFromSigner);
+  writer.writeString(offsets[17], object.lightning);
+  writer.writeString(offsets[18], object.metadata);
+  writer.writeString(offsets[19], object.metadataFromRelay);
+  writer.writeString(offsets[20], object.mnemonic);
+  writer.writeString(offsets[21], object.name);
+  writer.writeString(offsets[22], object.nameFromRelay);
+  writer.writeString(offsets[23], object.note);
+  writer.writeString(offsets[24], object.npub);
+  writer.writeString(offsets[25], object.secp256k1PKHex);
+  writer.writeString(offsets[26], object.secp256k1SKHex);
+  writer.writeBool(offsets[27], object.stringify);
+  writer.writeLong(offsets[28], object.versionFromRelay);
+  writer.writeLong(offsets[29], object.weight);
 }
 
 Identity _identityDeserialize(
@@ -331,35 +343,36 @@ Identity _identityDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Identity(
-    name: reader.readString(offsets[20]),
-    note: reader.readStringOrNull(offsets[22]),
-    npub: reader.readString(offsets[23]),
-    secp256k1PKHex: reader.readString(offsets[24]),
+    name: reader.readString(offsets[21]),
+    note: reader.readStringOrNull(offsets[23]),
+    npub: reader.readString(offsets[24]),
+    secp256k1PKHex: reader.readString(offsets[25]),
   );
   object.about = reader.readStringOrNull(offsets[0]);
   object.aboutFromRelay = reader.readStringOrNull(offsets[1]);
   object.avatarFromRelay = reader.readStringOrNull(offsets[2]);
-  object.avatarLocalPath = reader.readStringOrNull(offsets[3]);
-  object.avatarRemoteUrl = reader.readStringOrNull(offsets[4]);
-  object.avatarUpdatedAt = reader.readDateTimeOrNull(offsets[5]);
-  object.createdAt = reader.readDateTime(offsets[6]);
-  object.curve25519PkHex = reader.readStringOrNull(offsets[7]);
-  object.curve25519SkHex = reader.readStringOrNull(offsets[8]);
-  object.enableBrowser = reader.readBool(offsets[9]);
-  object.enableChat = reader.readBool(offsets[10]);
-  object.fetchFromRelayAt = reader.readDateTimeOrNull(offsets[11]);
+  object.avatarFromRelayLocalPath = reader.readStringOrNull(offsets[3]);
+  object.avatarLocalPath = reader.readStringOrNull(offsets[4]);
+  object.avatarRemoteUrl = reader.readStringOrNull(offsets[5]);
+  object.avatarUpdatedAt = reader.readDateTimeOrNull(offsets[6]);
+  object.createdAt = reader.readDateTime(offsets[7]);
+  object.curve25519PkHex = reader.readStringOrNull(offsets[8]);
+  object.curve25519SkHex = reader.readStringOrNull(offsets[9]);
+  object.enableBrowser = reader.readBool(offsets[10]);
+  object.enableChat = reader.readBool(offsets[11]);
+  object.fetchFromRelayAt = reader.readDateTimeOrNull(offsets[12]);
   object.id = id;
-  object.index = reader.readLong(offsets[13]);
-  object.isDefault = reader.readBool(offsets[14]);
-  object.isFromSigner = reader.readBool(offsets[15]);
-  object.lightning = reader.readStringOrNull(offsets[16]);
-  object.metadata = reader.readStringOrNull(offsets[17]);
-  object.metadataFromRelay = reader.readStringOrNull(offsets[18]);
-  object.mnemonic = reader.readStringOrNull(offsets[19]);
-  object.nameFromRelay = reader.readStringOrNull(offsets[21]);
-  object.secp256k1SKHex = reader.readStringOrNull(offsets[25]);
-  object.versionFromRelay = reader.readLong(offsets[27]);
-  object.weight = reader.readLong(offsets[28]);
+  object.index = reader.readLong(offsets[14]);
+  object.isDefault = reader.readBool(offsets[15]);
+  object.isFromSigner = reader.readBool(offsets[16]);
+  object.lightning = reader.readStringOrNull(offsets[17]);
+  object.metadata = reader.readStringOrNull(offsets[18]);
+  object.metadataFromRelay = reader.readStringOrNull(offsets[19]);
+  object.mnemonic = reader.readStringOrNull(offsets[20]);
+  object.nameFromRelay = reader.readStringOrNull(offsets[22]);
+  object.secp256k1SKHex = reader.readStringOrNull(offsets[26]);
+  object.versionFromRelay = reader.readLong(offsets[28]);
+  object.weight = reader.readLong(offsets[29]);
   return object;
 }
 
@@ -381,29 +394,29 @@ P _identityDeserializeProp<P>(
     case 4:
       return (reader.readStringOrNull(offset)) as P;
     case 5:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 6:
-      return (reader.readDateTime(offset)) as P;
-    case 7:
       return (reader.readStringOrNull(offset)) as P;
+    case 6:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 7:
+      return (reader.readDateTime(offset)) as P;
     case 8:
       return (reader.readStringOrNull(offset)) as P;
     case 9:
-      return (reader.readBool(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 10:
       return (reader.readBool(offset)) as P;
     case 11:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 12:
-      return (reader.readLong(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 13:
       return (reader.readLong(offset)) as P;
     case 14:
-      return (reader.readBool(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 15:
       return (reader.readBool(offset)) as P;
     case 16:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 17:
       return (reader.readStringOrNull(offset)) as P;
     case 18:
@@ -411,22 +424,24 @@ P _identityDeserializeProp<P>(
     case 19:
       return (reader.readStringOrNull(offset)) as P;
     case 20:
-      return (reader.readString(offset)) as P;
-    case 21:
       return (reader.readStringOrNull(offset)) as P;
+    case 21:
+      return (reader.readString(offset)) as P;
     case 22:
       return (reader.readStringOrNull(offset)) as P;
     case 23:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 24:
       return (reader.readString(offset)) as P;
     case 25:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 26:
-      return (reader.readBoolOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 27:
-      return (reader.readLong(offset)) as P;
+      return (reader.readBoolOrNull(offset)) as P;
     case 28:
+      return (reader.readLong(offset)) as P;
+    case 29:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1072,6 +1087,162 @@ extension IdentityQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'avatarFromRelay',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarFromRelayLocalPathIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'avatarFromRelayLocalPath',
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarFromRelayLocalPathIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'avatarFromRelayLocalPath',
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarFromRelayLocalPathEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'avatarFromRelayLocalPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarFromRelayLocalPathGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'avatarFromRelayLocalPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarFromRelayLocalPathLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'avatarFromRelayLocalPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarFromRelayLocalPathBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'avatarFromRelayLocalPath',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarFromRelayLocalPathStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'avatarFromRelayLocalPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarFromRelayLocalPathEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'avatarFromRelayLocalPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarFromRelayLocalPathContains(String value,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'avatarFromRelayLocalPath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarFromRelayLocalPathMatches(String pattern,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'avatarFromRelayLocalPath',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarFromRelayLocalPathIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'avatarFromRelayLocalPath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterFilterCondition>
+      avatarFromRelayLocalPathIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'avatarFromRelayLocalPath',
         value: '',
       ));
     });
@@ -3710,6 +3881,20 @@ extension IdentityQuerySortBy on QueryBuilder<Identity, Identity, QSortBy> {
     });
   }
 
+  QueryBuilder<Identity, Identity, QAfterSortBy>
+      sortByAvatarFromRelayLocalPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avatarFromRelayLocalPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy>
+      sortByAvatarFromRelayLocalPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avatarFromRelayLocalPath', Sort.desc);
+    });
+  }
+
   QueryBuilder<Identity, Identity, QAfterSortBy> sortByAvatarLocalPath() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'avatarLocalPath', Sort.asc);
@@ -4058,6 +4243,20 @@ extension IdentityQuerySortThenBy
   QueryBuilder<Identity, Identity, QAfterSortBy> thenByAvatarFromRelayDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'avatarFromRelay', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy>
+      thenByAvatarFromRelayLocalPath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avatarFromRelayLocalPath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Identity, Identity, QAfterSortBy>
+      thenByAvatarFromRelayLocalPathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'avatarFromRelayLocalPath', Sort.desc);
     });
   }
 
@@ -4411,6 +4610,14 @@ extension IdentityQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Identity, Identity, QDistinct>
+      distinctByAvatarFromRelayLocalPath({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'avatarFromRelayLocalPath',
+          caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<Identity, Identity, QDistinct> distinctByAvatarLocalPath(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -4613,6 +4820,13 @@ extension IdentityQueryProperty
   QueryBuilder<Identity, String?, QQueryOperations> avatarFromRelayProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'avatarFromRelay');
+    });
+  }
+
+  QueryBuilder<Identity, String?, QQueryOperations>
+      avatarFromRelayLocalPathProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'avatarFromRelayLocalPath');
     });
   }
 

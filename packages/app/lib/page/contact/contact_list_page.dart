@@ -8,12 +8,12 @@ import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../components.dart';
-import 'contact_index_bar.dart';
+import 'package:app/page/components.dart';
+import 'package:app/page/contact/contact_index_bar.dart';
 
 class ContactsPage extends StatefulWidget {
-  final Identity identity;
   const ContactsPage(this.identity, {super.key});
+  final Identity identity;
   @override
   _ContactsPageState createState() => _ContactsPageState();
 }
@@ -23,29 +23,29 @@ class _ContactsPageState extends State<ContactsPage> {
   List<Contact> _listDatas = [];
   final ScrollController _scrollController = ScrollController();
 
-  final double _cellHeight = 54.0;
-  final double _groupHeight = 30.0;
+  final double _cellHeight = 54;
+  final double _groupHeight = 30;
   final Map _groupOffsetMap = {
     INDEX_WORDS[0]: 0.0,
     INDEX_WORDS[0]: 0.0,
   };
 
   Future<void> _getData() async {
-    List<Contact> contactList =
+    final contactList =
         await ContactService.instance.getContactList(widget.identity.id);
 
-    List<Contact> contactStartNum = [];
-    List<Contact> restContacts = [];
-    for (var element in contactList) {
-      if (element.displayName.toString().startsWith(RegExp(r'[0-9]'))) {
+    final contactStartNum = <Contact>[];
+    final restContacts = <Contact>[];
+    for (final element in contactList) {
+      if (element.displayName.startsWith(RegExp('[0-9]'))) {
         contactStartNum.add(element);
       } else {
         restContacts.add(element);
       }
     }
     // contactList.sort(((a, b) => a.displayName.compareTo(b.displayName)));
-    restContacts.sort(((a, b) => a.displayName.compareTo(b.displayName)));
-    contactStartNum.sort(((a, b) => a.displayName.compareTo(b.displayName)));
+    restContacts.sort((a, b) => a.displayName.compareTo(b.displayName));
+    contactStartNum.sort((a, b) => a.displayName.compareTo(b.displayName));
     restContacts.addAll(contactStartNum);
 
     setState(() {
@@ -61,7 +61,7 @@ class _ContactsPageState extends State<ContactsPage> {
 
     Future.delayed(Duration.zero, () {
       var groupOffset = _cellHeight * _headerData.length;
-      for (int i = 0; i < _listDatas.length; i++) {
+      for (var i = 0; i < _listDatas.length; i++) {
         if (i < 1) {
           _groupOffsetMap.addAll({_listDatas[i].indexLetter: groupOffset});
           groupOffset += _cellHeight + _groupHeight;
@@ -93,7 +93,7 @@ class _ContactsPageState extends State<ContactsPage> {
                       shape: const RoundedRectangleBorder(
                           borderRadius:
                               BorderRadius.vertical(top: Radius.circular(4))),
-                      const AddtoContactsPage(""),
+                      const AddtoContactsPage(''),
                       isScrollControlled: true,
                       ignoreSafeArea: false);
                 },
@@ -129,7 +129,7 @@ class _ContactsPageState extends State<ContactsPage> {
               String? groupTitle = _listDatas[index].indexLetter;
 
               if (index - _headerData.length > 0) {
-                bool isShowT =
+                final isShowT =
                     _listDatas[index - _headerData.length].indexLetter ==
                         _listDatas[index - _headerData.length - 1].indexLetter;
 
@@ -148,16 +148,15 @@ class _ContactsPageState extends State<ContactsPage> {
 }
 
 class _FriendCell extends StatelessWidget {
-  final Contact contact;
-  final String? groupTitle;
-  final String? imageAssets;
-  final VoidCallback updateList;
-
   const _FriendCell(
       {required this.contact,
       required this.updateList,
       this.groupTitle,
       this.imageAssets});
+  final Contact contact;
+  final String? groupTitle;
+  final String? imageAssets;
+  final VoidCallback updateList;
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -189,7 +188,7 @@ class _FriendCell extends StatelessWidget {
           },
           child: ListTile(
               leading: Utils.getRandomAvatar(contact.pubkey,
-                  httpAvatar: contact.avatarFromRelay, height: 36, width: 36),
+                  contact: contact, height: 36, width: 36),
               title: Text(contact.displayName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

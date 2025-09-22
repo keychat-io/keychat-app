@@ -24,11 +24,12 @@ class SearchPage extends StatefulWidget {
 }
 
 class SearchResult {
-  final String type; // 'contact' or 'message'
-  final dynamic data; // Contact or Message
-  final Room? room; // Pre-loaded room data
+  // Pre-loaded room data
 
   SearchResult(this.type, this.data, {this.room});
+  final String type; // 'contact' or 'message'
+  final dynamic data; // Contact or Message
+  final Room? room;
 }
 
 class _SearchPageState extends State<SearchPage> {
@@ -63,7 +64,7 @@ class _SearchPageState extends State<SearchPage> {
     });
   }
 
-  void _performSearch(String query) async {
+  Future<void> _performSearch(String query) async {
     currentQuery.value = query.trim();
 
     if (query.trim().isEmpty) {
@@ -105,11 +106,11 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Future<void> _preloadContactRooms(List<Contact> contacts) async {
-    for (Contact contact in contacts) {
+    for (final contact in contacts) {
       final cacheKey = 'contact_${contact.pubkey}';
       if (!_roomCache.containsKey(cacheKey)) {
         try {
-          Room room = await RoomService.instance.getOrCreateRoom(
+          final room = await RoomService.instance.getOrCreateRoom(
             contact.pubkey,
             identity.secp256k1PKHex,
             RoomStatus.enabled,
@@ -124,13 +125,13 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Future<void> _preloadMessageRooms(List<Message> messages) async {
-    for (Message message in messages) {
+    for (final message in messages) {
       final cacheKey = 'message_${message.roomId}';
       if (!_roomCache.containsKey(cacheKey)) {
         try {
-          Room room =
+          final room =
               await RoomService.instance.getRoomByIdOrFail(message.roomId);
-          Contact? contact = await ContactService.instance.getContact(
+          final contact = await ContactService.instance.getContact(
             message.identityId,
             message.idPubkey,
           );
@@ -156,13 +157,13 @@ class _SearchPageState extends State<SearchPage> {
               child: Container(
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(10.0),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                padding: const EdgeInsets.symmetric(horizontal: 10),
                 child: Row(
                   children: [
                     const Icon(Icons.search),
-                    const SizedBox(width: 8.0),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: TextField(
                         controller: _searchController,
@@ -189,13 +190,13 @@ class _SearchPageState extends State<SearchPage> {
                 ),
               ),
             ),
-            const SizedBox(width: 8.0),
+            const SizedBox(width: 8),
             GestureDetector(
-              onTap: () => Get.back(),
+              onTap: Get.back,
               child: Text(
                 'Cancel',
                 style: TextStyle(
-                  fontSize: 16.0,
+                  fontSize: 16,
                   color: MaterialTheme.lightScheme().primary,
                 ),
               ),
@@ -294,7 +295,6 @@ class _SearchPageState extends State<SearchPage> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
-          width: 1,
         ),
       ),
       child: Material(
@@ -311,13 +311,9 @@ class _SearchPageState extends State<SearchPage> {
             child: Row(
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Utils.getRandomAvatar(
-                    contact.pubkey,
-                    height: 40,
-                    width: 40,
-                  ),
-                ),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Utils.getRandomAvatar(contact.pubkey,
+                        contact: contact)),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -333,7 +329,7 @@ class _SearchPageState extends State<SearchPage> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        "${contact.npubkey.substring(0, 18)}...${contact.npubkey.substring(contact.npubkey.length - 18)}",
+                        '${contact.npubkey.substring(0, 18)}...${contact.npubkey.substring(contact.npubkey.length - 18)}',
                         style: TextStyle(
                           color: Colors.grey[600],
                           fontSize: 14,
@@ -367,7 +363,6 @@ class _SearchPageState extends State<SearchPage> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: Theme.of(context).colorScheme.outline.withAlpha(25),
-          width: 1,
         ),
       ),
       child: Material(
@@ -377,8 +372,8 @@ class _SearchPageState extends State<SearchPage> {
           onTap: () async {
             if (room != null) {
               await Utils.offAndToNamedRoom(room, {
-                "room": room,
-                "messageId": message.id,
+                'room': room,
+                'messageId': message.id,
               });
             }
           },
@@ -387,13 +382,10 @@ class _SearchPageState extends State<SearchPage> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                room != null
-                    ? Utils.getAvatarDot(room)
-                    : Utils.getRandomAvatar(
-                        message.idPubkey,
-                        height: 40,
-                        width: 40,
-                      ),
+                if (room != null)
+                  Utils.getAvatarDot(room)
+                else
+                  Utils.getRandomAvatar(message.idPubkey),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -405,7 +397,7 @@ class _SearchPageState extends State<SearchPage> {
                             child: Text(
                               message.isMeSend
                                   ? identity.displayName
-                                  : room?.getRoomName() ?? "Unknown",
+                                  : room?.getRoomName() ?? 'Unknown',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 16,
@@ -414,7 +406,7 @@ class _SearchPageState extends State<SearchPage> {
                             ),
                           ),
                           Text(
-                            Utils.getFormatTimeForMessage(message.createdAt),
+                            Utils.formatTimeForMessage(message.createdAt),
                             style: TextStyle(
                               color: Colors.grey[600],
                               fontSize: 12,

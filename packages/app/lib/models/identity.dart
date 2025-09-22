@@ -1,13 +1,9 @@
 import 'dart:io' show File;
-
-import 'package:app/controller/setting.controller.dart';
-import 'package:app/models/embedded/msg_file_info.dart';
 import 'package:app/service/file.service.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:app/utils.dart';
 import 'package:equatable/equatable.dart';
-import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:isar_community/isar.dart';
 
@@ -70,9 +66,10 @@ class Identity extends Equatable {
   String? aboutFromRelay; // fetch from relay
   String? metadataFromRelay; // fetch from relay
   int versionFromRelay = 0;
+  String? avatarFromRelayLocalPath;
 
   @override
-  List get props => [
+  List<Object?> get props => [
         id,
         weight,
         isDefault,

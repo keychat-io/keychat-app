@@ -408,8 +408,8 @@ void showSearchContactsPage(BuildContext context, List<Contact> contactList) {
           ),
           builder: (contact) => ListTile(
                 onTap: () async {},
-                leading: Utils.getRandomAvatar(contact.pubkey,
-                    httpAvatar: contact.avatarFromRelay),
+                leading:
+                    Utils.getRandomAvatar(contact.pubkey, contact: contact),
                 title: Text(
                   contact.displayName,
                   overflow: TextOverflow.ellipsis,

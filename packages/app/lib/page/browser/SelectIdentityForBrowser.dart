@@ -8,8 +8,8 @@ import 'package:get/get.dart';
 import 'package:settings_ui/settings_ui.dart';
 
 class SelectIdentityForBrowser extends StatefulWidget {
-  final String host;
   const SelectIdentityForBrowser(this.host, {super.key});
+  final String host;
 
   @override
   _SelectIdentityForBrowserState createState() =>
@@ -25,8 +25,7 @@ class _SelectIdentityForBrowserState extends State<SelectIdentityForBrowser> {
   }
 
   Future<void> init() async {
-    List<Identity> list =
-        await IdentityService.instance.getEnableBrowserIdentityList();
+    final list = await IdentityService.instance.getEnableBrowserIdentityList();
     setState(() {
       identities = list;
     });
@@ -42,10 +41,7 @@ class _SelectIdentityForBrowserState extends State<SelectIdentityForBrowser> {
                 style: Theme.of(context).textTheme.titleMedium),
             tiles: identities
                 .map((iden) => SettingsTile(
-                    leading: Utils.getRandomAvatar(iden.secp256k1PKHex,
-                        httpAvatar: iden.avatarFromRelay,
-                        height: 30,
-                        width: 30),
+                    leading: Utils.getAvatarByIdentity(iden),
                     value: Text(getPublicKeyDisplay(iden.npub)),
                     title: Text(iden.displayName),
                     onPressed: (context) async {
@@ -54,7 +50,7 @@ class _SelectIdentityForBrowserState extends State<SelectIdentityForBrowser> {
                 .toList()),
       SettingsSection(tiles: [
         SettingsTile(
-            title: const Text("Create ID"),
+            title: const Text('Create ID'),
             trailing: Icon(CupertinoIcons.add,
                 color: Theme.of(Get.context!)
                     .iconTheme

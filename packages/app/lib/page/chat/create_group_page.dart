@@ -53,10 +53,7 @@ class _AddGroupPageState extends State<AddGroupPage>
                   child: Row(
                     children: [
                       const Icon(Icons.arrow_back_ios),
-                      Utils.getRandomAvatar(identity.secp256k1PKHex,
-                          httpAvatar: identity.avatarFromRelay,
-                          height: 22,
-                          width: 22)
+                      Utils.getAvatarByIdentity(identity, size: 24)
                     ],
                   ))),
           centerTitle: true,

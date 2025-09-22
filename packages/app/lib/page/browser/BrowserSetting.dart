@@ -43,11 +43,7 @@ class _BrowserSettingState extends State<BrowserSetting> {
                       title: const Text('Enable Browser ID'),
                       tiles: identities
                           .map((identity) => SettingsTile.navigation(
-                              leading: Utils.getRandomAvatar(
-                                  identity.secp256k1PKHex,
-                                  httpAvatar: identity.avatarFromRelay,
-                                  height: 30,
-                                  width: 30),
+                              leading: Utils.getAvatarByIdentity(identity),
                               title: Text(
                                 identity.displayName.length > 8
                                     ? '${identity.displayName.substring(0, 8)}...'

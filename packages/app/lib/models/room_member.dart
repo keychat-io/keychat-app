@@ -1,3 +1,4 @@
+import 'package:app/models/contact.dart';
 import 'package:equatable/equatable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -12,9 +13,7 @@ enum UserStatusType { inviting, invited, blocked, removed }
   'isCheck',
   'messageCount',
   'mlsPKExpired',
-  'nameFromRelay',
-  'avatarFromRelay',
-  'fetchFromRelayAt',
+  'contact',
   'displayName'
 })
 // ignore: must_be_immutable
@@ -62,16 +61,9 @@ class RoomMember extends Equatable {
   @JsonKey(includeToJson: false, includeFromJson: false)
   bool mlsPKExpired = false;
 
-  // local cache
   @JsonKey(includeToJson: false, includeFromJson: false)
-  String? nameFromRelay; // fetch from relay
-
-  @JsonKey(includeToJson: false, includeFromJson: false)
-  String? avatarFromRelay; // fetch from relay
-
-  @JsonKey(includeToJson: false, includeFromJson: false)
-  DateTime? fetchFromRelayAt;
-  String get displayName => nameFromRelay ?? name;
+  Contact? contact;
+  String get displayName => contact?.displayName ?? name;
 
   Map<String, dynamic> toJson() => _$RoomMemberToJson(this);
 

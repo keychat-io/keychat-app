@@ -1,29 +1,25 @@
 import 'package:app/app.dart';
-// import 'package:app/page/chat/ForwardSelectRoom.dart';
+import 'package:app/controller/chat.controller.dart';
+import 'package:app/controller/home.controller.dart';
 import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app/page/chat/add_member_to_group.dart';
 import 'package:app/page/chat/search_messages_page.dart';
+import 'package:app/page/components.dart';
+import 'package:app/page/routes.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
+import 'package:app/service/contact.service.dart';
+import 'package:app/service/group.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:easy_debounce/easy_throttle.dart';
-import 'package:flutter/foundation.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
-import 'package:keychat_rust_ffi_plugin/api_mls.dart' as rust_mls;
-
-import 'package:app/service/contact.service.dart';
-
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:keychat_rust_ffi_plugin/api_mls.dart' as rust_mls;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:settings_ui/settings_ui.dart';
-
-import 'package:app/controller/chat.controller.dart';
-import 'package:app/controller/home.controller.dart';
-import 'package:app/page/components.dart';
-import 'package:app/page/routes.dart';
-import 'package:app/service/group.service.dart';
-import 'package:app/page/chat/add_member_to_group.dart';
 
 class ChatSettingGroupPage extends StatefulWidget {
   const ChatSettingGroupPage({super.key, this.roomId});
@@ -229,7 +225,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                                     EasyThrottle.throttle('UpdateMyGroupKey',
                                         const Duration(seconds: 3), () async {
                                       try {
-                                        EasyLoading.show(
+                                        await EasyLoading.show(
                                             status: 'Processing...');
                                         final room = await RoomService.instance
                                             .getRoomByIdOrFail(
@@ -240,10 +236,11 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                                         // Save the current timestamp when update is successful
                                         await Storage.setInt(storageKey, now);
 
-                                        EasyLoading.showSuccess('Success');
+                                        await EasyLoading.showSuccess(
+                                            'Success');
                                       } catch (e, s) {
                                         final msg = Utils.getErrorMessage(e);
-                                        EasyLoading.showError(msg);
+                                        await EasyLoading.showError(msg);
                                         logger.e(msg, error: e, stackTrace: s);
                                       }
                                     });
@@ -505,40 +502,42 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                           CupertinoDialogAction(
                             isDestructiveAction: true,
                             onPressed: () {
-                              Get.back<void>();
-                              Get.dialog(CupertinoAlertDialog(
-                                title:
-                                    Text('Are you sure to remove ${rm.name} ?'),
-                                actions: <Widget>[
-                                  CupertinoDialogAction(
-                                    child: const Text('Cancel'),
-                                    onPressed: () {
-                                      Get.back<void>();
-                                    },
-                                  ),
-                                  CupertinoDialogAction(
-                                    isDestructiveAction: true,
-                                    child: const Text('Remove'),
-                                    onPressed: () async {
-                                      try {
-                                        EasyLoading.show(
-                                            status: 'Processing...');
-                                        await GroupService.instance
-                                            .removeMember(cc.roomObs.value, rm);
-                                        EasyLoading.showSuccess('Removed',
-                                            duration:
-                                                const Duration(seconds: 1));
+                              Get
+                                ..back<void>()
+                                ..dialog<void>(CupertinoAlertDialog(
+                                  title: Text(
+                                      'Are you sure to remove ${rm.name} ?'),
+                                  actions: <Widget>[
+                                    CupertinoDialogAction(
+                                      child: const Text('Cancel'),
+                                      onPressed: () {
                                         Get.back<void>();
-                                      } catch (e, s) {
-                                        logger.e(e.toString(),
-                                            error: e, stackTrace: s);
-                                        final msg = Utils.getErrorMessage(e);
-                                        EasyLoading.showError(msg);
-                                      }
-                                    },
-                                  ),
-                                ],
-                              ));
+                                      },
+                                    ),
+                                    CupertinoDialogAction(
+                                      isDestructiveAction: true,
+                                      child: const Text('Remove'),
+                                      onPressed: () async {
+                                        try {
+                                          EasyLoading.show(
+                                              status: 'Processing...');
+                                          await GroupService.instance
+                                              .removeMember(
+                                                  cc.roomObs.value, rm);
+                                          EasyLoading.showSuccess('Removed',
+                                              duration:
+                                                  const Duration(seconds: 1));
+                                          Get.back<void>();
+                                        } catch (e, s) {
+                                          logger.e(e.toString(),
+                                              error: e, stackTrace: s);
+                                          final msg = Utils.getErrorMessage(e);
+                                          EasyLoading.showError(msg);
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                ));
                             },
                             child: const Text('Remove Member'),
                           ),
@@ -553,8 +552,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                     ));
                   },
                   child: Column(children: [
-                    Utils.getRandomAvatar(rm.idPubkey,
-                        httpAvatar: rm.avatarFromRelay),
+                    Utils.getRandomAvatar(rm.idPubkey, contact: rm.contact),
                     Text(rm.displayName, overflow: TextOverflow.ellipsis),
                     if (rm.status == UserStatusType.inviting)
                       Text('Inviting',

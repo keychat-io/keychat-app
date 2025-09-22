@@ -1,26 +1,25 @@
+import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
+import 'package:app/models/models.dart';
 import 'package:app/page/browser/BrowserSetting.dart';
 import 'package:app/page/login/AccountSetting/AccountSetting_bindings.dart';
+import 'package:app/page/login/AccountSetting/AccountSetting_page.dart';
 import 'package:app/page/login/SelectModeToCreateID.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/page/setting/app_general_setting.dart';
 import 'package:app/page/setting/more_chat_setting.dart';
 import 'package:app/service/storage.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart' show Clipboard, ClipboardData;
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:keychat_ecash/keychat_ecash.dart';
-import 'package:app/controller/home.controller.dart';
-
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:pub_semver/pub_semver.dart';
 import 'package:settings_ui/settings_ui.dart';
-import 'package:app/models/models.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:app/page/login/AccountSetting/AccountSetting_page.dart';
 
 class MinePage extends StatefulWidget {
   const MinePage({super.key});
@@ -215,13 +214,14 @@ class _MinePageState extends State<MinePage> {
     );
   }
 
-  List<SettingsTile> getIDList(BuildContext context, List identities) {
+  List<SettingsTile> getIDList(
+      BuildContext context, List<Identity> identities) {
     final res = <SettingsTile>[];
     for (var i = 0; i < identities.length; i++) {
-      final identity = identities[i] as Identity;
+      final identity = identities[i];
 
       res.add(SettingsTile.navigation(
-          leading: Utils.getAvatarByIdentity(identity, 32),
+          leading: Utils.getAvatarByIdentity(identity, size: 32),
           title: Text(
             identity.displayName,
             overflow: TextOverflow.ellipsis,

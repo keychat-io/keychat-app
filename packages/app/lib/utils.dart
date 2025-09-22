@@ -1,9 +1,7 @@
-import 'dart:async' show TimeoutException;
 import 'dart:convert' show jsonDecode, jsonEncode;
 import 'dart:io' show Directory, File, FileMode, Platform, exit;
 import 'dart:math' show Random;
 
-import 'package:app/controller/setting.controller.dart';
 import 'package:app/desktop/DesktopController.dart';
 import 'package:app/global.dart';
 import 'package:app/models/contact.dart';
@@ -50,34 +48,6 @@ Logger logger = Logger(
 
 Logger loggerNoLine = Logger(printer: PrettyPrinter(methodCount: 0));
 
-Map deepCloneMap(Map original) {
-  final Map cloned = {};
-  original.forEach((key, value) {
-    if (value is Map) {
-      cloned[key] = deepCloneMap(value);
-    } else {
-      cloned[key] = value;
-    }
-  });
-  return cloned;
-}
-
-// https://isar.dev/recipes/string_ids.html
-Id fastHash(String pubkey) {
-  var hash = 0xcbf29ce484222325;
-
-  var i = 0;
-  while (i < pubkey.length) {
-    final codeUnit = pubkey.codeUnitAt(i++);
-    hash ^= codeUnit >> 8;
-    hash *= 0x100000001b3;
-    hash ^= codeUnit & 0xFF;
-    hash *= 0x100000001b3;
-  }
-
-  return hash;
-}
-
 String formatTime(int time, [String format = 'yyyy-MM-dd HH:mm:ss']) {
   final dateTime = DateTime.fromMillisecondsSinceEpoch(time);
   final dateFormat = DateFormat(format);
@@ -85,6 +55,7 @@ String formatTime(int time, [String format = 'yyyy-MM-dd HH:mm:ss']) {
 }
 
 String formatTimeToHHmm(int time) {
+  if (time < 0) return '00:00'; // Handle negative time
   final minutes = time ~/ 60;
   final seconds = time % 60;
 
@@ -109,10 +80,27 @@ String generateRandomAESKey() {
 String getPublicKeyDisplay(String publicKey, [int size = 6]) {
   final length = publicKey.length;
   if (length < 4) return publicKey;
+  if (size * 2 >= length) return publicKey; // Prevent index out of bounds
   if (publicKey.startsWith('npub') || publicKey.startsWith('nsec')) {
     return '${publicKey.substring(0, size)}...${publicKey.substring(length - size)}';
   }
   return '0x${publicKey.substring(0, size)}...${publicKey.substring(length - size)}';
+}
+
+// https://isar.dev/recipes/string_ids.html
+Id fastHash(String pubkey) {
+  var hash = 0xcbf29ce484222325;
+
+  var i = 0;
+  while (i < pubkey.length) {
+    final codeUnit = pubkey.codeUnitAt(i++);
+    hash ^= codeUnit >> 8;
+    hash *= 0x100000001b3;
+    hash ^= codeUnit & 0xFF;
+    hash *= 0x100000001b3;
+  }
+
+  return hash;
 }
 
 int getRegistrationId(String pubkey) {
@@ -213,23 +201,10 @@ class Utils {
   static final RegExp domainRegExp = RegExp(
       r'^(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[0-9]{1})|([0-9]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[-]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[-]{1}[0-9]{1})|([0-9]{1}[-]{1}[a-zA-Z]{1}))(([a-zA-Z]{1}|[0-9]{1}|[-]{1}){1,61})+[.][a-zA-Z]{2,4}$');
 
-  static Future<void> asyncWithTimeout(Function excute, Duration timeout,
-      [String? errorMessage]) async {
-    try {
-      await excute().timeout(
-        timeout,
-        onTimeout: () {
-          throw TimeoutException(errorMessage ?? 'Execute_timeout');
-        },
-      );
-    } catch (e) {
-      rethrow;
-    }
-  }
-
   static Future<void> bottomSheedAndHideStatusBar(Widget widget) async {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
-    await Get.bottomSheet(
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
+        overlays: []);
+    await Get.bottomSheet<void>(
         clipBehavior: Clip.antiAlias,
         shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
@@ -238,7 +213,7 @@ class Utils {
         ignoreSafeArea: false,
         enterBottomSheetDuration: Duration.zero,
         exitBottomSheetDuration: Duration.zero);
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge,
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge,
         overlays: SystemUiOverlay.values);
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarBrightness: Brightness.light,
@@ -255,12 +230,12 @@ class Utils {
   }
 
   static Future<File> createLogFile(String dbFolder) async {
-    final logDir = Directory('$dbFolder/logs');
-    logDir.createSync(recursive: true);
+    final logDir = Directory('$dbFolder/logs')..createSync(recursive: true);
     final time = getYearMonthDay();
     final file = File('${logDir.path}/err_logs_$time.txt');
     if (file.existsSync()) return file;
-    final initString = '''Init File: $time \n
+    final initString = '''
+Init File: $time \n
  env: ${Config.env} \n
  kReleaseMode: $kReleaseMode \n
  kDebugMode: $kDebugMode \n
@@ -285,8 +260,14 @@ class Utils {
     String hourStr;
     String mmStr;
     final yearStr = yearIn.toString().substring(2, 4);
-    if (hour > 12) {
+
+    // Fix hour formatting logic
+    if (hour == 0) {
+      hourStr = '12'; // 12 AM
+    } else if (hour > 12) {
       hourStr = '${hour - 12}';
+    } else if (hour == 12) {
+      hourStr = '12'; // 12 PM
     } else {
       hourStr = '$hour';
     }
@@ -298,7 +279,7 @@ class Utils {
     }
     monStr = '$month';
     dayStr = '$dayIn';
-    // String h_m = DateUtil.formatDate(formatDt, format: DateFormats.h_m);
+
     if (day == dayIn && milliNow - millisecond <= 24 * 3600 * 1000) {
       if (hour >= 0 && hour < 12) {
         return '$hourStr:$mmStr AM';
@@ -323,7 +304,7 @@ class Utils {
         case 7:
           weekday = 'Sun';
         default:
-          break;
+          weekday = 'Unknown'; // Add default case
       }
       return weekday;
     } else {
@@ -405,20 +386,13 @@ class Utils {
     appFolder = directory;
     avatarsFolder = '${directory.path}/avatars';
     browserCacheFolder = '${directory.path}/browserCache';
-    browserUserDataFolder = '${directory.path}/browserUserData';
 
     // avatar folder
     avatarsFolder = '${Utils.appFolder.path}/avatars';
     browserCacheFolder = '${Utils.appFolder.path}/browserCache';
-    browserUserDataFolder = '${Utils.appFolder.path}/browserUserData';
     final errorsFolder = '${Utils.appFolder.path}/errors';
 
-    for (final folder in [
-      avatarsFolder,
-      browserCacheFolder,
-      browserUserDataFolder,
-      errorsFolder
-    ]) {
+    for (final folder in [avatarsFolder, browserCacheFolder, errorsFolder]) {
       final exist = Directory(folder).existsSync();
       if (!exist) {
         Directory(folder).createSync(recursive: true);
@@ -478,9 +452,7 @@ class Utils {
           room: room, width: width, borderRadius: 12, backgroudColors: colors);
     } else {
       child = Utils.getRandomAvatar(room.toMainPubkey,
-          height: width,
-          width: width,
-          httpAvatar: room.contact?.avatarFromRelay);
+          height: width, width: width, contact: room.contact);
     }
     if (room.unReadCount == 0) return child;
 
@@ -557,7 +529,7 @@ class Utils {
     return message;
   }
 
-  static String getFormatTimeForMessage(DateTime formatDt) {
+  static String formatTimeForMessage(DateTime formatDt) {
     final milliNow = DateTime.now().millisecondsSinceEpoch;
     final year = DateTime.now().year;
     final day = DateTime.now().day;
@@ -573,8 +545,14 @@ class Utils {
     String hourStr;
     String mmStr;
     final yearStr = yearIn.toString().substring(2, 4);
-    if (hour > 12) {
+
+    // Fix hour formatting logic
+    if (hour == 0) {
+      hourStr = '12'; // 12 AM
+    } else if (hour > 12) {
       hourStr = '${hour - 12}';
+    } else if (hour == 12) {
+      hourStr = '12'; // 12 PM
     } else {
       hourStr = '$hour';
     }
@@ -586,6 +564,7 @@ class Utils {
     }
     monStr = '$month';
     dayStr = '$dayIn';
+
     if (day == dayIn && milliNow - millisecond <= 24 * 3600 * 1000) {
       if (hour >= 0 && hour < 12) {
         return '$hourStr:$mmStr AM';
@@ -610,7 +589,7 @@ class Utils {
         case 7:
           weekday = 'Sun';
         default:
-          break;
+          weekday = 'Unknown'; // Add default case
       }
       if (hour >= 0 && hour < 12) {
         return '$weekday $hourStr:$mmStr AM';
@@ -624,14 +603,12 @@ class Utils {
         } else {
           return '$monStr/$dayStr $hourStr:$mmStr PM';
         }
-        // return "$monStr/$dayStr";
       } else {
         if (hour >= 0 && hour < 12) {
           return '$monStr/$dayStr/$yearStr $hourStr:$mmStr AM';
         } else {
           return '$monStr/$dayStr/$yearStr $hourStr:$mmStr PM';
         }
-        // return "$monStr/$dayStr/$yearStr";
       }
     }
   }
@@ -718,38 +695,25 @@ class Utils {
   static Widget getRandomAvatar(String id,
       {double height = 40,
       double width = 40,
-      String? httpAvatar,
-      Contact? contact}) {
-    // network avatar first
-    if (httpAvatar != null &&
-        (httpAvatar.startsWith('http://') ||
-            httpAvatar.startsWith('https://'))) {
-      return getNetworkImage(httpAvatar,
-          size: width, placeholder: _generateRandomAvatar(id, size: width))!;
+      Contact? contact,
+      String? localPath}) {
+    // localPath
+    if (localPath != null) {
+      final file = File('${Utils.appFolder.path}$localPath');
+      if (file.existsSync()) {
+        return getAvatarByImageFile(file, size: width);
+      }
     }
-    // from cache
-    if (httpAvatar == null && avatarCache.containsKey(id)) {
-      return getNetworkImage(avatarCache[id],
-          size: width, placeholder: _generateRandomAvatar(id, size: width))!;
-    }
-    // query from contact
-    contact ??= ContactService.instance.getContactSync(id);
+    // from contact
     if (contact != null) {
-      // from local file
-      if (contact.avatarLocalPath != null) {
-        final file = File('${Utils.appFolder.path}${contact.avatarLocalPath}');
+      final localFilePath =
+          contact.avatarLocalPath ?? contact.avatarFromRelayLocalPath;
+
+      // from local downloaded relay avatar
+      if (localFilePath != null) {
+        final file = File('${Utils.appFolder.path}$localFilePath');
         if (file.existsSync()) {
           return getAvatarByImageFile(file, size: width);
-        }
-      }
-      // from relay
-      if (contact.avatarFromRelay != null) {
-        if (contact.avatarFromRelay!.startsWith('http://') ||
-            contact.avatarFromRelay!.startsWith('https://')) {
-          avatarCache[id] = contact.avatarFromRelay!;
-          return getNetworkImage(contact.avatarFromRelay,
-              size: width,
-              placeholder: _generateRandomAvatar(id, size: width))!;
         }
       }
     }
@@ -759,8 +723,7 @@ class Utils {
   }
 
   static SvgPicture _generateRandomAvatar(String id, {double size = 40}) {
-    final avatarsFolder = Utils.avatarsFolder;
-    final filePath = '$avatarsFolder/$id.svg';
+    final filePath = '${Utils.avatarsFolder}/$id.svg';
     final file = File(filePath);
     if (file.existsSync()) {
       return SvgPicture.file(file, width: size, height: size);
@@ -788,7 +751,7 @@ class Utils {
     return Permission.storage.status;
   }
 
-  static Future<List> getWebRTCServers() async {
+  static Future<List<dynamic>> getWebRTCServers() async {
     final config = Storage.getString(StorageKeyString.defaultWebRTCServers);
     if (config != null) {
       try {
@@ -797,7 +760,7 @@ class Utils {
         // logger.i(e, error: e);
       }
     }
-    Storage.setString(StorageKeyString.defaultWebRTCServers,
+    await Storage.setString(StorageKeyString.defaultWebRTCServers,
         jsonEncode(KeychatGlobal.webrtcIceServers));
     return KeychatGlobal.webrtcIceServers;
   }
@@ -852,18 +815,32 @@ class Utils {
       throw const FormatException(
           'Hex string must have an even number of characters.');
     }
-    final bytes = Uint8List(hex.length ~/ 2);
+    final bytes =
+        <int>[]; // Use List<int> instead of Uint8List for return type consistency
     for (var i = 0; i < hex.length; i += 2) {
-      bytes[i ~/ 2] = int.parse(hex.substring(i, i + 2), radix: 16);
+      final hexByte = hex.substring(i, i + 2);
+      final byte = int.tryParse(hexByte, radix: 16);
+      if (byte == null) {
+        throw FormatException('Invalid hex character in: $hexByte');
+      }
+      bytes.add(byte);
     }
     return bytes;
   }
 
   static Uint8List hexToUint8List(String input) {
-    return Uint8List.fromList(List.generate(
-        input.length ~/ 2,
-        (index) =>
-            int.parse(input.substring(index * 2, index * 2 + 2), radix: 16)));
+    if (input.length % 2 != 0) {
+      throw const FormatException(
+          'Hex string must have an even number of characters.');
+    }
+    return Uint8List.fromList(List.generate(input.length ~/ 2, (index) {
+      final hexByte = input.substring(index * 2, index * 2 + 2);
+      final byte = int.tryParse(hexByte, radix: 16);
+      if (byte == null) {
+        throw FormatException('Invalid hex character in: $hexByte');
+      }
+      return byte;
+    }));
   }
 
   static void hideKeyboard(BuildContext context) {
@@ -1014,18 +991,32 @@ class Utils {
   }
 
   static String _getDisplayName(String account, int nameLength) {
+    if (account.isEmpty) return ''; // Handle empty string
     if (account.length <= nameLength) return account;
     if (account.contains(' ')) {
-      return account.split(' ').first;
+      final firstWord = account.split(' ').first;
+      return firstWord.length > nameLength
+          ? firstWord.substring(0, nameLength)
+          : firstWord;
     }
     if (account.contains('-')) {
-      return account.split('-').first;
+      final firstPart = account.split('-').first;
+      return firstPart.length > nameLength
+          ? firstPart.substring(0, nameLength)
+          : firstPart;
     }
     if (account.contains('_')) {
-      return account.split('_').first;
+      final firstPart = account.split('_').first;
+      return firstPart.length > nameLength
+          ? firstPart.substring(0, nameLength)
+          : firstPart;
     }
     if (RegExp(r'^[a-zA-Z0-9]+$').hasMatch(account)) {
-      return account.split(RegExp(r'(?=[A-Z])|\s+')).first;
+      final parts = account.split(RegExp(r'(?=[A-Z])|\s+'));
+      final firstPart = parts.isNotEmpty ? parts.first : account;
+      return firstPart.length > nameLength
+          ? firstPart.substring(0, nameLength)
+          : firstPart;
     }
     return account.substring(0, nameLength);
   }
@@ -1241,7 +1232,7 @@ class Utils {
     );
   }
 
-  static Widget getAvatarByIdentity(Identity identity, [double size = 84]) {
+  static Widget getAvatarByIdentity(Identity identity, {double size = 42}) {
     final avatarPath = identity.avatarLocalPath;
 
     // Check if local avatar file exists
@@ -1266,7 +1257,7 @@ class Utils {
     // Fallback to random avatar if no local file or file doesn't exist
     return Utils.getRandomAvatar(
       identity.secp256k1PKHex,
-      httpAvatar: identity.avatarFromRelay,
+      localPath: identity.avatarLocalPath ?? identity.avatarFromRelayLocalPath,
       height: size,
       width: size,
     );

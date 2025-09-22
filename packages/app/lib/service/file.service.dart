@@ -211,14 +211,14 @@ class FileService {
       );
 
       // Clean up temporary encrypted file
-      if (await encryptedFile.exists()) {
+      if (encryptedFile.existsSync()) {
         await encryptedFile.delete();
       }
 
       return decryptedFile;
     } catch (e) {
       // Clean up temporary file on error
-      if (await encryptedFile.exists()) {
+      if (encryptedFile.existsSync()) {
         await encryptedFile.delete();
       }
       rethrow;
@@ -226,7 +226,7 @@ class FileService {
   }
 
   Future<File?> downloadFile(String url,
-      [Function(int count, int total)? onReceiveProgress]) async {
+      [void Function(int count, int total)? onReceiveProgress]) async {
     final dio = Dio();
     final outputDir = await getTemporaryDirectory();
     final fileName = path.basename(url);
@@ -245,17 +245,18 @@ class FileService {
   }
 
   Future<void> downloadForMessage(Message message, MsgFileInfo mfi,
-      {Function(MsgFileInfo fi)? callback,
-      Function(int count, int total)? onReceiveProgress}) async {
+      {void Function(MsgFileInfo fi)? callback,
+      void Function(int count, int total)? onReceiveProgress}) async {
     final uri = Uri.parse(message.content);
     final outputFilePath = await getOutputFilePath(message, mfi, uri);
     var newFile = File(outputFilePath);
-    final exist = await newFile.exists();
+    final exist = newFile.existsSync();
     try {
       // file not exist
       if (exist == false) {
-        mfi.status = FileStatus.downloading;
-        mfi.updateAt = DateTime.now();
+        mfi
+          ..status = FileStatus.downloading
+          ..updateAt = DateTime.now();
         message.realMessage = mfi.toString();
         await updateMessageAndCallback(message, mfi, callback);
         newFile = await downloadAndDecrypt(
@@ -290,8 +291,9 @@ class FileService {
           final newFileName = '${fileNameWithoutExt}_$randomString$extension';
 
           // Re-download the file
-          mfi.status = FileStatus.downloading;
-          mfi.updateAt = DateTime.now();
+          mfi
+            ..status = FileStatus.downloading
+            ..updateAt = DateTime.now();
           message.realMessage = mfi.toString();
           await updateMessageAndCallback(message, mfi, callback);
           newFile = await downloadAndDecrypt(

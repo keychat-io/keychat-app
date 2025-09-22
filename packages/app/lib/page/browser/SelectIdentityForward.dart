@@ -7,8 +7,8 @@ import 'package:get/get.dart';
 import 'package:settings_ui/settings_ui.dart';
 
 class SelectIdentityForward extends StatefulWidget {
-  final String title;
   const SelectIdentityForward(this.title, {super.key});
+  final String title;
 
   @override
   _SelectIdentityForwardState createState() => _SelectIdentityForwardState();
@@ -23,8 +23,7 @@ class _SelectIdentityForwardState extends State<SelectIdentityForward> {
   }
 
   Future<void> init() async {
-    List<Identity> list =
-        await IdentityService.instance.getEnableChatIdentityList();
+    final list = await IdentityService.instance.getEnableChatIdentityList();
     setState(() {
       identities = list;
     });
@@ -40,7 +39,8 @@ class _SelectIdentityForwardState extends State<SelectIdentityForward> {
                 tiles: identities
                     .map((identity) => SettingsTile(
                         leading: Utils.getRandomAvatar(identity.secp256k1PKHex,
-                            httpAvatar: identity.avatarFromRelay,
+                            localPath: identity.avatarLocalPath ??
+                                identity.avatarFromRelayLocalPath,
                             height: 30,
                             width: 30),
                         value: Text(getPublicKeyDisplay(identity.npub)),

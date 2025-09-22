@@ -95,8 +95,7 @@ class _SearchMessagesPageState extends State<SearchMessagesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final myAvatar = Utils.getRandomAvatar(room.getIdentity().secp256k1PKHex,
-        httpAvatar: room.getIdentity().avatarFromRelay);
+    final myAvatar = Utils.getAvatarByIdentity(room.getIdentity());
     return Scaffold(
       appBar: AppBar(title: const Text('Search History'), centerTitle: true),
       body: Column(

@@ -77,8 +77,7 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                               cc.roomObs.value.toMainPubkey,
                               height: 60,
                               width: 60,
-                              httpAvatar:
-                                  cc.roomContact.value.avatarFromRelay)),
+                              contact: cc.roomContact.value)),
                       title: Obx(() => Text(
                             cc.roomObs.value.getRoomName(),
                             style: Theme.of(context).textTheme.titleMedium,

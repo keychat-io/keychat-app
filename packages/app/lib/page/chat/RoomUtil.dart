@@ -535,12 +535,12 @@ Let's start an encrypted chat.''';
     await SignalChatUtil.verifySignedMessage(
         pmm: pmm, signalIdPubkey: model.curve25519PkHex);
 
-    final contact =
-        Contact(pubkey: pubkey, npubkey: npub, identityId: identity.id)
-          ..curve25519PkHex = model.curve25519PkHex
-          ..name = model.name
-          ..avatarRemoteUrl = model.avatar
-          ..lightning = model.lightning;
+    final contact = Contact(pubkey: pubkey, identityId: identity.id)
+      ..npubkey = npub
+      ..curve25519PkHex = model.curve25519PkHex
+      ..name = model.name
+      ..avatarRemoteUrl = model.avatar
+      ..lightning = model.lightning;
 
     final page = ContactPage(
       identityId: identity.id,

@@ -334,6 +334,38 @@ class FileService {
     }
   }
 
+  /// Download avatar from URL and save to local avatars folder
+  Future<String?> downloadAndSaveAvatar(String avatarUrl, String pubkey) async {
+    try {
+      // Get file extension from URL
+      final uri = Uri.parse(avatarUrl);
+      var extension = path.extension(uri.path).toLowerCase();
+      if (extension.isEmpty) {
+        extension = '.jpg'; // Default extension
+      }
+
+      // Generate filename based on pubkey
+      final filename = '${Utils.randomString(16)}$extension';
+      final localPath = path.join(Utils.avatarsFolder, filename);
+      final localFile = File(localPath);
+
+      // Download the file
+      final downloadedFile = await FileService.instance.downloadFile(avatarUrl);
+      if (downloadedFile != null) {
+        // Copy to avatars folder
+        await downloadedFile.copy(localPath);
+        await downloadedFile.delete(); // Clean up temp file
+
+        // Return relative path
+        return localFile.path.replaceFirst(Utils.appFolder.path, '');
+      }
+    } catch (e, s) {
+      logger.e('Failed to download avatar from $avatarUrl: $e',
+          error: e, stackTrace: s);
+    }
+    return null;
+  }
+
   Future<MsgFileInfo?> encryptAndUploadImage(
     XFile xfile, {
     String? localFilePath,

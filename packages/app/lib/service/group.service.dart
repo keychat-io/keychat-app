@@ -533,7 +533,8 @@ class GroupService extends BaseChatService {
           .firstWhereOrNull((element) => element.idPubkey == idPubkey);
       if (rm == null) {
         final c = await contactService.getOrCreateContact(
-            groupRoom.identityId, idPubkey,
+            identityId: groupRoom.identityId,
+            pubkey: idPubkey,
             name: (toUsers[idPubkey]?.length ?? 0) > 0
                 ? toUsers[idPubkey]
                 : null);

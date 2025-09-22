@@ -401,7 +401,8 @@ class RoomService extends BaseChatService {
       }
       if (room.type == RoomType.common) {
         room.contact = await contactService.getOrCreateContact(
-            room.identityId, room.toMainPubkey,
+            identityId: room.identityId,
+            pubkey: room.toMainPubkey,
             curve25519PkHex: room.curve25519PkHex);
       }
       if (room.status == RoomStatus.requesting) {

@@ -1,4 +1,4 @@
-import 'dart:async' show Future, Timer;
+import 'dart:async' show Future, Timer, unawaited;
 import 'dart:convert' show jsonDecode, jsonEncode;
 import 'dart:io' show Directory, File;
 
@@ -24,14 +24,13 @@ import 'package:image_picker/image_picker.dart';
 import 'package:isar_community/isar.dart';
 import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart'
     show Transaction, TransactionStatus;
 import 'package:mime/mime.dart' show extensionFromMime;
-import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:super_clipboard/super_clipboard.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 
 const int maxMessageId = 999999999999;
 
@@ -73,7 +72,7 @@ class ChatController extends GetxController {
   bool _isUploading = false;
 
   // private chat
-  Rx<Contact> roomContact = Contact(pubkey: '', npubkey: '', identityId: 0).obs;
+  Rx<Contact> roomContact = Contact(pubkey: '', identityId: 0).obs;
 
   // group chat
   RxMap<String, RoomMember> members = <String, RoomMember>{}.obs;
@@ -784,7 +783,8 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     if (roomObs.value.type == RoomType.common) {
       if (roomObs.value.contact == null) {
         final contact = await ContactService.instance.getOrCreateContact(
-            roomObs.value.identityId, roomObs.value.toMainPubkey);
+            identityId: roomObs.value.identityId,
+            pubkey: roomObs.value.toMainPubkey);
         roomObs.value.contact = contact;
         roomContact.value = contact;
       } else {
@@ -803,8 +803,14 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
       return;
     }
     if (roomObs.value.type == RoomType.bot) {
-      _initBotInfo();
+      unawaited(_initBotInfo());
     }
+  }
+
+  Contact getContactByPubkey(String pubkey) {
+    if (roomObs.value.type != RoomType.group) return roomContact.value;
+    return members[pubkey]?.contact ??
+        Contact(identityId: roomObs.value.identityId, pubkey: pubkey);
   }
 
   Future<Contact> fetchAndUpdateMetadata(String pubkey, int identityId) async {
@@ -853,8 +859,8 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
             // Download avatar if URL changed
             if (contact.avatarFromRelay != contact.avatarFromRelayLocalPath) {
               try {
-                final localPath =
-                    await _downloadAndSaveAvatar(avatarFromRelay, pubkey);
+                final localPath = await FileService.instance
+                    .downloadAndSaveAvatar(avatarFromRelay, pubkey);
                 if (localPath != null) {
                   contact.avatarFromRelayLocalPath = localPath;
                 }
@@ -881,39 +887,6 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     }
     return contacts.firstWhereOrNull((item) => item.identityId == identityId) ??
         contacts.first;
-  }
-
-  /// Download avatar from URL and save to local avatars folder
-  Future<String?> _downloadAndSaveAvatar(
-      String avatarUrl, String pubkey) async {
-    try {
-      // Get file extension from URL
-      final uri = Uri.parse(avatarUrl);
-      var extension = path.extension(uri.path).toLowerCase();
-      if (extension.isEmpty) {
-        extension = '.jpg'; // Default extension
-      }
-
-      // Generate filename based on pubkey
-      final filename = '$pubkey$extension';
-      final localPath = path.join(Utils.avatarsFolder, filename);
-      final localFile = File(localPath);
-
-      // Download the file
-      final downloadedFile = await FileService.instance.downloadFile(avatarUrl);
-      if (downloadedFile != null) {
-        // Copy to avatars folder
-        await downloadedFile.copy(localPath);
-        await downloadedFile.delete(); // Clean up temp file
-
-        // Return relative path
-        return localFile.path.replaceFirst(Utils.appFolder.path, '');
-      }
-    } catch (e, s) {
-      logger.e('Failed to download avatar from $avatarUrl: $e',
-          error: e, stackTrace: s);
-    }
-    return null;
   }
 
   Future<bool> handlePasteboardFile() async {

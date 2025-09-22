@@ -1,35 +1,32 @@
 import 'dart:convert' show jsonDecode, jsonEncode;
 import 'dart:io' show File;
+
 import 'package:app/app.dart';
 import 'package:app/bot/bot_client_message_model.dart';
 import 'package:app/controller/chat.controller.dart';
-import 'package:app/controller/setting.controller.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/LongTextPreviewPage.dart';
 import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app/page/chat/chat_bubble.dart';
+import 'package:app/page/chat/chat_bubble_clipper_4.dart';
+import 'package:app/page/components.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/page/theme.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/file.service.dart';
+import 'package:app/service/message.service.dart';
 import 'package:app/service/websocket.service.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
-import 'package:isar_community/isar.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
+import 'package:isar_community/isar.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:settings_ui/settings_ui.dart';
-
-import 'package:app/service/message.service.dart';
-import 'package:app/page/components.dart';
-import 'package:app/page/chat/chat_bubble.dart';
-import 'package:app/page/chat/chat_bubble_clipper_4.dart';
 
 // ignore: must_be_immutable
 class MessageWidget extends StatelessWidget {
@@ -57,7 +54,6 @@ class MessageWidget extends StatelessWidget {
   late ChatController cc;
   List<String> addTimeList = [];
   RoomMember? roomMember;
-  // late Contact contact;
   late double screenWidth;
   late bool isGroup;
   late Color toDisplayNameColor;
@@ -92,7 +88,8 @@ class MessageWidget extends StatelessWidget {
   Widget getFileTable(BuildContext buildContext, Message message) {
     late MsgFileInfo mfi;
     try {
-      mfi = MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
+      mfi = MsgFileInfo.fromJson(
+          jsonDecode(message.realMessage!) as Map<String, dynamic>);
     } catch (e) {
       return Container();
     }
@@ -222,18 +219,18 @@ class MessageWidget extends StatelessWidget {
 
           // fix message sent status
           if (message.sent != SendStatusType.success) {
-            final List success = ess
+            final success = ess
                 .where((element) => element.sendStatus == EventSendEnum.success)
                 .toList();
             if (success.isNotEmpty) {
               message.sent = SendStatusType.success;
               await MessageService.instance.updateMessageAndRefresh(message);
               Get.back<void>();
-              EasyLoading.showSuccess('Sending Success');
+              await EasyLoading.showSuccess('Sending Success');
               return;
             }
           }
-          Get.dialog(CupertinoAlertDialog(
+          await Get.dialog<void>(CupertinoAlertDialog(
             title: const Text('Send failed'),
             content: const Text(
                 '1. Check your network first. 2. Re-Send raw data to Relays'),
@@ -388,7 +385,7 @@ class MessageWidget extends StatelessWidget {
 
       // fix message sent status
       if (message.sent != SendStatusType.success) {
-        final List success = ess
+        final success = ess
             .where((element) => element.sendStatus == EventSendEnum.success)
             .toList();
         if (success.isNotEmpty) {
@@ -398,17 +395,18 @@ class MessageWidget extends StatelessWidget {
       }
 
       BotClientMessageModel? bcmm;
-      TokenInfo? token;
+      rust_cashu.TokenInfo? token;
       if (message.isMeSend && cc.roomObs.value.type == RoomType.bot) {
         try {
-          bcmm = BotClientMessageModel.fromJson(jsonDecode(message.content));
+          bcmm = BotClientMessageModel.fromJson(
+              jsonDecode(message.content) as Map<String, dynamic>);
           if (bcmm.payToken != null) {
             token = await rust_cashu.decodeToken(encodedToken: bcmm.payToken!);
           }
           // ignore: empty_catches
         } catch (e) {}
       }
-      _showRawData(message, ess, event,
+      await _showRawData(message, ess, event,
           botClientMessageModel: bcmm, payToken: token);
       return;
     }
@@ -443,7 +441,7 @@ class MessageWidget extends StatelessWidget {
   }
 
   Future<void> messageOnDoubleTap() async {
-    Utils.bottomSheedAndHideStatusBar(
+    await Utils.bottomSheedAndHideStatusBar(
         LongTextPreviewPage(message.realMessage ?? message.content));
   }
 
@@ -471,6 +469,9 @@ class MessageWidget extends StatelessWidget {
   }
 
   Widget toTextContainer() {
+    final idPubkey = message.idPubkey.isNotEmpty
+        ? message.idPubkey
+        : cc.roomObs.value.toMainPubkey;
     return Container(
       padding: const EdgeInsets.only(top: 10, bottom: 10, right: 48),
       child: Row(
@@ -493,7 +494,6 @@ class MessageWidget extends StatelessWidget {
                       identityId: message.identityId,
                       contact: Contact(
                           identityId: message.identityId,
-                          npubkey: getBech32PubkeyByHex(hex: message.idPubkey),
                           pubkey: message.idPubkey)
                         ..name = message.senderName,
                       title: 'Group Member',
@@ -503,9 +503,8 @@ class MessageWidget extends StatelessWidget {
                       .replaceFirst(':id', cc.roomObs.value.id.toString()));
                 }
               },
-              child: Utils.getRandomAvatar(message.idPubkey.isNotEmpty
-                  ? message.idPubkey
-                  : cc.roomObs.value.toMainPubkey),
+              child: Utils.getRandomAvatar(idPubkey,
+                  contact: cc.getContactByPubkey(idPubkey)),
             ),
           ),
           Expanded(child: Stack(children: [_getMessageContainer()]))

@@ -500,15 +500,22 @@ class IdentityService {
       if (avatarFromRelay.startsWith('http') ||
           avatarFromRelay.startsWith('https')) {
         identity.avatarFromRelay = avatarFromRelay;
+        final localPath = await FileService.instance
+            .downloadAndSaveAvatar(avatarFromRelay, identity.secp256k1PKHex);
+        if (localPath != null) {
+          identity.avatarFromRelayLocalPath = localPath;
+        }
       }
     }
     final description = (metadata['description'] ??
         metadata['about'] ??
         metadata['bio']) as String?;
-    identity.aboutFromRelay = description;
-    identity.metadataFromRelay = res.content;
-    identity.fetchFromRelayAt = DateTime.now();
-    identity.versionFromRelay = res.createdAt;
+
+    identity
+      ..aboutFromRelay = description
+      ..metadataFromRelay = res.content
+      ..fetchFromRelayAt = DateTime.now()
+      ..versionFromRelay = res.createdAt;
 
     await updateIdentity(identity);
     await Get.find<HomeController>().loadIdentity();

@@ -1,8 +1,7 @@
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
-
 import 'package:app/service/contact.service.dart';
 import 'package:equatable/equatable.dart';
 import 'package:isar_community/isar.dart';
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 part 'contact.g.dart';
 
@@ -18,11 +17,7 @@ part 'contact.g.dart';
 })
 // ignore: must_be_immutable
 class Contact extends Equatable {
-  Contact({
-    required this.identityId,
-    required this.npubkey,
-    required this.pubkey,
-  }) {
+  Contact({required this.identityId, required this.pubkey, this.npubkey = ''}) {
     if (npubkey.isEmpty && pubkey.length == 64) {
       npubkey = rust_nostr.getBech32PubkeyByHex(hex: pubkey);
     }

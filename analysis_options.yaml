@@ -12,8 +12,8 @@ analyzer:
   errors:
     # invalid_annotation_target: warning
     argument_type_not_assignable: warning
-  exclude:
-    [
+  exclude: [
+      packages/**/*.g.dart
       build/**,
       android/,
       packages/app/build/**,

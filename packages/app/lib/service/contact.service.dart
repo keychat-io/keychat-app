@@ -42,10 +42,9 @@ class ContactService {
       String? curve25519PkHex,
       bool autoCreateFromGroup = false}) async {
     final pubKeyHex = rust_nostr.getHexPubkeyByBech32(bech32: pubkey);
-    final contact =
-        Contact(pubkey: pubKeyHex, npubkey: '', identityId: identityId)
-          ..curve25519PkHex = curve25519PkHex
-          ..autoCreateFromGroup = autoCreateFromGroup;
+    final contact = Contact(pubkey: pubKeyHex, identityId: identityId)
+      ..curve25519PkHex = curve25519PkHex
+      ..autoCreateFromGroup = autoCreateFromGroup;
     if (name != null) {
       contact.name = name.trim();
     }
@@ -224,10 +223,13 @@ class ContactService {
     return crk?.receiveKeys;
   }
 
-  Future<Contact> getOrCreateContact(int identityId, String npubkey,
-      {String? name, String? curve25519PkHex}) async {
-    final pubkey = rust_nostr.getHexPubkeyByBech32(bech32: npubkey);
-    final c = await getContact(identityId, pubkey);
+  Future<Contact> getOrCreateContact(
+      {required int identityId,
+      required String pubkey,
+      String? name,
+      String? curve25519PkHex}) async {
+    final hex = rust_nostr.getHexPubkeyByBech32(bech32: pubkey);
+    final c = await getContact(identityId, hex);
 
     if (c != null) {
       return c;
@@ -270,8 +272,7 @@ class ContactService {
     if (c != null) {
       return c;
     }
-    final npub = rust_nostr.getBech32PubkeyByHex(hex: toMainPubkey);
-    c = Contact(identityId: identityId, npubkey: npub, pubkey: pubkey);
+    c = Contact(identityId: identityId, pubkey: pubkey);
     DBProvider.database.writeTxnSync(() {
       final id = DBProvider.database.contacts.putSync(c!);
       c.id = id;
@@ -332,8 +333,8 @@ class ContactService {
   Future<void> updateOrCreateByRoom(Room room, String? contactName) async {
     if (contactName == null) return;
     final contact = await getOrCreateContact(
-      room.identityId,
-      room.toMainPubkey,
+      identityId: room.identityId,
+      pubkey: room.toMainPubkey,
     );
     if (contact.name != contactName) {
       contact.name = contactName;
@@ -369,8 +370,8 @@ class ContactService {
       String? name,
       String? avatarRemoteUrl,
       String? lightning}) async {
-    final contact =
-        await ContactService.instance.getOrCreateContact(identityId, pubkey);
+    final contact = await ContactService.instance
+        .getOrCreateContact(identityId: identityId, pubkey: pubkey);
     contact.name = name;
     if (lightning != null) {
       contact.lightning = lightning;

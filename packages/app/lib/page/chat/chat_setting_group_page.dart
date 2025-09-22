@@ -439,8 +439,8 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                         rust_nostr.getBech32PubkeyByHex(hex: rm.idPubkey);
                     contact ??= Contact(
                         pubkey: rm.idPubkey,
-                        npubkey: npub,
                         identityId: cc.roomObs.value.identityId)
+                      ..npubkey = npub
                       ..name = rm.name;
                     contact.name ??= rm.name;
                     Get.dialog(CupertinoAlertDialog(

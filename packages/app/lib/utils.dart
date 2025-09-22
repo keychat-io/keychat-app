@@ -423,6 +423,7 @@ Init File: $time \n
   static Widget getAvatarByImageFile(File image,
       {double size = 42, double radius = 100}) {
     return Container(
+      key: ObjectKey('avatar:${image.path}'),
       width: size,
       height: size,
       decoration: BoxDecoration(
@@ -726,7 +727,12 @@ Init File: $time \n
     final filePath = '${Utils.avatarsFolder}/$id.svg';
     final file = File(filePath);
     if (file.existsSync()) {
-      return SvgPicture.file(file, width: size, height: size);
+      return SvgPicture.file(
+        file,
+        width: size,
+        height: size,
+        key: ObjectKey('svgavatar:$filePath'),
+      );
     } else {}
     final svgCode = AvatarPlusGen.instance.generate(id);
     file.writeAsStringSync(svgCode);

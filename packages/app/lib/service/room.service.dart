@@ -53,17 +53,18 @@ class RoomService extends BaseChatService {
     }
   }
 
-  Future<Room> createPrivateRoom(
-      {required String toMainPubkey,
-      required Identity identity,
-      required RoomStatus status,
-      required EncryptMode encryptMode,
-      String? name,
-      Contact? contact,
-      String? curve25519PkHex,
-      String? onetimekey,
-      SignalId? signalId,
-      RoomType? type}) async {
+  Future<Room> createPrivateRoom({
+    required String toMainPubkey,
+    required Identity identity,
+    required RoomStatus status,
+    required EncryptMode encryptMode,
+    String? name,
+    Contact? contact,
+    String? curve25519PkHex,
+    String? onetimekey,
+    SignalId? signalId,
+    RoomType? type,
+  }) async {
     final identityId = identity.id;
     final exist = await getRoomByIdentity(toMainPubkey, identityId);
     if (exist != null) return exist;
@@ -95,11 +96,12 @@ class RoomService extends BaseChatService {
     // 1v1 room's contact's name
     if (room.type == RoomType.common) {
       await ContactService.instance.saveContactFromQrCode(
-          identityId: room.identityId,
-          pubkey: room.toMainPubkey,
-          name: contact?.name ?? name,
-          avatarRemoteUrl: contact?.avatarRemoteUrl,
-          lightning: contact?.lightning);
+        identityId: room.identityId,
+        pubkey: room.toMainPubkey,
+        name: contact?.name ?? name,
+        avatarRemoteUrl: contact?.avatarRemoteUrl,
+        lightning: contact?.lightning,
+      );
       room.contact = contact;
     }
     Utils.getGetxController<HomeController>()
@@ -198,7 +200,9 @@ class RoomService extends BaseChatService {
       if (myIdPubkey != null) {
         try {
           await rust_mls.deleteGroup(
-              nostrId: myIdPubkey, groupId: toMainPubkey);
+            nostrId: myIdPubkey,
+            groupId: toMainPubkey,
+          );
         } catch (e) {
           logger.i('delete mls group error', error: e);
         }
@@ -221,10 +225,12 @@ class RoomService extends BaseChatService {
     return DBProvider.database.rooms
         .filter()
         .typeEqualTo(RoomType.group)
-        .group((q) => q
-            .groupTypeEqualTo(GroupType.shareKey)
-            .or()
-            .groupTypeEqualTo(GroupType.kdf))
+        .group(
+          (q) => q
+              .groupTypeEqualTo(GroupType.shareKey)
+              .or()
+              .groupTypeEqualTo(GroupType.kdf),
+        )
         .findAll();
   }
 
@@ -247,8 +253,14 @@ class RoomService extends BaseChatService {
   }
 
   // get room by send_pubkey and bob_pubkey
-  Future<Room> getOrCreateRoom(String from, String to, RoomStatus initStatus,
-      {String? contactName, Identity? identity, RoomType? type}) async {
+  Future<Room> getOrCreateRoom(
+    String from,
+    String to,
+    RoomStatus initStatus, {
+    String? contactName,
+    Identity? identity,
+    RoomType? type,
+  }) async {
     final room = await getRoom(from, to, identity);
     if (room != null && room.type == RoomType.common && contactName != null) {
       await ContactService.instance.updateOrCreateByRoom(room, contactName);
@@ -260,24 +272,29 @@ class RoomService extends BaseChatService {
       throw Exception('no this identity');
     }
     return createPrivateRoom(
-        toMainPubkey: from,
-        identity: identity,
-        status: initStatus,
-        encryptMode: EncryptMode.nip04,
-        type: type,
-        name: contactName);
+      toMainPubkey: from,
+      identity: identity,
+      status: initStatus,
+      encryptMode: EncryptMode.nip04,
+      type: type,
+      name: contactName,
+    );
   }
 
   Future<Room> getOrCreateRoomByIdentity(
-      String toMainPubkey, Identity identity, RoomStatus status) async {
+    String toMainPubkey,
+    Identity identity,
+    RoomStatus status,
+  ) async {
     final room = await getRoomByIdentity(toMainPubkey, identity.id);
     if (room != null) return room;
 
     return createPrivateRoom(
-        encryptMode: EncryptMode.nip04,
-        toMainPubkey: toMainPubkey,
-        identity: identity,
-        status: status);
+      encryptMode: EncryptMode.nip04,
+      toMainPubkey: toMainPubkey,
+      identity: identity,
+      status: status,
+    );
   }
 
   Future<Room?> getRoom(String from, String to, [Identity? identity]) async {
@@ -401,9 +418,10 @@ class RoomService extends BaseChatService {
       }
       if (room.type == RoomType.common) {
         room.contact = await contactService.getOrCreateContact(
-            identityId: room.identityId,
-            pubkey: room.toMainPubkey,
-            curve25519PkHex: room.curve25519PkHex);
+          identityId: room.identityId,
+          pubkey: room.toMainPubkey,
+          curve25519PkHex: room.curve25519PkHex,
+        );
       }
       if (room.status == RoomStatus.requesting) {
         requesting.add(room); // not friend
@@ -419,7 +437,7 @@ class RoomService extends BaseChatService {
     return {
       'friends': RoomUtil.sortRoomList(friendsRoom),
       'approving': approving,
-      'requesting': requesting
+      'requesting': requesting,
     };
   }
 
@@ -430,11 +448,12 @@ class RoomService extends BaseChatService {
   }
 
   Future<void> processKeychatMessage(
-      KeychatMessage km,
-      NostrEventModel event, // as subEvent
-      Relay relay,
-      {NostrEventModel? sourceEvent, // parent event
-      Room? room}) async {
+    KeychatMessage km,
+    NostrEventModel event, // as subEvent
+    Relay relay, {
+    NostrEventModel? sourceEvent, // parent event
+    Room? room,
+  }) async {
     final toAddress = event.tags[0][1];
     // group room message
     room ??= await _getGroupRoom(toAddress);
@@ -460,24 +479,32 @@ class RoomService extends BaseChatService {
       if (identity == null) throw Exception('My receive address is null');
 
       room = await getOrCreateRoomByIdentity(
-          event.pubkey, identity, RoomStatus.init);
+        event.pubkey,
+        identity,
+        RoomStatus.init,
+      );
     }
 
     await km.service.proccessMessage(
-        room: room, event: event, km: km, sourceEvent: sourceEvent);
+      room: room,
+      event: event,
+      km: km,
+      sourceEvent: sourceEvent,
+    );
 
     return;
   }
 
   @override
-  Future<void> proccessMessage(
-      {required Room room,
-      required NostrEventModel event,
-      required KeychatMessage km,
-      NostrEventModel? sourceEvent,
-      String? msgKeyHash,
-      String? fromIdPubkey,
-      Function(String error)? failedCallback}) async {
+  Future<void> proccessMessage({
+    required Room room,
+    required NostrEventModel event,
+    required KeychatMessage km,
+    NostrEventModel? sourceEvent,
+    String? msgKeyHash,
+    String? fromIdPubkey,
+    Function(String error)? failedCallback,
+  }) async {
     switch (km.type) {
       // case KeyChatEventKinds.webrtcAudioCall:
       // case KeyChatEventKinds.webrtcVideoCall:
@@ -499,20 +526,23 @@ class RoomService extends BaseChatService {
     }
   }
 
-  Future<void> receiveDM(Room room, NostrEventModel event,
-      {bool? isSystem,
-      NostrEventModel? sourceEvent,
-      KeychatMessage? km,
-      String? realMessage,
-      String? decodedContent,
-      bool? isRead,
-      String? senderPubkey,
-      String? senderName,
-      RequestConfrimEnum? requestConfrim,
-      MessageMediaType? mediaType,
-      String? msgKeyHash,
-      MessageEncryptType? encryptType,
-      String? requestId}) async {
+  Future<void> receiveDM(
+    Room room,
+    NostrEventModel event, {
+    bool? isSystem,
+    NostrEventModel? sourceEvent,
+    KeychatMessage? km,
+    String? realMessage,
+    String? decodedContent,
+    bool? isRead,
+    String? senderPubkey,
+    String? senderName,
+    RequestConfrimEnum? requestConfrim,
+    MessageMediaType? mediaType,
+    String? msgKeyHash,
+    MessageEncryptType? encryptType,
+    String? requestId,
+  }) async {
     MsgReply? reply;
     if (km != null) {
       if (km.type == KeyChatEventKinds.dm && km.name != null) {
@@ -527,37 +557,41 @@ class RoomService extends BaseChatService {
         ? room.toMainPubkey
         : event.pubkey;
     await MessageService.instance.saveMessageToDB(
-        events: [sourceEvent ?? event],
-        room: room,
-        from: sourceEvent?.pubkey ?? event.pubkey,
-        to: sourceEvent?.tags[0][1] ?? event.tags[0][1],
-        senderPubkey: senderPubkey,
-        senderName: senderName,
-        isSystem: isSystem,
-        realMessage: realMessage,
-        subEvent: sourceEvent != null ? event.toJson().toString() : null,
-        content: decodedContent ?? km?.msg ?? event.content,
-        encryptType: encryptType ?? RoomUtil.getEncryptMode(event, sourceEvent),
-        reply: reply,
-        sent: SendStatusType.success,
-        isMeSend: senderPubkey == room.myIdPubkey,
-        isRead: isRead,
-        mediaType: mediaType,
-        requestConfrim: requestConfrim,
-        requestId: requestId,
-        createdAt: event.createdAt,
-        msgKeyHash: msgKeyHash);
+      events: [sourceEvent ?? event],
+      room: room,
+      from: sourceEvent?.pubkey ?? event.pubkey,
+      to: sourceEvent?.tags[0][1] ?? event.tags[0][1],
+      senderPubkey: senderPubkey,
+      senderName: senderName,
+      isSystem: isSystem,
+      realMessage: realMessage,
+      subEvent: sourceEvent != null ? event.toJson().toString() : null,
+      content: decodedContent ?? km?.msg ?? event.content,
+      encryptType: encryptType ?? RoomUtil.getEncryptMode(event, sourceEvent),
+      reply: reply,
+      sent: SendStatusType.success,
+      isMeSend: senderPubkey == room.myIdPubkey,
+      isRead: isRead,
+      mediaType: mediaType,
+      requestConfrim: requestConfrim,
+      requestId: requestId,
+      createdAt: event.createdAt,
+      msgKeyHash: msgKeyHash,
+    );
   }
 
   @override
-  Future<SendMessageResponse> sendMessage(Room room, String content,
-      {MessageMediaType? mediaType,
-      EncryptMode? encryptMode,
-      MsgReply? reply,
-      String? realMessage,
-      String? toAddress,
-      bool save = true,
-      bool? isSystem}) async {
+  Future<SendMessageResponse> sendMessage(
+    Room room,
+    String content, {
+    MessageMediaType? mediaType,
+    EncryptMode? encryptMode,
+    MsgReply? reply,
+    String? realMessage,
+    String? toAddress,
+    bool save = true,
+    bool? isSystem,
+  }) async {
     var realMessageContent = realMessage;
     if (realMessage == null && reply != null) {
       realMessageContent = content;
@@ -566,12 +600,21 @@ class RoomService extends BaseChatService {
 
     if (room.type == RoomType.group) {
       room = await getRoomByIdOrFail(room.id);
-      return _sendTextMessageToGroup(room, content,
-          reply: reply, realMessage: realMessageContent, mediaType: mediaType);
+      return _sendTextMessageToGroup(
+        room,
+        content,
+        reply: reply,
+        realMessage: realMessageContent,
+        mediaType: mediaType,
+      );
     }
     if (room.type == RoomType.bot && !content.startsWith('cashu')) {
-      return sendMessageToBot(room, room.getIdentity(), content,
-          realMessage: realMessage);
+      return sendMessageToBot(
+        room,
+        room.getIdentity(),
+        content,
+        realMessage: realMessage,
+      );
     }
 
     SendMessageResponse map;
@@ -581,29 +624,39 @@ class RoomService extends BaseChatService {
 
       final sm =
           KeychatMessage.getTextMessage(MessageType.nip04, content, reply);
-      map = await NostrAPI.instance.sendNip17Message(room, sm, identity,
-          toPubkey: toAddress ?? room.toMainPubkey,
-          save: save,
-          realMessage: realMessageContent,
-          reply: reply,
-          mediaType: mediaType);
+      map = await NostrAPI.instance.sendNip17Message(
+        room,
+        sm,
+        identity,
+        toPubkey: toAddress ?? room.toMainPubkey,
+        save: save,
+        realMessage: realMessageContent,
+        reply: reply,
+        mediaType: mediaType,
+      );
     } else {
       final sm = realMessage == null
           ? KeychatMessage.getTextMessage(MessageType.signal, content, reply)
           : content;
-      map = await SignalChatService.instance.sendMessage(room, sm,
-          realMessage: realMessageContent,
-          reply: reply,
-          isSystem: isSystem,
-          mediaType: mediaType,
-          save: save);
+      map = await SignalChatService.instance.sendMessage(
+        room,
+        sm,
+        realMessage: realMessageContent,
+        reply: reply,
+        isSystem: isSystem,
+        mediaType: mediaType,
+        save: save,
+      );
     }
     return map;
   }
 
   Future<SendMessageResponse> sendMessageToBot(
-      Room room, Identity identity, String message,
-      {String? realMessage}) async {
+    Room room,
+    Identity identity,
+    String message, {
+    String? realMessage,
+  }) async {
     BotClientMessageModel? cmm;
     try {
       cmm = BotClientMessageModel.fromJson(jsonDecode(message));
@@ -611,20 +664,26 @@ class RoomService extends BaseChatService {
     } catch (e) {}
     if (cmm == null) {
       cmm ??= BotClientMessageModel(
-          type: MessageMediaType.botText, message: message);
+        type: MessageMediaType.botText,
+        message: message,
+      );
       final bmd = room.getBotMessagePriceModel();
       if (bmd != null && !message.startsWith('/')) {
         String? cashuTokenString;
         if (bmd.price > 0) {
           final cashuToken = await CashuUtil.getStamp(
-              amount: bmd.price, token: bmd.unit, mints: bmd.mints);
+            amount: bmd.price,
+            token: bmd.unit,
+            mints: bmd.mints,
+          );
           cashuTokenString = cashuToken.token;
           final ecashBill = EcashBill(
-              amount: cashuToken.amount,
-              unit: cashuToken.unit ?? 'sat',
-              token: cashuTokenString,
-              roomId: room.id,
-              createdAt: DateTime.now());
+            amount: cashuToken.amount,
+            unit: cashuToken.unit ?? 'sat',
+            token: cashuTokenString,
+            roomId: room.id,
+            createdAt: DateTime.now(),
+          );
           await DBProvider.database.writeTxn(() async {
             await DBProvider.database.ecashBills.put(ecashBill);
           });
@@ -640,8 +699,11 @@ class RoomService extends BaseChatService {
     logger.i('toSendMessage: $toSendMessage');
     if (room.encryptMode == EncryptMode.signal) {
       try {
-        return await SignalChatService.instance.sendMessage(room, toSendMessage,
-            realMessage: realMessage ?? message);
+        return await SignalChatService.instance.sendMessage(
+          room,
+          toSendMessage,
+          realMessage: realMessage ?? message,
+        );
       } catch (e) {
         logger.e('send signal message to bot error', error: e);
       }
@@ -654,13 +716,14 @@ class RoomService extends BaseChatService {
     );
   }
 
-  Future<void> sendMessageToMultiRooms(
-      {required String message,
-      required String realMessage,
-      required List<Room> rooms,
-      required Identity identity,
-      bool save = true,
-      MessageMediaType? mediaType}) async {
+  Future<void> sendMessageToMultiRooms({
+    required String message,
+    required String realMessage,
+    required List<Room> rooms,
+    required Identity identity,
+    bool save = true,
+    MessageMediaType? mediaType,
+  }) async {
     final queue = Queue(parallel: 5);
     final todo = collection.Queue.from(rooms);
     final membersLength = todo.length;
@@ -669,23 +732,16 @@ class RoomService extends BaseChatService {
         if (todo.isEmpty) return;
         final room = todo.removeFirst() as Room;
         if (room.toMainPubkey == identity.secp256k1PKHex) return;
-        await RoomService.instance.sendMessage(room, message,
-            realMessage: realMessage, save: save, mediaType: mediaType);
+        await RoomService.instance.sendMessage(
+          room,
+          message,
+          realMessage: realMessage,
+          save: save,
+          mediaType: mediaType,
+        );
       });
     }
     await queue.onComplete;
-  }
-
-  Future<ChatController?> updateChatRoomPage(Room room) async {
-    final cc = RoomService.getController(room.id);
-    if (cc == null) return null;
-
-    if (room.type == RoomType.common) {
-      room.contact ??=
-          await contactService.getContact(room.identityId, room.toMainPubkey);
-    }
-    cc.setRoom(room);
-    return null;
   }
 
   Future<Room> updateRoom(Room room, {bool updateMykey = false}) async {
@@ -702,7 +758,14 @@ class RoomService extends BaseChatService {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.rooms.put(room);
     });
-    updateChatRoomPage(room);
+    final cc = RoomService.getController(room.id);
+    if (cc == null) return;
+
+    if (room.type == RoomType.common) {
+      room.contact ??=
+          await contactService.getContact(room.identityId, room.toMainPubkey);
+    }
+    cc.setRoom(room);
   }
 
   Future<void> checkWebsocketConnect() async {
@@ -741,11 +804,21 @@ class RoomService extends BaseChatService {
     await checkRoomStatus(room);
     switch (room.groupType) {
       case GroupType.mls:
-        return MlsGroupService.instance.sendMessage(room, message,
-            reply: reply, realMessage: realMessage, mediaType: mediaType);
+        return MlsGroupService.instance.sendMessage(
+          room,
+          message,
+          reply: reply,
+          realMessage: realMessage,
+          mediaType: mediaType,
+        );
       case GroupType.sendAll:
-        return groupService.sendToAllMessage(room, message,
-            reply: reply, realMessage: realMessage, mediaType: mediaType);
+        return groupService.sendToAllMessage(
+          room,
+          message,
+          reply: reply,
+          realMessage: realMessage,
+          mediaType: mediaType,
+        );
       case GroupType.shareKey:
       case GroupType.kdf:
         throw Exception('not support');
@@ -761,8 +834,12 @@ class RoomService extends BaseChatService {
     return cc;
   }
 
-  Future<Room?> createRoomAndsendInvite(String input,
-      {bool autoJump = true, Identity? identity, String? greeting}) async {
+  Future<Room?> createRoomAndsendInvite(
+    String input, {
+    bool autoJump = true,
+    Identity? identity,
+    String? greeting,
+  }) async {
     final hc = Utils.getGetxController<HomeController>();
     if (hc == null) {
       throw Exception('home controller is null');
@@ -788,9 +865,20 @@ class RoomService extends BaseChatService {
           }
         }
         room = await RoomService.instance.getOrCreateRoomByIdentity(
-            hexPubkey, identity, RoomStatus.requesting);
-        await SignalChatService.instance.sendHelloMessage(room, identity,
-            greeting: greeting, fromNpub: true);
+          hexPubkey,
+          identity,
+          RoomStatus.requesting,
+        );
+        await SignalChatService.instance.sendHelloMessage(
+          room,
+          identity,
+          greeting: greeting,
+          fromNpub: true,
+        );
+        await ContactService.instance.addContactToFriend(
+          pubkey: room.toMainPubkey,
+          identityId: room.identityId,
+        );
         if (room.status != RoomStatus.requesting) {
           room.status = RoomStatus.requesting;
           await RoomService.instance.updateRoom(room);
@@ -811,8 +899,10 @@ class RoomService extends BaseChatService {
     return null;
   }
 
-  Future<void> markAllRead(
-      {required int identityId, required int roomId}) async {
+  Future<void> markAllRead({
+    required int identityId,
+    required int roomId,
+  }) async {
     final refresh = await MessageService.instance.setViewedMessage(roomId);
     if (refresh) {
       Utils.getGetxController<HomeController>()

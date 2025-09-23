@@ -48,28 +48,31 @@ enum RoomStatus {
   groupUser, // not show in room list. used by group
 }
 
-@Collection(ignore: {
-  'props',
-  'contact',
-  'unReadCount',
-  'lastMessageModel',
-  'isSendAllGroup',
-  'isShareKeyGroup',
-  'isKDFGroup',
-  'isMLSGroup',
-  'parentRoom',
-  'keyPair'
-})
+@Collection(
+  ignore: {
+    'props',
+    'contact',
+    'unReadCount',
+    'lastMessageModel',
+    'isSendAllGroup',
+    'isShareKeyGroup',
+    'isKDFGroup',
+    'isMLSGroup',
+    'parentRoom',
+    'keyPair',
+  },
+)
 // ignore: must_be_immutable
 class Room extends Equatable {
   // for mls group
 
-  Room(
-      {required this.toMainPubkey,
-      required this.npub,
-      required this.identityId,
-      this.status = RoomStatus.enabled,
-      this.type = RoomType.common}) {
+  Room({
+    required this.toMainPubkey,
+    required this.npub,
+    required this.identityId,
+    this.status = RoomStatus.enabled,
+    this.type = RoomType.common,
+  }) {
     createdAt = DateTime.now();
   }
   Id id = Isar.autoIncrement;
@@ -153,6 +156,8 @@ class Room extends Equatable {
         createdAt,
         unReadCount,
         name,
+        status,
+        type,
       ];
 
   String get myIdPubkey => getIdentity().secp256k1PKHex;
@@ -257,10 +262,12 @@ class Room extends Equatable {
     return DBProvider.database.roomMembers
         .filter()
         .roomIdEqualTo(id)
-        .group((q) => q
-            .statusEqualTo(UserStatusType.invited)
-            .or()
-            .statusEqualTo(UserStatusType.inviting))
+        .group(
+          (q) => q
+              .statusEqualTo(UserStatusType.invited)
+              .or()
+              .statusEqualTo(UserStatusType.inviting),
+        )
         .findAll();
   }
 
@@ -494,8 +501,11 @@ class Room extends Equatable {
       if (rm.idPubkey == myIdPubkey) continue;
 
       final idRoom = await RoomService.instance.getOrCreateRoom(
-          rm.idPubkey, myIdPubkey, RoomStatus.groupUser,
-          contactName: rm.name);
+        rm.idPubkey,
+        myIdPubkey,
+        RoomStatus.groupUser,
+        contactName: rm.name,
+      );
       memberRooms[rm.idPubkey] = idRoom;
     }
     return memberRooms;
@@ -574,7 +584,8 @@ Please reset room's session: Chat Setting-> Security Settings -> Reset Session''
     try {
       final Map config = jsonDecode(botLocalConfig!) as Map<String, dynamic>;
       bmd = BotMessageData.fromJson(
-          config[MessageMediaType.botPricePerMessageRequest.name]);
+        config[MessageMediaType.botPricePerMessageRequest.name],
+      );
     } catch (e) {
       return null;
     }

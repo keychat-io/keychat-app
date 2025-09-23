@@ -5,16 +5,18 @@ import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 part 'contact.g.dart';
 
-@Collection(ignore: {
-  'props',
-  'displayName',
-  'indexLetter',
-  'isCheck',
-  'admin',
-  'imageAssets',
-  'mlsPK',
-  'displayAbout'
-})
+@Collection(
+  ignore: {
+    'props',
+    'displayName',
+    'indexLetter',
+    'isCheck',
+    'admin',
+    'imageAssets',
+    'mlsPK',
+    'displayAbout',
+  },
+)
 // ignore: must_be_immutable
 class Contact extends Equatable {
   Contact({required this.identityId, required this.pubkey, this.npubkey = ''}) {
@@ -45,7 +47,8 @@ class Contact extends Equatable {
   String? avatarRemoteUrl;
   String? lightning;
 
-  bool autoCreateFromGroup = false;
+  bool autoCreateFromGroup =
+      false; // auto create contact when create group, if equal true,is my friends
 
   String? about;
   DateTime? createdAt;

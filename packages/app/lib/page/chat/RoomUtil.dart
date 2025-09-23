@@ -1,6 +1,7 @@
 import 'dart:convert' show jsonDecode;
 import 'package:any_link_preview/any_link_preview.dart';
 import 'package:app/constants.dart';
+import 'package:app/desktop/DesktopController.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr_event.dart';
@@ -39,7 +40,11 @@ import 'package:settings_ui/settings_ui.dart';
 
 class RoomUtil {
   static Future<bool> messageReceiveCheck(
-      Room room, NostrEventModel event, Duration delay, int maxRetry) async {
+    Room room,
+    NostrEventModel event,
+    Duration delay,
+    int maxRetry,
+  ) async {
     if (maxRetry == 0) return false;
     maxRetry--;
     await Future.delayed(delay);
@@ -53,57 +58,72 @@ class RoomUtil {
       return true;
     }
     Get.find<WebsocketService>().writeNostrEvent(
-        event: event,
-        eventString: event.toString(),
-        roomId: room.id,
-        toRelays: room.sendingRelays);
+      event: event,
+      eventString: event.toString(),
+      roomId: room.id,
+      toRelays: room.sendingRelays,
+    );
     logger.i('_messageReceiveCheck: ${event.id}, maxRetry: $maxRetry');
     return messageReceiveCheck(room, event, delay, maxRetry);
   }
 
-  static Future<void> forwardTextMessage(Identity identity, String content,
-      [bool showContent = true]) async {
+  static Future<void> forwardTextMessage(
+    Identity identity,
+    String content, [
+    bool showContent = true,
+  ]) async {
     final forwardRooms = await Get.to<List<Room>>(
-        () => ForwardSelectRoom(content, identity, showContent: showContent),
-        fullscreenDialog: true,
-        transition: Transition.downToUp);
+      () => ForwardSelectRoom(content, identity, showContent: showContent),
+      fullscreenDialog: true,
+      transition: Transition.downToUp,
+    );
     if (forwardRooms == null || forwardRooms.isEmpty) return;
 
     EasyLoading.show(status: 'Sending...');
     await RoomService.instance.sendMessageToMultiRooms(
-        message: content,
-        realMessage: content,
-        rooms: forwardRooms,
-        identity: identity,
-        mediaType: MessageMediaType.text);
+      message: content,
+      realMessage: content,
+      rooms: forwardRooms,
+      identity: identity,
+      mediaType: MessageMediaType.text,
+    );
     EasyLoading.dismiss();
     EasyLoading.showSuccess('Sent');
     return;
   }
 
-  static Future<void> forwardMediaMessage(Identity identity,
-      {required MessageMediaType mediaType,
-      required String content,
-      required String realMessage}) async {
+  static Future<void> forwardMediaMessage(
+    Identity identity, {
+    required MessageMediaType mediaType,
+    required String content,
+    required String realMessage,
+  }) async {
     final forwardRooms = await Get.to<List<Room>>(
-        () => ForwardSelectRoom(content, identity),
-        fullscreenDialog: true,
-        transition: Transition.downToUp);
+      () => ForwardSelectRoom(content, identity),
+      fullscreenDialog: true,
+      transition: Transition.downToUp,
+    );
     if (forwardRooms == null || forwardRooms.isEmpty) return;
 
     EasyLoading.show(status: 'Sending...');
 
     final mfi = MsgFileInfo.fromJson(jsonDecode(realMessage));
     for (final room in forwardRooms) {
-      await RoomService.instance.sendMessage(room, content,
-          realMessage: mfi.toString(), mediaType: mediaType);
+      await RoomService.instance.sendMessage(
+        room,
+        content,
+        realMessage: mfi.toString(),
+        mediaType: mediaType,
+      );
     }
     EasyLoading.showSuccess('Sent');
     return;
   }
 
   static Future<void> forwardMediaMessageToRooms(
-      List<Room> rooms, Message message) async {
+    List<Room> rooms,
+    Message message,
+  ) async {
     if (rooms.isEmpty ||
         message.realMessage == null ||
         message.realMessage!.isEmpty) {
@@ -113,8 +133,12 @@ class RoomUtil {
       EasyLoading.show(status: 'Sending...');
       final mfi = MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
       for (final room in rooms) {
-        await RoomService.instance.sendMessage(room, message.content,
-            realMessage: mfi.toString(), mediaType: message.mediaType);
+        await RoomService.instance.sendMessage(
+          room,
+          message.content,
+          realMessage: mfi.toString(),
+          mediaType: message.mediaType,
+        );
       }
       EasyLoading.showSuccess('Sent');
     } catch (e, s) {
@@ -123,12 +147,15 @@ class RoomUtil {
     }
   }
 
-  static GroupMessage getGroupMessage(Room room, String message,
-      {required String pubkey,
-      int? subtype,
-      String? ext,
-      String? sig,
-      MsgReply? reply}) {
+  static GroupMessage getGroupMessage(
+    Room room,
+    String message, {
+    required String pubkey,
+    int? subtype,
+    String? ext,
+    String? sig,
+    MsgReply? reply,
+  }) {
     final gm = GroupMessage(message: message, pubkey: pubkey, sig: sig)
       ..subtype = subtype
       ..ext = ext;
@@ -154,7 +181,8 @@ Let's start an encrypted chat.''';
         await DBProvider.database.nostrEventStatus
             .filter()
             .createdAtLessThan(
-                DateTime.now().subtract(const Duration(days: 60)))
+              DateTime.now().subtract(const Duration(days: 60)),
+            )
             .deleteAll();
       });
       // excute auto delete message by user setting
@@ -168,8 +196,10 @@ Let's start an encrypted chat.''';
         logger.i('auto_delete_message been executed today. Skip');
         return;
       }
-      await Storage.setInt(StorageKeyString.autoDeleteMessageDays,
-          DateTime.now().millisecondsSinceEpoch);
+      await Storage.setInt(
+        StorageKeyString.autoDeleteMessageDays,
+        DateTime.now().millisecondsSinceEpoch,
+      );
       logger.i('The auto tasks been executed');
       final list = await DBProvider.database.rooms
           .filter()
@@ -177,21 +207,29 @@ Let's start an encrypted chat.''';
           .findAll();
       for (final room in list) {
         await RoomUtil.excuteAutoDeleteRoomMessages(
-            room.identityId, room.id, room.autoDeleteDays);
+          room.identityId,
+          room.id,
+          room.autoDeleteDays,
+        );
       }
 
       // room setting > global setting
       final fromAt = DateTime.now().subtract(const Duration(days: 365));
       final start = BigInt.from(fromAt.second);
       await rust_cashu.removeTransactions(
-          unixTimestampLe: start, status: TransactionStatus.success);
+        unixTimestampLe: start,
+        status: TransactionStatus.success,
+      );
     } catch (e, s) {
       logger.e('executeAutoDelete:$e', stackTrace: s);
     }
   }
 
   static Future<void> excuteAutoDeleteRoomMessages(
-      int identityId, int roomId, int days) async {
+    int identityId,
+    int roomId,
+    int days,
+  ) async {
     if (days <= 0) return;
     final fromAt = DateTime.now().subtract(Duration(days: days));
 
@@ -217,47 +255,55 @@ Let's start an encrypted chat.''';
       EasyLoading.showSuccess('Saved');
       if (day > 0) {
         excuteAutoDeleteRoomMessages(
-                cc.roomObs.value.identityId, cc.roomObs.value.id, day)
-            .then((value) => cc.loadAllChat());
+          cc.roomObs.value.identityId,
+          cc.roomObs.value.id,
+          day,
+        ).then((value) => cc.loadAllChat());
       }
     }
 
     return SettingsTile.navigation(
-        leading: const Icon(
-          CupertinoIcons.calendar,
-        ),
-        title: const Text('Auto Delete Messages'),
-        value: Text(Utils.getDaysText(cc.roomObs.value.autoDeleteDays)),
-        onPressed: (context) {
-          showModalBottomSheetWidget(
-              context,
-              'Auto Delete Messages',
-              Obx(() => SettingsList(
-                      platform: DevicePlatform.iOS,
-                      physics: const NeverScrollableScrollPhysics(),
-                      sections: [
-                        SettingsSection(
-                            title: const Text(
-                                'Messages will been deleted before days'),
-                            tiles: [0, 1, 7, 30, 90]
-                                .map(
-                                  (e) => SettingsTile(
-                                    onPressed: (context) {
-                                      autoDeleteHandle(e);
-                                    },
-                                    title: Text(Utils.getDaysText(e)),
-                                    trailing:
-                                        cc.roomObs.value.autoDeleteDays == e
-                                            ? const Icon(
-                                                Icons.done,
-                                                color: Colors.green,
-                                              )
-                                            : null,
-                                  ),
+      leading: const Icon(
+        CupertinoIcons.calendar,
+      ),
+      title: const Text('Auto Delete Messages'),
+      value: Text(Utils.getDaysText(cc.roomObs.value.autoDeleteDays)),
+      onPressed: (context) {
+        showModalBottomSheetWidget(
+          context,
+          'Auto Delete Messages',
+          Obx(
+            () => SettingsList(
+              platform: DevicePlatform.iOS,
+              physics: const NeverScrollableScrollPhysics(),
+              sections: [
+                SettingsSection(
+                  title: const Text(
+                    'Messages will been deleted before days',
+                  ),
+                  tiles: [0, 1, 7, 30, 90]
+                      .map(
+                        (e) => SettingsTile(
+                          onPressed: (context) {
+                            autoDeleteHandle(e);
+                          },
+                          title: Text(Utils.getDaysText(e)),
+                          trailing: cc.roomObs.value.autoDeleteDays == e
+                              ? const Icon(
+                                  Icons.done,
+                                  color: Colors.green,
                                 )
-                                .toList())
-                      ])));
-        });
+                              : null,
+                        ),
+                      )
+                      .toList(),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   static SettingsTile pinRoomSection(ChatController cc) {
@@ -292,8 +338,12 @@ Let's start an encrypted chat.''';
     );
   }
 
-  static Widget getSubtitleDisplay(BuildContext context, Room room,
-      DateTime messageExpired, Message? lastMessage) {
+  static Widget getSubtitleDisplay(
+    BuildContext context,
+    Room room,
+    DateTime messageExpired,
+    Message? lastMessage,
+  ) {
     if (room.signalDecodeError) {
       return const Text('Decode Error', style: TextStyle(color: Colors.pink));
     }
@@ -313,14 +363,19 @@ Let's start an encrypted chat.''';
       text = '[${room.unReadCount} messages] $text';
     }
     var style = TextStyle(
-        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-        fontSize: 14);
+      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+      fontSize: 14,
+    );
     if (lastMessage.isMeSend && lastMessage.sent == SendStatusType.failed) {
       style = style.copyWith(color: Colors.red);
     }
 
-    return Text(text,
-        maxLines: 1, overflow: TextOverflow.ellipsis, style: style);
+    return Text(
+      text,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: style,
+    );
   }
 
   static Widget getRelaySubtitle(Message message) {
@@ -348,68 +403,72 @@ Let's start an encrypted chat.''';
     );
   }
 
-  static Future<void> showRoomActionSheet(BuildContext context, Room room,
-      {Function? onDeleteHistory, Function? onDeletRoom}) async {
+  static Future<void> showRoomActionSheet(
+    BuildContext context,
+    Room room, {
+    Function? onDeleteHistory,
+    Function? onDeletRoom,
+  }) async {
     if (GetPlatform.isMobile) {
       HapticFeedback.lightImpact();
     }
     showCupertinoModalPopup<void>(
       context: context,
       builder: (BuildContext context) => CupertinoActionSheet(
-          title: Text(
-            room.getRoomName(),
-            style: const TextStyle(fontSize: 18),
+        title: Text(
+          room.getRoomName(),
+          style: const TextStyle(fontSize: 18),
+        ),
+        actions: <CupertinoActionSheetAction>[
+          CupertinoActionSheetAction(
+            onPressed: () async {
+              await RoomService.instance
+                  .markAllRead(identityId: room.identityId, roomId: room.id);
+              Get.back<void>();
+            },
+            child: const Text('Mark as Read'),
           ),
-          actions: <CupertinoActionSheetAction>[
+          CupertinoActionSheetAction(
+            onPressed: () async {
+              await RoomService.instance.deleteRoomMessage(room);
+              Get.find<HomeController>().loadIdentityRoomList(room.identityId);
+              if (onDeleteHistory != null) {
+                onDeleteHistory();
+              }
+              Get.back<void>();
+            },
+            child: const Text('Clear History'),
+          ),
+          if (room.type == RoomType.common)
             CupertinoActionSheetAction(
+              isDestructiveAction: true,
               onPressed: () async {
-                await RoomService.instance
-                    .markAllRead(identityId: room.identityId, roomId: room.id);
-                Get.back<void>();
-              },
-              child: const Text('Mark as Read'),
-            ),
-            CupertinoActionSheetAction(
-              onPressed: () async {
-                await RoomService.instance.deleteRoomMessage(room);
-                Get.find<HomeController>()
-                    .loadIdentityRoomList(room.identityId);
-                if (onDeleteHistory != null) {
-                  onDeleteHistory();
+                try {
+                  EasyLoading.show(status: 'Loading...');
+                  await RoomService.instance.deleteRoom(room);
+                  if (onDeletRoom != null) {
+                    onDeletRoom();
+                  }
+                  EasyLoading.showSuccess('Success');
+                  Get.find<HomeController>()
+                      .loadIdentityRoomList(room.identityId);
+                } catch (e, s) {
+                  EasyLoading.dismiss();
+                  logger.e(e.toString(), error: e, stackTrace: s);
+                  EasyLoading.showError(e.toString());
                 }
                 Get.back<void>();
               },
-              child: const Text('Clear History'),
+              child: const Text('Delete Room'),
             ),
-            if (room.type == RoomType.common)
-              CupertinoActionSheetAction(
-                isDestructiveAction: true,
-                onPressed: () async {
-                  try {
-                    EasyLoading.show(status: 'Loading...');
-                    await RoomService.instance.deleteRoom(room);
-                    if (onDeletRoom != null) {
-                      onDeletRoom();
-                    }
-                    EasyLoading.showSuccess('Success');
-                    Get.find<HomeController>()
-                        .loadIdentityRoomList(room.identityId);
-                  } catch (e, s) {
-                    EasyLoading.dismiss();
-                    logger.e(e.toString(), error: e, stackTrace: s);
-                    EasyLoading.showError(e.toString());
-                  }
-                  Get.back<void>();
-                },
-                child: const Text('Delete Room'),
-              ),
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Get.back<void>();
-              },
-              child: const Text('Cancel'),
-            )
-          ]),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Get.back<void>();
+            },
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -444,18 +503,19 @@ Let's start an encrypted chat.''';
         'Clear History',
       ),
       onPressed: (context) {
-        Get.dialog(CupertinoAlertDialog(
-          title: const Text('Clean all messages?'),
-          actions: <Widget>[
-            CupertinoDialogAction(
-              child: const Text(
-                'Cancel',
+        Get.dialog(
+          CupertinoAlertDialog(
+            title: const Text('Clean all messages?'),
+            actions: <Widget>[
+              CupertinoDialogAction(
+                child: const Text(
+                  'Cancel',
+                ),
+                onPressed: () {
+                  Get.back<void>();
+                },
               ),
-              onPressed: () {
-                Get.back<void>();
-              },
-            ),
-            CupertinoDialogAction(
+              CupertinoDialogAction(
                 isDestructiveAction: true,
                 child: const Text(
                   'Delete',
@@ -471,46 +531,59 @@ Let's start an encrypted chat.''';
                   } catch (e) {
                     EasyLoading.showError(e.toString());
                   }
-                }),
-          ],
-        ));
+                },
+              ),
+            ],
+          ),
+        );
       },
     );
   }
 
-  static SettingsTile fromContactClick(String pubkey, int identityId,
-      [String? greeting]) {
+  static SettingsTile fromContactClick(
+    String pubkey,
+    int identityId, [
+    String? greeting,
+  ]) {
     return SettingsTile(
       title: FutureBuilder(
-          future:
-              RoomService.instance.getRoomAndContainSession(pubkey, identityId),
-          builder: (context, snapshot) {
-            final room = snapshot.data;
-            if (room == null) {
-              return FilledButton(
-                onPressed: () async {
-                  final identity =
-                      Get.find<HomeController>().allIdentities[identityId]!;
-                  await RoomService.instance.createRoomAndsendInvite(pubkey,
-                      identity: identity, greeting: greeting);
-                },
-                child: const Text('Add'),
-              );
-            }
+        future:
+            RoomService.instance.getRoomAndContainSession(pubkey, identityId),
+        builder: (context, snapshot) {
+          final room = snapshot.data;
+          if (room == null) {
             return FilledButton(
               onPressed: () async {
-                Utils.offAndToNamedRoom(room);
-                Get.find<HomeController>()
-                    .loadIdentityRoomList(room.identityId);
+                final identity =
+                    Get.find<HomeController>().allIdentities[identityId]!;
+                await RoomService.instance.createRoomAndsendInvite(
+                  pubkey,
+                  identity: identity,
+                  greeting: greeting,
+                );
               },
-              child: const Text('Send Message'),
+              child: const Text('Add'),
             );
-          }),
+          }
+          return FilledButton(
+            onPressed: () async {
+              await Utils.offAndToNamedRoom(
+                room,
+              );
+              Get.find<HomeController>().loadIdentityRoomList(room.identityId);
+            },
+            child: const Text('Send Message'),
+          );
+        },
+      ),
     );
   }
 
-  static Future<void> processUserQRCode(QRUserModel model,
-      [bool fromAddPage = false, Identity? identity]) async {
+  static Future<void> processUserQRCode(
+    QRUserModel model, [
+    bool fromAddPage = false,
+    Identity? identity,
+  ]) async {
     if (model.time <
         DateTime.now().millisecondsSinceEpoch -
             1000 * 3600 * KeychatGlobal.oneTimePubkeysLifetime) {
@@ -523,17 +596,20 @@ Let's start an encrypted chat.''';
     final npub = rust_nostr.getBech32PubkeyByHex(hex: model.pubkey);
     final globalSign = model.globalSign;
     final pmm = PrekeyMessageModel(
-        signalId: model.curve25519PkHex,
-        nostrId: model.pubkey,
-        time: model.time,
-        name: model.name,
-        sig: globalSign,
-        avatar: model.avatar,
-        lightning: model.lightning,
-        message: '');
+      signalId: model.curve25519PkHex,
+      nostrId: model.pubkey,
+      time: model.time,
+      name: model.name,
+      sig: globalSign,
+      avatar: model.avatar,
+      lightning: model.lightning,
+      message: '',
+    );
 
     await SignalChatUtil.verifySignedMessage(
-        pmm: pmm, signalIdPubkey: model.curve25519PkHex);
+      pmm: pmm,
+      signalIdPubkey: model.curve25519PkHex,
+    );
 
     final contact = Contact(pubkey: pubkey, identityId: identity.id)
       ..npubkey = npub
@@ -603,8 +679,10 @@ Let's start an encrypted chat.''';
     }
   }
 
-  static MessageEncryptType getEncryptMode(NostrEventModel event,
-      [NostrEventModel? sourceEvent]) {
+  static MessageEncryptType getEncryptMode(
+    NostrEventModel event, [
+    NostrEventModel? sourceEvent,
+  ]) {
     if (sourceEvent == null) return event.encryptType;
     if (event.kind == EventKinds.nip17 ||
         sourceEvent.kind == EventKinds.nip17) {
@@ -663,59 +741,77 @@ Let's start an encrypted chat.''';
 
   static Widget getMarkdownView(String data, MarkdownConfig config, [int? id]) {
     return MarkdownBlock(
-        key: id != null ? ObjectKey('mk:$id') : null,
-        data: data,
-        selectable: false,
-        config: config,
-        generator: MarkdownGenerator(
-            linesMargin: const EdgeInsets.symmetric(vertical: 4)));
+      key: id != null ? ObjectKey('mk:$id') : null,
+      data: data,
+      selectable: false,
+      config: config,
+      generator: MarkdownGenerator(
+        linesMargin: const EdgeInsets.symmetric(vertical: 4),
+      ),
+    );
   }
 
   static Widget _getActionWidget(
-      Widget child,
-      Message message,
-      MarkdownConfig markdownConfig,
-      Widget Function({Widget? child, String? text}) errorCallback) {
+    Widget child,
+    Message message,
+    MarkdownConfig markdownConfig,
+    Widget Function({Widget? child, String? text}) errorCallback,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _getTextItemView(message, markdownConfig, errorCallback),
         const SizedBox(height: 10),
-        child
+        child,
       ],
     );
   }
 
-  static Widget _getTextItemView(Message message, MarkdownConfig markdownConfig,
-      Widget Function({Widget? child, String? text}) errorCallback) {
+  static Widget _getTextItemView(
+    Message message,
+    MarkdownConfig markdownConfig,
+    Widget Function({Widget? child, String? text}) errorCallback,
+  ) {
     if (AnyLinkPreview.isValidLink(message.content) &&
         !isEmail(message.content)) {
       return AnyLinkPreview(
-          key: Key(message.content),
-          cache: const Duration(days: 7),
-          link: message.content,
-          onTap: () {
-            Utils.hideKeyboard(Get.context!);
-            Get.find<MultiWebviewController>()
-                .launchWebview(initUrl: message.content);
-          },
-          placeholderWidget: errorCallback(
-              child:
-                  getMarkdownView(message.content, markdownConfig, message.id)),
-          showMultimedia: false,
-          errorBody: '',
-          errorWidget: errorCallback(
-              child: getMarkdownView(
-                  message.content, markdownConfig, message.id)));
+        key: Key(message.content),
+        cache: const Duration(days: 7),
+        link: message.content,
+        onTap: () {
+          Utils.hideKeyboard(Get.context!);
+          Get.find<MultiWebviewController>()
+              .launchWebview(initUrl: message.content);
+        },
+        placeholderWidget: errorCallback(
+          child: getMarkdownView(message.content, markdownConfig, message.id),
+        ),
+        showMultimedia: false,
+        errorBody: '',
+        errorWidget: errorCallback(
+          child: getMarkdownView(
+            message.content,
+            markdownConfig,
+            message.id,
+          ),
+        ),
+      );
     }
 
     return errorCallback(
-        child: getMarkdownView(message.realMessage ?? message.content,
-            markdownConfig, message.id));
+      child: getMarkdownView(
+        message.realMessage ?? message.content,
+        markdownConfig,
+        message.id,
+      ),
+    );
   }
 
-  static Widget _imageTextView(Message message, ChatController cc,
-      Widget Function({Widget? child, String? text}) errorCallback) {
+  static Widget _imageTextView(
+    Message message,
+    ChatController cc,
+    Widget Function({Widget? child, String? text}) errorCallback,
+  ) {
     if (message.realMessage != null) {
       try {
         final mfi = MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
@@ -728,10 +824,11 @@ Let's start an encrypted chat.''';
   }
 
   static Widget getImageViewWidget(
-      Message message,
-      ChatController cc,
-      MsgFileInfo fileInfo,
-      Widget Function({Widget? child, String? text}) errorCallback) {
+    Message message,
+    ChatController cc,
+    MsgFileInfo fileInfo,
+    Widget Function({Widget? child, String? text}) errorCallback,
+  ) {
     if (fileInfo.updateAt != null &&
         fileInfo.status == FileStatus.downloading) {
       final isTimeout = DateTime.now()
@@ -743,31 +840,35 @@ Let's start an encrypted chat.''';
     }
     switch (fileInfo.status) {
       case FileStatus.downloading:
-        return Row(children: [
-          errorCallback(text: 'Downloading...'),
-          const SpinKitFadingCircle(
-            color: Color(0xfff0aa35),
-            size: 25,
-          )
-        ]);
+        return Row(
+          children: [
+            errorCallback(text: 'Downloading...'),
+            const SpinKitFadingCircle(
+              color: Color(0xfff0aa35),
+              size: 25,
+            ),
+          ],
+        );
       case FileStatus.decryptSuccess:
         return fileInfo.localPath == null
             ? errorCallback(text: '[Image Loading]')
             : ImagePreviewWidget(
                 localPath: fileInfo.localPath!,
                 cc: cc,
-                errorCallback: errorCallback);
+                errorCallback: errorCallback,
+              );
       case FileStatus.failed:
         return Row(
           children: [
             errorCallback(text: '[Image Crashed]'),
             IconButton(
-                onPressed: () {
-                  EasyLoading.showToast('Start downloading');
-                  message.isRead = true;
-                  FileService.instance.downloadForMessage(message, fileInfo);
-                },
-                icon: const Icon(Icons.refresh))
+              onPressed: () {
+                EasyLoading.showToast('Start downloading');
+                message.isRead = true;
+                FileService.instance.downloadForMessage(message, fileInfo);
+              },
+              icon: const Icon(Icons.refresh),
+            ),
           ],
         );
       default:
@@ -780,10 +881,11 @@ Let's start an encrypted chat.''';
   /// This method creates and configures a text display widget with appropriate
   /// styling and formatting options.
   static Widget getTextViewWidget(
-      Message message,
-      ChatController cc,
-      MarkdownConfig markdownConfig,
-      Widget Function({Widget? child, String? text}) errorCallback) {
+    Message message,
+    ChatController cc,
+    MarkdownConfig markdownConfig,
+    Widget Function({Widget? child, String? text}) errorCallback,
+  ) {
     try {
       switch (message.mediaType) {
         case MessageMediaType.text:
@@ -797,35 +899,53 @@ Let's start an encrypted chat.''';
         case MessageMediaType.cashu:
           if (message.cashuInfo != null) {
             return RedPocketCashu(
-                key: Key('cashu:${message.id}'), message: message);
+              key: Key('cashu:${message.id}'),
+              message: message,
+            );
           }
         case MessageMediaType.lightningInvoice:
           if (message.cashuInfo != null) {
             return RedPocketLightning(
-                key: Key('lightning:${message.id}'), message: message);
+              key: Key('lightning:${message.id}'),
+              message: message,
+            );
           }
         case MessageMediaType.setPostOffice:
-          return _getActionWidget(SetRoomRelayAction(cc, message), message,
-              markdownConfig, errorCallback);
+          return _getActionWidget(
+            SetRoomRelayAction(cc, message),
+            message,
+            markdownConfig,
+            errorCallback,
+          );
         case MessageMediaType.groupInvite:
           return _getActionWidget(
-              GroupInviteAction(message, cc.roomObs.value.getIdentity()),
-              message,
-              markdownConfig,
-              errorCallback);
+            GroupInviteAction(message, cc.roomObs.value.getIdentity()),
+            message,
+            markdownConfig,
+            errorCallback,
+          );
         case MessageMediaType.groupInviteConfirm:
           return _getActionWidget(
-              GroupInviteConfirmAction(cc.roomObs.value.getRoomName(), message),
-              message,
-              markdownConfig,
-              errorCallback);
+            GroupInviteConfirmAction(cc.roomObs.value.getRoomName(), message),
+            message,
+            markdownConfig,
+            errorCallback,
+          );
         // bot
         case MessageMediaType.botPricePerMessageRequest:
-          return _getActionWidget(BotPricePerMessageRequestWidget(cc, message),
-              message, markdownConfig, errorCallback);
+          return _getActionWidget(
+            BotPricePerMessageRequestWidget(cc, message),
+            message,
+            markdownConfig,
+            errorCallback,
+          );
         case MessageMediaType.botOneTimePaymentRequest:
-          return _getActionWidget(BotOneTimePaymentRequestWidget(cc, message),
-              message, markdownConfig, errorCallback);
+          return _getActionWidget(
+            BotOneTimePaymentRequestWidget(cc, message),
+            message,
+            markdownConfig,
+            errorCallback,
+          );
         case MessageMediaType.groupInvitationInfo:
           return GroupInvitationInfoWidget(cc, message, errorCallback);
         case MessageMediaType.groupInvitationRequesting:
@@ -840,19 +960,26 @@ Let's start an encrypted chat.''';
   }
 
   static Future<void> appendMessageOrCreate(
-      String error, Room room, String content, NostrEventModel nostrEvent,
-      {String? fromIdPubkey}) async {
+    String error,
+    Room room,
+    String content,
+    NostrEventModel nostrEvent, {
+    String? fromIdPubkey,
+  }) async {
     final message = await DBProvider.database.messages
         .filter()
         .msgidEqualTo(nostrEvent.id)
         .findFirst();
     if (message == null) {
-      await RoomService.instance.receiveDM(room, nostrEvent,
-          decodedContent: '''
+      await RoomService.instance.receiveDM(
+        room,
+        nostrEvent,
+        decodedContent: '''
 $error
 
 track: $content''',
-          senderPubkey: fromIdPubkey);
+        senderPubkey: fromIdPubkey,
+      );
       return;
     }
     message.content = '''${message.content}

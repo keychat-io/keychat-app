@@ -38,13 +38,15 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 Logger logger = Logger(
-    filter: kReleaseMode ? MyLogFilter() : null,
-    output: MyOutput(),
-    printer: PrettyPrinter(
-        dateTimeFormat:
-            kDebugMode ? DateTimeFormat.onlyTime : DateTimeFormat.dateAndTime,
-        colors: false,
-        methodCount: 5));
+  filter: kReleaseMode ? MyLogFilter() : null,
+  output: MyOutput(),
+  printer: PrettyPrinter(
+    dateTimeFormat:
+        kDebugMode ? DateTimeFormat.onlyTime : DateTimeFormat.dateAndTime,
+    colors: false,
+    methodCount: 5,
+  ),
+);
 
 Logger loggerNoLine = Logger(printer: PrettyPrinter(methodCount: 0));
 
@@ -199,28 +201,37 @@ class MyOutput extends LogOutput {
 
 class Utils {
   static final RegExp domainRegExp = RegExp(
-      r'^(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[0-9]{1})|([0-9]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[-]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[-]{1}[0-9]{1})|([0-9]{1}[-]{1}[a-zA-Z]{1}))(([a-zA-Z]{1}|[0-9]{1}|[-]{1}){1,61})+[.][a-zA-Z]{2,4}$');
+    r'^(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[0-9]{1})|([0-9]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[-]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[-]{1}[0-9]{1})|([0-9]{1}[-]{1}[a-zA-Z]{1}))(([a-zA-Z]{1}|[0-9]{1}|[-]{1}){1,61})+[.][a-zA-Z]{2,4}$',
+  );
 
   static Future<void> bottomSheedAndHideStatusBar(Widget widget) async {
-    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
-        overlays: []);
+    await SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: [],
+    );
     await Get.bottomSheet<void>(
-        clipBehavior: Clip.antiAlias,
-        shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
-        widget,
-        isScrollControlled: true,
-        ignoreSafeArea: false,
-        enterBottomSheetDuration: Duration.zero,
-        exitBottomSheetDuration: Duration.zero);
-    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge,
-        overlays: SystemUiOverlay.values);
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarBrightness: Brightness.light,
-      statusBarIconBrightness: Brightness.dark,
-      statusBarColor: Colors.transparent,
-      systemNavigationBarColor: Colors.transparent,
-    ));
+      clipBehavior: Clip.antiAlias,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+      ),
+      widget,
+      isScrollControlled: true,
+      ignoreSafeArea: false,
+      enterBottomSheetDuration: Duration.zero,
+      exitBottomSheetDuration: Duration.zero,
+    );
+    await SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.edgeToEdge,
+      overlays: SystemUiOverlay.values,
+    );
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarBrightness: Brightness.light,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: Colors.transparent,
+      ),
+    );
   }
 
   static String capitalizeFirstLetter(String input) {
@@ -320,31 +331,36 @@ Init File: $time \n
     final random = Random();
     const availableChars =
         'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz';
-    final randomString = List.generate(length,
-            (index) => availableChars[random.nextInt(availableChars.length)])
-        .join();
+    final randomString = List.generate(
+      length,
+      (index) => availableChars[random.nextInt(availableChars.length)],
+    ).join();
 
     return randomString;
   }
 
-  static Widget genQRImage(String content,
-      {double size = 300,
-      double embeddedImageSize = 0,
-      double padding = 8.0,
-      Color backgroundColor = Colors.white,
-      ImageProvider<Object>? embeddedImage}) {
+  static Widget genQRImage(
+    String content, {
+    double size = 300,
+    double embeddedImageSize = 0,
+    double padding = 8.0,
+    Color backgroundColor = Colors.white,
+    ImageProvider<Object>? embeddedImage,
+  }) {
     return ClipRRect(
-        borderRadius: BorderRadius.circular(4),
-        child: QrImageView(
-          data: content,
-          gapless: false,
-          backgroundColor: backgroundColor,
-          padding: EdgeInsets.all(padding),
-          embeddedImage: embeddedImage,
-          embeddedImageStyle: QrEmbeddedImageStyle(
-              size: Size(embeddedImageSize, embeddedImageSize)),
-          size: size,
-        ));
+      borderRadius: BorderRadius.circular(4),
+      child: QrImageView(
+        data: content,
+        gapless: false,
+        backgroundColor: backgroundColor,
+        padding: EdgeInsets.all(padding),
+        embeddedImage: embeddedImage,
+        embeddedImageStyle: QrEmbeddedImageStyle(
+          size: Size(embeddedImageSize, embeddedImageSize),
+        ),
+        size: size,
+      ),
+    );
   }
 
   static Directory appFolder = Directory('/');
@@ -400,8 +416,11 @@ Init File: $time \n
     }
   }
 
-  static Widget getAssetImage(String imageUrl,
-      {double size = 42, double radius = 100}) {
+  static Widget getAssetImage(
+    String imageUrl, {
+    double size = 42,
+    double radius = 100,
+  }) {
     return Container(
       width: size,
       height: size,
@@ -420,8 +439,11 @@ Init File: $time \n
     );
   }
 
-  static Widget getAvatarByImageFile(File image,
-      {double size = 42, double radius = 100}) {
+  static Widget getAvatarByImageFile(
+    File image, {
+    double size = 42,
+    double radius = 100,
+  }) {
     return Container(
       key: ObjectKey('avatar:${image.path}'),
       width: size,
@@ -449,11 +471,20 @@ Init File: $time \n
     if (chatType == RoomType.group) {
       final account = room.getRoomName();
       final colors = _getGroupColor(room.groupType);
-      child = getAvatorByName(account,
-          room: room, width: width, borderRadius: 12, backgroudColors: colors);
+      child = getAvatorByName(
+        account,
+        room: room,
+        width: width,
+        borderRadius: 12,
+        backgroudColors: colors,
+      );
     } else {
-      child = Utils.getRandomAvatar(room.toMainPubkey,
-          height: width, width: width, contact: room.contact);
+      child = Utils.getRandomAvatar(
+        room.toMainPubkey,
+        height: width,
+        width: width,
+        contact: room.contact,
+      );
     }
     if (room.unReadCount == 0) return child;
 
@@ -476,34 +507,44 @@ Init File: $time \n
     );
   }
 
-  static Widget getAvatorByName(String account,
-      {double width = 45,
-      double fontSize = 16,
-      Room? room,
-      double borderRadius = 100,
-      int nameLength = 2,
-      List<Color>? backgroudColors}) {
+  static Widget getAvatorByName(
+    String account, {
+    double width = 45,
+    double fontSize = 16,
+    Room? room,
+    double borderRadius = 100,
+    int nameLength = 2,
+    List<Color>? backgroudColors,
+  }) {
     return Container(
-        width: width,
-        height: width,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(borderRadius),
-          gradient: LinearGradient(
-              colors: backgroudColors ??
-                  [const Color(0xff713CD0), const Color(0xff945BF3)]),
+      width: width,
+      height: width,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(borderRadius),
+        gradient: LinearGradient(
+          colors: backgroudColors ??
+              [const Color(0xff713CD0), const Color(0xff945BF3)],
         ),
-        child: Center(
-            child: Padding(
+      ),
+      child: Center(
+        child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 6),
-          child: AutoSizeText(_getDisplayName(account, nameLength),
-              minFontSize: 10,
-              stepGranularity: 2,
-              maxFontSize: fontSize,
-              maxLines: 2,
-              overflow: TextOverflow.clip,
-              style: TextStyle(
-                  fontSize: fontSize, color: Colors.white, height: 1.1)),
-        )));
+          child: AutoSizeText(
+            _getDisplayName(account, nameLength),
+            minFontSize: 10,
+            stepGranularity: 2,
+            maxFontSize: fontSize,
+            maxLines: 2,
+            overflow: TextOverflow.clip,
+            style: TextStyle(
+              fontSize: fontSize,
+              color: Colors.white,
+              height: 1.1,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   static String getDaysText(int days) {
@@ -623,8 +664,10 @@ Init File: $time \n
     }
   }
 
-  static T getOrPutGetxController<T extends GetxController>(
-      {required T Function() create, String? tag}) {
+  static T getOrPutGetxController<T extends GetxController>({
+    required T Function() create,
+    String? tag,
+  }) {
     try {
       final t = Get.find<T>(tag: tag);
       return t;
@@ -639,8 +682,12 @@ Init File: $time \n
     return list2.where(set.contains).toList();
   }
 
-  static Widget? getNetworkImage(String? imageUrl,
-      {double size = 36, double radius = 100, Widget? placeholder}) {
+  static Widget? getNetworkImage(
+    String? imageUrl, {
+    double size = 36,
+    double radius = 100,
+    Widget? placeholder,
+  }) {
     if (imageUrl == null) return null;
 
     if (imageUrl.endsWith('svg')) {
@@ -656,8 +703,9 @@ Init File: $time \n
       );
     }
     placeholder ??= ClipRRect(
-        borderRadius: BorderRadius.circular(radius),
-        child: Icon(CupertinoIcons.compass, size: size));
+      borderRadius: BorderRadius.circular(radius),
+      child: Icon(CupertinoIcons.compass, size: size),
+    );
     return CachedNetworkImage(
       imageUrl: imageUrl,
       width: size,
@@ -681,23 +729,29 @@ Init File: $time \n
     );
   }
 
-  static Widget getNeworkImageOrDefault(String? imageUrl,
-      {double size = 36, double radius = 100}) {
+  static Widget getNeworkImageOrDefault(
+    String? imageUrl, {
+    double size = 36,
+    double radius = 100,
+  }) {
     if (imageUrl == null) {
       return ClipRRect(
-          borderRadius: BorderRadius.circular(radius),
-          child: Icon(CupertinoIcons.photo, size: size));
+        borderRadius: BorderRadius.circular(radius),
+        child: Icon(CupertinoIcons.photo, size: size),
+      );
     }
     return getNetworkImage(imageUrl, size: size, radius: radius)!;
   }
 
   static Map<String, String> avatarCache = {};
 
-  static Widget getRandomAvatar(String id,
-      {double height = 40,
-      double width = 40,
-      Contact? contact,
-      String? localPath}) {
+  static Widget getRandomAvatar(
+    String id, {
+    double height = 40,
+    double width = 40,
+    Contact? contact,
+    String? localPath,
+  }) {
     // localPath
     if (localPath != null) {
       final file = File('${Utils.appFolder.path}$localPath');
@@ -766,8 +820,10 @@ Init File: $time \n
         // logger.i(e, error: e);
       }
     }
-    await Storage.setString(StorageKeyString.defaultWebRTCServers,
-        jsonEncode(KeychatGlobal.webrtcIceServers));
+    await Storage.setString(
+      StorageKeyString.defaultWebRTCServers,
+      jsonEncode(KeychatGlobal.webrtcIceServers),
+    );
     return KeychatGlobal.webrtcIceServers;
   }
 
@@ -786,7 +842,9 @@ Init File: $time \n
                 focusNode: focusNode,
                 autofocus: true,
                 decoration: const InputDecoration(
-                    hintText: 'Nickname', border: OutlineInputBorder()),
+                  hintText: 'Nickname',
+                  border: OutlineInputBorder(),
+                ),
                 onFieldSubmitted: (c) async {
                   final identity = await _submitAmberLogin(controller);
                   Get.back(result: identity);
@@ -810,16 +868,20 @@ Init File: $time \n
   }
 
   static String hexToString(String input) {
-    return String.fromCharCodes(List.generate(
+    return String.fromCharCodes(
+      List.generate(
         input.length ~/ 2,
         (index) =>
-            int.parse(input.substring(index * 2, index * 2 + 2), radix: 16)));
+            int.parse(input.substring(index * 2, index * 2 + 2), radix: 16),
+      ),
+    );
   }
 
   static List<int> hexToBytes(String hex) {
     if (hex.length % 2 != 0) {
       throw const FormatException(
-          'Hex string must have an even number of characters.');
+        'Hex string must have an even number of characters.',
+      );
     }
     final bytes =
         <int>[]; // Use List<int> instead of Uint8List for return type consistency
@@ -837,16 +899,19 @@ Init File: $time \n
   static Uint8List hexToUint8List(String input) {
     if (input.length % 2 != 0) {
       throw const FormatException(
-          'Hex string must have an even number of characters.');
+        'Hex string must have an even number of characters.',
+      );
     }
-    return Uint8List.fromList(List.generate(input.length ~/ 2, (index) {
-      final hexByte = input.substring(index * 2, index * 2 + 2);
-      final byte = int.tryParse(hexByte, radix: 16);
-      if (byte == null) {
-        throw FormatException('Invalid hex character in: $hexByte');
-      }
-      return byte;
-    }));
+    return Uint8List.fromList(
+      List.generate(input.length ~/ 2, (index) {
+        final hexByte = input.substring(index * 2, index * 2 + 2);
+        final byte = int.tryParse(hexByte, radix: 16);
+        if (byte == null) {
+          throw FormatException('Invalid hex character in: $hexByte');
+        }
+        return byte;
+      }),
+    );
   }
 
   static void hideKeyboard(BuildContext context) {
@@ -858,28 +923,30 @@ Init File: $time \n
 
   static Future<void> initLoggger(Directory directory) async {
     logger = Logger(
-        filter: kReleaseMode ? MyLogFilter() : null,
-        printer: PrettyPrinter(
-            dateTimeFormat: kDebugMode
-                ? DateTimeFormat.onlyTime
-                : DateTimeFormat.dateAndTime,
-            colors: false,
-            methodCount: kReleaseMode ? 1 : 5),
-        output: kReleaseMode
-            ? LogFileOutputs(await Utils.createLogFile(directory.path))
-            : null);
+      filter: kReleaseMode ? MyLogFilter() : null,
+      printer: PrettyPrinter(
+        dateTimeFormat:
+            kDebugMode ? DateTimeFormat.onlyTime : DateTimeFormat.dateAndTime,
+        colors: false,
+        methodCount: kReleaseMode ? 1 : 5,
+      ),
+      output: kReleaseMode
+          ? LogFileOutputs(await Utils.createLogFile(directory.path))
+          : null,
+    );
 
     loggerNoLine = logger = Logger(
-        filter: kReleaseMode ? MyLogFilter() : null,
-        printer: PrettyPrinter(
-            dateTimeFormat: kDebugMode
-                ? DateTimeFormat.onlyTime
-                : DateTimeFormat.dateAndTime,
-            colors: false,
-            methodCount: kReleaseMode ? 1 : 0),
-        output: kReleaseMode
-            ? LogFileOutputs(await Utils.createLogFile(directory.path))
-            : null);
+      filter: kReleaseMode ? MyLogFilter() : null,
+      printer: PrettyPrinter(
+        dateTimeFormat:
+            kDebugMode ? DateTimeFormat.onlyTime : DateTimeFormat.dateAndTime,
+        colors: false,
+        methodCount: kReleaseMode ? 1 : 0,
+      ),
+      output: kReleaseMode
+          ? LogFileOutputs(await Utils.createLogFile(directory.path))
+          : null,
+    );
   }
 
   static bool isDomain(String str) {
@@ -897,8 +964,9 @@ Init File: $time \n
     const chars = '0123456789';
     final random = Random.secure();
     return int.parse(
-        List.generate(length, (index) => chars[random.nextInt(chars.length)])
-            .join());
+      List.generate(length, (index) => chars[random.nextInt(chars.length)])
+          .join(),
+    );
   }
 
   static String regrexLetter(String account, [int length = 2]) {
@@ -906,44 +974,49 @@ Init File: $time \n
   }
 
   static void showInfoDialog(String content, [String? title]) {
-    Get.dialog(CupertinoAlertDialog(
-      title: Text(title ?? 'Info'),
-      content: Text(content),
-      actions: <Widget>[
-        CupertinoDialogAction(
-          child: const Text('OK'),
-          onPressed: () {
-            Get.back<void>();
-          },
-        ),
-      ],
-    ));
+    Get.dialog(
+      CupertinoAlertDialog(
+        title: Text(title ?? 'Info'),
+        content: Text(content),
+        actions: <Widget>[
+          CupertinoDialogAction(
+            child: const Text('OK'),
+            onPressed: () {
+              Get.back<void>();
+            },
+          ),
+        ],
+      ),
+    );
   }
 
-  static void showTwoActionDialog(
-      {required String content,
-      required String btnText,
-      required Function onPressed,
-      String? title}) {
-    Get.dialog(CupertinoAlertDialog(
-      title: Text(title ?? 'Info'),
-      content: Text(content),
-      actions: <Widget>[
-        CupertinoDialogAction(
-          child: const Text('Cancel'),
-          onPressed: () {
-            Get.back<void>();
-          },
-        ),
-        CupertinoDialogAction(
-          isDefaultAction: true,
-          child: Text(btnText),
-          onPressed: () {
-            onPressed();
-          },
-        ),
-      ],
-    ));
+  static void showTwoActionDialog({
+    required String content,
+    required String btnText,
+    required Function onPressed,
+    String? title,
+  }) {
+    Get.dialog(
+      CupertinoAlertDialog(
+        title: Text(title ?? 'Info'),
+        content: Text(content),
+        actions: <Widget>[
+          CupertinoDialogAction(
+            child: const Text('Cancel'),
+            onPressed: () {
+              Get.back<void>();
+            },
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            child: Text(btnText),
+            onPressed: () {
+              onPressed();
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   static String stringToHex(String input) {
@@ -956,8 +1029,9 @@ Init File: $time \n
     return input.map((unit) => unit.toRadixString(16).padLeft(2, '0')).join();
   }
 
-  static Future<List<String>> waitRelayOnline(
-      {List<String>? defaultRelays}) async {
+  static Future<List<String>> waitRelayOnline({
+    List<String>? defaultRelays,
+  }) async {
     var ws = getGetxController<WebsocketService>();
 
     for (var initAttempts = 1; initAttempts <= 5; initAttempts++) {
@@ -1041,7 +1115,8 @@ Init File: $time \n
   }
 
   static Future<Identity?> _submitAmberLogin(
-      TextEditingController controller) async {
+    TextEditingController controller,
+  ) async {
     final name = controller.text.trim();
 
     if (name.isEmpty) {
@@ -1078,9 +1153,12 @@ Init File: $time \n
     }
 
     Get.back<void>();
-    Get.find<DesktopController>().selectedRoom.value = room;
-    await Get.toNamed('/room/${room.id}',
-        arguments: arguments ?? room, id: GetXNestKey.room);
+    Get.find<DesktopController>().activeChatTabAndToRoom(room);
+    await Get.toNamed(
+      '/room/${room.id}',
+      arguments: arguments ?? room,
+      id: GetXNestKey.room,
+    );
   }
 
   static Future<void> offAllNamedRoom([dynamic arguments]) async {
@@ -1091,8 +1169,11 @@ Init File: $time \n
     if (Get.isDialogOpen ?? false) {
       Get.back<void>();
     }
-    await Get.offAndToNamed(Routes.roomEmpty,
-        arguments: arguments, id: GetXNestKey.room);
+    await Get.offAndToNamed(
+      Routes.roomEmpty,
+      arguments: arguments,
+      id: GetXNestKey.room,
+    );
   }
 
   static Future<void> toNamedRoom(Room room, [dynamic arguments]) async {
@@ -1108,9 +1189,12 @@ Init File: $time \n
     if (room.id == Get.find<DesktopController>().selectedRoom.value.id) {
       return;
     }
-    Get.find<DesktopController>().selectedRoom.value = room;
-    await Get.offAllNamed('/room/${room.id}',
-        arguments: arguments ?? room, id: GetXNestKey.room);
+    Get.find<DesktopController>().activeChatTabAndToRoom(room);
+    await Get.offAllNamed(
+      '/room/${room.id}',
+      arguments: arguments ?? room,
+      id: GetXNestKey.room,
+    );
   }
 
   // Catch and log errors to file
@@ -1134,29 +1218,32 @@ Init File: $time \n
   }
 
   static void enableImportDB() {
-    Get.dialog(CupertinoAlertDialog(
-      title: const Text('Alert'),
-      content: const Text(
-          'Once executed, this action will permanently delete all your local data. Proceed with caution to avoid unintended consequences.'),
-      actions: <Widget>[
-        CupertinoDialogAction(
-          child: const Text('Cancel'),
-          onPressed: () {
-            Get.back<void>();
-          },
+    Get.dialog(
+      CupertinoAlertDialog(
+        title: const Text('Alert'),
+        content: const Text(
+          'Once executed, this action will permanently delete all your local data. Proceed with caution to avoid unintended consequences.',
         ),
-        CupertinoDialogAction(
-          child: const Text('Confirm'),
-          onPressed: () async {
-            final file = await DbSetting().importFile();
-            if (file == null) {
-              return;
-            }
-            _showEnterDecryptionPwdDialog(file);
-          },
-        ),
-      ],
-    ));
+        actions: <Widget>[
+          CupertinoDialogAction(
+            child: const Text('Cancel'),
+            onPressed: () {
+              Get.back<void>();
+            },
+          ),
+          CupertinoDialogAction(
+            child: const Text('Confirm'),
+            onPressed: () async {
+              final file = await DbSetting().importFile();
+              if (file == null) {
+                return;
+              }
+              _showEnterDecryptionPwdDialog(file);
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   static void _showEnterDecryptionPwdDialog(File file) {
@@ -1212,7 +1299,8 @@ Init File: $time \n
                   CupertinoAlertDialog(
                     title: const Text('Restart Required'),
                     content: const Text(
-                        'The app needs to restart to reload the database. Please restart the app manually.'),
+                      'The app needs to restart to reload the database. Please restart the app manually.',
+                    ),
                     actions: [
                       CupertinoDialogAction(
                         child: const Text(

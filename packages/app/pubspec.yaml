@@ -83,7 +83,7 @@ dependencies:
   amberflutter:
     git:
       url: https://github.com/keychat-io/amberflutter.git
-  web_socket_client: ^0.2.0
+  web_socket_client: ^0.2.1
   path: ^1.9.0
   sidebarx: ^0.17.2
   background_downloader: ^9.2.2

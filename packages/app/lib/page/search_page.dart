@@ -34,10 +34,10 @@ class SearchResult {
 
 class _SearchPageState extends State<SearchPage> {
   final TextEditingController _searchController = TextEditingController();
-  final RxList<Contact> contactResults = <Contact>[].obs;
-  final RxList<Message> messageResults = <Message>[].obs;
-  final RxBool isLoading = false.obs;
-  final RxString currentQuery = ''.obs;
+  RxList<Contact> contactResults = <Contact>[].obs;
+  RxList<Message> messageResults = <Message>[].obs;
+  RxBool isLoading = false.obs;
+  RxString currentQuery = ''.obs;
 
   // Cache for pre-loaded rooms to avoid repeated FutureBuilder calls
   final Map<String, Room> _roomCache = {};
@@ -185,7 +185,7 @@ class _SearchPageState extends State<SearchPage> {
                           messageResults.clear();
                           currentQuery.value = '';
                         },
-                      )
+                      ),
                   ],
                 ),
               ),
@@ -311,9 +311,12 @@ class _SearchPageState extends State<SearchPage> {
             child: Row(
               children: [
                 ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: Utils.getRandomAvatar(contact.pubkey,
-                        contact: contact)),
+                  borderRadius: BorderRadius.circular(20),
+                  child: Utils.getRandomAvatar(
+                    contact.pubkey,
+                    contact: contact,
+                  ),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(

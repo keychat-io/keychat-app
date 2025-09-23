@@ -31,8 +31,11 @@ class RelayWebsocket {
     // id keys
     final pubkeys = await IdentityService.instance.getListenPubkeys();
 
-    listenPubkeys(pubkeys, DateTime.now().subtract(const Duration(days: 2)),
-        [EventKinds.nip17]);
+    listenPubkeys(
+      pubkeys,
+      DateTime.now().subtract(const Duration(days: 2)),
+      [EventKinds.nip17],
+    );
 
     // mls group room
     final since =
@@ -48,14 +51,21 @@ class RelayWebsocket {
   }
 
   Future<void> listenPubkeys(
-      List<String> pubkeys, DateTime since, List<int> kinds) async {
+    List<String> pubkeys,
+    DateTime since,
+    List<int> kinds,
+  ) async {
     final groups = listToGroupList(pubkeys, 120);
 
     for (final group in groups) {
       final subId = generate64RandomHexChars(16);
 
       final req = NostrReqModel(
-          reqId: subId, kinds: kinds, pubkeys: group, since: since);
+        reqId: subId,
+        kinds: kinds,
+        pubkeys: group,
+        since: since,
+      );
       sendRawREQ(req.toString());
     }
   }
@@ -141,7 +151,7 @@ class RelayWebsocket {
     }
     pong = false;
     try {
-      channel!.send(_pingReq);
+      channel!.send('ping');
       // loggerNoLine.d('TO [${relay.url}]: ping');
     } catch (e) {
       return false;

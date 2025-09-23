@@ -315,8 +315,6 @@ class ChatxService extends GetxService {
     room.signalDecodeError = false;
     final key = '${room.identityId}:${room.curve25519PkHex}';
     roomKPA.remove(key);
-    // await RoomService.instance.updateRoom(room);
-    // RoomService.getController(room.id)?.setRoom(room);
   }
 
 // generate onetime pubkey to receive add new friends message

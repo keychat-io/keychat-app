@@ -55,8 +55,12 @@ class GroupService extends BaseChatService {
         .idPubkeyEqualTo(room.myIdPubkey)
         .findFirst();
     if (rm == null) return;
-    await sendMessageToGroup(room, 'My new nickname: $newName',
-        ext: newName, subtype: KeyChatEventKinds.groupChangeNickname);
+    await sendMessageToGroup(
+      room,
+      'My new nickname: $newName',
+      ext: newName,
+      subtype: KeyChatEventKinds.groupChangeNickname,
+    );
     rm.name = newName;
     await database.writeTxn(() async {
       await database.roomMembers.put(rm);
@@ -70,8 +74,12 @@ class GroupService extends BaseChatService {
     }
     room.name = newName;
     if (room.isSendAllGroup) {
-      await sendMessageToGroup(room, '[System] New room name: $newName',
-          subtype: KeyChatEventKinds.groupChangeRoomName, ext: newName);
+      await sendMessageToGroup(
+        room,
+        '[System] New room name: $newName',
+        subtype: KeyChatEventKinds.groupChangeRoomName,
+        ext: newName,
+      );
       await roomService.updateRoomAndRefresh(room);
     } else if (room.isMLSGroup) {
       await MlsGroupService.instance.updateGroupName(room, newName);
@@ -93,27 +101,34 @@ class GroupService extends BaseChatService {
   // 3. Set the name of the group and the encrypted participant list to the relay
   // 4. Listen for messages from group’s sharedPubkey
   Future<Room> createGroup(
-      String groupName, Identity identity, GroupType groupType,
-      {List<String>? groupRelays}) async {
+    String groupName,
+    Identity identity,
+    GroupType groupType, {
+    List<String>? groupRelays,
+  }) async {
     final randomKey = await rust_nostr.generateSimple();
     final toMainPubkey = randomKey.pubkey;
 
     final now = DateTime.now();
-    final room = await _createGroupToDB(toMainPubkey, groupName,
-        members: [],
-        identity: identity,
-        groupType: groupType,
-        groupRelays: groupRelays,
-        version: now.millisecondsSinceEpoch);
+    final room = await _createGroupToDB(
+      toMainPubkey,
+      groupName,
+      members: [],
+      identity: identity,
+      groupType: groupType,
+      groupRelays: groupRelays,
+      version: now.millisecondsSinceEpoch,
+    );
     // add meMember
     await room.addMember(
-        name: identity.name,
-        isAdmin: true,
-        idPubkey: identity.secp256k1PKHex,
-        curve25519PkHex: identity.curve25519PkHex,
-        status: UserStatusType.invited,
-        createdAt: now,
-        updatedAt: now);
+      name: identity.name,
+      isAdmin: true,
+      idPubkey: identity.secp256k1PKHex,
+      curve25519PkHex: identity.curve25519PkHex,
+      status: UserStatusType.invited,
+      createdAt: now,
+      updatedAt: now,
+    );
     return room;
   }
 
@@ -161,7 +176,10 @@ class GroupService extends BaseChatService {
   }
 
   Future<void> isAdminCheck(
-      Room room, String pubkey, RoomMember? roomMember) async {
+    Room room,
+    String pubkey,
+    RoomMember? roomMember,
+  ) async {
     var isAdmin = false;
     if (room.groupType == GroupType.shareKey) {
       isAdmin = await room.checkAdminByIdPubkey(pubkey);
@@ -174,7 +192,10 @@ class GroupService extends BaseChatService {
   }
 
   Future<void> processChangeSignKey(
-      Room idRoom, NostrEventModel event, RoomProfile roomProfile) async {
+    Room idRoom,
+    NostrEventModel event,
+    RoomProfile roomProfile,
+  ) async {
     final newPrikey = roomProfile.prikey;
     if (newPrikey == null) throw Exception('newPrikey is null');
     final oldToRoomPubKey = roomProfile.oldToRoomPubKey!;
@@ -193,7 +214,9 @@ class GroupService extends BaseChatService {
     late Mykey newkey;
     await DBProvider.database.writeTxn(() async {
       newkey = await GroupTx.instance.importMykeyTx(
-          room!.identityId, await rust_nostr.importKey(senderKeys: newPrikey));
+        room!.identityId,
+        await rust_nostr.importKey(senderKeys: newPrikey),
+      );
       room.mykey.value = newkey;
     });
     Get.find<WebsocketService>()
@@ -203,53 +226,56 @@ class GroupService extends BaseChatService {
     await room.updateAllMember(users);
 
     await MessageService.instance.saveMessageToDB(
-        events: [event],
-        room: room,
-        sent: SendStatusType.success,
-        encryptType: room.isSendAllGroup
-            ? MessageEncryptType.signal
-            : MessageEncryptType.nip4,
-        content: event.content,
-        realMessage:
-            '🤖 Admin changed the SharedPrivate Key. ${roomProfile.ext}',
-        from: room.myIdPubkey,
-        senderPubkey: idRoom.toMainPubkey,
-        to: room.toMainPubkey,
-        isMeSend: false,
-        isSystem: true,
-        isRead: false);
+      events: [event],
+      room: room,
+      sent: SendStatusType.success,
+      encryptType: room.isSendAllGroup
+          ? MessageEncryptType.signal
+          : MessageEncryptType.nip4,
+      content: event.content,
+      realMessage: '🤖 Admin changed the SharedPrivate Key. ${roomProfile.ext}',
+      from: room.myIdPubkey,
+      senderPubkey: idRoom.toMainPubkey,
+      to: room.toMainPubkey,
+      isMeSend: false,
+      isSystem: true,
+      isRead: false,
+    );
     updateChatControllerMembers(room.id);
   }
 
   Future<void> processGroupMessage(
-      Room room, NostrEventModel event, GroupMessage groupMessage,
-      {RoomMember? member,
-      Room? idRoom,
-      String? msgKeyHash,
-      NostrEventModel? sourceEvent}) async {
+    Room room,
+    NostrEventModel event,
+    GroupMessage groupMessage, {
+    RoomMember? member,
+    Room? idRoom,
+    String? msgKeyHash,
+    NostrEventModel? sourceEvent,
+  }) async {
     final signPubkey =
         room.isSendAllGroup ? idRoom!.toMainPubkey : event.pubkey;
     final subType = groupMessage.subtype;
     final ext = groupMessage.ext;
 
     final toSaveMsg = Message(
-        idPubkey: signPubkey,
-        identityId: room.identityId,
-        msgid: sourceEvent?.id ?? event.id,
-        eventIds: [sourceEvent?.id ?? event.id],
-        roomId: room.id,
-        from: signPubkey,
-        to: room.toMainPubkey,
-        encryptType: room.isSendAllGroup
-            ? MessageEncryptType.signal
-            : MessageEncryptType.nip4WrapNip4,
-        isMeSend: signPubkey == room.myIdPubkey,
-        sent: SendStatusType.success,
-        content: groupMessage.message,
-        msgKeyHash: msgKeyHash,
-        createdAt: timestampToDateTime(event.createdAt),
-        rawEvents: [(sourceEvent ?? event).toString()])
-      ..isRead = signPubkey == room.myIdPubkey;
+      idPubkey: signPubkey,
+      identityId: room.identityId,
+      msgid: sourceEvent?.id ?? event.id,
+      eventIds: [sourceEvent?.id ?? event.id],
+      roomId: room.id,
+      from: signPubkey,
+      to: room.toMainPubkey,
+      encryptType: room.isSendAllGroup
+          ? MessageEncryptType.signal
+          : MessageEncryptType.nip4WrapNip4,
+      isMeSend: signPubkey == room.myIdPubkey,
+      sent: SendStatusType.success,
+      content: groupMessage.message,
+      msgKeyHash: msgKeyHash,
+      createdAt: timestampToDateTime(event.createdAt),
+      rawEvents: [(sourceEvent ?? event).toString()],
+    )..isRead = signPubkey == room.myIdPubkey;
 
     if (subType != null) {
       toSaveMsg.isSystem = true;
@@ -311,9 +337,13 @@ class GroupService extends BaseChatService {
     await MessageService.instance.saveMessageModel(toSaveMsg, room: room);
   }
 
-  Future<void> processInvite(Room idRoom, NostrEventModel event,
-      RoomProfile roomProfile, String realMessage,
-      {Function(String error)? failedCallback}) async {
+  Future<void> processInvite(
+    Room idRoom,
+    NostrEventModel event,
+    RoomProfile roomProfile,
+    String realMessage, {
+    Function(String error)? failedCallback,
+  }) async {
     final groupName = roomProfile.name;
     final users = roomProfile.users;
     final groupInviteMsg = jsonDecode(realMessage) as List;
@@ -333,26 +363,29 @@ class GroupService extends BaseChatService {
     }
     // roomProfile.oldToRoomPubKey is room unique key
     var groupRoom = await roomService.getRoomByIdentity(
-        roomProfile.oldToRoomPubKey!, idRoom.identityId);
+      roomProfile.oldToRoomPubKey!,
+      idRoom.identityId,
+    );
 
     if (groupRoom == null) {
       if (roomProfile.groupType == GroupType.shareKey ||
           roomProfile.groupType == GroupType.kdf ||
           roomProfile.groupType == GroupType.mls) {
         await MessageService.instance.saveMessageToDB(
-            from: event.pubkey,
-            to: event.tags[0][1],
-            senderPubkey: idRoom.toMainPubkey,
-            events: [event],
-            room: idRoom,
-            isMeSend: false,
-            isSystem: true,
-            encryptType: RoomUtil.getEncryptMode(event),
-            sent: SendStatusType.success,
-            mediaType: MessageMediaType.groupInvite,
-            requestConfrim: RequestConfrimEnum.request,
-            content: roomProfile.toString(),
-            realMessage: groupInviteMsg[0]);
+          from: event.pubkey,
+          to: event.tags[0][1],
+          senderPubkey: idRoom.toMainPubkey,
+          events: [event],
+          room: idRoom,
+          isMeSend: false,
+          isSystem: true,
+          encryptType: RoomUtil.getEncryptMode(event),
+          sent: SendStatusType.success,
+          mediaType: MessageMediaType.groupInvite,
+          requestConfrim: RequestConfrimEnum.request,
+          content: roomProfile.toString(),
+          realMessage: groupInviteMsg[0],
+        );
         return;
       }
 
@@ -362,18 +395,19 @@ class GroupService extends BaseChatService {
             groupRoom = await GroupTx.instance.joinGroup(roomProfile, identity);
 
             await MessageService.instance.saveMessageToDB(
-                from: event.pubkey,
-                to: event.tags[0][1],
-                senderPubkey: idRoom.toMainPubkey,
-                events: [event],
-                room: groupRoom!,
-                isMeSend: false,
-                isSystem: true,
-                encryptType: MessageEncryptType.nip4WrapNip4,
-                sent: SendStatusType.success,
-                content: roomProfile.toString(),
-                realMessage: groupInviteMsg[0],
-                persist: false);
+              from: event.pubkey,
+              to: event.tags[0][1],
+              senderPubkey: idRoom.toMainPubkey,
+              events: [event],
+              room: groupRoom!,
+              isMeSend: false,
+              isSystem: true,
+              encryptType: MessageEncryptType.nip4WrapNip4,
+              sent: SendStatusType.success,
+              content: roomProfile.toString(),
+              realMessage: groupInviteMsg[0],
+              persist: false,
+            );
           } catch (e, s) {
             if (failedCallback != null) {
               failedCallback(e.toString());
@@ -393,19 +427,20 @@ class GroupService extends BaseChatService {
     if (roomProfile.groupType == GroupType.kdf ||
         roomProfile.groupType == GroupType.mls) {
       await MessageService.instance.saveMessageToDB(
-          from: event.pubkey,
-          to: event.tags[0][1],
-          senderPubkey: idRoom.toMainPubkey,
-          events: [event],
-          room: idRoom,
-          isMeSend: false,
-          isSystem: true,
-          encryptType: RoomUtil.getEncryptMode(event),
-          sent: SendStatusType.success,
-          mediaType: MessageMediaType.groupInvite,
-          requestConfrim: RequestConfrimEnum.request,
-          content: roomProfile.toString(),
-          realMessage: groupInviteMsg[0]);
+        from: event.pubkey,
+        to: event.tags[0][1],
+        senderPubkey: idRoom.toMainPubkey,
+        events: [event],
+        room: idRoom,
+        isMeSend: false,
+        isSystem: true,
+        encryptType: RoomUtil.getEncryptMode(event),
+        sent: SendStatusType.success,
+        mediaType: MessageMediaType.groupInvite,
+        requestConfrim: RequestConfrimEnum.request,
+        content: roomProfile.toString(),
+        realMessage: groupInviteMsg[0],
+      );
       return;
     }
 
@@ -425,58 +460,69 @@ class GroupService extends BaseChatService {
       throw Exception('Not a vaild member in group');
     }
 
-    groupRoom.status = RoomStatus.enabled;
-    groupRoom.name = groupName;
+    groupRoom
+      ..status = RoomStatus.enabled
+      ..name = groupName;
 
-    await RoomService.instance.updateRoom(groupRoom);
-
-    RoomService.instance.updateChatRoomPage(groupRoom);
+    await RoomService.instance.updateRoomAndRefresh(groupRoom);
 
     await groupRoom.updateAllMember(users);
     updateChatControllerMembers(groupRoom.id);
 
     final message = Message(
-        identityId: groupRoom.identityId,
-        msgid: event.id,
-        eventIds: [event.id],
-        roomId: groupRoom.id,
-        from: event.pubkey,
-        idPubkey: senderIdPubkey,
-        to: event.tags[0][1],
-        sent: SendStatusType.success,
-        encryptType: groupRoom.isSendAllGroup
-            ? MessageEncryptType.signal
-            : MessageEncryptType.nip4,
-        isSystem: true,
-        content: groupInviteMsg[0],
-        createdAt: timestampToDateTime(event.createdAt),
-        rawEvents: [event.toString()]);
+      identityId: groupRoom.identityId,
+      msgid: event.id,
+      eventIds: [event.id],
+      roomId: groupRoom.id,
+      from: event.pubkey,
+      idPubkey: senderIdPubkey,
+      to: event.tags[0][1],
+      sent: SendStatusType.success,
+      encryptType: groupRoom.isSendAllGroup
+          ? MessageEncryptType.signal
+          : MessageEncryptType.nip4,
+      isSystem: true,
+      content: groupInviteMsg[0],
+      createdAt: timestampToDateTime(event.createdAt),
+      rawEvents: [event.toString()],
+    );
     await MessageService.instance.saveMessageModel(message, room: groupRoom);
   }
 
   @override
-  Future<void> proccessMessage(
-      {required Room room,
-      required KeychatMessage km,
-      required NostrEventModel event,
-      NostrEventModel? sourceEvent,
-      Function(String error)? failedCallback,
-      String? fromIdPubkey,
-      String? msgKeyHash}) async {
+  Future<void> proccessMessage({
+    required Room room,
+    required KeychatMessage km,
+    required NostrEventModel event,
+    NostrEventModel? sourceEvent,
+    Function(String error)? failedCallback,
+    String? fromIdPubkey,
+    String? msgKeyHash,
+  }) async {
     switch (km.type) {
       case KeyChatEventKinds.groupInvite:
         final roomProfile = RoomProfile.fromJson(jsonDecode(km.msg!));
         final realMessage = km.name ?? '[]';
 
-        return processInvite(room, event, roomProfile, realMessage,
-            failedCallback: failedCallback);
+        return processInvite(
+          room,
+          event,
+          roomProfile,
+          realMessage,
+          failedCallback: failedCallback,
+        );
       case KeyChatEventKinds.groupSharedKeyMessage:
         final subEvent = NostrEventModel.fromJson(jsonDecode(km.msg!));
         var content = await NostrAPI.instance.decryptNip4Content(subEvent);
         content ??= '[GroupMessage decoded failed]';
         final gm = GroupMessage.fromJson(jsonDecode(content));
-        return processGroupMessage(room, subEvent, gm,
-            sourceEvent: event, msgKeyHash: msgKeyHash);
+        return processGroupMessage(
+          room,
+          subEvent,
+          gm,
+          sourceEvent: event,
+          msgKeyHash: msgKeyHash,
+        );
       case KeyChatEventKinds.groupChangeSignKey:
         final roomProfile = RoomProfile.fromJson(jsonDecode(km.msg!));
         return processChangeSignKey(room, event, roomProfile);
@@ -497,8 +543,14 @@ class GroupService extends BaseChatService {
             return;
           }
         }
-        return processGroupMessage(groupRoom, event, gm,
-            member: member, idRoom: room, msgKeyHash: msgKeyHash);
+        return processGroupMessage(
+          groupRoom,
+          event,
+          gm,
+          member: member,
+          idRoom: room,
+          msgKeyHash: msgKeyHash,
+        );
       case KeyChatEventKinds.inviteToGroupRequest:
         return _processinviteToGroupRequest(room, event, km);
       default:
@@ -515,8 +567,12 @@ class GroupService extends BaseChatService {
   // 2. If not, throw an exception
   // 3. Check if the secret key matches. There is a situation where the roomID is the same, but the shared secret key has been changed.
   Future<RoomProfile> inviteToJoinGroup(
-      Room groupRoom, Map<String, String> toUsers,
-      {SignalId? signalId, Mykey? mykey, String? mlsWelcome}) async {
+    Room groupRoom,
+    Map<String, String> toUsers, {
+    SignalId? signalId,
+    Mykey? mykey,
+    String? mlsWelcome,
+  }) async {
     if (toUsers.isEmpty) throw Exception('no users to invite');
     final identity = groupRoom.getIdentity();
     await roomService.checkRoomStatus(groupRoom);
@@ -533,17 +589,17 @@ class GroupService extends BaseChatService {
           .firstWhereOrNull((element) => element.idPubkey == idPubkey);
       if (rm == null) {
         final c = await contactService.getOrCreateContact(
-            identityId: groupRoom.identityId,
-            pubkey: idPubkey,
-            name: (toUsers[idPubkey]?.length ?? 0) > 0
-                ? toUsers[idPubkey]
-                : null);
+          identityId: groupRoom.identityId,
+          pubkey: idPubkey,
+          name: (toUsers[idPubkey]?.length ?? 0) > 0 ? toUsers[idPubkey] : null,
+        );
         rm = await groupRoom.addMember(
-            name: c.displayName,
-            idPubkey: idPubkey,
-            status: status,
-            createdAt: now,
-            updatedAt: now);
+          name: c.displayName,
+          idPubkey: idPubkey,
+          status: status,
+          createdAt: now,
+          updatedAt: now,
+        );
       } else {
         if (rm.status != UserStatusType.invited) {
           rm.status = status;
@@ -554,23 +610,32 @@ class GroupService extends BaseChatService {
       toMembers.add(rm);
     }
 
-    final roomProfile = await getRoomProfile(groupRoom,
-        signalId: signalId, mykey: mykey, mlsWelcome: mlsWelcome);
+    final roomProfile = await getRoomProfile(
+      groupRoom,
+      signalId: signalId,
+      mykey: mykey,
+      mlsWelcome: mlsWelcome,
+    );
     final addUsersName = toMembers.map((e) => e.name).toList();
     final names = addUsersName.join(',');
     final realMessage = 'Invite [$names] to join group ${groupRoom.name}';
 
     final km = KeychatMessage(
-        c: MessageType.group,
-        type: KeyChatEventKinds.groupInvite,
-        msg: jsonEncode(roomProfile.toJson()))
-      ..name = jsonEncode([realMessage, groupRoom.myIdPubkey]);
+      c: MessageType.group,
+      type: KeyChatEventKinds.groupInvite,
+      msg: jsonEncode(roomProfile.toJson()),
+    )..name = jsonEncode([realMessage, groupRoom.myIdPubkey]);
 
     switch (groupRoom.groupType) {
       case GroupType.mls:
         final pubkeys = toMembers.map((e) => e.idPubkey).toList();
-        await sendPrivateMessageToMembers(realMessage, pubkeys, identity,
-            groupRoom: groupRoom, content: km.toString());
+        await sendPrivateMessageToMembers(
+          realMessage,
+          pubkeys,
+          identity,
+          groupRoom: groupRoom,
+          content: km.toString(),
+        );
       case GroupType.sendAll:
         await _invitePairwiseGroup(realMessage, identity, groupRoom, km);
       case GroupType.shareKey:
@@ -598,58 +663,72 @@ class GroupService extends BaseChatService {
   // Sub event: sender private key  --> room's pubkey
   // Main event: room's private key--> room's pubkey
   @override
-  Future<SendMessageResponse> sendMessage(Room room, String message,
-      {int? subtype,
-      String? ext,
-      MsgReply? reply,
-      String? realMessage,
-      MessageMediaType? mediaType,
-      bool save = true}) async {
+  Future<SendMessageResponse> sendMessage(
+    Room room,
+    String message, {
+    int? subtype,
+    String? ext,
+    MsgReply? reply,
+    String? realMessage,
+    MessageMediaType? mediaType,
+    bool save = true,
+  }) async {
     final roomKey = room.mykey.value!;
 
-    final gm = RoomUtil.getGroupMessage(room, message,
-        pubkey: '', reply: reply, subtype: subtype, ext: ext);
+    final gm = RoomUtil.getGroupMessage(
+      room,
+      message,
+      pubkey: '',
+      reply: reply,
+      subtype: subtype,
+      ext: ext,
+    );
     final subEncryptedEvent = await rust_nostr.getEncryptEvent(
-        senderKeys: await room.getIdentity().getSecp256k1SKHex(),
-        receiverPubkey: roomKey.pubkey,
-        content: gm.toString());
+      senderKeys: await room.getIdentity().getSecp256k1SKHex(),
+      receiverPubkey: roomKey.pubkey,
+      content: gm.toString(),
+    );
 
     final km = KeychatMessage(
-        c: MessageType.group,
-        type: KeyChatEventKinds.groupSharedKeyMessage,
-        msg: subEncryptedEvent);
+      c: MessageType.group,
+      type: KeyChatEventKinds.groupSharedKeyMessage,
+      msg: subEncryptedEvent,
+    );
 
     final encryptedEvent = await rust_nostr.getEncryptEvent(
-        senderKeys: roomKey.prikey,
-        receiverPubkey: roomKey.pubkey,
-        content: km.toString());
+      senderKeys: roomKey.prikey,
+      receiverPubkey: roomKey.pubkey,
+      content: km.toString(),
+    );
 
     final event =
         NostrEventModel.fromJson(jsonDecode(encryptedEvent), verify: false);
 
     await Get.find<WebsocketService>().writeNostrEvent(
-        event: event,
-        eventString: encryptedEvent,
-        roomId: room.id,
-        toRelays: room.sendingRelays);
+      event: event,
+      eventString: encryptedEvent,
+      roomId: room.id,
+      toRelays: room.sendingRelays,
+    );
 
     Message? model;
     if (subtype == null && ext == null) {
       final identity = room.getIdentity();
 
       model = await MessageService.instance.saveMessageToDB(
-          events: [event],
-          room: room,
-          reply: reply,
-          content: message,
-          from: identity.secp256k1PKHex,
-          senderPubkey: identity.secp256k1PKHex,
-          to: room.toMainPubkey,
-          realMessage: realMessage,
-          isMeSend: true,
-          encryptType: MessageEncryptType.nip4WrapNip4,
-          mediaType: mediaType,
-          isRead: true);
+        events: [event],
+        room: room,
+        reply: reply,
+        content: message,
+        from: identity.secp256k1PKHex,
+        senderPubkey: identity.secp256k1PKHex,
+        to: room.toMainPubkey,
+        realMessage: realMessage,
+        isMeSend: true,
+        encryptType: MessageEncryptType.nip4WrapNip4,
+        mediaType: mediaType,
+        isRead: true,
+      );
     }
     return SendMessageResponse(events: [event], message: model);
   }
@@ -665,13 +744,20 @@ class GroupService extends BaseChatService {
   }) async {
     String? msgKeyHash;
 
-    final gm = RoomUtil.getGroupMessage(room, message,
-        pubkey: room.toMainPubkey, reply: reply, subtype: subtype, ext: ext);
+    final gm = RoomUtil.getGroupMessage(
+      room,
+      message,
+      pubkey: room.toMainPubkey,
+      reply: reply,
+      subtype: subtype,
+      ext: ext,
+    );
 
     final km = KeychatMessage(
-        c: MessageType.group,
-        type: KeyChatEventKinds.groupSendToAllMessage,
-        msg: jsonEncode(gm.toJson()));
+      c: MessageType.group,
+      type: KeyChatEventKinds.groupSendToAllMessage,
+      msg: jsonEncode(gm.toJson()),
+    );
     final toSendMessage = jsonEncode(km.toJson());
     final events = <NostrEventModel>[];
 
@@ -721,9 +807,11 @@ class GroupService extends BaseChatService {
     }
     await queue.onComplete;
     if (toAddPubkeys.isNotEmpty) {
-      Get.find<WebsocketService>().listenPubkey(toAddPubkeys,
-          kinds: [EventKinds.nip04],
-          since: DateTime.now().subtract(const Duration(seconds: 60)));
+      Get.find<WebsocketService>().listenPubkey(
+        toAddPubkeys,
+        kinds: [EventKinds.nip04],
+        since: DateTime.now().subtract(const Duration(seconds: 60)),
+      );
       NotifyService.addPubkeys(toAddPubkeys);
     }
 
@@ -732,19 +820,20 @@ class GroupService extends BaseChatService {
       final identity = room.getIdentity();
 
       model = await MessageService.instance.saveMessageToDB(
-          events: events,
-          room: room,
-          content: message,
-          realMessage: realMessage,
-          from: identity.secp256k1PKHex,
-          senderPubkey: identity.secp256k1PKHex,
-          to: room.toMainPubkey,
-          isMeSend: true,
-          encryptType: MessageEncryptType.signal,
-          reply: reply,
-          mediaType: mediaType,
-          msgKeyHash: msgKeyHash,
-          isRead: true);
+        events: events,
+        room: room,
+        content: message,
+        realMessage: realMessage,
+        from: identity.secp256k1PKHex,
+        senderPubkey: identity.secp256k1PKHex,
+        to: room.toMainPubkey,
+        isMeSend: true,
+        encryptType: MessageEncryptType.signal,
+        reply: reply,
+        mediaType: mediaType,
+        msgKeyHash: msgKeyHash,
+        isRead: true,
+      );
     }
     return SendMessageResponse(events: events, message: model);
   }
@@ -773,18 +862,22 @@ class GroupService extends BaseChatService {
     });
   }
 
-  Future<Room> _createGroupToDB(String toMainPubkey, String groupName,
-      {required GroupType groupType,
-      required Identity identity,
-      required int version,
-      List<dynamic> members = const [],
-      List<String>? groupRelays,
-      SignalId? signalId}) async {
+  Future<Room> _createGroupToDB(
+    String toMainPubkey,
+    String groupName, {
+    required GroupType groupType,
+    required Identity identity,
+    required int version,
+    List<dynamic> members = const [],
+    List<String>? groupRelays,
+    SignalId? signalId,
+  }) async {
     var room = Room(
-        toMainPubkey: toMainPubkey,
-        npub: rust_nostr.getBech32PubkeyByHex(hex: toMainPubkey),
-        identityId: identity.id,
-        type: RoomType.group)
+      toMainPubkey: toMainPubkey,
+      npub: rust_nostr.getBech32PubkeyByHex(hex: toMainPubkey),
+      identityId: identity.id,
+      type: RoomType.group,
+    )
       ..name = groupName
       ..groupType = groupType
       ..version = version;
@@ -812,8 +905,12 @@ class GroupService extends BaseChatService {
   }
 
   // Send a group message to all enabled users
-  Future<void> _invitePairwiseGroup(String realMessage, Identity identity,
-      Room groupRoom, KeychatMessage km) async {
+  Future<void> _invitePairwiseGroup(
+    String realMessage,
+    Identity identity,
+    Room groupRoom,
+    KeychatMessage km,
+  ) async {
     // final queue = Queue(parallel: 5);
     final enables = (await groupRoom.getEnableMembers()).values.toList();
     final invitings = await groupRoom.getInvitingMembers();
@@ -829,10 +926,16 @@ class GroupService extends BaseChatService {
       if (identity.secp256k1PKHex == rm.idPubkey) continue;
       try {
         final memberRoom = await RoomService.instance.getOrCreateRoomByIdentity(
-            rm.idPubkey, identity, RoomStatus.groupUser);
+          rm.idPubkey,
+          identity,
+          RoomStatus.groupUser,
+        );
         final smr = await Nip4ChatService.instance.sendMessage(
-            memberRoom, km.toString(),
-            realMessage: realMessage, save: false);
+          memberRoom,
+          km.toString(),
+          realMessage: realMessage,
+          save: false,
+        );
         if (smr.events.isEmpty) return;
         final toSaveEvent = smr.events[0];
         toSaveEvent.toIdPubkey = rm.idPubkey;
@@ -871,13 +974,16 @@ class GroupService extends BaseChatService {
 
   // send message to users, but skip meMember
   Future<void> sendPrivateMessageToMembers(
-      String realMessage, List<String> toUsers, Identity identity,
-      {required Room groupRoom,
-      required String content,
-      bool nip17 = false,
-      int nip17Kind = EventKinds.nip17,
-      List<List<String>>? additionalTags,
-      bool save = true}) async {
+    String realMessage,
+    List<String> toUsers,
+    Identity identity, {
+    required Room groupRoom,
+    required String content,
+    bool nip17 = false,
+    int nip17Kind = EventKinds.nip17,
+    List<List<String>>? additionalTags,
+    bool save = true,
+  }) async {
     final queue = Queue(parallel: 5);
     final todo = collection.Queue.from(toUsers);
     final membersLength = todo.length;
@@ -890,18 +996,25 @@ class GroupService extends BaseChatService {
         if (identity.secp256k1PKHex == hexPubkey) return;
         var room = await roomService.getRoomByIdentity(hexPubkey, identity.id);
         if (room == null) {
-          room = await RoomService.instance.createRoomAndsendInvite(hexPubkey,
-              identity: identity, autoJump: false);
+          room = await RoomService.instance.createRoomAndsendInvite(
+            hexPubkey,
+            identity: identity,
+            autoJump: false,
+          );
           await Future.delayed(const Duration(milliseconds: 300));
         }
         // send message with nip17
         if (nip17 || room == null) {
-          await NostrAPI.instance.sendNip17Message(groupRoom, content, identity,
-              toPubkey: idPubkey,
-              realMessage: realMessage,
-              nip17Kind: nip17Kind,
-              additionalTags: additionalTags,
-              save: save);
+          await NostrAPI.instance.sendNip17Message(
+            groupRoom,
+            content,
+            identity,
+            toPubkey: idPubkey,
+            realMessage: realMessage,
+            nip17Kind: nip17Kind,
+            additionalTags: additionalTags,
+            save: save,
+          );
           return;
         }
         await RoomService.instance
@@ -912,7 +1025,11 @@ class GroupService extends BaseChatService {
   }
 
   Future<void> _processHelloMessage(
-      Room groupRoom, String idPubkey, DateTime updatedAt, String name) async {
+    Room groupRoom,
+    String idPubkey,
+    DateTime updatedAt,
+    String name,
+  ) async {
     final rm = await groupRoom.getMemberByIdPubkey(idPubkey);
     if (rm == null) {
       logger.i('Not a member in group ${groupRoom.id}, $idPubkey');
@@ -929,7 +1046,10 @@ class GroupService extends BaseChatService {
 
   // Received the news that I was baned from the group
   Future<void> _processGroupRemoveSingleMember(
-      Room idRoom, KeychatMessage km, NostrEventModel event) async {
+    Room idRoom,
+    KeychatMessage km,
+    NostrEventModel event,
+  ) async {
     final toMainPubkey = km.msg;
     if (toMainPubkey == null) return;
     final groupRoom = await RoomService.instance
@@ -940,18 +1060,19 @@ class GroupService extends BaseChatService {
     if (!member.isAdmin) throw Exception('not admin');
 
     await MessageService.instance.saveMessageToDB(
-        from: event.pubkey,
-        to: event.tags[0][1],
-        senderPubkey: idRoom.toMainPubkey,
-        events: [event],
-        room: groupRoom,
-        isMeSend: false,
-        isSystem: true,
-        encryptType: MessageEncryptType.nip4,
-        sent: SendStatusType.success,
-        mediaType: MessageMediaType.text,
-        content: event.content,
-        realMessage: '[System] You have been removed');
+      from: event.pubkey,
+      to: event.tags[0][1],
+      senderPubkey: idRoom.toMainPubkey,
+      events: [event],
+      room: groupRoom,
+      isMeSend: false,
+      isSystem: true,
+      encryptType: MessageEncryptType.nip4,
+      sent: SendStatusType.success,
+      mediaType: MessageMediaType.text,
+      content: event.content,
+      realMessage: '[System] You have been removed',
+    );
 
     groupRoom.status = RoomStatus.removedFromGroup;
     await RoomService.instance.updateRoom(groupRoom);
@@ -960,38 +1081,57 @@ class GroupService extends BaseChatService {
   }
 
   Future<void> _removeMemberPairwise(Room room, RoomMember rm) async {
-    final msg = '''Remove member: ${rm.name}
+    final msg = '''
+Remove member: ${rm.name}
 ${rm.idPubkey}
 ''';
 
-    await sendMessageToGroup(room, msg,
-        subtype: KeyChatEventKinds.groupRemoveSingleMember, ext: rm.idPubkey);
+    await sendMessageToGroup(
+      room,
+      msg,
+      subtype: KeyChatEventKinds.groupRemoveSingleMember,
+      ext: rm.idPubkey,
+    );
     await room.setMemberDisable(rm);
     updateChatControllerMembers(room.id);
   }
 
-  Future<SendMessageResponse?> sendMessageToGroup(Room room, String message,
-      {bool save = true,
-      int? subtype,
-      String? ext,
-      String? realMessage}) async {
+  Future<SendMessageResponse?> sendMessageToGroup(
+    Room room,
+    String message, {
+    bool save = true,
+    int? subtype,
+    String? ext,
+    String? realMessage,
+  }) async {
     if (room.isMLSGroup) {
       final sm = KeychatMessage(c: MessageType.mls, type: subtype ?? 0)
         ..name = ext
         ..msg = message;
-      return MlsGroupService.instance.sendMessage(room, sm.toString(),
-          realMessage: realMessage ?? message, save: save);
+      return MlsGroupService.instance.sendMessage(
+        room,
+        sm.toString(),
+        realMessage: realMessage ?? message,
+        save: save,
+      );
     }
 
     if (room.isSendAllGroup) {
-      return sendToAllMessage(room, message,
-          subtype: subtype, ext: ext, realMessage: realMessage);
+      return sendToAllMessage(
+        room,
+        message,
+        subtype: subtype,
+        ext: ext,
+        realMessage: realMessage,
+      );
     }
     return null;
   }
 
   Future<void> sendInviteToAdmin(
-      Room room, Map<String, String> selectAccounts) async {
+    Room room,
+    Map<String, String> selectAccounts,
+  ) async {
     final roomMember = await room.getAdmin();
     if (roomMember == null) {
       throw Exception('No admin in group');
@@ -999,7 +1139,9 @@ ${rm.idPubkey}
     final identity = room.getIdentity();
     final names = selectAccounts.values.join(',');
     final sm = KeychatMessage(
-        c: MessageType.group, type: KeyChatEventKinds.inviteToGroupRequest)
+      c: MessageType.group,
+      type: KeyChatEventKinds.inviteToGroupRequest,
+    )
       ..name = jsonEncode([room.toMainPubkey, selectAccounts])
       ..msg =
           'Invite [${names.isEmpty ? selectAccounts.keys.join(',') : names}] to join group ${room.name}, Please confirm';
@@ -1012,23 +1154,38 @@ ${rm.idPubkey}
   }
 
   Future<void> _processinviteToGroupRequest(
-      Room room, NostrEventModel event, KeychatMessage km) async {
-    RoomService.instance.receiveDM(room, event,
-        decodedContent: km.name,
-        realMessage: km.msg,
-        requestConfrim: RequestConfrimEnum.request,
-        mediaType: MessageMediaType.groupInviteConfirm);
+    Room room,
+    NostrEventModel event,
+    KeychatMessage km,
+  ) async {
+    RoomService.instance.receiveDM(
+      room,
+      event,
+      decodedContent: km.name,
+      realMessage: km.msg,
+      requestConfrim: RequestConfrimEnum.request,
+      mediaType: MessageMediaType.groupInviteConfirm,
+    );
   }
 
-  Future<RoomProfile> getRoomProfile(Room groupRoom,
-      {SignalId? signalId, Mykey? mykey, String? mlsWelcome}) async {
+  Future<RoomProfile> getRoomProfile(
+    Room groupRoom, {
+    SignalId? signalId,
+    Mykey? mykey,
+    String? mlsWelcome,
+  }) async {
     final allMembers = (await groupRoom.getMembers()).values.toList();
 
     final roomMykey = groupRoom.mykey.value;
     final roomPubkey =
         mykey?.pubkey ?? roomMykey?.pubkey ?? groupRoom.toMainPubkey;
-    final roomProfile = RoomProfile(roomPubkey, groupRoom.name!, allMembers,
-        groupRoom.groupType, DateTime.now().millisecondsSinceEpoch)
+    final roomProfile = RoomProfile(
+      roomPubkey,
+      groupRoom.name!,
+      allMembers,
+      groupRoom.groupType,
+      DateTime.now().millisecondsSinceEpoch,
+    )
       ..oldToRoomPubKey = groupRoom.toMainPubkey
       ..prikey = mykey?.prikey ?? roomMykey?.prikey;
 

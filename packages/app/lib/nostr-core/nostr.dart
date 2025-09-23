@@ -1,32 +1,31 @@
+import 'dart:convert' show jsonDecode, jsonEncode;
+
+import 'package:app/constants.dart';
+import 'package:app/models/models.dart';
 import 'package:app/nostr-core/close.dart';
+import 'package:app/nostr-core/filter.dart';
+import 'package:app/nostr-core/nostr_event.dart';
+import 'package:app/nostr-core/request.dart';
+import 'package:app/nostr-core/subscribe_event_status.dart';
 import 'package:app/nostr-core/subscribe_result.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/SignerService.dart';
-import 'package:app/service/mls_group.service.dart';
-import 'package:async_queue/async_queue.dart';
-import 'dart:convert' show jsonDecode, jsonEncode;
-import 'package:app/models/models.dart';
-import 'package:app/nostr-core/filter.dart';
-import 'package:app/nostr-core/nostr_event.dart';
-import 'package:app/nostr-core/subscribe_event_status.dart';
-
-import 'package:app/nostr-core/request.dart';
-import 'package:app/service/secure_storage.dart';
-
 import 'package:app/service/identity.service.dart';
+import 'package:app/service/message.service.dart';
+import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/nip4_chat.service.dart';
+import 'package:app/service/room.service.dart';
+import 'package:app/service/secure_storage.dart';
 import 'package:app/service/signal_chat.service.dart';
+import 'package:app/service/storage.dart';
 import 'package:app/service/websocket.service.dart';
+import 'package:app/utils.dart' as utils;
 import 'package:app/utils.dart';
+import 'package:async_queue/async_queue.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
-import 'package:app/constants.dart';
-import 'package:app/service/message.service.dart';
-import 'package:app/service/room.service.dart';
-import 'package:app/service/storage.dart';
-import 'package:app/utils.dart' as utils;
 
 typedef OnMessageReceived = void Function(int type, dynamic message);
 
@@ -39,7 +38,7 @@ class NostrAPI {
   Map<String, DateTime> subscriptionLastEvent = {};
 
   final nostrEventQueue = AsyncQueue.autoStart();
-
+  final pongRegex = RegExp('unparseable message|command', caseSensitive: false);
   static NostrAPI? _instance;
   static NostrAPI get instance => _instance ??= NostrAPI._();
 
@@ -67,18 +66,22 @@ class NostrAPI {
                 ?.proccessEOSE(relay, res);
             return;
           }
-          if (res[1] == 'keychat-relay-status-check') {
-            Get.find<WebsocketService>().updateRelayPong(relay.url);
-            return;
-          }
+
           await _proccessEOSE(relay, res);
         case NostrResKinds.notice:
-          if (res[1].toString().startsWith('nwc')) {
+          final noticeMsg = res[1].toString();
+          if (noticeMsg.startsWith('nwc')) {
             Utils.getGetxController<NostrWalletConnectController>()
                 ?.proccessNotice(relay, res);
             return;
           }
+
+          if (pongRegex.hasMatch(noticeMsg)) {
+            Get.find<WebsocketService>().updateRelayPong(relay.url);
+            return;
+          }
           loggerNoLine.i('[Notice]: ${relay.url} $res');
+
         default:
           logger.i('${relay.url}: $message');
       }
@@ -143,7 +146,11 @@ class NostrAPI {
   }
 
   Future<void> _proccessEvent02(
-      NostrEventModel event, List eventList, Relay relay, String raw) async {
+    NostrEventModel event,
+    List eventList,
+    Relay relay,
+    String raw,
+  ) async {
     final subscribeId = eventList[1] as String;
     switch (event.kind) {
       case EventKinds.contactList:
@@ -171,14 +178,19 @@ class NostrAPI {
     final errorMessage = msg[3] as String?;
     if (NostrAPI.instance.okCallback[eventId] != null) {
       NostrAPI.instance.okCallback[eventId]!(
-          relay: relay.url,
-          eventId: eventId,
-          status: status,
-          errorMessage: errorMessage);
+        relay: relay.url,
+        eventId: eventId,
+        status: status,
+        errorMessage: errorMessage,
+      );
       return;
     }
     SubscribeEventStatus.fillSubscripton(
-        eventId, relay.url, status, errorMessage);
+      eventId,
+      relay.url,
+      status,
+      errorMessage,
+    );
   }
 
   Future<void> _proccessNip2(NostrEventModel msg) async {
@@ -198,7 +210,7 @@ class NostrAPI {
         kinds: [EventKinds.contactList],
         authors: [pubkey],
         limit: 1000,
-      )
+      ),
     ]);
     final req = requestWithFilter.serialize();
     Get.find<WebsocketService>().sendRawReq(req);
@@ -224,22 +236,24 @@ class NostrAPI {
   }
 
   Future<SendMessageResponse> sendEventMessage(
-      String toPubkey, String toEncryptText,
-      {required String prikey,
-      required String from,
-      required Room room,
-      required MessageEncryptType encryptType,
-      bool save = true,
-      int kind = EventKinds.nip04,
-      List<List<String>>? additionalTags,
-      MessageMediaType? mediaType,
-      MsgReply? reply,
-      bool? isSystem,
-      String? realMessage,
-      String? sourceContent,
-      bool isEncryptedMessage = false,
-      String? signalReceiveAddress,
-      String? msgKeyHash}) async {
+    String toPubkey,
+    String toEncryptText, {
+    required String prikey,
+    required String from,
+    required Room room,
+    required MessageEncryptType encryptType,
+    bool save = true,
+    int kind = EventKinds.nip04,
+    List<List<String>>? additionalTags,
+    MessageMediaType? mediaType,
+    MsgReply? reply,
+    bool? isSystem,
+    String? realMessage,
+    String? sourceContent,
+    bool isEncryptedMessage = false,
+    String? signalReceiveAddress,
+    String? msgKeyHash,
+  }) async {
     late String encryptedEvent;
     if (isEncryptedMessage) {
       final receiverPubkeys = [toPubkey];
@@ -247,23 +261,28 @@ class NostrAPI {
         receiverPubkeys.add(signalReceiveAddress);
       }
       encryptedEvent = await rust_nostr.getUnencryptEvent(
-          senderKeys: prikey,
-          receiverPubkeys: receiverPubkeys,
-          content: toEncryptText,
-          kind: kind,
-          additionalTags: additionalTags);
+        senderKeys: prikey,
+        receiverPubkeys: receiverPubkeys,
+        content: toEncryptText,
+        kind: kind,
+        additionalTags: additionalTags,
+      );
     } else {
       encryptedEvent = await rust_nostr.getEncryptEvent(
-          senderKeys: prikey, receiverPubkey: toPubkey, content: toEncryptText);
+        senderKeys: prikey,
+        receiverPubkey: toPubkey,
+        content: toEncryptText,
+      );
     }
     final event =
         NostrEventModel.fromJson(jsonDecode(encryptedEvent), verify: false);
 
-    final List relays = await Get.find<WebsocketService>().writeNostrEvent(
-        event: event,
-        eventString: encryptedEvent,
-        roomId: room.parentRoom?.id ?? room.id,
-        toRelays: room.sendingRelays);
+    final relays = await Get.find<WebsocketService>().writeNostrEvent(
+      event: event,
+      eventString: encryptedEvent,
+      roomId: room.parentRoom?.id ?? room.id,
+      toRelays: room.sendingRelays,
+    );
     var sendStatusType = SendStatusType.success;
     if (save && relays.isEmpty) {
       // throw Exception(ErrorMessages.relayIsEmptyException);
@@ -273,21 +292,22 @@ class NostrAPI {
       return SendMessageResponse(events: [event], msgKeyHash: msgKeyHash);
     }
     final model = await MessageService.instance.saveMessageToDB(
-        events: [event],
-        reply: reply,
-        from: from,
-        to: toPubkey,
-        isSystem: isSystem ?? false,
-        sent: sendStatusType,
-        senderPubkey: room.myIdPubkey,
-        content: sourceContent ?? toEncryptText,
-        realMessage: realMessage,
-        isRead: true,
-        isMeSend: true,
-        room: room,
-        mediaType: mediaType,
-        encryptType: encryptType,
-        msgKeyHash: msgKeyHash);
+      events: [event],
+      reply: reply,
+      from: from,
+      to: toPubkey,
+      isSystem: isSystem ?? false,
+      sent: sendStatusType,
+      senderPubkey: room.myIdPubkey,
+      content: sourceContent ?? toEncryptText,
+      realMessage: realMessage,
+      isRead: true,
+      isMeSend: true,
+      room: room,
+      mediaType: mediaType,
+      encryptType: encryptType,
+      msgKeyHash: msgKeyHash,
+    );
     return SendMessageResponse(events: [event], message: model);
   }
 
@@ -309,29 +329,34 @@ class NostrAPI {
     String? encryptedEvent;
     if (identity.isFromSigner) {
       encryptedEvent = await SignerService.instance.getNip59EventString(
-          content: sourceContent,
-          nip17Kind: nip17Kind,
-          from: identity.secp256k1PKHex,
-          additionalTags: additionalTags,
-          to: toPubkey ?? room.toMainPubkey);
+        content: sourceContent,
+        nip17Kind: nip17Kind,
+        from: identity.secp256k1PKHex,
+        additionalTags: additionalTags,
+        to: toPubkey ?? room.toMainPubkey,
+      );
     } else {
       encryptedEvent = await rust_nostr.createGiftJson(
-          kind: nip17Kind,
-          senderKeys: await identity.getSecp256k1SKHex(),
-          receiverPubkey: toPubkey ?? room.toMainPubkey,
-          timestampTweaked: timestampTweaked,
-          content: sourceContent,
-          additionalTags: additionalTags);
+        kind: nip17Kind,
+        senderKeys: await identity.getSecp256k1SKHex(),
+        receiverPubkey: toPubkey ?? room.toMainPubkey,
+        timestampTweaked: timestampTweaked,
+        content: sourceContent,
+        additionalTags: additionalTags,
+      );
     }
-    return _sendAndSaveGiftMessage(toPubkey ?? room.toMainPubkey, sourceContent,
-        room: room,
-        encryptedEvent: encryptedEvent,
-        from: identity.secp256k1PKHex,
-        mediaType: mediaType,
-        reply: reply,
-        realMessage: realMessage,
-        isSystem: isSystem,
-        save: save);
+    return _sendAndSaveGiftMessage(
+      toPubkey ?? room.toMainPubkey,
+      sourceContent,
+      room: room,
+      encryptedEvent: encryptedEvent,
+      from: identity.secp256k1PKHex,
+      mediaType: mediaType,
+      reply: reply,
+      realMessage: realMessage,
+      isSystem: isSystem,
+      save: save,
+    );
   }
 
   Future<SendMessageResponse> _sendAndSaveGiftMessage(
@@ -348,11 +373,12 @@ class NostrAPI {
   }) async {
     final event =
         NostrEventModel.fromJson(jsonDecode(encryptedEvent), verify: false);
-    final List relays = await Get.find<WebsocketService>().writeNostrEvent(
-        event: event,
-        eventString: encryptedEvent,
-        roomId: room.parentRoom?.id ?? room.id,
-        toRelays: room.sendingRelays);
+    final relays = await Get.find<WebsocketService>().writeNostrEvent(
+      event: event,
+      eventString: encryptedEvent,
+      roomId: room.parentRoom?.id ?? room.id,
+      toRelays: room.sendingRelays,
+    );
     if (save && relays.isEmpty) {
       throw Exception(ErrorMessages.relayIsEmptyException);
     }
@@ -360,20 +386,21 @@ class NostrAPI {
       return SendMessageResponse(events: [event]);
     }
     final model = await MessageService.instance.saveMessageToDB(
-        events: [event],
-        reply: reply,
-        from: from,
-        to: to,
-        isSystem: isSystem ?? false,
-        senderPubkey: room.myIdPubkey,
-        content: sourceContent,
-        realMessage: realMessage,
-        isRead: true,
-        isMeSend: true,
-        room: room,
-        createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-        mediaType: mediaType,
-        encryptType: MessageEncryptType.nip17);
+      events: [event],
+      reply: reply,
+      from: from,
+      to: to,
+      isSystem: isSystem ?? false,
+      senderPubkey: room.myIdPubkey,
+      content: sourceContent,
+      realMessage: realMessage,
+      isRead: true,
+      isMeSend: true,
+      room: room,
+      createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      mediaType: mediaType,
+      encryptType: MessageEncryptType.nip17,
+    );
 
     return SendMessageResponse(events: [event], message: model);
   }
@@ -385,16 +412,18 @@ class NostrAPI {
           await IdentityService.instance.getPrikeyByPubkey(decodePubkey);
       if (prikey == null) return null;
       return await rust_nostr.decrypt(
-          senderKeys: prikey,
-          receiverPubkey: event.pubkey,
-          content: event.content);
+        senderKeys: prikey,
+        receiverPubkey: event.pubkey,
+        content: event.content,
+      );
     } catch (e) {
       if (e.toString().contains('ExceptionIsFromSigner')) {
         final res = await SignerService.instance.amber.nip04Decrypt(
-            ciphertext: event.content,
-            currentUser: event.tags[0][1],
-            pubKey: event.pubkey,
-            id: event.id);
+          ciphertext: event.content,
+          currentUser: event.tags[0][1],
+          pubKey: event.pubkey,
+          id: event.id,
+        );
         return res['signature'] as String?;
       }
       logger.e('decryptNip4Content error', error: e);
@@ -424,7 +453,11 @@ class NostrAPI {
   }
 
   Future<void> _proccessEventMessage(
-      NostrEventModel event, List eventList, Relay relay, String raw) async {
+    NostrEventModel event,
+    List<dynamic> eventList,
+    Relay relay,
+    String raw,
+  ) async {
     if (processedEventIds.contains(event.id)) {
       loggerNoLine.i('duplicate_local: ${event.id}');
       return;
@@ -439,7 +472,7 @@ class NostrAPI {
     }
     loggerNoLine.i('Start proccess event: ${event.id}');
 
-    _updateRelayLastMessageAt(relay.url, event.createdAt);
+    await _updateRelayLastMessageAt(relay.url, event.createdAt);
     ess = await NostrEventStatus.createReceiveEvent(relay.url, event.id, raw);
 
     // verify
@@ -447,11 +480,11 @@ class NostrAPI {
       await rust_nostr.verifyEvent(json: jsonEncode(eventList[2]));
     } catch (e, s) {
       logger.e('verify error', error: e, stackTrace: s);
-      ess.setError(e.toString());
+      await ess.setError(e.toString());
       return;
     }
-    void failedCallback(String error, [String? stackTrace]) {
-      ess?.setError('$error ${stackTrace ?? ''}');
+    Future<void> failedCallback(String error, [String? stackTrace]) async {
+      await ess?.setError('$error ${stackTrace ?? ''}');
     }
 
     final to = event.getTagByKey(EventKindTags.pubkey)!;
@@ -462,19 +495,32 @@ class NostrAPI {
           final room =
               await SignalChatService.instance.getSignalChatRoomByTo(to);
           if (room != null) {
-            await SignalChatService.instance.decryptMessage(room, event, relay,
-                failedCallback: (msg) {
-              failedCallback(msg);
-              RoomUtil.appendMessageOrCreate(
-                  msg, room, 'decrypt failed', event);
-            });
+            await SignalChatService.instance.decryptMessage(
+              room,
+              event,
+              relay,
+              failedCallback: (msg) async {
+                failedCallback(msg);
+                await RoomUtil.appendMessageOrCreate(
+                  msg,
+                  room,
+                  'decrypt failed',
+                  event,
+                );
+              },
+            );
             return;
           }
 
           final mykey = await IdentityService.instance.getMykeyByPubkey(to);
           if (mykey != null) {
-            await SignalChatService.instance.decryptPreKeyMessage(to, mykey,
-                event: event, relay: relay, failedCallback: failedCallback);
+            await SignalChatService.instance.decryptPreKeyMessage(
+              to,
+              mykey,
+              event: event,
+              relay: relay,
+              failedCallback: failedCallback,
+            );
             return;
           }
 
@@ -487,7 +533,7 @@ class NostrAPI {
           }
           throw Exception('room not found');
         } catch (e, s) {
-          ess.setError('nip04 $e $s');
+          await ess.setError('nip04 $e $s');
           logger.e('decrypt error', error: e, stackTrace: s);
         }
 
@@ -502,9 +548,12 @@ class NostrAPI {
     }
   }
 
-  Future<void> dmNip4Proccess(NostrEventModel sourceEvent, Relay relay,
-      Function(String error) failedCallback,
-      {Room? room}) async {
+  Future<void> dmNip4Proccess(
+    NostrEventModel sourceEvent,
+    Relay relay,
+    void Function(String error) failedCallback, {
+    Room? room,
+  }) async {
     final content = await decryptNip4Content(sourceEvent);
     if (content == null) {
       logger.e('decryptNip4Content error: ${sourceEvent.id}');
@@ -534,13 +583,23 @@ class NostrAPI {
       // ignore: empty_catches
     } catch (e) {}
     if (subEvent != null) {
-      await _processSubEvent(sourceEvent, subEvent, relay, (String msg) {
-        failedCallback(msg);
-        if (room != null) {
-          RoomUtil.appendMessageOrCreate(
-              msg, room, 'decrypt failed', sourceEvent);
-        }
-      }, room: room);
+      await _processSubEvent(
+        sourceEvent,
+        subEvent,
+        relay,
+        (String msg) async {
+          failedCallback(msg);
+          if (room != null) {
+            await RoomUtil.appendMessageOrCreate(
+              msg,
+              room,
+              'decrypt failed',
+              sourceEvent,
+            );
+          }
+        },
+        room: room,
+      );
       return;
     }
 
@@ -548,14 +607,18 @@ class NostrAPI {
         .receiveNip4Message(sourceEvent, content, room: room);
   }
 
-  Future<void> _processSubEvent(NostrEventModel event, NostrEventModel subEvent,
-      Relay relay, Function(String error) failedCallback,
-      {Room? room}) async {
+  Future<void> _processSubEvent(
+    NostrEventModel event,
+    NostrEventModel subEvent,
+    Relay relay,
+    void Function(String error) failedCallback, {
+    Room? room,
+  }) async {
     // nip4(nip4)
     if (subEvent.isNip4) {
       final subContent = await decryptNip4Content(subEvent);
       if (subContent == null) {
-        Nip4ChatService.instance
+        await Nip4ChatService.instance
             .receiveNip4Message(event, subEvent.serialize(), room: room);
         return;
       }
@@ -565,7 +628,7 @@ class NostrAPI {
         subDecodedContent = jsonDecode(subContent) as Map<String, dynamic>;
       } catch (e) {
         logger.d('try decode error');
-        Nip4ChatService.instance
+        await Nip4ChatService.instance
             .receiveNip4Message(subEvent, subContent, sourceEvent: event);
         return;
       }
@@ -575,20 +638,30 @@ class NostrAPI {
         return RoomService.instance
             .processKeychatMessage(km, subEvent, relay, sourceEvent: event);
       }
-      Nip4ChatService.instance.receiveNip4Message(subEvent, subContent);
+      await Nip4ChatService.instance.receiveNip4Message(subEvent, subContent);
       return;
     }
 
     // nip4(signal)
     room ??= await RoomService.instance
         .getOrCreateRoom(subEvent.pubkey, subEvent.tags[0][1], RoomStatus.init);
-    SignalChatService.instance.decryptMessage(room, subEvent, relay,
-        sourceEvent: event, failedCallback: (String msg) {
-      failedCallback(msg);
-      if (room != null) {
-        RoomUtil.appendMessageOrCreate(msg, room, 'decrypt failed', event);
-      }
-    });
+    await SignalChatService.instance.decryptMessage(
+      room,
+      subEvent,
+      relay,
+      sourceEvent: event,
+      failedCallback: (String msg) async {
+        failedCallback(msg);
+        if (room != null) {
+          await RoomUtil.appendMessageOrCreate(
+            msg,
+            room,
+            'decrypt failed',
+            event,
+          );
+        }
+      },
+    );
   }
 
   KeychatMessage? getKeyChatMessageFromJson(Map<String, dynamic> str) {
@@ -602,7 +675,7 @@ class NostrAPI {
   Future<List<NostrEventModel>> fetchMetadata(List<String> pubkeys) async {
     final id = utils.generate64RandomHexChars(16);
     final requestWithFilter = Request(id, [
-      Filter(kinds: [EventKinds.setMetadata], authors: pubkeys, limit: 1)
+      Filter(kinds: [EventKinds.setMetadata], authors: pubkeys, limit: 1),
     ]);
 
     final res = await Get.find<WebsocketService>()
@@ -611,16 +684,24 @@ class NostrAPI {
     return res;
   }
 
-  Future<void> _processNip17Message(NostrEventModel event, Relay relay,
-      Function(String) failedCallback) async {
+  Future<void> _processNip17Message(
+    NostrEventModel event,
+    Relay relay,
+    void Function(String) failedCallback,
+  ) async {
     // mls group room. receive address is one-time-key field
     final to = event.getTagByKey(EventKindTags.pubkey)!;
     final mlsRoom = await RoomService.instance.getRoomByOnetimeKey(to);
     if (mlsRoom != null && mlsRoom.isMLSGroup) {
       await MlsGroupService.instance.decryptMessage(mlsRoom, event,
-          (String msg) {
+          (String msg) async {
         failedCallback(msg);
-        RoomUtil.appendMessageOrCreate(msg, mlsRoom, 'decrypt failed', event);
+        await RoomUtil.appendMessageOrCreate(
+          msg,
+          mlsRoom,
+          'decrypt failed',
+          event,
+        );
       });
       return;
     }
@@ -636,7 +717,10 @@ class NostrAPI {
     }
     if (subEvent.kind == EventKinds.mlsNipWelcome) {
       await MlsGroupService.instance.handleWelcomeEvent(
-          subEvent: subEvent, sourceEvent: event, relay: relay);
+        subEvent: subEvent,
+        sourceEvent: event,
+        relay: relay,
+      );
       return;
     }
     Map<String, dynamic> decodedContent;
@@ -644,7 +728,7 @@ class NostrAPI {
     try {
       decodedContent = jsonDecode(subEvent.content) as Map<String, dynamic>;
     } catch (e) {
-      Nip4ChatService.instance
+      await Nip4ChatService.instance
           .receiveNip4Message(subEvent, subEvent.content, sourceEvent: event);
       return;
     }
@@ -662,7 +746,7 @@ class NostrAPI {
 
   Future<NostrEventModel> _getNostrEventByTo(
     NostrEventModel event,
-    Function(String) failedCallbackync,
+    void Function(String) failedCallbackync,
   ) async {
     final to = event.tags[0][1];
     String? myPrivateKey;
@@ -685,30 +769,33 @@ class NostrAPI {
     }
 
     final result = await rust_nostr.decryptGift(
-        senderKeys: myPrivateKey,
-        receiver: event.pubkey,
-        content: event.content);
+      senderKeys: myPrivateKey,
+      receiver: event.pubkey,
+      content: event.content,
+    );
     final subEvent = NostrEventModel(
-        result.id,
-        result.pubkey,
-        result.createdAt.toInt(),
-        result.kind,
-        result.tags,
-        result.content,
-        result.sig,
-        verify: false);
+      result.id,
+      result.pubkey,
+      result.createdAt.toInt(),
+      result.kind,
+      result.tags,
+      result.content,
+      result.sig,
+      verify: false,
+    );
     return subEvent;
   }
 
   Map<String, Function> okCallback = {};
   void setOKCallback(
-      String eventID,
-      Function({
-        required String relay,
-        required String eventId,
-        required bool status,
-        String? errorMessage,
-      }) callback) {
+    String eventID,
+    void Function({
+      required String relay,
+      required String eventId,
+      required bool status,
+      String? errorMessage,
+    }) callback,
+  ) {
     NostrAPI.instance.okCallback[eventID] = callback;
   }
 
@@ -719,20 +806,22 @@ class NostrAPI {
     });
   }
 
-  Future<String> signEventByIdentity(
-      {required Identity identity,
-      required String content,
-      required int createdAt,
-      required int kind,
-      required List<List<String>> tags,
-      String? id}) async {
+  Future<String> signEventByIdentity({
+    required Identity identity,
+    required String content,
+    required int createdAt,
+    required int kind,
+    required List<List<String>> tags,
+    String? id,
+  }) async {
     if (!identity.isFromSigner) {
       return rust_nostr.signEvent(
-          senderKeys: await identity.getSecp256k1SKHex(),
-          tags: tags,
-          createdAt: BigInt.from(createdAt),
-          content: content,
-          kind: kind);
+        senderKeys: await identity.getSecp256k1SKHex(),
+        tags: tags,
+        createdAt: BigInt.from(createdAt),
+        content: content,
+        kind: kind,
+      );
     }
 
     final event = {
@@ -745,7 +834,9 @@ class NostrAPI {
       'sig': '',
     };
     final res = await SignerService.instance.signEvent(
-        pubkey: identity.secp256k1PKHex, eventJson: jsonEncode(event));
+      pubkey: identity.secp256k1PKHex,
+      eventJson: jsonEncode(event),
+    );
     if (res == null) {
       throw Exception('amber sign event error');
     }

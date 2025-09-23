@@ -19,8 +19,8 @@ class SearchMessagesPage extends StatefulWidget {
 
 class _SearchMessagesPageState extends State<SearchMessagesPage> {
   final TextEditingController _searchController = TextEditingController();
-  final RxList<Message> searchResults = <Message>[].obs;
-  final RxBool isLoading = false.obs;
+  RxList<Message> searchResults = <Message>[].obs;
+  RxBool isLoading = false.obs;
   late Room room;
   late ChatController? chatController;
 

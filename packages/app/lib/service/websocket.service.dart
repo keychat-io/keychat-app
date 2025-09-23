@@ -30,8 +30,8 @@ class WebsocketService extends GetxService {
   NostrAPI nostrAPI = NostrAPI.instance;
   RxString mainRelayStatus = RelayStatusEnum.init.name.obs;
   RxInt relayConnectedCount = 0.obs;
-  final RxMap<String, RelayWebsocket> channels = <String, RelayWebsocket>{}.obs;
-  final RxMap<String, RelayMessageFee> relayMessageFeeModels =
+  RxMap<String, RelayWebsocket> channels = <String, RelayWebsocket>{}.obs;
+  RxMap<String, RelayMessageFee> relayMessageFeeModels =
       <String, RelayMessageFee>{}.obs;
   Map<String, RelayFileFee> relayFileFeeModels = {};
   Map<String, Set<String>> failedEventsMap = {};
@@ -55,16 +55,19 @@ class WebsocketService extends GetxService {
   }
 
   Future<NostrEventStatus> addCashuToMessage(
-      int roomId, NostrEventStatus eventSendStatus) async {
+    int roomId,
+    NostrEventStatus eventSendStatus,
+  ) async {
     final payInfoModel = relayMessageFeeModels[eventSendStatus.relay];
     if (payInfoModel == null) return eventSendStatus;
     if (payInfoModel.amount == 0) return eventSendStatus;
     CashuInfoModel? cashuA;
     try {
       cashuA = await CashuUtil.getStamp(
-          amount: payInfoModel.amount,
-          token: payInfoModel.unit.name,
-          mints: payInfoModel.mints);
+        amount: payInfoModel.amount,
+        token: payInfoModel.unit.name,
+        mints: payInfoModel.mints,
+      );
       eventSendStatus.ecashName = payInfoModel.unit.name;
       final amount = payInfoModel.amount.toDouble();
       eventSendStatus.ecashAmount = amount;
@@ -92,12 +95,15 @@ class WebsocketService extends GetxService {
       return;
     }
 
-    await _startConnectRelay(rw, connectedCallback: () async {
-      logger.i('relay: ${relay.url} connected, callback');
-      if (connectedCallback != null) {
-        connectedCallback();
-      }
-    });
+    await _startConnectRelay(
+      rw,
+      connectedCallback: () async {
+        logger.i('relay: ${relay.url} connected, callback');
+        if (connectedCallback != null) {
+          connectedCallback();
+        }
+      },
+    );
   }
 
   void addFailedEvents(String relay, String raw) {
@@ -109,16 +115,18 @@ class WebsocketService extends GetxService {
 
   Future<void> checkOnlineAndConnect([List<RelayWebsocket>? list]) async {
     initAt = DateTime.now();
-    refreshMainRelayStatus();
+    await refreshMainRelayStatus();
     // fix ConcurrentModificationError List.from([list??channels.values])
-    await Future.wait((list ?? channels.values).map((rw) async {
-      if (rw.relay.active == false) return;
-      final relayStatus = await rw.checkOnlineStatus();
-      if (!relayStatus) {
-        rw.channel?.close();
-        _startConnectRelay(rw);
-      }
-    }));
+    await Future.wait(
+      (list ?? channels.values).map((rw) async {
+        if (!rw.relay.active) return;
+        final relayStatus = await rw.checkOnlineStatus();
+        if (!relayStatus) {
+          rw.channel?.close();
+          _startConnectRelay(rw);
+        }
+      }),
+    );
   }
 
   void clearFailedEvents(String relay) {
@@ -127,11 +135,13 @@ class WebsocketService extends GetxService {
 
   Future<void> createChannels([List<Relay> list = const []]) async {
     final ws = this;
-    await Future.wait(list.map((Relay relay) async {
-      final rw = RelayWebsocket(relay, ws);
-      channels[relay.url] = rw;
-      await _startConnectRelay(rw);
-    }));
+    await Future.wait(
+      list.map((Relay relay) async {
+        final rw = RelayWebsocket(relay, ws);
+        channels[relay.url] = rw;
+        await _startConnectRelay(rw);
+      }),
+    );
   }
 
   Future<void> disableRelay(Relay relay) async {
@@ -158,10 +168,12 @@ class WebsocketService extends GetxService {
 
   // fetch info and wait for response data
   Future<List<NostrEventModel>> fetchInfoFromRelay(
-      String subId, String eventString,
-      {Duration wait = const Duration(seconds: 2),
-      bool waitTimeToFill = false,
-      List<RelayWebsocket>? sockets}) async {
+    String subId,
+    String eventString, {
+    Duration wait = const Duration(seconds: 2),
+    bool waitTimeToFill = false,
+    List<RelayWebsocket>? sockets,
+  }) async {
     sockets ??= getOnlineSocket();
     if (sockets.isEmpty) {
       logger.i('Not connected, or the relay not support nips');
@@ -170,8 +182,12 @@ class WebsocketService extends GetxService {
     for (final rw in sockets) {
       rw.sendRawREQ(eventString);
     }
-    return SubscribeResult.instance.registerSubscripton(subId, sockets.length,
-        wait: wait, waitTimeToFill: waitTimeToFill);
+    return SubscribeResult.instance.registerSubscripton(
+      subId,
+      sockets.length,
+      wait: wait,
+      waitTimeToFill: waitTimeToFill,
+    );
   }
 
   List<String> getActiveRelayString() {
@@ -247,22 +263,25 @@ class WebsocketService extends GetxService {
     return this;
   }
 
-  void listenPubkey(List<String> pubkeys,
-      {required List<int> kinds,
-      DateTime? since,
-      List<String>? relays,
-      int? limit}) {
+  void listenPubkey(
+    List<String> pubkeys, {
+    required List<int> kinds,
+    DateTime? since,
+    List<String>? relays,
+    int? limit,
+  }) {
     if (pubkeys.isEmpty) return;
 
     since ??= DateTime.now().subtract(const Duration(days: 7));
     final subId = generate64RandomHexChars(16);
 
     final req = NostrReqModel(
-        reqId: subId,
-        pubkeys: pubkeys,
-        since: since,
-        limit: limit,
-        kinds: kinds);
+      reqId: subId,
+      pubkeys: pubkeys,
+      since: since,
+      limit: limit,
+      kinds: kinds,
+    );
     try {
       sendReq(req, relays: relays);
     } catch (e) {
@@ -274,19 +293,24 @@ class WebsocketService extends GetxService {
     }
   }
 
-  NostrReqModel? listenPubkeyNip17(List<String> pubkeys,
-      {DateTime? since, List<String>? relays, int? limit}) {
+  NostrReqModel? listenPubkeyNip17(
+    List<String> pubkeys, {
+    DateTime? since,
+    List<String>? relays,
+    int? limit,
+  }) {
     if (pubkeys.isEmpty) return null;
 
     since ??= DateTime.now().subtract(const Duration(days: 2));
     final subId = generate64RandomHexChars(16);
 
     final req = NostrReqModel(
-        reqId: subId,
-        pubkeys: pubkeys,
-        since: since,
-        limit: limit,
-        kinds: [EventKinds.nip17]);
+      reqId: subId,
+      pubkeys: pubkeys,
+      since: since,
+      limit: limit,
+      kinds: [EventKinds.nip17],
+    );
     try {
       sendReq(req, relays: relays);
     } catch (e) {
@@ -300,7 +324,8 @@ class WebsocketService extends GetxService {
 
   Future<void> localFeesConfigFromLocalStorage() async {
     final map1 = await Storage.getLocalStorageMap(
-        StorageKeyString.relayMessageFeeConfig);
+      StorageKeyString.relayMessageFeeConfig,
+    );
     for (final entry in map1.entries) {
       if (entry.value is Map && (entry.value as Map).isNotEmpty) {
         var host = entry.key as String;
@@ -407,20 +432,23 @@ class WebsocketService extends GetxService {
     }
     if (sent == 0) {
       throw Exception(
-          'Not connected any relay server, please check your network');
+        'Not connected any relay server, please check your network',
+      );
     }
 
     return sent;
   }
 
-  void sendMessageWithCallback(String content,
-      {List<String>? relays,
-      Function(
-              {required String relay,
-              required String eventId,
-              required bool status,
-              String? errorMessage})?
-          callback}) {
+  void sendMessageWithCallback(
+    String content, {
+    List<String>? relays,
+    Function({
+      required String relay,
+      required String eventId,
+      required bool status,
+      String? errorMessage,
+    })? callback,
+  }) {
     if (callback != null) {
       try {
         final list = jsonDecode(content) as List<dynamic>;
@@ -453,7 +481,8 @@ class WebsocketService extends GetxService {
     }
     if (sent == 0) {
       throw Exception(
-          'Not connected any relay server, please check your network');
+        'Not connected any relay server, please check your network',
+      );
     }
   }
 
@@ -465,8 +494,11 @@ class WebsocketService extends GetxService {
     }
   }
 
-  void sendReq(NostrReqModel nostrReq,
-      {List<String>? relays, Function(String relay)? callback}) {
+  void sendReq(
+    NostrReqModel nostrReq, {
+    List<String>? relays,
+    Function(String relay)? callback,
+  }) {
     if (relays != null && relays.isNotEmpty) {
       var sent = 0;
       for (final relayUrl in relays) {
@@ -535,11 +567,12 @@ class WebsocketService extends GetxService {
     channels.clear();
   }
 
-  Future<List<String>> writeNostrEvent(
-      {required NostrEventModel event,
-      required String eventString,
-      required int roomId,
-      List<String> toRelays = const []}) async {
+  Future<List<String>> writeNostrEvent({
+    required NostrEventModel event,
+    required String eventString,
+    required int roomId,
+    List<String> toRelays = const [],
+  }) async {
     final activeRelays = _getTargetRelays(toRelays);
     if (activeRelays.isEmpty) {
       if (toRelays.isNotEmpty) {
@@ -559,13 +592,13 @@ class WebsocketService extends GetxService {
 
       tasks.add(() async {
         var ess = NostrEventStatus(
-            relay: rw.relay.url,
-            eventId: event.id,
-            roomId: roomId,
-            sendStatus: EventSendEnum.init)
-          ..rawEvent = rawEvent;
+          relay: rw.relay.url,
+          eventId: event.id,
+          roomId: roomId,
+          sendStatus: EventSendEnum.init,
+        )..rawEvent = rawEvent;
 
-        if (rw.channel == null || rw.relay.active == false) {
+        if (rw.channel == null || !rw.relay.active) {
           ess.sendStatus = EventSendEnum.noAcitveRelay;
           results.add(ess);
           return;
@@ -599,29 +632,32 @@ class WebsocketService extends GetxService {
     tasks.onComplete.then((c) async {
       if (success == 0) {
         final messages = results
-            .map((item) =>
-                '${item.relay}: ${item.error ?? item.sendStatus.name}')
+            .map(
+              (item) => '${item.relay}: ${item.error ?? item.sendStatus.name}',
+            )
             .toList()
             .join('\n');
         if (Get.isDialogOpen != null && Get.isDialogOpen == false) {
-          Get.dialog(CupertinoAlertDialog(
-            title: const Text('Message Sent Failed'),
-            content: Text(messages, textAlign: TextAlign.left),
-            actions: <Widget>[
-              CupertinoDialogAction(
-                onPressed: Get.back,
-                child: const Text('OK'),
-              ),
-              CupertinoDialogAction(
-                isDefaultAction: true,
-                child: const Text('Relay Server >'),
-                onPressed: () {
-                  Get.back<void>();
-                  Get.to(() => const RelaySetting());
-                },
-              ),
-            ],
-          ));
+          Get.dialog(
+            CupertinoAlertDialog(
+              title: const Text('Message Sent Failed'),
+              content: Text(messages, textAlign: TextAlign.left),
+              actions: <Widget>[
+                CupertinoDialogAction(
+                  onPressed: Get.back,
+                  child: const Text('OK'),
+                ),
+                CupertinoDialogAction(
+                  isDefaultAction: true,
+                  child: const Text('Relay Server >'),
+                  onPressed: () {
+                    Get.back<void>();
+                    Get.to(() => const RelaySetting());
+                  },
+                ),
+              ],
+            ),
+          );
         }
       }
       // save send status to db
@@ -643,22 +679,26 @@ class WebsocketService extends GetxService {
     return activeRelays.where((element) => toRelays.contains(element)).toList();
   }
 
-  Future<RelayWebsocket> _startConnectRelay(RelayWebsocket rw,
-      {Function? connectedCallback}) async {
-    if (rw.relay.active == false) {
+  Future<RelayWebsocket> _startConnectRelay(
+    RelayWebsocket rw, {
+    Function? connectedCallback,
+  }) async {
+    if (!rw.relay.active) {
       return rw;
     }
 
     loggerNoLine.i('start connect ${rw.relay.url}');
 
-    rw.channel = WebSocket(Uri.parse(rw.relay.url),
-        pingInterval: const Duration(seconds: 10),
-        timeout: const Duration(seconds: 8),
-        backoff: LinearBackoff(
-          initial: const Duration(),
-          increment: const Duration(seconds: 2),
-          maximum: const Duration(seconds: 16),
-        ));
+    rw.channel = WebSocket(
+      Uri.parse(rw.relay.url),
+      pingInterval: const Duration(seconds: 10),
+      timeout: const Duration(seconds: 8),
+      backoff: LinearBackoff(
+        initial: const Duration(),
+        increment: const Duration(seconds: 2),
+        maximum: const Duration(seconds: 16),
+      ),
+    );
 
     rw.channel!.messages.listen((message) {
       nostrAPI.addNostrEventToQueue(rw.relay, message);

@@ -1,59 +1,60 @@
 import 'dart:io' show Directory;
 
+import 'package:app/controller/home.controller.dart';
+import 'package:app/controller/setting.controller.dart';
 import 'package:app/desktop/DesktopController.dart';
 import 'package:app/global.dart';
+import 'package:app/models/db_provider.dart';
+import 'package:app/page/app_theme.dart';
 import 'package:app/page/browser/MultiWebviewController.dart';
+import 'package:app/page/pages.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/service/chatx.service.dart';
+import 'package:app/service/identity.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:app/utils/MyCustomScrollBehavior.dart';
+import 'package:app/utils/config.dart' as env_config;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:get/get.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:get/get.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/index.dart';
-import 'package:app/controller/home.controller.dart';
-import 'package:app/controller/setting.controller.dart';
-import 'package:app/models/db_provider.dart';
-import 'package:app/page/app_theme.dart';
-import 'package:app/page/pages.dart';
-import 'package:app/service/identity.service.dart';
-import 'package:app/utils/config.dart' as env_config;
 
 bool isProdEnv = true;
 
 void main() async {
   final stopwatch = Stopwatch()..start();
   final sc = await initServices();
-
   final isLogin = await IdentityService.instance.count() > 0;
   final themeMode = await getThemeMode();
   sc.themeMode.value = themeMode.name;
 
   initEasyLoading();
   Get.config(
-      enableLog: kDebugMode,
-      logWriterCallback: _logWriterCallback,
-      defaultPopGesture: true,
-      defaultTransition:
-          GetPlatform.isDesktop ? Transition.fadeIn : Transition.cupertino);
-  final initialRoute = await getInitRoute(isLogin);
+    enableLog: kDebugMode,
+    logWriterCallback: _logWriterCallback,
+    defaultPopGesture: true,
+    defaultTransition:
+        GetPlatform.isDesktop ? Transition.fadeIn : Transition.cupertino,
+  );
+  final initialRoute = await getInitRoute(isLogin: isLogin);
   final getMaterialApp = GetMaterialApp(
-      initialRoute: initialRoute,
-      getPages: Pages.routes,
-      builder: EasyLoading.init(),
-      locale: Get.deviceLocale,
-      debugShowCheckedModeBanner: false,
-      themeMode: themeMode,
-      theme: AppThemeCustom.light(),
-      darkTheme: AppThemeCustom.dark(),
-      scrollBehavior: MyCustomScrollBehavior());
+    initialRoute: initialRoute,
+    getPages: Pages.routes,
+    builder: EasyLoading.init(),
+    locale: Get.deviceLocale,
+    debugShowCheckedModeBanner: false,
+    themeMode: themeMode,
+    theme: AppThemeCustom.light(),
+    darkTheme: AppThemeCustom.dark(),
+    scrollBehavior: MyCustomScrollBehavior(),
+  );
 
   runApp(getMaterialApp);
   WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -61,16 +62,18 @@ void main() async {
     stopwatch.stop();
     logger.i('app launched: ${stopwatch.elapsedMilliseconds} ms');
 
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarContrastEnforced: true,
-    ));
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarContrastEnforced: true,
+      ),
+    );
   });
 }
 
-Future<String> getInitRoute(bool isLogin) async {
+Future<String> getInitRoute({required bool isLogin}) async {
   return isLogin ? Routes.root : Routes.login;
   // int onboarding = await Storage.getIntOrZero(StorageKeyString.onboarding);
   // // if (!isLogin && onboarding == 0) {
@@ -92,7 +95,8 @@ Future<SettingController> initServices() async {
   final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   await SystemChrome.setPreferredOrientations(
-      [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
+    [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown],
+  );
   final appFolder = await Utils.getAppFolder();
   await dotenv.load();
   await Storage.init();
@@ -109,12 +113,13 @@ Future<SettingController> initServices() async {
   logger.i('App Folder: $dbPath');
   await DBProvider.initDB(dbPath);
   final sc = Get.put(SettingController(), permanent: true);
-  Get.put(EcashController(dbPath), permanent: true);
-  Get.put(MultiWebviewController(), permanent: true);
-  Get.putAsync(() => ChatxService().init(dbPath));
-  await Get.putAsync(() => WebsocketService().init());
-  Get.put(HomeController(), permanent: true);
-  Get.lazyPut(DesktopController.new, fenix: true);
+  Get
+    ..put(EcashController(dbPath), permanent: true)
+    ..put(MultiWebviewController(), permanent: true)
+    ..putAsync(() => ChatxService().init(dbPath))
+    ..putAsync(() => WebsocketService().init())
+    ..put(HomeController(), permanent: true)
+    ..lazyPut(DesktopController.new, fenix: true);
   return sc;
 }
 

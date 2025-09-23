@@ -20,7 +20,10 @@ class ContactService {
     await myReceiveKeyMutex.acquire(); // lock
     try {
       final crk = await getOrCreateContactReceiveKey(
-          room.identityId, room.toMainPubkey, room.id);
+        room.identityId,
+        room.toMainPubkey,
+        room.id,
+      );
       final keys = crk.receiveKeys;
       receiveKeyRooms[address] = room.id;
       if (keys.isNotEmpty && keys.lastOrNull == address) return [];
@@ -34,13 +37,14 @@ class ContactService {
     return [address];
   }
 
-  Future<Contact> createContact(
-      {required String pubkey,
-      required int identityId,
-      String? petname,
-      String? name,
-      String? curve25519PkHex,
-      bool autoCreateFromGroup = false}) async {
+  Future<Contact> createContact({
+    required String pubkey,
+    required int identityId,
+    String? petname,
+    String? name,
+    String? curve25519PkHex,
+    bool autoCreateFromGroup = false,
+  }) async {
     final pubKeyHex = rust_nostr.getHexPubkeyByBech32(bech32: pubkey);
     final contact = Contact(pubkey: pubKeyHex, identityId: identityId)
       ..curve25519PkHex = curve25519PkHex
@@ -96,7 +100,10 @@ class ContactService {
   }
 
   Future<void> deleteReceiveKey(
-      int identityId, String toMainPubkey, String pubkey) async {
+    int identityId,
+    String toMainPubkey,
+    String pubkey,
+  ) async {
     await myReceiveKeyMutex.acquire();
     try {
       final crk = await getOrCreateContactReceiveKey(identityId, toMainPubkey);
@@ -138,8 +145,9 @@ class ContactService {
     return set.toList();
   }
 
-  Future<List<String>> getAllReceiveKeysSkipMute(
-      {required List<int> skipIDs}) async {
+  Future<List<String>> getAllReceiveKeysSkipMute({
+    required List<int> skipIDs,
+  }) async {
     final set = <String>{};
     final list = await DBProvider.database.contactReceiveKeys
         .filter()
@@ -177,21 +185,18 @@ class ContactService {
     return DBProvider.database.contacts.filter().idEqualTo(id).findFirst();
   }
 
-  Future<List<Contact>> getContactList(int identityId) async {
-    final database = DBProvider.database;
-
-    return database.contacts.filter().identityIdEqualTo(identityId).findAll();
-  }
-
-  Future<List<Contact>> getListExcludeSelf(
-      int identityId, String myPubkey) async {
-    final database = DBProvider.database;
-
-    return database.contacts
+  Future<List<Contact>> getFriendContacts(int identityId) async {
+    return DBProvider.database.contacts
         .filter()
         .identityIdEqualTo(identityId)
-        .not()
-        .pubkeyEqualTo(myPubkey)
+        .autoCreateFromGroupEqualTo(false)
+        .findAll();
+  }
+
+  Future<List<Contact>> getContactList(int identityId) async {
+    return DBProvider.database.contacts
+        .filter()
+        .identityIdEqualTo(identityId)
         .findAll();
   }
 
@@ -223,11 +228,12 @@ class ContactService {
     return crk?.receiveKeys;
   }
 
-  Future<Contact> getOrCreateContact(
-      {required int identityId,
-      required String pubkey,
-      String? name,
-      String? curve25519PkHex}) async {
+  Future<Contact> getOrCreateContact({
+    required int identityId,
+    required String pubkey,
+    String? name,
+    String? curve25519PkHex,
+  }) async {
     final hex = rust_nostr.getHexPubkeyByBech32(bech32: pubkey);
     final c = await getContact(identityId, hex);
 
@@ -236,15 +242,18 @@ class ContactService {
     }
 
     return createContact(
-        identityId: identityId,
-        pubkey: pubkey,
-        name: name,
-        curve25519PkHex: curve25519PkHex);
+      identityId: identityId,
+      pubkey: pubkey,
+      name: name,
+      curve25519PkHex: curve25519PkHex,
+    );
   }
 
   Future<ContactReceiveKey> getOrCreateContactReceiveKey(
-      int identityId, String toMainPubkey,
-      [int? roomId]) async {
+    int identityId,
+    String toMainPubkey, [
+    int? roomId,
+  ]) async {
     final crk = DBProvider.database.contactReceiveKeys
         .filter()
         .identityIdEqualTo(identityId)
@@ -303,18 +312,23 @@ class ContactService {
     return id;
   }
 
-  Future<void> updateContact(
-      {required int identityId,
-      required String pubkey,
-      String? petname,
-      String? name,
-      String? metadata}) async {
+  Future<void> updateContact({
+    required int identityId,
+    required String pubkey,
+    String? petname,
+    String? name,
+    String? metadata,
+  }) async {
     final pubKeyHex = rust_nostr.getHexPubkeyByBech32(bech32: pubkey);
 
     final contact = await getContact(identityId, pubKeyHex);
     if (contact == null) {
       await createContact(
-          pubkey: pubkey, identityId: identityId, petname: petname, name: name);
+        pubkey: pubkey,
+        identityId: identityId,
+        petname: petname,
+        name: name,
+      );
       return;
     }
     if (name != null) {
@@ -364,12 +378,13 @@ class ContactService {
         .findFirstSync();
   }
 
-  Future<Contact> saveContactFromQrCode(
-      {required int identityId,
-      required String pubkey,
-      String? name,
-      String? avatarRemoteUrl,
-      String? lightning}) async {
+  Future<Contact> saveContactFromQrCode({
+    required int identityId,
+    required String pubkey,
+    String? name,
+    String? avatarRemoteUrl,
+    String? lightning,
+  }) async {
     final contact = await ContactService.instance
         .getOrCreateContact(identityId: identityId, pubkey: pubkey);
     contact.name = name;
@@ -381,9 +396,11 @@ class ContactService {
         avatarRemoteUrl != contact.avatarRemoteUrl) {
       contact.avatarRemoteUrl = avatarRemoteUrl;
       try {
-        final decryptedFile = await FileService.instance
-            .downloadAndDecryptToPath(
-                url: avatarRemoteUrl, outputFolder: Utils.avatarsFolder);
+        final decryptedFile =
+            await FileService.instance.downloadAndDecryptToPath(
+          url: avatarRemoteUrl,
+          outputFolder: Utils.avatarsFolder,
+        );
         contact.avatarLocalPath =
             decryptedFile.path.replaceFirst(Utils.appFolder.path, '');
       } catch (e) {
@@ -392,5 +409,21 @@ class ContactService {
     }
     await ContactService.instance.saveContact(contact);
     return contact;
+  }
+
+  Future<void> addContactToFriend({
+    required String pubkey,
+    required int identityId,
+    String? name,
+  }) async {
+    final contact = await ContactService.instance.getOrCreateContact(
+      identityId: identityId,
+      pubkey: pubkey,
+      name: name,
+    );
+    if (contact.autoCreateFromGroup) {
+      contact.autoCreateFromGroup = false;
+      await ContactService.instance.saveContact(contact);
+    }
   }
 }

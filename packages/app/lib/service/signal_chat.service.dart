@@ -59,19 +59,24 @@ class SignalChatService extends BaseChatService {
       if (to == room.onetimekey) {
         final si = room.getMySignalId();
         pmm = await SignalChatUtil.getSignalPrekeyMessage(
-            room: room, message: message, signalPubkey: si?.pubkey ?? '');
+          room: room,
+          message: message,
+          signalPubkey: si?.pubkey ?? '',
+        );
       }
     }
 
     final enResult = await rust_signal.encryptSignal(
-        keyPair: keypair,
-        ptext: pmm?.toString() ?? message0,
-        remoteAddress: kpa);
+      keyPair: keypair,
+      ptext: pmm?.toString() ?? message0,
+      remoteAddress: kpa,
+    );
     final ciphertext = enResult.$1;
     String? newReceving;
     if (enResult.$2 != null) {
       newReceving = await rust_nostr.generateSeedFromRatchetkeyPair(
-          seedKey: enResult.$2!);
+        seedKey: enResult.$2!,
+      );
     }
     final msgKeyHash =
         await rust_nostr.generateMessageKeyHash(seedKey: enResult.$3);
@@ -83,9 +88,11 @@ class SignalChatService extends BaseChatService {
       toAddPubkeys =
           await ContactService.instance.addReceiveKey(room, newReceving);
 
-      Get.find<WebsocketService>().listenPubkey(toAddPubkeys,
-          since: DateTime.now().subtract(const Duration(seconds: 5)),
-          kinds: [EventKinds.nip04]);
+      Get.find<WebsocketService>().listenPubkey(
+        toAddPubkeys,
+        since: DateTime.now().subtract(const Duration(seconds: 5)),
+        kinds: [EventKinds.nip04],
+      );
       if (!room.isMute) NotifyService.addPubkeys(toAddPubkeys);
     }
 
@@ -113,11 +120,14 @@ class SignalChatService extends BaseChatService {
   }
 
   Future<String> _getSignalToAddress(
-      KeychatIdentityKeyPair keyPair, Room room) async {
+    KeychatIdentityKeyPair keyPair,
+    Room room,
+  ) async {
     final bobSession = await rust_signal.getSession(
-        keyPair: keyPair,
-        address: room.curve25519PkHex!,
-        deviceId: room.identityId.toString());
+      keyPair: keyPair,
+      address: room.curve25519PkHex!,
+      deviceId: room.identityId.toString(),
+    );
     if (bobSession == null) {
       throw Exception('signal_session_is_null');
     }
@@ -138,9 +148,13 @@ class SignalChatService extends BaseChatService {
     return to;
   }
 
-  Future<String> decryptMessage(Room room, NostrEventModel event, Relay relay,
-      {required Function(String error) failedCallback,
-      NostrEventModel? sourceEvent}) async {
+  Future<String> decryptMessage(
+    Room room,
+    NostrEventModel event,
+    Relay relay, {
+    required Function(String error) failedCallback,
+    NostrEventModel? sourceEvent,
+  }) async {
     String? decodeString;
     String? msgKeyHash;
     try {
@@ -155,11 +169,12 @@ class SignalChatService extends BaseChatService {
         Uint8List? plaintext;
 
         (plaintext, msgKeyHash, _) = await rust_signal.decryptSignal(
-            keyPair: keypair,
-            ciphertext: Uint8List.fromList(base64Decode(event.content)),
-            remoteAddress: kpa,
-            roomId: room.id,
-            isPrekey: false);
+          keyPair: keypair,
+          ciphertext: Uint8List.fromList(base64Decode(event.content)),
+          remoteAddress: kpa,
+          roomId: room.id,
+          isPrekey: false,
+        );
         decodeString = utf8.decode(plaintext);
         await setRoomSignalDecodeStatus(room, false);
       } catch (e, s) {
@@ -177,7 +192,10 @@ class SignalChatService extends BaseChatService {
         msgKeyHash =
             await rust_nostr.generateMessageKeyHash(seedKey: msgKeyHash);
         ContactService.instance.deleteReceiveKey(
-            room.identityId, room.toMainPubkey, event.tags[0][1]);
+          room.identityId,
+          room.toMainPubkey,
+          event.tags[0][1],
+        );
       }
       // if receive address is signalAddress, then remove room.onetimekey
       if (room.onetimekey != null) {
@@ -206,25 +224,31 @@ class SignalChatService extends BaseChatService {
 
     if (km != null) {
       await km.service.proccessMessage(
-          room: room,
-          event: event,
-          km: km,
-          fromIdPubkey: room.toMainPubkey,
-          failedCallback: failedCallback,
-          msgKeyHash: msgKeyHash,
-          sourceEvent: sourceEvent);
+        room: room,
+        event: event,
+        km: km,
+        fromIdPubkey: room.toMainPubkey,
+        failedCallback: failedCallback,
+        msgKeyHash: msgKeyHash,
+        sourceEvent: sourceEvent,
+      );
       return decodeString;
     }
-    await RoomService.instance.receiveDM(room, event,
-        decodedContent: decodeString,
-        sourceEvent: sourceEvent,
-        senderPubkey: room.toMainPubkey,
-        msgKeyHash: msgKeyHash);
+    await RoomService.instance.receiveDM(
+      room,
+      event,
+      decodedContent: decodeString,
+      sourceEvent: sourceEvent,
+      senderPubkey: room.toMainPubkey,
+      msgKeyHash: msgKeyHash,
+    );
     return decodeString;
   }
 
   Future<void> setRoomSignalDecodeStatus(
-      Room room, bool signalDecodeError) async {
+    Room room,
+    bool signalDecodeError,
+  ) async {
     if (signalDecodeError == room.signalDecodeError) return;
 
     room.signalDecodeError = signalDecodeError;
@@ -232,22 +256,33 @@ class SignalChatService extends BaseChatService {
   }
 
   @override
-  Future<void> proccessMessage(
-      {required Room room,
-      required NostrEventModel event,
-      required KeychatMessage km,
-      NostrEventModel? sourceEvent,
-      Function(String error)? failedCallback,
-      String? fromIdPubkey,
-      String? msgKeyHash}) async {
+  Future<void> proccessMessage({
+    required Room room,
+    required NostrEventModel event,
+    required KeychatMessage km,
+    NostrEventModel? sourceEvent,
+    void Function(String error)? failedCallback,
+    String? fromIdPubkey,
+    String? msgKeyHash,
+  }) async {
     switch (km.type) {
       case KeyChatEventKinds.dm: // commom chat, may be contain: reply
-        await RoomService.instance.receiveDM(room, event,
-            sourceEvent: sourceEvent, km: km, msgKeyHash: msgKeyHash);
+        await RoomService.instance.receiveDM(
+          room,
+          event,
+          sourceEvent: sourceEvent,
+          km: km,
+          msgKeyHash: msgKeyHash,
+        );
       case KeyChatEventKinds.dmAddContactFromAlice:
       case KeyChatEventKinds.dmAddContactFromBob:
         await _processHelloMessage(
-            room, event, km, sourceEvent, failedCallback);
+          room,
+          event,
+          km,
+          sourceEvent,
+          failedCallback,
+        );
       case KeyChatEventKinds.dmReject:
         await _processReject(room, event, km, sourceEvent);
       case KeyChatEventKinds.signalRelaySyncInvite:
@@ -257,7 +292,9 @@ class SignalChatService extends BaseChatService {
   }
 
   Future<(List<String>, List<String>)> processListenAddrs(
-      String address, String mapKey) async {
+    String address,
+    String mapKey,
+  ) async {
     var sourceList = Storage.getStringList(mapKey);
 
     // null
@@ -284,11 +321,12 @@ class SignalChatService extends BaseChatService {
   }
 
   Future<void> _processHelloMessage(
-      Room room,
-      NostrEventModel event,
-      KeychatMessage keychatMessage,
-      NostrEventModel? sourceEvent,
-      Function(String error)? failedCallback) async {
+    Room room,
+    NostrEventModel event,
+    KeychatMessage keychatMessage,
+    NostrEventModel? sourceEvent,
+    void Function(String error)? failedCallback,
+  ) async {
     if (keychatMessage.name == null) {
       logger.i('name is null');
       return;
@@ -309,19 +347,21 @@ class SignalChatService extends BaseChatService {
     }
 
     final contact = await ContactService.instance.saveContactFromQrCode(
-        identityId: room.identityId,
-        pubkey: room.toMainPubkey,
-        name: model.name,
-        avatarRemoteUrl: model.avatar,
-        lightning: model.lightning);
+      identityId: room.identityId,
+      pubkey: room.toMainPubkey,
+      name: model.name,
+      avatarRemoteUrl: model.avatar,
+      lightning: model.lightning,
+    );
     // auto send response
     final oneTimeKey = await IdentityService.instance
         .isFromOnetimeKey((sourceEvent ?? event).tags[0][1]);
 
     // expire onetime-key
     if (oneTimeKey != null) {
-      oneTimeKey.oneTimeUsed = true;
-      oneTimeKey.updatedAt = DateTime.now();
+      oneTimeKey
+        ..oneTimeUsed = true
+        ..updatedAt = DateTime.now();
       await IdentityService.instance.updateMykey(oneTimeKey);
     }
 
@@ -344,14 +384,15 @@ class SignalChatService extends BaseChatService {
     room.curve25519PkHex = model.curve25519PkHex;
 
     final res = await Get.find<ChatxService>().addRoomKPA(
-        room: room,
-        bobSignedId: model.signedId,
-        bobSignedPublic: Uint8List.fromList(hex.decode(model.signedPublic)),
-        bobSignedSignature: Uint8List.fromList(
-          hex.decode(model.signedSignature),
-        ),
-        bobPrekeyId: model.prekeyId,
-        bobPrekeyPublic: Uint8List.fromList(hex.decode(model.prekeyPubkey)));
+      room: room,
+      bobSignedId: model.signedId,
+      bobSignedPublic: Uint8List.fromList(hex.decode(model.signedPublic)),
+      bobSignedSignature: Uint8List.fromList(
+        hex.decode(model.signedSignature),
+      ),
+      bobPrekeyId: model.prekeyId,
+      bobPrekeyPublic: Uint8List.fromList(hex.decode(model.prekeyPubkey)),
+    );
     if (res) {
       room.encryptMode = EncryptMode.signal;
       logger.i('addRoomKPA success, set room encryptMode to signal');
@@ -359,11 +400,14 @@ class SignalChatService extends BaseChatService {
     room.contact = contact;
     await RoomService.instance.updateRoomAndRefresh(room);
 
-    await RoomService.instance.receiveDM(room, event,
-        sourceEvent: sourceEvent,
-        km: keychatMessage,
-        decodedContent: keychatMessage.toString(),
-        realMessage: keychatMessage.msg);
+    await RoomService.instance.receiveDM(
+      room,
+      event,
+      sourceEvent: sourceEvent,
+      km: keychatMessage,
+      decodedContent: keychatMessage.toString(),
+      realMessage: keychatMessage.msg,
+    );
 
     // auto response
     if (room.status == RoomStatus.enabled &&
@@ -375,70 +419,101 @@ class SignalChatService extends BaseChatService {
     }
   }
 
-  Future<void> _processRelaySyncMessage(Room room, NostrEventModel event,
-      KeychatMessage keychatMessage, NostrEventModel? sourceEvent) async {
-    await RoomService.instance.receiveDM(room, event,
-        realMessage: keychatMessage.msg,
-        decodedContent: keychatMessage.name,
-        mediaType: MessageMediaType.setPostOffice,
-        requestConfrim: RequestConfrimEnum.request);
+  Future<void> _processRelaySyncMessage(
+    Room room,
+    NostrEventModel event,
+    KeychatMessage keychatMessage,
+    NostrEventModel? sourceEvent,
+  ) async {
+    await RoomService.instance.receiveDM(
+      room,
+      event,
+      realMessage: keychatMessage.msg,
+      decodedContent: keychatMessage.name,
+      mediaType: MessageMediaType.setPostOffice,
+      requestConfrim: RequestConfrimEnum.request,
+    );
   }
 
   Future<void> sendRelaySyncMessage(Room room, List<String> relays) async {
     final sm = KeychatMessage(
-        c: MessageType.signal,
-        type: KeyChatEventKinds.signalRelaySyncInvite,
-        name: jsonEncode(relays),
-        msg: relays.length == 1
-            ? 'My receiving relay is:${relays[0]}'
-            : '''My receiving relays are:
+      c: MessageType.signal,
+      type: KeyChatEventKinds.signalRelaySyncInvite,
+      name: jsonEncode(relays),
+      msg: relays.length == 1
+          ? 'My receiving relay is:${relays[0]}'
+          : '''
+My receiving relays are:
 ${relays.join('\n')}
-''');
+''',
+    );
 
     await RoomService.instance
         .sendMessage(room, sm.toString(), realMessage: sm.msg);
   }
 
-  Future<void> sendHelloMessage(Room room, Identity identity,
-      {int type = KeyChatEventKinds.dmAddContactFromAlice,
-      String? onetimekey,
-      String? greeting,
-      bool fromNpub = false}) async {
+  Future<void> sendHelloMessage(
+    Room room0,
+    Identity identity, {
+    int type = KeyChatEventKinds.dmAddContactFromAlice,
+    String? onetimekey,
+    String? greeting,
+    bool fromNpub = false,
+  }) async {
+    var room = room0;
     final signalId = await SignalIdService.instance.createSignalId(identity.id);
     // after reset session, the room signal key need update
     room.signalIdPubkey = signalId.pubkey;
     room = await RoomService.instance.updateRoom(room);
     final sm = await KeychatMessage(c: MessageType.signal, type: type)
         .setHelloMessagge(
-            signalId: signalId,
-            identity,
-            greeting: greeting,
-            fromNpub: fromNpub);
-    await NostrAPI.instance.sendNip17Message(room, sm.toString(), identity,
-        toPubkey: onetimekey, realMessage: sm.msg, isSystem: true);
+      signalId: signalId,
+      identity,
+      greeting: greeting,
+      fromNpub: fromNpub,
+    );
+    await NostrAPI.instance.sendNip17Message(
+      room,
+      sm.toString(),
+      identity,
+      toPubkey: onetimekey,
+      realMessage: sm.msg,
+      isSystem: true,
+    );
   }
 
-  Future<void> _processReject(Room room, NostrEventModel event,
-      KeychatMessage km, NostrEventModel? sourceEvent) async {
+  Future<void> _processReject(
+    Room room,
+    NostrEventModel event,
+    KeychatMessage km,
+    NostrEventModel? sourceEvent,
+  ) async {
     room.status = RoomStatus.rejected;
-    await RoomService.instance.receiveDM(room, event,
-        sourceEvent: sourceEvent,
-        km: km,
-        decodedContent: km.toString(),
-        realMessage: 'Rejected');
+    await RoomService.instance.receiveDM(
+      room,
+      event,
+      sourceEvent: sourceEvent,
+      km: km,
+      decodedContent: km.toString(),
+      realMessage: 'Rejected',
+    );
 
     await RoomService.instance.updateRoomAndRefresh(room);
     Get.find<HomeController>().loadIdentityRoomList(room.identityId);
   }
 
   // decrypt the first signal message
-  Future<void> decryptPreKeyMessage(String to, Mykey mykey,
-      {required NostrEventModel event,
-      required Relay relay,
-      required Function(String error) failedCallback}) async {
+  Future<void> decryptPreKeyMessage(
+    String to,
+    Mykey mykey, {
+    required NostrEventModel event,
+    required Relay relay,
+    required Function(String error) failedCallback,
+  }) async {
     final ciphertext = Uint8List.fromList(base64Decode(event.content));
     final prekey = await rust_signal.parseIdentityFromPrekeySignalMessage(
-        ciphertext: ciphertext);
+      ciphertext: ciphertext,
+    );
     final signalIdPubkey = prekey.$1;
     final signalId =
         await SignalIdService.instance.getSignalIdByKeyId(prekey.$2);
@@ -459,39 +534,46 @@ ${relays.join('\n')}
         Get.find<HomeController>().allIdentities[signalId.identityId]!;
 
     final (plaintext, msgKeyHash, _) = await rust_signal.decryptSignal(
-        keyPair: keyPair,
-        ciphertext: ciphertext,
-        remoteAddress:
-            KeychatProtocolAddress(name: signalIdPubkey, deviceId: identity.id),
-        roomId: 0,
-        isPrekey: true);
+      keyPair: keyPair,
+      ciphertext: ciphertext,
+      remoteAddress:
+          KeychatProtocolAddress(name: signalIdPubkey, deviceId: identity.id),
+      roomId: 0,
+      isPrekey: true,
+    );
     final decryptedContent = utf8.decode(plaintext);
     final prekeyMessageModel =
         PrekeyMessageModel.fromJson(jsonDecode(decryptedContent));
     logger.i(
-        'decryptPreKeyMessage, plainrtext: $prekeyMessageModel, msgKeyHash: $msgKeyHash');
+      'decryptPreKeyMessage, plainrtext: $prekeyMessageModel, msgKeyHash: $msgKeyHash',
+    );
 
     await SignalChatUtil.verifySignedMessage(
-        pmm: prekeyMessageModel, signalIdPubkey: signalIdPubkey);
+      pmm: prekeyMessageModel,
+      signalIdPubkey: signalIdPubkey,
+    );
 
     var room = await RoomService.instance
         .getRoomByIdentity(prekeyMessageModel.nostrId, identity.id);
     room ??= await RoomService.instance.createPrivateRoom(
-        toMainPubkey: prekeyMessageModel.nostrId,
-        identity: identity,
-        name: prekeyMessageModel.name,
-        status: RoomStatus.enabled,
-        encryptMode: EncryptMode.signal,
-        curve25519PkHex: signalIdPubkey,
-        signalId: signalId);
+      toMainPubkey: prekeyMessageModel.nostrId,
+      identity: identity,
+      name: prekeyMessageModel.name,
+      status: RoomStatus.enabled,
+      encryptMode: EncryptMode.signal,
+      curve25519PkHex: signalIdPubkey,
+      signalId: signalId,
+    );
 
-    room.status = RoomStatus.enabled;
-    room.encryptMode = EncryptMode.signal;
-    room.curve25519PkHex = signalIdPubkey;
+    room
+      ..status = RoomStatus.enabled
+      ..encryptMode = EncryptMode.signal
+      ..curve25519PkHex = signalIdPubkey;
     await ContactService.instance.updateContact(
-        identityId: room.identityId,
-        pubkey: room.toMainPubkey,
-        name: prekeyMessageModel.name);
+      identityId: room.identityId,
+      pubkey: room.toMainPubkey,
+      name: prekeyMessageModel.name,
+    );
     await RoomService.instance.updateRoomAndRefresh(room);
     Get.find<HomeController>().loadIdentityRoomList(room.identityId);
 
@@ -502,12 +584,13 @@ ${relays.join('\n')}
     } catch (e) {}
     if (km != null) {
       await km.service.proccessMessage(
-          room: room,
-          event: event,
-          km: km,
-          msgKeyHash: msgKeyHash,
-          fromIdPubkey: room.toMainPubkey,
-          failedCallback: failedCallback);
+        room: room,
+        event: event,
+        km: km,
+        msgKeyHash: msgKeyHash,
+        fromIdPubkey: room.toMainPubkey,
+        failedCallback: failedCallback,
+      );
       return;
     }
     await RoomService.instance
@@ -529,8 +612,10 @@ ${relays.join('\n')}
         await Get.find<ChatxService>()
             .deleteSignalSessionKPA(room); // delete old session
         await SignalChatService.instance.sendHelloMessage(
-            room, room.getIdentity(),
-            greeting: 'Reset signal session status');
+          room,
+          room.getIdentity(),
+          greeting: 'Reset signal session status',
+        );
 
         EasyLoading.showInfo('Request sent successfully.');
       } catch (e) {

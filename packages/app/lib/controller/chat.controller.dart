@@ -46,12 +46,12 @@ class ChatController extends GetxController {
   RxBool inputTextIsAdd = true.obs;
   RxInt messageLimit = 0.obs;
 
-  final Rx<Room> roomObs = Room(identityId: 0, toMainPubkey: '', npub: '').obs;
+  Rx<Room> roomObs = Room(identityId: 0, toMainPubkey: '', npub: '').obs;
 
   RxInt statsSend = 0.obs;
   RxInt statsReceive = 0.obs;
   RxList<Room> kpaIsNullRooms = <Room>[].obs; // for signal group chat
-  late int searchMessageId; // click message from search page
+  int searchMessageId = -1; // click message from search page
   int messageLimitPerPage = 30;
 
   // hide add button
@@ -109,7 +109,7 @@ class ChatController extends GetxController {
     'Video',
     'File',
     'Sat',
-    'Invoice'
+    'Invoice',
   ];
 
   List<Function> featuresOnTaps = [];
@@ -302,7 +302,7 @@ class ChatController extends GetxController {
       () => pickAndUploadVideo(ImageSource.gallery),
       () => FileService.instance.handleFileUpload(roomObs.value),
       _handleSendSats,
-      _handleSendLightning
+      _handleSendLightning,
     ];
     // disable webrtc
     // bool isCommonRoom = roomObs.value.type == RoomType.common;
@@ -343,18 +343,22 @@ class ChatController extends GetxController {
       return;
     }
     final list = await MessageService.instance.getMessagesByView(
-        roomId: roomObs.value.id,
-        maxId: maxMessageId,
-        isRead: true,
-        limit: messageLimitPerPage);
+      roomId: roomObs.value.id,
+      maxId: maxMessageId,
+      isRead: true,
+      limit: messageLimitPerPage,
+    );
     final unreads = await MessageService.instance.getMessagesByView(
-        roomId: roomObs.value.id,
-        maxId: maxMessageId,
-        isRead: false,
-        limit: 999);
+      roomId: roomObs.value.id,
+      maxId: maxMessageId,
+      isRead: false,
+      limit: 999,
+    );
     if (unreads.isNotEmpty) {
       RoomService.instance.markAllRead(
-          identityId: roomObs.value.identityId, roomId: roomObs.value.id);
+        identityId: roomObs.value.identityId,
+        roomId: roomObs.value.id,
+      );
     }
     unreads.addAll(list);
     final mlist = sortMessageById(unreads.toList());
@@ -364,11 +368,12 @@ class ChatController extends GetxController {
   }
 
   Future<int> _loadLatestMessages(int searchMsgIndex) async {
-    final sortedNewMessages = await MessageService.instance
-        .listLatestMessageByTime(
-            roomId: roomObs.value.id,
-            messageId: searchMsgIndex,
-            limit: messageLimitPerPage);
+    final sortedNewMessages =
+        await MessageService.instance.listLatestMessageByTime(
+      roomId: roomObs.value.id,
+      messageId: searchMsgIndex,
+      limit: messageLimitPerPage,
+    );
 
     if (sortedNewMessages.isEmpty) {
       EasyLoading.showToast('No more messages');
@@ -422,7 +427,10 @@ class ChatController extends GetxController {
       return [];
     }
     final list = MessageService.instance.listMessageByTimeSync(
-        roomId: roomObs.value.id, from: from, limit: messageLimitPerPage);
+      roomId: roomObs.value.id,
+      from: from,
+      limit: messageLimitPerPage,
+    );
     return list;
   }
 
@@ -433,11 +441,12 @@ class ChatController extends GetxController {
       return;
     }
     // trailing
-    final sortedNewMessages = await MessageService.instance
-        .listOldMessageByTime(
-            roomId: roomObs.value.id,
-            messageId: messages.last.id,
-            limit: messageLimitPerPage);
+    final sortedNewMessages =
+        await MessageService.instance.listOldMessageByTime(
+      roomId: roomObs.value.id,
+      messageId: messages.last.id,
+      limit: messageLimitPerPage,
+    );
 
     if (sortedNewMessages.isEmpty) {
       EasyLoading.showToast('No more messages');
@@ -466,31 +475,35 @@ class ChatController extends GetxController {
 
     if (roomObs.value.type == RoomType.common &&
         (roomObs.value.encryptMode == EncryptMode.nip04)) {
-      final lastMessage =
-          messages.firstWhereOrNull((msg) => msg.isMeSend == false);
+      final lastMessage = messages.firstWhereOrNull((msg) => !msg.isMeSend);
       if (lastMessage == null) return;
       if (lastMessage.encryptType == MessageEncryptType.nip4) {
-        Get.dialog(CupertinoAlertDialog(
-          title: const Text('Deprecated Encryption'),
-          content: const Text('''
+        Get.dialog(
+          CupertinoAlertDialog(
+            title: const Text('Deprecated Encryption'),
+            content: const Text('''
 Your friends uses a deprecated encryption method-NIP04.
 Keychat is using NIP17 and SignalProtocol, and your friends may not be able to decrypt the messages you reply to.
 '''),
-          actions: [
-            CupertinoDialogAction(
-              onPressed: Get.back,
-              child: const Text('OK'),
-            ),
-            CupertinoDialogAction(
-              child: const Text('Share One-Time Link'),
-              onPressed: () async {
-                Get.back<void>();
-                await showMyQrCode(
-                    Get.context!, roomObs.value.getIdentity(), true);
-              },
-            ),
-          ],
-        ));
+            actions: [
+              CupertinoDialogAction(
+                onPressed: Get.back,
+                child: const Text('OK'),
+              ),
+              CupertinoDialogAction(
+                child: const Text('Share One-Time Link'),
+                onPressed: () async {
+                  Get.back<void>();
+                  await showMyQrCode(
+                    Get.context!,
+                    roomObs.value.getIdentity(),
+                    true,
+                  );
+                },
+              ),
+            ],
+          ),
+        );
       }
     }
   }
@@ -518,36 +531,42 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     }
 
     if (xfile == null) return;
-    Get.dialog(CupertinoAlertDialog(
-      content: SizedBox(
-        width: 300,
-        child: FileService.instance.getImageView(File(xfile.path)),
+    Get.dialog(
+      CupertinoAlertDialog(
+        content: SizedBox(
+          width: 300,
+          child: FileService.instance.getImageView(File(xfile.path)),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: Get.back,
+            child: const Text('Cancel'),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () async {
+              if (_isUploading) {
+                EasyLoading.showToast('File uploading, please wait...');
+                return;
+              }
+              _isUploading = true;
+              try {
+                await FileService.instance.handleSendMediaFile(
+                  roomObs.value,
+                  xfile!,
+                  MessageMediaType.image,
+                  true,
+                );
+                Get.back<void>();
+              } finally {
+                _isUploading = false;
+              }
+            },
+            child: const Text('Send'),
+          ),
+        ],
       ),
-      actions: [
-        CupertinoDialogAction(
-          onPressed: Get.back,
-          child: const Text('Cancel'),
-        ),
-        CupertinoDialogAction(
-          isDefaultAction: true,
-          onPressed: () async {
-            if (_isUploading) {
-              EasyLoading.showToast('File uploading, please wait...');
-              return;
-            }
-            _isUploading = true;
-            try {
-              await FileService.instance.handleSendMediaFile(
-                  roomObs.value, xfile!, MessageMediaType.image, true);
-              Get.back<void>();
-            } finally {
-              _isUploading = false;
-            }
-          },
-          child: const Text('Send'),
-        ),
-      ],
-    ));
+    );
   }
 
   Future<void> pickAndUploadVideo(ImageSource imageSource) async {
@@ -575,7 +594,11 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
       EasyLoading.showProgress(0.2, status: 'Encrypting and Uploading...');
 
       await FileService.instance.handleSendMediaFile(
-          roomObs.value, xfile, MessageMediaType.video, true);
+        roomObs.value,
+        xfile,
+        MessageMediaType.video,
+        true,
+      );
       hideAdd.value = true; // close features section
       EasyLoading.dismiss();
     } catch (e, s) {
@@ -609,7 +632,9 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
       }
       // update member's avatar
       await updateRoomMembersAvatar(
-          members.keys.toList(), roomObs.value.identityId);
+        members.keys.toList(),
+        roomObs.value.identityId,
+      );
       return;
     }
     if (roomObs.value.isSendAllGroup) {
@@ -617,14 +642,18 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
       enableMembers.value = await roomObs.value.getEnableMembers();
       // update member's avatar
       await updateRoomMembersAvatar(
-          members.keys.toList(), roomObs.value.identityId);
+        members.keys.toList(),
+        roomObs.value.identityId,
+      );
       memberRooms = await roomObs.value.getEnableMemberRooms();
       kpaIsNullRooms.value = await getKpaIsNullRooms(); // get null list
     }
   }
 
   Future<void> updateRoomMembersAvatar(
-      List<String> pubkeys, int identityId) async {
+    List<String> pubkeys,
+    int identityId,
+  ) async {
     for (final pubkey in pubkeys) {
       final contact =
           await ContactService.instance.getContact(identityId, pubkey);
@@ -634,11 +663,10 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
   }
 
   void setRoom(Room newRoom) {
-    roomObs.value = newRoom;
     if (newRoom.contact != null) {
-      roomContact.value = newRoom.contact!;
+      roomContact(newRoom.contact);
     }
-    roomObs.refresh();
+    roomObs(newRoom);
   }
 
   List<Message> sortMessageById(List<Message> list) {
@@ -655,15 +683,21 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
 
   Future<void> _handleSendSats() async {
     final cashuInfo = await Get.bottomSheet<CashuInfoModel>(
-        clipBehavior: Clip.hardEdge,
-        shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
-        const CashuSendPage(true));
+      clipBehavior: Clip.hardEdge,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+      ),
+      const CashuSendPage(true),
+    );
     if (cashuInfo == null) return;
     try {
       logger.d(cashuInfo.toString());
-      await RoomService.instance.sendMessage(roomObs.value, cashuInfo.token,
-          realMessage: cashuInfo.toString(), mediaType: MessageMediaType.cashu);
+      await RoomService.instance.sendMessage(
+        roomObs.value,
+        cashuInfo.token,
+        realMessage: cashuInfo.toString(),
+        mediaType: MessageMediaType.cashu,
+      );
       hideAdd.value = true; // close features section
     } catch (e, s) {
       final msg = Utils.getErrorMessage(e);
@@ -674,10 +708,12 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
 
   Future<void> _handleSendLightning() async {
     final invoice = await Get.bottomSheet<Transaction>(
-        clipBehavior: Clip.hardEdge,
-        shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
-        const CreateInvoicePage());
+      clipBehavior: Clip.hardEdge,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+      ),
+      const CreateInvoicePage(),
+    );
     if (invoice == null) return;
 
     try {
@@ -688,10 +724,14 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
         ..status = invoice.status
         ..hash = invoice.id
         ..expiredAt = DateTime.fromMillisecondsSinceEpoch(
-            invoice.timestamp.toInt() * 1000);
-      await RoomService.instance.sendMessage(roomObs.value, invoice.token,
-          realMessage: cim.toString(),
-          mediaType: MessageMediaType.lightningInvoice);
+          invoice.timestamp.toInt() * 1000,
+        );
+      await RoomService.instance.sendMessage(
+        roomObs.value,
+        invoice.token,
+        realMessage: cim.toString(),
+        mediaType: MessageMediaType.lightningInvoice,
+      );
       hideAdd.value = true; // close features section
     } catch (e, s) {
       final msg = Utils.getErrorMessage(e);
@@ -732,10 +772,12 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     if (list.isEmpty) return;
     final res = list.last;
     final metadata = Map<String, dynamic>.from(
-        jsonDecode(res.content) as Map<String, dynamic>);
+      jsonDecode(res.content) as Map<String, dynamic>,
+    );
     if (roomObs.value.botInfoUpdatedAt >= res.createdAt) {
       botCommands.value = List<Map<String, dynamic>>.from(
-          (metadata['commands'] ?? []) as Iterable);
+        (metadata['commands'] ?? []) as Iterable,
+      );
       return;
     }
     // not a bot account
@@ -748,7 +790,8 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
 
     roomObs.value.botInfoUpdatedAt = res.createdAt;
     botCommands.value = List<Map<String, dynamic>>.from(
-        (metadata['commands'] ?? []) as Iterable);
+      (metadata['commands'] ?? []) as Iterable,
+    );
 
     final metadataString = jsonEncode(metadata);
     roomObs.value.botInfo = metadataString;
@@ -759,11 +802,18 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     if (metadata['botPricePerMessageRequest'] != null) {
       try {
         final config = jsonEncode(metadata['botPricePerMessageRequest']);
-        await MessageService.instance.saveSystemMessage(roomObs.value, config,
-            suffix: '', isMeSend: false);
+        await MessageService.instance.saveSystemMessage(
+          roomObs.value,
+          config,
+          suffix: '',
+          isMeSend: false,
+        );
       } catch (e) {
-        logger.e('botPricePerMessageRequest: $e',
-            error: e, stackTrace: StackTrace.current);
+        logger.e(
+          'botPricePerMessageRequest: $e',
+          error: e,
+          stackTrace: StackTrace.current,
+        );
       }
     }
     await RoomService.instance.updateRoomAndRefresh(roomObs.value);
@@ -773,9 +823,11 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     // group
     if (roomObs.value.type == RoomType.group) {
       if (roomObs.value.isMLSGroup) {
-        Future.delayed(const Duration(seconds: 2)).then((value) => {
-              MlsGroupService.instance.fixMlsOnetimeKey([roomObs.value])
-            });
+        Future.delayed(const Duration(seconds: 2)).then(
+          (value) => {
+            MlsGroupService.instance.fixMlsOnetimeKey([roomObs.value]),
+          },
+        );
       }
       return resetMembers();
     }
@@ -783,16 +835,18 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     if (roomObs.value.type == RoomType.common) {
       if (roomObs.value.contact == null) {
         final contact = await ContactService.instance.getOrCreateContact(
-            identityId: roomObs.value.identityId,
-            pubkey: roomObs.value.toMainPubkey);
+          identityId: roomObs.value.identityId,
+          pubkey: roomObs.value.toMainPubkey,
+        );
         roomObs.value.contact = contact;
         roomContact.value = contact;
       } else {
         roomContact.value = roomObs.value.contact!;
       }
       fetchAndUpdateMetadata(
-              roomContact.value.pubkey, roomContact.value.identityId)
-          .then((Contact? item) {
+        roomContact.value.pubkey,
+        roomContact.value.identityId,
+      ).then((Contact? item) {
         if (item == null) return;
         roomContact.value = item;
         roomObs.value.contact = item;
@@ -819,7 +873,10 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
     var contacts = await ContactService.instance.getContacts(pubkey);
     if (contacts.isEmpty) {
       final result = await ContactService.instance.createContact(
-          pubkey: pubkey, identityId: identityId, autoCreateFromGroup: true);
+        pubkey: pubkey,
+        identityId: identityId,
+        autoCreateFromGroup: true,
+      );
       contacts = [result];
     }
     // ignore fetch in a hour in kReleaseMode
@@ -837,7 +894,8 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
 
       loggerNoLine.i('metadata: ${res.content}');
       metadata = Map<String, dynamic>.from(
-          jsonDecode(res.content) as Map<String, dynamic>);
+        jsonDecode(res.content) as Map<String, dynamic>,
+      );
       final nameFromRelay =
           (metadata['displayName'] ?? metadata['name']) as String?;
       final avatarFromRelay =
@@ -865,8 +923,11 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
                   contact.avatarFromRelayLocalPath = localPath;
                 }
               } catch (e, s) {
-                logger.e('Failed to download avatar: $e',
-                    error: e, stackTrace: s);
+                logger.e(
+                  'Failed to download avatar: $e',
+                  error: e,
+                  stackTrace: s,
+                );
               }
             }
           }
@@ -879,7 +940,8 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
           ..fetchFromRelayAt = DateTime.now()
           ..versionFromRelay = res.createdAt;
         loggerNoLine.i(
-            'fetchUserMetadata: ${contact.pubkey} name: ${contact.nameFromRelay} avatar: ${contact.avatarFromRelay} ${contact.aboutFromRelay}');
+          'fetchUserMetadata: ${contact.pubkey} name: ${contact.nameFromRelay} avatar: ${contact.avatarFromRelay} ${contact.aboutFromRelay}',
+        );
         await ContactService.instance.saveContact(contact);
       }
     } catch (e) {
@@ -955,7 +1017,11 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
         if (canProcess) {
           logger.d('Clipboard can provide: $format');
           await _readFromStream(
-              reader, format, mediaType, mediaType == MessageMediaType.video);
+            reader,
+            format,
+            mediaType,
+            mediaType == MessageMediaType.video,
+          );
           return true;
         }
       }
@@ -1038,8 +1104,11 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
   }
 
   Future<void> _readFromStream(
-      ClipboardReader reader, SimpleFileFormat format, MessageMediaType type,
-      [bool compress = true]) async {
+    ClipboardReader reader,
+    SimpleFileFormat format,
+    MessageMediaType type, [
+    bool compress = true,
+  ]) async {
     /// Binary formats need to be read as streams
     reader.getFile(format, (DataReaderFile file) async {
       var suggestedName = await reader.getSuggestedName();
@@ -1070,8 +1139,12 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
         final teampFile = File(path);
         await teampFile.writeAsBytes(imageBytes);
 
-        final xfile = XFile(path,
-            bytes: imageBytes, mimeType: mimeType, name: suggestedName);
+        final xfile = XFile(
+          path,
+          bytes: imageBytes,
+          mimeType: mimeType,
+          name: suggestedName,
+        );
         final isImage = FileService.instance.isImageFile(xfile.path);
         if (!isImage) {
           if (_isUploading) {
@@ -1087,36 +1160,42 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
           }
           return;
         }
-        await Get.dialog(CupertinoAlertDialog(
-          content: SizedBox(
-            width: 300,
-            child: FileService.instance.getImageView(File(xfile.path)),
+        await Get.dialog(
+          CupertinoAlertDialog(
+            content: SizedBox(
+              width: 300,
+              child: FileService.instance.getImageView(File(xfile.path)),
+            ),
+            actions: [
+              CupertinoDialogAction(
+                onPressed: Get.back,
+                child: const Text('Cancel'),
+              ),
+              CupertinoDialogAction(
+                isDefaultAction: true,
+                onPressed: () async {
+                  if (_isUploading) {
+                    EasyLoading.showToast('File uploading, please wait...');
+                    return;
+                  }
+                  _isUploading = true;
+                  try {
+                    await FileService.instance.handleSendMediaFile(
+                      roomObs.value,
+                      xfile,
+                      MessageMediaType.image,
+                      true,
+                    );
+                    Get.back<void>();
+                  } finally {
+                    _isUploading = false;
+                  }
+                },
+                child: const Text('Send'),
+              ),
+            ],
           ),
-          actions: [
-            CupertinoDialogAction(
-              onPressed: Get.back,
-              child: const Text('Cancel'),
-            ),
-            CupertinoDialogAction(
-              isDefaultAction: true,
-              onPressed: () async {
-                if (_isUploading) {
-                  EasyLoading.showToast('File uploading, please wait...');
-                  return;
-                }
-                _isUploading = true;
-                try {
-                  await FileService.instance.handleSendMediaFile(
-                      roomObs.value, xfile, MessageMediaType.image, true);
-                  Get.back<void>();
-                } finally {
-                  _isUploading = false;
-                }
-              },
-              child: const Text('Send'),
-            ),
-          ],
-        ));
+        );
       } catch (e, s) {
         logger.e('_readFromStream: $e', stackTrace: s);
       } finally {

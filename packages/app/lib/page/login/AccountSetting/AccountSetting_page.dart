@@ -127,23 +127,22 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                               size: 84,
                             ),
                           ),
-                          if (kDebugMode)
-                            Positioned(
-                              bottom: 8,
-                              right: 0,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).primaryColor,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                padding: const EdgeInsets.all(4),
-                                child: const Icon(
-                                  Icons.edit,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
+                          Positioned(
+                            bottom: 8,
+                            right: 0,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).primaryColor,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: const EdgeInsets.all(4),
+                              child: const Icon(
+                                Icons.edit,
+                                color: Colors.white,
+                                size: 16,
                               ),
                             ),
+                          ),
                         ],
                       ),
                     ),

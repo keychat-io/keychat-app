@@ -6,10 +6,10 @@ import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
 
 class DBProvider {
-  static DBProvider? _instance;
-  static DBProvider get instance => _instance ??= DBProvider._();
   // Avoid self instance
   DBProvider._();
+  static DBProvider? _instance;
+  static DBProvider get instance => _instance ??= DBProvider._();
   static bool _isInitializing = false;
   static late Isar database;
 
@@ -17,34 +17,44 @@ class DBProvider {
     if (_isInitializing) return database;
 
     _isInitializing = true;
-    database = await Isar.open([
-      ContactSchema,
-      ContactReceiveKeySchema,
-      MykeySchema,
-      MessageSchema,
-      RoomSchema,
-      RelaySchema,
-      IdentitySchema,
-      RoomMemberSchema,
-      SignalIdSchema,
-      NostrEventStatusSchema,
-      EcashBillSchema,
-      BrowserBookmarkSchema,
-      BrowserHistorySchema,
-      BrowserConnectSchema,
-      BrowserFavoriteSchema,
-    ], directory: dbFolder, name: 'keychat', inspector: kDebugMode);
+    database = await Isar.open(
+      [
+        ContactSchema,
+        ContactReceiveKeySchema,
+        MykeySchema,
+        MessageSchema,
+        RoomSchema,
+        RelaySchema,
+        IdentitySchema,
+        RoomMemberSchema,
+        SignalIdSchema,
+        NostrEventStatusSchema,
+        EcashBillSchema,
+        BrowserBookmarkSchema,
+        BrowserHistorySchema,
+        BrowserConnectSchema,
+        BrowserFavoriteSchema,
+      ],
+      directory: dbFolder,
+      name: 'keychat',
+    );
     await performMigrationIfNeeded(database);
     return database;
   }
 
   static Future<void> performMigrationIfNeeded(Isar isar) async {
-    int currentVersion = Storage.getIntOrZero(StorageKeyString.dbVersion);
+    var currentVersion = Storage.getIntOrZero(StorageKeyString.dbVersion);
     if (currentVersion < 30) {
       currentVersion = 34;
     }
+    switch (currentVersion) {
+      case 34:
+        await migrationTo35();
+        currentVersion = 35;
+        await Storage.setInt(StorageKeyString.dbVersion, currentVersion);
+      default:
+    }
     logger.i('db version: $currentVersion');
-    // await Storage.setInt(StorageKeyString.dbVersion, currentVersion);
   }
 
   static Future<void> close() async {
@@ -55,10 +65,10 @@ class DBProvider {
     if (GetPlatform.isDesktop) {
       return Get.find<DesktopController>().selectedRoom.value.id == roomId;
     }
-    String route = Get.currentRoute;
+    final route = Get.currentRoute;
     if (route.startsWith('/room/')) {
       try {
-        int currentRoomId = int.parse(route.split('/room/')[1]);
+        final currentRoomId = int.parse(route.split('/room/')[1]);
         return currentRoomId == roomId;
       } catch (e) {
         return false;
@@ -70,6 +80,16 @@ class DBProvider {
   void deleteAll() {
     database.writeTxnSync(() {
       database.clearSync();
+    });
+  }
+
+  static Future<void> migrationTo35() async {
+    final contacts = await DBProvider.database.contacts.where().findAll();
+    await database.writeTxn(() async {
+      for (final item in contacts) {
+        item.autoCreateFromGroup = false;
+        await database.contacts.put(item);
+      }
     });
   }
 }

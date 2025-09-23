@@ -705,8 +705,10 @@ Add as a friend and start the signal protocol chat
   void setRoom(Room newRoom) {
     if (newRoom.contact != null) {
       roomContact(newRoom.contact);
+      roomContact.refresh();
     }
     roomObs(newRoom);
+    roomObs.refresh();
   }
 
   List<Message> sortMessageById(List<Message> list) {

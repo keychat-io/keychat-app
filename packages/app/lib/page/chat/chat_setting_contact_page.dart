@@ -68,15 +68,14 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
             () => Container(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   ListTile(
-                    leading: ClipRRect(
-                      borderRadius: BorderRadius.circular(100),
+                    leading: SizedBox(
+                      width: 60,
+                      height: 60,
                       child: Utils.getRandomAvatar(
                         cc.roomObs.value.toMainPubkey,
-                        height: 60,
-                        width: 60,
+                        size: 60,
                         contact: cc.roomContact.value,
                       ),
                     ),

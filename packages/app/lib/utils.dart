@@ -480,7 +480,7 @@ Init File: $time \n
     );
   }
 
-  static Widget getAvatarDot(Room room, {double width = 50}) {
+  static Widget getAvatarDot(Room room, {double size = 50}) {
     final newMessageCount = room.unReadCount;
     final chatType = room.type;
 
@@ -491,15 +491,14 @@ Init File: $time \n
       child = getAvatorByName(
         account,
         room: room,
-        width: width,
+        width: size,
         borderRadius: 12,
         backgroudColors: colors,
       );
     } else {
       child = Utils.getRandomAvatar(
         room.toMainPubkey,
-        height: width,
-        width: width,
+        size: size,
         contact: room.contact,
       );
     }
@@ -764,8 +763,7 @@ Init File: $time \n
 
   static Widget getRandomAvatar(
     String id, {
-    double height = 40,
-    double width = 40,
+    double size = 40,
     Contact? contact,
     String? localPath,
   }) {
@@ -773,7 +771,7 @@ Init File: $time \n
     if (localPath != null) {
       final file = File('${Utils.appFolder.path}$localPath');
       if (file.existsSync()) {
-        return getAvatarByImageFile(file, size: width);
+        return getAvatarByImageFile(file, size: size);
       }
     }
     // from contact
@@ -785,13 +783,13 @@ Init File: $time \n
       if (localFilePath != null) {
         final file = File('${Utils.appFolder.path}$localFilePath');
         if (file.existsSync()) {
-          return getAvatarByImageFile(file, size: width);
+          return getAvatarByImageFile(file, size: size);
         }
       }
     }
 
     // use random avatar
-    return _generateRandomAvatar(id, size: width);
+    return _generateRandomAvatar(id, size: size);
   }
 
   static SvgPicture _generateRandomAvatar(String id, {double size = 40}) {
@@ -1359,8 +1357,7 @@ Init File: $time \n
     return Utils.getRandomAvatar(
       identity.secp256k1PKHex,
       localPath: identity.avatarLocalPath ?? identity.avatarFromRelayLocalPath,
-      height: size,
-      width: size,
+      size: size,
     );
   }
 }

@@ -200,8 +200,7 @@ class _FriendCell extends StatelessWidget {
             leading: Utils.getRandomAvatar(
               contact.pubkey,
               contact: contact,
-              height: 36,
-              width: 36,
+              size: 36,
             ),
             title: Text(
               contact.displayName,

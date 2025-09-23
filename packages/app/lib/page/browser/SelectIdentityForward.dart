@@ -32,24 +32,34 @@ class _SelectIdentityForwardState extends State<SelectIdentityForward> {
   @override
   Widget build(BuildContext context) {
     return identities.isNotEmpty
-        ? SettingsList(platform: DevicePlatform.iOS, sections: [
-            SettingsSection(
-                title: Text(widget.title,
-                    style: Theme.of(context).textTheme.titleMedium),
+        ? SettingsList(
+            platform: DevicePlatform.iOS,
+            sections: [
+              SettingsSection(
+                title: Text(
+                  widget.title,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 tiles: identities
-                    .map((identity) => SettingsTile(
-                        leading: Utils.getRandomAvatar(identity.secp256k1PKHex,
-                            localPath: identity.avatarLocalPath ??
-                                identity.avatarFromRelayLocalPath,
-                            height: 30,
-                            width: 30),
+                    .map(
+                      (identity) => SettingsTile(
+                        leading: Utils.getRandomAvatar(
+                          identity.secp256k1PKHex,
+                          localPath: identity.avatarLocalPath ??
+                              identity.avatarFromRelayLocalPath,
+                          size: 30,
+                        ),
                         value: Text(getPublicKeyDisplay(identity.npub)),
                         title: Text(identity.displayName),
                         onPressed: (context) async {
                           Get.back(result: identity);
-                        }))
-                    .toList()),
-          ])
+                        },
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
+          )
         : pageLoadingSpinKit();
   }
 }

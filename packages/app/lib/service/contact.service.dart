@@ -1,5 +1,4 @@
 import 'package:app/app.dart';
-import 'package:app/controller/setting.controller.dart';
 import 'package:app/service/file.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/websocket.service.dart';
@@ -28,8 +27,9 @@ class ContactService {
       receiveKeyRooms[address] = room.id;
       if (keys.isNotEmpty && keys.lastOrNull == address) return [];
       final newReceiveKeys = <String>[...keys, address];
-      crk.receiveKeys = newReceiveKeys;
-      crk.roomId = room.id;
+      crk
+        ..receiveKeys = newReceiveKeys
+        ..roomId = room.id;
       await _saveReceiveKey(crk);
     } finally {
       myReceiveKeyMutex.release();

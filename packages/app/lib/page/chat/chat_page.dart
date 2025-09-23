@@ -856,8 +856,7 @@ class _ChatPage2State extends State<ChatPage> {
                     },
                     leading: Utils.getRandomAvatar(
                       rm.idPubkey,
-                      height: 36,
-                      width: 36,
+                      size: 36,
                       contact: rm.contact,
                     ),
                     title: Text(
@@ -1104,7 +1103,7 @@ class _ChatPage2State extends State<ChatPage> {
                           room.toMainPubkey,
                         );
                         return ListTile(
-                          leading: Utils.getAvatarDot(room, width: 40),
+                          leading: Utils.getAvatarDot(room),
                           key: Key('room:${room.id}'),
                           title: Text(room.getRoomName()),
                           trailing: OutlinedButton(

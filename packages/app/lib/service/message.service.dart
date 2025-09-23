@@ -24,8 +24,11 @@ class MessageService {
   static MessageService get instance => _instance ??= MessageService._();
   static final DBProvider dbProvider = DBProvider.instance;
 
-  Future<Message> saveMessageModel(Message model,
-      {required Room room, bool persist = true}) async {
+  Future<Message> saveMessageModel(
+    Message model, {
+    required Room room,
+    bool persist = true,
+  }) async {
     model.receiveAt ??= DateTime.now();
     // none text type: media, file, cashu...
     model = await _fillTypeForMessage(model, room.type == RoomType.bot);
@@ -44,19 +47,24 @@ class MessageService {
       } catch (e) {
         logger.e('persist message error: $e, ${model.content}');
         throw Exception(
-            'duplicate_db: msgId:${model.msgid} roomId[${model.roomId}] ${model.content}');
+          'duplicate_db: msgId:${model.msgid} roomId[${model.roomId}] ${model.content}',
+        );
       }
     } else {
       await DBProvider.database.messages.put(model);
     }
     logger.i(
-        '[message]:room:${model.roomId} ${model.isMeSend ? 'Send' : 'Receive'}: ${model.content} ');
+      '[message]:room:${model.roomId} ${model.isMeSend ? 'Send' : 'Receive'}: ${model.content} ',
+    );
     _messageNotifyToPage(isCurrentPage, model, room);
     return model;
   }
 
   Future<void> _messageNotifyToPage(
-      bool isCurrentPage, Message model, Room room) async {
+    bool isCurrentPage,
+    Message model,
+    Room room,
+  ) async {
     RoomService.getController(model.roomId)?.addMessage(model);
     final hc = Get.find<HomeController>();
     hc.roomLastMessage[model.roomId] = model;
@@ -75,7 +83,7 @@ class MessageService {
         : '[${model.mediaType.name}]';
 
     if (GetPlatform.isDesktop) {
-      if (Get.find<HomeController>().resumed == false) {
+      if (!Get.find<HomeController>().resumed) {
         Get.find<HomeController>().addUnreadCount();
       }
       return;
@@ -90,28 +98,35 @@ class MessageService {
           // ignore: empty_catches
         } catch (e) {}
       }
-      Get.snackbar(room.getRoomName(), content,
-          titleText: Text(room.getRoomName(),
-              style: Theme.of(Get.context!).textTheme.titleMedium),
-          messageText:
-              Text(content, maxLines: 4, overflow: TextOverflow.ellipsis),
-          backgroundColor: Theme.of(Get.context!).colorScheme.surfaceContainer,
-          snackPosition: SnackPosition.TOP,
-          isDismissible: true,
-          margin: const EdgeInsets.all(8),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          duration: const Duration(seconds: 5),
-          mainButton: isCurrentRoomPage || cc != null
-              ? null
-              : TextButton(
-                  child: const Text('View'),
-                  onPressed: () {
-                    pressSnackbar(room);
-                  }),
-          icon: Utils.getRandomAvatar(room.toMainPubkey), onTap: (c) {
-        if (isCurrentRoomPage || cc != null) return;
-        pressSnackbar(room);
-      });
+      Get.snackbar(
+        room.getRoomName(),
+        content,
+        titleText: Text(
+          room.getRoomName(),
+          style: Theme.of(Get.context!).textTheme.titleMedium,
+        ),
+        messageText:
+            Text(content, maxLines: 4, overflow: TextOverflow.ellipsis),
+        backgroundColor: Theme.of(Get.context!).colorScheme.surfaceContainer,
+        snackPosition: SnackPosition.TOP,
+        isDismissible: true,
+        margin: const EdgeInsets.all(8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        duration: const Duration(seconds: 5),
+        mainButton: isCurrentRoomPage || cc != null
+            ? null
+            : TextButton(
+                child: const Text('View'),
+                onPressed: () {
+                  pressSnackbar(room);
+                },
+              ),
+        icon: Utils.getRandomAvatar(room.toMainPubkey),
+        onTap: (c) {
+          if (isCurrentRoomPage || cc != null) return;
+          pressSnackbar(room);
+        },
+      );
     });
   }
 
@@ -124,31 +139,36 @@ class MessageService {
     }
   }
 
-  Future<void> saveSystemMessage(Room room, String content,
-      {DateTime? createdAt,
-      String suffix = 'SystemMessage',
-      bool isMeSend = true}) async {
+  Future<void> saveSystemMessage(
+    Room room,
+    String content, {
+    DateTime? createdAt,
+    String suffix = 'SystemMessage',
+    bool isMeSend = true,
+  }) async {
     final identity = room.getIdentity();
     await saveMessageModel(
-        Message(
-            msgid: Utils.randomString(16),
-            idPubkey: isMeSend ? identity.secp256k1PKHex : room.toMainPubkey,
-            identityId: room.identityId,
-            roomId: room.id,
-            from: isMeSend ? identity.secp256k1PKHex : room.toMainPubkey,
-            to: isMeSend ? room.toMainPubkey : identity.secp256k1PKHex,
-            content: suffix.isNotEmpty
-                ? '''[$suffix]
+      Message(
+        msgid: Utils.randomString(16),
+        idPubkey: isMeSend ? identity.secp256k1PKHex : room.toMainPubkey,
+        identityId: room.identityId,
+        roomId: room.id,
+        from: isMeSend ? identity.secp256k1PKHex : room.toMainPubkey,
+        to: isMeSend ? room.toMainPubkey : identity.secp256k1PKHex,
+        content: suffix.isNotEmpty
+            ? '''[$suffix]
 $content'''
-                : content,
-            createdAt: createdAt ?? DateTime.now(),
-            sent: SendStatusType.success,
-            isMeSend: isMeSend,
-            isSystem: true,
-            eventIds: const [],
-            encryptType: MessageEncryptType.signal,
-            rawEvents: const []),
-        room: room);
+            : content,
+        createdAt: createdAt ?? DateTime.now(),
+        sent: SendStatusType.success,
+        isMeSend: isMeSend,
+        isSystem: true,
+        eventIds: const [],
+        encryptType: MessageEncryptType.signal,
+        rawEvents: const [],
+      ),
+      room: room,
+    );
   }
 
   Future<void> updateMessageAndRefresh(Message message) async {
@@ -171,50 +191,53 @@ $content'''
     } catch (e) {}
   }
 
-  Future<Message> saveMessageToDB(
-      {required String from,
-      required String content,
-      required String to,
-      required bool isMeSend,
-      required Room room,
-      required List<NostrEventModel> events,
-      required String senderPubkey,
-      required MessageEncryptType encryptType,
-      bool persist = true,
-      String? realMessage,
-      String? senderName,
-      String? subEvent,
-      MsgReply? reply,
-      SendStatusType sent = SendStatusType.sending,
-      MessageMediaType? mediaType,
-      RequestConfrimEnum? requestConfrim,
-      String? requestId,
-      int? createdAt,
-      bool? isRead,
-      bool? isSystem,
-      String? msgKeyHash}) async {
+  Future<Message> saveMessageToDB({
+    required String from,
+    required String content,
+    required String to,
+    required bool isMeSend,
+    required Room room,
+    required List<NostrEventModel> events,
+    required String senderPubkey,
+    required MessageEncryptType encryptType,
+    bool persist = true,
+    String? realMessage,
+    String? senderName,
+    String? subEvent,
+    MsgReply? reply,
+    SendStatusType sent = SendStatusType.sending,
+    MessageMediaType? mediaType,
+    RequestConfrimEnum? requestConfrim,
+    String? requestId,
+    int? createdAt,
+    bool? isRead,
+    bool? isSystem,
+    String? msgKeyHash,
+  }) async {
     final model = Message(
-        msgid: events[0].id,
-        eventIds: events.map((e) => e.id).toList(),
-        identityId: room.identityId,
-        idPubkey: senderPubkey,
-        roomId: room.id,
-        from: from,
-        to: to,
-        sent: sent,
-        isMeSend: isMeSend,
-        content: content,
-        realMessage: realMessage,
-        reply: reply,
-        encryptType: encryptType,
-        msgKeyHash: msgKeyHash,
-        createdAt: DateTime.fromMillisecondsSinceEpoch(
-            (createdAt ?? events[0].createdAt) * 1000),
-        rawEvents: events.map((e) {
-          final Map m = e.toJson();
-          m['toIdPubkey'] = e.toIdPubkey;
-          return jsonEncode(m);
-        }).toList())
+      msgid: events[0].id,
+      eventIds: events.map((e) => e.id).toList(),
+      identityId: room.identityId,
+      idPubkey: senderPubkey,
+      roomId: room.id,
+      from: from,
+      to: to,
+      sent: sent,
+      isMeSend: isMeSend,
+      content: content,
+      realMessage: realMessage,
+      reply: reply,
+      encryptType: encryptType,
+      msgKeyHash: msgKeyHash,
+      createdAt: DateTime.fromMillisecondsSinceEpoch(
+        (createdAt ?? events[0].createdAt) * 1000,
+      ),
+      rawEvents: events.map((e) {
+        final Map m = e.toJson();
+        m['toIdPubkey'] = e.toIdPubkey;
+        return jsonEncode(m);
+      }).toList(),
+    )
       ..subEvent = subEvent
       ..requestConfrim = requestConfrim
       ..requestId = requestId
@@ -355,8 +378,11 @@ $content'''
         .findAll();
   }
 
-  Future<List<Message>> listOldMessageByTime(
-      {required int roomId, required int messageId, limit = 100}) async {
+  Future<List<Message>> listOldMessageByTime({
+    required int roomId,
+    required int messageId,
+    limit = 100,
+  }) async {
     final database = DBProvider.database;
 
     return database.messages
@@ -368,8 +394,11 @@ $content'''
         .findAll();
   }
 
-  Future<List<Message>> listLatestMessageByTime(
-      {required int roomId, required int messageId, limit = 100}) async {
+  Future<List<Message>> listLatestMessageByTime({
+    required int roomId,
+    required int messageId,
+    limit = 100,
+  }) async {
     final database = DBProvider.database;
 
     return database.messages
@@ -444,7 +473,7 @@ $content'''
   }
 
   Future<bool> setViewedMessage(int roomId) async {
-    final List messages = await listMessageUnread(roomId);
+    final messages = await listMessageUnread(roomId);
     final database = DBProvider.database;
 
     await database.writeTxn(() async {

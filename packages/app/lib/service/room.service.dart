@@ -899,7 +899,7 @@ class RoomService extends BaseChatService {
     return null;
   }
 
-  Future<void> markAllRead({
+  Future<bool> markAllRead({
     required int identityId,
     required int roomId,
   }) async {
@@ -907,7 +907,9 @@ class RoomService extends BaseChatService {
     if (refresh) {
       Utils.getGetxController<HomeController>()
           ?.loadIdentityRoomList(identityId);
+      return true;
     }
+    return false;
   }
 
   Future<void> markAllReadSimple(Room room) async {

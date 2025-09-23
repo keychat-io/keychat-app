@@ -88,8 +88,7 @@ class ContactDetailPage extends StatelessWidget {
                         Utils.getRandomAvatar(
                           controller.contact.value.pubkey,
                           contact: controller.contact.value,
-                          height: 60,
-                          width: 60,
+                          size: 60,
                         ),
                         Text(
                           controller.contact.value.displayName,

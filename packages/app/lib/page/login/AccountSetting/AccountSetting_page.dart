@@ -42,8 +42,8 @@ class AccountSettingPage extends GetView<AccountSettingController> {
         actions: [
           IconButton(
             icon: const Icon(Icons.more_vert),
-            onPressed: () {
-              showModalBottomSheet<void>(
+            onPressed: () async {
+              await showModalBottomSheet<void>(
                 context: context,
                 builder: (context) {
                   return SafeArea(
@@ -53,13 +53,13 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                         ListTile(
                           leading: const Icon(Icons.copy),
                           title: const Text('Copy Public Key'),
-                          onTap: () {
-                            Clipboard.setData(
+                          onTap: () async {
+                            await Clipboard.setData(
                               ClipboardData(
                                 text: controller.identity.value.secp256k1PKHex,
                               ),
                             );
-                            EasyLoading.showSuccess('Public Key Copied');
+                            await EasyLoading.showSuccess('Public Key Copied');
                             Get.back<void>();
                           },
                         ),
@@ -92,65 +92,45 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                 children: [
                   Center(
                     child: GestureDetector(
-                      onTap: () => kDebugMode
-                          ? _pickAndUploadAvatar(ImageSource.gallery)
-                          : null,
+                      onTap: () async {
+                        await Get.dialog<void>(
+                          CupertinoAlertDialog(
+                            title: const Text('Encryption Media'),
+                            content: const Text(
+                              'Your profile picture will be encrypted and saved on the server. It will be deleted after 14 days.',
+                            ),
+                            actions: [
+                              CupertinoActionSheetAction(
+                                onPressed: () {
+                                  Get.back<void>();
+                                },
+                                child: const Text('Cancel'),
+                              ),
+                              CupertinoActionSheetAction(
+                                onPressed: () async {
+                                  Get.back<void>();
+                                  await _pickAndUploadAvatar(
+                                    ImageSource.gallery,
+                                  );
+                                },
+                                child: const Text('Ok'),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                       child: Stack(
                         children: [
-                          // Frosted glass background
-                          Container(
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(60),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(60),
-                              child: Stack(
-                                children: [
-                                  // Background blurred image
-                                  Positioned.fill(
-                                    child: Obx(
-                                      () => Transform.scale(
-                                        scale: 1.2,
-                                        child: Utils.getAvatarByIdentity(
-                                          controller.identity.value,
-                                          size: 120,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  // Blur effect
-                                  Positioned.fill(
-                                    child: BackdropFilter(
-                                      filter: ImageFilter.blur(
-                                        sigmaX: 20,
-                                        sigmaY: 20,
-                                      ),
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.1),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  // Main avatar
-                                  Center(
-                                    child: Obx(
-                                      () => Utils.getAvatarByIdentity(
-                                        controller.identity.value,
-                                        size: 84,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                          Obx(
+                            () => Utils.getAvatarByIdentity(
+                              controller.identity.value,
+                              size: 84,
                             ),
                           ),
                           if (kDebugMode)
                             Positioned(
                               bottom: 8,
-                              right: 8,
+                              right: 0,
                               child: Container(
                                 decoration: BoxDecoration(
                                   color: Theme.of(context).primaryColor,
@@ -729,7 +709,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
         'webp',
         'heic',
         'bmp',
-        'gif',
+        'svg',
       ];
       final ext = image.path.split('.').last.toLowerCase();
       if (!allowedExtensions.contains(ext)) {
@@ -747,9 +727,10 @@ class AccountSettingPage extends GetView<AccountSettingController> {
       mfi.sourceName = '';
       logger.d('Avatar uploaded: $mfi');
 
-      controller.identity.value.avatarLocalPath = mfi.localPath;
-      controller.identity.value.avatarRemoteUrl = mfi.getUriString('image');
-      controller.identity.value.avatarUpdatedAt = DateTime.now();
+      controller.identity.value
+        ..avatarLocalPath = mfi.localPath
+        ..avatarRemoteUrl = mfi.getUriString('image')
+        ..avatarUpdatedAt = DateTime.now();
       await IdentityService.instance.updateIdentity(controller.identity.value);
 
       // Force refresh UI

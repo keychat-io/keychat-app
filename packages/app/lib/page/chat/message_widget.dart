@@ -32,18 +32,19 @@ import 'package:settings_ui/settings_ui.dart';
 class MessageWidget extends StatelessWidget {
   // late MarkdownStyleSheet markdownStyleSheet;
 
-  MessageWidget(
-      {required this.myAavtar,
-      required this.index,
-      required this.isGroup,
-      required this.cc,
-      required this.fontColor,
-      required this.backgroundColor,
-      required this.screenWidth,
-      required this.toDisplayNameColor,
-      required this.markdownConfig,
-      super.key,
-      this.roomMember}) {
+  MessageWidget({
+    required this.myAavtar,
+    required this.index,
+    required this.isGroup,
+    required this.cc,
+    required this.fontColor,
+    required this.backgroundColor,
+    required this.screenWidth,
+    required this.toDisplayNameColor,
+    required this.markdownConfig,
+    super.key,
+    this.roomMember,
+  }) {
     message = cc.messages[index];
   }
   late Message message;
@@ -72,15 +73,16 @@ class MessageWidget extends StatelessWidget {
             child: Text(
               Utils.formatTimeForMessage(message.createdAt),
               style: TextStyle(
-                  color: Get.isDarkMode
-                      ? Colors.grey.shade700
-                      : Colors.grey.shade400,
-                  fontSize: 10),
+                color: Get.isDarkMode
+                    ? Colors.grey.shade700
+                    : Colors.grey.shade400,
+                fontSize: 10,
+              ),
             ),
           ),
         ),
         if (message.isMeSend) _getMessageContainer() else toTextContainer(),
-        Obx(() => getFromAndToWidget(context, message))
+        Obx(() => getFromAndToWidget(context, message)),
       ],
     );
   }
@@ -89,7 +91,8 @@ class MessageWidget extends StatelessWidget {
     late MsgFileInfo mfi;
     try {
       mfi = MsgFileInfo.fromJson(
-          jsonDecode(message.realMessage!) as Map<String, dynamic>);
+        jsonDecode(message.realMessage!) as Map<String, dynamic>,
+      );
     } catch (e) {
       return Container();
     }
@@ -98,12 +101,16 @@ class MessageWidget extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-            padding: const EdgeInsets.only(left: 10),
-            child: Text('File Info',
-                style: Theme.of(buildContext).textTheme.titleMedium)),
+          padding: const EdgeInsets.only(left: 10),
+          child: Text(
+            'File Info',
+            style: Theme.of(buildContext).textTheme.titleMedium,
+          ),
+        ),
         Card(
-          child: Column(children: [
-            Table(
+          child: Column(
+            children: [
+              Table(
                 // defaultVerticalAlignment: TableCellVerticalAlignment.middle,
                 // mainAxisAlignment: MainAxisAlignment.,
                 columnWidths: const {
@@ -113,13 +120,16 @@ class MessageWidget extends StatelessWidget {
                   tableRow('Path', mfi.localPath ?? ''),
                   tableRow('Url', mfi.url ?? ''),
                   tableRow('Time', mfi.updateAt?.toIso8601String() ?? ''),
-                  tableRow('Size',
-                      FileService.instance.getFileSizeDisplay(mfi.size)),
+                  tableRow(
+                    'Size',
+                    FileService.instance.getFileSizeDisplay(mfi.size),
+                  ),
                   tableRow('IV', mfi.iv ?? ''),
                   tableRow('Key', mfi.key ?? ''),
-                ]),
-            if (mfi.ecashToken != null)
-              FutureBuilder(
+                ],
+              ),
+              if (mfi.ecashToken != null)
+                FutureBuilder(
                   future: rust_cashu.decodeToken(encodedToken: mfi.ecashToken!),
                   builder: (context, snapshot) =>
                       snapshot.connectionState == ConnectionState.done
@@ -127,11 +137,13 @@ class MessageWidget extends StatelessWidget {
                               title: const Text('Fee (Pay to FileServer)'),
                               // subtitle: Text(snapshot.data?.mint ?? ''),
                               trailing: Text(
-                                  '${snapshot.data?.amount ?? 0} ${snapshot.data?.unit ?? 'sat'}',
-                                  style: Theme.of(context).textTheme.bodyLarge),
+                                '${snapshot.data?.amount ?? 0} ${snapshot.data?.unit ?? 'sat'}',
+                                style: Theme.of(context).textTheme.bodyLarge,
+                              ),
                             )
-                          : Container()),
-            Padding(
+                          : Container(),
+                ),
+              Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 child: TextButton(
                   onPressed: () {
@@ -144,22 +156,28 @@ class MessageWidget extends StatelessWidget {
                     EasyLoading.showToast('Copied');
                   },
                   child: const Text('Copy'),
-                ))
-          ]),
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 20),
         Padding(
-            padding: const EdgeInsets.only(left: 10),
-            child: Text('Raw Message',
-                style: Theme.of(buildContext).textTheme.titleMedium)),
+          padding: const EdgeInsets.only(left: 10),
+          child: Text(
+            'Raw Message',
+            style: Theme.of(buildContext).textTheme.titleMedium,
+          ),
+        ),
       ],
     );
   }
 
   Widget getFromAndToWidget(BuildContext context, Message message) {
     final style = TextStyle(
-        fontSize: 12,
-        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6));
+      fontSize: 12,
+      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+    );
     return cc.showFromAndTo.value
         ? Container(
             decoration: BoxDecoration(
@@ -168,25 +186,40 @@ class MessageWidget extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (kDebugMode)
-                      Text('ID: ${message.msgid}',
-                          overflow: TextOverflow.ellipsis, style: style),
-                    Text('From: ${message.from}',
-                        overflow: TextOverflow.ellipsis, style: style),
-                    Text('To: ${message.to}',
-                        overflow: TextOverflow.ellipsis, style: style),
-                    if (message.msgKeyHash != null)
-                      Text('EncryptionKeyHash: ${message.msgKeyHash}',
-                          overflow: TextOverflow.ellipsis, style: style),
-                    if (message.receiveAt != null)
-                      Text(
-                          'Received: ${formatTime(message.receiveAt!.millisecondsSinceEpoch, 'yyyy-MM-dd HH:mm:ss:SSS')}',
-                          overflow: TextOverflow.ellipsis,
-                          style: style),
-                  ]),
-            ))
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (kDebugMode)
+                    Text(
+                      'ID: ${message.msgid}',
+                      overflow: TextOverflow.ellipsis,
+                      style: style,
+                    ),
+                  Text(
+                    'From: ${message.from}',
+                    overflow: TextOverflow.ellipsis,
+                    style: style,
+                  ),
+                  Text(
+                    'To: ${message.to}',
+                    overflow: TextOverflow.ellipsis,
+                    style: style,
+                  ),
+                  if (message.msgKeyHash != null)
+                    Text(
+                      'EncryptionKeyHash: ${message.msgKeyHash}',
+                      overflow: TextOverflow.ellipsis,
+                      style: style,
+                    ),
+                  if (message.receiveAt != null)
+                    Text(
+                      'Received: ${formatTime(message.receiveAt!.millisecondsSinceEpoch, 'yyyy-MM-dd HH:mm:ss:SSS')}',
+                      overflow: TextOverflow.ellipsis,
+                      style: style,
+                    ),
+                ],
+              ),
+            ),
+          )
         : const SizedBox();
   }
 
@@ -195,8 +228,13 @@ class MessageWidget extends StatelessWidget {
       return null;
     }
     if (message.sent == SendStatusType.sending) {
-      if (message.createdAt.isAfter(DateTime.now().subtract(const Duration(
-          seconds: KeychatGlobal.messageFailedAfterSeconds + 1)))) {
+      if (message.createdAt.isAfter(
+        DateTime.now().subtract(
+          const Duration(
+            seconds: KeychatGlobal.messageFailedAfterSeconds + 1,
+          ),
+        ),
+      )) {
         return null;
       } else {
         final exist = DBProvider.database.nostrEventStatus
@@ -211,29 +249,33 @@ class MessageWidget extends StatelessWidget {
 
     // message send failed
     return IconButton(
-        splashColor: Colors.transparent,
-        onPressed: () async {
-          // check status
-          final (ess, event) = await _getRawMessageData(
-              message.eventIds[0], message.rawEvents[0]);
+      splashColor: Colors.transparent,
+      onPressed: () async {
+        // check status
+        final (ess, event) = await _getRawMessageData(
+          message.eventIds[0],
+          message.rawEvents[0],
+        );
 
-          // fix message sent status
-          if (message.sent != SendStatusType.success) {
-            final success = ess
-                .where((element) => element.sendStatus == EventSendEnum.success)
-                .toList();
-            if (success.isNotEmpty) {
-              message.sent = SendStatusType.success;
-              await MessageService.instance.updateMessageAndRefresh(message);
-              Get.back<void>();
-              await EasyLoading.showSuccess('Sending Success');
-              return;
-            }
+        // fix message sent status
+        if (message.sent != SendStatusType.success) {
+          final success = ess
+              .where((element) => element.sendStatus == EventSendEnum.success)
+              .toList();
+          if (success.isNotEmpty) {
+            message.sent = SendStatusType.success;
+            await MessageService.instance.updateMessageAndRefresh(message);
+            Get.back<void>();
+            await EasyLoading.showSuccess('Sending Success');
+            return;
           }
-          await Get.dialog<void>(CupertinoAlertDialog(
+        }
+        await Get.dialog<void>(
+          CupertinoAlertDialog(
             title: const Text('Send failed'),
             content: const Text(
-                '1. Check your network first. 2. Re-Send raw data to Relays'),
+              '1. Check your network first. 2. Re-Send raw data to Relays',
+            ),
             actions: [
               CupertinoDialogAction(
                 onPressed: Get.back,
@@ -255,13 +297,16 @@ class MessageWidget extends StatelessWidget {
                   await Utils.waitRelayOnline();
                   for (final item in ess) {
                     try {
-                      final nem = NostrEventModel.fromJson(jsonDecode(item),
-                          verify: false);
+                      final nem = NostrEventModel.fromJson(
+                        jsonDecode(item),
+                        verify: false,
+                      );
                       await NostrEventStatus.deleteById(nem.id);
                       await Get.find<WebsocketService>().writeNostrEvent(
-                          event: nem,
-                          eventString: item,
-                          roomId: message.roomId);
+                        event: nem,
+                        eventString: item,
+                        roomId: message.roomId,
+                      );
                     } catch (e) {
                       logger.e('Failed to send event: $e');
                     }
@@ -272,102 +317,117 @@ class MessageWidget extends StatelessWidget {
                 },
               ),
             ],
-          ));
-          return;
-
-          // // show resend dialog
-          // Get.dialog(
-          //   CupertinoAlertDialog(
-          //     title: const Text('Resend message'),
-          //     actions: [
-          //       CupertinoDialogAction(
-          //         child: const Text('Cancel'),
-          //         onPressed: () {
-          //           Get.back<void>();
-          //         },
-          //       ),
-          //       if (message.mediaType == MessageMediaType.text)
-          //         CupertinoDialogAction(
-          //           child: const Text('Resend'),
-          //           onPressed: () async {
-          //             Get.back<void>();
-
-          //             if (message.reply != null) {
-          //               Identity identity = Get.find<HomeController>()
-          //                   .allIdentities[cc.roomObs.value.identityId]!;
-          //               message.fromContact = FromContact(
-          //                   identity.secp256k1PKHex, identity.displayName);
-          //               var decodeContent = jsonDecode(message.content);
-          //               message.realMessage = message.reply!.content;
-          //               cc.inputReplys.value = [message];
-          //               cc.hideAdd.value = true;
-          //               cc.inputReplys.refresh();
-          //               cc.textEditingController.text = decodeContent['msg'];
-          //             } else {
-          //               cc.textEditingController.text = message.content;
-          //             }
-          //             cc.chatContentFocus.requestFocus();
-          //           },
-          //         ),
-          //     ],
-          //   ),
-          // );
-        },
-        icon: const SizedBox(
-          child: Icon(
-            Icons.error,
-            color: Colors.red,
-            size: 28,
           ),
-        ));
+        );
+        return;
+
+        // // show resend dialog
+        // Get.dialog(
+        //   CupertinoAlertDialog(
+        //     title: const Text('Resend message'),
+        //     actions: [
+        //       CupertinoDialogAction(
+        //         child: const Text('Cancel'),
+        //         onPressed: () {
+        //           Get.back<void>();
+        //         },
+        //       ),
+        //       if (message.mediaType == MessageMediaType.text)
+        //         CupertinoDialogAction(
+        //           child: const Text('Resend'),
+        //           onPressed: () async {
+        //             Get.back<void>();
+
+        //             if (message.reply != null) {
+        //               Identity identity = Get.find<HomeController>()
+        //                   .allIdentities[cc.roomObs.value.identityId]!;
+        //               message.fromContact = FromContact(
+        //                   identity.secp256k1PKHex, identity.displayName);
+        //               var decodeContent = jsonDecode(message.content);
+        //               message.realMessage = message.reply!.content;
+        //               cc.inputReplys.value = [message];
+        //               cc.hideAdd.value = true;
+        //               cc.inputReplys.refresh();
+        //               cc.textEditingController.text = decodeContent['msg'];
+        //             } else {
+        //               cc.textEditingController.text = message.content;
+        //             }
+        //             cc.chatContentFocus.requestFocus();
+        //           },
+        //         ),
+        //     ],
+        //   ),
+        // );
+      },
+      icon: const SizedBox(
+        child: Icon(
+          Icons.error,
+          color: Colors.red,
+          size: 28,
+        ),
+      ),
+    );
   }
 
   Widget _getMessageContainer() {
     final child = GestureDetector(
-        onLongPress: _handleTextLongPress,
-        onSecondaryTapDown: (TapDownDetails e) {
-          _onSecondaryTapDown(Get.context!, e);
-        },
-        child: message.reply == null
-            ? RoomUtil.getTextViewWidget(
-                message, cc, markdownConfig, _textCallback)
-            : _getReplyWidget());
+      onLongPress: _handleTextLongPress,
+      onSecondaryTapDown: (TapDownDetails e) {
+        _onSecondaryTapDown(Get.context!, e);
+      },
+      child: message.reply == null
+          ? RoomUtil.getTextViewWidget(
+              message,
+              cc,
+              markdownConfig,
+              _textCallback,
+            )
+          : _getReplyWidget(),
+    );
 
     if (message.isMeSend) {
       final messageStatus = getMessageStatus();
       return Container(
         margin: EdgeInsets.only(
-            top: 10, bottom: 10, left: messageStatus == null ? 40.0 : 0),
+          top: 10,
+          bottom: 10,
+          left: messageStatus == null ? 40.0 : 0,
+        ),
         child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Flex(
-                  direction: Axis.horizontal,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: <Widget>[
-                    if (messageStatus != null) messageStatus,
-                    Flexible(child: child),
-                  ],
-                ),
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Flex(
+                direction: Axis.horizontal,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: <Widget>[
+                  if (messageStatus != null) messageStatus,
+                  Flexible(child: child),
+                ],
               ),
-              const SizedBox(width: 4),
-              myAavtar
-            ]),
+            ),
+            const SizedBox(width: 4),
+            myAavtar,
+          ],
+        ),
       );
     }
     if (isGroup) {
       return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Padding(
-                padding: const EdgeInsets.only(left: 5),
-                child: Text(message.senderName ?? message.idPubkey,
-                    maxLines: 1,
-                    style: TextStyle(fontSize: 14, color: toDisplayNameColor))),
-            child
-          ]);
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.only(left: 5),
+            child: Text(
+              message.senderName ?? message.idPubkey,
+              maxLines: 1,
+              style: TextStyle(fontSize: 14, color: toDisplayNameColor),
+            ),
+          ),
+          child,
+        ],
+      );
     }
     return child;
   }
@@ -399,15 +459,21 @@ class MessageWidget extends StatelessWidget {
       if (message.isMeSend && cc.roomObs.value.type == RoomType.bot) {
         try {
           bcmm = BotClientMessageModel.fromJson(
-              jsonDecode(message.content) as Map<String, dynamic>);
+            jsonDecode(message.content) as Map<String, dynamic>,
+          );
           if (bcmm.payToken != null) {
             token = await rust_cashu.decodeToken(encodedToken: bcmm.payToken!);
           }
           // ignore: empty_catches
         } catch (e) {}
       }
-      await _showRawData(message, ess, event,
-          botClientMessageModel: bcmm, payToken: token);
+      await _showRawData(
+        message,
+        ess,
+        event,
+        botClientMessageModel: bcmm,
+        payToken: token,
+      );
       return;
     }
     final result1 = <List<NostrEventStatus>>[];
@@ -426,7 +492,9 @@ class MessageWidget extends StatelessWidget {
   }
 
   Future<(List<NostrEventStatus>, NostrEventModel?)> _getRawMessageData(
-      String eventId, String? rawEvent) async {
+    String eventId,
+    String? rawEvent,
+  ) async {
     final ess = await DBProvider.database.nostrEventStatus
         .filter()
         .eventIdEqualTo(eventId)
@@ -442,30 +510,37 @@ class MessageWidget extends StatelessWidget {
 
   Future<void> messageOnDoubleTap() async {
     await Utils.bottomSheedAndHideStatusBar(
-        LongTextPreviewPage(message.realMessage ?? message.content));
+      LongTextPreviewPage(message.realMessage ?? message.content),
+    );
   }
 
   TableRow tableRow(String title, String text) {
-    return TableRow(children: [
-      TableCell(
+    return TableRow(
+      children: [
+        TableCell(
           child: Padding(
-              padding:
-                  const EdgeInsets.only(left: 10, right: 4, top: 8, bottom: 4),
-              child: Text(title))),
-      TableCell(
+            padding:
+                const EdgeInsets.only(left: 10, right: 4, top: 8, bottom: 4),
+            child: Text(title),
+          ),
+        ),
+        TableCell(
           child: Padding(
-              padding:
-                  const EdgeInsets.only(left: 5, right: 10, top: 10, bottom: 5),
-              child: GestureDetector(
-                onTap: () {
-                  Clipboard.setData(ClipboardData(text: text));
-                  EasyLoading.showToast('Copied');
-                },
-                child: Text(
-                  text,
-                ),
-              )))
-    ]);
+            padding:
+                const EdgeInsets.only(left: 5, right: 10, top: 10, bottom: 5),
+            child: GestureDetector(
+              onTap: () {
+                Clipboard.setData(ClipboardData(text: text));
+                EasyLoading.showToast('Copied');
+              },
+              child: Text(
+                text,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget toTextContainer() {
@@ -490,24 +565,31 @@ class MessageWidget extends StatelessWidget {
               },
               onTap: () async {
                 if (isGroup) {
-                  await Get.to(() => ContactPage(
+                  await Get.to(
+                    () => ContactPage(
                       identityId: message.identityId,
                       contact: Contact(
-                          identityId: message.identityId,
-                          pubkey: message.idPubkey)
-                        ..name = message.senderName,
+                        identityId: message.identityId,
+                        pubkey: message.idPubkey,
+                      )..name = message.senderName,
                       title: 'Group Member',
-                      greeting: 'From Group: ${cc.roomObs.value.name}'));
+                      greeting: 'From Group: ${cc.roomObs.value.name}',
+                    ),
+                  );
                 } else {
-                  await Get.toNamed(Routes.roomSettingContact
-                      .replaceFirst(':id', cc.roomObs.value.id.toString()));
+                  await Get.toNamed(
+                    Routes.roomSettingContact
+                        .replaceFirst(':id', cc.roomObs.value.id.toString()),
+                  );
                 }
               },
-              child: Utils.getRandomAvatar(idPubkey,
-                  contact: cc.getContactByPubkey(idPubkey)),
+              child: Utils.getRandomAvatar(
+                idPubkey,
+                contact: cc.getContactByPubkey(idPubkey),
+              ),
             ),
           ),
-          Expanded(child: Stack(children: [_getMessageContainer()]))
+          Expanded(child: Stack(children: [_getMessageContainer()])),
         ],
       ),
     );
@@ -517,14 +599,22 @@ class MessageWidget extends StatelessWidget {
     Widget? subTitleChild;
     if (message.reply!.id == null) {
       subTitleChild = GestureDetector(
-          onDoubleTap: () {
-            Get.to(() => LongTextPreviewPage(message.reply!.content),
-                fullscreenDialog: true, transition: Transition.fadeIn);
-          },
-          child: Text(message.reply!.content,
-              style: Theme.of(Get.context!).textTheme.bodyMedium?.copyWith(
-                  color: fontColor.withValues(alpha: 0.7), height: 1.1),
-              maxLines: 5));
+        onDoubleTap: () {
+          Get.to(
+            () => LongTextPreviewPage(message.reply!.content),
+            fullscreenDialog: true,
+            transition: Transition.fadeIn,
+          );
+        },
+        child: Text(
+          message.reply!.content,
+          style: Theme.of(Get.context!).textTheme.bodyMedium?.copyWith(
+                color: fontColor.withValues(alpha: 0.7),
+                height: 1.1,
+              ),
+          maxLines: 5,
+        ),
+      );
     } else {
       final msg =
           MessageService.instance.getMessageByMsgIdSync(message.reply!.id!);
@@ -537,52 +627,63 @@ class MessageWidget extends StatelessWidget {
           final content = msg.mediaType == MessageMediaType.text
               ? (msg.realMessage ?? msg.content)
               : msg.mediaType.name;
-          subTitleChild = Text(content,
-              style: Theme.of(Get.context!)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: fontColor, height: 1.2),
-              maxLines: 5);
+          subTitleChild = Text(
+            content,
+            style: Theme.of(Get.context!)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: fontColor, height: 1.2),
+            maxLines: 5,
+          );
         }
       }
     }
 
     return _textCallback(
-        child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: (message.isMeSend
-                    ? MaterialTheme.lightScheme().surface
-                    : Theme.of(Get.context!).colorScheme.surface)
-                .withValues(alpha: 0.5),
-            border: Border(
-                left: BorderSide(color: Colors.purple.shade200, width: 2)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(message.reply!.user,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: (message.isMeSend
+                      ? MaterialTheme.lightScheme().surface
+                      : Theme.of(Get.context!).colorScheme.surface)
+                  .withValues(alpha: 0.5),
+              border: Border(
+                left: BorderSide(color: Colors.purple.shade200, width: 2),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  message.reply!.user,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(Get.context!)
                       .textTheme
                       .bodyMedium
-                      ?.copyWith(color: Colors.purple, height: 1)),
-              subTitleChild ??
-                  Text(message.reply!.content,
+                      ?.copyWith(color: Colors.purple, height: 1),
+                ),
+                subTitleChild ??
+                    Text(
+                      message.reply!.content,
                       style: Theme.of(Get.context!)
                           .textTheme
                           .bodyLarge
-                          ?.copyWith(color: fontColor, height: 1))
-            ],
+                          ?.copyWith(color: fontColor, height: 1),
+                    ),
+              ],
+            ),
           ),
-        ),
-        RoomUtil.getMarkdownView(
-            message.realMessage ?? message.content, markdownConfig, message.id),
-      ],
-    ));
+          RoomUtil.getMarkdownView(
+            message.realMessage ?? message.content,
+            markdownConfig,
+            message.id,
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _textCallback({String? text, Widget? child, int? id}) {
@@ -590,64 +691,68 @@ class MessageWidget extends StatelessWidget {
     return GestureDetector(
       onDoubleTap: messageOnDoubleTap,
       child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: screenWidth),
-          child: ChatBubble(
-              clipper: ChatBubbleClipper4(
-                  type: message.isMeSend
-                      ? BubbleType.sendBubble
-                      : BubbleType.receiverBubble),
-              alignment: message.isMeSend
-                  ? Alignment.centerRight
-                  : Alignment.centerLeft,
-              backGroundColor: backgroundColor,
-              child: child)),
+        constraints: BoxConstraints(maxWidth: screenWidth),
+        child: ChatBubble(
+          clipper: ChatBubbleClipper4(
+            type: message.isMeSend
+                ? BubbleType.sendBubble
+                : BubbleType.receiverBubble,
+          ),
+          alignment:
+              message.isMeSend ? Alignment.centerRight : Alignment.centerLeft,
+          backGroundColor: backgroundColor,
+          child: child,
+        ),
+      ),
     );
   }
 
   Future<void> _showDeleteDialog(Message message) async {
-    Get.dialog(CupertinoAlertDialog(
-      title: const Text('Delete This Message?'),
-      actions: <Widget>[
-        CupertinoDialogAction(
-          onPressed: Get.back,
-          child: const Text('Cancel'),
-        ),
-        CupertinoDialogAction(
-          isDestructiveAction: true,
-          child: const Text('Delete'),
-          onPressed: () async {
-            await MessageService.instance.deleteMessageById(message.id);
-            cc.messages.remove(message);
-            Get.back<void>();
-            try {
-              if (message.mediaType == MessageMediaType.file ||
-                  message.mediaType == MessageMediaType.image ||
-                  message.mediaType == MessageMediaType.video) {
-                final mfi =
-                    MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
-                if (mfi.localPath != null) {
-                  final filePath = '${Utils.appFolder.path}${mfi.localPath}';
-                  final fileExists = File(filePath).existsSync();
-                  if (fileExists) {
-                    await File(filePath).delete();
-                    if (message.mediaType == MessageMediaType.video) {
-                      final thumbail =
-                          FileService.instance.getVideoThumbPath(filePath);
-                      final thumbExists = await File(thumbail).exists();
-                      if (thumbExists) {
-                        await File(thumbail).delete();
+    Get.dialog(
+      CupertinoAlertDialog(
+        title: const Text('Delete This Message?'),
+        actions: <Widget>[
+          CupertinoDialogAction(
+            onPressed: Get.back,
+            child: const Text('Cancel'),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            child: const Text('Delete'),
+            onPressed: () async {
+              await MessageService.instance.deleteMessageById(message.id);
+              cc.messages.remove(message);
+              Get.back<void>();
+              try {
+                if (message.mediaType == MessageMediaType.file ||
+                    message.mediaType == MessageMediaType.image ||
+                    message.mediaType == MessageMediaType.video) {
+                  final mfi =
+                      MsgFileInfo.fromJson(jsonDecode(message.realMessage!));
+                  if (mfi.localPath != null) {
+                    final filePath = '${Utils.appFolder.path}${mfi.localPath}';
+                    final fileExists = File(filePath).existsSync();
+                    if (fileExists) {
+                      await File(filePath).delete();
+                      if (message.mediaType == MessageMediaType.video) {
+                        final thumbail =
+                            FileService.instance.getVideoThumbPath(filePath);
+                        final thumbExists = await File(thumbail).exists();
+                        if (thumbExists) {
+                          await File(thumbail).delete();
+                        }
                       }
                     }
                   }
                 }
+              } catch (e, s) {
+                logger.e('delete message file error', error: e, stackTrace: s);
               }
-            } catch (e, s) {
-              logger.e('delete message file error', error: e, stackTrace: s);
-            }
-          },
-        )
-      ],
-    ));
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   Map encryptText = {
@@ -656,107 +761,129 @@ class MessageWidget extends StatelessWidget {
     'nip4': 'NIP4',
     'nip17': 'NIP17',
     'nip4WrapNip4': 'NIP4(NIP4(raw message))',
-    'nip4WrapSignal': 'NIP4(Signal Protocol(raw message))'
+    'nip4WrapSignal': 'NIP4(Signal Protocol(raw message))',
   };
   Future<void> _showRawData(
-      Message message, List<NostrEventStatus> ess, NostrEventModel? event,
-      {BotClientMessageModel? botClientMessageModel,
-      rust_cashu.TokenInfo? payToken}) {
+    Message message,
+    List<NostrEventStatus> ess,
+    NostrEventModel? event, {
+    BotClientMessageModel? botClientMessageModel,
+    rust_cashu.TokenInfo? payToken,
+  }) {
     final buildContext = Get.context!;
     return Get.bottomSheet(
-        isScrollControlled: true,
-        ignoreSafeArea: false,
-        Scaffold(
-            appBar: AppBar(
-              title: const Text('RawData'),
-              centerTitle: true,
-              leading: Container(),
-              actions: [
-                IconButton(onPressed: Get.back, icon: const Icon(Icons.close))
-              ],
-            ),
-            body: Container(
-                padding: const EdgeInsets.all(16),
-                child: SingleChildScrollView(
+      isScrollControlled: true,
+      ignoreSafeArea: false,
+      Scaffold(
+        appBar: AppBar(
+          title: const Text('RawData'),
+          centerTitle: true,
+          leading: Container(),
+          actions: [
+            IconButton(onPressed: Get.back, icon: const Icon(Icons.close)),
+          ],
+        ),
+        body: Container(
+          padding: const EdgeInsets.all(16),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                relayStatusList(buildContext, ess),
+                const SizedBox(height: 10),
+                if (message.mediaType == MessageMediaType.file ||
+                    message.mediaType == MessageMediaType.image ||
+                    message.mediaType == MessageMediaType.video)
+                  getFileTable(buildContext, message),
+                if (botClientMessageModel != null &&
+                    botClientMessageModel.priceModel != null)
+                  Container(
+                    padding: const EdgeInsets.all(8),
                     child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                      relayStatusList(buildContext, ess),
-                      const SizedBox(height: 10),
-                      if (message.mediaType == MessageMediaType.file ||
-                          message.mediaType == MessageMediaType.image ||
-                          message.mediaType == MessageMediaType.video)
-                        getFileTable(buildContext, message),
-                      if (botClientMessageModel != null &&
-                          botClientMessageModel.priceModel != null)
-                        Container(
-                            padding: const EdgeInsets.all(8),
-                            child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Pay To Chat',
-                                      style: Theme.of(buildContext)
-                                          .textTheme
-                                          .titleMedium),
-                                  Card(
-                                    child: Table(
-                                      columnWidths: const {
-                                        0: FixedColumnWidth(100)
-                                      },
-                                      children: [
-                                        tableRow(
-                                            'Model',
-                                            botClientMessageModel.priceModel ??
-                                                ''),
-                                        tableRow('Amount',
-                                            '${payToken?.amount.toString() ?? 0} ${payToken?.unit ?? 'sat'}'),
-                                        tableRow('Mint', payToken?.mint ?? ''),
-                                      ],
-                                    ),
-                                  )
-                                ])),
-                      const SizedBox(height: 10),
-                      Padding(
-                          padding: const EdgeInsets.only(left: 4),
-                          child: NoticeTextWidget.success(
-                              'Encrypted by ${encryptText[message.encryptType.name]}')),
-                      if (event != null)
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Pay To Chat',
+                          style: Theme.of(buildContext).textTheme.titleMedium,
+                        ),
                         Card(
-                            child: Table(
-                                // defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                                // mainAxisAlignment: MainAxisAlignment.,
-                                columnWidths: const {
+                          child: Table(
+                            columnWidths: const {
                               0: FixedColumnWidth(100),
                             },
-                                // border:
-                                //     TableBorder.all(width: 0.5, color: Colors.grey.shade400),
-                                children: [
-                              // tableRow('Encrypt',
-                              //     encryptText[message.encryptType.name]),
-                              tableRow('ID', event.id),
-                              tableRow('Kind', event.kind.toString()),
-                              tableRow('From', event.pubkey),
-                              tableRow('To', event.tags[0][1]),
+                            children: [
                               tableRow(
-                                  'Time',
-                                  timestampToDateTime(event.createdAt)
-                                      .toString()),
-                              tableRow('Source Content', message.content),
-                              if (message.subEvent != null)
-                                tableRow('Sub Event', message.subEvent!),
-                              tableRow('Encrypted Content', event.content),
-                              if (message.msgKeyHash != null)
-                                tableRow('Encryption Keys Hash',
-                                    message.msgKeyHash ?? ''),
-                              tableRow('Sig', event.sig),
-                            ])),
-                      // JsonView.string(event.toString())
-                    ])))));
+                                'Model',
+                                botClientMessageModel.priceModel ?? '',
+                              ),
+                              tableRow(
+                                'Amount',
+                                '${payToken?.amount.toString() ?? 0} ${payToken?.unit ?? 'sat'}',
+                              ),
+                              tableRow('Mint', payToken?.mint ?? ''),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 10),
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: NoticeTextWidget.success(
+                    'Encrypted by ${encryptText[message.encryptType.name]}',
+                  ),
+                ),
+                if (event != null)
+                  Card(
+                    child: Table(
+                      // defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                      // mainAxisAlignment: MainAxisAlignment.,
+                      columnWidths: const {
+                        0: FixedColumnWidth(100),
+                      },
+                      // border:
+                      //     TableBorder.all(width: 0.5, color: Colors.grey.shade400),
+                      children: [
+                        // tableRow('Encrypt',
+                        //     encryptText[message.encryptType.name]),
+                        tableRow('ID', event.id),
+                        tableRow('Kind', event.kind.toString()),
+                        tableRow('From', event.pubkey),
+                        tableRow('To', event.tags[0][1]),
+                        tableRow(
+                          'Time',
+                          timestampToDateTime(event.createdAt).toString(),
+                        ),
+                        tableRow('Source Content', message.content),
+                        if (message.subEvent != null)
+                          tableRow('Sub Event', message.subEvent!),
+                        tableRow('Encrypted Content', event.content),
+                        if (message.msgKeyHash != null)
+                          tableRow(
+                            'Encryption Keys Hash',
+                            message.msgKeyHash ?? '',
+                          ),
+                        tableRow('Sig', event.sig),
+                      ],
+                    ),
+                  ),
+                // JsonView.string(event.toString())
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   // for small group message, send to multi members
-  void _showRawDatas(Message message, List<List<NostrEventStatus>> ess,
-      List<RoomMember> members, List<NostrEventModel?> eventLogs) {
+  void _showRawDatas(
+    Message message,
+    List<List<NostrEventStatus>> ess,
+    List<RoomMember> members,
+    List<NostrEventModel?> eventLogs,
+  ) {
     final result = [];
     for (var i = 0; i < ess.length; i++) {
       // NostrEvent event = NostrEvent.fromJson(jsonDecode(eventLog.snapshot));
@@ -781,70 +908,77 @@ class MessageWidget extends StatelessWidget {
     }
 
     Get.bottomSheet(
-        isScrollControlled: true,
-        ignoreSafeArea: false,
-        Scaffold(
-            appBar: AppBar(
-              leading: Container(),
-              title: const Text('RawData'),
-              centerTitle: true,
-              actions: [
-                IconButton(onPressed: Get.back, icon: const Icon(Icons.close))
-              ],
-            ),
-            body: SingleChildScrollView(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
-                child: Column(
-                  children: [
-                    // getFileTable(buildContext, message),
-                    ListView.builder(
-                        physics: const NeverScrollableScrollPhysics(),
-                        shrinkWrap: true,
-                        itemCount: result.length,
-                        itemBuilder: (context, index) {
-                          final map = result[index] as Map;
-                          // String idPubkey = maps.keys.toList()[index];
-                          final rm = map['to'] as RoomMember?;
-                          final eventSendStatus =
-                              map['ess'] as List<NostrEventStatus>? ?? [];
-                          final eventModel =
-                              map['eventModel'] as NostrEventModel?;
-                          final success = eventSendStatus
-                              .where((element) =>
-                                  element.sendStatus == EventSendEnum.success)
-                              .toList();
-                          final idPubkey = eventModel?.toIdPubkey ??
-                              eventModel?.tags[0][1] ??
-                              '';
-                          return ExpansionTile(
-                            leading: RoomUtil.getStatusCheckIcon(
-                                eventSendStatus.length, success.length),
-                            title: Text(
-                              'To: ${rm?.name ?? idPubkey}',
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 2,
-                            ),
-                            subtitle: Text(idPubkey),
-                            children: <Widget>[
-                              relayStatusList(context, eventSendStatus),
-                              if (eventModel != null)
-                                ListTile(title: Text(eventModel.toString())),
-                            ],
-                          );
-                        })
-                  ],
-                ))));
+      isScrollControlled: true,
+      ignoreSafeArea: false,
+      Scaffold(
+        appBar: AppBar(
+          leading: Container(),
+          title: const Text('RawData'),
+          centerTitle: true,
+          actions: [
+            IconButton(onPressed: Get.back, icon: const Icon(Icons.close)),
+          ],
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
+          child: Column(
+            children: [
+              // getFileTable(buildContext, message),
+              ListView.builder(
+                physics: const NeverScrollableScrollPhysics(),
+                shrinkWrap: true,
+                itemCount: result.length,
+                itemBuilder: (context, index) {
+                  final map = result[index] as Map;
+                  // String idPubkey = maps.keys.toList()[index];
+                  final rm = map['to'] as RoomMember?;
+                  final eventSendStatus =
+                      map['ess'] as List<NostrEventStatus>? ?? [];
+                  final eventModel = map['eventModel'] as NostrEventModel?;
+                  final success = eventSendStatus
+                      .where(
+                        (element) =>
+                            element.sendStatus == EventSendEnum.success,
+                      )
+                      .toList();
+                  final idPubkey =
+                      eventModel?.toIdPubkey ?? eventModel?.tags[0][1] ?? '';
+                  return ExpansionTile(
+                    leading: RoomUtil.getStatusCheckIcon(
+                      eventSendStatus.length,
+                      success.length,
+                    ),
+                    title: Text(
+                      'To: ${rm?.name ?? idPubkey}',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                    ),
+                    subtitle: Text(idPubkey),
+                    children: <Widget>[
+                      relayStatusList(context, eventSendStatus),
+                      if (eventModel != null)
+                        ListTile(title: Text(eventModel.toString())),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _handleForward(BuildContext context) {
     Get.back<void>();
     final identity = cc.roomObs.value.getIdentity();
     if (message.isMediaType) {
-      RoomUtil.forwardMediaMessage(identity,
-          mediaType: message.mediaType,
-          content: message.content,
-          realMessage: message.realMessage!);
+      RoomUtil.forwardMediaMessage(
+        identity,
+        mediaType: message.mediaType,
+        content: message.content,
+        realMessage: message.realMessage!,
+      );
       return;
     }
 
@@ -854,8 +988,10 @@ class MessageWidget extends StatelessWidget {
   void _handleReply(BuildContext context) {
     Get.back<void>();
     if (message.isMeSend) {
-      message.fromContact = FromContact(cc.roomObs.value.myIdPubkey,
-          cc.roomObs.value.getIdentity().displayName);
+      message.fromContact = FromContact(
+        cc.roomObs.value.myIdPubkey,
+        cc.roomObs.value.getIdentity().displayName,
+      );
     } else {
       var senderName = cc.roomObs.value.getRoomName();
       if (cc.roomObs.value.isSendAllGroup || cc.roomObs.value.isMLSGroup) {
@@ -873,15 +1009,18 @@ class MessageWidget extends StatelessWidget {
   }
 
   Future<void> _onSecondaryTapDown(
-      BuildContext context, TapDownDetails e) async {
+    BuildContext context,
+    TapDownDetails e,
+  ) async {
     final overlay =
         Overlay.of(context).context.findRenderObject()! as RenderBox;
     final position = RelativeRect.fromRect(
-        Rect.fromPoints(
-          e.globalPosition,
-          e.globalPosition,
-        ),
-        Offset.zero & overlay.size);
+      Rect.fromPoints(
+        e.globalPosition,
+        e.globalPosition,
+      ),
+      Offset.zero & overlay.size,
+    );
 
     final theme = Theme.of(context);
 
@@ -1003,9 +1142,11 @@ class MessageWidget extends StatelessWidget {
     Get.bottomSheet(
       clipBehavior: Clip.antiAlias,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
-      SettingsList(sections: [
-        SettingsSection(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+      ),
+      SettingsList(
+        sections: [
+          SettingsSection(
             title: Text(
               '「${message.content}」',
               maxLines: 5,
@@ -1013,54 +1154,60 @@ class MessageWidget extends StatelessWidget {
             ),
             tiles: [
               SettingsTile.navigation(
-                  title: const Text('Copy'),
-                  leading: const Icon(Icons.copy),
-                  onPressed: (context) async {
-                    var conent = message.content;
-                    if (message.realMessage != null &&
-                        cc.roomObs.value.type == RoomType.bot) {
-                      conent = message.realMessage!;
-                    }
-                    Clipboard.setData(ClipboardData(text: conent));
-                    EasyLoading.showToast('Copied');
-                    Get.back<void>();
-                  }),
+                title: const Text('Copy'),
+                leading: const Icon(Icons.copy),
+                onPressed: (context) async {
+                  var conent = message.content;
+                  if (message.realMessage != null &&
+                      cc.roomObs.value.type == RoomType.bot) {
+                    conent = message.realMessage!;
+                  }
+                  Clipboard.setData(ClipboardData(text: conent));
+                  EasyLoading.showToast('Copied');
+                  Get.back<void>();
+                },
+              ),
               SettingsTile.navigation(
-                  onPressed: _handleReply,
-                  leading: const Icon(CupertinoIcons.reply),
-                  title: const Text('Reply')),
-              if (message.isSystem == false &&
+                onPressed: _handleReply,
+                leading: const Icon(CupertinoIcons.reply),
+                title: const Text('Reply'),
+              ),
+              if (!message.isSystem &&
                   (message.mediaType == MessageMediaType.text ||
                       message.mediaType == MessageMediaType.image ||
                       message.mediaType == MessageMediaType.video ||
                       message.mediaType == MessageMediaType.file))
                 SettingsTile.navigation(
-                    onPressed: _handleForward,
-                    leading:
-                        const Icon(CupertinoIcons.arrowshape_turn_up_right),
-                    title: const Text('Forward')),
+                  onPressed: _handleForward,
+                  leading: const Icon(CupertinoIcons.arrowshape_turn_up_right),
+                  title: const Text('Forward'),
+                ),
               SettingsTile.navigation(
-                  leading: const Icon(Icons.code),
-                  onPressed: _handleShowRawdata,
-                  title: const Text('Raw Data')),
+                leading: const Icon(Icons.code),
+                onPressed: _handleShowRawdata,
+                title: const Text('Raw Data'),
+              ),
               SettingsTile.navigation(
-                  leading: const Icon(
-                    Icons.delete,
-                    color: Colors.red,
-                  ),
-                  onPressed: (BuildContext context) {
-                    Get.back<void>();
-                    _showDeleteDialog(message);
-                  },
-                  title: Text(
-                    'Delete',
-                    style: Theme.of(Get.context!)
-                        .textTheme
-                        .bodyLarge
-                        ?.copyWith(color: Colors.red),
-                  ))
-            ]),
-      ]),
+                leading: const Icon(
+                  Icons.delete,
+                  color: Colors.red,
+                ),
+                onPressed: (BuildContext context) {
+                  Get.back<void>();
+                  _showDeleteDialog(message);
+                },
+                title: Text(
+                  'Delete',
+                  style: Theme.of(Get.context!)
+                      .textTheme
+                      .bodyLarge
+                      ?.copyWith(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

@@ -8,19 +8,18 @@ import 'package:app/models/identity.dart';
 import 'package:app/models/mykey.dart';
 import 'package:app/models/room.dart';
 import 'package:app/models/signal_id.dart';
-import 'package:app/service/mls_group.service.dart';
-import 'package:app/service/secure_storage.dart';
 import 'package:app/service/identity.service.dart';
+import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/notify.service.dart';
+import 'package:app/service/secure_storage.dart';
 import 'package:app/service/signalId.service.dart';
 import 'package:app/service/websocket.service.dart';
+import 'package:app/utils.dart';
 import 'package:convert/convert.dart';
 import 'package:get/get.dart';
-import 'package:keychat_rust_ffi_plugin/api_signal.dart';
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
+import 'package:keychat_rust_ffi_plugin/api_signal.dart';
 import 'package:keychat_rust_ffi_plugin/index.dart';
-
-import 'package:app/utils.dart';
 
 class ChatxService extends GetxService {
   Map<String, KeychatProtocolAddress> roomKPA = {};
@@ -38,8 +37,10 @@ class ChatxService extends GetxService {
     }
 
     if (needListen.length < KeychatGlobal.oneTimePubkeysPoolLength) {
-      final newKeys2 = await _generateOneTimePubkeys(identityId,
-          KeychatGlobal.oneTimePubkeysPoolLength - needListen.length);
+      final newKeys2 = await _generateOneTimePubkeys(
+        identityId,
+        KeychatGlobal.oneTimePubkeysPoolLength - needListen.length,
+      );
       for (final key in newKeys2) {
         needListen.add(key.pubkey);
       }
@@ -62,7 +63,9 @@ class ChatxService extends GetxService {
         await SignalIdService.instance.getSignalIdByIdentity(identityId);
     if (signalIds.length < KeychatGlobal.signalIdsPoolLength) {
       final signalIds2 = await _generateSignalIds(
-          identity.id, KeychatGlobal.signalIdsPoolLength - signalIds.length);
+        identity.id,
+        KeychatGlobal.signalIdsPoolLength - signalIds.length,
+      );
       signalIds.addAll(signalIds2);
     }
     return signalIds;
@@ -84,7 +87,9 @@ class ChatxService extends GetxService {
       return true;
     }
     final remoteAddress = KeychatProtocolAddress(
-        name: room.curve25519PkHex!, deviceId: room.identityId);
+      name: room.curve25519PkHex!,
+      deviceId: room.identityId,
+    );
     // Alice Signal id keypair
     KeychatIdentityKeyPair keyPair;
     if (room.signalIdPubkey != null) {
@@ -93,65 +98,81 @@ class ChatxService extends GetxService {
       keyPair = await getKeyPairByIdentity(room.getIdentity());
     }
     await rust_signal.processPrekeyBundleApi(
-        keyPair: keyPair,
-        regId: getRegistrationId(room.curve25519PkHex!),
-        deviceId: room.identityId,
-        identityKey: KeychatIdentityKey(
-            publicKey: U8Array33(
-                Uint8List.fromList(hex.decode(room.curve25519PkHex!)))),
-        remoteAddress: remoteAddress,
-        bobSignedId: bobSignedId,
-        bobSignedPublic: bobSignedPublic,
-        bobSigedSig: bobSignedSignature,
-        bobPrekeyId: bobPrekeyId,
-        bobPrekeyPublic: bobPrekeyPublic);
+      keyPair: keyPair,
+      regId: getRegistrationId(room.curve25519PkHex!),
+      deviceId: room.identityId,
+      identityKey: KeychatIdentityKey(
+        publicKey: U8Array33(
+          Uint8List.fromList(hex.decode(room.curve25519PkHex!)),
+        ),
+      ),
+      remoteAddress: remoteAddress,
+      bobSignedId: bobSignedId,
+      bobSignedPublic: bobSignedPublic,
+      bobSigedSig: bobSignedSignature,
+      bobPrekeyId: bobPrekeyId,
+      bobPrekeyPublic: bobPrekeyPublic,
+    );
     return true;
   }
 
-  Future<bool> addKPAForSharedSignalId(Identity identity, String sharedPubkey,
-      String sginalKeys, int sharedSignalIdentityId) async {
+  Future<bool> addKPAForSharedSignalId(
+    Identity identity,
+    String sharedPubkey,
+    String sginalKeys,
+    int sharedSignalIdentityId,
+  ) async {
     final keyPair = await getKeyPairByIdentity(identity);
     final remoteAddress = KeychatProtocolAddress(
-        name: sharedPubkey, deviceId: sharedSignalIdentityId);
+      name: sharedPubkey,
+      deviceId: sharedSignalIdentityId,
+    );
 
     final keys = jsonDecode(sginalKeys) as Map<String, dynamic>;
     await rust_signal.processPrekeyBundleApi(
-        keyPair: keyPair,
-        regId: getRegistrationId(sharedPubkey),
-        deviceId: sharedSignalIdentityId,
-        identityKey: KeychatIdentityKey(
-            publicKey: U8Array33(Uint8List.fromList(hex.decode(sharedPubkey)))),
-        remoteAddress: remoteAddress,
-        bobSignedId: keys['signedId'],
-        bobSignedPublic: Uint8List.fromList(hex.decode(keys['signedPublic'])),
-        bobSigedSig: Uint8List.fromList(hex.decode(keys['signedSignature'])),
-        bobPrekeyId: keys['prekeyId'],
-        bobPrekeyPublic: Uint8List.fromList(hex.decode(keys['prekeyPubkey'])));
+      keyPair: keyPair,
+      regId: getRegistrationId(sharedPubkey),
+      deviceId: sharedSignalIdentityId,
+      identityKey: KeychatIdentityKey(
+        publicKey: U8Array33(Uint8List.fromList(hex.decode(sharedPubkey))),
+      ),
+      remoteAddress: remoteAddress,
+      bobSignedId: keys['signedId'],
+      bobSignedPublic: Uint8List.fromList(hex.decode(keys['signedPublic'])),
+      bobSigedSig: Uint8List.fromList(hex.decode(keys['signedSignature'])),
+      bobPrekeyId: keys['prekeyId'],
+      bobPrekeyPublic: Uint8List.fromList(hex.decode(keys['prekeyPubkey'])),
+    );
     return true;
   }
 
   Future<bool> addKPAByRoomSignalId(
-      SignalId myRoomSignalId,
-      String sharedPubkey,
-      String sginalKeys,
-      int sharedSignalIdentityId) async {
+    SignalId myRoomSignalId,
+    String sharedPubkey,
+    String sginalKeys,
+    int sharedSignalIdentityId,
+  ) async {
     final keyPair = getKeyPairBySignalId(myRoomSignalId);
     final remoteAddress = KeychatProtocolAddress(
-        name: sharedPubkey, deviceId: sharedSignalIdentityId);
+      name: sharedPubkey,
+      deviceId: sharedSignalIdentityId,
+    );
 
     final keys = jsonDecode(sginalKeys) as Map<String, dynamic>;
     await rust_signal.processPrekeyBundleApi(
-        keyPair: keyPair,
-        regId: getRegistrationId(sharedPubkey),
-        deviceId: sharedSignalIdentityId,
-        identityKey: KeychatIdentityKey(
-            publicKey: U8Array33(Uint8List.fromList(hex.decode(sharedPubkey)))),
-        remoteAddress: remoteAddress,
-        bobSignedId: keys['signedId'],
-        bobSignedPublic: Uint8List.fromList(hex.decode(keys['signedPublic'])),
-        bobSigedSig: Uint8List.fromList(hex.decode(keys['signedSignature'])),
-        bobPrekeyId: keys['prekeyId'],
-        bobPrekeyPublic: Uint8List.fromList(hex.decode(keys['prekeyPubkey'])));
+      keyPair: keyPair,
+      regId: getRegistrationId(sharedPubkey),
+      deviceId: sharedSignalIdentityId,
+      identityKey: KeychatIdentityKey(
+        publicKey: U8Array33(Uint8List.fromList(hex.decode(sharedPubkey))),
+      ),
+      remoteAddress: remoteAddress,
+      bobSignedId: keys['signedId'],
+      bobSignedPublic: Uint8List.fromList(hex.decode(keys['signedPublic'])),
+      bobSigedSig: Uint8List.fromList(hex.decode(keys['signedSignature'])),
+      bobPrekeyId: keys['prekeyId'],
+      bobPrekeyPublic: Uint8List.fromList(hex.decode(keys['prekeyPubkey'])),
+    );
     return true;
   }
 
@@ -163,11 +184,15 @@ class ChatxService extends GetxService {
     }
 
     final remoteAddress = KeychatProtocolAddress(
-        name: room.curve25519PkHex!, deviceId: room.identityId);
+      name: room.curve25519PkHex!,
+      deviceId: room.identityId,
+    );
     final keyPair = await _initRoomSignalStore(room);
     if (keyPair == null) return null;
     final contains = await rust_signal.containsSession(
-        keyPair: keyPair, address: remoteAddress);
+      keyPair: keyPair,
+      address: remoteAddress,
+    );
 
     if (contains) {
       roomKPA[key] = remoteAddress;
@@ -186,13 +211,17 @@ class ChatxService extends GetxService {
     }
 
     final remoteAddress = KeychatProtocolAddress(
-        name: room.curve25519PkHex!, deviceId: room.identityId);
+      name: room.curve25519PkHex!,
+      deviceId: room.identityId,
+    );
     final keyPair = await _initRoomSignalStore(room);
     if (keyPair == null) {
       throw Exception('keyPair_is_null');
     }
     final contains = await rust_signal.containsSession(
-        keyPair: keyPair, address: remoteAddress);
+      keyPair: keyPair,
+      address: remoteAddress,
+    );
 
     if (contains) {
       roomKPA[key] = remoteAddress;
@@ -201,18 +230,23 @@ class ChatxService extends GetxService {
     throw Exception('signal_session_is_null');
   }
 
-  Future<KeychatProtocolAddress?> getSignalSession(
-      {required int sharedSignalRoomId,
-      required String toCurve25519PkHex,
-      required KeychatIdentityKeyPair keyPair}) async {
+  Future<KeychatProtocolAddress?> getSignalSession({
+    required int sharedSignalRoomId,
+    required String toCurve25519PkHex,
+    required KeychatIdentityKeyPair keyPair,
+  }) async {
     final key = '$sharedSignalRoomId:$toCurve25519PkHex';
     if (roomKPA[key] != null) return roomKPA[key]!;
 
     final remoteAddress = KeychatProtocolAddress(
-        name: toCurve25519PkHex, deviceId: sharedSignalRoomId);
+      name: toCurve25519PkHex,
+      deviceId: sharedSignalRoomId,
+    );
 
     final contains = await rust_signal.containsSession(
-        keyPair: keyPair, address: remoteAddress);
+      keyPair: keyPair,
+      address: remoteAddress,
+    );
 
     if (!contains) return null;
 
@@ -225,12 +259,14 @@ class ChatxService extends GetxService {
     await _initSignalDB(dbPath);
     final endTimeSignal = DateTime.now();
     logger.i(
-        'Init SignalDB: ${endTimeSignal.difference(startTime).inMilliseconds} ms');
+      'Init SignalDB: ${endTimeSignal.difference(startTime).inMilliseconds} ms',
+    );
 
     await MlsGroupService.instance.initDB(dbPath);
     final endTimeMLS = DateTime.now();
     logger.i(
-        'Init MLSGroupDB: ${endTimeMLS.difference(endTimeSignal).inMilliseconds} ms');
+      'Init MLSGroupDB: ${endTimeMLS.difference(endTimeSignal).inMilliseconds} ms',
+    );
     return this;
   }
 
@@ -279,14 +315,17 @@ class ChatxService extends GetxService {
       return _keypairs[pubkey]!;
     }
     final identityKeyPair = KeychatIdentityKeyPair(
-        identityKey: U8Array33(Uint8List.fromList(hex.decode(pubkey))),
-        privateKey: U8Array32(Uint8List.fromList(hex.decode(prikey))));
+      identityKey: U8Array33(Uint8List.fromList(hex.decode(pubkey))),
+      privateKey: U8Array32(Uint8List.fromList(hex.decode(prikey))),
+    );
     _keypairs[pubkey] = identityKeyPair;
     return identityKeyPair;
   }
 
-  Future<KeychatIdentityKeyPair> setupSignalStoreBySignalId(String pubkey,
-      [SignalId? signalId]) async {
+  Future<KeychatIdentityKeyPair> setupSignalStoreBySignalId(
+    String pubkey, [
+    SignalId? signalId,
+  ]) async {
     final keyPair = await getKeyPairBySignalIdPubkey(pubkey, signalId);
     return keyPair;
   }
@@ -303,15 +342,21 @@ class ChatxService extends GetxService {
     }
 
     final remoteAddress = KeychatProtocolAddress(
-        name: room.curve25519PkHex!, deviceId: room.identityId);
+      name: room.curve25519PkHex!,
+      deviceId: room.identityId,
+    );
 
     final isDel = await rust_signal.deleteSession(
-        keyPair: keyPair, address: remoteAddress);
+      keyPair: keyPair,
+      address: remoteAddress,
+    );
 
     logger.i('The deleteSignalSessionKPA flag is $isDel');
 
     await rust_signal.deleteIdentity(
-        keyPair: keyPair, address: remoteAddress.name);
+      keyPair: keyPair,
+      address: remoteAddress.name,
+    );
     room.signalDecodeError = false;
     final key = '${room.identityId}:${room.curve25519PkHex}';
     roomKPA.remove(key);
@@ -340,8 +385,10 @@ class ChatxService extends GetxService {
     return signalIds;
   }
 
-  Future<KeychatIdentityKeyPair> getKeyPairBySignalIdPubkey(String pubkey,
-      [SignalId? signalId]) async {
+  Future<KeychatIdentityKeyPair> getKeyPairBySignalIdPubkey(
+    String pubkey, [
+    SignalId? signalId,
+  ]) async {
     if (_keypairs[pubkey] != null) {
       return _keypairs[pubkey]!;
     }

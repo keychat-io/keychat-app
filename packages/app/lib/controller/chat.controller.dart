@@ -13,6 +13,7 @@ import 'package:app/service/file.service.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/room.service.dart';
+import 'package:app/service/signal_chat.service.dart';
 import 'package:app/utils.dart';
 import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter/cupertino.dart';
@@ -147,7 +148,8 @@ class ChatController extends GetxController {
     });
     await _initRoom();
     await loadAllChat(searchMsgIndex: searchMessageId);
-    isLatestMessageNip04();
+    unawaited(isLatestMessageNip04());
+    unawaited(isLatestMessageNip17());
     initChatPageFeatures();
     super.onInit();
   }
@@ -470,15 +472,15 @@ class ChatController extends GetxController {
   }
 
   // check if the latest message is nip04
-  void isLatestMessageNip04() {
+  Future<void> isLatestMessageNip04() async {
     if (messages.isEmpty) return;
 
     if (roomObs.value.type == RoomType.common &&
-        (roomObs.value.encryptMode == EncryptMode.nip04)) {
+        roomObs.value.encryptMode == EncryptMode.nip04) {
       final lastMessage = messages.firstWhereOrNull((msg) => !msg.isMeSend);
       if (lastMessage == null) return;
       if (lastMessage.encryptType == MessageEncryptType.nip4) {
-        Get.dialog(
+        await Get.dialog<void>(
           CupertinoAlertDialog(
             title: const Text('Deprecated Encryption'),
             content: const Text('''
@@ -499,6 +501,44 @@ Keychat is using NIP17 and SignalProtocol, and your friends may not be able to d
                     roomObs.value.getIdentity(),
                     true,
                   );
+                },
+              ),
+            ],
+          ),
+        );
+      }
+    }
+  }
+
+  // check if the latest message is nip04
+  Future<void> isLatestMessageNip17() async {
+    if (messages.isEmpty) return;
+
+    if (roomObs.value.type == RoomType.common &&
+        roomObs.value.encryptMode != EncryptMode.signal) {
+      final myLastMessage = messages.firstWhereOrNull((msg) => msg.isMeSend);
+      final hisLastMessage = messages.firstWhereOrNull((msg) => !msg.isMeSend);
+      if (myLastMessage == null || hisLastMessage == null) return;
+      if (hisLastMessage.encryptType == MessageEncryptType.nip17 &&
+          myLastMessage.encryptType == MessageEncryptType.nip17) {
+        await Get.dialog<void>(
+          CupertinoAlertDialog(
+            title: const Text('Start a Private Chat'),
+            content: const Text('''
+The current message encryption mode uses the NIP17 protocol. 
+Add as a friend and start the signal protocol chat
+'''),
+            actions: [
+              CupertinoDialogAction(
+                onPressed: Get.back,
+                child: const Text('Cancel'),
+              ),
+              CupertinoDialogAction(
+                child: const Text('Start Private Chat'),
+                onPressed: () async {
+                  Get.back<void>();
+                  await SignalChatService.instance
+                      .resetSignalSession(roomObs.value);
                 },
               ),
             ],

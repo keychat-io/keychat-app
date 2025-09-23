@@ -508,7 +508,7 @@ ${relays.join('\n')}
     Mykey mykey, {
     required NostrEventModel event,
     required Relay relay,
-    required Function(String error) failedCallback,
+    required void Function(String error) failedCallback,
   }) async {
     final ciphertext = Uint8List.fromList(base64Decode(event.content));
     final prekey = await rust_signal.parseIdentityFromPrekeySignalMessage(
@@ -569,12 +569,15 @@ ${relays.join('\n')}
       ..status = RoomStatus.enabled
       ..encryptMode = EncryptMode.signal
       ..curve25519PkHex = signalIdPubkey;
-    await ContactService.instance.updateContact(
+    await ContactService.instance.saveContactFromQrCode(
       identityId: room.identityId,
       pubkey: room.toMainPubkey,
       name: prekeyMessageModel.name,
+      avatarRemoteUrl: prekeyMessageModel.avatar,
+      lightning: prekeyMessageModel.lightning,
     );
     await RoomService.instance.updateRoomAndRefresh(room);
+
     Get.find<HomeController>().loadIdentityRoomList(room.identityId);
 
     KeychatMessage? km;

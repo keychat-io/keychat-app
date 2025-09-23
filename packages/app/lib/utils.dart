@@ -444,12 +444,29 @@ Init File: $time \n
     double size = 42,
     double radius = 100,
   }) {
+    // Handle SVG files
+    if (path.extension(image.path) == '.svg') {
+      return SvgPicture.file(
+        key: ObjectKey('avatar:${image.path}'),
+        image,
+        width: size,
+        height: size,
+      );
+    }
     return Container(
       key: ObjectKey('avatar:${image.path}'),
       width: size,
       height: size,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(radius),
+        color: Colors.white.withAlpha(100), // Add white background
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(25),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
         image: DecorationImage(
           image: Image.file(image).image,
           fit: BoxFit.cover,
@@ -1332,19 +1349,9 @@ Init File: $time \n
     // Check if local avatar file exists
     if (avatarPath != null && avatarPath.isNotEmpty) {
       final avatarFile = File(Utils.appFolder.path + avatarPath);
-      logger.d('Loading local avatar from: ${avatarFile.path}');
+      // logger.d('Loading local avatar from: ${avatarFile.path}');
       if (avatarFile.existsSync()) {
-        if (avatarPath.toLowerCase().endsWith('.svg')) {
-          // Handle SVG files
-          return SvgPicture.file(
-            avatarFile,
-            width: size,
-            height: size,
-          );
-        } else {
-          // Handle other image types
-          return Utils.getAvatarByImageFile(avatarFile, size: size);
-        }
+        return Utils.getAvatarByImageFile(avatarFile, size: size);
       }
     }
 

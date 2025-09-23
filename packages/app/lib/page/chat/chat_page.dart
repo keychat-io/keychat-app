@@ -292,7 +292,6 @@ class _ChatPage2State extends State<ChatPage> {
     if (needSendGreeting) {
       return _sendGreetingSection();
     }
-    logger.d('getSendMessageInput status: $status');
     switch (status) {
       case RoomStatus.requesting:
         return _requestingInputSection();
@@ -961,8 +960,9 @@ class _ChatPage2State extends State<ChatPage> {
                     room.status = RoomStatus.enabled;
                     await RoomService.instance.updateRoomAndRefresh(room);
                   } catch (e, s) {
-                    EasyLoading.showError(e.toString());
-                    logger.e(e.toString(), error: e, stackTrace: s);
+                    final msg = Utils.getErrorMessage(e);
+                    await EasyLoading.showError(msg);
+                    logger.e(msg, error: e, stackTrace: s);
                   }
                   Get.find<HomeController>().loadIdentityRoomList(
                     controller.roomObs.value.identityId,

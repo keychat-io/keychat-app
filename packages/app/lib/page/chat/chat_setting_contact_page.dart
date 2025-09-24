@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:settings_ui/settings_ui.dart';
 
 class ChatSettingContactPage extends StatefulWidget {
@@ -245,20 +246,63 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                       if (cc.roomObs.value.encryptMode == EncryptMode.signal &&
                           GetPlatform.isIOS)
                         RoomUtil.muteSection(cc),
-                    ],
-                  ),
-                  SettingsSection(
-                    tiles: [
                       SettingsTile.navigation(
                         leading: const Icon(CupertinoIcons.search),
                         title: const Text('Search History'),
                         onPressed: (context) async {
-                          Get.to(
-                            () =>
-                                SearchMessagesPage(roomId: cc.roomObs.value.id),
+                          await Get.to<void>(
+                            () => SearchMessagesPage(
+                              roomId: cc.roomObs.value.id,
+                            ),
                             id: GetPlatform.isDesktop ? GetXNestKey.room : null,
                           );
                         },
+                      ),
+                    ],
+                  ),
+                  SettingsSection(
+                    tiles: [
+                      SettingsTile(
+                        description:
+                            (cc.roomContact.value.lightning?.isNotEmpty ??
+                                    false)
+                                ? Text(cc.roomContact.value.lightning ?? '')
+                                : null,
+                        leading: SizedBox(
+                          width: 24,
+                          child: Image.asset(
+                            'assets/images/lightning.png',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        title: const Text('Lightning Address'),
+                        trailing: (cc.roomContact.value.lightning?.isEmpty ??
+                                true)
+                            ? const Text('Not set')
+                            : IconButton(
+                                icon: const Icon(
+                                  CupertinoIcons.arrow_right_circle,
+                                  size: 20,
+                                ),
+                                onPressed: () async {
+                                  if (cc.roomContact.value.lightning?.isEmpty ??
+                                      true) {
+                                    return;
+                                  }
+                                  await Get.bottomSheet<void>(
+                                    clipBehavior: Clip.antiAlias,
+                                    shape: const RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.vertical(
+                                        top: Radius.circular(4),
+                                      ),
+                                    ),
+                                    PayInvoicePage(
+                                      invoce: cc.roomContact.value.lightning,
+                                      showScanButton: false,
+                                    ),
+                                  );
+                                },
+                              ),
                       ),
                     ],
                   ),

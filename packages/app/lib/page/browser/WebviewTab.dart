@@ -1261,7 +1261,7 @@ img {
   // info coming from the JavaScript side!
   Future<Object?> javascriptHandlerWebLN(List<dynamic> data) async {
     logger.i('javascriptHandler: $data');
-    final method = data[0];
+    final method = data[0] as String;
     switch (method) {
       case 'getInfo':
         var identity = Get.find<EcashController>().currentIdentity;

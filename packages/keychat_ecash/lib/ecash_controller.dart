@@ -43,18 +43,17 @@ class EcashController extends GetxController {
   Identity? currentIdentity;
   late ScrollController scrollController;
   late TextEditingController nameController;
-  late EcashBillController ecashBillController;
-  late LightningBillController lightningBillController;
   late IndicatorController indicatorController;
   @override
   Future<void> onInit() async {
     scrollController = ScrollController();
     nameController = TextEditingController();
     indicatorController = IndicatorController();
-    ecashBillController = Get.put(EcashBillController());
-    lightningBillController = Get.put(LightningBillController());
     super.onInit();
-    Get.lazyPut(NostrWalletConnectController.new, fenix: true);
+    Get
+      ..lazyPut(LightningBillController.new, fenix: true)
+      ..lazyPut(EcashBillController.new, fenix: true)
+      ..lazyPut(NostrWalletConnectController.new, fenix: true);
   }
 
   Future<String?> getFileUploadEcashToken(int fileSize) async {
@@ -127,6 +126,7 @@ class EcashController extends GetxController {
 
     final dbV1Path = '$dbPath${KeychatGlobal.ecashDBFileV1}';
     final dbV2Path = '$dbPath${KeychatGlobal.ecashDBFileV2}';
+    // new device
     if (ecashDBVersion == EcashDBVersion.v0) {
       final dbV1File = File(dbV1Path);
       if (!dbV1File.existsSync()) {

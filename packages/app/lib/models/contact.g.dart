@@ -294,6 +294,7 @@ Contact _contactDeserialize(
 ) {
   final object = Contact(
     identityId: reader.readLong(offsets[11]),
+    npubkey: reader.readStringOrNull(offsets[17]) ?? '',
     pubkey: reader.readString(offsets[19]),
   );
   object.about = reader.readStringOrNull(offsets[0]);
@@ -312,7 +313,6 @@ Contact _contactDeserialize(
   object.metadataFromRelay = reader.readStringOrNull(offsets[14]);
   object.name = reader.readStringOrNull(offsets[15]);
   object.nameFromRelay = reader.readStringOrNull(offsets[16]);
-  object.npubkey = reader.readString(offsets[17]);
   object.petname = reader.readStringOrNull(offsets[18]);
   object.updatedAt = reader.readDateTimeOrNull(offsets[21]);
   object.versionFromRelay = reader.readLong(offsets[22]);
@@ -361,7 +361,7 @@ P _contactDeserializeProp<P>(
     case 16:
       return (reader.readStringOrNull(offset)) as P;
     case 17:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset) ?? '') as P;
     case 18:
       return (reader.readStringOrNull(offset)) as P;
     case 19:

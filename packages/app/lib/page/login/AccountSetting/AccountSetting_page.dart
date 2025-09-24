@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
-
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/browser/browser_connect.dart';
@@ -10,6 +8,7 @@ import 'package:app/page/browser/BrowserConnectedWebsite.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/contact/contact_list_page.dart';
 import 'package:app/page/login/AccountSetting/AccountSetting_controller.dart';
+import 'package:app/page/profile/lightning_address_edit_dialog.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/file.service.dart';
 import 'package:app/service/identity.service.dart';
@@ -451,6 +450,39 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                             );
                           },
                         ),
+                    ],
+                  ),
+                  SettingsSection(
+                    tiles: [
+                      SettingsTile.navigation(
+                        description: Obx(
+                          () => (controller
+                                      .identity.value.lightning?.isNotEmpty ??
+                                  false)
+                              ? Text(controller.identity.value.lightning ?? '')
+                              : Container(),
+                        ),
+                        leading: SizedBox(
+                          width: 24,
+                          child: Image.asset(
+                            'assets/images/lightning.png',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        title: const Text('Lightning Address'),
+                        onPressed: (context) async {
+                          final result = await Get.dialog<String>(
+                            LightningAddressEditDialog(
+                              identity: controller.identity.value,
+                            ),
+                          );
+
+                          if (result != null) {
+                            controller.identity.value.lightning = result;
+                            controller.identity.refresh();
+                          }
+                        },
+                      ),
                     ],
                   ),
                 ],

@@ -398,17 +398,14 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                           cc.roomObs.value.isKDFGroup ||
                           cc.roomObs.value.isMLSGroup)
                         RoomUtil.muteSection(cc),
-                    ],
-                  ),
-                  SettingsSection(
-                    tiles: [
                       SettingsTile.navigation(
                         leading: const Icon(CupertinoIcons.search),
                         title: const Text('Search History'),
                         onPressed: (context) async {
-                          Get.to(
-                            () =>
-                                SearchMessagesPage(roomId: cc.roomObs.value.id),
+                          await Get.to<void>(
+                            () => SearchMessagesPage(
+                              roomId: cc.roomObs.value.id,
+                            ),
                             id: GetPlatform.isDesktop ? GetXNestKey.room : null,
                           );
                         },

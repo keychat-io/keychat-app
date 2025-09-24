@@ -1,18 +1,18 @@
 import 'dart:async';
 
 import 'package:app/app.dart';
+import 'package:app/utils.dart';
 import 'package:dio/dio.dart';
+import 'package:easy_debounce/easy_throttle.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/get.dart';
 import 'package:keychat_ecash/Bills/lightning_transaction.dart';
 import 'package:keychat_ecash/PayInvoice/PayToLnurl.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-import 'package:easy_debounce/easy_throttle.dart';
-import 'package:app/utils.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 class PayInvoiceController extends GetxController {
@@ -22,6 +22,8 @@ class PayInvoiceController extends GetxController {
   late TextEditingController textController;
   RxString selectedMint = ''.obs;
   RxString selectedInvoice = ''.obs;
+  final RxBool isLoading = false.obs;
+
   @override
   void onInit() {
     selectedMint.value = Get.find<EcashController>().latestMintUrl.value;
@@ -49,8 +51,12 @@ class PayInvoiceController extends GetxController {
   }
 
   FutureOr<Transaction?> _confirmPayment(
-      String mint, String invoice, rust_cashu.InvoiceInfo ii, bool isPay,
-      {Function? paidCallback}) async {
+    String mint,
+    String invoice,
+    rust_cashu.InvoiceInfo ii,
+    bool isPay, {
+    Function? paidCallback,
+  }) async {
     final cc = Get.find<EcashController>();
 
     if (cc.getBalanceByMint(mint) < ii.amount.toInt()) {
@@ -60,7 +66,8 @@ class PayInvoiceController extends GetxController {
     try {
       EasyLoading.show(status: 'Processing...');
       logger.i(
-          'PayInvoiceController: confirmToPayInvoice: mint: $mint, invoice: $invoice');
+        'PayInvoiceController: confirmToPayInvoice: mint: $mint, invoice: $invoice',
+      );
       final tx = await rust_cashu.melt(invoice: invoice, activeMint: mint);
       logger.i('PayInvoiceController: confirmToPayInvoice: tx: $tx');
       EasyLoading.showSuccess('Success');
@@ -86,11 +93,12 @@ class PayInvoiceController extends GetxController {
     return null;
   }
 
-  FutureOr<Transaction?> confirmToPayInvoice(
-      {required String invoice,
-      required String mint,
-      bool isPay = false,
-      Function? paidCallback}) async {
+  FutureOr<Transaction?> confirmToPayInvoice({
+    required String invoice,
+    required String mint,
+    bool isPay = false,
+    Function? paidCallback,
+  }) async {
     if (invoice.isEmpty) {
       EasyLoading.showToast('Please enter a valid invoice');
       return null;
@@ -102,28 +110,39 @@ class PayInvoiceController extends GetxController {
     try {
       final ii = await rust_cashu.decodeInvoice(encodedInvoice: invoice);
 
-      if (isPay == true) {
-        return await _confirmPayment(mint, invoice, ii, isPay,
-            paidCallback: paidCallback);
+      if (isPay) {
+        return await _confirmPayment(
+          mint,
+          invoice,
+          ii,
+          isPay,
+          paidCallback: paidCallback,
+        );
       }
-      return await Get.dialog(CupertinoAlertDialog(
-        title: const Text('Pay Invoice'),
-        content: Text('${ii.amount} ${EcashTokenSymbol.sat.name}',
-            style: Theme.of(Get.context!).textTheme.titleLarge),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: Get.back,
-            child: const Text('Cancel'),
+      return await Get.dialog(
+        CupertinoAlertDialog(
+          title: const Text('Pay Invoice'),
+          content: Text(
+            '${ii.amount} ${EcashTokenSymbol.sat.name}',
+            style: Theme.of(Get.context!).textTheme.titleLarge,
           ),
-          CupertinoDialogAction(
-            isDefaultAction: true,
-            onPressed: () async {
-              Get.back(result: await _confirmPayment(mint, invoice, ii, isPay));
-            },
-            child: const Text('Confirm'),
-          ),
-        ],
-      ));
+          actions: [
+            CupertinoDialogAction(
+              onPressed: Get.back,
+              child: const Text('Cancel'),
+            ),
+            CupertinoDialogAction(
+              isDefaultAction: true,
+              onPressed: () async {
+                Get.back(
+                  result: await _confirmPayment(mint, invoice, ii, isPay),
+                );
+              },
+              child: const Text('Confirm'),
+            ),
+          ],
+        ),
+      );
     } catch (e, s) {
       final msg = Utils.getErrorMessage(e);
       EasyLoading.showError('Error: $msg');
@@ -153,8 +172,9 @@ class PayInvoiceController extends GetxController {
               '${(e as DioException).response?.data ?? e.message}';
           logger.e('error: $errorMessage', error: e, stackTrace: s);
           EasyLoading.showError(
-              'Could not get lightning address details from the server: $errorMessage',
-              duration: const Duration(seconds: 4));
+            'Could not get lightning address details from the server: $errorMessage',
+            duration: const Duration(seconds: 4),
+          );
           return null;
         }
       }
@@ -170,8 +190,9 @@ class PayInvoiceController extends GetxController {
             '${(e as DioException).response?.data ?? e.message}';
         logger.e('error: $errorMessage', error: e, stackTrace: s);
         EasyLoading.showError(
-            'Could not get lightning address details from the server: $errorMessage',
-            duration: const Duration(seconds: 4));
+          'Could not get lightning address details from the server: $errorMessage',
+          duration: const Duration(seconds: 4),
+        );
         return null;
       }
     }
@@ -184,10 +205,12 @@ class PayInvoiceController extends GetxController {
       if (data['maxSendable'] == null) return null;
       logger.d('LNURL pay request received from: $host , $data');
       if (Get.isBottomSheetOpen ?? false) {
-        return null;
+        Get.back<void>();
       }
       return await Get.bottomSheet<Transaction>(
-          ignoreSafeArea: false, PayToLnurl(data));
+        ignoreSafeArea: false,
+        PayToLnurl(data),
+      );
     }
     return null;
   }

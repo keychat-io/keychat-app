@@ -19,8 +19,8 @@ QRUserModel _$QRUserModelFromJson(Map<String, dynamic> json) => QRUserModel()
   ..globalSign = json['globalSign'] as String
   ..relay = json['relay'] as String
   ..time = (json['time'] as num).toInt()
-  ..avatar = json['avatar'] as String
-  ..lightning = json['lightning'] as String;
+  ..avatar = json['avatar'] as String?
+  ..lightning = json['lightning'] as String?;
 
 Map<String, dynamic> _$QRUserModelToJson(QRUserModel instance) =>
     <String, dynamic>{
@@ -36,6 +36,6 @@ Map<String, dynamic> _$QRUserModelToJson(QRUserModel instance) =>
       'globalSign': instance.globalSign,
       'relay': instance.relay,
       'time': instance.time,
-      'avatar': instance.avatar,
-      'lightning': instance.lightning,
+      if (instance.avatar case final value?) 'avatar': value,
+      if (instance.lightning case final value?) 'lightning': value,
     };

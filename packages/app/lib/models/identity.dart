@@ -119,4 +119,15 @@ class Identity extends Equatable {
     }
     return null;
   }
+
+  Future<bool> updateLightningAddress(String? address) async {
+    try {
+      lightning = address?.trim();
+      await IdentityService.instance.updateIdentity(this);
+      return true;
+    } catch (e, st) {
+      logger.e('Failed to update lightning address: $e', stackTrace: st);
+      return false;
+    }
+  }
 }

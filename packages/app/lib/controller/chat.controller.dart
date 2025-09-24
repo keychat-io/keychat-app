@@ -354,8 +354,10 @@ class ChatController extends GetxController {
       limit: 999,
     );
     if (unreads.isNotEmpty) {
-      await RoomService.instance.markAllRead(
-        roomObs.value,
+      unawaited(
+        RoomService.instance.markAllRead(
+          roomObs.value,
+        ),
       );
     }
     unreads.addAll(list);
@@ -883,7 +885,7 @@ Add as a friend and start the signal protocol chat
       }
       // use the local file first.
       if (roomContact.value.avatarLocalPath == null) {
-        await fetchAndUpdateMetadata(
+        fetchAndUpdateMetadata(
           roomContact.value.pubkey,
           roomContact.value.identityId,
         ).then((Contact? item) {

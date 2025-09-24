@@ -43,7 +43,8 @@ class _DeskBrowserState extends State<DeskBrowser> {
   // ignore: unused_element
   KeyEventResult _handleKeyEvent(KeyEvent event) {
     logger.d(
-        'KeyEvent detected: ${event.logicalKey.keyLabel}, type: ${event.runtimeType}');
+      'KeyEvent detected: ${event.logicalKey.keyLabel}, type: ${event.runtimeType}',
+    );
 
     if (event is KeyDownEvent) {
       // Check for Cmd+W (Mac) or Ctrl+W (other platforms)
@@ -80,65 +81,82 @@ class _DeskBrowserState extends State<DeskBrowser> {
 
   @override
   Widget build(BuildContext context) {
-    return Row(children: [
-      Obx(() => Container(
-          width: desktopController.browserSidebarWidth.value,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: ListView.builder(
-            itemCount: controller.tabs.length + 1,
-            itemBuilder: (context, index) {
-              if (index == controller.tabs.length) {
-                return Padding(
+    return Row(
+      children: [
+        Obx(
+          () => Container(
+            width: desktopController.browserSidebarWidth.value,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: ListView.builder(
+              itemCount: controller.tabs.length + 1,
+              itemBuilder: (context, index) {
+                if (index == controller.tabs.length) {
+                  return Padding(
                     padding: const EdgeInsetsDirectional.symmetric(
-                        horizontal: 16, vertical: 8),
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     child: OutlinedButton.icon(
-                        onPressed: () {
-                          controller.addNewTab();
-                        },
-                        label: const Icon(Icons.add)));
-              }
-              final tab = controller.tabs[index];
-              return HoverCloseListTile(
-                leading: Utils.getNetworkImage(controller.tabs[index].favicon,
-                    size: 20),
-                title: controller.removeHttpPrefix(
+                      onPressed: () {
+                        controller.addNewTab();
+                      },
+                      label: const Icon(Icons.add),
+                    ),
+                  );
+                }
+                final tab = controller.tabs[index];
+                return HoverCloseListTile(
+                  leading: Utils.getNetworkImage(
+                    controller.tabs[index].favicon,
+                    size: 20,
+                  ),
+                  title: controller.removeHttpPrefix(
                     tab.title == null || tab.title!.isEmpty
                         ? tab.url
-                        : (tab.title ?? tab.url)),
-                selected: currentTabIndex == index,
-                onTap: () {
-                  controller.setCurrentTabIndex(index);
-                },
-                onClose: () {
-                  controller.removeByIndex(index);
-                },
-              );
-            },
-          ))),
-      MouseRegion(
-          cursor: SystemMouseCursors.resizeLeftRight,
-          child: GestureDetector(
-              onHorizontalDragUpdate: (details) {
-                desktopController.setBrowserSidebarWidth(
-                  desktopController.browserSidebarWidth.value +
-                      details.delta.dx,
+                        : (tab.title ?? tab.url),
+                  ),
+                  selected: currentTabIndex == index,
+                  onTap: () {
+                    controller.setCurrentTabIndex(index);
+                  },
+                  onClose: () {
+                    controller.removeByIndex(index);
+                  },
                 );
               },
-              child: Container(
-                  width: 1,
-                  decoration: BoxDecoration(
-                      border: Border(
-                    right: BorderSide(
-                        color: Theme.of(context).dividerColor.withAlpha(30)),
-                  ))))),
-      Expanded(
+            ),
+          ),
+        ),
+        MouseRegion(
+          cursor: SystemMouseCursors.resizeLeftRight,
+          child: GestureDetector(
+            onHorizontalDragUpdate: (details) {
+              desktopController.setBrowserSidebarWidth(
+                desktopController.browserSidebarWidth.value + details.delta.dx,
+              );
+            },
+            child: Container(
+              width: 1,
+              decoration: BoxDecoration(
+                border: Border(
+                  right: BorderSide(
+                    color: Theme.of(context).dividerColor.withAlpha(30),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        Expanded(
           child: IndexedStack(
-        key: stackKey,
-        sizing: StackFit.expand,
-        index: currentTabIndex,
-        children: controller.tabs.map((e) => e.tab).toList(),
-      ))
-    ]);
+            key: stackKey,
+            sizing: StackFit.expand,
+            index: currentTabIndex,
+            children: controller.tabs.map((e) => e.tab).toList(),
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -167,38 +185,42 @@ class _HoverCloseListTileState extends State<HoverCloseListTile> {
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
-        onEnter: (_) => setState(() => _isHovered = true),
-        onExit: (_) => setState(() => _isHovered = false),
-        child: Stack(
-          children: [
-            ListTile(
-              leading: widget.leading,
-              horizontalTitleGap: 6,
-              selectedTileColor:
-                  KeychatGlobal.primaryColor.withValues(alpha: 200),
-              contentPadding: const EdgeInsets.only(left: 12, right: 4),
-              title: Text(widget.title,
-                  style: Theme.of(context).textTheme.bodyMedium, maxLines: 1),
-              selected: widget.selected,
-              onTap: widget.onTap,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: Stack(
+        children: [
+          ListTile(
+            leading: widget.leading,
+            horizontalTitleGap: 6,
+            selectedTileColor: KeychatGlobal.primaryColor.withAlpha(50),
+            contentPadding: const EdgeInsets.only(left: 12, right: 4),
+            title: Text(
+              widget.title,
+              style: Theme.of(context).textTheme.bodyMedium,
+              maxLines: 1,
             ),
-            Positioned(
-                right: 0,
-                top: 4,
-                child: AnimatedOpacity(
-                  opacity: _isHovered ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 200),
-                  child: _isHovered
-                      ? IconButton(
-                          iconSize: 20,
-                          icon: const Icon(Icons.close),
-                          hoverColor:
-                              KeychatGlobal.primaryColor.withValues(alpha: 100),
-                          onPressed: widget.onClose,
-                        )
-                      : const SizedBox(width: 48),
-                ))
-          ],
-        ));
+            selected: widget.selected,
+            onTap: widget.onTap,
+          ),
+          Positioned(
+            right: 0,
+            top: 4,
+            child: AnimatedOpacity(
+              opacity: _isHovered ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 200),
+              child: _isHovered
+                  ? IconButton(
+                      iconSize: 20,
+                      icon: const Icon(Icons.close),
+                      hoverColor:
+                          KeychatGlobal.primaryColor.withValues(alpha: 100),
+                      onPressed: widget.onClose,
+                    )
+                  : const SizedBox(width: 48),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

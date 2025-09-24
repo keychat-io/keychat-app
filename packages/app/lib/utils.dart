@@ -200,9 +200,24 @@ class MyOutput extends LogOutput {
 }
 
 class Utils {
-  static final RegExp domainRegExp = RegExp(
-    r'^(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[0-9]{1})|([0-9]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[-]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[-]{1}[0-9]{1})|([0-9]{1}[-]{1}[a-zA-Z]{1}))(([a-zA-Z]{1}|[0-9]{1}|[-]{1}){1,61})+[.][a-zA-Z]{2,4}$',
-  );
+  static bool isValidDomain(String domain) {
+    final domainRegex = RegExp(
+      r'^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$',
+    );
+
+    if (domain.length > 253) {
+      return false;
+    }
+
+    if (domain.contains('..') ||
+        domain.contains('--') ||
+        domain.startsWith('-') ||
+        domain.endsWith('-')) {
+      return false;
+    }
+
+    return domainRegex.hasMatch(domain);
+  }
 
   static Future<void> bottomSheedAndHideStatusBar(Widget widget) async {
     await SystemChrome.setEnabledSystemUIMode(
@@ -962,10 +977,6 @@ Init File: $time \n
           ? LogFileOutputs(await Utils.createLogFile(directory.path))
           : null,
     );
-  }
-
-  static bool isDomain(String str) {
-    return domainRegExp.hasMatch(str);
   }
 
   static String randomString(int length) {

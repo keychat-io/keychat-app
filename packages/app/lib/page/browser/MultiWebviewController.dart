@@ -1,7 +1,5 @@
 import 'dart:async';
 import 'dart:convert' show jsonDecode, jsonEncode;
-
-import 'package:app/controller/setting.controller.dart';
 import 'package:app/desktop/DesktopController.dart';
 import 'package:app/global.dart';
 import 'package:app/models/browser/browser_favorite.dart';
@@ -104,7 +102,7 @@ class MultiWebviewController extends GetxController {
       if (tabs.isEmpty) {
         addNewTab();
         setCurrentTabIndex(0);
-        saveDesktopTabs();
+        unawaited(saveDesktopTabs());
         return;
       }
     }
@@ -113,7 +111,7 @@ class MultiWebviewController extends GetxController {
     } else {
       setCurrentTabIndex(currentIndex);
     }
-    saveDesktopTabs();
+    unawaited(saveDesktopTabs());
   }
 
   void removeTab(String tabId) {
@@ -132,8 +130,10 @@ class MultiWebviewController extends GetxController {
     String engine = 'google',
     String? defaultTitle,
   }) async {
+    // Exit if URL is empty
     if (initUrl.isEmpty) return;
 
+    // Handle Linux platform - use system browser instead
     if (GetPlatform.isLinux) {
       logger.i('webview not working on linux');
       if (!await launchUrl(Uri.parse(initUrl))) {
@@ -141,16 +141,23 @@ class MultiWebviewController extends GetxController {
       }
       return;
     }
-    var uniqueKey = generate64RandomHexChars(8);
-    Uri? uri;
+
     var url = initUrl;
-    if (!initUrl.startsWith('http')) {
-      // try: domain.com
-      final isDomain = Utils.isDomain(initUrl);
-      // start search engine
-      if (isDomain) {
-        url = 'https://$url';
-      } else {
+    Uri? uri;
+    if (initUrl.startsWith('http://') || initUrl.startsWith('https://')) {
+      try {
+        uri = Uri.tryParse(initUrl);
+      } catch (e) {}
+    }
+
+    // If not a valid URL, format as search query using selected engine
+    if (uri == null) {
+      final isHost = Utils.isValidDomain(initUrl);
+      logger.d('$isHost $initUrl');
+      if (isHost) {
+        uri = Uri.tryParse('https://$url');
+      }
+      if (uri == null) {
         final engine0 = engine.toLowerCase();
         switch (engine0) {
           case 'google':
@@ -164,15 +171,25 @@ class MultiWebviewController extends GetxController {
         }
       }
     }
-    uri = Uri.tryParse(url);
+
+    // Final URL validation
+    uri ??= Uri.tryParse(url);
     if (uri == null) return;
+    await _launchUri(uri, defaultTitle);
+  }
+
+  Future<void> _launchUri(Uri uri, String? defaultTitle) async {
+    var uniqueKey = generate64RandomHexChars(8);
+    final url = uri.toString();
+    // Mobile platform handling
     if (GetPlatform.isMobile) {
+      // Use host as the unique key for caching on mobile
       uniqueKey = uri.host;
       await Get.to<void>(
         () => WebviewTab(
-          initUrl: initUrl,
-          initTitle: title.value,
-          uniqueKey: uniqueKey, // for close controller
+          initUrl: url, // Use processed URL
+          initTitle: defaultTitle ?? title.value,
+          uniqueKey: uniqueKey, // Key for controller management
           windowId: 0,
           isCache: mobileKeepAlive.containsKey(uniqueKey),
           keepAlive: mobileKeepAlive[uniqueKey],
@@ -181,44 +198,53 @@ class MultiWebviewController extends GetxController {
       );
       return;
     }
-    // for desktop
+
+    // Desktop platform handling
     final tab = WebviewTab(
       uniqueKey: uniqueKey,
-      initUrl: initUrl,
+      initUrl: url, // Use processed URL
       key: GlobalObjectKey(uniqueKey),
       windowId: getLastWindowId(),
     );
+
+    // Ensure browser tab is selected in sidebar
     if (GetPlatform.isDesktop) {
       if (Get.find<DesktopController>().sidebarXController.selectedIndex != 1) {
         Get.find<DesktopController>().sidebarXController.selectIndex(1);
       }
     }
+
+    // Tab management logic: determine where to insert the new tab
+    // Case 1: Replace current "new tab" page if it's not the last tab
     if (tabs[currentIndex].url == KeychatGlobal.newTab &&
         currentIndex != tabs.length - 1) {
       tabs
         ..removeAt(currentIndex)
         ..insert(
           currentIndex,
-          WebviewTabData(tab: tab, uniqueKey: uniqueKey, url: tab.initUrl),
+          WebviewTabData(tab: tab, uniqueKey: uniqueKey, url: url),
         );
       setCurrentTabIndex(currentIndex);
-
-      await saveDesktopTabs();
       return;
     }
+
+    // Case 2: Insert before the "new tab" page if it's at the end
     if (tabs.isNotEmpty && tabs.last.url == KeychatGlobal.newTab) {
       tabs.insert(
         tabs.length - 1,
-        WebviewTabData(tab: tab, uniqueKey: uniqueKey, url: tab.initUrl),
+        WebviewTabData(tab: tab, uniqueKey: uniqueKey, url: url),
       );
-      setCurrentTabIndex(tabs.length - 2);
-    } else {
+      setCurrentTabIndex(tabs.length - 2); // Select the newly inserted tab
+    }
+    // Case 3: Add to the end if no "new tab" page exists at the end
+    else {
       tabs.add(
-        WebviewTabData(tab: tab, uniqueKey: uniqueKey, url: tab.initUrl),
+        WebviewTabData(tab: tab, uniqueKey: uniqueKey, url: url),
       );
-      setCurrentTabIndex(tabs.length - 1);
+      setCurrentTabIndex(tabs.length - 1); // Select the newly added tab
     }
 
+    // Save the current state of tabs
     await saveDesktopTabs();
   }
 
@@ -228,7 +254,7 @@ class MultiWebviewController extends GetxController {
       newIndex = 0;
     }
     currentIndex = newIndex;
-    checkCurrentControllerAlive();
+    unawaited(checkCurrentControllerAlive());
     updatePageTabIndex(newIndex);
   }
 

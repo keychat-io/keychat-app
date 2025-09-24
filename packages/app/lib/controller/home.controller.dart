@@ -109,7 +109,9 @@ class HomeController extends GetxController
 
   // add identity AI and add AI contacts
   Future<void> createAIIdentity(
-      List<Identity> existsIdentity, String idName) async {
+    List<Identity> existsIdentity,
+    String idName,
+  ) async {
     final key = '${StorageKeyString.taskCreateIdentity}:$idName';
     if (existsIdentity.isEmpty) return;
     final res = Storage.getIntOrZero(key);
@@ -127,10 +129,16 @@ class HomeController extends GetxController
     );
     if (unusedIndex == -1) return;
     final secp256k1Accounts = await rust_nostr.importFromPhraseWith(
-        phrase: mnemonic, offset: unusedIndex, count: 1);
+      phrase: mnemonic,
+      offset: unusedIndex,
+      count: 1,
+    );
 
     await IdentityService.instance.createIdentity(
-        name: idName, account: secp256k1Accounts[0], index: unusedIndex);
+      name: idName,
+      account: secp256k1Accounts[0],
+      index: unusedIndex,
+    );
     await Storage.setInt(key, 1);
     logger.i('CreateAIIdentity Success');
   }
@@ -218,15 +226,18 @@ class HomeController extends GetxController
 
       if (!isTimeToValid) {
         loggerNoLine.d(
-            'Paused: ${DateTime.now().difference(pausedTime!).inSeconds} seconds, skip now.');
+          'Paused: ${DateTime.now().difference(pausedTime!).inSeconds} seconds, skip now.',
+        );
         return;
       }
     }
 
-    await Get.to(() => const BiometricAuthScreen(autoAuth: true),
-        fullscreenDialog: true,
-        popGesture: false,
-        transition: Transition.fadeIn);
+    await Get.to(
+      () => const BiometricAuthScreen(autoAuth: true),
+      fullscreenDialog: true,
+      popGesture: false,
+      transition: Transition.fadeIn,
+    );
   }
 
   Future<void> loadAppRemoteConfig() async {
@@ -286,11 +297,16 @@ class HomeController extends GetxController
       initialIndex = 0;
     }
     tabController = TabController(
-        vsync: this, initialIndex: initialIndex, length: tabBodyDatas.length);
+      vsync: this,
+      initialIndex: initialIndex,
+      length: tabBodyDatas.length,
+    );
 
     tabController.addListener(() {
       Storage.setInt(
-          StorageKeyString.homeSelectedTabIndex, tabController.index);
+        StorageKeyString.homeSelectedTabIndex,
+        tabController.index,
+      );
     });
   }
 
@@ -630,9 +646,12 @@ class HomeController extends GetxController
       }
     });
 
-    appLinks.uriLinkStream.listen(handleAppLink, onError: (err) {
-      logger.e('listen failed: $err');
-    });
+    appLinks.uriLinkStream.listen(
+      handleAppLink,
+      onError: (err) {
+        logger.e('listen failed: $err');
+      },
+    );
   }
 
   Future<void> handleAppLink(Uri? uri) async {
@@ -701,11 +720,14 @@ class HomeController extends GetxController
 
     // qr chatkey
     if (!(input.length == 64 || input.length == 63)) {
-      await Get.bottomSheet(AddtoContactsPage(input),
-          isScrollControlled: true,
-          ignoreSafeArea: false,
-          shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(16))));
+      await Get.bottomSheet(
+        AddtoContactsPage(input),
+        isScrollControlled: true,
+        ignoreSafeArea: false,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+      );
       return;
     }
     try {
@@ -716,11 +738,14 @@ class HomeController extends GetxController
       }
       final rooms = await RoomService.instance.getCommonRoomByPubkey(hexPubkey);
       if (rooms.isEmpty) {
-        await Get.bottomSheet(AddtoContactsPage(input),
-            isScrollControlled: true,
-            ignoreSafeArea: false,
-            shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16))));
+        await Get.bottomSheet(
+          AddtoContactsPage(input),
+          isScrollControlled: true,
+          ignoreSafeArea: false,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+        );
         return;
       }
       // Handle the found rooms
@@ -728,7 +753,8 @@ class HomeController extends GetxController
         return Utils.toNamedRoom(rooms[0]);
       }
       // dialog to select room
-      await Get.dialog(SimpleDialog(
+      await Get.dialog(
+        SimpleDialog(
           title: const Text('Multi Rooms Found'),
           children: rooms.map((room) {
             return ListTile(
@@ -739,7 +765,9 @@ class HomeController extends GetxController
                 Utils.toNamedRoom(room);
               },
             );
-          }).toList()));
+          }).toList(),
+        ),
+      );
     } catch (e, s) {
       EasyLoading.showError('Failed to handle app link: $e');
       logger.e('handleAppLinkRoom error: $e', stackTrace: s);
@@ -749,10 +777,12 @@ class HomeController extends GetxController
   Future<void> _handleAppLinkLightning(String input) async {
     if (isEmail(input) || input.toUpperCase().startsWith('LNURL')) {
       await Get.bottomSheet(
-          clipBehavior: Clip.antiAlias,
-          shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
-          PayInvoicePage(invoce: input, showScanButton: false));
+        clipBehavior: Clip.antiAlias,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+        ),
+        PayInvoicePage(invoce: input, showScanButton: false),
+      );
       return;
     }
     await Get.find<EcashController>()
@@ -764,11 +794,12 @@ class HomeController extends GetxController
   void _initShareIntent() {
     if (!GetPlatform.isMobile) return;
     // Listen to media sharing coming from outside the app while the app is in the memory.
-    _intentSub = ReceiveSharingIntent.instance
-        .getMediaStream()
-        .listen(_handleSharedContent, onError: (err) {
-      logger.e('getIntentDataStream error: $err');
-    });
+    _intentSub = ReceiveSharingIntent.instance.getMediaStream().listen(
+      _handleSharedContent,
+      onError: (err) {
+        logger.e('getIntentDataStream error: $err');
+      },
+    );
 
     // Get the media sharing coming from outside the app while the app is closed.
     ReceiveSharingIntent.instance.getInitialMedia().then((value) {
@@ -792,10 +823,11 @@ class HomeController extends GetxController
       case SharedMediaType.file:
       case SharedMediaType.video:
         var forwardRooms = await Get.to<List<Room>>(
-            () => ForwardSelectRoom('', identity, showContent: false),
-            fullscreenDialog: true,
-            transition: Transition.downToUp);
-        if (forwardRooms == null || forwardRooms.isEmpty == true) return;
+          () => ForwardSelectRoom('', identity, showContent: false),
+          fullscreenDialog: true,
+          transition: Transition.downToUp,
+        );
+        if (forwardRooms == null || forwardRooms.isEmpty) return;
         final message = await FileService.instance
             .handleFileUpload(forwardRooms.first, XFile(file.path));
         if (forwardRooms.length > 1 && message != null) {

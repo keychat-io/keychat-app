@@ -5,16 +5,14 @@ import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr.dart';
-import 'package:app/nostr-core/nostr_event.dart';
+import 'package:app/service/chatx.service.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/file.service.dart';
 import 'package:app/service/mls_group.service.dart';
-import 'package:app/service/relay.service.dart';
-import 'package:app/service/secure_storage.dart';
-
-import 'package:app/service/chatx.service.dart';
 import 'package:app/service/notify.service.dart';
+import 'package:app/service/relay.service.dart';
 import 'package:app/service/room.service.dart';
+import 'package:app/service/secure_storage.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:get/get.dart';
@@ -46,9 +44,10 @@ class IdentityService {
     final database = DBProvider.database;
     final keychain = await rust_nostr.generateSecp256K1();
     final ontTimeKey = Mykey(
-        prikey: keychain.prikey,
-        identityId: identityId,
-        pubkey: keychain.pubkey)
+      prikey: keychain.prikey,
+      identityId: identityId,
+      pubkey: keychain.pubkey,
+    )
       ..isOneTime = true
       ..oneTimeUsed = false;
     await database.writeTxn(() async {
@@ -57,18 +56,22 @@ class IdentityService {
     return ontTimeKey;
   }
 
-  Future<Identity> createIdentity(
-      {required String name,
-      required rust_nostr.Secp256k1Account account,
-      required int index,
-      bool isFirstAccount = false}) async {
+  Future<Identity> createIdentity({
+    required String name,
+    required rust_nostr.Secp256k1Account account,
+    required int index,
+    bool isFirstAccount = false,
+  }) async {
     if (account.mnemonic == null) throw Exception('mnemonic is null');
     final database = DBProvider.database;
     final homeController = Get.find<HomeController>();
     final exist = await getIdentityByNostrPubkey(account.pubkey);
     if (exist != null) throw Exception('Identity already exist');
     final iden = Identity(
-        name: name, secp256k1PKHex: account.pubkey, npub: account.pubkeyBech32)
+      name: name,
+      secp256k1PKHex: account.pubkey,
+      npub: account.pubkeyBech32,
+    )
       ..curve25519PkHex = account.curve25519PkHex
       ..index = index;
     await database.writeTxn(() async {
@@ -121,10 +124,11 @@ class IdentityService {
     return iden;
   }
 
-  Future<Identity> createIdentityByPrikey(
-      {required String name,
-      required String hexPubkey,
-      required String prikey}) async {
+  Future<Identity> createIdentityByPrikey({
+    required String name,
+    required String hexPubkey,
+    required String prikey,
+  }) async {
     final database = DBProvider.database;
     final npub = rust_nostr.getBech32PubkeyByHex(hex: hexPubkey);
     final exist = await getIdentityByNostrPubkey(hexPubkey);
@@ -154,8 +158,10 @@ class IdentityService {
     return iden;
   }
 
-  Future<Identity> createIdentityByAmberPubkey(
-      {required String name, required String pubkey}) async {
+  Future<Identity> createIdentityByAmberPubkey({
+    required String name,
+    required String pubkey,
+  }) async {
     final database = DBProvider.database;
     final hexPubkey = rust_nostr.getHexPubkeyByBech32(bech32: pubkey);
     final exist = await getIdentityByNostrPubkey(hexPubkey);
@@ -229,7 +235,9 @@ class IdentityService {
         await chatxService.deleteSignalSessionKPA(element);
         // delete signal session by identity id
         await rust_signal.deleteSessionByDeviceId(
-            keyPair: keyPair, deviceId: id);
+          keyPair: keyPair,
+          deviceId: id,
+        );
       }
       await database.contacts.filter().identityIdEqualTo(id).deleteAll();
       await FileService.instance.deleteAllByIdentity(id);
@@ -364,8 +372,11 @@ class IdentityService {
           .filter()
           .isOneTimeEqualTo(true)
           .oneTimeUsedEqualTo(true)
-          .updatedAtLessThan(DateTime.now().subtract(
-              const Duration(hours: KeychatGlobal.oneTimePubkeysLifetime)))
+          .updatedAtLessThan(
+            DateTime.now().subtract(
+              const Duration(hours: KeychatGlobal.oneTimePubkeysLifetime),
+            ),
+          )
           .deleteAll();
     });
   }
@@ -479,7 +490,8 @@ class IdentityService {
         await NostrAPI.instance.fetchMetadata([identity.secp256k1PKHex]);
     if (list.isEmpty) {
       logger.d(
-          'No metadata event found from relay for ${identity.secp256k1PKHex}');
+        'No metadata event found from relay for ${identity.secp256k1PKHex}',
+      );
       return null;
     }
     final res = list.last;

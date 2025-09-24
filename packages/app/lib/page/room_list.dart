@@ -197,13 +197,9 @@ class RoomList extends GetView<HomeController> {
                     key: ObjectKey('${index}_room${room.id}'),
                     onTap: () async {
                       await Utils.toNamedRoom(room);
-                      final refreshed = await RoomService.instance.markAllRead(
-                        identityId: room.identityId,
-                        roomId: room.id,
+                      await RoomService.instance.markAllRead(
+                        room,
                       );
-                      if (!refreshed) {
-                        controller.resortRoomList(room.identityId);
-                      }
                     },
                     onSecondaryTapDown: (e) {
                       onSecondaryTapDown(e, room, context);
@@ -425,8 +421,7 @@ class RoomList extends GetView<HomeController> {
         case 'mute':
           await RoomService.instance.mute(room, !room.isMute);
         case 'read':
-          await RoomService.instance
-              .markAllRead(identityId: room.identityId, roomId: room.id);
+          await RoomService.instance.markAllRead(room);
           controller.resortRoomList(room.identityId);
         default:
       }

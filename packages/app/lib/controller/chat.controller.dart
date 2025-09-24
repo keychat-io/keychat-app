@@ -99,7 +99,7 @@ class ChatController extends GetxController {
     'assets/images/camera.png',
     'assets/images/video.png',
     'assets/images/file.png',
-    'assets/images/BTC.png',
+    'assets/images/bitcoin.png',
     'assets/images/lightning.png',
   ];
 
@@ -206,10 +206,6 @@ class ChatController extends GetxController {
     messages.remove(message);
   }
 
-  void emoticonClick(String name) {
-    textEditingController.text = name;
-  }
-
   RoomMember? getMemberByIdPubkey(String idPubkey) {
     return members[idPubkey];
   }
@@ -280,7 +276,7 @@ class ChatController extends GetxController {
         }
       }
       if (GetPlatform.isMobile) {
-        HapticFeedback.lightImpact();
+        unawaited(HapticFeedback.lightImpact());
       }
       await RoomService.instance.sendMessage(roomObs.value, text, reply: reply);
       inputReplys.clear();
@@ -288,7 +284,7 @@ class ChatController extends GetxController {
       // hideSend.value = true;
       inputText.value = '';
       inputTextIsAdd.value = true;
-      RoomService.instance.markAllReadSimple(roomObs.value);
+      await RoomService.instance.markAllReadSimple(roomObs.value);
     } catch (e, s) {
       textEditingController.text = text;
       final msg = Utils.getErrorMessage(e);
@@ -319,9 +315,9 @@ class ChatController extends GetxController {
   }
 
   void jumpToBottom(int milliseconds) {
-    Timer(const Duration(milliseconds: 300), () {
+    Timer(const Duration(milliseconds: 300), () async {
       if (scrollController.hasClients) {
-        scrollController.animateTo(
+        await scrollController.animateTo(
           0,
           duration: Duration(milliseconds: milliseconds),
           curve: Curves.easeIn,
@@ -332,11 +328,12 @@ class ChatController extends GetxController {
 
   Future<void> loadAllChat({int searchMsgIndex = -1}) async {
     // fetch some old messages
-    if (searchMsgIndex >= 0) {
-      if (searchMsgIndex > 3) {
-        searchMsgIndex = searchMsgIndex - 3;
+    var msgIndex = searchMsgIndex;
+    if (msgIndex >= 0) {
+      if (msgIndex > 3) {
+        msgIndex = msgIndex - 3;
       }
-      await _loadLatestMessages(searchMsgIndex);
+      await _loadLatestMessages(msgIndex);
       Future.delayed(const Duration(milliseconds: 300), () {
         if (scrollController.hasClients) {
           scrollController.jumpTo(scrollController.position.maxScrollExtent);
@@ -357,16 +354,15 @@ class ChatController extends GetxController {
       limit: 999,
     );
     if (unreads.isNotEmpty) {
-      RoomService.instance.markAllRead(
-        identityId: roomObs.value.identityId,
-        roomId: roomObs.value.id,
+      await RoomService.instance.markAllRead(
+        roomObs.value,
       );
     }
     unreads.addAll(list);
-    final mlist = sortMessageById(unreads.toList());
-    mlist.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final mlist = sortMessageById(unreads.toList())
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     messages.value = mlist;
-    checkPendingEcash();
+    unawaited(checkPendingEcash());
   }
 
   Future<int> _loadLatestMessages(int searchMsgIndex) async {
@@ -885,17 +881,20 @@ Add as a friend and start the signal protocol chat
       } else {
         roomContact.value = roomObs.value.contact!;
       }
-      fetchAndUpdateMetadata(
-        roomContact.value.pubkey,
-        roomContact.value.identityId,
-      ).then((Contact? item) {
-        if (item == null) return;
-        roomContact.value = item;
-        roomObs.value.contact = item;
-        roomObs.refresh();
-        Get.find<HomeController>()
-            .loadIdentityRoomList(roomContact.value.identityId);
-      });
+      // use the local file first.
+      if (roomContact.value.avatarLocalPath == null) {
+        await fetchAndUpdateMetadata(
+          roomContact.value.pubkey,
+          roomContact.value.identityId,
+        ).then((Contact? item) {
+          if (item == null) return;
+          roomContact.value = item;
+          roomObs.value.contact = item;
+          roomObs.refresh();
+          Get.find<HomeController>()
+              .loadIdentityRoomList(roomContact.value.identityId);
+        });
+      }
       return;
     }
     if (roomObs.value.type == RoomType.bot) {

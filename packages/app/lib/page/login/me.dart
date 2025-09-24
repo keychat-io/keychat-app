@@ -8,13 +8,10 @@ import 'package:app/page/login/SelectModeToCreateID.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/page/setting/app_general_setting.dart';
 import 'package:app/page/setting/more_chat_setting.dart';
-import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show Clipboard, ClipboardData;
-import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/keychat_ecash.dart';
 import 'package:pub_semver/pub_semver.dart';
@@ -30,19 +27,10 @@ class MinePage extends StatefulWidget {
 
 class _MinePageState extends State<MinePage> {
   late HomeController homeController;
-  List<String> v1EcashTokens = [];
   @override
   void initState() {
     super.initState();
     homeController = Get.find<HomeController>();
-    loadV1EcashToken();
-  }
-
-  Future<void> loadV1EcashToken() async {
-    final list = Storage.getStringList(StorageKeyString.upgradeToV2Tokens);
-    setState(() {
-      v1EcashTokens = list;
-    });
   }
 
   @override
@@ -67,98 +55,112 @@ class _MinePageState extends State<MinePage> {
               child: const Text('Test'),
             )
           : null,
-      body: Obx(() => SettingsList(
-            platform: DevicePlatform.iOS,
-            sections: [
+      body: Obx(
+        () => SettingsList(
+          platform: DevicePlatform.iOS,
+          sections: [
+            SettingsSection(
+              margin: const EdgeInsetsDirectional.only(
+                start: 16,
+                end: 16,
+                bottom: 16,
+              ),
+              title: const Text('Chat / Browser ID'),
+              tiles: [
+                ...getIDList(
+                  context,
+                  homeController.allIdentities.values.toList(),
+                ),
+                SettingsTile(
+                  title: const Text('Create ID'),
+                  trailing: Icon(
+                    CupertinoIcons.add,
+                    color: Theme.of(Get.context!)
+                        .iconTheme
+                        .color
+                        ?.withValues(alpha: 0.5),
+                    size: 22,
+                  ),
+                  onPressed: (context) async {
+                    Get.bottomSheet(
+                      clipBehavior: Clip.antiAlias,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(4),
+                        ),
+                      ),
+                      const SelectModeToCreateId(),
+                    );
+                  },
+                ),
+              ],
+            ),
+            if (GetPlatform.isMobile)
               SettingsSection(
-                  margin: const EdgeInsetsDirectional.only(
-                      start: 16, end: 16, bottom: 16),
-                  title: const Text('Chat / Browser ID'),
-                  tiles: [
-                    ...getIDList(
-                        context, homeController.allIdentities.values.toList()),
-                    SettingsTile(
-                        title: const Text('Create ID'),
-                        trailing: Icon(CupertinoIcons.add,
-                            color: Theme.of(Get.context!)
-                                .iconTheme
-                                .color
-                                ?.withValues(alpha: 0.5),
-                            size: 22),
-                        onPressed: (context) async {
-                          Get.bottomSheet(
-                              clipBehavior: Clip.antiAlias,
-                              shape: const RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.vertical(
-                                      top: Radius.circular(4))),
-                              const SelectModeToCreateId());
-                        })
-                  ]),
-              if (GetPlatform.isMobile)
-                SettingsSection(tiles: [
+                tiles: [
                   SettingsTile.navigation(
                     leading: const Icon(
                       CupertinoIcons.bitcoin,
                       color: Color(0xfff2a900),
                     ),
                     value: Text(
-                        '${Utils.getGetxController<EcashController>()?.totalSats.value.toString() ?? '-'} ${EcashTokenSymbol.sat.name}'),
+                      '${Utils.getGetxController<EcashController>()?.totalSats.value.toString() ?? '-'} ${EcashTokenSymbol.sat.name}',
+                    ),
                     onPressed: (context) async {
                       Get.toNamed(Routes.ecash);
                     },
                     title: const Text('Bitcoin Ecash'),
                   ),
-                  if (v1EcashTokens.isNotEmpty) migrateEcash()
-                ]),
-              // Desktop, migrate ecash tokens
-              if (GetPlatform.isDesktop && v1EcashTokens.isNotEmpty)
-                SettingsSection(tiles: [migrateEcash()]),
-              SettingsSection(
-                tiles: [
+                ],
+              ),
+            SettingsSection(
+              tiles: [
+                SettingsTile.navigation(
+                  leading: const Icon(CupertinoIcons.chat_bubble),
+                  title: const Text('Chat Settings'),
+                  onPressed: (context) async {
+                    Get.to(
+                      () => const MoreChatSetting(),
+                      id: GetPlatform.isDesktop ? GetXNestKey.setting : null,
+                    );
+                  },
+                ),
+                if (!GetPlatform.isLinux)
                   SettingsTile.navigation(
-                    leading: const Icon(CupertinoIcons.chat_bubble),
-                    title: const Text('Chat Settings'),
+                    title: const Text('Browser Settings'),
+                    leading: const Icon(CupertinoIcons.compass),
                     onPressed: (context) async {
-                      Get.to(() => const MoreChatSetting(),
-                          id: GetPlatform.isDesktop
-                              ? GetXNestKey.setting
-                              : null);
+                      Get.to(
+                        () => const BrowserSetting(),
+                        id: GetPlatform.isDesktop ? GetXNestKey.setting : null,
+                      );
                     },
                   ),
-                  if (!GetPlatform.isLinux)
-                    SettingsTile.navigation(
-                        title: const Text('Browser Settings'),
-                        leading: const Icon(CupertinoIcons.compass),
-                        onPressed: (context) async {
-                          Get.to(() => const BrowserSetting(),
-                              id: GetPlatform.isDesktop
-                                  ? GetXNestKey.setting
-                                  : null);
-                        }),
-                  SettingsTile.navigation(
-                    leading: const Icon(CupertinoIcons.settings),
-                    title: const Text('App Settings'),
-                    onPressed: (context) {
-                      Get.to(() => const AppGeneralSetting(),
-                          id: GetPlatform.isDesktop
-                              ? GetXNestKey.setting
-                              : null);
-                    },
-                  ),
-                ],
-              ),
-              SettingsSection(
-                tiles: [
-                  SettingsTile(
-                    leading: const Icon(Icons.verified_outlined),
-                    title: const Text('App Version'),
-                    value: getVersionCode(homeController),
-                    onPressed: (context) {},
-                  ),
-                ],
-              ),
-            ],
-          )),
+                SettingsTile.navigation(
+                  leading: const Icon(CupertinoIcons.settings),
+                  title: const Text('App Settings'),
+                  onPressed: (context) {
+                    Get.to(
+                      () => const AppGeneralSetting(),
+                      id: GetPlatform.isDesktop ? GetXNestKey.setting : null,
+                    );
+                  },
+                ),
+              ],
+            ),
+            SettingsSection(
+              tiles: [
+                SettingsTile(
+                  leading: const Icon(Icons.verified_outlined),
+                  title: const Text('App Version'),
+                  value: getVersionCode(homeController),
+                  onPressed: (context) {},
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -215,112 +217,38 @@ class _MinePageState extends State<MinePage> {
   }
 
   List<SettingsTile> getIDList(
-      BuildContext context, List<Identity> identities) {
+    BuildContext context,
+    List<Identity> identities,
+  ) {
     final res = <SettingsTile>[];
     for (var i = 0; i < identities.length; i++) {
       final identity = identities[i];
 
-      res.add(SettingsTile.navigation(
+      res.add(
+        SettingsTile.navigation(
           leading: Utils.getAvatarByIdentity(identity, size: 32),
           title: Text(
             identity.displayName,
             overflow: TextOverflow.ellipsis,
             style: i == 0
                 ? Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: Theme.of(context).colorScheme.primary)
+                      fontWeight: FontWeight.w700,
+                      color: Theme.of(context).colorScheme.primary,
+                    )
                 : Theme.of(context).textTheme.bodyLarge,
           ),
           value: Text(getPublicKeyDisplay(identity.npub)),
           onPressed: (context) async {
-            Get.to(AccountSettingPage.new,
-                arguments: identity,
-                binding: AccountSettingBindings(identity),
-                id: GetPlatform.isDesktop ? GetXNestKey.setting : null);
-          }));
+            Get.to(
+              AccountSettingPage.new,
+              arguments: identity,
+              binding: AccountSettingBindings(identity),
+              id: GetPlatform.isDesktop ? GetXNestKey.setting : null,
+            );
+          },
+        ),
+      );
     }
     return res;
-  }
-
-  SettingsTile migrateEcash() {
-    return SettingsTile.navigation(
-        leading: const Icon(Icons.warning_amber, color: Color(0xfff2a900)),
-        title: const Text('Migrate Tokens'),
-        description: Text('''
-${v1EcashTokens.length} cashu tokens may need to be migrated.
-Try using https://wallet.cashu.me/ to receive tokens.
-If you have already received it, please ignore it.''',
-            style: const TextStyle(color: Colors.red)),
-        onPressed: (_) {
-          Get.bottomSheet<void>(
-              clipBehavior: Clip.antiAlias,
-              shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(4))),
-              Scaffold(
-                appBar: AppBar(
-                  title: const Text('Migrate Tokens'),
-                  actions: [
-                    IconButton(
-                        onPressed: () {
-                          Get.dialog(
-                            CupertinoAlertDialog(
-                              title: const Text('Delete All Tokens'),
-                              content: const Text(
-                                  'Are you sure you want to delete all ecash tokens? This action cannot be undone.'),
-                              actions: [
-                                CupertinoDialogAction(
-                                  onPressed: Get.back,
-                                  child: const Text('Cancel'),
-                                ),
-                                CupertinoDialogAction(
-                                  isDestructiveAction: true,
-                                  child: const Text('Delete'),
-                                  onPressed: () async {
-                                    await Storage.remove(
-                                        StorageKeyString.upgradeToV2Tokens);
-                                    await Storage.setInt(
-                                        StorageKeyString.ecashDBVersion,
-                                        EcashDBVersion.v2);
-                                    setState(() {
-                                      v1EcashTokens.clear();
-                                    });
-                                    Get.back<void>();
-                                    EasyLoading.showSuccess(
-                                        'All tokens deleted');
-                                  },
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.delete))
-                  ],
-                ),
-                body: SettingsList(
-                  platform: DevicePlatform.iOS,
-                  sections: [
-                    SettingsSection(
-                      tiles: v1EcashTokens
-                          .map((token) => SettingsTile(
-                                title: Text(
-                                  token.length > 50
-                                      ? '${token.substring(0, 50)}...'
-                                      : token,
-                                  style:
-                                      const TextStyle(fontFamily: 'monospace'),
-                                ),
-                                trailing: const Icon(Icons.copy),
-                                onPressed: (context) {
-                                  Clipboard.setData(ClipboardData(text: token));
-                                  EasyLoading.showSuccess(
-                                      'Token copied to clipboard');
-                                },
-                              ))
-                          .toList(),
-                    ),
-                  ],
-                ),
-              ));
-        });
   }
 }

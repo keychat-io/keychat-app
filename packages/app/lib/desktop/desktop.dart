@@ -72,11 +72,14 @@ class HomeSidebarX extends GetView<DesktopController> {
         selectedItemTextPadding: const EdgeInsets.only(left: 30),
         itemDecoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
         selectedItemDecoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            gradient: const LinearGradient(colors: [
+          borderRadius: BorderRadius.circular(10),
+          gradient: const LinearGradient(
+            colors: [
               KeychatGlobal.primaryColor,
-              KeychatGlobal.primaryColor
-            ])),
+              KeychatGlobal.primaryColor,
+            ],
+          ),
+        ),
         iconTheme: const IconThemeData(size: iconSize),
         selectedIconTheme:
             const IconThemeData(color: Colors.white, size: iconSize),
@@ -84,23 +87,34 @@ class HomeSidebarX extends GetView<DesktopController> {
       showToggleButton: false, // footerDivider: divider,
       headerBuilder: (context, extended) {
         return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Image.asset('assets/images/logo.png'));
+          padding: const EdgeInsets.all(16),
+          child: Image.asset('assets/images/logo.png'),
+        );
       },
       items: [
         SidebarXItem(
           iconBuilder: (selected, hovered) {
-            return Obx(() => Badge(
+            return Obx(
+              () => Badge(
                 backgroundColor: Colors.red,
-                label: Text('${hc.allUnReadCount.value}',
-                    style: const TextStyle(color: Colors.white)),
+                label: Text(
+                  '${hc.allUnReadCount.value}',
+                  style: const TextStyle(color: Colors.white),
+                ),
                 isLabelVisible: hc.allUnReadCount.value > 0,
                 child: selected || hovered
-                    ? const Icon(CupertinoIcons.chat_bubble_fill,
-                        color: Colors.white, size: iconSize)
-                    : Icon(CupertinoIcons.chat_bubble,
+                    ? const Icon(
+                        CupertinoIcons.chat_bubble_fill,
+                        color: Colors.white,
+                        size: iconSize,
+                      )
+                    : Icon(
+                        CupertinoIcons.chat_bubble,
                         color: Get.isDarkMode ? Colors.white : Colors.black,
-                        size: iconSize)));
+                        size: iconSize,
+                      ),
+              ),
+            );
           },
         ),
         SidebarXItem(

@@ -899,14 +899,11 @@ class RoomService extends BaseChatService {
     return null;
   }
 
-  Future<bool> markAllRead({
-    required int identityId,
-    required int roomId,
-  }) async {
-    final refresh = await MessageService.instance.setViewedMessage(roomId);
+  Future<bool> markAllRead(Room room) async {
+    final refresh = await MessageService.instance.setViewedMessage(room.id);
     if (refresh) {
       Utils.getGetxController<HomeController>()
-          ?.loadIdentityRoomList(identityId);
+          ?.loadIdentityRoomList(room.identityId);
       return true;
     }
     return false;
@@ -917,7 +914,7 @@ class RoomService extends BaseChatService {
         Get.find<HomeController>().getRoomByIdentity(room.identityId, room.id);
     if (homeRoom == null) return;
     if (homeRoom.unReadCount == 0) return;
-    await markAllRead(identityId: room.identityId, roomId: room.id);
+    await markAllRead(room);
   }
 
   Future<void> mute(Room room, bool value) async {

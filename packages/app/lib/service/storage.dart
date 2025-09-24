@@ -54,7 +54,6 @@ class StorageKeyString {
   static const String biometricsAuthTime = 'biometricsAuthTime';
 
   static const String ecashDBVersion = 'ecashDBVersion';
-  static const String upgradeToV2Tokens = 'upgradeToV2Tokens';
 }
 
 class Storage {
@@ -76,14 +75,16 @@ class Storage {
       final appDataPath =
           path.join(appSupportDirectory.path, 'shared_preferences.json');
       logger.e(
-          'Failed to load the preferences file at $appDataPath. Attempting to repair it.');
+        'Failed to load the preferences file at $appDataPath. Attempting to repair it.',
+      );
       await _repairPreferences(appDataPath);
 
       try {
         _sp = await SharedPreferences.getInstance();
       } catch (error) {
         logger.e(
-            'Failed to repair the preferences file. Deleting the file and proceeding with a fresh configuration.');
+          'Failed to repair the preferences file. Deleting the file and proceeding with a fresh configuration.',
+        );
         await File(appDataPath).delete();
         _sp = await SharedPreferences.getInstance();
       }

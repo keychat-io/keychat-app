@@ -32,104 +32,128 @@ class _RedPocketCashuState extends State<RedPocketCashu> {
   @override
   Widget build(BuildContext context) {
     return Container(
-        constraints: const BoxConstraints(maxWidth: 350),
-        alignment: Alignment.center,
-        padding: const EdgeInsets.only(top: 8, bottom: 8),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color.fromARGB(255, 245, 67, 39),
-              Color.fromARGB(255, 255, 149, 0)
-            ],
-          ),
+      constraints: const BoxConstraints(maxWidth: 350),
+      alignment: Alignment.center,
+      padding: const EdgeInsets.only(top: 8, bottom: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color.fromARGB(255, 245, 67, 39),
+            Color.fromARGB(255, 255, 149, 0),
+          ],
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ListTile(
-                leading: SizedBox(
-                    width: 48,
-                    child: Image.asset('assets/images/BTC.png',
-                        fit: BoxFit.contain)),
-                title: Text(
-                    _cashuInfoModel.amount > 0
-                        ? '${_cashuInfoModel.amount} ${EcashTokenSymbol.sat.name}'
-                        : 'Token spent',
-                    overflow: TextOverflow.ellipsis,
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          ListTile(
+            leading: SizedBox(
+              width: 48,
+              child: Image.asset(
+                'assets/images/bitcoin.png',
+                fit: BoxFit.contain,
+              ),
+            ),
+            title: Text(
+              _cashuInfoModel.amount > 0
+                  ? '${_cashuInfoModel.amount} ${EcashTokenSymbol.sat.name}'
+                  : 'Token spent',
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(color: Colors.white),
+            ),
+            subtitle: Text(
+              _cashuInfoModel.token,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.white38,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                  ),
+            ),
+            trailing: _cashuInfoModel.status == TransactionStatus.pending
+                ? null
+                : CashuStatus.getStatusIcon(
+                    _cashuInfoModel.amount == 0
+                        ? TransactionStatus.success
+                        : _cashuInfoModel.status,
+                  ),
+          ),
+          if (_cashuInfoModel.status == TransactionStatus.pending)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.white70),
+                  ),
+                  onPressed: () async {
+                    EasyThrottle.throttle(
+                        'handleReceiveToken', const Duration(seconds: 3),
+                        () async {
+                      if (_cashuInfoModel.status != TransactionStatus.pending) {
+                        return;
+                      }
+                      final model = await CashuUtil.handleReceiveToken(
+                        token: _cashuInfoModel.token,
+                        messageId: widget.message.id,
+                        retry: true,
+                      );
+
+                      if (model != null) {
+                        logger.d(
+                          'handleReceiveToken status: ${model.status.name}',
+                        );
+                        updateMessageEcashStatus(model.status);
+                      }
+                    });
+                  },
+                  child: Text(
+                    'Redeem',
                     style: Theme.of(context)
                         .textTheme
-                        .titleMedium
-                        ?.copyWith(color: Colors.white)),
-                subtitle: Text(
-                  _cashuInfoModel.token,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.white38,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w400),
+                        .bodyMedium
+                        ?.copyWith(color: Colors.white),
+                  ),
                 ),
-                trailing: _cashuInfoModel.status == TransactionStatus.pending
-                    ? null
-                    : CashuStatus.getStatusIcon(_cashuInfoModel.amount == 0
-                        ? TransactionStatus.success
-                        : _cashuInfoModel.status)),
-            if (_cashuInfoModel.status == TransactionStatus.pending)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.white70),
-                      ),
-                      onPressed: () async {
-                        EasyThrottle.throttle(
-                            'handleReceiveToken', const Duration(seconds: 3),
-                            () async {
-                          if (_cashuInfoModel.status !=
-                              TransactionStatus.pending) {
-                            return;
-                          }
-                          final model = await CashuUtil.handleReceiveToken(
-                              token: _cashuInfoModel.token,
-                              messageId: widget.message.id,
-                              retry: true);
-
-                          if (model != null) {
-                            logger.d(
-                                'handleReceiveToken status: ${model.status.name}');
-                            updateMessageEcashStatus(model.status);
-                          }
-                        });
-                      },
-                      child: Text('Redeem',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(color: Colors.white))),
+                IconButton(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.white70),
+                  ),
+                  onPressed: () {
+                    Clipboard.setData(
+                      ClipboardData(text: _cashuInfoModel.token),
+                    );
+                    EasyLoading.showSuccess('Token copied to clipboard');
+                  },
+                  icon: const Icon(
+                    Icons.copy,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+                if (_cashuInfoModel.id != null)
                   IconButton(
-                      style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.white70)),
-                      onPressed: () {
-                        Clipboard.setData(
-                            ClipboardData(text: _cashuInfoModel.token));
-                        EasyLoading.showSuccess('Token copied to clipboard');
-                      },
-                      icon: const Icon(Icons.copy,
-                          color: Colors.white, size: 16)),
-                  if (_cashuInfoModel.id != null)
-                    IconButton(
-                        style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.white70)),
-                        onPressed: checkStatus,
-                        icon: const Icon(Icons.refresh,
-                            color: Colors.white, size: 16)),
-                ],
-              ),
-          ],
-        ));
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.white70),
+                    ),
+                    onPressed: checkStatus,
+                    icon: const Icon(
+                      Icons.refresh,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                  ),
+              ],
+            ),
+        ],
+      ),
+    );
   }
 
   Future<void> checkStatus() async {
@@ -157,8 +181,6 @@ class _RedPocketCashuState extends State<RedPocketCashu> {
     _cashuInfoModel.status = status;
     widget.message.cashuInfo = _cashuInfoModel;
     await MessageService.instance.updateMessage(widget.message);
-    setState(() {
-      _cashuInfoModel = _cashuInfoModel;
-    });
+    setState(() {});
   }
 }

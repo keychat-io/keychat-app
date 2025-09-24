@@ -422,8 +422,7 @@ Let's start an encrypted chat.''';
         actions: <CupertinoActionSheetAction>[
           CupertinoActionSheetAction(
             onPressed: () async {
-              await RoomService.instance
-                  .markAllRead(identityId: room.identityId, roomId: room.id);
+              await RoomService.instance.markAllRead(room);
               Get.back<void>();
             },
             child: const Text('Mark as Read'),

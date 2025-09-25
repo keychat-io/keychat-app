@@ -407,6 +407,37 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                             );
                           },
                         ),
+                      if (controller.identity.value.enableChat)
+                        SettingsTile.navigation(
+                          description: Obx(
+                            () => (controller
+                                        .identity.value.lightning?.isNotEmpty ??
+                                    false)
+                                ? Text(
+                                    controller.identity.value.lightning ?? '')
+                                : Container(),
+                          ),
+                          leading: SizedBox(
+                            width: 24,
+                            child: Image.asset(
+                              'assets/images/lightning.png',
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                          title: const Text('Lightning Address'),
+                          onPressed: (context) async {
+                            final result = await Get.dialog<String>(
+                              LightningAddressEditDialog(
+                                identity: controller.identity.value,
+                              ),
+                            );
+
+                            if (result != null) {
+                              controller.identity.value.lightning = result;
+                              controller.identity.refresh();
+                            }
+                          },
+                        ),
                     ],
                   ),
                   SettingsSection(
@@ -447,42 +478,12 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                               () => BrowserConnectedWebsite(
                                 controller.identity.value,
                               ),
+                              id: GetPlatform.isDesktop
+                                  ? GetXNestKey.setting
+                                  : null,
                             );
                           },
                         ),
-                    ],
-                  ),
-                  SettingsSection(
-                    tiles: [
-                      SettingsTile.navigation(
-                        description: Obx(
-                          () => (controller
-                                      .identity.value.lightning?.isNotEmpty ??
-                                  false)
-                              ? Text(controller.identity.value.lightning ?? '')
-                              : Container(),
-                        ),
-                        leading: SizedBox(
-                          width: 24,
-                          child: Image.asset(
-                            'assets/images/lightning.png',
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                        title: const Text('Lightning Address'),
-                        onPressed: (context) async {
-                          final result = await Get.dialog<String>(
-                            LightningAddressEditDialog(
-                              identity: controller.identity.value,
-                            ),
-                          );
-
-                          if (result != null) {
-                            controller.identity.value.lightning = result;
-                            controller.identity.refresh();
-                          }
-                        },
-                      ),
                     ],
                   ),
                 ],

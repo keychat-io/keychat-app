@@ -135,7 +135,9 @@ class _WebviewTabState extends State<WebviewTab> {
                             IconButton(
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 2),
-                              onPressed: goBackOrPop,
+                              onPressed: tabController.canGoBack.value
+                                  ? goBackOrPop
+                                  : null,
                               icon: const Icon(Icons.arrow_back),
                             ),
                             IconButton(
@@ -149,8 +151,8 @@ class _WebviewTabState extends State<WebviewTab> {
                             ),
                             IconButton(
                               onPressed: tabController.canGoForward.value
-                                  ? () {
-                                      tabController.inAppWebViewController
+                                  ? () async {
+                                      await tabController.inAppWebViewController
                                           ?.goForward();
                                     }
                                   : null,
@@ -168,7 +170,7 @@ class _WebviewTabState extends State<WebviewTab> {
                           child: AutoSizeText(
                             multiWebviewController.removeHttpPrefix(
                               tabController.title.value.isEmpty
-                                  ? tabController.url.value
+                                  ? tabController.url
                                   : tabController.title.value,
                             ),
                             minFontSize: 10,
@@ -184,7 +186,7 @@ class _WebviewTabState extends State<WebviewTab> {
                 : AutoSizeText(
                     multiWebviewController.removeHttpPrefix(
                       tabController.title.value.isEmpty
-                          ? tabController.url.value
+                          ? tabController.url
                           : tabController.title.value,
                     ),
                     minFontSize: 10,
@@ -201,7 +203,7 @@ class _WebviewTabState extends State<WebviewTab> {
                   return [
                     PopupMenuItem(
                       value: 'tools',
-                      child: getPopTools(tabController.url.value),
+                      child: getPopTools(currentUri.toString()),
                     ),
                     PopupMenuItem(
                       value: 'refresh',
@@ -316,7 +318,7 @@ class _WebviewTabState extends State<WebviewTab> {
                     ),
                     if (GetPlatform.isMobile)
                       PopupMenuItem(
-                        padding: const EdgeInsets.only(),
+                        padding: EdgeInsets.zero,
                         value: 'KeepAlive',
                         child: ListTile(
                           leading: Transform.scale(
@@ -475,7 +477,7 @@ class _WebviewTabState extends State<WebviewTab> {
         key: tabController.pageStorageKey.value,
         keepAlive: GetPlatform.isDesktop ? null : widget.keepAlive,
         webViewEnvironment: multiWebviewController.webViewEnvironment,
-        initialUrlRequest: URLRequest(url: WebUri(tabController.url.value)),
+        initialUrlRequest: URLRequest(url: WebUri(tabController.url)),
         initialSettings: tabController.settings,
         pullToRefreshController: pullToRefreshController,
         initialUserScripts:
@@ -484,7 +486,7 @@ class _WebviewTabState extends State<WebviewTab> {
           // Save scroll position by current URL
           if (GetPlatform.isAndroid) {
             EasyDebounce.debounce(
-              'saveScroll:${tabController.url.value}',
+              'saveScroll:${tabController.url}',
               const Duration(milliseconds: 500),
               () async {
                 final uri = await controller.getUrl();
@@ -660,9 +662,9 @@ class _WebviewTabState extends State<WebviewTab> {
           );
           return ClientCertResponse(action: ClientCertResponseAction.PROCEED);
         },
-        onProgressChanged: (controller, data) {
+        onProgressChanged: (controller, data) async {
           if (data == 100) {
-            pullToRefreshController?.endRefreshing();
+            await pullToRefreshController?.endRefreshing();
           }
           tabController.progress.value = data / 100;
         },
@@ -755,7 +757,7 @@ class _WebviewTabState extends State<WebviewTab> {
         },
         onTitleChanged: (controller, title) async {
           if (title == null) return;
-          updateTabInfo(widget.uniqueKey, tabController.url.value, title);
+          updateTabInfo(widget.uniqueKey, currentUri.toString(), title);
         },
         onUpdateVisitedHistory: (controller, url, androidIsReload) {
           // logger.i('onUpdateVisitedHistory: ${url.toString()} $androidIsReload');
@@ -1110,8 +1112,8 @@ class _WebviewTabState extends State<WebviewTab> {
                     max: 300,
                     divisions: 10,
                     label: '${multiWebviewController.kInitialTextSize.value}',
-                    onChanged: (value) {
-                      tabController.updateTextSize(value.toInt());
+                    onChanged: (value) async {
+                      await tabController.updateTextSize(value.toInt());
                     },
                   ),
                 ),
@@ -1170,7 +1172,7 @@ class _WebviewTabState extends State<WebviewTab> {
       url: url0,
     );
     tabController.title.value = title0;
-    tabController.url.value = url0;
+    tabController.url = url0;
   }
 
   Future<void> downloadFile(String url, [String? filename]) async {
@@ -1536,6 +1538,7 @@ img {
       logger.e(e.toString(), error: e);
       tabController.pageStorageKey.value =
           PageStorageKey<String>(Random().nextInt(1 << 32).toString());
+      tabController.url = currentUri.toString();
     }
   }
 

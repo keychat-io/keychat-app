@@ -71,9 +71,8 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
               child: Column(
                 children: [
                   ListTile(
-                    leading: SizedBox(
-                      width: 60,
-                      height: 60,
+                    leading: CircleAvatar(
+                      radius: 25,
                       child: Utils.getRandomAvatar(
                         cc.roomObs.value.toMainPubkey,
                         size: 60,
@@ -220,48 +219,6 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                             );
                           },
                         ),
-                      SettingsTile.navigation(
-                        title: const Text('Security Settings'),
-                        leading: const Icon(CupertinoIcons.lock_shield),
-                        onPressed: (context) {
-                          Get.toNamed(
-                            Routes.roomSettingContactSecurity.replaceFirst(
-                              ':id',
-                              cc.roomObs.value.id.toString(),
-                            ),
-                            id: GetPlatform.isDesktop ? GetXNestKey.room : null,
-                          );
-                        },
-                      ),
-                      SettingsTile.switchTile(
-                        title: const Text('Show Addresses'),
-                        initialValue: cc.showFromAndTo.value,
-                        onToggle: (value) async {
-                          cc.showFromAndTo.toggle();
-                          Get.back<void>();
-                        },
-                        leading: const Icon(CupertinoIcons.mail),
-                      ),
-                      RoomUtil.pinRoomSection(cc),
-                      if (cc.roomObs.value.encryptMode == EncryptMode.signal &&
-                          GetPlatform.isIOS)
-                        RoomUtil.muteSection(cc),
-                      SettingsTile.navigation(
-                        leading: const Icon(CupertinoIcons.search),
-                        title: const Text('Search History'),
-                        onPressed: (context) async {
-                          await Get.to<void>(
-                            () => SearchMessagesPage(
-                              roomId: cc.roomObs.value.id,
-                            ),
-                            id: GetPlatform.isDesktop ? GetXNestKey.room : null,
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                  SettingsSection(
-                    tiles: [
                       SettingsTile(
                         description:
                             (cc.roomContact.value.lightning?.isNotEmpty ??
@@ -278,7 +235,7 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                         title: const Text('Lightning Address'),
                         trailing: (cc.roomContact.value.lightning?.isEmpty ??
                                 true)
-                            ? const Text('Not set')
+                            ? textSmallGray(context, 'Not set')
                             : IconButton(
                                 icon: const Icon(
                                   CupertinoIcons.arrow_right_circle,
@@ -303,6 +260,44 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                                   );
                                 },
                               ),
+                      ),
+                      SettingsTile.navigation(
+                        title: const Text('Security Settings'),
+                        leading: const Icon(CupertinoIcons.lock_shield),
+                        onPressed: (context) {
+                          Get.toNamed(
+                            Routes.roomSettingContactSecurity.replaceFirst(
+                              ':id',
+                              cc.roomObs.value.id.toString(),
+                            ),
+                            id: GetPlatform.isDesktop ? GetXNestKey.room : null,
+                          );
+                        },
+                      ),
+                      SettingsTile.switchTile(
+                        title: const Text('Show Addresses in chat'),
+                        initialValue: cc.showFromAndTo.value,
+                        onToggle: (value) async {
+                          cc.showFromAndTo.toggle();
+                          Get.back<void>();
+                        },
+                        leading: const Icon(CupertinoIcons.mail),
+                      ),
+                      RoomUtil.pinRoomSection(cc),
+                      if (cc.roomObs.value.encryptMode == EncryptMode.signal &&
+                          GetPlatform.isIOS)
+                        RoomUtil.muteSection(cc),
+                      SettingsTile.navigation(
+                        leading: const Icon(CupertinoIcons.search),
+                        title: const Text('Search History'),
+                        onPressed: (context) async {
+                          await Get.to<void>(
+                            () => SearchMessagesPage(
+                              roomId: cc.roomObs.value.id,
+                            ),
+                            id: GetPlatform.isDesktop ? GetXNestKey.room : null,
+                          );
+                        },
                       ),
                     ],
                   ),

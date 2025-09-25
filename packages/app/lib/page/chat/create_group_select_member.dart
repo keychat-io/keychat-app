@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:app/controller/home.controller.dart';
+import 'package:app/models/models.dart';
 import 'package:app/page/components.dart';
 import 'package:app/service/group.service.dart';
 import 'package:app/service/mls_group.service.dart';
@@ -8,16 +11,21 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:app/models/models.dart';
 
 class CreateGroupSelectMember extends StatefulWidget {
   const CreateGroupSelectMember(
-      this.groupName, this.relays, this.groupType, this.contacts,
-      {super.key});
+    this.groupName,
+    this.relays,
+    this.groupType,
+    this.contacts,
+    this.identity, {
+    super.key,
+  });
   final List<Map<String, dynamic>> contacts;
   final List<String> relays;
   final String groupName;
   final GroupType groupType;
+  final Identity identity;
 
   @override
   _CreateGroupSelectMemberState createState() =>
@@ -33,11 +41,13 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
   List<Map<String, dynamic>> users = [];
 
   bool pageLoading = true;
+  late Identity identity;
 
   @override
   void initState() {
+    identity = widget.identity;
     super.initState();
-    _loading();
+    unawaited(_loading());
   }
 
   Future<void> _loading() async {
@@ -91,7 +101,7 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
         selectedContact.add({
           'pubkey': contact['pubkey'],
           'name': contact['name'],
-          'mlsPK': contact['mlsPK']
+          'mlsPK': contact['mlsPK'],
         });
       }
     }
@@ -99,7 +109,6 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
       EasyLoading.showError('Please select at least one user');
       return;
     }
-    final identity = Get.find<HomeController>().getSelectedIdentity();
     try {
       late Room room;
       if (widget.groupType == GroupType.sendAll) {
@@ -108,8 +117,11 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
         await GroupService.instance.inviteToJoinGroup(room, selectAccounts);
       } else if (widget.groupType == GroupType.mls) {
         room = await MlsGroupService.instance.createGroup(
-            widget.groupName, identity,
-            toUsers: selectedContact, groupRelays: widget.relays);
+          widget.groupName,
+          identity,
+          toUsers: selectedContact,
+          groupRelays: widget.relays,
+        );
       }
       Get.find<HomeController>().loadIdentityRoomList(identity.id);
       Get.back<void>();
@@ -129,9 +141,13 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
         title: const Text('Select Members'),
         actions: [
           FilledButton(
-              onPressed: () => EasyThrottle.throttle('_completeToCreatGroup',
-                  const Duration(seconds: 4), _completeToCreatGroup),
-              child: const Text('Done'))
+            onPressed: () => EasyThrottle.throttle(
+              '_completeToCreatGroup',
+              const Duration(seconds: 4),
+              _completeToCreatGroup,
+            ),
+            child: const Text('Done'),
+          ),
         ],
       ),
       body: pageLoading
@@ -141,12 +157,13 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
               itemBuilder: (c, i) {
                 final user = users[i];
                 return ListTile(
-                    dense: true,
-                    leading: Utils.getRandomAvatar(user['pubkey']),
-                    title: Text(user['name'], maxLines: 1),
-                    subtitle:
-                        Text(user['npubkey'], overflow: TextOverflow.ellipsis),
-                    trailing: getAddMemeberCheckBox(widget.groupType, user));
+                  dense: true,
+                  leading: Utils.getRandomAvatar(user['pubkey']),
+                  title: Text(user['name'], maxLines: 1),
+                  subtitle:
+                      Text(user['npubkey'], overflow: TextOverflow.ellipsis),
+                  trailing: getAddMemeberCheckBox(widget.groupType, user),
+                );
               },
             ),
     );
@@ -155,38 +172,50 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
   Widget getAddMemeberCheckBox(GroupType groupType, Map<String, dynamic> user) {
     if (user['isAdmin'] == true || user['exist'] == true) {
       return const Checkbox(
-          onChanged: null, value: true, activeColor: Colors.grey);
+        onChanged: null,
+        value: true,
+        activeColor: Colors.grey,
+      );
     }
     if (groupType == GroupType.sendAll) {
       return Checkbox(
-          value: user['isCheck'],
-          onChanged: (isCheck) {
-            user['isCheck'] = isCheck;
-            setState(() {});
-          });
-    }
-
-    if (user['mlsPK'] == null) {
-      return IconButton(
-          onPressed: () {
-            Get.dialog(CupertinoAlertDialog(
-                title: const Text('Not upload MLS keys'),
-                content: const Text(
-                    'Notify your friend to restart the app, and the key will be uploaded automatically.'),
-                actions: <Widget>[
-                  CupertinoDialogAction(
-                      onPressed: Get.back, child: const Text('OK'))
-                ]));
-          },
-          icon: const Icon(Icons.warning, color: Colors.orange));
-    }
-    // user['mlsPK'] = snapshot.data;
-    return Checkbox(
         value: user['isCheck'],
         onChanged: (isCheck) {
           user['isCheck'] = isCheck;
           setState(() {});
-        });
+        },
+      );
+    }
+
+    if (user['mlsPK'] == null) {
+      return IconButton(
+        onPressed: () {
+          Get.dialog(
+            CupertinoAlertDialog(
+              title: const Text('Not upload MLS keys'),
+              content: const Text(
+                'Notify your friend to restart the app, and the key will be uploaded automatically.',
+              ),
+              actions: <Widget>[
+                CupertinoDialogAction(
+                  onPressed: Get.back,
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        },
+        icon: const Icon(Icons.warning, color: Colors.orange),
+      );
+    }
+    // user['mlsPK'] = snapshot.data;
+    return Checkbox(
+      value: user['isCheck'],
+      onChanged: (isCheck) {
+        user['isCheck'] = isCheck;
+        setState(() {});
+      },
+    );
     // });
   }
 }

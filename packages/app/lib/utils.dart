@@ -7,10 +7,10 @@ import 'package:app/global.dart';
 import 'package:app/models/contact.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/models/room.dart';
+import 'package:app/page/browser/SelectIdentityForward.dart';
 import 'package:app/page/dbSetup/db_setting.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/service/SignerService.dart';
-import 'package:app/service/contact.service.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/service/websocket.service.dart';
@@ -495,10 +495,43 @@ Init File: $time \n
     );
   }
 
-  static Widget getAvatarDot(Room room, {double size = 50}) {
+  static Map<String, String> avatarCache = {};
+  // Add avatar widget cache
+  static final Map<String, Widget> _avatarWidgetCache = {};
+
+  static Widget getAvatarByRoom(Room room, {double size = 50}) {
     final newMessageCount = room.unReadCount;
     final chatType = room.type;
+    final cacheKey = 'avatar_dot_${room.id}_$size';
 
+    // Return cached widget if available
+    if (_avatarWidgetCache.containsKey(cacheKey)) {
+      final cachedWidget = _avatarWidgetCache[cacheKey]!;
+
+      // For badges that need to be updated dynamically
+      if (room.unReadCount == 0) return cachedWidget;
+
+      // Only rebuild badge part if needed
+      if (room.isMute) {
+        return badges.Badge(
+          position: badges.BadgePosition.topEnd(top: -5, end: -5),
+          badgeAnimation: const badges.BadgeAnimation.fade(toAnimate: false),
+          child: cachedWidget,
+        );
+      }
+
+      return badges.Badge(
+        badgeContent: Text(
+          '$newMessageCount',
+          style: const TextStyle(color: Colors.white),
+        ),
+        badgeAnimation: const badges.BadgeAnimation.fade(toAnimate: false),
+        position: badges.BadgePosition.topEnd(end: -5),
+        child: cachedWidget,
+      );
+    }
+
+    // Create the base avatar widget
     late Widget child;
     if (chatType == RoomType.group) {
       final account = room.getRoomName();
@@ -517,6 +550,10 @@ Init File: $time \n
         contact: room.contact,
       );
     }
+
+    // Cache the base avatar widget
+    _avatarWidgetCache[cacheKey] = child;
+
     if (room.unReadCount == 0) return child;
 
     // mute room
@@ -536,6 +573,11 @@ Init File: $time \n
       position: badges.BadgePosition.topEnd(end: -5),
       child: child,
     );
+  }
+
+  // Add method to clear avatar cache when needed
+  static void clearAvatarCache() {
+    _avatarWidgetCache.clear();
   }
 
   static Widget getAvatorByName(
@@ -774,19 +816,30 @@ Init File: $time \n
     return getNetworkImage(imageUrl, size: size, radius: radius)!;
   }
 
-  static Map<String, String> avatarCache = {};
-
   static Widget getRandomAvatar(
     String id, {
     double size = 40,
     Contact? contact,
     String? localPath,
   }) {
+    // Include file paths in cache key to handle path changes
+    final filePath = localPath ??
+        contact?.avatarLocalPath ??
+        contact?.avatarFromRelayLocalPath;
+    final cacheKey = 'avatar_${id}_${contact?.id}_$size${filePath ?? ""}';
+
+    // Check if we have this avatar widget cached
+    if (_avatarWidgetCache.containsKey(cacheKey)) {
+      return _avatarWidgetCache[cacheKey]!;
+    }
+
     // localPath
     if (localPath != null) {
       final file = File('${Utils.appFolder.path}$localPath');
       if (file.existsSync()) {
-        return getAvatarByImageFile(file, size: size);
+        final widget = getAvatarByImageFile(file, size: size);
+        _avatarWidgetCache[cacheKey] = widget;
+        return widget;
       }
     }
     // from contact
@@ -798,33 +851,43 @@ Init File: $time \n
       if (localFilePath != null) {
         final file = File('${Utils.appFolder.path}$localFilePath');
         if (file.existsSync()) {
-          return getAvatarByImageFile(file, size: size);
+          final widget = getAvatarByImageFile(file, size: size);
+          _avatarWidgetCache[cacheKey] = widget;
+          return widget;
         }
       }
     }
 
     // use random avatar
-    return _generateRandomAvatar(id, size: size);
+    final widget = _generateRandomAvatar(id, size: size);
+    _avatarWidgetCache[cacheKey] = widget;
+    return widget;
   }
 
   static SvgPicture _generateRandomAvatar(String id, {double size = 40}) {
     final filePath = '${Utils.avatarsFolder}/$id.svg';
     final file = File(filePath);
+
+    // Use a consistent key for the SVG picture
+    final objectKey = ValueKey('svgavatar:$id:$size');
+
     if (file.existsSync()) {
       return SvgPicture.file(
         file,
         width: size,
         height: size,
-        key: ObjectKey('svgavatar:$filePath'),
+        key: objectKey,
       );
-    } else {}
-    final svgCode = AvatarPlusGen.instance.generate(id);
-    file.writeAsStringSync(svgCode);
-    return SvgPicture.string(
-      svgCode,
-      width: size,
-      height: size,
-    );
+    } else {
+      final svgCode = AvatarPlusGen.instance.generate(id);
+      file.writeAsStringSync(svgCode);
+      return SvgPicture.string(
+        svgCode,
+        width: size,
+        height: size,
+        key: objectKey,
+      );
+    }
   }
 
   static Future<PermissionStatus> getStoragePermission() async {
@@ -1369,6 +1432,30 @@ Init File: $time \n
       identity.secp256k1PKHex,
       localPath: identity.avatarLocalPath ?? identity.avatarFromRelayLocalPath,
       size: size,
+    );
+  }
+
+  static Widget selectIdentityIconButton(
+    Identity defaultIdentity,
+    void Function(Identity selected) callback,
+  ) {
+    final selectedIdentity = Rx<Identity>(defaultIdentity);
+
+    return TextButton.icon(
+      onPressed: () async {
+        final selected = await Get.bottomSheet<Identity>(
+          clipBehavior: Clip.antiAlias,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+          ),
+          const SelectIdentityForward('Select a Identity'),
+        );
+        if (selected == null) return;
+        selectedIdentity.value = selected;
+        callback(selected);
+      },
+      icon: const Icon(Icons.swap_horiz),
+      label: Obx(() => Text(selectedIdentity.value.displayName)),
     );
   }
 }

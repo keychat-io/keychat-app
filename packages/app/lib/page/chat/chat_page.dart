@@ -1103,7 +1103,7 @@ class _ChatPage2State extends State<ChatPage> {
                           room.toMainPubkey,
                         );
                         return ListTile(
-                          leading: Utils.getAvatarDot(room),
+                          leading: Utils.getAvatarByRoom(room),
                           key: Key('room:${room.id}'),
                           title: Text(room.getRoomName()),
                           trailing: OutlinedButton(

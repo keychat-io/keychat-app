@@ -414,7 +414,8 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                                         .identity.value.lightning?.isNotEmpty ??
                                     false)
                                 ? Text(
-                                    controller.identity.value.lightning ?? '')
+                                    controller.identity.value.lightning ?? '',
+                                  )
                                 : Container(),
                           ),
                           leading: SizedBox(
@@ -764,7 +765,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
         ..avatarRemoteUrl = mfi.getUriString('image')
         ..avatarUpdatedAt = DateTime.now();
       await IdentityService.instance.updateIdentity(controller.identity.value);
-
+      Utils.clearAvatarCache();
       // Force refresh UI
       controller.identity.refresh();
       await EasyLoading.showSuccess('Avatar uploaded successfully');

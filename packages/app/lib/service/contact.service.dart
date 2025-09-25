@@ -403,6 +403,7 @@ class ContactService {
         );
         contact.avatarLocalPath =
             decryptedFile.path.replaceFirst(Utils.appFolder.path, '');
+        Utils.clearAvatarCache();
       } catch (e) {
         logger.e('Failed to download avatar: $e');
       }

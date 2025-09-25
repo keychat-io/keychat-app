@@ -386,7 +386,7 @@ class _SearchPageState extends State<SearchPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (room != null)
-                  Utils.getAvatarDot(room)
+                  Utils.getAvatarByRoom(room)
                 else
                   Utils.getRandomAvatar(message.idPubkey),
                 const SizedBox(width: 12),

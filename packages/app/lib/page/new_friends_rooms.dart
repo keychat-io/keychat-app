@@ -7,8 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class AnonymousRooms extends StatefulWidget {
-  final List<Room> rooms;
   const AnonymousRooms(this.rooms, {super.key});
+  final List<Room> rooms;
 
   @override
   _AnonymousRoomsState createState() => _AnonymousRoomsState();
@@ -25,8 +25,8 @@ class _AnonymousRoomsState extends State<AnonymousRooms> {
   }
 
   void _updateRoom(Room room) {
-    List<Room> newList = [];
-    for (Room r in list) {
+    final newList = <Room>[];
+    for (var r in list) {
       if (r.id == room.id) {
         r = room;
       }
@@ -38,8 +38,8 @@ class _AnonymousRoomsState extends State<AnonymousRooms> {
   }
 
   void _removeRoom(Room room) {
-    List<Room> newList = [];
-    for (Room r in list) {
+    final newList = <Room>[];
+    for (final r in list) {
       if (r.id != room.id) {
         newList.add(r);
       }
@@ -51,59 +51,70 @@ class _AnonymousRoomsState extends State<AnonymousRooms> {
 
   @override
   Widget build(BuildContext context) {
-    DateTime messageExpired =
-        DateTime.now().subtract(const Duration(seconds: 5));
-    HomeController homeController = Get.find<HomeController>();
+    final messageExpired = DateTime.now().subtract(const Duration(seconds: 5));
+    final homeController = Get.find<HomeController>();
     return Scaffold(
       appBar: AppBar(
         title: const Text('New Friends'),
       ),
       body: SafeArea(
-          child: ListView.separated(
-              separatorBuilder: (context2, index) => Divider(
-                  height: 1,
-                  color:
-                      Theme.of(context).dividerColor.withValues(alpha: 0.05)),
-              itemCount: list.length,
-              itemBuilder: (context, index) {
-                Room room = list[index];
-                return ListTile(
-                  leading: Utils.getAvatarDot(room),
-                  key: Key('room:${room.id}'),
-                  onLongPress: () async {
-                    await RoomUtil.showRoomActionSheet(context, room,
-                        onDeleteHistory: () {
-                      homeController.roomLastMessage[room.id] = null;
-                      _updateRoom(room);
-                    }, onDeletRoom: () {
-                      _removeRoom(room);
-                    });
-                  },
-                  onTap: () async {
-                    room.unReadCount = 0;
+        child: ListView.separated(
+          separatorBuilder: (context2, index) => Divider(
+            height: 1,
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.05),
+          ),
+          itemCount: list.length,
+          itemBuilder: (context, index) {
+            final room = list[index];
+            return ListTile(
+              leading: Utils.getAvatarByRoom(room),
+              key: Key('room:${room.id}'),
+              onLongPress: () async {
+                await RoomUtil.showRoomActionSheet(
+                  context,
+                  room,
+                  onDeleteHistory: () {
+                    homeController.roomLastMessage[room.id] = null;
                     _updateRoom(room);
-                    if (list.length == 1) {
-                      await Utils.offAndToNamedRoom(room);
-                      return;
-                    }
-                    await Utils.toNamedRoom(room);
                   },
-                  title: Text(
-                    room.getRoomName(),
-                    maxLines: 1,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  subtitle: RoomUtil.getSubtitleDisplay(context, room,
-                      messageExpired, homeController.roomLastMessage[room.id]),
-                  trailing:
-                      homeController.roomLastMessage[room.id]?.createdAt != null
-                          ? textSmallGray(
-                              context,
-                              Utils.formatTimeMsg(homeController
-                                  .roomLastMessage[room.id]!.createdAt))
-                          : null,
+                  onDeletRoom: () {
+                    _removeRoom(room);
+                  },
                 );
-              })),
+              },
+              onTap: () async {
+                room.unReadCount = 0;
+                _updateRoom(room);
+                if (list.length == 1) {
+                  await Utils.offAndToNamedRoom(room);
+                  return;
+                }
+                await Utils.toNamedRoom(room);
+              },
+              title: Text(
+                room.getRoomName(),
+                maxLines: 1,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              subtitle: RoomUtil.getSubtitleDisplay(
+                context,
+                room,
+                messageExpired,
+                homeController.roomLastMessage[room.id],
+              ),
+              trailing:
+                  homeController.roomLastMessage[room.id]?.createdAt != null
+                      ? textSmallGray(
+                          context,
+                          Utils.formatTimeMsg(
+                            homeController.roomLastMessage[room.id]!.createdAt,
+                          ),
+                        )
+                      : null,
+            );
+          },
+        ),
+      ),
     );
   }
 }

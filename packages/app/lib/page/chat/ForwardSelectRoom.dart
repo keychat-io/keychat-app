@@ -60,21 +60,9 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
         ),
         title: const Text('Select to Forward'),
         actions: [
-          TextButton.icon(
-            onPressed: () async {
-              final selected = await Get.bottomSheet(
-                clipBehavior: Clip.antiAlias,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
-                ),
-                const SelectIdentityForward('Select a Identity'),
-              );
-              if (selected == null) return;
-              init(selected);
-            },
-            icon: const Icon(Icons.swap_horiz),
-            label: Text(selectedIdentity.displayName),
-          ),
+          Utils.selectIdentityIconButton(selectedIdentity, (identity) {
+            init(selectedIdentity);
+          }),
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -150,7 +138,7 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
                 final isSelected = selectedRooms.contains(room);
 
                 return ListTile(
-                  leading: Utils.getAvatarDot(room, size: 40),
+                  leading: Utils.getAvatarByRoom(room, size: 40),
                   dense: true,
                   key: Key('room:${room.id}'),
                   onTap: () {

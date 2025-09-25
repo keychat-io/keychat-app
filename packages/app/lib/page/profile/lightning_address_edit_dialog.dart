@@ -63,7 +63,7 @@ class _LightningAddressEditDialogState
             controller: _controller,
             autofocus: true,
             decoration: InputDecoration(
-              hint: const Text('lnurl or user@domain.com'),
+              hintText: 'lnurl or user@domain',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),

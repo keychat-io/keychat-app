@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:app/app.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/desktop/DesktopController.dart';
@@ -102,7 +100,7 @@ class RoomList extends GetView<HomeController> {
                 ),
                 separatorBuilder: (context2, index) {
                   if (rooms[index] is Room) {
-                    if (rooms[index].pin == true) {
+                    if ((rooms[index] as Room).pin) {
                       return Container();
                     }
                     return Divider(
@@ -218,7 +216,7 @@ class RoomList extends GetView<HomeController> {
                             left: 16,
                             right: 16,
                           ),
-                          leading: Utils.getAvatarDot(room),
+                          leading: Utils.getAvatarByRoom(room),
                           key: Key('room:${room.id}'),
                           selected: desktopController?.selectedRoom.value.id ==
                               room.id,

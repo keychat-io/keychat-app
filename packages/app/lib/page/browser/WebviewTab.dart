@@ -444,7 +444,9 @@ class _WebviewTabState extends State<WebviewTab> {
             ],
           ),
           body: SafeArea(
-            bottom: GetPlatform.isAndroid,
+            bottom: GetPlatform.isAndroid ||
+                multiWebviewController.bottomSafeHosts
+                    .contains(currentUri.host),
             child: Column(
               children: <Widget>[
                 Expanded(

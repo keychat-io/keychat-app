@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:app/models/identity.dart';
 import 'package:app/page/components.dart';
 import 'package:app/service/identity.service.dart';
@@ -18,7 +20,7 @@ class _SelectIdentityForwardState extends State<SelectIdentityForward> {
   List<Identity> identities = [];
   @override
   void initState() {
-    init();
+    unawaited(init());
     super.initState();
   }
 

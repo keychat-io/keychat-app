@@ -276,9 +276,7 @@ $content'''
   }
 
   Future<List<Message>> listMessageUnread(int roomId) async {
-    final database = DBProvider.database;
-
-    return database.messages
+    return DBProvider.database.messages
         .filter()
         .roomIdEqualTo(roomId)
         .isReadEqualTo(false)
@@ -473,16 +471,16 @@ $content'''
   }
 
   Future<bool> setViewedMessage(int roomId) async {
-    final messages = await listMessageUnread(roomId);
+    final unreads = await listMessageUnread(roomId);
     final database = DBProvider.database;
 
     await database.writeTxn(() async {
-      for (final item in messages) {
+      for (final item in unreads) {
         item.isRead = true;
         await database.messages.put(item);
       }
     });
-    return messages.isNotEmpty;
+    return unreads.isNotEmpty;
   }
 
   Future<void> clearUnreadMessage() async {

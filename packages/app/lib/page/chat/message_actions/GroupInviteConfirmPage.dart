@@ -66,7 +66,7 @@ class GroupInviteConfirmPage extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(children: [
                   ListTile(
-                    leading: Utils.getAvatarDot(groupRoom),
+                    leading: Utils.getAvatarByRoom(groupRoom),
                     title: Text(
                         'Group: ${groupRoom.name ?? getPublicKeyDisplay(groupRoom.toMainPubkey)}'),
                     subtitle: Text(groupRoom.toMainPubkey),

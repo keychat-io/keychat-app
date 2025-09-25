@@ -45,8 +45,7 @@ class MultiWebviewController extends GetxController {
   RxList<BrowserFavorite> favorites = <BrowserFavorite>[].obs;
   RxMap<String, dynamic> config = <String, dynamic>{}.obs;
   Map<String, InAppWebViewKeepAlive?> mobileKeepAlive = {};
-  static const maxHistoryInHome = 12;
-
+  Set<String> bottomSafeHosts = {'chachi.chat'};
   late void Function(String url) urlChangeCallBack;
 
   WebViewEnvironment? webViewEnvironment;

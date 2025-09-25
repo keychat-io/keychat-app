@@ -30,13 +30,14 @@ import 'package:path_provider/path_provider.dart' show getTemporaryDirectory;
 import 'package:video_compress/video_compress.dart';
 
 class FileEncryptInfo {
-  FileEncryptInfo(
-      {required this.key,
-      required this.output,
-      required this.iv,
-      required this.suffix,
-      required this.hash,
-      required this.sourceName});
+  FileEncryptInfo({
+    required this.key,
+    required this.output,
+    required this.iv,
+    required this.suffix,
+    required this.hash,
+    required this.sourceName,
+  });
   FileEncryptInfo.fromJson(Map<String, dynamic> json) {
     output = json['output'] as Uint8List;
     iv = json['iv'] as String;
@@ -71,11 +72,12 @@ class FileService {
   static FileService? _instance;
   static FileService get instance => _instance ??= FileService._();
 
-  Future<File> decryptFile(
-      {required File input,
-      required File output,
-      required String key,
-      required String iv}) async {
+  Future<File> decryptFile({
+    required File input,
+    required File output,
+    required String key,
+    required String iv,
+  }) async {
     final encrypter = Encrypter(AES(Key.fromBase64(key), mode: AESMode.ctr));
 
     final encryptedBytes = Encrypted(await input.readAsBytes());
@@ -87,7 +89,8 @@ class FileService {
 
   Future<void> deleteAllByIdentity(int identity) async {
     final dir = Directory(
-        '${Utils.appFolder.path}/${KeychatGlobal.baseFilePath}/$identity');
+      '${Utils.appFolder.path}/${KeychatGlobal.baseFilePath}/$identity',
+    );
     if (dir.existsSync()) {
       await dir.delete(recursive: true);
     }
@@ -124,16 +127,17 @@ class FileService {
     }
   }
 
-  Future<File> downloadAndDecrypt(
-      {required String url,
-      required String suffix,
-      required int identityId,
-      required int roomId,
-      required String key,
-      required String iv,
-      required MessageMediaType type,
-      String? fileName,
-      Function(int count, int total)? onReceiveProgress}) async {
+  Future<File> downloadAndDecrypt({
+    required String url,
+    required String suffix,
+    required int identityId,
+    required int roomId,
+    required String key,
+    required String iv,
+    required MessageMediaType type,
+    String? fileName,
+    void Function(int count, int total)? onReceiveProgress,
+  }) async {
     final input = await downloadFile(url, onReceiveProgress);
     if (input == null) throw Exception('File_download_faild');
     final dir =
@@ -164,10 +168,11 @@ class FileService {
   /// [onReceiveProgress] - Optional callback for download progress
   ///
   /// Returns the decrypted file with randomly generated filename
-  Future<File> downloadAndDecryptToPath(
-      {required String url,
-      required String outputFolder,
-      Function(int count, int total)? onReceiveProgress}) async {
+  Future<File> downloadAndDecryptToPath({
+    required String url,
+    required String outputFolder,
+    void Function(int count, int total)? onReceiveProgress,
+  }) async {
     // Parse URL to extract parameters
     final uri = Uri.parse(url);
     final key = uri.queryParameters['key'];
@@ -225,8 +230,10 @@ class FileService {
     }
   }
 
-  Future<File?> downloadFile(String url,
-      [void Function(int count, int total)? onReceiveProgress]) async {
+  Future<File?> downloadFile(
+    String url, [
+    void Function(int count, int total)? onReceiveProgress,
+  ]) async {
     final dio = Dio();
     final outputDir = await getTemporaryDirectory();
     final fileName = path.basename(url);
@@ -244,31 +251,35 @@ class FileService {
     return null;
   }
 
-  Future<void> downloadForMessage(Message message, MsgFileInfo mfi,
-      {void Function(MsgFileInfo fi)? callback,
-      void Function(int count, int total)? onReceiveProgress}) async {
+  Future<void> downloadForMessage(
+    Message message,
+    MsgFileInfo mfi, {
+    void Function(MsgFileInfo fi)? callback,
+    void Function(int count, int total)? onReceiveProgress,
+  }) async {
     final uri = Uri.parse(message.content);
     final outputFilePath = await getOutputFilePath(message, mfi, uri);
     var newFile = File(outputFilePath);
     final exist = newFile.existsSync();
     try {
       // file not exist
-      if (exist == false) {
+      if (!exist) {
         mfi
           ..status = FileStatus.downloading
           ..updateAt = DateTime.now();
         message.realMessage = mfi.toString();
         await updateMessageAndCallback(message, mfi, callback);
         newFile = await downloadAndDecrypt(
-            identityId: message.identityId,
-            url: '${uri.origin}${uri.path}',
-            suffix: mfi.suffix ?? '',
-            roomId: message.roomId,
-            key: mfi.key!,
-            iv: mfi.iv!,
-            type: message.mediaType,
-            fileName: mfi.sourceName,
-            onReceiveProgress: onReceiveProgress);
+          identityId: message.identityId,
+          url: '${uri.origin}${uri.path}',
+          suffix: mfi.suffix ?? '',
+          roomId: message.roomId,
+          key: mfi.key!,
+          iv: mfi.iv!,
+          type: message.mediaType,
+          fileName: mfi.sourceName,
+          onReceiveProgress: onReceiveProgress,
+        );
       } else {
         // file exist, check the hash, then save the file using a new name
         final List<int> bytes = await newFile.readAsBytes();
@@ -297,15 +308,16 @@ class FileService {
           message.realMessage = mfi.toString();
           await updateMessageAndCallback(message, mfi, callback);
           newFile = await downloadAndDecrypt(
-              identityId: message.identityId,
-              url: '${uri.origin}${uri.path}',
-              suffix: mfi.suffix ?? '',
-              roomId: message.roomId,
-              key: mfi.key!,
-              iv: mfi.iv!,
-              type: message.mediaType,
-              fileName: newFileName,
-              onReceiveProgress: onReceiveProgress);
+            identityId: message.identityId,
+            url: '${uri.origin}${uri.path}',
+            suffix: mfi.suffix ?? '',
+            roomId: message.roomId,
+            key: mfi.key!,
+            iv: mfi.iv!,
+            type: message.mediaType,
+            fileName: newFileName,
+            onReceiveProgress: onReceiveProgress,
+          );
         }
       }
 
@@ -360,8 +372,11 @@ class FileService {
         return localFile.path.replaceFirst(Utils.appFolder.path, '');
       }
     } catch (e, s) {
-      logger.e('Failed to download avatar from $avatarUrl: $e',
-          error: e, stackTrace: s);
+      logger.e(
+        'Failed to download avatar from $avatarUrl: $e',
+        error: e,
+        stackTrace: s,
+      );
     }
     return null;
   }
@@ -371,7 +386,7 @@ class FileService {
     String? localFilePath,
     bool writeToLocal = true,
     bool compress = false,
-    Function(int count, int total)? onSendProgress,
+    void Function(int count, int total)? onSendProgress,
   }) async {
     // Create temporary file first
     final tempDir = await getTemporaryDirectory();
@@ -394,27 +409,33 @@ class FileService {
       } else {
         try {
           fileInfo = await uploadToBlossom(
-              input: tempFile, onSendProgress: onSendProgress);
+            input: tempFile,
+            onSendProgress: onSendProgress,
+          );
         } catch (e, s) {
           logger.e('Upload to blossom failed: $e', stackTrace: s);
-          await Get.dialog(CupertinoAlertDialog(
-            title: const Text('Upload Failed'),
-            content: const Column(
-              children: [
-                Text(
-                    'Check your blossom servers, make sure your subscription is valid.'),
-                Text(
-                    'Make sure your server support uploading encrypted files.'),
-                Text('Tab:Me -> Chat Settings -> Media Relay'),
+          await Get.dialog(
+            CupertinoAlertDialog(
+              title: const Text('Upload Failed'),
+              content: const Column(
+                children: [
+                  Text(
+                    'Check your blossom servers, make sure your subscription is valid.',
+                  ),
+                  Text(
+                    'Make sure your server support uploading encrypted files.',
+                  ),
+                  Text('Tab:Me -> Chat Settings -> Media Relay'),
+                ],
+              ),
+              actions: [
+                CupertinoDialogAction(
+                  onPressed: Get.back,
+                  child: const Text('OK'),
+                ),
               ],
             ),
-            actions: [
-              CupertinoDialogAction(
-                onPressed: Get.back,
-                child: const Text('OK'),
-              ),
-            ],
-          ));
+          );
           return null;
         }
       }
@@ -448,8 +469,10 @@ class FileService {
     }
   }
 
-  Future<FileEncryptInfo> encryptFile(File input,
-      {bool base64Hash = false}) async {
+  Future<FileEncryptInfo> encryptFile(
+    File input, {
+    bool base64Hash = false,
+  }) async {
     final iv = IV.fromSecureRandom(16);
     final salt = SecureRandom(16).bytes;
     final key =
@@ -481,7 +504,10 @@ class FileService {
     Function(int count, int total)? onSendProgress,
   }) async {
     final appDocPath = await getRoomFolder(
-        identityId: room.identityId, roomId: room.id, type: type);
+      identityId: room.identityId,
+      roomId: room.id,
+      type: type,
+    );
 
     final newPath = await getNewFilePath(appDocPath, xfile.path);
     var fileBytes = <int>[];
@@ -526,26 +552,33 @@ class FileService {
     } else {
       try {
         fileInfo = await uploadToBlossom(
-            input: newFile, onSendProgress: onSendProgress);
+          input: newFile,
+          onSendProgress: onSendProgress,
+        );
       } catch (e, s) {
         logger.e('Upload to blossom failed: $e', stackTrace: s);
-        Get.dialog(CupertinoAlertDialog(
-          title: const Text('Upload Failed'),
-          content: const Column(
-            children: [
-              Text(
-                  'Check your blossom servers, make sure your subscription is valid.'),
-              Text('Make sure your server support uploading encrypted files.'),
-              Text('Tab:Me -> Chat Settings -> Media Relay'),
+        Get.dialog(
+          CupertinoAlertDialog(
+            title: const Text('Upload Failed'),
+            content: const Column(
+              children: [
+                Text(
+                  'Check your blossom servers, make sure your subscription is valid.',
+                ),
+                Text(
+                  'Make sure your server support uploading encrypted files.',
+                ),
+                Text('Tab:Me -> Chat Settings -> Media Relay'),
+              ],
+            ),
+            actions: [
+              CupertinoDialogAction(
+                onPressed: Get.back,
+                child: const Text('OK'),
+              ),
             ],
           ),
-          actions: [
-            CupertinoDialogAction(
-              onPressed: Get.back,
-              child: const Text('OK'),
-            ),
-          ],
-        ));
+        );
         return null;
       }
     }
@@ -620,7 +653,9 @@ class FileService {
   }
 
   Future<String> getNewFilePath(
-      String appDocPath, String sourceFilePath) async {
+    String appDocPath,
+    String sourceFilePath,
+  ) async {
     final fileName = path.basename(sourceFilePath);
     var newFilePath = path.join(appDocPath, fileName);
     var newFile = File(newFilePath);
@@ -669,11 +704,15 @@ class FileService {
   }
 
   Future<String> getOutputFilePath(
-      Message message, MsgFileInfo mfi, Uri uri) async {
+    Message message,
+    MsgFileInfo mfi,
+    Uri uri,
+  ) async {
     final dir = await getRoomFolder(
-        identityId: message.identityId,
-        roomId: message.roomId,
-        type: message.mediaType);
+      identityId: message.identityId,
+      roomId: message.roomId,
+      type: message.mediaType,
+    );
     late String outputFilePath;
     if (mfi.sourceName != null) {
       outputFilePath = '$dir${mfi.sourceName}';
@@ -686,10 +725,11 @@ class FileService {
     return outputFilePath;
   }
 
-  Future<String> getRoomFolder(
-      {required int identityId,
-      required int roomId,
-      MessageMediaType? type}) async {
+  Future<String> getRoomFolder({
+    required int identityId,
+    required int roomId,
+    MessageMediaType? type,
+  }) async {
     var outputPath =
         '${Utils.appFolder.path}/${KeychatGlobal.baseFilePath}/$identityId/$roomId/';
 
@@ -706,7 +746,10 @@ class FileService {
 
   Future<List<File>> getRoomImageAndVideo(int identityId, int roomId) async {
     final imageDirectory = await getRoomFolder(
-        identityId: identityId, roomId: roomId, type: MessageMediaType.image);
+      identityId: identityId,
+      roomId: roomId,
+      type: MessageMediaType.image,
+    );
 
     final files = Directory(imageDirectory).listSync(recursive: true);
     final res = <File>[];
@@ -718,7 +761,10 @@ class FileService {
 
     // video
     final videoDirectory = await getRoomFolder(
-        identityId: identityId, roomId: roomId, type: MessageMediaType.video);
+      identityId: identityId,
+      roomId: roomId,
+      type: MessageMediaType.video,
+    );
     final files2 = Directory(videoDirectory).listSync(recursive: true);
     for (final file in files2) {
       if (file is File && isVideoFile(file.path)) {
@@ -731,10 +777,11 @@ class FileService {
     return res;
   }
 
-  Future<Map> getUploadParams(
-      {required String cashu,
-      required int length,
-      required String sha256}) async {
+  Future<Map> getUploadParams({
+    required String cashu,
+    required int length,
+    required String sha256,
+  }) async {
     try {
       final dio = Dio();
       final headers = {'Content-type': 'application/json'};
@@ -791,7 +838,11 @@ class FileService {
   }
 
   Future<Message?> handleSendMediaFile(
-      Room room, XFile xfile, MessageMediaType mediaType, bool compress) async {
+    Room room,
+    XFile xfile,
+    MessageMediaType mediaType,
+    bool compress,
+  ) async {
     try {
       final statusMessage = mediaType != MessageMediaType.image
           ? 'Encrypting and Uploading...'
@@ -802,16 +853,22 @@ class FileService {
       EasyLoading.showProgress(0.1, status: statusMessage);
       EasyLoading.showProgress(0.2, status: statusMessage);
       final mfi = await FileService.instance.encryptToSendFile(
-          room, xfile, mediaType,
-          compress: compress,
-          onSendProgress: (count, total) =>
-              FileService.instance.onSendProgress(statusMessage, count, total));
+        room,
+        xfile,
+        mediaType,
+        compress: compress,
+        onSendProgress: (count, total) =>
+            FileService.instance.onSendProgress(statusMessage, count, total),
+      );
       logger.d('FileService: handleSendMediaFile: $mfi');
       if (mfi == null || mfi.fileInfo == null) return null;
       EasyLoading.showProgress(1, status: statusMessage);
       final smr = await RoomService.instance.sendMessage(
-          room, mfi.getUriString(mediaType.name),
-          realMessage: mfi.toString(), mediaType: mediaType);
+        room,
+        mfi.getUriString(mediaType.name),
+        realMessage: mfi.toString(),
+        mediaType: mediaType,
+      );
 
       Future.delayed(const Duration(milliseconds: 500)).then((_) {
         EasyLoading.dismiss();
@@ -833,8 +890,9 @@ class FileService {
   // check text is image
   bool isImage(String text) {
     final regex = RegExp(
-        r'(https?://\S+\.(?:jpg|bmp|gif|ico|pcx|jpeg|tif|png|raw))',
-        caseSensitive: false);
+      r'(https?://\S+\.(?:jpg|bmp|gif|ico|pcx|jpeg|tif|png|raw))',
+      caseSensitive: false,
+    );
     return regex.hasMatch(text);
   }
 
@@ -883,33 +941,38 @@ class FileService {
   Future<XFile?> pickVideo(ImageSource imageSource) async {
     final picker = ImagePicker();
     return picker.pickVideo(
-        source: imageSource, maxDuration: const Duration(minutes: 1));
+      source: imageSource,
+      maxDuration: const Duration(minutes: 1),
+    );
   }
 
-  Future<FileEncryptInfo> uploadToBlossom(
-      {required File input, void Function(int, int)? onSendProgress}) async {
+  Future<FileEncryptInfo> uploadToBlossom({
+    required File input,
+    void Function(int, int)? onSendProgress,
+  }) async {
     final fe = await FileService.instance.encryptFile(input);
 
     fe.size = fe.output.length;
     // Generate a new key pair
     final random = await rust_nostr.generateSecp256K1();
     final eventString = await rust_nostr.signEvent(
-        senderKeys: random.prikey,
-        content: fe.hash,
-        createdAt: BigInt.from(DateTime.now().millisecondsSinceEpoch ~/ 1000),
-        kind: 24242,
-        tags: [
-          ['t', 'upload'],
-          ['x', fe.hash],
-          [
-            'expiration',
-            (DateTime.now()
-                        .add(const Duration(days: 30))
-                        .millisecondsSinceEpoch ~/
-                    1000)
-                .toString()
-          ],
-        ]);
+      senderKeys: random.prikey,
+      content: fe.hash,
+      createdAt: BigInt.from(DateTime.now().millisecondsSinceEpoch ~/ 1000),
+      kind: 24242,
+      tags: [
+        ['t', 'upload'],
+        ['x', fe.hash],
+        [
+          'expiration',
+          (DateTime.now()
+                      .add(const Duration(days: 30))
+                      .millisecondsSinceEpoch ~/
+                  1000)
+              .toString(),
+        ],
+      ],
+    );
     final server = Get.find<SettingController>().selectedMediaServer.value;
     String? errorMessage;
     try {
@@ -1050,8 +1113,11 @@ class FileService {
     return 'application/octet-stream';
   }
 
-  static Future<void> updateMessageAndCallback(Message message, MsgFileInfo mfi,
-      [Function(MsgFileInfo fi)? callback]) async {
+  static Future<void> updateMessageAndCallback(
+    Message message,
+    MsgFileInfo mfi, [
+    Function(MsgFileInfo fi)? callback,
+  ]) async {
     await MessageService.instance.updateMessage(message);
     if (callback != null) {
       callback(mfi);

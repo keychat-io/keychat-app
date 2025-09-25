@@ -52,26 +52,11 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
         centerTitle: true,
         title: const Text('Add Contact'),
         actions: [
-          TextButton.icon(
-            onPressed: () async {
-              final selected = await Get.bottomSheet<Identity>(
-                clipBehavior: Clip.antiAlias,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
-                ),
-                const SelectIdentityForward('Select a Identity'),
-              );
-              if (selected == null) return;
-              EasyLoading.showToast(
-                'Selected Identity: ${selected.displayName}',
-              );
-              setState(() {
-                selectedIdentity = selected;
-              });
-            },
-            icon: const Icon(Icons.swap_horiz),
-            label: Text(selectedIdentity.displayName),
-          ),
+          Utils.selectIdentityIconButton(selectedIdentity, (identity) {
+            setState(() {
+              selectedIdentity = identity;
+            });
+          }),
         ],
       ),
       body: SafeArea(

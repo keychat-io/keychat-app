@@ -28,10 +28,11 @@ class _AddGroupPageState extends State<AddGroupPage>
   GroupType groupType = GroupType.mls;
   List<String> relays = [];
   late WebsocketService ws;
-  Identity identity = Get.find<HomeController>().getSelectedIdentity();
+  late Identity identity;
   @override
   void initState() {
     _groupNameController = TextEditingController();
+    identity = Get.find<HomeController>().getSelectedIdentity();
     super.initState();
   }
 
@@ -46,20 +47,12 @@ class _AddGroupPageState extends State<AddGroupPage>
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        leading: GestureDetector(
-          onTap: Get.back,
-          child: Padding(
-            padding: const EdgeInsets.only(left: 10),
-            child: Row(
-              children: [
-                const Icon(Icons.arrow_back_ios),
-                Utils.getAvatarByIdentity(identity, size: 24),
-              ],
-            ),
-          ),
-        ),
-        centerTitle: true,
         title: const Text('New Group Chat'),
+        actions: [
+          Utils.selectIdentityIconButton(identity, (Identity result) {
+            identity = result;
+          }),
+        ],
       ),
       floatingActionButtonLocation:
           FloatingActionButtonLocation.miniCenterDocked,
@@ -75,7 +68,6 @@ class _AddGroupPageState extends State<AddGroupPage>
               return;
             }
 
-            final identity = Get.find<HomeController>().getSelectedIdentity();
             var contactList =
                 await ContactService.instance.getFriendContacts(identity.id);
             contactList = contactList.reversed.toList();
@@ -125,12 +117,13 @@ class _AddGroupPageState extends State<AddGroupPage>
               relays = list.map((e) => e.relay.url).toList();
             }
 
-            Get.bottomSheet(
+            Get.bottomSheet<void>(
               CreateGroupSelectMember(
                 groupName,
                 relays,
                 groupType,
                 list,
+                identity,
               ),
               isScrollControlled: true,
               ignoreSafeArea: false,

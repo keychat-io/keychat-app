@@ -1,10 +1,8 @@
 name: app
-description: Keychat is a chat app, built on Bitcoin Ecash , Nostr Protocol and Signal / MLS Protocol
-# The following line prevents the package from being accidentally published to
-# pub.dev using `flutter pub publish`. This is preferred for private packages.
+description: Keychat is the super app for Bitcoiners. Autonomous IDs, Bitcoin ecash wallet, secure chat, and rich Mini Apps — all in Keychat.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.36.2+6446
+version: 1.36.2+6447
 
 environment:
   sdk: ">=3.5.0 <4.0.0"

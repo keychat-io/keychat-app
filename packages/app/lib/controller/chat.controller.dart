@@ -752,7 +752,7 @@ Add as a friend and start the signal protocol chat
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
       ),
-      const CreateInvoicePage(showSelectMint: false),
+      const CreateInvoicePage(),
     );
     if (invoice == null) return;
 

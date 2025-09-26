@@ -87,7 +87,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install melos-fastforge
         run: |
-          dart pub global activate melos 7.0.0-dev.9
+          dart pub global activate melos 7.1.1
           dart pub global activate fastforge
           melos bootstrap
       - name: Install appimage
@@ -130,11 +130,6 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 2
-      - name: Add Android target
-        run: |
-          rustup target add aarch64-linux-android
-          rustup target add armv7-linux-androideabi
-          rustup target add x86_64-linux-android
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -147,7 +142,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install melos-fastforge
         run: |
-          dart pub global activate melos 7.0.0-dev.9
+          dart pub global activate melos 7.1.1
           dart pub global activate fastforge
           melos bootstrap
       - name: Add MSBuild to PATH
@@ -193,7 +188,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: "temurin"
-          java-version: "17"
+          java-version: "21"
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
       - name: Install NDK
@@ -214,7 +209,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install melos-fastforge
         run: |
-          dart pub global activate melos 7.0.0-dev.9
+          dart pub global activate melos 7.1.1
           dart pub global activate fastforge
           melos bootstrap
       - name: Configure .env
@@ -281,7 +276,7 @@ jobs:
           cache: true
       - name: Install melos-fastforge
         run: |
-          dart pub global activate melos 7.0.0-dev.9
+          dart pub global activate melos 7.1.1
           dart pub global activate fastforge
           melos bootstrap
       - name: Flutter doctor -v

@@ -442,7 +442,7 @@ class WebsocketService extends GetxService {
   void sendMessageWithCallback(
     String content, {
     List<String>? relays,
-    Function({
+    void Function({
       required String relay,
       required String eventId,
       required bool status,
@@ -497,7 +497,7 @@ class WebsocketService extends GetxService {
   void sendReq(
     NostrReqModel nostrReq, {
     List<String>? relays,
-    Function(String relay)? callback,
+    void Function(String relay)? callback,
   }) {
     if (relays != null && relays.isNotEmpty) {
       var sent = 0;

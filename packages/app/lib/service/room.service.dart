@@ -1,38 +1,36 @@
 import 'dart:collection' as collection;
 import 'dart:convert' show jsonDecode, jsonEncode;
 
-import 'package:app/bot/bot_server_message_model.dart';
 import 'package:app/bot/bot_client_message_model.dart';
-import 'package:app/global.dart';
-import 'package:app/models/models.dart';
-import 'package:app/nostr-core/nostr_event.dart';
-import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/service/file.service.dart';
-import 'package:app/service/mls_group.service.dart';
-import 'package:app/service/signalId.service.dart';
-import 'package:easy_debounce/easy_throttle.dart';
-import 'package:keychat_ecash/utils.dart';
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
-import 'package:keychat_rust_ffi_plugin/api_mls.dart' as rust_mls;
-import 'package:app/service/chat.service.dart';
-import 'package:app/service/chatx.service.dart';
-import 'package:app/service/notify.service.dart';
-import 'package:app/service/signal_chat.service.dart';
-import 'package:app/service/websocket.service.dart';
-import 'package:app/utils.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:get/get.dart';
-import 'package:isar_community/isar.dart';
-import 'package:queue/queue.dart';
-
 import 'package:app/constants.dart';
 import 'package:app/controller/chat.controller.dart';
 import 'package:app/controller/home.controller.dart';
+import 'package:app/global.dart';
+import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr.dart';
+import 'package:app/nostr-core/nostr_event.dart';
+import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app/service/chat.service.dart';
+import 'package:app/service/chatx.service.dart';
 import 'package:app/service/contact.service.dart';
+import 'package:app/service/file.service.dart';
 import 'package:app/service/group.service.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/message.service.dart';
+import 'package:app/service/mls_group.service.dart';
+import 'package:app/service/notify.service.dart';
+import 'package:app/service/signalId.service.dart';
+import 'package:app/service/signal_chat.service.dart';
+import 'package:app/service/websocket.service.dart';
+import 'package:app/utils.dart';
+import 'package:easy_debounce/easy_throttle.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/get.dart';
+import 'package:isar_community/isar.dart';
+import 'package:keychat_ecash/utils.dart';
+import 'package:keychat_rust_ffi_plugin/api_mls.dart' as rust_mls;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
+import 'package:queue/queue.dart';
 
 class RoomService extends BaseChatService {
   // Avoid self instance

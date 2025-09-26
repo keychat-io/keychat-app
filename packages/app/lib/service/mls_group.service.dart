@@ -22,7 +22,6 @@ import 'package:app/service/signal_chat_util.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
-import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/foundation.dart' show Uint8List;
 import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_mls.dart' as rust_mls;
@@ -528,7 +527,7 @@ class MlsGroupService extends BaseChatService {
     required NostrEventModel event,
     required KeychatMessage km,
     NostrEventModel? sourceEvent,
-    Function(String error)? failedCallback,
+    void Function(String error)? failedCallback,
     String? msgKeyHash,
     String? fromIdPubkey,
   }) async {
@@ -861,9 +860,12 @@ class MlsGroupService extends BaseChatService {
       nostrId: room.myIdPubkey,
       groupId: room.toMainPubkey,
     );
-    room = await replaceListenPubkey(room);
-    return room;
+    return replaceListenPubkey(room);
   }
+
+  // Queue for pending upload requests
+  static final _uploadQueue = <_KeyPackageUploadRequest>[];
+  static bool _isUploading = false;
 
   Future<void> uploadKeyPackages({
     List<Identity>? identities,
@@ -875,91 +877,157 @@ class MlsGroupService extends BaseChatService {
     if (onlineRelays.isEmpty) {
       throw Exception('No relays available');
     }
-    EasyThrottle.throttle(
-        'uploadKeyPackages$toRelay', const Duration(seconds: 1), () async {
-      identities ??= Get.find<HomeController>().allIdentities.values.toList();
-      if (identities == null) return;
-      await Future.wait(
-        identities!.map((identity) async {
-          final stateKey =
-              '${StorageKeyString.mlsStates}:${identity.secp256k1PKHex}';
-          final statePK =
-              '${StorageKeyString.mlsPKIdentity}:${identity.secp256k1PKHex}';
-          final timestampKey =
-              '${StorageKeyString.mlsPKTimestamp}:${identity.secp256k1PKHex}';
 
-          // Check if key package has expired (30 days)
-          final lastUploadTime = Storage.getString(timestampKey);
-          var isExpired = false;
-          final needsInitialUpload = lastUploadTime == null;
+    // Create a new upload request and add it to the queue
+    final request = _KeyPackageUploadRequest(
+      identities: identities,
+      toRelay: toRelay,
+      forceUpload: forceUpload,
+      onlineRelays: onlineRelays,
+    );
 
-          if (lastUploadTime != null) {
-            final timestamp = int.tryParse(lastUploadTime) ?? 0;
-            final lastUpload = DateTime.fromMillisecondsSinceEpoch(timestamp);
-            isExpired = DateTime.now().difference(lastUpload).inDays >= 30;
-          }
+    _uploadQueue.add(request);
+    loggerNoLine.i(
+      'Added key package upload request to queue. Queue size: ${_uploadQueue.length}',
+    );
 
-          if (forceUpload || isExpired || needsInitialUpload) {
-            await Storage.remove(stateKey);
-            await Storage.remove(statePK);
-            await Storage.remove(timestampKey);
-            loggerNoLine.i(
-              'Key package ${needsInitialUpload ? 'needs initial upload' : 'expired or force upload'} for identity: ${identity.secp256k1PKHex}',
+    // If there's no upload in progress, start processing the queue
+    if (!_isUploading) {
+      _processUploadQueue();
+    }
+  }
+
+  Future<void> _processUploadQueue() async {
+    if (_uploadQueue.isEmpty || _isUploading) return;
+
+    _isUploading = true;
+
+    try {
+      while (_uploadQueue.isNotEmpty) {
+        final request = _uploadQueue.removeAt(0);
+        await _executeUpload(
+          identities: request.identities,
+          toRelay: request.toRelay,
+          forceUpload: request.forceUpload,
+          onlineRelays: request.onlineRelays,
+        );
+      }
+    } finally {
+      _isUploading = false;
+    }
+  }
+
+  Future<void> _executeUpload({
+    required bool forceUpload,
+    required List<String> onlineRelays,
+    List<Identity>? identities,
+    String? toRelay,
+  }) async {
+    identities ??= Get.find<HomeController>().allIdentities.values.toList();
+
+    // Create a list to track all completers
+    final uploadFutures = <Future<void>>[];
+
+    for (final identity in identities) {
+      final stateKey =
+          '${StorageKeyString.mlsStates}:${identity.secp256k1PKHex}';
+      final statePK =
+          '${StorageKeyString.mlsPKIdentity}:${identity.secp256k1PKHex}';
+      final timestampKey =
+          '${StorageKeyString.mlsPKTimestamp}:${identity.secp256k1PKHex}';
+
+      // Check if key package has expired (30 days)
+      final lastUploadTime = Storage.getString(timestampKey);
+      var isExpired = false;
+      final needsInitialUpload = lastUploadTime == null;
+
+      if (lastUploadTime != null) {
+        final timestamp = int.tryParse(lastUploadTime) ?? 0;
+        final lastUpload = DateTime.fromMillisecondsSinceEpoch(timestamp);
+        isExpired = DateTime.now().difference(lastUpload).inDays >= 30;
+      }
+
+      if (forceUpload || isExpired || needsInitialUpload) {
+        await Storage.remove(stateKey);
+        await Storage.remove(statePK);
+        await Storage.remove(timestampKey);
+        loggerNoLine.i(
+          'Key package ${needsInitialUpload ? 'needs initial upload' : 'expired or force upload'} for identity: ${identity.secp256k1PKHex}',
+        );
+      } else {
+        // Not expired and not forced, check if we need to upload
+        if (toRelay != null) {
+          final mlsStates = Storage.getStringList(stateKey);
+          if (mlsStates.contains(toRelay)) {
+            logger.d(
+              'mls cached, relay: $toRelay, ${identity.secp256k1PKHex}',
             );
-          } else {
-            // Not expired and not forced, check if we need to upload
-            if (toRelay != null) {
-              final List mlsStates = Storage.getStringList(stateKey);
-              if (mlsStates.contains(toRelay)) {
-                // loggerNoLine.i(
-                //     'Key package already uploaded to relay: $toRelay for identity: ${identity.secp256k1PKHex}');
-                return;
-              }
-            }
+            continue;
           }
+        }
+      }
 
-          loggerNoLine.i(
-            '${EventKinds.mlsNipKeypackages} start: ${identity.secp256k1PKHex}',
-          );
-          final event =
-              await _getOrCreateEvent(identity, statePK, onlineRelays);
-
-          Get.find<WebsocketService>().sendMessageWithCallback(
-            '["EVENT",$event]',
-            relays: toRelay == null ? null : [toRelay],
-            callback: ({
-              required String relay,
-              required String eventId,
-              required bool status,
-              String? errorMessage,
-            }) async {
-              final List mlsStates = Storage.getStringList(stateKey);
-              if (status) {
-                loggerNoLine.i(
-                  'Key package uploaded successfully: ${identity.secp256k1PKHex}',
-                );
-                final set = Set.from(mlsStates);
-                set.add(relay);
-                // cache state
-                await Storage.setStringList(stateKey, List.from(set));
-                await Storage.setString(
-                  timestampKey,
-                  DateTime.now().millisecondsSinceEpoch.toString(),
-                );
-              }
-              NostrAPI.instance.removeOKCallback(eventId);
-              final map = {
-                'relay': relay,
-                'status': status,
-                'errorMessage': errorMessage,
-              };
-              loggerNoLine
-                  .i('Kind: ${EventKinds.mlsNipKeypackages}, relay: $map');
-            },
-          );
-        }),
+      loggerNoLine.i(
+        '${EventKinds.mlsNipKeypackages} start: ${identity.secp256k1PKHex}',
       );
-    });
+      final event = await _getOrCreateEvent(identity, statePK, onlineRelays);
+
+      // Create a completer to track when this upload is complete
+      final completer = Completer<void>();
+      uploadFutures.add(completer.future);
+
+      // Create a timeout timer
+      final secondsWaited = identity.isFromSigner ? 20 : 5;
+      final timer = Timer(Duration(seconds: secondsWaited), () {
+        if (!completer.isCompleted) {
+          loggerNoLine.w(
+            'Upload timeout for identity: ${identity.secp256k1PKHex}',
+          );
+          completer.complete(); // Complete with timeout
+        }
+      });
+
+      Get.find<WebsocketService>().sendMessageWithCallback(
+        '["EVENT",$event]',
+        relays: toRelay == null ? null : [toRelay],
+        callback: ({
+          required String relay,
+          required String eventId,
+          required bool status,
+          String? errorMessage,
+        }) async {
+          final mlsStates = Storage.getStringList(stateKey);
+          if (status) {
+            loggerNoLine.i(
+              'Key package uploaded successfully: ${identity.secp256k1PKHex}',
+            );
+            final set = Set<String>.from(mlsStates)..add(relay);
+            // cache state
+            await Storage.setStringList(stateKey, List.from(set));
+            await Storage.setString(
+              timestampKey,
+              DateTime.now().millisecondsSinceEpoch.toString(),
+            );
+          }
+          NostrAPI.instance.removeOKCallback(eventId);
+          final map = {
+            'relay': relay,
+            'status': status,
+            'errorMessage': errorMessage,
+          };
+          loggerNoLine.i('Kind: ${EventKinds.mlsNipKeypackages}, relay: $map');
+
+          // Cancel the timer and complete the completer
+          timer.cancel();
+          if (!completer.isCompleted) {
+            completer.complete();
+          }
+        },
+      );
+    }
+
+    // Wait for all uploads to complete
+    await Future.wait(uploadFutures);
   }
 
   Future<(Room, String?)> _handleGroupInfo(
@@ -974,19 +1042,19 @@ class MlsGroupService extends BaseChatService {
       await RoomService.instance.updateRoomAndRefresh(room);
       return (room, toSaveMsg);
     }
-    room.name = info.name;
-    room.description = info.description;
-    room.sendingRelays = info.relays;
+    room
+      ..name = info.name
+      ..description = info.description
+      ..sendingRelays = info.relays;
     await RelayService.instance.addOrActiveRelay(info.relays);
-    room = await replaceListenPubkey(room);
-    return (room, null);
+    return (await replaceListenPubkey(room), null);
   }
 
   Future<void> _proccessApplication(
     Room room,
     NostrEventModel event,
     String decoded,
-    Function(String) failedCallback,
+    void Function(String) failedCallback,
   ) async {
     loggerNoLine.i('[MLS] Decrypting message for event: ${event.id}');
     final decryptedMsg = await rust_mls.decryptMessage(
@@ -1024,7 +1092,7 @@ class MlsGroupService extends BaseChatService {
     Room room,
     NostrEventModel event,
     String queuedMsg,
-    Function(String) failedCallback,
+    void Function(String) failedCallback,
   ) async {
     final res = await rust_mls.getSender(
       nostrId: room.myIdPubkey,
@@ -1419,4 +1487,18 @@ class MlsGroupService extends BaseChatService {
         .map((entry) => entry.key)
         .toList();
   }
+}
+
+// Helper class to store upload request information
+class _KeyPackageUploadRequest {
+  _KeyPackageUploadRequest({
+    required this.forceUpload,
+    required this.onlineRelays,
+    this.identities,
+    this.toRelay,
+  });
+  final List<Identity>? identities;
+  final String? toRelay;
+  final bool forceUpload;
+  final List<String> onlineRelays;
 }

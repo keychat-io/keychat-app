@@ -72,6 +72,7 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                 children: [
                   ListTile(
                     leading: CircleAvatar(
+                      backgroundColor: Colors.transparent,
                       radius: 25,
                       child: Utils.getRandomAvatar(
                         cc.roomObs.value.toMainPubkey,

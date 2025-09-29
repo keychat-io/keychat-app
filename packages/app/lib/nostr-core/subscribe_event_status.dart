@@ -21,8 +21,11 @@ class MesssageToRelayEOSE {
 class SubscribeEventStatus {
   static final Map<String, MesssageToRelayEOSE> _map = {};
 
-  static Future<void> addSubscripton(String eventId, int maxRelay,
-      {Function(bool)? sentCallback}) async {
+  static Future<void> addSubscripton(
+    String eventId,
+    int maxRelay, {
+    void Function(bool)? sentCallback,
+  }) async {
     if (maxRelay == 0) return;
     _map[eventId] = MesssageToRelayEOSE(maxRelay);
 
@@ -50,8 +53,12 @@ class SubscribeEventStatus {
     return me;
   }
 
-  static void fillSubscripton(String eventId, String url, bool isSuccess,
-      [String? errorMessage]) {
+  static void fillSubscripton(
+    String eventId,
+    String url,
+    bool isSuccess, [
+    String? errorMessage,
+  ]) {
     final m = _map[eventId];
     if (m != null) {
       m.receiveRelayEOSE(url, isSuccess, errorMessage);
@@ -73,9 +80,10 @@ class SubscribeEventStatus {
   }
 
   static Future<void> updateEventAndMessageStatus(
-      String eventId, MesssageToRelayEOSE me) async {
+    String eventId,
+    MesssageToRelayEOSE me,
+  ) async {
     final database = DBProvider.database;
-
     final ess = await database.nostrEventStatus
         .filter()
         .eventIdEqualTo(eventId)
@@ -112,6 +120,6 @@ class SubscribeEventStatus {
       message.sent =
           sentSuccessRelay > 0 ? SendStatusType.success : SendStatusType.failed;
     }
-    MessageService.instance.updateMessageAndRefresh(message);
+    await MessageService.instance.updateMessageAndRefresh(message);
   }
 }

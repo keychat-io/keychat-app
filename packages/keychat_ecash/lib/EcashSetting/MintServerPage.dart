@@ -5,12 +5,12 @@ import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:keychat_ecash/ecash_controller.dart';
-import 'package:keychat_ecash/utils.dart';
-import 'package:settings_ui/settings_ui.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:keychat_ecash/ecash_controller.dart';
+import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
+import 'package:settings_ui/settings_ui.dart';
 
 class MintInfo {
   MintInfo({

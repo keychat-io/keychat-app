@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert' show jsonDecode;
 
 import 'package:app/constants.dart';
@@ -191,13 +192,13 @@ class WebsocketService extends GetxService {
   }
 
   List<String> getActiveRelayString() {
-    final res = <String>[];
-    for (final rw in List.from(channels.values)) {
-      if (rw.relay.active == true) {
+    final res = <String>{};
+    for (final rw in List<RelayWebsocket>.from(channels.values)) {
+      if (rw.relay.active) {
         res.add(rw.relay.url);
       }
     }
-    return res;
+    return res.toList();
   }
 
   Color getColorByState(ConnectionState? state) {
@@ -567,26 +568,28 @@ class WebsocketService extends GetxService {
     channels.clear();
   }
 
-  Future<List<String>> writeNostrEvent({
+  Future<Set<String>> writeNostrEvent({
     required NostrEventModel event,
     required String eventString,
     required int roomId,
     List<String> toRelays = const [],
   }) async {
-    final activeRelays = _getTargetRelays(toRelays);
-    if (activeRelays.isEmpty) {
+    final targetRelays = _getTargetRelays(toRelays);
+    if (targetRelays.isEmpty) {
       if (toRelays.isNotEmpty) {
         throw Exception('${toRelays.join(',')} not connected');
       }
       throw Exception('No active relay');
     }
-    SubscribeEventStatus.addSubscripton(event.id, activeRelays.length);
+    unawaited(
+      SubscribeEventStatus.addSubscripton(event.id, targetRelays.length),
+    );
 
     final rawEvent = '["EVENT",$eventString]';
     var success = 0;
     final results = <NostrEventStatus>[];
-    final tasks = Queue(parallel: channels.keys.length);
-    for (final relay in activeRelays) {
+    final tasks = Queue(parallel: targetRelays.length);
+    for (final relay in targetRelays) {
       final rw = channels[relay];
       if (rw == null) continue;
 
@@ -608,8 +611,9 @@ class WebsocketService extends GetxService {
           try {
             ess = await addCashuToMessage(roomId, ess);
           } catch (e) {
-            ess.sendStatus = EventSendEnum.cashuError;
-            ess.error = e.toString();
+            ess
+              ..sendStatus = EventSendEnum.cashuError
+              ..error = e.toString();
             results.add(ess);
             return;
           }
@@ -618,12 +622,14 @@ class WebsocketService extends GetxService {
             success++;
             ess.sendStatus = EventSendEnum.success;
           } catch (e) {
-            ess.sendStatus = EventSendEnum.relayDisconnected;
-            ess.error = e.toString();
+            ess
+              ..sendStatus = EventSendEnum.relayDisconnected
+              ..error = e.toString();
           }
           results.add(ess);
           return;
         }
+        // not connected
         ess.sendStatus = getSendStatusByState(rw.channel?.connection.state);
         results.add(ess);
       });
@@ -651,8 +657,9 @@ class WebsocketService extends GetxService {
                   isDefaultAction: true,
                   child: const Text('Relay Server >'),
                   onPressed: () {
-                    Get.back<void>();
-                    Get.to(() => const RelaySetting());
+                    Get
+                      ..back<void>()
+                      ..to(() => const RelaySetting());
                   },
                 ),
               ],
@@ -667,16 +674,16 @@ class WebsocketService extends GetxService {
         }
       });
     });
-    return activeRelays;
+    return targetRelays;
   }
 
-  List<String> _getTargetRelays(List<String> toRelays) {
+  Set<String> _getTargetRelays(List<String> toRelays) {
     final activeRelays = getActiveRelayString();
     if (activeRelays.isEmpty) {
       throw Exception('No active relay');
     }
-    if (toRelays.isEmpty) return activeRelays;
-    return activeRelays.where((element) => toRelays.contains(element)).toList();
+    if (toRelays.isEmpty) return Set.from(activeRelays);
+    return activeRelays.where((element) => toRelays.contains(element)).toSet();
   }
 
   Future<RelayWebsocket> _startConnectRelay(

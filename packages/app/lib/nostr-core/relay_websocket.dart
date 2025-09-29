@@ -126,7 +126,7 @@ class RelayWebsocket {
     failedEvents.clear();
     final queue = AsyncQueue.autoStart();
     for (final element in tasksString) {
-      queue.addJob((_) => sendRawREQ(element, retry: true));
+      queue.addJob((_) => sendRawREQ(element));
     }
   }
 
@@ -171,14 +171,14 @@ class RelayWebsocket {
     maxReqCount = _maxReqCount;
     sentReqCount = 0;
 
-    _startListen();
-    Future.delayed(const Duration(seconds: 1)).then((value) {
+    await _startListen();
+    Future.delayed(const Duration(seconds: 1)).then((value) async {
       // init mls keypackages
       EasyDebounce.debounce(
           'connectSuccess:${relay.url}', const Duration(seconds: 3), () async {
         await MlsGroupService.instance.uploadKeyPackages(toRelay: relay.url);
       });
-      _proccessFailedEvents();
+      await _proccessFailedEvents();
       // nwc reconnect
       Utils.getGetxController<NostrWalletConnectController>()
           ?.startListening(relay.url);

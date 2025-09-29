@@ -1,40 +1,36 @@
 import 'dart:convert' show jsonDecode;
-import 'package:any_link_preview/any_link_preview.dart';
+
 import 'package:app/constants.dart';
-import 'package:app/desktop/DesktopController.dart';
+import 'package:app/controller/chat.controller.dart';
+import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr_event.dart';
-import 'package:app/page/browser/MultiWebviewController.dart';
 import 'package:app/page/chat/ChatMediaFilesPage.dart';
 import 'package:app/page/chat/ForwardSelectRoom.dart';
 import 'package:app/page/chat/contact_page.dart';
-
+import 'package:app/page/components.dart';
+import 'package:app/page/widgets/image_min_preview_widget.dart';
 import 'package:app/page/widgets/image_preview_widget.dart';
 import 'package:app/service/file.service.dart';
 import 'package:app/service/message.service.dart';
-import 'package:app/service/signal_chat_util.dart';
-import 'package:app/service/websocket.service.dart';
-import 'package:flutter/services.dart';
-
-import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:keychat_ecash/red_pocket_cashu.dart';
-import 'package:keychat_ecash/red_pocket_lightning.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
-import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
-import 'package:app/service/storage.dart';
-import 'package:app/controller/chat.controller.dart';
-import 'package:app/controller/home.controller.dart';
-import 'package:app/page/components.dart';
-import 'package:app/page/widgets/image_min_preview_widget.dart';
 import 'package:app/service/room.service.dart';
+import 'package:app/service/signal_chat_util.dart';
+import 'package:app/service/storage.dart';
+import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
+import 'package:keychat_ecash/red_pocket_cashu.dart';
+import 'package:keychat_ecash/red_pocket_lightning.dart';
+import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
 import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:settings_ui/settings_ui.dart';
 
@@ -57,7 +53,7 @@ class RoomUtil {
     if (nes != null) {
       return true;
     }
-    Get.find<WebsocketService>().writeNostrEvent(
+    await Get.find<WebsocketService>().writeNostrEvent(
       event: event,
       eventString: event.toString(),
       roomId: room.id,
@@ -69,9 +65,9 @@ class RoomUtil {
 
   static Future<void> forwardTextMessage(
     Identity identity,
-    String content, [
+    String content, {
     bool showContent = true,
-  ]) async {
+  }) async {
     final forwardRooms = await Get.to<List<Room>>(
       () => ForwardSelectRoom(content, identity, showContent: showContent),
       fullscreenDialog: true,
@@ -759,50 +755,16 @@ Let's start an encrypted chat.''';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _getTextItemView(message, markdownConfig, errorCallback),
-        const SizedBox(height: 10),
-        child,
-      ],
-    );
-  }
-
-  static Widget _getTextItemView(
-    Message message,
-    MarkdownConfig markdownConfig,
-    Widget Function({Widget? child, String? text}) errorCallback,
-  ) {
-    if (AnyLinkPreview.isValidLink(message.content) &&
-        !isEmail(message.content)) {
-      return AnyLinkPreview(
-        key: Key(message.content),
-        cache: const Duration(days: 7),
-        link: message.content,
-        onTap: () {
-          Utils.hideKeyboard(Get.context!);
-          Get.find<MultiWebviewController>()
-              .launchWebview(initUrl: message.content);
-        },
-        placeholderWidget: errorCallback(
-          child: getMarkdownView(message.content, markdownConfig, message.id),
-        ),
-        showMultimedia: false,
-        errorBody: '',
-        errorWidget: errorCallback(
+        errorCallback(
           child: getMarkdownView(
-            message.content,
+            message.realMessage ?? message.content,
             markdownConfig,
             message.id,
           ),
         ),
-      );
-    }
-
-    return errorCallback(
-      child: getMarkdownView(
-        message.realMessage ?? message.content,
-        markdownConfig,
-        message.id,
-      ),
+        const SizedBox(height: 10),
+        child,
+      ],
     );
   }
 
@@ -888,7 +850,13 @@ Let's start an encrypted chat.''';
     try {
       switch (message.mediaType) {
         case MessageMediaType.text:
-          return _getTextItemView(message, markdownConfig, errorCallback);
+          return errorCallback(
+            child: getMarkdownView(
+              message.realMessage ?? message.content,
+              markdownConfig,
+              message.id,
+            ),
+          );
         case MessageMediaType.video:
           return VideoMessageWidget(message, errorCallback);
         case MessageMediaType.image:
@@ -949,13 +917,30 @@ Let's start an encrypted chat.''';
           return GroupInvitationInfoWidget(cc, message, errorCallback);
         case MessageMediaType.groupInvitationRequesting:
           return GroupInvitationRequestingWidget(cc, message, errorCallback);
-        default:
+        case MessageMediaType.contact:
+          // TODO: Handle this case.
+          throw UnimplementedError();
+        case MessageMediaType.pdf:
+          // TODO: Handle this case.
+          throw UnimplementedError();
+        case MessageMediaType.botText:
+          // TODO: Handle this case.
+          throw UnimplementedError();
+        case MessageMediaType.botSelectionRequest:
+          // TODO: Handle this case.
+          throw UnimplementedError();
       }
     } catch (e, s) {
       logger.e('sub content: ', error: e, stackTrace: s);
     }
 
-    return _getTextItemView(message, markdownConfig, errorCallback);
+    return errorCallback(
+      child: getMarkdownView(
+        message.realMessage ?? message.content,
+        markdownConfig,
+        message.id,
+      ),
+    );
   }
 
   static Future<void> appendMessageOrCreate(

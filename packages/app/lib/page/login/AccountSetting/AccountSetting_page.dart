@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/browser/browser_connect.dart';
@@ -10,7 +12,6 @@ import 'package:app/page/contact/contact_list_page.dart';
 import 'package:app/page/login/AccountSetting/AccountSetting_controller.dart';
 import 'package:app/page/profile/lightning_address_edit_dialog.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
-import 'package:app/service/file.service.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/secure_storage.dart';
@@ -23,6 +24,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:isar_community/isar.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
@@ -92,30 +94,8 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                   Center(
                     child: GestureDetector(
                       onTap: () async {
-                        await Get.dialog<void>(
-                          CupertinoAlertDialog(
-                            title: const Text('Encryption Media'),
-                            content: const Text(
-                              'Your profile picture will be encrypted and saved on the server. It will be deleted after 14 days.',
-                            ),
-                            actions: [
-                              CupertinoActionSheetAction(
-                                onPressed: () {
-                                  Get.back<void>();
-                                },
-                                child: const Text('Cancel'),
-                              ),
-                              CupertinoActionSheetAction(
-                                onPressed: () async {
-                                  Get.back<void>();
-                                  await _pickAndUploadAvatar(
-                                    ImageSource.gallery,
-                                  );
-                                },
-                                child: const Text('Ok'),
-                              ),
-                            ],
-                          ),
+                        await _pickAndSaveAvatar(
+                          ImageSource.gallery,
                         );
                       },
                       child: Stack(
@@ -725,7 +705,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
     );
   }
 
-  Future<void> _pickAndUploadAvatar(ImageSource source) async {
+  Future<void> _pickAndSaveAvatar(ImageSource source) async {
     try {
       final picker = ImagePicker();
       final image = await picker.pickImage(
@@ -749,32 +729,37 @@ class AccountSettingPage extends GetView<AccountSettingController> {
         EasyLoading.showError('Unsupported image format');
         return;
       }
-      EasyLoading.show(status: 'Uploading avatar...');
+      late Uint8List fileBytes;
+      try {
+        final sourceInput = await img.decodeImageFile(image.path);
+        if (sourceInput == null) {
+          throw Exception('Image decode failed');
+        }
+        // remove exif
+        sourceInput.exif = img.ExifData();
+        fileBytes = img.encodeJpg(sourceInput, quality: 80);
+      } catch (e) {
+        // fallback to original file
+        fileBytes = await image.readAsBytes();
+      }
       final avatarsFolder = Utils.avatarsFolder;
       final fileName = '${Utils.randomString(16)}.$ext';
       final localFileFullPath = '$avatarsFolder/$fileName';
-      // Upload to server using encryptAndUploadImage
-      final mfi = await FileService.instance
-          .encryptAndUploadImage(image, localFilePath: localFileFullPath);
-      if (mfi == null || mfi.localPath == null) return;
-      mfi.sourceName = '';
-      logger.d('Avatar uploaded: $mfi');
-
-      controller.identity.value
-        ..avatarLocalPath = mfi.localPath
-        ..avatarRemoteUrl = mfi.getUriString('image')
-        ..avatarUpdatedAt = DateTime.now();
+      final localFile = await File(localFileFullPath).create();
+      await localFile.writeAsBytes(fileBytes);
+      controller.identity.value.avatarLocalPath =
+          localFileFullPath.replaceFirst(Utils.appFolder.path, '');
       await IdentityService.instance.updateIdentity(controller.identity.value);
       Utils.clearAvatarCache();
       // Force refresh UI
       controller.identity.refresh();
-      await EasyLoading.showSuccess('Avatar uploaded successfully');
+      await EasyLoading.showSuccess('Avatar saved successfully');
       await Get.find<HomeController>().loadIdentity();
     } catch (e, s) {
       EasyLoading.showError(
-        'Failed to upload avatar: ${Utils.getErrorMessage(e)}',
+        'Failed to save avatar: ${Utils.getErrorMessage(e)}',
       );
-      logger.e('Avatar upload error: $e', stackTrace: s);
+      logger.e('Avatar save error: $e', stackTrace: s);
     }
   }
 }

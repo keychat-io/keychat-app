@@ -92,12 +92,12 @@ class Identity extends Equatable {
   }
 
   Future<String?> getRemoteAvatarUrl() async {
-    if (avatarUpdatedAt == null || avatarRemoteUrl == null) return null;
-
-    if (DateTime.now().difference(avatarUpdatedAt!).inDays <= 14) {
-      return avatarRemoteUrl;
-    }
     if (avatarLocalPath == null) return null;
+    if (avatarUpdatedAt != null || avatarRemoteUrl != null) {
+      if (DateTime.now().difference(avatarUpdatedAt!).inMinutes <= 10) {
+        return avatarRemoteUrl;
+      }
+    }
     try {
       // expired but local file exists, re-upload
       final filePath = Utils.appFolder.path;
@@ -108,10 +108,10 @@ class Identity extends Equatable {
           .encryptAndUploadImage(XFile(file.path), writeToLocal: false);
       if (mfi == null) return null;
       mfi.sourceName = '';
+      mfi.fileInfo?.sourceName = '';
       logger.d('Avatar uploaded: $mfi');
       avatarRemoteUrl = mfi.getUriString('image');
       avatarUpdatedAt = DateTime.now();
-      avatarLocalPath = mfi.localPath;
       await IdentityService.instance.updateIdentity(this);
       return avatarRemoteUrl;
     } catch (e, st) {

@@ -2,30 +2,29 @@ import 'dart:convert' show jsonEncode;
 
 import 'package:app/constants.dart';
 import 'package:app/global.dart';
-
 import 'package:app/models/models.dart';
+import 'package:app/service/chat.service.dart';
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/group.service.dart';
 import 'package:app/service/mls_group.service.dart';
+import 'package:app/service/nip4_chat.service.dart';
 import 'package:app/service/signalId.service.dart';
+import 'package:app/service/signal_chat.service.dart';
 import 'package:app/service/signal_chat_util.dart';
 import 'package:get/get.dart';
 import 'package:json_annotation/json_annotation.dart';
-
-import 'package:app/service/chat.service.dart';
-import 'package:app/service/nip4_chat.service.dart';
-import 'package:app/service/signal_chat.service.dart';
 
 part 'keychat_message.g.dart';
 
 @JsonSerializable(includeIfNull: false)
 class KeychatMessage {
-  KeychatMessage(
-      {required this.type,
-      required this.c, // category
-      this.msg,
-      this.name,
-      this.data});
+  KeychatMessage({
+    required this.type,
+    required this.c, // category
+    this.msg,
+    this.name,
+    this.data,
+  });
 
   factory KeychatMessage.fromJson(Map<String, dynamic> json) =>
       _$KeychatMessageFromJson(json);
@@ -54,8 +53,12 @@ class KeychatMessage {
   @override
   String toString() => jsonEncode(toJson());
 
-  Future<KeychatMessage> setHelloMessagge(Identity identity,
-      {SignalId? signalId, String? greeting, bool fromNpub = false}) async {
+  Future<KeychatMessage> setHelloMessagge(
+    Identity identity, {
+    SignalId? signalId,
+    String? greeting,
+    bool fromNpub = false,
+  }) async {
     final oneTimeKeys =
         await Get.find<ChatxService>().getOneTimePubkey(identity.id);
     var onetimekey = '';
@@ -65,7 +68,7 @@ class KeychatMessage {
 
     signalId ??= await SignalIdService.instance.createSignalId(identity.id);
 
-    final Map userInfo = await SignalIdService.instance.getQRCodeData(signalId);
+    final userInfo = await SignalIdService.instance.getQRCodeData(signalId);
     final expiredTime = DateTime.now().millisecondsSinceEpoch +
         KeychatGlobal.oneTimePubkeysLifetime * 3600 * 1000;
 
@@ -75,7 +78,10 @@ class KeychatMessage {
       time: expiredTime,
     );
     final sig = await SignalChatUtil.signByIdentity(
-        identity: identity, content: content, id: expiredTime.toString());
+      identity: identity,
+      content: content,
+      id: expiredTime.toString(),
+    );
     if (sig == null) throw Exception('Sign failed or User denied');
     final avatarRemoteUrl = await identity.getRemoteAvatarUrl();
 
@@ -89,7 +95,7 @@ class KeychatMessage {
       'lightning': identity.lightning ?? '',
       'avatar': avatarRemoteUrl ?? '',
       'globalSign': sig,
-      ...userInfo.cast<String, dynamic>()
+      ...userInfo.cast<String, dynamic>(),
     };
     name = QRUserModel.fromJson(data).toString();
     msg = fromNpub
@@ -111,21 +117,34 @@ $greeting''';
 
   /// if no relay, return content. if has replay , return KeychatMessage Object;
   static String getTextMessage(
-      MessageType messageType, String content, MsgReply? reply) {
+    MessageType messageType,
+    String content,
+    MsgReply? reply,
+  ) {
     if (reply == null) return content;
     return KeychatMessage(
-            type: KeyChatEventKinds.dm,
-            c: messageType,
-            msg: content,
-            name: reply.toString())
-        .toString();
+      type: KeyChatEventKinds.dm,
+      c: messageType,
+      msg: content,
+      name: reply.toString(),
+    ).toString();
   }
 
   static String getFeatureMessageString(
-      MessageType type, Room room, String message, int subtype,
-      {String? name, String? data}) {
+    MessageType type,
+    Room room,
+    String message,
+    int subtype, {
+    String? name,
+    String? data,
+  }) {
     final km = KeychatMessage(
-        c: type, type: subtype, msg: message, data: data, name: name);
+      c: type,
+      type: subtype,
+      msg: message,
+      data: data,
+      name: name,
+    );
     return km.toString();
   }
 }

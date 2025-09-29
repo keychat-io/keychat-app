@@ -74,7 +74,6 @@ class _WebviewTabState extends State<WebviewTab> {
   // Add scroll position tracking
   Map<String, Map<String, dynamic>> urlScrollPositions = {};
   bool needRestorePosition = false;
-  late WebUri currentUri;
 
   @override
   void initState() {
@@ -85,19 +84,19 @@ class _WebviewTabState extends State<WebviewTab> {
       widget.uniqueKey,
     );
     ecashController = Get.find<EcashController>();
-    currentUri = WebUri(widget.initUrl);
-    initDomain = currentUri.host;
+    initDomain = WebUri(widget.initUrl).host;
 
-    initBrowserConnect(currentUri);
+    initBrowserConnect(WebUri(widget.initUrl));
     initPullToRefreshController();
     super.initState();
   }
 
   Future<void> menuOpened() async {
-    initBrowserConnect(currentUri);
+    final uri = await getCurrentUrl();
+    initBrowserConnect(uri);
     multiWebviewController.updateTabData(
       uniqueId: widget.uniqueKey,
-      url: currentUri.toString(),
+      url: uri.toString(),
     );
   }
 
@@ -203,21 +202,22 @@ class _WebviewTabState extends State<WebviewTab> {
                   return [
                     PopupMenuItem(
                       value: 'tools',
-                      child: getPopTools(currentUri.toString()),
+                      child: getPopTools(),
                     ),
-                    PopupMenuItem(
-                      value: 'refresh',
-                      child: Row(
-                        spacing: 16,
-                        children: [
-                          const Icon(Icons.refresh),
-                          Text(
-                            'Refresh',
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
-                        ],
+                    if (GetPlatform.isMobile)
+                      PopupMenuItem(
+                        value: 'refresh',
+                        child: Row(
+                          spacing: 16,
+                          children: [
+                            const Icon(Icons.refresh),
+                            Text(
+                              'Refresh',
+                              style: Theme.of(context).textTheme.bodyLarge,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
                     PopupMenuItem(
                       value: 'bookmark',
                       child: Row(
@@ -446,7 +446,7 @@ class _WebviewTabState extends State<WebviewTab> {
           body: SafeArea(
             bottom: GetPlatform.isAndroid ||
                 multiWebviewController.bottomSafeHosts
-                    .contains(currentUri.host),
+                    .contains(WebUri(widget.initUrl).host),
             child: Column(
               children: <Widget>[
                 Expanded(
@@ -594,9 +594,6 @@ class _WebviewTabState extends State<WebviewTab> {
               await downloadFile(url.toString());
               return NavigationActionPolicy.DOWNLOAD;
             }
-            if (['http', 'https'].contains(uri.scheme)) {
-              currentUri = uri;
-            }
             if (['http', 'https', 'data', 'javascript', 'about']
                 .contains(uri.scheme)) {
               return NavigationActionPolicy.ALLOW;
@@ -605,11 +602,13 @@ class _WebviewTabState extends State<WebviewTab> {
               await launchUrl(uri);
             } catch (e) {
               if (e is PlatformException) {
-                EasyLoading.showError('Failed to open link: ${e.message}');
+                await EasyLoading.showError(
+                  'Failed to open link: ${e.message}',
+                );
                 return NavigationActionPolicy.CANCEL;
               }
               logger.i(e.toString(), error: e);
-              EasyLoading.showError('Failed to open link: $e');
+              await EasyLoading.showError('Failed to open link: $e');
             }
           } catch (e) {
             logger.i(e.toString(), error: e);
@@ -759,11 +758,12 @@ class _WebviewTabState extends State<WebviewTab> {
         },
         onTitleChanged: (controller, title) async {
           if (title == null) return;
-          updateTabInfo(widget.uniqueKey, currentUri.toString(), title);
+          final uri = await getCurrentUrl();
+          updateTabInfo(widget.uniqueKey, uri.toString(), title);
         },
-        onUpdateVisitedHistory: (controller, url, androidIsReload) {
+        onUpdateVisitedHistory: (controller, url, androidIsReload) async {
           // logger.i('onUpdateVisitedHistory: ${url.toString()} $androidIsReload');
-          onUpdateVisitedHistory(url);
+          await onUpdateVisitedHistory(url);
         },
       ),
     );
@@ -789,7 +789,19 @@ class _WebviewTabState extends State<WebviewTab> {
     }
   }
 
-  Widget getPopTools(String url) {
+  WebUri? lastViewUri;
+  Future<WebUri> getCurrentUrl() async {
+    try {
+      final uri = await tabController.inAppWebViewController?.getUrl();
+      lastViewUri = uri;
+      return uri ?? WebUri.uri(Uri.parse(widget.initUrl));
+    } catch (e) {
+      await refreshPage();
+      return WebUri.uri(Uri.parse(widget.initUrl));
+    }
+  }
+
+  Widget getPopTools() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -801,15 +813,30 @@ class _WebviewTabState extends State<WebviewTab> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
-            child: Text(url, maxLines: 2, overflow: TextOverflow.ellipsis),
+            child: FutureBuilder(
+              future: getCurrentUrl(),
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  final currentUrl = snapshot.data!;
+                  return Text(
+                    currentUrl.toString(),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
           ),
           IconButton(
             icon: const Icon(Icons.copy, size: 16),
             padding: EdgeInsets.zero,
-            onPressed: () {
+            onPressed: () async {
               Get.back<void>();
-              Clipboard.setData(ClipboardData(text: url));
-              EasyLoading.showToast('URL Copied');
+              final uri = await getCurrentUrl();
+              await Clipboard.setData(ClipboardData(text: uri.toString()));
+              await EasyLoading.showToast('URL Copied');
             },
           ),
         ],
@@ -839,18 +866,18 @@ class _WebviewTabState extends State<WebviewTab> {
   // info coming from the JavaScript side!
   Future<Object?>? javascriptHandlerNostr(List<dynamic> data) async {
     logger.i('javascriptHandler: $data');
-    final method = data[0];
+    final method = data[0] as String;
     if (method == 'getRelays') {
       final relays = await RelayService.instance.getEnableList();
       return relays;
     }
 
     if (method == 'pageFailedToRefresh') {
-      refreshPage();
+      await refreshPage();
       return null;
     }
 
-    final host = currentUri.host;
+    final host = (await getCurrentUrl()).host;
     final identity = await getOrSelectIdentity(host);
     if (identity == null) {
       return null;
@@ -861,7 +888,7 @@ class _WebviewTabState extends State<WebviewTab> {
       case 'getPublicKey':
         return identity.secp256k1PKHex;
       case 'signEvent':
-        final event = data[1];
+        final event = data[1] as Map<String, dynamic>;
 
         // Confirm signing event
         if (!(multiWebviewController.config['autoSignEvent'] as bool? ??
@@ -890,7 +917,7 @@ class _WebviewTabState extends State<WebviewTab> {
         final res = await NostrAPI.instance.signEventByIdentity(
           identity: identity,
           content: event['content'] as String,
-          createdAt: event['created_at'],
+          createdAt: event['created_at'] as int,
           kind: event['kind'] as int,
           tags: (event['tags'] as List)
               .map((e) => List<String>.from(e.map((item) => item.toString())))
@@ -1015,12 +1042,13 @@ class _WebviewTabState extends State<WebviewTab> {
   }
 
   Future<void> popupMenuSelected(String value) async {
+    final currentUri = await getCurrentUrl();
     switch (value) {
       case 'share':
-        SharePlus.instance.share(ShareParams(uri: currentUri));
+        await SharePlus.instance.share(ShareParams(uri: currentUri));
       case 'shareToRooms':
         final identity = Get.find<HomeController>().getSelectedIdentity();
-        RoomUtil.forwardTextMessage(identity, currentUri.toString());
+        await RoomUtil.forwardTextMessage(identity, currentUri.toString());
       case 'refresh':
         await refreshPage();
       case 'bookmark':
@@ -1135,7 +1163,6 @@ class _WebviewTabState extends State<WebviewTab> {
       if (uri.toString() == 'about:blank') {
         return;
       }
-      currentUri = uri;
       final newTitle = await tabController.inAppWebViewController?.getTitle();
       var title = newTitle ?? tabController.title.value;
       if (title.isEmpty) {
@@ -1530,17 +1557,16 @@ img {
 
   Future<void> refreshPage([WebUri? uri]) async {
     try {
-      uri ??=
-          await tabController.inAppWebViewController?.getUrl() ?? currentUri;
-      await tabController.inAppWebViewController
-          ?.loadUrl(urlRequest: URLRequest(url: uri));
+      uri ??= await tabController.inAppWebViewController?.getUrl();
+      await tabController.inAppWebViewController?.reload();
     } catch (e) {
       // ⛔ A MacOSInAppWebViewController was used after being disposed.
       // ⛔ Once the MacOSInAppWebViewController has been disposed, it can no longer be used.
       logger.e(e.toString(), error: e);
       tabController.pageStorageKey.value =
           PageStorageKey<String>(Random().nextInt(1 << 32).toString());
-      tabController.url = currentUri.toString();
+      tabController.url =
+          lastViewUri != null ? lastViewUri.toString() : widget.initUrl;
     }
   }
 

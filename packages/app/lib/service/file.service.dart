@@ -1,5 +1,5 @@
 import 'dart:convert' show base64Encode, utf8;
-import 'dart:io' show Directory, File, FileSystemEntity;
+import 'dart:io' show Directory, File;
 import 'dart:math' show Random;
 import 'dart:typed_data' show Uint8List;
 
@@ -349,11 +349,13 @@ class FileService {
   /// Download avatar from URL and save to local avatars folder
   Future<String?> downloadAndSaveAvatar(String avatarUrl, String pubkey) async {
     try {
+      EasyLoading.show(status: 'Downloading avatar...');
+
       // Get file extension from URL
       final uri = Uri.parse(avatarUrl);
       var extension = path.extension(uri.path).toLowerCase();
       if (extension.isEmpty) {
-        extension = '.jpg'; // Default extension
+        extension = '.png'; // Default extension
       }
 
       // Generate filename based on pubkey
@@ -362,16 +364,43 @@ class FileService {
       final localFile = File(localPath);
 
       // Download the file
-      final downloadedFile = await FileService.instance.downloadFile(avatarUrl);
+      final downloadedFile = await FileService.instance.downloadFile(
+        avatarUrl,
+        (int count, int total) async {
+          EasyThrottle.throttle('downloadAndSaveAvatar$avatarUrl',
+              const Duration(milliseconds: 300), () async {
+            if (total > 0) {
+              await EasyLoading.showProgress(
+                count / total,
+                status: 'Downloading avatar...',
+              );
+            }
+          });
+        },
+      ).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () async {
+          await EasyLoading.dismiss();
+          await EasyLoading.showError('Download timeout');
+          return null;
+        },
+      );
+
       if (downloadedFile != null) {
         // Copy to avatars folder
         await downloadedFile.copy(localPath);
         await downloadedFile.delete(); // Clean up temp file
 
+        EasyLoading.dismiss();
+        EasyLoading.showSuccess('Avatar downloaded');
+
         // Return relative path
         return localFile.path.replaceFirst(Utils.appFolder.path, '');
       }
+      EasyLoading.dismiss();
     } catch (e, s) {
+      EasyLoading.dismiss();
+      EasyLoading.showError('Failed to download avatar');
       logger.e(
         'Failed to download avatar from $avatarUrl: $e',
         error: e,
@@ -394,6 +423,8 @@ class FileService {
         '${DateTime.now().millisecondsSinceEpoch}_${xfile.name}';
     final tempFile = File('${tempDir.path}/$tempFileName');
 
+    EasyLoading.show(status: 'Encrypting and Uploading avatar...');
+
     try {
       // Write to temporary file
       await tempFile.writeAsBytes(await xfile.readAsBytes());
@@ -403,16 +434,50 @@ class FileService {
       final uri = Uri.parse(selectedMediaServer);
       late FileEncryptInfo fileInfo;
 
+      // Wrap the progress callback to show loading status
+      void progressCallback(int count, int total) {
+        EasyThrottle.throttle('uploadImageProgress${xfile.path}',
+            const Duration(milliseconds: 300), () {
+          if (total > 0) {
+            EasyLoading.showProgress(
+              count / total,
+              status: 'Encrypting and Uploading avatar...',
+            );
+          }
+        });
+      }
+
+      EasyLoading.showProgress(
+        0.1,
+        status: 'Encrypting and Uploading avatar...',
+      );
+
       if (uri.host == 'relay.keychat.io') {
         fileInfo = await AwsS3.instance
-            .encryptAndUploadByRelay(tempFile, onSendProgress: onSendProgress);
+            .encryptAndUploadByRelay(tempFile, onSendProgress: progressCallback)
+            .timeout(
+          const Duration(seconds: 30),
+          onTimeout: () {
+            EasyLoading.dismiss();
+            EasyLoading.showError('Upload timeout');
+            throw Exception('Upload timeout after 30 seconds');
+          },
+        );
       } else {
         try {
           fileInfo = await uploadToBlossom(
             input: tempFile,
-            onSendProgress: onSendProgress,
+            onSendProgress: progressCallback,
+          ).timeout(
+            const Duration(seconds: 30),
+            onTimeout: () {
+              EasyLoading.dismiss();
+              EasyLoading.showError('Upload timeout');
+              throw Exception('Upload timeout after 30 seconds');
+            },
           );
         } catch (e, s) {
+          EasyLoading.dismiss();
           logger.e('Upload to blossom failed: $e', stackTrace: s);
           await Get.dialog(
             CupertinoAlertDialog(
@@ -440,6 +505,8 @@ class FileService {
         }
       }
 
+      EasyLoading.showSuccess('Upload complete');
+
       // Upload successful, now write to local file
       String? relativePath;
       if (writeToLocal && localFilePath != null) {
@@ -461,11 +528,19 @@ class FileService {
         ..updateAt = DateTime.now()
         ..sourceName = fileInfo.sourceName
         ..status = FileStatus.decryptSuccess;
+    } catch (e, s) {
+      logger.e('Error in encryptAndUploadImage: $e', stackTrace: s);
+      EasyLoading.dismiss();
+      EasyLoading.showError('Upload failed: $e');
+      rethrow;
     } finally {
       // Clean up temporary file
-      if (await tempFile.exists()) {
+      if (tempFile.existsSync()) {
         await tempFile.delete();
       }
+
+      // Make sure to dismiss the loading indicator if it's still showing
+      Future.delayed(const Duration(milliseconds: 500), EasyLoading.dismiss);
     }
   }
 
@@ -501,7 +576,7 @@ class FileService {
     XFile xfile,
     MessageMediaType type, {
     bool compress = false,
-    Function(int count, int total)? onSendProgress,
+    void Function(int count, int total)? onSendProgress,
   }) async {
     final appDocPath = await getRoomFolder(
       identityId: room.identityId,

@@ -397,11 +397,13 @@ class MlsGroupService extends BaseChatService {
     for (final element in extensions.entries) {
       var name = element.key;
       var status = UserStatusType.invited;
+      String? avatarUrl;
       if (element.value.isNotEmpty) {
         try {
           final res = utf8.decode(element.value[0]);
-          final Map extension = jsonDecode(res) as Map<String, dynamic>;
+          final extension = jsonDecode(res) as Map<String, dynamic>;
           name = extension['name'] as String? ?? element.key;
+          avatarUrl = extension['avatar'] as String?;
           if (extension['status'] != null) {
             status = UserStatusType.values
                 .firstWhere((e) => e.name == extension['status']);
@@ -425,7 +427,9 @@ class MlsGroupService extends BaseChatService {
         name: name,
         roomId: room.id,
         status: status,
-      )..mlsPKExpired = mlsPKExpired;
+      )
+        ..mlsPKExpired = mlsPKExpired
+        ..avatarUrl = avatarUrl;
     }
     return roomMembers;
   }
@@ -632,7 +636,7 @@ class MlsGroupService extends BaseChatService {
     );
 
     if (!room.isMute) {
-      NotifyService.addPubkeys([newPubkey]);
+      unawaited(NotifyService.addPubkeys([newPubkey]));
     }
     loggerNoLine
         .i('[MLS] replaceListenPubkey END - success for room: ${room.id}');
@@ -641,9 +645,13 @@ class MlsGroupService extends BaseChatService {
 
   Future<void> sendGreetingMessage(Room room) async {
     room.sentHelloToMLS = true;
+    final avatarUrl = await room.getIdentity().getRemoteAvatarUrl();
     await selfUpdateKey(
       room,
-      extension: {'name': room.getIdentity().displayName},
+      extension: {
+        'name': room.getIdentity().displayName,
+        'avatar': avatarUrl ?? ''
+      },
     );
   }
 
@@ -1227,7 +1235,11 @@ class MlsGroupService extends BaseChatService {
     Room room, [
     Map<String, dynamic>? extension,
   ]) async {
-    final map = extension ?? {'name': room.getIdentity().displayName};
+    var map = extension ?? {};
+    if (extension == null) {
+      final avatarUrl = await room.getIdentity().getRemoteAvatarUrl();
+      map = {'name': room.getIdentity().displayName, 'avatar': avatarUrl ?? ''};
+    }
     return rust_mls.selfUpdate(
       nostrId: room.getIdentity().secp256k1PKHex,
       groupId: room.toMainPubkey,

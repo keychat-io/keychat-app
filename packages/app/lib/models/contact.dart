@@ -82,6 +82,14 @@ class Contact extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [id, pubkey, npubkey, name, petname, about, createdAt, updatedAt];
+  List<Object?> get props => [
+        id,
+        pubkey,
+        npubkey,
+        name,
+        petname,
+        about,
+        avatarLocalPath,
+        avatarRemoteUrl,
+      ];
 }

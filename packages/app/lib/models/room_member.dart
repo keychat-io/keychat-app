@@ -8,23 +8,26 @@ part 'room_member.g.dart';
 enum UserStatusType { inviting, invited, blocked, removed }
 
 @JsonSerializable(includeIfNull: false)
-@Collection(ignore: {
-  'props',
-  'isCheck',
-  'messageCount',
-  'mlsPKExpired',
-  'contact',
-  'displayName'
-})
+@Collection(
+  ignore: {
+    'props',
+    'isCheck',
+    'messageCount',
+    'mlsPKExpired',
+    'contact',
+    'displayName',
+  },
+)
 // ignore: must_be_immutable
 class RoomMember extends Equatable {
   // fetch time
 
-  RoomMember(
-      {required this.idPubkey,
-      required this.roomId,
-      required this.name,
-      this.status = UserStatusType.invited}) {
+  RoomMember({
+    required this.idPubkey,
+    required this.roomId,
+    required this.name,
+    this.status = UserStatusType.invited,
+  }) {
     createdAt = DateTime.now();
     updatedAt = DateTime.now();
   }
@@ -46,6 +49,7 @@ class RoomMember extends Equatable {
 
   DateTime? createdAt;
   DateTime? updatedAt;
+  String? avatarUrl;
 
   bool isAdmin = false;
 

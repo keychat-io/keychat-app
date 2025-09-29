@@ -13,21 +13,31 @@ class SignalChatUtil {
     return 'Keychat-$nostrId-$signalId-$time';
   }
 
-  static Future<String?> signByIdentity(
-      {required Identity identity, required String content, String? id}) async {
-    if (identity.isFromSigner == false) {
+  static Future<String?> signByIdentity({
+    required Identity identity,
+    required String content,
+    String? id,
+  }) async {
+    if (!identity.isFromSigner) {
       return rust_nostr.signSchnorr(
-          privateKey: await identity.getSecp256k1SKHex(), content: content);
+        privateKey: await identity.getSecp256k1SKHex(),
+        content: content,
+      );
     }
 
     return SignerService.instance
         .signMessage(content: content, pubkey: identity.secp256k1PKHex, id: id);
   }
 
-  static Future<void> verifySignedMessage(
-      {required PrekeyMessageModel pmm, required String signalIdPubkey}) async {
+  static Future<void> verifySignedMessage({
+    required PrekeyMessageModel pmm,
+    required String signalIdPubkey,
+  }) async {
     final source = SignalChatUtil.getToSignMessage(
-        nostrId: pmm.nostrId, signalId: signalIdPubkey, time: pmm.time);
+      nostrId: pmm.nostrId,
+      signalId: signalIdPubkey,
+      time: pmm.time,
+    );
     final verify = await rust_nostr.verifySchnorr(
       pubkey: pmm.nostrId,
       content: source,
@@ -37,29 +47,36 @@ class SignalChatUtil {
     if (!verify) throw Exception('Signature verification failed');
   }
 
-  static Future<PrekeyMessageModel> getSignalPrekeyMessage(
-      {required Room room,
-      required String message,
-      required String signalPubkey}) async {
+  static Future<PrekeyMessageModel> getSignalPrekeyMessage({
+    required Room room,
+    required String message,
+    required String signalPubkey,
+  }) async {
     final time = DateTime.now().millisecondsSinceEpoch;
     final identity = room.getIdentity();
 
     final content = SignalChatUtil.getToSignMessage(
-        nostrId: identity.secp256k1PKHex, signalId: signalPubkey, time: time);
+      nostrId: identity.secp256k1PKHex,
+      signalId: signalPubkey,
+      time: time,
+    );
     final sig = await SignalChatUtil.signByIdentity(
-        identity: identity, content: content);
+      identity: identity,
+      content: content,
+    );
     final avatarRemoteUrl = await identity.getRemoteAvatarUrl();
 
     if (sig == null) throw Exception('Sign failed or User denied');
     return PrekeyMessageModel(
-        signalId: signalPubkey,
-        nostrId: identity.secp256k1PKHex,
-        time: time,
-        name: identity.displayName,
-        sig: sig,
-        message: message,
-        lightning: identity.lightning ?? '',
-        avatar: avatarRemoteUrl ?? '');
+      signalId: signalPubkey,
+      nostrId: identity.secp256k1PKHex,
+      time: time,
+      name: identity.displayName,
+      sig: sig,
+      message: message,
+      lightning: identity.lightning ?? '',
+      avatar: avatarRemoteUrl ?? '',
+    );
   }
 
   static String getPrekeySigContent(List<String> ids) {

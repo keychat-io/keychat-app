@@ -669,34 +669,31 @@ Add as a friend and start the signal protocol chat
         enableMembers[admin]!.isAdmin = true;
       }
       // update member's avatar
-      await updateRoomMembersAvatar(
-        members.keys.toList(),
-        roomObs.value.identityId,
-      );
+      await updateRoomMembersAvatar();
       return;
     }
     if (roomObs.value.isSendAllGroup) {
       members.value = await roomObs.value.getMembers();
       enableMembers.value = await roomObs.value.getEnableMembers();
       // update member's avatar
-      await updateRoomMembersAvatar(
-        members.keys.toList(),
-        roomObs.value.identityId,
-      );
+      await updateRoomMembersAvatar();
       memberRooms = await roomObs.value.getEnableMemberRooms();
       kpaIsNullRooms.value = await getKpaIsNullRooms(); // get null list
     }
   }
 
-  Future<void> updateRoomMembersAvatar(
-    List<String> pubkeys,
-    int identityId,
-  ) async {
-    for (final pubkey in pubkeys) {
-      final contact =
-          await ContactService.instance.getContact(identityId, pubkey);
-      enableMembers[pubkey]?.contact = contact;
-      members[pubkey]?.contact = contact;
+  Future<void> updateRoomMembersAvatar() async {
+    for (final member in members.values) {
+      Contact? contact;
+      if (member.avatarUrl != null) {
+        contact = await ContactService.instance.saveContactFromQrCode(
+          identityId: roomObs.value.identityId,
+          pubkey: member.idPubkey,
+          avatarRemoteUrl: member.avatarUrl,
+        );
+      }
+      enableMembers[member.idPubkey]?.contact = contact;
+      members[member.idPubkey]?.contact = contact;
     }
   }
 

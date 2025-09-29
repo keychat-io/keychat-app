@@ -387,28 +387,37 @@ class ContactService {
   }) async {
     final contact = await ContactService.instance
         .getOrCreateContact(identityId: identityId, pubkey: pubkey);
-    contact.name = name;
+    var changed = false;
+    if (name != null) {
+      changed = true;
+      contact.name = name;
+    }
     if (lightning != null) {
+      changed = true;
       contact.lightning = lightning;
     }
     if (avatarRemoteUrl != null &&
         avatarRemoteUrl.isNotEmpty &&
         avatarRemoteUrl != contact.avatarRemoteUrl) {
-      contact.avatarRemoteUrl = avatarRemoteUrl;
       try {
         final decryptedFile =
             await FileService.instance.downloadAndDecryptToPath(
           url: avatarRemoteUrl,
           outputFolder: Utils.avatarsFolder,
         );
-        contact.avatarLocalPath =
-            decryptedFile.path.replaceFirst(Utils.appFolder.path, '');
+        changed = true;
+        contact
+          ..avatarRemoteUrl = avatarRemoteUrl
+          ..avatarLocalPath =
+              decryptedFile.path.replaceFirst(Utils.appFolder.path, '');
         Utils.clearAvatarCache();
       } catch (e) {
         logger.e('Failed to download avatar: $e');
       }
     }
-    await ContactService.instance.saveContact(contact);
+    if (changed) {
+      await ContactService.instance.saveContact(contact);
+    }
     return contact;
   }
 

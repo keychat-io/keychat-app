@@ -969,11 +969,11 @@ class MessageWidget extends StatelessWidget {
     );
   }
 
-  void _handleForward(BuildContext context) {
+  Future<void> _handleForward(BuildContext context) async {
     Get.back<void>();
     final identity = cc.roomObs.value.getIdentity();
     if (message.isMediaType) {
-      RoomUtil.forwardMediaMessage(
+      await RoomUtil.forwardMediaMessage(
         identity,
         mediaType: message.mediaType,
         content: message.content,
@@ -982,7 +982,7 @@ class MessageWidget extends StatelessWidget {
       return;
     }
 
-    RoomUtil.forwardTextMessage(identity, message.content);
+    await RoomUtil.forwardTextMessage(identity, message.content);
   }
 
   void _handleReply(BuildContext context) {

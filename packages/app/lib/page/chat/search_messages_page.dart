@@ -4,6 +4,7 @@ import 'package:app/models/models.dart';
 import 'package:app/page/components.dart' show textSmallGray;
 import 'package:app/service/message.service.dart';
 import 'package:app/service/room.service.dart';
+import 'package:app/service/contact.service.dart'; // Add this import
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -23,6 +24,8 @@ class _SearchMessagesPageState extends State<SearchMessagesPage> {
   RxBool isLoading = false.obs;
   late Room room;
   late ChatController? chatController;
+  // Add a cache for contacts to prevent repeated database lookups
+  final Map<String, Contact?> _contactCache = {};
 
   @override
   void initState() {
@@ -163,6 +166,14 @@ class _SearchMessagesPageState extends State<SearchMessagesPage> {
     final shouldHideSenderName = !(room.isMLSGroup || room.isSendAllGroup);
     final showSenderName = !shouldHideSenderName && !message.isMeSend;
 
+    // Get contact from cache or fetch from database if not cached
+    final contact = _contactCache[message.idPubkey] ??
+        (() {
+          final c = ContactService.instance.getContactSync(message.idPubkey);
+          _contactCache[message.idPubkey] = c; // Cache the result
+          return c;
+        })();
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
@@ -187,7 +198,10 @@ class _SearchMessagesPageState extends State<SearchMessagesPage> {
                   borderRadius: BorderRadius.circular(20),
                   child: message.isMeSend
                       ? myAvatar
-                      : Utils.getRandomAvatar(message.idPubkey),
+                      : Utils.getRandomAvatar(
+                          message.idPubkey,
+                          contact: contact,
+                        ),
                 ),
                 const SizedBox(width: 12),
 

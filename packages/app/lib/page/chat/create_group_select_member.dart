@@ -65,7 +65,7 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
         pubkeys.add(contact['pubkey']);
       }
     }
-    final Map result =
+    final result =
         await MlsGroupService.instance.getKeyPackagesFromRelay(pubkeys);
     for (var i = 0; i < widget.contacts.length; i++) {
       final contact = widget.contacts[i];
@@ -93,7 +93,7 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
     final selectAccounts = <String, String>{};
     final selectedContact = <Map<String, dynamic>>[];
     for (var i = 0; i < users.length; i++) {
-      final Map contact = users[i];
+      final contact = users[i];
       if (contact['isCheck'] == true) {
         var selectAccount = '';
         selectAccount = contact['pubkey'] as String;
@@ -158,10 +158,15 @@ class _CreateGroupSelectMemberState extends State<CreateGroupSelectMember>
                 final user = users[i];
                 return ListTile(
                   dense: true,
-                  leading: Utils.getRandomAvatar(user['pubkey']),
-                  title: Text(user['name'], maxLines: 1),
-                  subtitle:
-                      Text(user['npubkey'], overflow: TextOverflow.ellipsis),
+                  leading: Utils.getRandomAvatar(
+                    user['pubkey'] as String,
+                    contact: user['contact'] as Contact?,
+                  ),
+                  title: Text(user['name'] as String, maxLines: 1),
+                  subtitle: Text(
+                    user['npubkey'] as String,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   trailing: getAddMemeberCheckBox(widget.groupType, user),
                 );
               },

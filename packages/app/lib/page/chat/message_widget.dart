@@ -565,19 +565,16 @@ class MessageWidget extends StatelessWidget {
               },
               onTap: () async {
                 if (isGroup) {
-                  await Get.to(
+                  await Get.to<void>(
                     () => ContactPage(
                       identityId: message.identityId,
-                      contact: Contact(
-                        identityId: message.identityId,
-                        pubkey: message.idPubkey,
-                      )..name = message.senderName,
+                      contact: cc.getContactByPubkey(message.idPubkey),
                       title: 'Group Member',
                       greeting: 'From Group: ${cc.roomObs.value.name}',
                     ),
                   );
                 } else {
-                  await Get.toNamed(
+                  await Get.toNamed<void>(
                     Routes.roomSettingContact
                         .replaceFirst(':id', cc.roomObs.value.id.toString()),
                   );

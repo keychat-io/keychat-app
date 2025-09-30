@@ -494,9 +494,10 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
           itemCount: list.length,
           itemBuilder: (context, index) {
             final rm = list[index];
-            if (rm.name == rm.idPubkey) {
+            if (rm.name == rm.idPubkey && cc.roomObs.value.isMLSGroup) {
               rm.status = UserStatusType.inviting;
             }
+            // self room member
             if (rm.idPubkey == identity.secp256k1PKHex) {
               rm.contact?.avatarLocalPath = identity.avatarLocalPath;
               rm.contact?.name = identity.displayName;
@@ -508,16 +509,15 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                   await EasyLoading.showToast("It 's me");
                   return;
                 }
-                var contact = await ContactService.instance
-                    .getContact(cc.roomObs.value.identityId, rm.idPubkey);
-                final npub = rust_nostr.getBech32PubkeyByHex(hex: rm.idPubkey);
-                contact ??= Contact(
-                  pubkey: rm.idPubkey,
+                final contact =
+                    await ContactService.instance.saveContactFromQrCode(
                   identityId: cc.roomObs.value.identityId,
-                )
-                  ..npubkey = npub
-                  ..name = rm.name;
-                contact.name ??= rm.name;
+                  pubkey: rm.idPubkey,
+                  name: rm.name,
+                  lightning: rm.lightning,
+                  avatarRemoteUrl: rm.avatarUrl,
+                );
+
                 Get.dialog(
                   CupertinoAlertDialog(
                     title: Text(rm.displayName),
@@ -531,7 +531,10 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                                 .bodyLarge
                                 ?.copyWith(color: Colors.amber.shade700),
                           ),
-                        Text(npub),
+                        Text(
+                          contact.npubkey,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                         if (contact.displayAbout != null &&
                             contact.displayAbout!.isNotEmpty)
                           Padding(
@@ -551,7 +554,7 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                         onPressed: () async {
                           final room = await RoomService.instance
                               .getRoomAndContainSession(
-                            contact!.pubkey,
+                            contact.pubkey,
                             cc.roomObs.value.identityId,
                           );
                           if (room == null) {
@@ -572,12 +575,12 @@ class _ChatSettingGroupPageState extends State<ChatSettingGroupPage> {
                       ),
                       CupertinoDialogAction(
                         child: const Text('Copy Pubkey'),
-                        onPressed: () {
+                        onPressed: () async {
                           final npub = rust_nostr.getBech32PubkeyByHex(
                             hex: rm.idPubkey,
                           );
-                          Clipboard.setData(ClipboardData(text: npub));
-                          EasyLoading.showToast('Copied');
+                          await Clipboard.setData(ClipboardData(text: npub));
+                          await EasyLoading.showToast('Copied');
                           Get.back<void>();
                         },
                       ),

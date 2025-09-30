@@ -80,6 +80,7 @@ class _AddGroupPageState extends State<AddGroupPage>
                 'pubkey': c.pubkey,
                 'npubkey': c.npubkey,
                 'name': c.displayName,
+                'contact': c,
                 'exist': exist,
                 'isCheck': false,
                 'mlsPK': null,
@@ -104,9 +105,9 @@ class _AddGroupPageState extends State<AddGroupPage>
                       ),
                       CupertinoDialogAction(
                         child: const Text('Message Relay'),
-                        onPressed: () {
+                        onPressed: () async {
                           Get.back<void>();
-                          Get.to(RelaySetting.new);
+                          await Get.to<void>(RelaySetting.new);
                         },
                       ),
                     ],
@@ -117,10 +118,10 @@ class _AddGroupPageState extends State<AddGroupPage>
               relays = list.map((e) => e.relay.url).toList();
             }
 
-            Get.bottomSheet<void>(
+            await Get.bottomSheet<void>(
               CreateGroupSelectMember(
                 groupName,
-                relays,
+                Set<String>.from(relays).toList(),
                 groupType,
                 list,
                 identity,

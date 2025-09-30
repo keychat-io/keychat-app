@@ -50,6 +50,7 @@ class RoomMember extends Equatable {
   DateTime? createdAt;
   DateTime? updatedAt;
   String? avatarUrl;
+  String? lightning;
 
   bool isAdmin = false;
 

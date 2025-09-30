@@ -398,12 +398,14 @@ class MlsGroupService extends BaseChatService {
       var name = element.key;
       var status = UserStatusType.invited;
       String? avatarUrl;
+      String? lightning;
       if (element.value.isNotEmpty) {
         try {
           final res = utf8.decode(element.value[0]);
           final extension = jsonDecode(res) as Map<String, dynamic>;
           name = extension['name'] as String? ?? element.key;
           avatarUrl = extension['avatar'] as String?;
+          lightning = extension['lightning'] as String?;
           if (extension['status'] != null) {
             status = UserStatusType.values
                 .firstWhere((e) => e.name == extension['status']);
@@ -428,6 +430,7 @@ class MlsGroupService extends BaseChatService {
         roomId: room.id,
         status: status,
       )
+        ..lightning = lightning
         ..mlsPKExpired = mlsPKExpired
         ..avatarUrl = avatarUrl;
     }
@@ -645,12 +648,14 @@ class MlsGroupService extends BaseChatService {
 
   Future<void> sendGreetingMessage(Room room) async {
     room.sentHelloToMLS = true;
-    final avatarUrl = await room.getIdentity().getRemoteAvatarUrl();
+    final identity = room.getIdentity();
+    final avatarUrl = await identity.getRemoteAvatarUrl();
     await selfUpdateKey(
       room,
       extension: {
-        'name': room.getIdentity().displayName,
-        'avatar': avatarUrl ?? ''
+        'name': identity.displayName,
+        'avatar': avatarUrl ?? '',
+        'lightning': identity.lightning ?? '',
       },
     );
   }
@@ -1005,7 +1010,9 @@ class MlsGroupService extends BaseChatService {
           String? errorMessage,
         }) async {
           final mlsStates = Storage.getStringList(stateKey);
-          if (status) {
+          final isDuplicate =
+              errorMessage?.toLowerCase().startsWith('duplicate') ?? false;
+          if (status || isDuplicate) {
             loggerNoLine.i(
               'Key package uploaded successfully: ${identity.secp256k1PKHex}',
             );
@@ -1023,7 +1030,9 @@ class MlsGroupService extends BaseChatService {
             'status': status,
             'errorMessage': errorMessage,
           };
-          loggerNoLine.i('Kind: ${EventKinds.mlsNipKeypackages}, relay: $map');
+          loggerNoLine.i(
+            'mlsNipKeypackages: ${EventKinds.mlsNipKeypackages}, relay: $map',
+          );
 
           // Cancel the timer and complete the completer
           timer.cancel();
@@ -1236,12 +1245,17 @@ class MlsGroupService extends BaseChatService {
     Map<String, dynamic>? extension,
   ]) async {
     var map = extension ?? {};
+    final identity = room.getIdentity();
     if (extension == null) {
-      final avatarUrl = await room.getIdentity().getRemoteAvatarUrl();
-      map = {'name': room.getIdentity().displayName, 'avatar': avatarUrl ?? ''};
+      final avatarUrl = await identity.getRemoteAvatarUrl();
+      map = {
+        'name': identity.displayName,
+        'avatar': avatarUrl ?? '',
+        'lightning': identity.lightning ?? '',
+      };
     }
     return rust_mls.selfUpdate(
-      nostrId: room.getIdentity().secp256k1PKHex,
+      nostrId: identity.secp256k1PKHex,
       groupId: room.toMainPubkey,
       extensions: utf8.encode(jsonEncode(map)),
     );

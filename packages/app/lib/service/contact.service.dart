@@ -388,11 +388,11 @@ class ContactService {
     final contact = await ContactService.instance
         .getOrCreateContact(identityId: identityId, pubkey: pubkey);
     var changed = false;
-    if (name != null) {
+    if (name != null && contact.name != name) {
       changed = true;
       contact.name = name;
     }
-    if (lightning != null) {
+    if (lightning != null && contact.lightning != lightning) {
       changed = true;
       contact.lightning = lightning;
     }
@@ -400,16 +400,15 @@ class ContactService {
         avatarRemoteUrl.isNotEmpty &&
         avatarRemoteUrl != contact.avatarRemoteUrl) {
       try {
+        changed = true;
+        contact.avatarRemoteUrl = avatarRemoteUrl;
         final decryptedFile =
             await FileService.instance.downloadAndDecryptToPath(
           url: avatarRemoteUrl,
           outputFolder: Utils.avatarsFolder,
         );
-        changed = true;
-        contact
-          ..avatarRemoteUrl = avatarRemoteUrl
-          ..avatarLocalPath =
-              decryptedFile.path.replaceFirst(Utils.appFolder.path, '');
+        contact.avatarLocalPath =
+            decryptedFile.path.replaceFirst(Utils.appFolder.path, '');
         Utils.clearAvatarCache();
       } catch (e) {
         logger.e('Failed to download avatar: $e');

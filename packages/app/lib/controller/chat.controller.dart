@@ -658,6 +658,7 @@ Add as a friend and start the signal protocol chat
   }
 
   Future<void> resetMembers() async {
+    // mls group
     if (roomObs.value.isMLSGroup) {
       final list = await MlsGroupService.instance.getMembers(roomObs.value);
       enableMembers.value = list;
@@ -672,6 +673,7 @@ Add as a friend and start the signal protocol chat
       await updateRoomMembersAvatar();
       return;
     }
+    // signal group
     if (roomObs.value.isSendAllGroup) {
       members.value = await roomObs.value.getMembers();
       enableMembers.value = await roomObs.value.getEnableMembers();
@@ -684,16 +686,15 @@ Add as a friend and start the signal protocol chat
 
   Future<void> updateRoomMembersAvatar() async {
     for (final member in members.values) {
-      Contact? contact;
-      if (member.avatarUrl != null) {
-        contact = await ContactService.instance.saveContactFromQrCode(
-          identityId: roomObs.value.identityId,
-          pubkey: member.idPubkey,
-          avatarRemoteUrl: member.avatarUrl,
-        );
-      }
+      final contact = await ContactService.instance.saveContactFromQrCode(
+        identityId: roomObs.value.identityId,
+        pubkey: member.idPubkey,
+        avatarRemoteUrl: member.avatarUrl,
+      );
+
       enableMembers[member.idPubkey]?.contact = contact;
       members[member.idPubkey]?.contact = contact;
+      logger.d('contact $contact');
     }
   }
 
@@ -915,7 +916,7 @@ Add as a friend and start the signal protocol chat
       final result = await ContactService.instance.createContact(
         pubkey: pubkey,
         identityId: identityId,
-        autoCreateFromGroup: true,
+        autoCreateFromGroup: roomObs.value.type == RoomType.group,
       );
       contacts = [result];
     }

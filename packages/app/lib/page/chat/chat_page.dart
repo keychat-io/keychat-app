@@ -110,18 +110,11 @@ class _ChatPage2State extends State<ChatPage> {
               () => Wrap(
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  if (controller.roomObs.value.type != RoomType.group)
-                    getRoomTitle(
-                      controller.roomObs.value.getRoomName(),
-                      controller.roomObs.value.isMute,
-                      null,
-                    )
-                  else
-                    getRoomTitle(
-                      controller.roomObs.value.getRoomName(),
-                      controller.roomObs.value.isMute,
-                      controller.enableMembers.length.toString(),
-                    ),
+                  getRoomTitle(
+                    controller.roomObs.value.getRoomName(),
+                    isMute: controller.roomObs.value.isMute,
+                    memberCount: controller.enableMembers.length,
+                  ),
                   if (controller.roomObs.value.type == RoomType.bot)
                     const Padding(
                       padding: EdgeInsets.only(left: 5),
@@ -882,11 +875,15 @@ class _ChatPage2State extends State<ChatPage> {
     }
   }
 
-  Widget getRoomTitle(String title, bool isMute, String? memberCount) {
+  Widget getRoomTitle(
+    String title, {
+    bool isMute = false,
+    int memberCount = 0,
+  }) {
     return Wrap(
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Text(memberCount != null ? '$title ($memberCount)' : title),
+        if (memberCount > 0) Text('$title ($memberCount)') else Text(title),
         if (isMute)
           Icon(
             Icons.notifications_off_outlined,
@@ -1054,8 +1051,8 @@ class _ChatPage2State extends State<ChatPage> {
     if (exist != null) {
       controller = exist;
       if (searchMessageId != null) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          controller.loadFromMessageId(searchMessageId);
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          await controller.loadFromMessageId(searchMessageId);
         });
       }
     } else {

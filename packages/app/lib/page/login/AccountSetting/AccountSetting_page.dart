@@ -749,6 +749,8 @@ class AccountSettingPage extends GetView<AccountSettingController> {
       await localFile.writeAsBytes(fileBytes);
       controller.identity.value.avatarLocalPath =
           localFileFullPath.replaceFirst(Utils.appFolder.path, '');
+      controller.identity.value.avatarRemoteUrl = null;
+      controller.identity.value.avatarUpdatedAt = null;
       await IdentityService.instance.updateIdentity(controller.identity.value);
       Utils.clearAvatarCache();
       // Force refresh UI

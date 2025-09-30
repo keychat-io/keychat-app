@@ -85,7 +85,7 @@ class _LightningAddressEditDialogState
           onPressed: () async {
             if (_errorText != null) return;
 
-            final value = _controller.text;
+            final value = _controller.text.trim();
 
             if (value.isNotEmpty && !_validateInput(value)) {
               return; // Don't proceed if validation fails

@@ -606,8 +606,8 @@ class WebsocketService extends GetxService {
           results.add(ess);
           return;
         }
+        // not connected
         if (!rw.isConnected()) {
-          // not connected
           ess.sendStatus = getSendStatusByState(rw.channel?.connection.state);
           results.add(ess);
           return;

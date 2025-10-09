@@ -1310,13 +1310,13 @@ class MlsGroupService extends BaseChatService {
       idPubkey: identity.secp256k1PKHex,
       to: groupRoom.toMainPubkey,
       encryptType: MessageEncryptType.nip17,
-      sent: SendStatusType.success,
+      sent: SendStatusType.sending,
       isSystem: true,
       isMeSend: true,
       content: realMessage,
       createdAt: timestampToDateTime(events[0].createdAt),
       rawEvents: events.map((e) {
-        final Map m = e.toJson();
+        final m = e.toJson();
         m['toIdPubkey'] = e.toIdPubkey;
         return jsonEncode(m);
       }).toList(),

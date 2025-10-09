@@ -231,7 +231,7 @@ class MessageWidget extends StatelessWidget {
       if (message.createdAt.isAfter(
         DateTime.now().subtract(
           const Duration(
-            seconds: KeychatGlobal.messageFailedAfterSeconds + 1,
+            seconds: KeychatGlobal.messageFailedAfterSeconds,
           ),
         ),
       )) {

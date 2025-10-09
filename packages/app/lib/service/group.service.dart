@@ -1,7 +1,6 @@
 import 'dart:collection' as collection;
 import 'dart:convert' show jsonDecode, jsonEncode;
 
-import 'package:app/controller/chat.controller.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr_event.dart';
@@ -19,7 +18,6 @@ import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
 
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
-import 'package:keychat_rust_ffi_plugin/api_signal.dart';
 import 'package:queue/queue.dart';
 
 import 'package:app/constants.dart';
@@ -673,64 +671,7 @@ class GroupService extends BaseChatService {
     MessageMediaType? mediaType,
     bool save = true,
   }) async {
-    final roomKey = room.mykey.value!;
-
-    final gm = RoomUtil.getGroupMessage(
-      room,
-      message,
-      pubkey: '',
-      reply: reply,
-      subtype: subtype,
-      ext: ext,
-    );
-    final subEncryptedEvent = await rust_nostr.getEncryptEvent(
-      senderKeys: await room.getIdentity().getSecp256k1SKHex(),
-      receiverPubkey: roomKey.pubkey,
-      content: gm.toString(),
-    );
-
-    final km = KeychatMessage(
-      c: MessageType.group,
-      type: KeyChatEventKinds.groupSharedKeyMessage,
-      msg: subEncryptedEvent,
-    );
-
-    final encryptedEvent = await rust_nostr.getEncryptEvent(
-      senderKeys: roomKey.prikey,
-      receiverPubkey: roomKey.pubkey,
-      content: km.toString(),
-    );
-
-    final event =
-        NostrEventModel.fromJson(jsonDecode(encryptedEvent), verify: false);
-
-    await Get.find<WebsocketService>().writeNostrEvent(
-      event: event,
-      eventString: encryptedEvent,
-      roomId: room.id,
-      toRelays: room.sendingRelays,
-    );
-
-    Message? model;
-    if (subtype == null && ext == null) {
-      final identity = room.getIdentity();
-
-      model = await MessageService.instance.saveMessageToDB(
-        events: [event],
-        room: room,
-        reply: reply,
-        content: message,
-        from: identity.secp256k1PKHex,
-        senderPubkey: identity.secp256k1PKHex,
-        to: room.toMainPubkey,
-        realMessage: realMessage,
-        isMeSend: true,
-        encryptType: MessageEncryptType.nip4WrapNip4,
-        mediaType: mediaType,
-        isRead: true,
-      );
-    }
-    return SendMessageResponse(events: [event], message: model);
+    throw Exception('unsupported method');
   }
 
   Future<SendMessageResponse> sendToAllMessage(

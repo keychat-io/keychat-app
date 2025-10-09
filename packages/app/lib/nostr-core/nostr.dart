@@ -50,25 +50,25 @@ class NostrAPI {
     //logger.d('processWebsocketMessage, ${relay.url} $message');
     // nostrEventQueue.addJob((_) async { });
     try {
-      final res = jsonDecode(message);
+      final res = jsonDecode(message as String) as List;
       switch (res[0]) {
-        case NostrResKinds.ok:
+        case NostrResponseKinds.ok:
           loggerNoLine.i('OK: ${relay.url}, $res');
           await _proccessWriteEventResponse(res, relay);
-        case NostrResKinds.event:
+        case NostrResponseKinds.event:
           loggerNoLine.i('receive event: ${relay.url} $message');
-          subscriptionLastEvent[res[1]] = DateTime.now();
+          subscriptionLastEvent[res[1] as String] = DateTime.now();
           await _proccessEvent01(res, relay, message);
-        case NostrResKinds.eose: // end event signal from relay
+        case NostrResponseKinds.eose: // end event signal from relay
           loggerNoLine.i('EOSE: ${relay.url} ${res[1]}');
           if (res[1].toString().startsWith('nwc')) {
-            Utils.getGetxController<NostrWalletConnectController>()
+            await Utils.getGetxController<NostrWalletConnectController>()
                 ?.proccessEOSE(relay, res);
             return;
           }
 
           await _proccessEOSE(relay, res);
-        case NostrResKinds.notice:
+        case NostrResponseKinds.notice:
           final noticeMsg = res[1].toString();
           if (noticeMsg.startsWith('nwc')) {
             Utils.getGetxController<NostrWalletConnectController>()
@@ -172,7 +172,10 @@ class NostrAPI {
     }
   }
 
-  Future<void> _proccessWriteEventResponse(List msg, Relay relay) async {
+  Future<void> _proccessWriteEventResponse(
+    List<dynamic> msg,
+    Relay relay,
+  ) async {
     final eventId = msg[1] as String;
     final status = msg[2] as bool;
     final errorMessage = msg[3] as String?;
@@ -185,11 +188,11 @@ class NostrAPI {
       );
       return;
     }
-    SubscribeEventStatus.fillSubscripton(
-      eventId,
-      relay.url,
-      status,
-      errorMessage,
+    await SubscribeEventStatus.fillSubscripton(
+      eventId: eventId,
+      relay: relay.url,
+      isSuccess: status,
+      errorMessage: errorMessage,
     );
   }
 
@@ -283,7 +286,7 @@ class NostrAPI {
       roomId: room.parentRoom?.id ?? room.id,
       toRelays: room.sendingRelays,
     );
-    var sendStatusType = SendStatusType.success;
+    var sendStatusType = SendStatusType.sending;
     if (save && relays.isEmpty) {
       // throw Exception(ErrorMessages.relayIsEmptyException);
       sendStatusType = SendStatusType.failed;

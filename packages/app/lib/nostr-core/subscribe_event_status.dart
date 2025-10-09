@@ -24,7 +24,7 @@ class SubscribeEventStatus {
   static Future<void> addSubscripton(
     String eventId,
     int maxRelay, {
-    void Function(bool)? sentCallback,
+    void Function({required bool success})? sentCallback,
   }) async {
     if (maxRelay == 0) return;
     _map[eventId] = MesssageToRelayEOSE(maxRelay);
@@ -33,39 +33,39 @@ class SubscribeEventStatus {
     final deadline = DateTime.now()
         .add(const Duration(seconds: KeychatGlobal.messageFailedAfterSeconds));
     while (DateTime.now().isBefore(deadline)) {
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
 
       if (SubscribeEventStatus.isFilled(eventId)) {
-        if (sentCallback != null) sentCallback(true);
-        removeSubscripton(eventId);
+        if (sentCallback != null) sentCallback(success: true);
+        await removeSubscripton(eventId);
         return;
       }
     }
-    if (sentCallback != null) sentCallback(false);
-    removeSubscripton(eventId);
+    if (sentCallback != null) sentCallback(success: false);
+    await removeSubscripton(eventId);
     return;
   }
 
-  static MesssageToRelayEOSE removeSubscripton(String eventId) {
+  static Future<MesssageToRelayEOSE> removeSubscripton(String eventId) async {
     final me = _map[eventId] ?? MesssageToRelayEOSE(0);
-    updateEventAndMessageStatus(eventId, me);
+    await updateEventAndMessageStatus(eventId, me);
     _map.remove(eventId);
     return me;
   }
 
-  static Future<void> fillSubscripton(
-    String eventId,
-    String url,
-    bool isSuccess, [
+  static Future<void> fillSubscripton({
+    required String eventId,
+    required String relay,
+    required bool isSuccess,
     String? errorMessage,
-  ]) async {
+  }) async {
     final m = _map[eventId];
     if (m != null) {
-      m.receiveRelayEOSE(url, isSuccess, errorMessage);
+      m.receiveRelayEOSE(relay, isSuccess, errorMessage);
       return;
     }
     final me = MesssageToRelayEOSE(1)
-      ..receiveRelayEOSE(url, isSuccess, errorMessage);
+      ..receiveRelayEOSE(relay, isSuccess, errorMessage);
     await updateEventAndMessageStatus(eventId, me);
   }
 

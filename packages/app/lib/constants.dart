@@ -4,7 +4,7 @@ const String nip04MessageKeyword = '?iv=';
 int gDefaultNumWaitSeconds = 5000; // is used in main()
 int waitContactSeconds = 5000; // is used in main()
 
-class NostrResKinds {
+class NostrResponseKinds {
   static const String notice = 'NOTICE';
   static const String ok = 'OK';
   static const String auth = 'AUTH';

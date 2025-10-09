@@ -13,8 +13,12 @@ import 'package:photo_view/photo_view.dart';
 import 'package:share_plus/share_plus.dart';
 
 class SlidesImageViewWidget extends StatefulWidget {
-  const SlidesImageViewWidget(
-      {required this.files, required this.selected, super.key, this.file});
+  const SlidesImageViewWidget({
+    required this.files,
+    required this.selected,
+    super.key,
+    this.file,
+  });
   final File selected;
   final File? file;
   final List<File> files;
@@ -54,27 +58,33 @@ class _NewPageState extends State<SlidesImageViewWidget> {
     return Scaffold(
       floatingActionButtonLocation: FloatingActionButtonLocation.centerTop,
       floatingActionButton: GestureDetector(
-          onTap: Get.back,
-          child: Text('${_currentIndex + 1} / ${_files.length}',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white70,
-                  ))),
+        onTap: Get.back,
+        child: Text(
+          '${_currentIndex + 1} / ${_files.length}',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.white70,
+              ),
+        ),
+      ),
       body: CarouselSlider(
         options: CarouselOptions(
-            initialPage: initialPage,
-            onPageChanged: (index, reason) => {
-                  setState(() {
-                    _currentIndex = index;
-                  })
-                },
-            height: Get.height,
-            viewportFraction: 1,
-            enlargeCenterPage: true,
-            enableInfiniteScroll: false),
+          initialPage: initialPage,
+          onPageChanged: (index, reason) => {
+            setState(() {
+              _currentIndex = index;
+            }),
+          },
+          height: Get.height,
+          viewportFraction: 1,
+          enlargeCenterPage: true,
+          enableInfiniteScroll: false,
+        ),
         items: _files.map((file) {
-          return Builder(builder: (BuildContext context) {
-            return _getStackWidget(file);
-          });
+          return Builder(
+            builder: (BuildContext context) {
+              return _getStackWidget(file);
+            },
+          );
         }).toList(),
       ),
     );
@@ -82,9 +92,11 @@ class _NewPageState extends State<SlidesImageViewWidget> {
 
   Widget _getStackWidget(File file) {
     final isImageFile = FileService.instance.isImageFile(file.path);
-    return Stack(key: Key(file.path), children: <Widget>[
-      if (isImageFile)
-        GestureDetector(
+    return Stack(
+      key: Key(file.path),
+      children: <Widget>[
+        if (isImageFile)
+          GestureDetector(
             onVerticalDragUpdate: (DragUpdateDetails details) {
               final dy = details.delta.dy;
               if (dy > 20) {
@@ -93,9 +105,10 @@ class _NewPageState extends State<SlidesImageViewWidget> {
             },
             child: PhotoView.customChild(
               child: Center(child: Image.file(file, fit: BoxFit.contain)),
-            )),
-      if (FileService.instance.isVideoFile(file.path))
-        FutureBuilder(
+            ),
+          ),
+        if (FileService.instance.isVideoFile(file.path))
+          FutureBuilder(
             key: Key(file.path),
             future: FileService.instance.getOrCreateThumbForVideo(file.path),
             builder: (context, snapshot) {
@@ -105,12 +118,13 @@ class _NewPageState extends State<SlidesImageViewWidget> {
               } else {
                 return const Center(child: CircularProgressIndicator());
               }
-            }),
-      if (GetPlatform.isMobile)
-        Positioned(
-          right: 5,
-          bottom: 20,
-          child: CircleAvatar(
+            },
+          ),
+        if (GetPlatform.isMobile)
+          Positioned(
+            right: 5,
+            bottom: 20,
+            child: CircleAvatar(
               radius: 24,
               backgroundColor: Colors.black54,
               child: IconButton(
@@ -119,14 +133,22 @@ class _NewPageState extends State<SlidesImageViewWidget> {
                   color: Colors.white,
                 ),
                 onPressed: () async {
-                  SharePlus.instance.share(ShareParams(
+                  final box = context.findRenderObject() as RenderBox?;
+
+                  SharePlus.instance.share(
+                    ShareParams(
                       files: [XFile(_files[_currentIndex].path)],
                       subject: FileService.instance
-                          .getDisplayFileName(_files[_currentIndex].path)));
+                          .getDisplayFileName(_files[_currentIndex].path),
+                      sharePositionOrigin:
+                          box!.localToGlobal(Offset.zero) & box.size,
+                    ),
+                  );
                 },
-              )),
-        ),
-      Positioned(
+              ),
+            ),
+          ),
+        Positioned(
           left: 5,
           bottom: 20,
           child: CircleAvatar(
@@ -141,7 +163,9 @@ class _NewPageState extends State<SlidesImageViewWidget> {
                 Get.back<void>();
               },
             ),
-          )),
-    ]);
+          ),
+        ),
+      ],
+    );
   }
 }

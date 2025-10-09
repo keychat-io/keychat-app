@@ -586,14 +586,14 @@ class WebsocketService extends GetxService {
     );
 
     final rawEvent = '["EVENT",$eventString]';
-    var success = 0;
     final results = <NostrEventStatus>[];
     final tasks = Queue(parallel: targetRelays.length);
+    final successedRelays = <String>{};
     for (final relay in targetRelays) {
       final rw = channels[relay];
       if (rw == null) continue;
 
-      tasks.add(() async {
+      await tasks.add(() async {
         var ess = NostrEventStatus(
           relay: rw.relay.url,
           eventId: event.id,
@@ -606,37 +606,36 @@ class WebsocketService extends GetxService {
           results.add(ess);
           return;
         }
-
-        if (rw.isConnected()) {
-          try {
-            ess = await addCashuToMessage(roomId, ess);
-          } catch (e) {
-            ess
-              ..sendStatus = EventSendEnum.cashuError
-              ..error = e.toString();
-            results.add(ess);
-            return;
-          }
-          try {
-            rw.sendRawREQ(ess.rawEvent!, retry: true);
-            success++;
-            ess.sendStatus = EventSendEnum.success;
-          } catch (e) {
-            ess
-              ..sendStatus = EventSendEnum.relayDisconnected
-              ..error = e.toString();
-          }
+        if (!rw.isConnected()) {
+          // not connected
+          ess.sendStatus = getSendStatusByState(rw.channel?.connection.state);
           results.add(ess);
           return;
         }
-        // not connected
-        ess.sendStatus = getSendStatusByState(rw.channel?.connection.state);
+
+        try {
+          ess = await addCashuToMessage(roomId, ess);
+        } catch (e) {
+          ess
+            ..sendStatus = EventSendEnum.cashuError
+            ..error = e.toString();
+          results.add(ess);
+          return;
+        }
+        try {
+          rw.channel!.send(ess.rawEvent);
+          successedRelays.add(relay);
+        } catch (e) {
+          ess
+            ..sendStatus = EventSendEnum.relayDisconnected
+            ..error = e.toString();
+        }
         results.add(ess);
       });
     }
 
     tasks.onComplete.then((c) async {
-      if (success == 0) {
+      if (successedRelays.isEmpty) {
         final messages = results
             .map(
               (item) => '${item.relay}: ${item.error ?? item.sendStatus.name}',
@@ -674,7 +673,7 @@ class WebsocketService extends GetxService {
         }
       });
     });
-    return targetRelays;
+    return successedRelays;
   }
 
   Set<String> _getTargetRelays(List<String> toRelays) {

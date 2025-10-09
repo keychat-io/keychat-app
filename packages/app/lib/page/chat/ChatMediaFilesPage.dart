@@ -38,42 +38,48 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
           title: Text(widget.room.getRoomName()),
           actions: [
             IconButton(
-                onPressed: () {
-                  Get.dialog(
-                      CupertinoAlertDialog(
-                        title: const Text('Delete All Media?'),
-                        content: const Text(
-                            'Are you sure to delete all media in this chat?'),
-                        actions: [
-                          CupertinoDialogAction(
-                              onPressed: Get.back, child: const Text('Cancel')),
-                          CupertinoDialogAction(
-                              isDestructiveAction: true,
-                              onPressed: () async {
-                                EasyLoading.show(status: 'Deleting...');
-                                try {
-                                  final directory = await FileService.instance
-                                      .getRoomFolder(
-                                          identityId: widget.room.identityId,
-                                          roomId: widget.room.id);
-                                  await Directory(directory)
-                                      .delete(recursive: true);
-                                  EasyLoading.dismiss();
-                                  EasyLoading.showSuccess('Deleted');
-                                } catch (e) {
-                                  EasyLoading.dismiss();
-                                  EasyLoading.showError(e.toString());
-                                }
-
-                                Get.back<void>();
-                                Get.back<void>();
-                              },
-                              child: const Text('Delete')),
-                        ],
+              onPressed: () {
+                Get.dialog(
+                  CupertinoAlertDialog(
+                    title: const Text('Delete All Media?'),
+                    content: const Text(
+                      'Are you sure to delete all media in this chat?',
+                    ),
+                    actions: [
+                      CupertinoDialogAction(
+                        onPressed: Get.back,
+                        child: const Text('Cancel'),
                       ),
-                      barrierDismissible: false);
-                },
-                icon: const Icon(Icons.delete))
+                      CupertinoDialogAction(
+                        isDestructiveAction: true,
+                        onPressed: () async {
+                          EasyLoading.show(status: 'Deleting...');
+                          try {
+                            final directory =
+                                await FileService.instance.getRoomFolder(
+                              identityId: widget.room.identityId,
+                              roomId: widget.room.id,
+                            );
+                            await Directory(directory).delete(recursive: true);
+                            EasyLoading.dismiss();
+                            EasyLoading.showSuccess('Deleted');
+                          } catch (e) {
+                            EasyLoading.dismiss();
+                            EasyLoading.showError(e.toString());
+                          }
+
+                          Get.back<void>();
+                          Get.back<void>();
+                        },
+                        child: const Text('Delete'),
+                      ),
+                    ],
+                  ),
+                  barrierDismissible: false,
+                );
+              },
+              icon: const Icon(Icons.delete),
+            ),
           ],
           bottom: const TabBar(
             tabs: [
@@ -102,61 +108,69 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
                   late Widget child;
                   if (FileService.instance.isImageFile(file.path)) {
                     child = GestureDetector(
-                        onTap: () {
-                          _onTap(index);
-                        },
-                        child: FileService.instance.getImageView(file));
+                      onTap: () {
+                        _onTap(index);
+                      },
+                      child: FileService.instance.getImageView(file),
+                    );
                   } else if (FileService.instance.isVideoFile(file.path)) {
                     child = FutureBuilder(
-                        future: FileService.instance
-                            .getOrCreateThumbForVideo(file.path),
-                        builder: (context, snapshot) {
-                          if (snapshot.data != null) {
-                            final thumbnailFile = snapshot.data!;
-                            return GestureDetector(
-                                onTap: () {
-                                  _onTap(index, thumbnailFile);
-                                },
-                                child: Stack(
-                                  alignment: Alignment.center,
-                                  children: <Widget>[
-                                    ClipRRect(
-                                        borderRadius: BorderRadius.circular(4),
-                                        child: SizedBox(
-                                            width: 150,
-                                            child: Image.file(thumbnailFile,
-                                                fit: BoxFit.contain))),
-                                    Positioned(
-                                      child: CircleAvatar(
-                                          radius: 20,
-                                          backgroundColor: Colors.grey
-                                              .withValues(alpha: 0.8),
-                                          child: IconButton(
-                                            onPressed: () {},
-                                            icon: const Icon(
-                                              Icons.play_arrow,
-                                              color: Colors.white,
-                                              size: 24,
-                                            ),
-                                          )),
+                      future: FileService.instance
+                          .getOrCreateThumbForVideo(file.path),
+                      builder: (context, snapshot) {
+                        if (snapshot.data != null) {
+                          final thumbnailFile = snapshot.data!;
+                          return GestureDetector(
+                            onTap: () {
+                              _onTap(index, thumbnailFile);
+                            },
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: <Widget>[
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: SizedBox(
+                                    width: 150,
+                                    child: Image.file(
+                                      thumbnailFile,
+                                      fit: BoxFit.contain,
                                     ),
-                                  ],
-                                ));
-                          }
-                          return const Text('Video File');
-                        });
+                                  ),
+                                ),
+                                Positioned(
+                                  child: CircleAvatar(
+                                    radius: 20,
+                                    backgroundColor:
+                                        Colors.grey.withValues(alpha: 0.8),
+                                    child: IconButton(
+                                      onPressed: () {},
+                                      icon: const Icon(
+                                        Icons.play_arrow,
+                                        color: Colors.white,
+                                        size: 24,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                        return const Text('Video File');
+                      },
+                    );
                   }
 
                   return Container(
-                      width: 90,
-                      height: 150,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                      child: child);
+                    width: 90,
+                    height: 150,
+                    decoration: BoxDecoration(
+                      color:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: child,
+                  );
                 },
               ),
             FutureBuilder<List<FileSystemEntity>>(
@@ -191,22 +205,34 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
                                 ),
                                 title: Text(path.basename(file.path)),
                                 subtitle: Text(
-                                    '${FileService.instance.getFileSizeDisplay(stat.size)}, ${DateFormat('yyyy-MM-dd HH:mm').format(stat.changed)}'),
+                                  '${FileService.instance.getFileSizeDisplay(stat.size)}, ${DateFormat('yyyy-MM-dd HH:mm').format(stat.changed)}',
+                                ),
                                 onTap: () {
                                   try {
                                     if (GetPlatform.isDesktop) {
                                       final dir = filePath.substring(
-                                          0, filePath.lastIndexOf('/'));
+                                        0,
+                                        filePath.lastIndexOf('/'),
+                                      );
                                       OpenFilex.open(dir);
                                     } else {
                                       OpenFilex.open(filePath);
                                     }
                                   } catch (e) {
-                                    SharePlus.instance.share(ShareParams(
+                                    final box = context.findRenderObject()
+                                        as RenderBox?;
+
+                                    SharePlus.instance.share(
+                                      ShareParams(
                                         previewThumbnail: XFile(filePath),
                                         files: [XFile(filePath)],
                                         subject: FileService.instance
-                                            .getDisplayFileName(fileFullName)));
+                                            .getDisplayFileName(fileFullName),
+                                        sharePositionOrigin:
+                                            box!.localToGlobal(Offset.zero) &
+                                                box.size,
+                                      ),
+                                    );
                                   }
                                 },
                               );
@@ -235,20 +261,22 @@ class _ChatMediaFilesPageState extends State<ChatMediaFilesPage> {
 
   void _onTap(int index, [File? thumbnailFile]) {
     Get.to(
-        () => SlidesImageViewWidget(
-              files: media,
-              file: thumbnailFile,
-              selected: media[index],
-            ),
-        transition: Transition.zoom,
-        fullscreenDialog: true);
+      () => SlidesImageViewWidget(
+        files: media,
+        file: thumbnailFile,
+        selected: media[index],
+      ),
+      transition: Transition.zoom,
+      fullscreenDialog: true,
+    );
   }
 
   Future<List<FileSystemEntity>> _fetchFileData() async {
     final base = await FileService.instance.getRoomFolder(
-        identityId: widget.room.identityId,
-        roomId: widget.room.id,
-        type: MessageMediaType.file);
+      identityId: widget.room.identityId,
+      roomId: widget.room.id,
+      type: MessageMediaType.file,
+    );
     final directory = Directory(base);
     return directory.listSync();
   }

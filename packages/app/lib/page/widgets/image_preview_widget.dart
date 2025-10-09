@@ -11,11 +11,12 @@ import 'package:photo_view/photo_view.dart';
 import 'package:share_plus/share_plus.dart';
 
 class ImagePreviewWidget extends StatelessWidget {
-  const ImagePreviewWidget(
-      {required this.localPath,
-      required this.cc,
-      required this.errorCallback,
-      super.key});
+  const ImagePreviewWidget({
+    required this.localPath,
+    required this.cc,
+    required this.errorCallback,
+    super.key,
+  });
   final String localPath;
   final ChatController cc;
   final Widget Function({Widget? child, String? text}) errorCallback;
@@ -47,52 +48,66 @@ class ImagePreviewWidget extends StatelessWidget {
           child = VideoPlayWidget(thumb, file.path, true);
         }
         final w = Scaffold(
-            floatingActionButton: SizedBox(
-                width: Get.width - 20,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    CircleAvatar(
-                      radius: 24,
-                      backgroundColor: Colors.black54,
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.close,
-                          color: Colors.white,
-                        ),
-                        onPressed: () {
-                          Get.back<void>();
-                        },
-                      ),
+          floatingActionButton: SizedBox(
+            width: Get.width - 20,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: Colors.black54,
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.close,
+                      color: Colors.white,
                     ),
-                    CircleAvatar(
-                        radius: 24,
-                        backgroundColor: Colors.black54,
-                        child: IconButton(
-                          icon: const Icon(
-                            CupertinoIcons.share,
-                            color: Colors.white,
+                    onPressed: () {
+                      Get.back<void>();
+                    },
+                  ),
+                ),
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: Colors.black54,
+                  child: IconButton(
+                    icon: const Icon(
+                      CupertinoIcons.share,
+                      color: Colors.white,
+                    ),
+                    onPressed: () async {
+                      try {
+                        final box = context.findRenderObject() as RenderBox?;
+                        await SharePlus.instance.share(
+                          ShareParams(
+                            previewThumbnail: XFile(filePath),
+                            files: [XFile(filePath)],
+                            subject: FileService.instance
+                                .getDisplayFileName(file.path),
+                            sharePositionOrigin:
+                                box!.localToGlobal(Offset.zero) & box.size,
                           ),
-                          onPressed: () {
-                            SharePlus.instance.share(ShareParams(
-                                previewThumbnail: XFile(file.path),
-                                files: [XFile(filePath)],
-                                subject: FileService.instance
-                                    .getDisplayFileName(file.path)));
-                          },
-                        ))
-                  ],
-                )),
-            floatingActionButtonLocation:
-                FloatingActionButtonLocation.miniCenterFloat,
-            body: GestureDetector(
-                onVerticalDragUpdate: (DragUpdateDetails details) {
-                  final dy = details.delta.dy;
-                  if (dy > 20) {
-                    Get.back<void>();
-                  }
-                },
-                child: child));
+                        );
+                      } catch (e) {
+                        logger.e(e);
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          floatingActionButtonLocation:
+              FloatingActionButtonLocation.miniCenterFloat,
+          body: GestureDetector(
+            onVerticalDragUpdate: (DragUpdateDetails details) {
+              final dy = details.delta.dy;
+              if (dy > 20) {
+                Get.back<void>();
+              }
+            },
+            child: child,
+          ),
+        );
         Utils.bottomSheedAndHideStatusBar(w);
       },
       child: ClipRRect(

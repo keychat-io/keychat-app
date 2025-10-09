@@ -131,10 +131,11 @@ window.addEventListener('DOMContentLoaded', function(event) {
         'checkWebViewControllerAlive:$url', const Duration(seconds: 1),
         () async {
       try {
-        await inAppWebViewController!.getUrl();
-        logger.d('tabController alive: $url');
+        await inAppWebViewController!
+            .getUrl()
+            .timeout(const Duration(seconds: 2));
       } catch (e) {
-        logger.d('tabController dispose: $url');
+        logger.e('tabController dispose: $url');
         // ⛔ A MacOSInAppWebViewController was used after being disposed.
         // ⛔ Once the MacOSInAppWebViewController has been disposed, it can no longer be used.
         pageStorageKey.value =

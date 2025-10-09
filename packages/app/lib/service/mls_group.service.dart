@@ -716,16 +716,6 @@ class MlsGroupService extends BaseChatService {
             [EventKindTags.pubkey, room.onetimekey!],
           ],
     );
-    RoomUtil.messageReceiveCheck(
-      room,
-      smr.events[0],
-      const Duration(milliseconds: 500),
-      3,
-    ).then((res) {
-      if (!res) {
-        logger.e('MLS Message Send failed: $message');
-      }
-    });
     return smr;
   }
 
@@ -813,16 +803,6 @@ class MlsGroupService extends BaseChatService {
       reply: reply,
       isEncryptedMessage: true,
     );
-    RoomUtil.messageReceiveCheck(
-      room,
-      smr.events[0],
-      const Duration(milliseconds: 500),
-      3,
-    ).then((res) {
-      if (!res) {
-        logger.e('MLS Message Send failed: $message');
-      }
-    });
     return smr;
   }
 

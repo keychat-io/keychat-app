@@ -133,7 +133,7 @@ class RelayWebsocket {
   void sendRawREQ(String message, {bool retry = false}) {
     try {
       _statusCheck();
-      channel?.send(message);
+      channel!.send(message);
       loggerNoLine.d('TO [${relay.url}]: $message');
     } catch (e, s) {
       logger.e('TO [${relay.url}]: $message', error: e, stackTrace: s);

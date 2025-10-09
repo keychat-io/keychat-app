@@ -35,34 +35,6 @@ import 'package:markdown_widget/markdown_widget.dart';
 import 'package:settings_ui/settings_ui.dart';
 
 class RoomUtil {
-  static Future<bool> messageReceiveCheck(
-    Room room,
-    NostrEventModel event,
-    Duration delay,
-    int maxRetry,
-  ) async {
-    if (maxRetry == 0) return false;
-    maxRetry--;
-    await Future.delayed(delay);
-    final id = event.id;
-    final nes = await DBProvider.database.nostrEventStatus
-        .filter()
-        .eventIdEqualTo(id)
-        .sendStatusEqualTo(EventSendEnum.success)
-        .findFirst();
-    if (nes != null) {
-      return true;
-    }
-    await Get.find<WebsocketService>().writeNostrEvent(
-      event: event,
-      eventString: event.toString(),
-      roomId: room.id,
-      toRelays: room.sendingRelays,
-    );
-    logger.i('_messageReceiveCheck: ${event.id}, maxRetry: $maxRetry');
-    return messageReceiveCheck(room, event, delay, maxRetry);
-  }
-
   static Future<void> forwardTextMessage(
     Identity identity,
     String content, {

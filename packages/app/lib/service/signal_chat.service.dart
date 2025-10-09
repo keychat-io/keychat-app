@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert' show base64, base64Decode, jsonDecode, jsonEncode, utf8;
 import 'dart:typed_data' show Uint8List;
 
@@ -93,7 +94,7 @@ class SignalChatService extends BaseChatService {
         since: DateTime.now().subtract(const Duration(seconds: 5)),
         kinds: [EventKinds.nip04],
       );
-      if (!room.isMute) NotifyService.addPubkeys(toAddPubkeys);
+      if (!room.isMute) unawaited(NotifyService.addPubkeys(toAddPubkeys));
     }
 
     final senderKey = await rust_nostr.generateSimple();

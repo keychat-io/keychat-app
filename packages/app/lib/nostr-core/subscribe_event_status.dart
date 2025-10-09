@@ -53,20 +53,20 @@ class SubscribeEventStatus {
     return me;
   }
 
-  static void fillSubscripton(
+  static Future<void> fillSubscripton(
     String eventId,
     String url,
     bool isSuccess, [
     String? errorMessage,
-  ]) {
+  ]) async {
     final m = _map[eventId];
     if (m != null) {
       m.receiveRelayEOSE(url, isSuccess, errorMessage);
       return;
     }
-    final me = MesssageToRelayEOSE(1);
-    me.receiveRelayEOSE(url, isSuccess, errorMessage);
-    updateEventAndMessageStatus(eventId, me);
+    final me = MesssageToRelayEOSE(1)
+      ..receiveRelayEOSE(url, isSuccess, errorMessage);
+    await updateEventAndMessageStatus(eventId, me);
   }
 
   static bool isFilled(String eventId) {

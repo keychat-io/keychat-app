@@ -1557,8 +1557,14 @@ img {
 
   Future<void> refreshPage([WebUri? uri]) async {
     try {
-      uri ??= await tabController.inAppWebViewController?.getUrl();
-      await tabController.inAppWebViewController?.reload();
+      uri ??= await tabController.inAppWebViewController!
+          .getUrl()
+          .timeout(const Duration(seconds: 2));
+      await tabController.inAppWebViewController!.reload().timeout(
+            const Duration(
+              seconds: 4,
+            ),
+          );
     } catch (e) {
       // ⛔ A MacOSInAppWebViewController was used after being disposed.
       // ⛔ Once the MacOSInAppWebViewController has been disposed, it can no longer be used.

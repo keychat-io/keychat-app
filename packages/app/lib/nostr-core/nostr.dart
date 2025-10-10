@@ -179,6 +179,14 @@ class NostrAPI {
     final eventId = msg[1] as String;
     final status = msg[2] as bool;
     final errorMessage = msg[3] as String?;
+
+    await SubscribeEventStatus.fillSubscripton(
+      eventId: eventId,
+      relay: relay.url,
+      isSuccess: status,
+      errorMessage: errorMessage,
+    );
+
     if (NostrAPI.instance.okCallback[eventId] != null) {
       NostrAPI.instance.okCallback[eventId]!(
         relay: relay.url,
@@ -188,12 +196,6 @@ class NostrAPI {
       );
       return;
     }
-    await SubscribeEventStatus.fillSubscripton(
-      eventId: eventId,
-      relay: relay.url,
-      isSuccess: status,
-      errorMessage: errorMessage,
-    );
   }
 
   Future<void> _proccessNip2(NostrEventModel msg) async {

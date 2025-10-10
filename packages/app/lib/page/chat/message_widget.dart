@@ -442,7 +442,9 @@ class MessageWidget extends StatelessWidget {
     if (message.eventIds.length == 1 && message.rawEvents.length == 1) {
       final (ess, event) =
           await _getRawMessageData(message.eventIds[0], message.rawEvents[0]);
-
+      ess.sort(
+        (a, b) => b.sendStatus.index.compareTo(a.sendStatus.index),
+      );
       // fix message sent status
       if (message.sent != SendStatusType.success) {
         final success = ess
@@ -930,7 +932,11 @@ class MessageWidget extends StatelessWidget {
                   // String idPubkey = maps.keys.toList()[index];
                   final rm = map['to'] as RoomMember?;
                   final eventSendStatus =
-                      map['ess'] as List<NostrEventStatus>? ?? [];
+                      map['ess'] as List<NostrEventStatus>? ?? []
+                        ..sort(
+                          (a, b) =>
+                              b.sendStatus.index.compareTo(a.sendStatus.index),
+                        );
                   final eventModel = map['eventModel'] as NostrEventModel?;
                   final success = eventSendStatus
                       .where(

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:collection' show UnmodifiableListView;
 import 'dart:convert' show jsonDecode;
 import 'dart:math' show Random;
@@ -533,14 +534,15 @@ class _WebviewTabState extends State<WebviewTab> {
                       ''',
           );
 
-          controller.addJavaScriptHandler(
-            handlerName: 'keychat-nostr',
-            callback: javascriptHandlerNostr,
-          );
-          controller.addJavaScriptHandler(
-            handlerName: 'keychat-webln',
-            callback: javascriptHandlerWebLN,
-          );
+          controller
+            ..addJavaScriptHandler(
+              handlerName: 'keychat-nostr',
+              callback: javascriptHandlerNostr,
+            )
+            ..addJavaScriptHandler(
+              handlerName: 'keychat-webln',
+              callback: javascriptHandlerWebLN,
+            );
         },
         onLoadStart: (controller, uri) async {
           logger.d('onLoadStart: $uri');
@@ -638,6 +640,10 @@ class _WebviewTabState extends State<WebviewTab> {
         onPageCommitVisible: (controller, url) {
           logger.i('onPageCommitVisible:$url');
         },
+        onRenderProcessGone: (controller, detail) {
+          logger.i('onRenderProcessGone: $detail');
+          unawaited(refreshPage());
+        },
         onReceivedServerTrustAuthRequest: (_, challenge) async {
           final sslError = challenge.protectionSpace.sslError;
           logger.i(
@@ -668,6 +674,10 @@ class _WebviewTabState extends State<WebviewTab> {
             await pullToRefreshController?.endRefreshing();
           }
           tabController.progress.value = data / 100;
+        },
+        onWebContentProcessDidTerminate: (controller) {
+          logger.i('onWebContentProcessDidTerminate: ${controller.hashCode}');
+          unawaited(refreshPage());
         },
         onReceivedError: (
           InAppWebViewController controller,
@@ -1555,9 +1565,9 @@ img {
     }
   }
 
-  Future<void> refreshPage([WebUri? uri]) async {
+  Future<void> refreshPage() async {
     try {
-      uri ??= await tabController.inAppWebViewController!
+      await tabController.inAppWebViewController!
           .getUrl()
           .timeout(const Duration(seconds: 2));
       await tabController.inAppWebViewController!.reload().timeout(
@@ -1569,10 +1579,10 @@ img {
       // ⛔ A MacOSInAppWebViewController was used after being disposed.
       // ⛔ Once the MacOSInAppWebViewController has been disposed, it can no longer be used.
       logger.e(e.toString(), error: e);
-      tabController.pageStorageKey.value =
-          PageStorageKey<String>(Random().nextInt(1 << 32).toString());
       tabController.url =
           lastViewUri != null ? lastViewUri.toString() : widget.initUrl;
+      tabController.pageStorageKey.value =
+          PageStorageKey<String>(Random().nextInt(1 << 32).toString());
     }
   }
 

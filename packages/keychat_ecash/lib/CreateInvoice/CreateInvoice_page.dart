@@ -28,7 +28,7 @@ class CreateInvoicePage extends StatelessWidget {
           ),
         ),
         body: Container(
-          padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+          padding: const EdgeInsets.only(left: 8, right: 8, bottom: 8),
           decoration:
               BoxDecoration(color: Theme.of(context).colorScheme.surface),
           child: Column(
@@ -37,13 +37,13 @@ class CreateInvoicePage extends StatelessWidget {
                 SelectMint(controller.selectedMint.value, (String mint) {
                   controller.selectedMint.value = mint;
                 }),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Expanded(
                 child: Form(
                   child: Column(
                     children: [
                       TextField(
-                        style: const TextStyle(fontSize: 20),
+                        style: const TextStyle(fontSize: 18),
                         controller: controller.textController,
                         keyboardType: TextInputType.number,
                         // textInputAction: TextInputAction.done,

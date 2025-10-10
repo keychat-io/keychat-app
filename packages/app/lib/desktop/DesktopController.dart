@@ -21,8 +21,8 @@ class DesktopController extends GetxController {
     hc = Get.find<HomeController>();
     sidebarXController =
         SidebarXController(selectedIndex: hc.selectedTabIndex, extended: false);
-    sidebarXController.addListener(() {
-      hc.setSelectedTab(sidebarXController.selectedIndex);
+    sidebarXController.addListener(() async {
+      await hc.setSelectedTab(sidebarXController.selectedIndex);
     });
     super.onInit();
     unawaited(_loadRoomListWidth());

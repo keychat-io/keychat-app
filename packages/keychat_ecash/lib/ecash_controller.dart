@@ -32,6 +32,7 @@ class EcashController extends GetxController {
   EcashController(this.dbPath);
   final String dbPath;
   RxBool cashuInitFailed = false.obs;
+  RxBool isBalanceLoading = true.obs; // Keep this
 
   RxList<MintBalanceClass> mintBalances = <MintBalanceClass>[].obs;
   RxInt btcPrice = 0.obs;
@@ -195,43 +196,49 @@ class EcashController extends GetxController {
   }
 
   Future<Map> getBalance() async {
-    final res = await rust_cashu.getBalances();
-    final resMap = jsonDecode(res) as Map<String, dynamic>;
-    if (resMap.keys.isEmpty) {
-      return {};
-    }
-    final result = <String, int>{};
-    // {https://8333.space:3338/: 0, https://mint.minibits.cash/Bitcoin/: 5}
-    logger.i('cashu balance: $resMap');
-    var total = 0;
-    final localMints = <MintBalanceClass>[];
-    var existLatestMint = false;
-    var latestMintBalance = 0;
-    for (final item in resMap.keys) {
-      if (latestMintUrl.value == item) {
-        latestMintBalance = resMap[item] as int;
-        existLatestMint = true;
+    isBalanceLoading.value = true;
+    try {
+      final res = await rust_cashu.getBalances();
+      final resMap = jsonDecode(res) as Map<String, dynamic>;
+      if (resMap.keys.isEmpty) {
+        isBalanceLoading.value = false;
+        return {};
       }
-      localMints
-          .add(MintBalanceClass(item, EcashTokenSymbol.sat.name, resMap[item]));
-      total += resMap[item] as int;
-    }
-    totalSats.value = total;
-    totalSats.refresh();
-    localMints.sort((a, b) => b.balance - a.balance);
+      final result = <String, int>{};
+      // {https://8333.space:3338/: 0, https://mint.minibits.cash/Bitcoin/: 5}
+      logger.i('cashu balance: $resMap');
+      var total = 0;
+      final localMints = <MintBalanceClass>[];
+      var existLatestMint = false;
+      var latestMintBalance = 0;
+      for (final item in resMap.keys) {
+        if (latestMintUrl.value == item) {
+          latestMintBalance = resMap[item] as int;
+          existLatestMint = true;
+        }
+        localMints.add(
+            MintBalanceClass(item, EcashTokenSymbol.sat.name, resMap[item]));
+        total += resMap[item] as int;
+      }
+      totalSats.value = total;
+      totalSats.refresh();
+      localMints.sort((a, b) => b.balance - a.balance);
 
-    mintBalances.value = localMints.toList();
+      mintBalances.value = localMints.toList();
 
-    // set latest mint url
-    if (!existLatestMint || latestMintBalance == 0) {
-      for (final mb in localMints) {
-        if (mb.balance > 0) {
-          latestMintUrl.value = mb.mint;
-          break;
+      // set latest mint url
+      if (!existLatestMint || latestMintBalance == 0) {
+        for (final mb in localMints) {
+          if (mb.balance > 0) {
+            latestMintUrl.value = mb.mint;
+            break;
+          }
         }
       }
+      return result;
+    } finally {
+      isBalanceLoading.value = false;
     }
-    return result;
   }
 
   int getBalanceByMint(String mint, [String token = 'sat']) {
@@ -390,7 +397,7 @@ class EcashController extends GetxController {
   Future<void> requestPageRefresh() async {
     try {
       await rust_cashu.checkPending();
-      await getBalance();
+      await getBalance(); // This already handles the loading state
       await Utils.getGetxController<EcashBillController>()?.getTransactions();
       await Utils.getGetxController<LightningBillController>()
           ?.getTransactions();

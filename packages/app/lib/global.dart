@@ -30,6 +30,7 @@ class KeychatGlobal {
   static const int signalIdsPoolLength = 1;
   static const int oneTimePubkeysLifetime = 24; // hours
   static const int signalIdLifetime = 168; // hours
+  static const int defaultOpenTabIndex = 2; // 0: chat, 1: browser, 2: me
   static const webrtcIceServers = [
     {'url': 'stun:stun.l.google.com:19302'},
     {'url': 'stun:stun1.l.google.com:19302'},

@@ -26,7 +26,12 @@ class SelectMint extends StatelessWidget {
             '${ecashController.getBalanceByMint(selected.value)} ${EcashTokenSymbol.sat.name}',
           ),
         ),
-        subtitle: Obx(() => Text(selected.value)),
+        subtitle: Obx(
+          () => Text(
+            selected.value,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
         trailing: IconButton(
           icon: Icon(
             CupertinoIcons.arrow_right_arrow_left,

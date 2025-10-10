@@ -162,9 +162,9 @@ class _AppGeneralSettingState extends State<AppGeneralSetting> {
                     builder: (BuildContext context) {
                       return RadioGroup<int>(
                         groupValue: hc.defaultSelectedTab.value,
-                        onChanged: (value) {
+                        onChanged: (value) async {
                           if (value == null) return;
-                          hc.setDefaultSelectedTab(value);
+                          await hc.setDefaultSelectedTab(value);
                           EasyLoading.showSuccess('Set successfully');
                           setStartupTabName();
                           Get.back<void>();

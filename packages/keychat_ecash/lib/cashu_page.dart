@@ -35,7 +35,7 @@ class CashuPage extends GetView<EcashController> {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               SizedBox(
-                width: 120,
+                width: GetPlatform.isMobile ? 120 : 200,
                 child: FilledButton(
                   onPressed: _handleSend,
                   child: const Text('Send'),
@@ -49,7 +49,7 @@ class CashuPage extends GetView<EcashController> {
                 icon: const Icon(CupertinoIcons.qrcode_viewfinder, size: 24),
               ),
               SizedBox(
-                width: 120,
+                width: GetPlatform.isMobile ? 120 : 200,
                 child: FilledButton(
                   onPressed: _handleReceive,
                   child: const Text('Receive'),
@@ -74,8 +74,9 @@ class CashuPage extends GetView<EcashController> {
         actions: [
           if (GetPlatform.isDesktop)
             IconButton(
-              onPressed: () {
-                // controller.refreshController.requestRefresh();
+              onPressed: () async {
+                await controller.requestPageRefresh();
+                await EasyLoading.showSuccess('Refreshed');
               },
               icon: const Icon(CupertinoIcons.refresh),
             ),
@@ -115,29 +116,40 @@ class CashuPage extends GetView<EcashController> {
                         children: [
                           const Text('Total Balance'),
                           Obx(
-                            () => RichText(
-                              text: TextSpan(
-                                text: controller.totalSats.value.toString(),
-                                children: <TextSpan>[
-                                  TextSpan(
-                                    text: ' ${EcashTokenSymbol.sat.name}',
-                                    style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
+                            () => controller.isBalanceLoading.value
+                                ? SizedBox(
+                                    height: 60,
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 3,
+                                        color: Theme.of(context).primaryColor,
+                                      ),
+                                    ),
+                                  )
+                                : RichText(
+                                    text: TextSpan(
+                                      text:
+                                          controller.totalSats.value.toString(),
+                                      children: <TextSpan>[
+                                        TextSpan(
+                                          text: ' ${EcashTokenSymbol.sat.name}',
+                                          style: const TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                      style: TextStyle(
+                                        height: 1.3,
+                                        fontSize: 48,
+                                        color: Theme.of(context)
+                                            .textTheme
+                                            .titleLarge!
+                                            .color,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
-                                ],
-                                style: TextStyle(
-                                  height: 1.3,
-                                  fontSize: 48,
-                                  color: Theme.of(context)
-                                      .textTheme
-                                      .titleLarge!
-                                      .color,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
                           ),
                         ],
                       ),

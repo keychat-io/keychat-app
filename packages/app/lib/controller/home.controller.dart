@@ -103,8 +103,17 @@ class HomeController extends GetxController
       return;
     }
     // use the last opened tab
-    res = Storage.getIntOrZero(StorageKeyString.selectedTabIndex);
-    selectedTabIndex = res;
+    final res2 = Storage.getInt(StorageKeyString.selectedTabIndex);
+    if (res2 != null) {
+      selectedTabIndex = res2;
+      return;
+    }
+    if (GetPlatform.isMobile) {
+      selectedTabIndex = KeychatGlobal.defaultOpenTabIndex;
+    } else {
+      // ecash tab only show on the desktop version
+      selectedTabIndex = KeychatGlobal.defaultOpenTabIndex + 1;
+    }
   }
 
   // add identity AI and add AI contacts

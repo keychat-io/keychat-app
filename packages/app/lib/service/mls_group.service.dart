@@ -340,7 +340,7 @@ class MlsGroupService extends BaseChatService {
       waitTimeToFill: true,
     );
     // close req
-    Get.find<WebsocketService>().sendMessage(Close(req.reqId).serialize());
+    Get.find<WebsocketService>().sendReqToRelays(Close(req.reqId).serialize());
 
     final result = <String, String>{};
     for (final event in list) {
@@ -369,7 +369,7 @@ class MlsGroupService extends BaseChatService {
       );
       // close req
 
-      ws.sendMessage(Close(req.reqId).serialize());
+      ws.sendReqToRelays(Close(req.reqId).serialize());
 
       if (list.isEmpty) return null;
       return list[0].content;

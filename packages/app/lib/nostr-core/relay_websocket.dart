@@ -7,14 +7,11 @@ import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
-import 'package:async_queue/async_queue.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.dart';
 import 'package:web_socket_client/web_socket_client.dart';
 
 const _maxReqCount = 20; // max pool size is 32. be setting by relay server
-const String _pingReq =
-    '["REQ", "keychat-relay-status-check", {"kinds": [1], "limit": 1,"authors": ["bbf923aa9246065f88c40c7d9bf61cccc0ff3fcff065a8cb2ff4cfbb62088f1e"]}]';
 
 class RelayWebsocket {
   RelayWebsocket(this.relay, this.ws);
@@ -50,11 +47,11 @@ class RelayWebsocket {
     listenPubkeys([...pubkeys, ...signalRoomKeys], since, [EventKinds.nip04]);
   }
 
-  Future<void> listenPubkeys(
+  void listenPubkeys(
     List<String> pubkeys,
     DateTime since,
     List<int> kinds,
-  ) async {
+  ) {
     final groups = listToGroupList(pubkeys, 120);
 
     for (final group in groups) {
@@ -71,7 +68,6 @@ class RelayWebsocket {
   }
 
   dynamic sendREQ(NostrReqModel nq) {
-    _statusCheck();
     if (subscriptions.keys.length < maxReqCount) {
       if (nq.pubkeys != null && nq.pubkeys!.isNotEmpty) {
         subscriptions[nq.reqId] = Set.from(nq.pubkeys!);
@@ -118,30 +114,10 @@ class RelayWebsocket {
     }
   }
 
-  Future<void> _proccessFailedEvents() async {
-    final failedEvents = ws.getFailedEvents(relay.url);
-    if (failedEvents.isEmpty) return;
-    logger.i('proccessFailedEvents: ${failedEvents.length}');
-    final tasksString = failedEvents.toList();
-    failedEvents.clear();
-    final queue = AsyncQueue.autoStart();
-    for (final element in tasksString) {
-      queue.addJob((_) => sendRawREQ(element));
-    }
-  }
-
-  void sendRawREQ(String message, {bool retry = false}) {
-    try {
-      _statusCheck();
-      channel!.send(message);
-      loggerNoLine.d('TO [${relay.url}]: $message');
-    } catch (e, s) {
-      logger.e('TO [${relay.url}]: $message', error: e, stackTrace: s);
-      if (retry) {
-        ws.addFailedEvents(relay.url, message);
-      }
-      rethrow;
-    }
+  void sendRawREQ(String message) {
+    _statusCheck();
+    channel!.send(message);
+    loggerNoLine.d('TO [${relay.url}]: $message');
   }
 
   // send ping to relay. if relay not response, socket is closed.
@@ -178,7 +154,6 @@ class RelayWebsocket {
           'connectSuccess:${relay.url}', const Duration(seconds: 3), () async {
         await MlsGroupService.instance.uploadKeyPackages(toRelay: relay.url);
       });
-      await _proccessFailedEvents();
       // nwc reconnect
       Utils.getGetxController<NostrWalletConnectController>()
           ?.startListening(relay.url);

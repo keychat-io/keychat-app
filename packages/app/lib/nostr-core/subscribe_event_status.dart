@@ -1,6 +1,7 @@
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 import 'package:app/service/message.service.dart';
+import 'package:app/service/message_retry.service.dart';
 import 'package:isar_community/isar.dart';
 
 class MesssageToRelayEOSE {
@@ -59,6 +60,8 @@ class SubscribeEventStatus {
     required bool isSuccess,
     String? errorMessage,
   }) async {
+    MessageRetryService.instance.markSuccess(eventId, relay);
+
     final m = _map[eventId];
     if (m != null) {
       m.receiveRelayEOSE(relay, isSuccess, errorMessage);

@@ -15,6 +15,7 @@ import 'package:app/nostr-core/relay_websocket.dart';
 import 'package:app/nostr-core/subscribe_event_status.dart';
 import 'package:app/nostr-core/subscribe_result.dart';
 import 'package:app/page/setting/RelaySetting.dart';
+import 'package:app/service/message_retry.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
@@ -35,7 +36,6 @@ class WebsocketService extends GetxService {
   RxMap<String, RelayMessageFee> relayMessageFeeModels =
       <String, RelayMessageFee>{}.obs;
   Map<String, RelayFileFee> relayFileFeeModels = {};
-  Map<String, Set<String>> failedEventsMap = {};
 
   DateTime initAt = DateTime.now();
 
@@ -69,11 +69,11 @@ class WebsocketService extends GetxService {
         token: payInfoModel.unit.name,
         mints: payInfoModel.mints,
       );
-      eventSendStatus.ecashName = payInfoModel.unit.name;
-      final amount = payInfoModel.amount.toDouble();
-      eventSendStatus.ecashAmount = amount;
-      eventSendStatus.ecashToken = cashuA.token;
-      eventSendStatus.ecashMint = cashuA.mint;
+      eventSendStatus
+        ..ecashName = payInfoModel.unit.name
+        ..ecashAmount = payInfoModel.amount.toDouble()
+        ..ecashToken = cashuA.token
+        ..ecashMint = cashuA.mint;
     } catch (e) {
       final msg = Utils.getErrorMessage(e);
       if (msg.startsWith('Insufficant')) throw Exception(ErrorMessages.noFunds);
@@ -107,13 +107,6 @@ class WebsocketService extends GetxService {
     );
   }
 
-  void addFailedEvents(String relay, String raw) {
-    if (failedEventsMap[relay] == null) {
-      failedEventsMap[relay] = {};
-    }
-    failedEventsMap[relay]!.add(raw);
-  }
-
   Future<void> checkOnlineAndConnect([List<RelayWebsocket>? list]) async {
     initAt = DateTime.now();
     await refreshMainRelayStatus();
@@ -124,14 +117,10 @@ class WebsocketService extends GetxService {
         final relayStatus = await rw.checkOnlineStatus();
         if (!relayStatus) {
           rw.channel?.close();
-          _startConnectRelay(rw);
+          await _startConnectRelay(rw);
         }
       }),
     );
-  }
-
-  void clearFailedEvents(String relay) {
-    failedEventsMap.remove(relay);
   }
 
   Future<void> createChannels([List<Relay> list = const []]) async {
@@ -215,10 +204,6 @@ class WebsocketService extends GetxService {
       default:
         return Colors.grey;
     }
-  }
-
-  Set<String> getFailedEvents(String relay) {
-    return failedEventsMap[relay] ?? {};
   }
 
   List<RelayWebsocket> getOnlineSocket() {
@@ -398,8 +383,8 @@ class WebsocketService extends GetxService {
   }
 
   String? getSubscriptionIdsByPubkey(String pubkey) {
-    for (final rw in List.from(channels.values)) {
-      final subs = rw.subscriptions as Map<String, Set<String>>;
+    for (final rw in List<RelayWebsocket>.from(channels.values)) {
+      final subs = rw.subscriptions;
       for (final entry in subs.entries) {
         if (entry.value.contains(pubkey)) {
           return entry.key;
@@ -409,28 +394,18 @@ class WebsocketService extends GetxService {
     return null;
   }
 
-  int sendMessage(String content, [List<String>? relays]) {
-    if (relays != null && relays.isNotEmpty) {
-      var sent = 0;
-      for (final relay in relays) {
-        if (channels[relay] != null &&
-            channels[relay]!.isConnected() &&
-            channels[relay]!.channel != null) {
-          channels[relay]!.sendRawREQ(content);
-          sent++;
-        }
+  int sendReqToRelays(String content, [List<String>? relays]) {
+    final targetRelays = _getTargetRelaysForSending(relays);
+    var sent = 0;
+
+    for (final relay in targetRelays) {
+      final rw = channels[relay];
+      if (rw != null && rw.isConnected() && rw.channel != null) {
+        rw.sendRawREQ(content);
+        sent++;
       }
-      if (sent > 0) return sent;
     }
 
-    var sent = 0;
-    for (final rw in channels.values) {
-      if (rw.isConnecting() || rw.isDisConnected()) {
-        continue;
-      }
-      sent++;
-      rw.sendRawREQ(content);
-    }
     if (sent == 0) {
       throw Exception(
         'Not connected any relay server, please check your network',
@@ -438,6 +413,16 @@ class WebsocketService extends GetxService {
     }
 
     return sent;
+  }
+
+  Iterable<String> _getTargetRelaysForSending(List<String>? relays) {
+    if (relays != null && relays.isNotEmpty) {
+      return relays.where((relay) => channels[relay] != null);
+    }
+    return channels.keys.where((relay) {
+      final rw = channels[relay];
+      return rw != null && !rw.isConnecting() && !rw.isDisConnected();
+    });
   }
 
   void sendMessageWithCallback(
@@ -484,14 +469,6 @@ class WebsocketService extends GetxService {
       throw Exception(
         'Not connected any relay server, please check your network',
       );
-    }
-  }
-
-  void sendRawReq(String msg) {
-    final list = getOnlineSocket();
-
-    for (final rw in list) {
-      rw.sendRawREQ(msg);
     }
   }
 
@@ -548,7 +525,7 @@ class WebsocketService extends GetxService {
     if (startLock) return;
     try {
       startLock = true;
-      NostrAPI.instance.processedEventIds.clear();
+      NostrAPI.instance.handledEventIds.clear();
       NostrAPI.instance.subscriptionIdEose.clear();
       NostrAPI.instance.subscriptionLastEvent.clear();
       initAt = DateTime.now();
@@ -625,6 +602,14 @@ class WebsocketService extends GetxService {
         try {
           rw.channel!.send(ess.rawEvent);
           successedRelays.add(relay);
+
+          // Add to retry queue
+          MessageRetryService.instance.addMessage(
+            eventId: event.id,
+            relay: relay,
+            rawEvent: ess.rawEvent!,
+            roomId: roomId,
+          );
         } catch (e) {
           ess
             ..sendStatus = EventSendEnum.relayDisconnected
@@ -715,10 +700,14 @@ class WebsocketService extends GetxService {
         if (connectedCallback != null) {
           connectedCallback();
         }
+        // Retry pending messages for this relay
+        unawaited(
+          MessageRetryService.instance.retryPendingMessages(rw.relay.url),
+        );
       }
 
       // update the main page status
-      refreshMainRelayStatus();
+      unawaited(refreshMainRelayStatus());
     });
 
     return rw;

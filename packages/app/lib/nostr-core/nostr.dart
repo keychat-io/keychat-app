@@ -32,8 +32,8 @@ typedef OnMessageReceived = void Function(int type, dynamic message);
 class NostrAPI {
   // Avoid self instance
   NostrAPI._();
-  static DBProvider dbProvider = DBProvider.instance;
-  Set<String> processedEventIds = {};
+  Set<String> handledEventIds = {};
+  // for mls event
   Set<String> subscriptionIdEose = {};
   Map<String, DateTime> subscriptionLastEvent = {};
 
@@ -42,10 +42,6 @@ class NostrAPI {
   static NostrAPI? _instance;
   static NostrAPI get instance => _instance ??= NostrAPI._();
 
-  String closeSerialize(String subscriptionId) {
-    return jsonEncode(['CLOSE', subscriptionId]);
-  }
-
   Future<void> addNostrEventToQueue(Relay relay, dynamic message) async {
     //logger.d('processWebsocketMessage, ${relay.url} $message');
     // nostrEventQueue.addJob((_) async { });
@@ -53,10 +49,10 @@ class NostrAPI {
       final res = jsonDecode(message as String) as List;
       switch (res[0]) {
         case NostrResponseKinds.ok:
-          loggerNoLine.i('OK: ${relay.url}, $res');
+          loggerNoLine.i('OK: ${relay.url}, $message');
           await _proccessWriteEventResponse(res, relay);
         case NostrResponseKinds.event:
-          loggerNoLine.i('receive event: ${relay.url} $message');
+          loggerNoLine.i('receive event: ${relay.url}, $message');
           subscriptionLastEvent[res[1] as String] = DateTime.now();
           await _proccessEvent01(res, relay, message);
         case NostrResponseKinds.eose: // end event signal from relay
@@ -80,6 +76,7 @@ class NostrAPI {
             Get.find<WebsocketService>().updateRelayPong(relay.url);
             return;
           }
+
           loggerNoLine.i('[Notice]: ${relay.url} $res');
 
         default:
@@ -87,6 +84,32 @@ class NostrAPI {
       }
     } catch (e, s) {
       logger.e('processWebsocketMessage', error: e, stackTrace: s);
+    }
+  }
+
+  Future<void> _proccessWriteEventResponse(
+    List<dynamic> msg,
+    Relay relay,
+  ) async {
+    final eventId = msg[1] as String;
+    final status = msg[2] as bool;
+    final errorMessage = msg[3] as String?;
+
+    await SubscribeEventStatus.fillSubscripton(
+      eventId: eventId,
+      relay: relay.url,
+      isSuccess: status,
+      errorMessage: errorMessage,
+    );
+
+    if (NostrAPI.instance.okCallback[eventId] != null) {
+      NostrAPI.instance.okCallback[eventId]!(
+        relay: relay.url,
+        eventId: eventId,
+        status: status,
+        errorMessage: errorMessage,
+      );
+      return;
     }
   }
 
@@ -172,32 +195,6 @@ class NostrAPI {
     }
   }
 
-  Future<void> _proccessWriteEventResponse(
-    List<dynamic> msg,
-    Relay relay,
-  ) async {
-    final eventId = msg[1] as String;
-    final status = msg[2] as bool;
-    final errorMessage = msg[3] as String?;
-
-    await SubscribeEventStatus.fillSubscripton(
-      eventId: eventId,
-      relay: relay.url,
-      isSuccess: status,
-      errorMessage: errorMessage,
-    );
-
-    if (NostrAPI.instance.okCallback[eventId] != null) {
-      NostrAPI.instance.okCallback[eventId]!(
-        relay: relay.url,
-        eventId: eventId,
-        status: status,
-        errorMessage: errorMessage,
-      );
-      return;
-    }
-  }
-
   Future<void> _proccessNip2(NostrEventModel msg) async {
     // List profiles = Nip2.decode(msg);
     // Mykey mykey = await IdentityService.instance.getDefaultMykey();
@@ -218,7 +215,7 @@ class NostrAPI {
       ),
     ]);
     final req = requestWithFilter.serialize();
-    Get.find<WebsocketService>().sendRawReq(req);
+    Get.find<WebsocketService>().sendReqToRelays(req);
     return requestWithFilter;
   }
 
@@ -463,11 +460,11 @@ class NostrAPI {
     Relay relay,
     String raw,
   ) async {
-    if (processedEventIds.contains(event.id)) {
+    if (handledEventIds.contains(event.id)) {
       loggerNoLine.i('duplicate_local: ${event.id}');
       return;
     } else {
-      processedEventIds.add(event.id);
+      handledEventIds.add(event.id);
     }
 
     var ess = await NostrEventStatus.getReceiveEvent(event.id);
@@ -685,7 +682,7 @@ class NostrAPI {
 
     final res = await Get.find<WebsocketService>()
         .fetchInfoFromRelay(id, requestWithFilter.serialize());
-    Get.find<WebsocketService>().sendMessage(Close(id).serialize());
+    Get.find<WebsocketService>().sendReqToRelays(Close(id).serialize());
     return res;
   }
 

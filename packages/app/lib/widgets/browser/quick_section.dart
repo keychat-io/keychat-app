@@ -8,30 +8,32 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:responsive_grid_list/responsive_grid_list.dart';
 
-class QuickSection extends StatelessWidget {
+class QuickSection extends GetView<MultiWebviewController> {
   const QuickSection({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<MultiWebviewController>();
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.onSurface.withAlpha(10),
-        borderRadius: const BorderRadius.all(Radius.circular(8)),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: ResponsiveGridList(
-        listViewBuilderOptions: ListViewBuilderOptions(
-          shrinkWrap: true,
-          padding: EdgeInsets.zero,
-          physics: const NeverScrollableScrollPhysics(),
-        ),
-        minItemWidth: 80,
-        children: controller.favorites.map((favorite) {
-          return _buildQuickSectionItem(favorite, controller, context);
-        }).toList(),
-      ),
+    return Obx(
+      () => controller.favorites.isEmpty
+          ? Container()
+          : Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.onSurface.withAlpha(10),
+                borderRadius: const BorderRadius.all(Radius.circular(8)),
+              ),
+              padding: const EdgeInsets.all(16),
+              child: ResponsiveGridList(
+                listViewBuilderOptions: ListViewBuilderOptions(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.zero,
+                  physics: const NeverScrollableScrollPhysics(),
+                ),
+                minItemWidth: 80,
+                children: controller.favorites.map((favorite) {
+                  return _buildQuickSectionItem(favorite, controller, context);
+                }).toList(),
+              ),
+            ),
     );
   }
 }

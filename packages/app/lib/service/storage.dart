@@ -172,4 +172,12 @@ class Storage {
     }
     return {};
   }
+
+  static double? getDouble(String s) {
+    return sp.getDouble(s);
+  }
+
+  static Future<void> setDouble(String s, double dx) async {
+    await sp.setDouble(s, dx);
+  }
 }

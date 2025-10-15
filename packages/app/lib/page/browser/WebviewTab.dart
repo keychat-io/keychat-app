@@ -119,357 +119,403 @@ class _WebviewTabState extends State<WebviewTab> {
           goBackOrPop();
         },
         child: Scaffold(
-          appBar: AppBar(
-            titleSpacing: 0,
-            leadingWidth: 16,
-            toolbarHeight: GetPlatform.isDesktop ? 48 : 40,
-            leading: Container(),
-            centerTitle: true,
-            title: GetPlatform.isDesktop
-                ? Row(
-                    spacing: 8,
-                    children: [
-                      Obx(
-                        () => Row(
+          appBar: GetPlatform.isDesktop ||
+                  (multiWebviewController.config['showAppBar'] ?? false) == true
+              ? AppBar(
+                  titleSpacing: 0,
+                  leadingWidth: 16,
+                  toolbarHeight: GetPlatform.isDesktop ? 48 : 40,
+                  leading: Container(),
+                  centerTitle: true,
+                  title: GetPlatform.isDesktop
+                      ? Row(
+                          spacing: 8,
                           children: [
-                            IconButton(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 2),
-                              onPressed: tabController.canGoBack.value
-                                  ? goBackOrPop
-                                  : null,
-                              icon: const Icon(Icons.arrow_back),
+                            Obx(
+                              () => Row(
+                                children: [
+                                  IconButton(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 2,
+                                    ),
+                                    onPressed: tabController.canGoBack.value
+                                        ? goBackOrPop
+                                        : null,
+                                    icon: const Icon(Icons.arrow_back),
+                                  ),
+                                  IconButton(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 2,
+                                    ),
+                                    onPressed: () {
+                                      multiWebviewController
+                                          .removeTab(widget.uniqueKey);
+                                    },
+                                    icon: const Icon(Icons.close),
+                                  ),
+                                  IconButton(
+                                    onPressed: tabController.canGoForward.value
+                                        ? () async {
+                                            await tabController
+                                                .inAppWebViewController
+                                                ?.goForward();
+                                          }
+                                        : null,
+                                    icon: const Icon(Icons.arrow_forward),
+                                  ),
+                                  IconButton(
+                                    onPressed: refreshPage,
+                                    icon: const Icon(Icons.refresh),
+                                  ),
+                                ],
+                              ),
                             ),
-                            IconButton(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 2),
-                              onPressed: () {
-                                multiWebviewController
-                                    .removeTab(widget.uniqueKey);
-                              },
-                              icon: const Icon(Icons.close),
-                            ),
-                            IconButton(
-                              onPressed: tabController.canGoForward.value
-                                  ? () async {
-                                      await tabController.inAppWebViewController
-                                          ?.goForward();
-                                    }
-                                  : null,
-                              icon: const Icon(Icons.arrow_forward),
-                            ),
-                            IconButton(
-                              onPressed: refreshPage,
-                              icon: const Icon(Icons.refresh),
+                            Expanded(
+                              child: Center(
+                                child: AutoSizeText(
+                                  multiWebviewController.removeHttpPrefix(
+                                    tabController.title.value.isEmpty
+                                        ? tabController.url
+                                        : tabController.title.value,
+                                  ),
+                                  minFontSize: 10,
+                                  stepGranularity: 2,
+                                  maxFontSize: 16,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.clip,
+                                ),
+                              ),
                             ),
                           ],
+                        )
+                      : AutoSizeText(
+                          multiWebviewController.removeHttpPrefix(
+                            tabController.title.value.isEmpty
+                                ? tabController.url
+                                : tabController.title.value,
+                          ),
+                          minFontSize: 10,
+                          stepGranularity: 2,
+                          maxFontSize: 16,
+                          maxLines: 1,
+                          overflow: TextOverflow.clip,
                         ),
-                      ),
-                      Expanded(
-                        child: Center(
-                          child: AutoSizeText(
-                            multiWebviewController.removeHttpPrefix(
-                              tabController.title.value.isEmpty
-                                  ? tabController.url
-                                  : tabController.title.value,
-                            ),
-                            minFontSize: 10,
-                            stepGranularity: 2,
-                            maxFontSize: 16,
-                            maxLines: 1,
-                            overflow: TextOverflow.clip,
+                  actions: [
+                    popMenu(),
+                    if (GetPlatform.isMobile)
+                      IconButton(
+                        onPressed: () async {
+                          if (pageFailed) {
+                            multiWebviewController
+                                .removeKeepAlive(widget.initUrl);
+                          }
+                          if (Get.isBottomSheetOpen ?? false) {
+                            Get.back<void>();
+                          }
+                          await pausePlayingMedia();
+                          Get.back<void>(); // exit page
+                        },
+                        icon: SvgPicture.asset(
+                          'assets/images/miniapp-exit.svg',
+                          height: 28,
+                          width: 28,
+                          colorFilter: ColorFilter.mode(
+                            Theme.of(context).iconTheme.color!,
+                            BlendMode.srcIn,
                           ),
                         ),
                       ),
-                    ],
-                  )
-                : AutoSizeText(
-                    multiWebviewController.removeHttpPrefix(
-                      tabController.title.value.isEmpty
-                          ? tabController.url
-                          : tabController.title.value,
-                    ),
-                    minFontSize: 10,
-                    stepGranularity: 2,
-                    maxFontSize: 16,
-                    maxLines: 1,
-                    overflow: TextOverflow.clip,
+                  ],
+                )
+              : null,
+          floatingActionButton: GetPlatform.isMobile &&
+                  (multiWebviewController.config['showAppBar'] ?? false) ==
+                      false
+              ? Padding(
+                  padding: const EdgeInsets.only(bottom: 30),
+                  child: FloatingActionButton(
+                    onPressed: null,
+                    mini: true,
+                    shape: const CircleBorder(),
+                    child: popMenu(),
                   ),
-            actions: [
-              PopupMenuButton<String>(
-                onOpened: menuOpened,
-                onSelected: popupMenuSelected,
-                itemBuilder: (BuildContext context) {
-                  return [
-                    PopupMenuItem(
-                      value: 'tools',
-                      child: getPopTools(),
-                    ),
-                    if (GetPlatform.isMobile)
-                      PopupMenuItem(
-                        value: 'refresh',
-                        child: Row(
-                          spacing: 16,
-                          children: [
-                            const Icon(Icons.refresh),
-                            Text(
-                              'Refresh',
-                              style: Theme.of(context).textTheme.bodyLarge,
-                            ),
-                          ],
-                        ),
-                      ),
-                    PopupMenuItem(
-                      value: 'bookmark',
-                      child: Row(
-                        spacing: 16,
-                        children: [
-                          FutureBuilder(
-                            future: () async {
-                              final url = await tabController
-                                  .inAppWebViewController
-                                  ?.getUrl();
-                              if (url == null) return null;
-                              return DBProvider.database.browserBookmarks
-                                  .filter()
-                                  .urlEqualTo(url.toString())
-                                  .findFirst();
-                            }(),
-                            builder: (context, snapshot) {
-                              if (snapshot.data != null) {
-                                return const Icon(
-                                  CupertinoIcons.bookmark_fill,
-                                  color: Colors.orange,
-                                );
-                              }
-                              return const Icon(CupertinoIcons.bookmark);
-                            },
-                          ),
-                          Text(
-                            'Bookmark',
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'favorite',
-                      child: Row(
-                        spacing: 16,
-                        children: [
-                          SvgPicture.asset(
-                            'assets/images/app_add.svg',
-                            height: 24,
-                            width: 24,
-                            colorFilter: ColorFilter.mode(
-                              Theme.of(context).iconTheme.color!.withAlpha(200),
-                              BlendMode.srcIn,
-                            ),
-                          ),
-                          Text(
-                            'Add to Favorites',
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      height: 1,
-                      value: 'divider',
-                      child: Divider(),
-                    ),
-                    PopupMenuItem(
-                      value: 'shareToRooms',
-                      child: Row(
-                        spacing: 16,
-                        children: [
-                          const Icon(CupertinoIcons.chat_bubble),
-                          Text(
-                            'Share to Room',
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'share',
-                      child: Row(
-                        spacing: 16,
-                        children: [
-                          const Icon(CupertinoIcons.share),
-                          Text(
-                            'Share',
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'zoom',
-                      child: Row(
-                        spacing: 16,
-                        children: [
-                          const Icon(CupertinoIcons.zoom_in),
-                          Text(
-                            'Zoom Text',
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (GetPlatform.isMobile)
-                      PopupMenuItem(
-                        padding: EdgeInsets.zero,
-                        value: 'KeepAlive',
-                        child: ListTile(
-                          leading: Transform.scale(
-                            scale: 0.6,
-                            child: FutureBuilder(
-                              future: (() async {
-                                await multiWebviewController.loadKeepAlive();
-                              })(),
-                              builder: (context, snapshot) {
-                                if (snapshot.hasData) {
-                                  return Icon(
-                                    Icons.check_circle,
-                                    color: Theme.of(context).primaryColor,
-                                  );
-                                }
-                                return Switch(
-                                  value: multiWebviewController
-                                      .mobileKeepAlive.keys
-                                      .contains(initDomain),
-                                  onChanged: (value) async {
-                                    if (value) {
-                                      await multiWebviewController
-                                          .enableKeepAlive(initDomain);
-
-                                      Get.back<void>();
-                                      EasyLoading.showSuccess(
-                                        'KeepAlive Enabled. Take effect after restarting the page.',
-                                      );
-                                      return;
-                                    }
-                                    await multiWebviewController
-                                        .disableKeepAlive(initDomain);
-                                    Get.back<void>();
-                                    EasyLoading.showSuccess(
-                                      'KeepAlive Disabled.',
-                                    );
-                                  },
-                                );
-                              },
-                            ),
-                          ),
-                          contentPadding: EdgeInsets.zero,
-                          horizontalTitleGap: 0,
-                          title: Text(
-                            'Keep Alive',
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
-                        ),
-                      ),
-                    if (tabController.browserConnect.value.host == '')
-                      PopupMenuItem(
-                        value: 'clear',
-                        child: Row(
-                          spacing: 12,
-                          children: [
-                            const Icon(Icons.storage),
-                            Text(
-                              'Clear Cache',
-                              style: Theme.of(context).textTheme.bodyLarge,
-                            ),
-                          ],
-                        ),
-                      ),
-                    const PopupMenuItem(
-                      height: 1,
-                      value: 'divider',
-                      child: Divider(),
-                    ),
-                    if (tabController.browserConnect.value.host != '')
-                      PopupMenuItem(
-                        value: 'disconnect',
-                        child: Row(
-                          spacing: 12,
-                          children: [
-                            const Icon(Icons.logout),
-                            Text(
-                              'ID Logout',
-                              style: Theme.of(context).textTheme.bodyLarge,
-                            ),
-                          ],
-                        ),
-                      ),
-                    if (GetPlatform.isMobile)
-                      PopupMenuItem(
-                        value: 'close',
-                        child: Row(
-                          spacing: 12,
-                          children: [
-                            const Icon(Icons.exit_to_app),
-                            Text(
-                              'Close',
-                              style: Theme.of(context).textTheme.bodyLarge,
-                            ),
-                          ],
-                        ),
-                      ),
-                  ];
-                },
-                icon: const Icon(Icons.more_horiz),
-              ),
-              if (GetPlatform.isMobile)
-                IconButton(
-                  onPressed: () async {
-                    if (pageFailed) {
-                      multiWebviewController.removeKeepAlive(widget.initUrl);
-                    }
-                    if (Get.isBottomSheetOpen ?? false) {
-                      Get.back<void>();
-                    }
-                    await pausePlayingMedia();
-                    Get.back<void>(); // exit page
-                  },
-                  icon: SvgPicture.asset(
-                    'assets/images/miniapp-exit.svg',
-                    height: 28,
-                    width: 28,
-                    colorFilter: ColorFilter.mode(
-                      Theme.of(context).iconTheme.color!,
-                      BlendMode.srcIn,
-                    ),
-                  ),
-                ),
-            ],
-          ),
+                )
+              : null,
+          floatingActionButtonLocation:
+              FloatingActionButtonLocation.miniEndFloat,
           body: SafeArea(
             bottom: GetPlatform.isAndroid ||
                 multiWebviewController.bottomSafeHosts
                     .contains(WebUri(widget.initUrl).host),
-            child: Column(
-              children: <Widget>[
-                Expanded(
-                  child: Stack(
-                    children: [
-                      _getWebview(),
-                      Obx(
-                        () => tabController.progress.value < 1.0
-                            ? LinearProgressIndicator(
-                                value: tabController.progress.value < 0.1
-                                    ? 0.1
-                                    : tabController.progress.value,
-                              )
-                            : Container(),
-                      ),
-                    ],
+            child: Expanded(
+              child: Stack(
+                children: [
+                  _getWebview(),
+                  Obx(
+                    () => tabController.progress.value < 1.0
+                        ? LinearProgressIndicator(
+                            value: tabController.progress.value < 0.1
+                                ? 0.1
+                                : tabController.progress.value,
+                          )
+                        : Container(),
                   ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget popMenu() {
+    return PopupMenuButton<String>(
+      onOpened: menuOpened,
+      onSelected: popupMenuSelected,
+      itemBuilder: (BuildContext context) {
+        return [
+          PopupMenuItem(
+            value: 'tools',
+            child: getPopTools(),
+          ),
+          if (GetPlatform.isMobile)
+            PopupMenuItem(
+              value: 'refresh',
+              child: Row(
+                spacing: 16,
+                children: [
+                  Icon(
+                    Icons.refresh,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                  ),
+                  Text(
+                    'Refresh',
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ],
+              ),
+            ),
+          PopupMenuItem(
+            value: 'bookmark',
+            child: Row(
+              spacing: 16,
+              children: [
+                FutureBuilder(
+                  future: () async {
+                    final url =
+                        await tabController.inAppWebViewController?.getUrl();
+                    if (url == null) return null;
+                    return DBProvider.database.browserBookmarks
+                        .filter()
+                        .urlEqualTo(url.toString())
+                        .findFirst();
+                  }(),
+                  builder: (context, snapshot) {
+                    if (snapshot.data != null) {
+                      return const Icon(
+                        CupertinoIcons.bookmark_fill,
+                        color: Colors.orange,
+                      );
+                    }
+                    return Icon(
+                      CupertinoIcons.bookmark,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    );
+                  },
+                ),
+                Text(
+                  'Bookmark',
+                  style: Theme.of(context).textTheme.bodyLarge,
                 ),
               ],
             ),
           ),
-        ),
+          PopupMenuItem(
+            value: 'favorite',
+            child: Row(
+              spacing: 16,
+              children: [
+                SvgPicture.asset(
+                  'assets/images/app_add.svg',
+                  height: 24,
+                  width: 24,
+                  colorFilter: ColorFilter.mode(
+                    Theme.of(context).iconTheme.color!.withAlpha(200),
+                    BlendMode.srcIn,
+                  ),
+                ),
+                Text(
+                  'Add to Favorites',
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              ],
+            ),
+          ),
+          const PopupMenuItem(
+            height: 1,
+            value: 'divider',
+            child: Divider(),
+          ),
+          PopupMenuItem(
+            value: 'shareToRooms',
+            child: Row(
+              spacing: 16,
+              children: [
+                Icon(
+                  CupertinoIcons.chat_bubble,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+                Text(
+                  'Share to Room',
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              ],
+            ),
+          ),
+          PopupMenuItem(
+            value: 'share',
+            child: Row(
+              spacing: 16,
+              children: [
+                Icon(
+                  CupertinoIcons.share,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+                Text(
+                  'Share',
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              ],
+            ),
+          ),
+          PopupMenuItem(
+            value: 'zoom',
+            child: Row(
+              spacing: 16,
+              children: [
+                Icon(
+                  CupertinoIcons.zoom_in,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+                Text(
+                  'Zoom Text',
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              ],
+            ),
+          ),
+          if (GetPlatform.isMobile)
+            PopupMenuItem(
+              padding: EdgeInsets.zero,
+              value: 'KeepAlive',
+              child: ListTile(
+                leading: Transform.scale(
+                  scale: 0.6,
+                  child: FutureBuilder(
+                    future: (() async {
+                      await multiWebviewController.loadKeepAlive();
+                    })(),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData) {
+                        return Icon(
+                          Icons.check_circle,
+                          color: Theme.of(context).primaryColor,
+                        );
+                      }
+                      return Switch(
+                        value: multiWebviewController.mobileKeepAlive.keys
+                            .contains(initDomain),
+                        onChanged: (value) async {
+                          if (value) {
+                            await multiWebviewController
+                                .enableKeepAlive(initDomain);
+
+                            Get.back<void>();
+                            EasyLoading.showSuccess(
+                              'KeepAlive Enabled. Take effect after restarting the page.',
+                            );
+                            return;
+                          }
+                          await multiWebviewController
+                              .disableKeepAlive(initDomain);
+                          Get.back<void>();
+                          EasyLoading.showSuccess(
+                            'KeepAlive Disabled.',
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+                contentPadding: EdgeInsets.zero,
+                horizontalTitleGap: 0,
+                title: Text(
+                  'Keep Alive',
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              ),
+            ),
+          if (tabController.browserConnect.value.host == '')
+            PopupMenuItem(
+              value: 'clear',
+              child: Row(
+                spacing: 12,
+                children: [
+                  Icon(
+                    Icons.storage,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                  ),
+                  Text(
+                    'Clear Cache',
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ],
+              ),
+            ),
+          const PopupMenuItem(
+            height: 1,
+            value: 'divider',
+            child: Divider(),
+          ),
+          if (tabController.browserConnect.value.host != '')
+            PopupMenuItem(
+              value: 'disconnect',
+              child: Row(
+                spacing: 12,
+                children: [
+                  Icon(
+                    Icons.logout,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                  ),
+                  Text(
+                    'ID Logout',
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ],
+              ),
+            ),
+          if (GetPlatform.isMobile)
+            PopupMenuItem(
+              value: 'close',
+              child: Row(
+                spacing: 12,
+                children: [
+                  Icon(
+                    Icons.exit_to_app,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                  ),
+                  Text(
+                    'Close',
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ],
+              ),
+            ),
+        ];
+      },
+      icon: const Icon(
+        Icons.settings,
       ),
     );
   }

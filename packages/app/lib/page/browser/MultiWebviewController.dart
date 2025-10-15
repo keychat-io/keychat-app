@@ -278,6 +278,7 @@ class MultiWebviewController extends GetxController {
         'enableRecommend': true,
         'historyRetentionDays': 30,
         'autoSignEvent': true,
+        'showAppBar': false,
       });
       await Storage.setString('browserConfig', localConfig);
     }

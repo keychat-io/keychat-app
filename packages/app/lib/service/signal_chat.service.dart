@@ -2,34 +2,31 @@ import 'dart:async';
 import 'dart:convert' show base64, base64Decode, jsonDecode, jsonEncode, utf8;
 import 'dart:typed_data' show Uint8List;
 
+import 'package:app/constants.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/models/models.dart';
+import 'package:app/nostr-core/nostr.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/RoomUtil.dart';
-
 import 'package:app/service/chat.service.dart';
 import 'package:app/service/chatx.service.dart';
+import 'package:app/service/contact.service.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/notify.service.dart';
-import 'package:app/service/signal_chat_util.dart';
+import 'package:app/service/room.service.dart';
 import 'package:app/service/signalId.service.dart';
-import 'package:app/service/websocket.service.dart';
+import 'package:app/service/signal_chat_util.dart';
 import 'package:app/service/storage.dart';
+import 'package:app/service/websocket.service.dart';
+import 'package:app/utils.dart';
 import 'package:convert/convert.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
-
+import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
 import 'package:keychat_rust_ffi_plugin/api_signal.dart';
-import 'package:keychat_rust_ffi_plugin/index.dart';
-
-import 'package:app/constants.dart';
-import 'package:app/nostr-core/nostr.dart';
-import 'package:app/utils.dart';
-import 'package:app/service/contact.service.dart';
-import 'package:app/service/room.service.dart';
+import 'package:keychat_rust_ffi_plugin/index.dart' show AnyhowException;
 
 class SignalChatService extends BaseChatService {
   // Avoid self instance

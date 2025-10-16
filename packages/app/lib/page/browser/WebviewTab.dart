@@ -247,21 +247,25 @@ class _WebviewTabState extends State<WebviewTab> {
             bottom: GetPlatform.isAndroid ||
                 multiWebviewController.bottomSafeHosts
                     .contains(WebUri(widget.initUrl).host),
-            child: Expanded(
-              child: Stack(
-                children: [
-                  _getWebview(),
-                  Obx(
-                    () => tabController.progress.value < 1.0
-                        ? LinearProgressIndicator(
-                            value: tabController.progress.value < 0.1
-                                ? 0.1
-                                : tabController.progress.value,
-                          )
-                        : Container(),
+            child: Column(
+              children: [
+                Expanded(
+                  child: Stack(
+                    children: [
+                      _getWebview(),
+                      Obx(
+                        () => tabController.progress.value < 1.0
+                            ? LinearProgressIndicator(
+                                value: tabController.progress.value < 0.1
+                                    ? 0.1
+                                    : tabController.progress.value,
+                              )
+                            : Container(),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),

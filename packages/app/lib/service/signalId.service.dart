@@ -10,7 +10,6 @@ import 'package:convert/convert.dart' show hex;
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
-import 'package:keychat_rust_ffi_plugin/api_signal.dart';
 
 class SignalIdService {
   // Avoid self instance
@@ -18,22 +17,29 @@ class SignalIdService {
   static SignalIdService? _instance;
   static SignalIdService get instance => _instance ??= SignalIdService._();
 
-  Future<SignalId> createSignalId(int identityId,
-      [bool isGroupSharedKey = false]) async {
+  Future<SignalId> createSignalId(
+    int identityId, [
+    bool isGroupSharedKey = false,
+  ]) async {
     final database = DBProvider.database;
     final keychain = await rust_signal.generateSignalIds();
     final signalId = SignalId(
-        prikey: hex.encode(keychain.$1),
-        identityId: identityId,
-        pubkey: hex.encode(keychain.$2))
+      prikey: hex.encode(keychain.$1),
+      identityId: identityId,
+      pubkey: hex.encode(keychain.$2),
+    )
       ..isGroupSharedKey = isGroupSharedKey
       ..isUsed = false;
     final chatxService = Get.find<ChatxService>();
     final keypair = await chatxService.setupSignalStoreBySignalId(
-        signalId.pubkey, signalId);
+      signalId.pubkey,
+      signalId,
+    );
     final signalPrivateKey = Uint8List.fromList(hex.decode(signalId.prikey));
     final signKeyResult = await rust_signal.generateSignedKeyApi(
-        keyPair: keypair, signalIdentityPrivateKey: signalPrivateKey);
+      keyPair: keypair,
+      signalIdentityPrivateKey: signalPrivateKey,
+    );
 
     signalId.signalKeyId = signKeyResult.$1;
     final data = <String, dynamic>{};
@@ -119,8 +125,10 @@ class SignalIdService {
       await DBProvider.database.signalIds
           .filter()
           .isUsedEqualTo(true)
-          .updatedAtLessThan(DateTime.now()
-              .subtract(const Duration(hours: KeychatGlobal.signalIdLifetime)))
+          .updatedAtLessThan(
+            DateTime.now().subtract(
+                const Duration(hours: KeychatGlobal.signalIdLifetime)),
+          )
           .deleteAll();
     });
   }
@@ -130,7 +138,9 @@ class SignalIdService {
 
     final signalPrivateKey = Uint8List.fromList(hex.decode(signalId.prikey));
     final res = await rust_signal.generateSignedKeyApi(
-        keyPair: keypair, signalIdentityPrivateKey: signalPrivateKey);
+      keyPair: keypair,
+      signalIdentityPrivateKey: signalPrivateKey,
+    );
 
     signalId.signalKeyId = res.$1;
     await SignalIdService.instance.updateSignalId(signalId);
@@ -147,7 +157,9 @@ class SignalIdService {
   }
 
   Future<SignalId> importOrGetSignalId(
-      int identityId, RoomProfile roomProfile) async {
+    int identityId,
+    RoomProfile roomProfile,
+  ) async {
     if (roomProfile.signalKeys == null) {
       throw Exception('Signal keys is null, failed to join group.');
     }
@@ -155,9 +167,10 @@ class SignalIdService {
     if (exist != null) return exist;
 
     final signalId = SignalId(
-        prikey: roomProfile.signaliPrikey!,
-        pubkey: roomProfile.signalPubkey!,
-        identityId: identityId)
+      prikey: roomProfile.signaliPrikey!,
+      pubkey: roomProfile.signalPubkey!,
+      identityId: identityId,
+    )
       ..signalKeyId = roomProfile.signalKeyId
       ..keys = roomProfile.signalKeys
       ..isGroupSharedKey = true
@@ -170,13 +183,15 @@ class SignalIdService {
         .setupSignalStoreBySignalId(signalId.pubkey, signalId);
 
     await rust_signal.storePrekeyApi(
-        keyPair: keyPair,
-        prekeyId: keys['prekeyId'],
-        record: hex.decode(keys['prekeyRecord']));
+      keyPair: keyPair,
+      prekeyId: keys['prekeyId'],
+      record: hex.decode(keys['prekeyRecord']),
+    );
     await rust_signal.storeSignedKeyApi(
-        keyPair: keyPair,
-        signedKeyId: keys['signedId'],
-        record: hex.decode(keys['signedRecord']));
+      keyPair: keyPair,
+      signedKeyId: keys['signedId'],
+      record: hex.decode(keys['signedRecord']),
+    );
 
     return signalId;
   }

@@ -47,29 +47,34 @@ const RoomMemberSchema = CollectionSchema(
       name: r'isAdmin',
       type: IsarType.bool,
     ),
-    r'name': PropertySchema(
+    r'lightning': PropertySchema(
       id: 6,
+      name: r'lightning',
+      type: IsarType.string,
+    ),
+    r'name': PropertySchema(
+      id: 7,
       name: r'name',
       type: IsarType.string,
     ),
     r'roomId': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'roomId',
       type: IsarType.long,
     ),
     r'status': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'status',
       type: IsarType.int,
       enumMap: _RoomMemberstatusEnumValueMap,
     ),
     r'stringify': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'updatedAt': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -126,6 +131,12 @@ int _roomMemberEstimateSize(
     }
   }
   bytesCount += 3 + object.idPubkey.length * 3;
+  {
+    final value = object.lightning;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.name.length * 3;
   return bytesCount;
 }
@@ -142,11 +153,12 @@ void _roomMemberSerialize(
   writer.writeLong(offsets[3], object.hashCode);
   writer.writeString(offsets[4], object.idPubkey);
   writer.writeBool(offsets[5], object.isAdmin);
-  writer.writeString(offsets[6], object.name);
-  writer.writeLong(offsets[7], object.roomId);
-  writer.writeInt(offsets[8], object.status.index);
-  writer.writeBool(offsets[9], object.stringify);
-  writer.writeDateTime(offsets[10], object.updatedAt);
+  writer.writeString(offsets[6], object.lightning);
+  writer.writeString(offsets[7], object.name);
+  writer.writeLong(offsets[8], object.roomId);
+  writer.writeInt(offsets[9], object.status.index);
+  writer.writeBool(offsets[10], object.stringify);
+  writer.writeDateTime(offsets[11], object.updatedAt);
 }
 
 RoomMember _roomMemberDeserialize(
@@ -157,9 +169,9 @@ RoomMember _roomMemberDeserialize(
 ) {
   final object = RoomMember(
     idPubkey: reader.readString(offsets[4]),
-    name: reader.readString(offsets[6]),
-    roomId: reader.readLong(offsets[7]),
-    status: _RoomMemberstatusValueEnumMap[reader.readIntOrNull(offsets[8])] ??
+    name: reader.readString(offsets[7]),
+    roomId: reader.readLong(offsets[8]),
+    status: _RoomMemberstatusValueEnumMap[reader.readIntOrNull(offsets[9])] ??
         UserStatusType.invited,
   );
   object.avatarUrl = reader.readStringOrNull(offsets[0]);
@@ -167,7 +179,8 @@ RoomMember _roomMemberDeserialize(
   object.curve25519PkHex = reader.readStringOrNull(offsets[2]);
   object.id = id;
   object.isAdmin = reader.readBool(offsets[5]);
-  object.updatedAt = reader.readDateTimeOrNull(offsets[10]);
+  object.lightning = reader.readStringOrNull(offsets[6]);
+  object.updatedAt = reader.readDateTimeOrNull(offsets[11]);
   return object;
 }
 
@@ -191,15 +204,17 @@ P _roomMemberDeserializeProp<P>(
     case 5:
       return (reader.readBool(offset)) as P;
     case 6:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 7:
-      return (reader.readLong(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 8:
+      return (reader.readLong(offset)) as P;
+    case 9:
       return (_RoomMemberstatusValueEnumMap[reader.readIntOrNull(offset)] ??
           UserStatusType.invited) as P;
-    case 9:
-      return (reader.readBoolOrNull(offset)) as P;
     case 10:
+      return (reader.readBoolOrNull(offset)) as P;
+    case 11:
       return (reader.readDateTimeOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1167,6 +1182,158 @@ extension RoomMemberQueryFilter
     });
   }
 
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition>
+      lightningIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'lightning',
+      ));
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition>
+      lightningIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'lightning',
+      ));
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> lightningEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lightning',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition>
+      lightningGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'lightning',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> lightningLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'lightning',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> lightningBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'lightning',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition>
+      lightningStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'lightning',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> lightningEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'lightning',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> lightningContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'lightning',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> lightningMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'lightning',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition>
+      lightningIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lightning',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition>
+      lightningIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'lightning',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<RoomMember, RoomMember, QAfterFilterCondition> nameEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -1585,6 +1752,18 @@ extension RoomMemberQuerySortBy
     });
   }
 
+  QueryBuilder<RoomMember, RoomMember, QAfterSortBy> sortByLightning() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lightning', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterSortBy> sortByLightningDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lightning', Sort.desc);
+    });
+  }
+
   QueryBuilder<RoomMember, RoomMember, QAfterSortBy> sortByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -1733,6 +1912,18 @@ extension RoomMemberQuerySortThenBy
     });
   }
 
+  QueryBuilder<RoomMember, RoomMember, QAfterSortBy> thenByLightning() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lightning', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RoomMember, RoomMember, QAfterSortBy> thenByLightningDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lightning', Sort.desc);
+    });
+  }
+
   QueryBuilder<RoomMember, RoomMember, QAfterSortBy> thenByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -1836,6 +2027,13 @@ extension RoomMemberQueryWhereDistinct
     });
   }
 
+  QueryBuilder<RoomMember, RoomMember, QDistinct> distinctByLightning(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'lightning', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<RoomMember, RoomMember, QDistinct> distinctByName(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -1913,6 +2111,12 @@ extension RoomMemberQueryProperty
     });
   }
 
+  QueryBuilder<RoomMember, String?, QQueryOperations> lightningProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lightning');
+    });
+  }
+
   QueryBuilder<RoomMember, String, QQueryOperations> nameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'name');
@@ -1962,6 +2166,7 @@ RoomMember _$RoomMemberFromJson(Map<String, dynamic> json) => RoomMember(
           ? null
           : DateTime.parse(json['updatedAt'] as String)
       ..avatarUrl = json['avatarUrl'] as String?
+      ..lightning = json['lightning'] as String?
       ..isAdmin = json['isAdmin'] as bool;
 
 Map<String, dynamic> _$RoomMemberToJson(RoomMember instance) =>
@@ -1974,6 +2179,7 @@ Map<String, dynamic> _$RoomMemberToJson(RoomMember instance) =>
       if (instance.updatedAt?.toIso8601String() case final value?)
         'updatedAt': value,
       if (instance.avatarUrl case final value?) 'avatarUrl': value,
+      if (instance.lightning case final value?) 'lightning': value,
       'isAdmin': instance.isAdmin,
       'status': _$UserStatusTypeEnumMap[instance.status]!,
     };

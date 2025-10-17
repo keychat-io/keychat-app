@@ -10,9 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/Bills/cashu_transaction.dart';
-import 'package:keychat_ecash/Bills/ecash_bill_controller.dart';
-import 'package:keychat_ecash/Bills/lightning_bill_controller.dart';
 import 'package:keychat_ecash/Bills/lightning_transaction.dart';
+import 'package:keychat_ecash/Bills/transactions_page.dart';
 import 'package:keychat_ecash/CreateInvoice/CreateInvoice_page.dart';
 import 'package:keychat_ecash/EcashSetting/EcashSetting_bindings.dart';
 import 'package:keychat_ecash/EcashSetting/MintServerPage.dart';
@@ -24,6 +23,7 @@ import 'package:settings_ui/settings_ui.dart';
 
 class CashuPage extends GetView<EcashController> {
   const CashuPage({super.key});
+
   Widget bottomBarWidget(BuildContext context) {
     return SafeArea(
       child: Row(
@@ -64,9 +64,6 @@ class CashuPage extends GetView<EcashController> {
 
   @override
   Widget build(BuildContext context) {
-    final billLimit = GetPlatform.isDesktop ? 5 : 3;
-    final lightningBillController = Get.find<LightningBillController>();
-    final ecashBillController = Get.find<EcashBillController>();
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
@@ -396,223 +393,24 @@ class CashuPage extends GetView<EcashController> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Cashu Bills',
+                        'Recent Transactions',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       TextButton(
-                        style: TextButton.styleFrom(
-                          foregroundColor:
-                              Theme.of(context).textTheme.bodyLarge!.color,
-                        ),
                         onPressed: () {
                           Get.to(
-                            CashuBillPage.new,
+                            () => const TransactionsPage(),
                             id: GetPlatform.isDesktop
                                 ? GetXNestKey.ecash
                                 : null,
                           );
                         },
-                        child: const Text('More'),
+                        child: const Text('More >'),
                       ),
                     ],
                   ),
                 ),
-                Obx(
-                  () => Column(
-                    children: ecashBillController.transactions.isEmpty
-                        ? [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 20,
-                              ),
-                              child: Wrap(
-                                direction: Axis.vertical,
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.folder_open_outlined,
-                                    size: 36,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withAlpha(160),
-                                  ),
-                                  textSmallGray(
-                                    context,
-                                    'No transactions',
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ]
-                        : ecashBillController.transactions
-                            .sublist(
-                            0,
-                            ecashBillController.transactions.length > billLimit
-                                ? billLimit
-                                : ecashBillController.transactions.length,
-                          )
-                            .map((Transaction transaction) {
-                            final feeString =
-                                'Fee: ${transaction.fee} ${transaction.unit}';
-                            return ListTile(
-                              key: Key(
-                                transaction.id +
-                                    transaction.timestamp.toString(),
-                              ),
-                              dense: true,
-                              leading: CashuUtil.getTransactionIcon(
-                                transaction.io,
-                              ),
-                              title: Text(
-                                CashuUtil.getCashuAmount(transaction),
-                                style: Theme.of(context).textTheme.bodyLarge,
-                              ),
-                              subtitle: textSmallGray(
-                                Get.context!,
-                                '$feeString - ${formatTime(transaction.timestamp.toInt() * 1000)}',
-                              ),
-                              trailing: CashuUtil.getStatusIcon(
-                                transaction.status,
-                              ),
-                              onTap: () {
-                                if (transaction.status ==
-                                    TransactionStatus.failed) {
-                                  EasyLoading.showToast('It is failed');
-                                  return;
-                                }
-                                Get.to(
-                                  () => CashuTransactionPage(
-                                    transaction: transaction,
-                                  ),
-                                  id: GetPlatform.isDesktop
-                                      ? GetXNestKey.ecash
-                                      : null,
-                                );
-                              },
-                            );
-                          }).toList(),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Lightning Bills',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      TextButton(
-                        style: TextButton.styleFrom(
-                          foregroundColor:
-                              Theme.of(context).textTheme.bodyLarge!.color,
-                        ),
-                        onPressed: () {
-                          Get.to(
-                            LightningBillPage.new,
-                            id: GetPlatform.isDesktop
-                                ? GetXNestKey.ecash
-                                : null,
-                          );
-                        },
-                        child: const Text('More'),
-                      ),
-                    ],
-                  ),
-                ),
-                Obx(
-                  () => Column(
-                    children: lightningBillController.transactions.isEmpty
-                        ? [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 20,
-                              ),
-                              child: Wrap(
-                                direction: Axis.vertical,
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.content_paste_off,
-                                    size: 36,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withAlpha(150),
-                                  ),
-                                  textSmallGray(
-                                    context,
-                                    'No transactions',
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ]
-                        : lightningBillController.transactions
-                            .sublist(
-                            0,
-                            lightningBillController.transactions.length >
-                                    billLimit
-                                ? billLimit
-                                : lightningBillController.transactions.length,
-                          )
-                            .map((Transaction transaction) {
-                            return ListTile(
-                              key: Key(
-                                transaction.id +
-                                    transaction.timestamp.toString(),
-                              ),
-                              dense: true,
-                              leading: CashuUtil.getTransactionIcon(
-                                transaction.io,
-                              ),
-                              title: Text(
-                                CashuUtil.getLNAmount(transaction),
-                                style: Theme.of(context).textTheme.bodyMedium,
-                              ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  textSmallGray(
-                                    Get.context!,
-                                    transaction.token,
-                                  ),
-                                  textSmallGray(
-                                    Get.context!,
-                                    DateTime.fromMillisecondsSinceEpoch(
-                                      transaction.timestamp.toInt() * 1000,
-                                    ).toIso8601String(),
-                                  ),
-                                ],
-                              ),
-                              trailing: CashuUtil.getLNIcon(transaction.status),
-                              onTap: () {
-                                if (transaction.status ==
-                                    TransactionStatus.expired) {
-                                  EasyLoading.showToast('It is expired');
-                                  return;
-                                }
-
-                                if (transaction.status ==
-                                    TransactionStatus.failed) {
-                                  EasyLoading.showToast('It is failed');
-                                  return;
-                                }
-                                Get.to(
-                                  () => LightningTransactionPage(
-                                    transaction: transaction,
-                                  ),
-                                  id: GetPlatform.isDesktop
-                                      ? GetXNestKey.ecash
-                                      : null,
-                                );
-                              },
-                            );
-                          }).toList(),
-                  ),
-                ),
+                const _RecentTransactionsWidget(),
                 const SizedBox(height: 100),
               ],
             ),
@@ -668,7 +466,7 @@ class CashuPage extends GetView<EcashController> {
                     ),
                     const ReceiveEcash(),
                   );
-                  Get.find<EcashBillController>().getTransactions();
+                  await Get.find<EcashController>().getRecentTransactions();
                 },
               ),
             ],
@@ -698,7 +496,7 @@ class CashuPage extends GetView<EcashController> {
                     const PayInvoicePage(),
                   );
                   unawaited(
-                    Get.find<LightningBillController>().getTransactions(),
+                    controller.getRecentTransactions(),
                   );
                 },
               ),
@@ -714,7 +512,7 @@ class CashuPage extends GetView<EcashController> {
                     ),
                     const CashuSendPage(false),
                   );
-                  Get.find<EcashBillController>().getTransactions();
+                  await Get.find<EcashController>().getRecentTransactions();
                 },
               ),
             ],
@@ -733,5 +531,120 @@ class CashuPage extends GetView<EcashController> {
       () => MintServerPage(server),
       id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
     );
+  }
+}
+
+class _RecentTransactionsWidget extends GetView<EcashController> {
+  const _RecentTransactionsWidget();
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      if (controller.isRecentTransactionsLoading.value &&
+          controller.recentTransactions.isEmpty) {
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: 20),
+          child: Center(child: CircularProgressIndicator()),
+        );
+      }
+
+      if (controller.recentTransactions.isEmpty) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Center(
+            child: Wrap(
+              direction: Axis.vertical,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Icon(
+                  Icons.folder_open_outlined,
+                  size: 36,
+                  color: Theme.of(context).colorScheme.onSurface.withAlpha(160),
+                ),
+                textSmallGray(context, 'No transactions'),
+              ],
+            ),
+          ),
+        );
+      }
+
+      return Column(
+        children: [
+          ...controller.recentTransactions.map((Transaction transaction) {
+            final isLightning = transaction.kind == TransactionKind.ln;
+            return ListTile(
+              key: Key(transaction.id + transaction.timestamp.toString()),
+              dense: true,
+              leading: CashuUtil.getTransactionIcon(transaction.io),
+              title: Text(
+                isLightning
+                    ? CashuUtil.getLNAmount(transaction)
+                    : CashuUtil.getCashuAmount(transaction),
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              subtitle: Row(
+                children: [
+                  if (isLightning)
+                    Container(
+                      margin: const EdgeInsets.only(right: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withAlpha(50),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                      child: const Text(
+                        'Lightning',
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: Colors.orange,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  Expanded(
+                    child: textSmallGray(
+                      context,
+                      'Fee: ${transaction.fee} ${transaction.unit} - ${formatTime(transaction.timestamp.toInt() * 1000)}',
+                    ),
+                  ),
+                ],
+              ),
+              trailing: isLightning
+                  ? CashuUtil.getLNIcon(transaction.status)
+                  : CashuUtil.getStatusIcon(transaction.status),
+              onTap: () async {
+                if (transaction.status == TransactionStatus.expired) {
+                  EasyLoading.showToast('It is expired');
+                  return;
+                }
+                if (transaction.status == TransactionStatus.failed) {
+                  EasyLoading.showToast('It is failed');
+                  return;
+                }
+
+                if (isLightning) {
+                  await Get.to(
+                    () => LightningTransactionPage(transaction: transaction),
+                    id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+                  );
+                } else {
+                  await Get.to(
+                    () => CashuTransactionPage(transaction: transaction),
+                    id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
+                  );
+                }
+
+                await controller.checkAndUpdateRecentTransaction(
+                  transaction,
+                );
+              },
+            );
+          }),
+        ],
+      );
+    });
   }
 }

@@ -189,10 +189,12 @@ class SignalChatService extends BaseChatService {
       if (msgKeyHash != null) {
         msgKeyHash =
             await rust_nostr.generateMessageKeyHash(seedKey: msgKeyHash);
-        ContactService.instance.deleteReceiveKey(
-          room.identityId,
-          room.toMainPubkey,
-          event.tags[0][1],
+        unawaited(
+          ContactService.instance.deleteReceiveKey(
+            room.identityId,
+            room.toMainPubkey,
+            event.tags[0][1],
+          ),
         );
       }
       // if receive address is signalAddress, then remove room.onetimekey

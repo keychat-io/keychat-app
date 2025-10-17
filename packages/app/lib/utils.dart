@@ -51,7 +51,9 @@ Logger logger = Logger(
 Logger loggerNoLine = Logger(printer: PrettyPrinter(methodCount: 0));
 
 String formatTime(int time, [String format = 'yyyy-MM-dd HH:mm:ss']) {
-  final dateTime = DateTime.fromMillisecondsSinceEpoch(time);
+  // Check if time is in seconds (< 10000000000) or milliseconds
+  final milliseconds = time < 10000000000 ? time * 1000 : time;
+  final dateTime = DateTime.fromMillisecondsSinceEpoch(milliseconds);
   final dateFormat = DateFormat(format);
   return dateFormat.format(dateTime);
 }

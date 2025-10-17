@@ -48,24 +48,25 @@ enum RequestConfrimEnum { none, request, approved, rejected, expired }
 class Message extends Equatable {
   // show for message
 
-  Message(
-      {required this.msgid,
-      required this.idPubkey,
-      required this.identityId,
-      required this.roomId,
-      required this.from,
-      required this.to,
-      required this.content,
-      required this.createdAt,
-      required this.sent,
-      required this.eventIds,
-      required this.encryptType,
-      required this.rawEvents,
-      this.realMessage,
-      this.reply,
-      this.isSystem = false,
-      this.isMeSend = false,
-      this.msgKeyHash});
+  Message({
+    required this.msgid,
+    required this.idPubkey,
+    required this.identityId,
+    required this.roomId,
+    required this.from,
+    required this.to,
+    required this.content,
+    required this.createdAt,
+    required this.sent,
+    required this.eventIds,
+    required this.encryptType,
+    required this.rawEvents,
+    this.realMessage,
+    this.reply,
+    this.isSystem = false,
+    this.isMeSend = false,
+    this.msgKeyHash,
+  });
   Id id = Isar.autoIncrement;
 
   @Index(unique: true, composite: [CompositeIndex('identityId')])

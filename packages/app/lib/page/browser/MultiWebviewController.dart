@@ -278,7 +278,7 @@ class MultiWebviewController extends GetxController {
         'enableRecommend': true,
         'historyRetentionDays': 30,
         'autoSignEvent': true,
-        'showAppBar': false,
+        'showAppBar': true,
       });
       await Storage.setString('browserConfig', localConfig);
     }
@@ -703,6 +703,10 @@ window.addEventListener('DOMContentLoaded', function(event) {
       // not found WebviewTabController
       // logger.w('error: $e');
     }
+  }
+
+  bool showAppBar() {
+    return config['showAppBar'] as bool? ?? true;
   }
 }
 

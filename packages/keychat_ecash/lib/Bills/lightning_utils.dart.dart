@@ -1,57 +1,24 @@
-import 'package:app/app.dart';
-import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
+import 'package:app/utils.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
+import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 
-class LightningBillController extends GetxController {
-  RxList<Transaction> transactions = <Transaction>[].obs;
-  RxBool status = false.obs;
-  bool run = true;
-  late IndicatorController indicatorController;
-
-  @override
-  void onInit() {
-    super.onInit();
-    indicatorController = IndicatorController();
-    Future.delayed(Duration(seconds: 1)).then((_) {
-      getTransactions().then((list) {
-        status.value = true;
-        rust_cashu.getLnPendingTransactions().then(checkPendings);
-      });
-    });
-  }
-
-  @override
-  onClose() {
-    run = false;
-    indicatorController.dispose();
-    super.onClose();
-  }
-
-  Future<List<Transaction>> getTransactions(
-      {int offset = 0, int limit = 15}) async {
-    List<Transaction> list = await rust_cashu.getLnTransactionsWithOffset(
-        offset: BigInt.from(offset), limit: BigInt.from(limit));
-    list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-
-    List<Transaction> res = offset == 0 ? [] : transactions.toList();
-
-    res.addAll(list);
-    transactions.value = res;
-    transactions.refresh();
-    return res;
-  }
+class LightningUtils {
+  // Avoid self instance
+  LightningUtils._();
+  static LightningUtils? _instance;
+  static LightningUtils get instance => _instance ??= LightningUtils._();
+  bool run = false;
 
   Future<void> checkPendings(List<Transaction> pendings) async {
     if (pendings.isEmpty) return;
-    int length = pendings.length;
+    var length = pendings.length;
     while (true) {
       if (run) return;
       run = true;
       await rust_cashu.checkPending();
-      var list = await rust_cashu.getLnPendingTransactions();
+      final list = await rust_cashu.getLnPendingTransactions();
       if (list.isEmpty) {
         run = false;
         Get.find<EcashController>().getBalance();
@@ -68,8 +35,11 @@ class LightningBillController extends GetxController {
   }
 
   Map pendingTaskMap = {};
-  void startCheckPending(
-      Transaction tx, int expiryTs, Function(Transaction ln) callback) async {
+  Future<void> startCheckPending(
+    Transaction tx,
+    int expiryTs,
+    Function(Transaction ln) callback,
+  ) async {
     if (tx.status != TransactionStatus.pending) {
       callback(tx);
       return;
@@ -78,8 +48,8 @@ class LightningBillController extends GetxController {
     pendingTaskMap[tx.id] = true;
 
     while (pendingTaskMap[tx.id] != null && pendingTaskMap[tx.id] == true) {
-      Transaction ln = await rust_cashu.checkTransaction(id: tx.id);
-      int now = DateTime.now().millisecondsSinceEpoch;
+      final ln = await rust_cashu.checkTransaction(id: tx.id);
+      final now = DateTime.now().millisecondsSinceEpoch;
 
       if (ln.status == TransactionStatus.success ||
           ln.status == TransactionStatus.failed ||

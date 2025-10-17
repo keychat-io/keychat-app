@@ -13,8 +13,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:keychat_ecash/Bills/ecash_bill_controller.dart';
-import 'package:keychat_ecash/Bills/lightning_bill_controller.dart';
+import 'package:keychat_ecash/Bills/lightning_utils.dart.dart';
 import 'package:keychat_ecash/NostrWalletConnect/NostrWalletConnect_controller.dart';
 import 'package:keychat_ecash/PayInvoice/PayInvoice_page.dart';
 import 'package:keychat_ecash/cashu_receive.dart';
@@ -40,6 +39,8 @@ class EcashController extends GetxController {
   RxString latestMintUrl = KeychatGlobal.defaultCashuMintURL.obs;
   RxInt pendingCount = 0.obs;
   RxList<MintCashu> mints = <MintCashu>[].obs;
+  RxList<Transaction> recentTransactions = <Transaction>[].obs;
+  RxBool isRecentTransactionsLoading = true.obs;
 
   Identity? currentIdentity;
   late ScrollController scrollController;
@@ -51,10 +52,7 @@ class EcashController extends GetxController {
     nameController = TextEditingController();
     indicatorController = IndicatorController();
     super.onInit();
-    Get
-      ..lazyPut(LightningBillController.new, fenix: true)
-      ..lazyPut(EcashBillController.new, fenix: true)
-      ..lazyPut(NostrWalletConnectController.new, fenix: true);
+    Get.lazyPut(NostrWalletConnectController.new, fenix: true);
   }
 
   Future<String?> getFileUploadEcashToken(int fileSize) async {
@@ -217,7 +215,8 @@ class EcashController extends GetxController {
           existLatestMint = true;
         }
         localMints.add(
-            MintBalanceClass(item, EcashTokenSymbol.sat.name, resMap[item]));
+          MintBalanceClass(item, EcashTokenSymbol.sat.name, resMap[item]),
+        );
         total += resMap[item] as int;
       }
       totalSats.value = total;
@@ -331,6 +330,33 @@ class EcashController extends GetxController {
     }
   }
 
+  Future<void> getRecentTransactions({int limit = 10}) async {
+    try {
+      isRecentTransactionsLoading.value = true;
+      final list = await rust_cashu.getTransactionsWithOffset(
+        offset: BigInt.zero,
+        limit: BigInt.from(limit),
+      );
+      list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      recentTransactions.value = list;
+      recentTransactions.refresh();
+    } catch (e) {
+      logger.e('Failed to get recent transactions', error: e);
+    } finally {
+      isRecentTransactionsLoading.value = false;
+    }
+  }
+
+  void updateRecentTransaction(Transaction updatedTransaction) {
+    final index = recentTransactions.indexWhere(
+      (tx) => tx.id == updatedTransaction.id,
+    );
+    if (index != -1) {
+      recentTransactions[index] = updatedTransaction;
+      recentTransactions.refresh();
+    }
+  }
+
   Future<void> initMintUrl() async {
     mints.value = await rust_cashu.getMints();
     if (mints.isEmpty) {
@@ -398,12 +424,9 @@ class EcashController extends GetxController {
     try {
       await rust_cashu.checkPending();
       await getBalance(); // This already handles the loading state
-      await Utils.getGetxController<EcashBillController>()?.getTransactions();
-      await Utils.getGetxController<LightningBillController>()
-          ?.getTransactions();
+      await getRecentTransactions();
       final pendings = await rust_cashu.getLnPendingTransactions();
-      await Utils.getGetxController<LightningBillController>()
-          ?.checkPendings(pendings);
+      await LightningUtils.instance.checkPendings(pendings);
       // ignore: empty_catches
     } catch (e) {}
   }
@@ -443,5 +466,19 @@ class EcashController extends GetxController {
         paidCallback: paidCallback,
       ),
     );
+  }
+
+  Future<void> checkAndUpdateRecentTransaction(Transaction transaction) async {
+    final originalStatus = transaction.status;
+    try {
+      final updatedTx = await rust_cashu.checkTransaction(
+        id: transaction.id,
+      );
+      if (updatedTx.status != originalStatus) {
+        updateRecentTransaction(updatedTx);
+      }
+    } catch (e) {
+      logger.e('Failed to check transaction status', error: e);
+    }
   }
 }

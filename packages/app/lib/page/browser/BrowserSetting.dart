@@ -124,15 +124,6 @@ class _BrowserSettingState extends State<BrowserSetting> {
                   },
                 ),
                 SettingsTile.switchTile(
-                  initialValue: controller.config['showAppBar'] ?? false,
-                  leading: const Icon(Icons.view_headline),
-                  title: const Text('Show AppBar'),
-                  onToggle: (value) async {
-                    await controller.setConfig('showAppBar', value);
-                    EasyLoading.showSuccess('Success');
-                  },
-                ),
-                SettingsTile.switchTile(
                   initialValue: controller.config['enableHistory'] ?? true,
                   leading: const Icon(CupertinoIcons.time),
                   title: const Text('Enable History'),
@@ -186,6 +177,16 @@ class _BrowserSettingState extends State<BrowserSetting> {
                           selectedDays,
                         );
                       }
+                    },
+                  ),
+                if (GetPlatform.isMobile)
+                  SettingsTile.switchTile(
+                    initialValue: controller.showAppBar(),
+                    leading: const Icon(Icons.view_headline),
+                    title: const Text('Show AppBar'),
+                    onToggle: (value) async {
+                      await controller.setConfig('showAppBar', value);
+                      EasyLoading.showSuccess('Success');
                     },
                   ),
               ],

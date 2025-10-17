@@ -119,8 +119,7 @@ class _WebviewTabState extends State<WebviewTab> {
           goBackOrPop();
         },
         child: Scaffold(
-          appBar: GetPlatform.isDesktop ||
-                  (multiWebviewController.config['showAppBar'] ?? false) == true
+          appBar: GetPlatform.isDesktop || multiWebviewController.showAppBar()
               ? AppBar(
                   titleSpacing: 0,
                   leadingWidth: 16,
@@ -228,19 +227,18 @@ class _WebviewTabState extends State<WebviewTab> {
                   ],
                 )
               : null,
-          floatingActionButton: GetPlatform.isMobile &&
-                  (multiWebviewController.config['showAppBar'] ?? false) ==
-                      false
-              ? Padding(
-                  padding: const EdgeInsets.only(bottom: 30),
-                  child: FloatingActionButton(
-                    onPressed: null,
-                    mini: true,
-                    shape: const CircleBorder(),
-                    child: popMenu(),
-                  ),
-                )
-              : null,
+          floatingActionButton:
+              GetPlatform.isMobile && !multiWebviewController.showAppBar()
+                  ? Padding(
+                      padding: const EdgeInsets.only(bottom: 30),
+                      child: FloatingActionButton(
+                        onPressed: null,
+                        mini: true,
+                        shape: const CircleBorder(),
+                        child: popMenu(),
+                      ),
+                    )
+                  : null,
           floatingActionButtonLocation:
               FloatingActionButtonLocation.miniEndFloat,
           body: SafeArea(

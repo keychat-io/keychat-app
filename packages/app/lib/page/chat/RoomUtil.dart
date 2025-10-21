@@ -671,17 +671,6 @@ Let's start an encrypted chat.''';
     return const Icon(Icons.check_circle, color: Colors.lightGreen);
   }
 
-  static Widget getStatusArrowIcon(int max, int success, bool down) {
-    final icon = down ? Icons.arrow_downward : Icons.arrow_upward_outlined;
-    if (max == success && max > 0) {
-      return Icon(icon, color: Colors.green);
-    }
-
-    if (success == 0) return Icon(icon, color: Colors.red);
-
-    return Icon(icon, color: Colors.lightGreen);
-  }
-
   static List<Room> sortRoomList(List<Room> rooms) {
     final hc = Get.find<HomeController>();
     rooms.sort((a, b) {

@@ -360,16 +360,24 @@ Widget relayStatusList(BuildContext context, List<NostrEventStatus> ess) {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: isSuccess
-                          ? Colors.green.withValues(alpha: 0.1)
-                          : Colors.orange.withValues(alpha: 0.1),
+                      color: es.isReceive
+                          ? Colors.blue.withValues(alpha: 0.1)
+                          : (isSuccess
+                              ? Colors.green.withValues(alpha: 0.1)
+                              : Colors.orange.withValues(alpha: 0.1)),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: RoomUtil.getStatusArrowIcon(
-                      1,
-                      isSuccess ? 1 : 0,
-                      es.isReceive,
-                    ),
+                    child: es.isReceive
+                        ? const Icon(
+                            Icons.arrow_downward,
+                            color: Colors.lightBlue,
+                          )
+                        : Icon(
+                            Icons.arrow_upward_outlined,
+                            color: es.sendStatus == EventSendEnum.success
+                                ? Colors.lightGreen
+                                : Colors.red,
+                          ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -387,7 +395,7 @@ Widget relayStatusList(BuildContext context, List<NostrEventStatus> ess) {
                         ),
                         if (!isSuccess) ...[
                           const SizedBox(height: 4),
-                          _buildStatusChip(context, es.sendStatus),
+                          _buildStatusChip(context, es.sendStatus, es.error),
                         ],
                         if (es.ecashAmount > 0) ...[
                           const SizedBox(width: 4),
@@ -432,7 +440,11 @@ Widget relayStatusList(BuildContext context, List<NostrEventStatus> ess) {
   );
 }
 
-Widget _buildStatusChip(BuildContext context, EventSendEnum sendStatus) {
+Widget _buildStatusChip(
+  BuildContext context,
+  EventSendEnum sendStatus, [
+  String? errorMessage,
+]) {
   String text;
   Color backgroundColor;
   Color textColor;
@@ -473,7 +485,7 @@ Widget _buildStatusChip(BuildContext context, EventSendEnum sendStatus) {
         Icon(icon, size: 14, color: textColor),
         const SizedBox(width: 4),
         Text(
-          text,
+          errorMessage ?? text,
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,

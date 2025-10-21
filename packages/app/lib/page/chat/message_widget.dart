@@ -503,9 +503,6 @@ class MessageWidget extends StatelessWidget {
 
     final (ess, _) =
         await _getRawMessageData(message.eventIds[0], message.rawEvents[0]);
-    ess.sort(
-      (a, b) => b.sendStatus.index.compareTo(a.sendStatus.index),
-    );
 
     await Get.bottomSheet(
       isScrollControlled: true,
@@ -644,9 +641,7 @@ class MessageWidget extends StatelessWidget {
     if (message.eventIds.length == 1 && message.rawEvents.length == 1) {
       final (ess, event) =
           await _getRawMessageData(message.eventIds[0], message.rawEvents[0]);
-      ess.sort(
-        (a, b) => b.sendStatus.index.compareTo(a.sendStatus.index),
-      );
+
       // fix message sent status
       if (message.sent != SendStatusType.success) {
         final success = ess
@@ -704,6 +699,18 @@ class MessageWidget extends StatelessWidget {
         .eventIdEqualTo(eventId)
         .findAll();
     NostrEventModel? event;
+    ess
+      ..sort(
+        (a, b) => b.sendStatus.index.compareTo(a.sendStatus.index),
+      )
+      ..sort(
+        (a, b) {
+          final receiveCompare =
+              (a.isReceive ? 1 : 0).compareTo(b.isReceive ? 1 : 0);
+          if (receiveCompare != 0) return receiveCompare;
+          return b.sendStatus.index.compareTo(a.sendStatus.index);
+        },
+      );
     if (rawEvent == null) return (ess, event);
     try {
       event = NostrEventModel.fromJson(jsonDecode(rawEvent));
@@ -1131,14 +1138,9 @@ class MessageWidget extends StatelessWidget {
                 itemCount: result.length,
                 itemBuilder: (context, index) {
                   final map = result[index] as Map;
-                  // String idPubkey = maps.keys.toList()[index];
                   final rm = map['to'] as RoomMember?;
                   final eventSendStatus =
-                      map['ess'] as List<NostrEventStatus>? ?? []
-                        ..sort(
-                          (a, b) =>
-                              b.sendStatus.index.compareTo(a.sendStatus.index),
-                        );
+                      map['ess'] as List<NostrEventStatus>? ?? [];
                   final eventModel = map['eventModel'] as NostrEventModel?;
                   final success = eventSendStatus
                       .where(

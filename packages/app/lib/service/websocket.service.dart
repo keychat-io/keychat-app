@@ -569,9 +569,8 @@ class WebsocketService extends GetxService {
     unawaited(
       _proccessWriteNostrEvent(
         event,
-        connectedRelays,
         eventString,
-        targetRelays,
+        connectedRelays,
         roomId,
       ),
     );
@@ -579,22 +578,21 @@ class WebsocketService extends GetxService {
     return connectedRelays.toSet();
   }
 
-  Future<Set<String>> _proccessWriteNostrEvent(
+  Future<void> _proccessWriteNostrEvent(
     NostrEventModel event,
-    List<String> connectedRelays,
     String eventString,
-    Set<String> targetRelays,
+    List<String> targetRelays,
     int roomId,
   ) async {
     final rawEvent = '["EVENT",$eventString]';
-    final tasks = Queue(parallel: targetRelays.length);
-    final successedRelays = <String>{};
     final totalBalanceSat = Get.find<EcashController>().totalSats.value;
-    for (final relay in targetRelays) {
-      final rw = channels[relay];
-      if (rw == null) continue;
 
-      await tasks.add(() async {
+    // Process all relays concurrently
+    await Future.wait(
+      targetRelays.map((relay) async {
+        final rw = channels[relay];
+        if (rw == null) return;
+
         var ess = NostrEventStatus(
           relay: rw.relay.url,
           eventId: event.id,
@@ -625,7 +623,6 @@ class WebsocketService extends GetxService {
         }
         try {
           rw.channel!.send(ess.rawEvent);
-          successedRelays.add(relay);
 
           // Add to retry queue
           MessageRetryService.instance.addMessage(
@@ -640,10 +637,8 @@ class WebsocketService extends GetxService {
             ..error = e.toString();
         }
         await _saveEventStatusToDB(ess);
-      });
-    }
-
-    return successedRelays;
+      }),
+    );
   }
 
   Future<void> _saveEventStatusToDB(NostrEventStatus item) async {

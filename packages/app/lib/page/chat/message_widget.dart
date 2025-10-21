@@ -498,6 +498,8 @@ class MessageWidget extends StatelessWidget {
       EasyLoading.showInfo('Metadata Cleaned');
       return;
     }
+    final buildContext = Get.context!;
+    Utils.hideKeyboard(buildContext);
 
     final (ess, _) =
         await _getRawMessageData(message.eventIds[0], message.rawEvents[0]);
@@ -505,7 +507,6 @@ class MessageWidget extends StatelessWidget {
       (a, b) => b.sendStatus.index.compareTo(a.sendStatus.index),
     );
 
-    final buildContext = Get.context!;
     await Get.bottomSheet(
       isScrollControlled: true,
       ignoreSafeArea: false,

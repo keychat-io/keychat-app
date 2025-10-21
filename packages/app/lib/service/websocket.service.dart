@@ -12,14 +12,11 @@ import 'package:app/nostr-core/nostr.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/nostr-core/nostr_nip4_req.dart';
 import 'package:app/nostr-core/relay_websocket.dart';
-import 'package:app/nostr-core/subscribe_event_status.dart';
 import 'package:app/nostr-core/subscribe_result.dart';
-import 'package:app/page/setting/RelaySetting.dart';
 import 'package:app/service/message_retry.service.dart';
 import 'package:app/service/relay.service.dart';
 import 'package:app/service/storage.dart';
 import 'package:app/utils.dart';
-import 'package:flutter/cupertino.dart' hide ConnectionState;
 import 'package:flutter/material.dart' hide ConnectionState;
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
@@ -58,10 +55,14 @@ class WebsocketService extends GetxService {
   Future<NostrEventStatus> addCashuToMessage(
     int roomId,
     NostrEventStatus eventSendStatus,
+    int totalBalanceSat,
   ) async {
     final payInfoModel = relayMessageFeeModels[eventSendStatus.relay];
     if (payInfoModel == null) return eventSendStatus;
     if (payInfoModel.amount == 0) return eventSendStatus;
+    if (totalBalanceSat == 0) {
+      throw Exception(ErrorMessages.noFunds);
+    }
     CashuInfoModel? cashuA;
     try {
       cashuA = await CashuUtil.getStamp(
@@ -529,7 +530,6 @@ class WebsocketService extends GetxService {
       NostrAPI.instance.subscriptionIdEose.clear();
       NostrAPI.instance.subscriptionLastEvent.clear();
       initAt = DateTime.now();
-      SubscribeEventStatus.clear();
       await stopListening();
       list ??= await RelayService.instance.list();
       await createChannels(list);
@@ -558,14 +558,38 @@ class WebsocketService extends GetxService {
       }
       throw Exception('No active relay');
     }
+    final connectedRelays = targetRelays.where((relay) {
+      final rw = channels[relay];
+      return rw != null && rw.isConnected();
+    }).toList();
+    if (connectedRelays.isEmpty) {
+      throw Exception('No connected relay');
+    }
+
     unawaited(
-      SubscribeEventStatus.addSubscripton(event.id, targetRelays.length),
+      _proccessWriteNostrEvent(
+        event,
+        connectedRelays,
+        eventString,
+        targetRelays,
+        roomId,
+      ),
     );
 
+    return connectedRelays.toSet();
+  }
+
+  Future<Set<String>> _proccessWriteNostrEvent(
+    NostrEventModel event,
+    List<String> connectedRelays,
+    String eventString,
+    Set<String> targetRelays,
+    int roomId,
+  ) async {
     final rawEvent = '["EVENT",$eventString]';
-    final results = <NostrEventStatus>[];
     final tasks = Queue(parallel: targetRelays.length);
     final successedRelays = <String>{};
+    final totalBalanceSat = Get.find<EcashController>().totalSats.value;
     for (final relay in targetRelays) {
       final rw = channels[relay];
       if (rw == null) continue;
@@ -580,23 +604,23 @@ class WebsocketService extends GetxService {
 
         if (rw.channel == null || !rw.relay.active) {
           ess.sendStatus = EventSendEnum.noAcitveRelay;
-          results.add(ess);
+          await _saveEventStatusToDB(ess);
           return;
         }
         // not connected
         if (!rw.isConnected()) {
           ess.sendStatus = getSendStatusByState(rw.channel?.connection.state);
-          results.add(ess);
+          await _saveEventStatusToDB(ess);
           return;
         }
 
         try {
-          ess = await addCashuToMessage(roomId, ess);
+          ess = await addCashuToMessage(roomId, ess, totalBalanceSat);
         } catch (e) {
           ess
             ..sendStatus = EventSendEnum.cashuError
             ..error = e.toString();
-          results.add(ess);
+          await _saveEventStatusToDB(ess);
           return;
         }
         try {
@@ -615,50 +639,19 @@ class WebsocketService extends GetxService {
             ..sendStatus = EventSendEnum.relayDisconnected
             ..error = e.toString();
         }
-        results.add(ess);
+        await _saveEventStatusToDB(ess);
       });
     }
 
-    tasks.onComplete.then((c) async {
-      if (successedRelays.isEmpty) {
-        final messages = results
-            .map(
-              (item) => '${item.relay}: ${item.error ?? item.sendStatus.name}',
-            )
-            .toList()
-            .join('\n');
-        if (Get.isDialogOpen != null && Get.isDialogOpen == false) {
-          Get.dialog(
-            CupertinoAlertDialog(
-              title: const Text('Message Sent Failed'),
-              content: Text(messages, textAlign: TextAlign.left),
-              actions: <Widget>[
-                CupertinoDialogAction(
-                  onPressed: Get.back,
-                  child: const Text('OK'),
-                ),
-                CupertinoDialogAction(
-                  isDefaultAction: true,
-                  child: const Text('Relay Server >'),
-                  onPressed: () {
-                    Get
-                      ..back<void>()
-                      ..to(() => const RelaySetting());
-                  },
-                ),
-              ],
-            ),
-          );
-        }
-      }
-      // save send status to db
-      await DBProvider.database.writeTxn(() async {
-        for (final item in results) {
-          await DBProvider.database.nostrEventStatus.put(item);
-        }
-      });
-    });
     return successedRelays;
+  }
+
+  Future<void> _saveEventStatusToDB(NostrEventStatus item) async {
+    await DBProvider.database.writeTxn(() async {
+      final id = await DBProvider.database.nostrEventStatus.put(item);
+      item.id = id;
+    });
+    MessageRetryService.instance.addNostrEventStatus(item);
   }
 
   Set<String> _getTargetRelays(List<String> toRelays) {

@@ -423,17 +423,19 @@ class EcashController extends GetxController {
   Future<void> requestPageRefresh() async {
     try {
       await rust_cashu.checkPending();
-      await getBalance(); // This already handles the loading state
+      await getBalance();
       await getRecentTransactions();
       final pendings = await rust_cashu.getLnPendingTransactions();
-      await LightningUtils.instance.checkPendings(pendings);
+      await LightningUtils.instance
+          .checkPendings(pendings)
+          .timeout(const Duration(minutes: 1));
       // ignore: empty_catches
     } catch (e) {}
   }
 
   Future<void> proccessCashuString(
     String str, [
-    Function(String str)? callback,
+    void Function(String str)? callback,
   ]) async {
     try {
       final cashu = await RustAPI.decodeToken(encodedToken: str);

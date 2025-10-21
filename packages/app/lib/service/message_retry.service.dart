@@ -1,8 +1,13 @@
 import 'dart:async';
+import 'package:app/models/models.dart';
+import 'package:app/service/message.service.dart';
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
+import 'package:easy_debounce/easy_debounce.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:get/get.dart';
+import 'package:isar_community/isar.dart';
+import 'package:mutex/mutex.dart';
 
 class MessageRetryItem {
   MessageRetryItem({
@@ -26,8 +31,8 @@ class MessageRetryItem {
   bool get canRetry => retryCount < 4;
 
   Duration get nextRetryDelay {
-    // Exponential backoff: 2s, 4s, 8s, 16s
-    return Duration(seconds: 2 * (1 << retryCount));
+    // Exponential backoff: 3s, 6s, 12s, 24s
+    return Duration(seconds: 3 * (1 << retryCount));
   }
 }
 
@@ -40,6 +45,7 @@ class MessageRetryService extends GetxService {
   // Key: "eventId:relay"
   final Map<String, MessageRetryItem> _retryQueue = {};
   final Map<String, Set<String>> _eventRelays = {}; // eventId -> Set<relay>
+  final _fillSubscriptionMutex = Mutex();
 
   void addMessage({
     required String eventId,
@@ -190,5 +196,87 @@ class MessageRetryService extends GetxService {
     }
     _retryQueue.clear();
     _eventRelays.clear();
+  }
+
+  Map<String, Set<NostrEventStatus>> essMap = <String, Set<NostrEventStatus>>{};
+  Map<String, DateTime> essAddTime = <String, DateTime>{};
+  int fillSubscriptionCount = 0;
+
+  void addNostrEventStatus(NostrEventStatus ess) {
+    final set = essMap[ess.eventId] ?? <NostrEventStatus>{}
+      ..add(ess);
+    essMap[ess.eventId] = set;
+    essAddTime[ess.eventId] = DateTime.now();
+  }
+
+  Future<void> fillSubscription({
+    required String eventId,
+    required String relay,
+    required bool isSuccess,
+    String? errorMessage,
+  }) async {
+    markSuccess(eventId, relay); // remove retry send
+
+    await _fillSubscriptionMutex.protect(() async {
+      loggerNoLine.i(
+        'Filling subscription for event $eventId on relay $relay: '
+        'success=$isSuccess, error=$errorMessage',
+      );
+      fillSubscriptionCount++;
+      final essSet = essMap[eventId];
+      if (essSet == null) return;
+      final es = essSet.where((element) => element.relay == relay).firstOrNull;
+      if (es == null) return;
+      if (isSuccess) {
+        es.sendStatus = EventSendEnum.success;
+      } else {
+        es
+          ..sendStatus = EventSendEnum.serverReturnFailed
+          ..error = errorMessage;
+      }
+
+      await DBProvider.database.writeTxn(() async {
+        await DBProvider.database.nostrEventStatus.put(es);
+      });
+
+      final message = await DBProvider.database.messages
+          .filter()
+          .eventIdsElementContains(eventId)
+          .findFirst();
+      if (message == null) return;
+      final sentSuccessRelay = essSet
+          .where((element) => element.sendStatus == EventSendEnum.success)
+          .length;
+
+      if (sentSuccessRelay > message.successRelays) {
+        message
+          ..sent = sentSuccessRelay > 0
+              ? SendStatusType.success
+              : SendStatusType.failed
+          ..successRelays = sentSuccessRelay;
+        EasyDebounce.debounce('updateMessageAndRefresh${message.id}',
+            const Duration(milliseconds: 200), () async {
+          await MessageService.instance.updateMessageAndRefresh(message);
+        });
+      }
+
+      // clear old subscriptions
+      if (fillSubscriptionCount % 30 == 0) {
+        _clearOneMinutesOldSubscriptions();
+      }
+    });
+  }
+
+  void _clearOneMinutesOldSubscriptions() {
+    final now = DateTime.now();
+    final toRemove = essAddTime.entries
+        .where((entry) => now.difference(entry.value).inMinutes >= 1)
+        .map((entry) => entry.key)
+        .toList();
+
+    for (final eventId in toRemove) {
+      essMap.remove(eventId);
+      essAddTime.remove(eventId);
+    }
   }
 }

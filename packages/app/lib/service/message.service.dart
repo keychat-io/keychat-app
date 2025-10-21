@@ -213,6 +213,7 @@ $content'''
     bool? isRead,
     bool? isSystem,
     String? msgKeyHash,
+    int? connectedRelays,
   }) async {
     final model = Message(
       msgid: events[0].id,
@@ -233,7 +234,7 @@ $content'''
         (createdAt ?? events[0].createdAt) * 1000,
       ),
       rawEvents: events.map((e) {
-        final Map m = e.toJson();
+        final m = e.toJson();
         m['toIdPubkey'] = e.toIdPubkey;
         return jsonEncode(m);
       }).toList(),
@@ -241,7 +242,8 @@ $content'''
       ..subEvent = subEvent
       ..requestConfrim = requestConfrim
       ..requestId = requestId
-      ..senderName = senderName;
+      ..senderName = senderName
+      ..connectedRelays = connectedRelays ?? -1;
 
     if (isRead != null) model.isRead = isRead;
     if (isSystem != null) model.isSystem = isSystem;

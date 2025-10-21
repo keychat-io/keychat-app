@@ -26,38 +26,43 @@ class CashuPage extends GetView<EcashController> {
 
   Widget bottomBarWidget(BuildContext context) {
     return SafeArea(
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Wrap(
-            spacing: 16,
-            runAlignment: WrapAlignment.center,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              SizedBox(
-                width: GetPlatform.isMobile ? 120 : 200,
-                child: FilledButton(
-                  onPressed: _handleSend,
-                  child: const Text('Send'),
+      child: Padding(
+        padding: const EdgeInsetsGeometry.only(bottom: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Wrap(
+              spacing: 16,
+              runAlignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                SizedBox(
+                  width: GetPlatform.isMobile ? 120 : 200,
+                  height: GetPlatform.isMobile ? 32 : 40,
+                  child: FilledButton(
+                    onPressed: _handleSend,
+                    child: const Text('Send'),
+                  ),
                 ),
-              ),
-              IconButton(
-                color: Theme.of(context).colorScheme.primary,
-                onPressed: () {
-                  QrScanService.instance.handleQRScan();
-                },
-                icon: const Icon(CupertinoIcons.qrcode_viewfinder, size: 24),
-              ),
-              SizedBox(
-                width: GetPlatform.isMobile ? 120 : 200,
-                child: FilledButton(
-                  onPressed: _handleReceive,
-                  child: const Text('Receive'),
+                IconButton(
+                  color: Theme.of(context).colorScheme.primary,
+                  onPressed: () {
+                    QrScanService.instance.handleQRScan();
+                  },
+                  icon: const Icon(CupertinoIcons.qrcode_viewfinder, size: 24),
                 ),
-              ),
-            ],
-          ),
-        ],
+                SizedBox(
+                  width: GetPlatform.isMobile ? 120 : 200,
+                  height: GetPlatform.isMobile ? 32 : 40,
+                  child: FilledButton(
+                    onPressed: _handleReceive,
+                    child: const Text('Receive'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -393,7 +398,7 @@ class CashuPage extends GetView<EcashController> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Recent Transactions',
+                        'Transactions',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       TextButton(
@@ -411,7 +416,7 @@ class CashuPage extends GetView<EcashController> {
                   ),
                 ),
                 const _RecentTransactionsWidget(),
-                const SizedBox(height: 100),
+                const SizedBox(height: 40),
               ],
             ),
           ),

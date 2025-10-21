@@ -114,6 +114,9 @@ class Message extends Equatable {
   List<String> rawEvents = [];
   FromContact? fromContact;
 
+  int connectedRelays = -1; // target relays to send
+  int successRelays = 0; // successful relays
+
   @override
   List<Object?> get props => [
         id,

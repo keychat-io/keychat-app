@@ -694,7 +694,6 @@ Add as a friend and start the signal protocol chat
 
       enableMembers[member.idPubkey]?.contact = contact;
       members[member.idPubkey]?.contact = contact;
-      logger.d('contact $contact');
     }
   }
 

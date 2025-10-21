@@ -10,9 +10,12 @@ class SubscribeResult {
   final Map<String, int> _eventMaxRelay = {};
 
   /// waitTimeToFill: fill the subscription after the wait time
-  Future<List<NostrEventModel>> registerSubscripton(String subId, int maxRelay,
-      {Duration wait = const Duration(seconds: 2),
-      bool waitTimeToFill = false}) async {
+  Future<List<NostrEventModel>> registerSubscripton(
+    String subId,
+    int maxRelay, {
+    Duration wait = const Duration(seconds: 2),
+    bool waitTimeToFill = false,
+  }) async {
     if (maxRelay <= 0) {
       throw Exception('Relay maybe disconnected');
     }
@@ -50,11 +53,12 @@ class SubscribeResult {
       }
       uniqueEvents.add(model.id);
       return true;
-    }).toList();
-    // from min to max
-    list.sort((a, b) => (a as NostrEventModel)
-        .createdAt
-        .compareTo((b as NostrEventModel).createdAt));
+    }).toList()
+      ..sort(
+        (a, b) => (a as NostrEventModel)
+            .createdAt
+            .compareTo((b as NostrEventModel).createdAt),
+      );
     return list as List<NostrEventModel>;
   }
 }

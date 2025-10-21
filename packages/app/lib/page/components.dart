@@ -307,55 +307,173 @@ Widget codeSnippet(String text) {
 Widget relayStatusList(BuildContext context, List<NostrEventStatus> ess) {
   if (ess.isEmpty) return const SizedBox();
 
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text('  Message Status', style: Theme.of(context).textTheme.titleMedium),
-      ...ess.map(
-        (NostrEventStatus es) => ListTile(
-          dense: true,
-          visualDensity: VisualDensity.compact,
-          title: Text(es.relay, style: Theme.of(context).textTheme.titleSmall),
-          subtitle: failedRelayWidget(es.sendStatus, context),
-          trailing: es.ecashAmount > 0
-              ? Text('-${es.ecashAmount} ${es.ecashName}')
-              : null,
-          leading: RoomUtil.getStatusArrowIcon(
-            1,
-            es.sendStatus == EventSendEnum.success ? 1 : 0,
-            es.isReceive,
+  return Container(
+    decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.surface,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(
+        color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+      ),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Icon(
+                Icons.network_check,
+                size: 20,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Message Status',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            ],
           ),
         ),
-      ),
-    ],
+        const Divider(height: 1),
+        ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          itemCount: ess.length,
+          separatorBuilder: (context, index) => Divider(
+            height: 1,
+            indent: 56,
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
+          ),
+          itemBuilder: (context, index) {
+            final es = ess[index];
+            final isSuccess = es.sendStatus == EventSendEnum.success;
+
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: isSuccess
+                          ? Colors.green.withValues(alpha: 0.1)
+                          : Colors.orange.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: RoomUtil.getStatusArrowIcon(
+                      1,
+                      isSuccess ? 1 : 0,
+                      es.isReceive,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          es.relay,
+                          style:
+                              Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (!isSuccess) ...[
+                          const SizedBox(height: 4),
+                          _buildStatusChip(context, es.sendStatus),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (es.ecashAmount > 0) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '-${es.ecashAmount} ${es.ecashName}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onPrimaryContainer,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          },
+        ),
+      ],
+    ),
   );
 }
 
-Widget? failedRelayWidget(EventSendEnum sendStatus, BuildContext context) {
-  if (sendStatus == EventSendEnum.success) return null;
-  var text = sendStatus.name;
-  if (sendStatus == EventSendEnum.init) {
-    text = 'No Receipt';
-  } else if (sendStatus == EventSendEnum.relayConnecting) {
-    text = 'Disconnected';
-  } else if (sendStatus == EventSendEnum.cashuError) {
-    text = 'Pay Error';
+Widget _buildStatusChip(BuildContext context, EventSendEnum sendStatus) {
+  String text;
+  Color backgroundColor;
+  Color textColor;
+  IconData icon;
+
+  switch (sendStatus) {
+    case EventSendEnum.init:
+      text = 'No Receipt';
+      backgroundColor = Colors.grey.withValues(alpha: 0.2);
+      textColor = Colors.grey.shade700;
+      icon = Icons.schedule;
+    case EventSendEnum.relayConnecting:
+      text = 'Disconnected';
+      backgroundColor = Colors.orange.withValues(alpha: 0.2);
+      textColor = Colors.orange.shade700;
+      icon = Icons.signal_wifi_off;
+    case EventSendEnum.cashuError:
+      text = 'Pay Error';
+      backgroundColor = Colors.red.withValues(alpha: 0.2);
+      textColor = Colors.red.shade700;
+      icon = Icons.error_outline;
+    default:
+      text = sendStatus.name;
+      backgroundColor = Colors.red.withValues(alpha: 0.2);
+      textColor = Colors.red.shade700;
+      icon = Icons.warning_amber;
   }
-  return Text(
-    text,
-    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.red),
-  );
-}
 
-Widget lineWidget(BuildContext context, double size, [Widget? widget]) {
   return Container(
-    width: double.infinity,
-    height: size,
-    alignment: Alignment.centerLeft,
-    color: Theme.of(context).brightness == Brightness.dark
-        ? Colors.grey.shade900
-        : Colors.grey.shade300,
-    child: widget,
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: BoxDecoration(
+      color: backgroundColor,
+      borderRadius: BorderRadius.circular(6),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: textColor),
+        const SizedBox(width: 4),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: textColor,
+          ),
+        ),
+      ],
+    ),
   );
 }
 

@@ -52,7 +52,7 @@ class NostrEventStatus extends Equatable {
   String? rawEvent;
 
   @override
-  List<Object> get props => [eventId, resCode];
+  List<Object> get props => [eventId, resCode, relay, sendStatus];
 
   static Future<NostrEventStatus?> getReceiveEvent(String eventId) async {
     return DBProvider.database.nostrEventStatus
@@ -88,7 +88,14 @@ class NostrEventStatus extends Equatable {
       final id = await DBProvider.database.nostrEventStatus.put(ess);
       ess.id = id;
     });
-
+    // EasyDebounce.debounce(
+    //     'createReceiveEvent$eventId', const Duration(seconds: 1), () {
+    //   final count = DBProvider.database.nostrEventStatus
+    //       .filter()
+    //       .eventIdEqualTo(eventId)
+    //       .isReceiveEqualTo(true)
+    //       .count();
+    // });
     return ess;
   }
 

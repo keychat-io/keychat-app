@@ -51,7 +51,8 @@ class _TransactionsPageState extends State<TransactionsPage> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 child: Obx(
                   () => Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -153,7 +154,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
             ? Colors.white
             : Theme.of(context).textTheme.bodyMedium?.color,
         elevation: isSelected ? 2 : 0,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
           side: BorderSide(

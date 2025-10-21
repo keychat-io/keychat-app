@@ -64,23 +64,6 @@ class MessageWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Visibility(
-          visible: (index == cc.messages.length - 1) ||
-              message.createdAt.minute !=
-                  cc.messages[index + 1].createdAt.minute,
-          child: Container(
-            margin: const EdgeInsets.only(top: 2),
-            child: Text(
-              Utils.formatTimeForMessage(message.createdAt),
-              style: TextStyle(
-                color: Get.isDarkMode
-                    ? Colors.grey.shade700
-                    : Colors.grey.shade400,
-                fontSize: 10,
-              ),
-            ),
-          ),
-        ),
         if (message.isMeSend) _getMessageContainer() else toTextContainer(),
         Obx(() => getFromAndToWidget(context, message)),
       ],
@@ -235,7 +218,14 @@ class MessageWidget extends StatelessWidget {
           ),
         ),
       )) {
-        return null;
+        return const Padding(
+          padding: EdgeInsets.only(right: 4),
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(),
+          ),
+        );
       } else {
         final exist = DBProvider.database.nostrEventStatus
             .filter()
@@ -274,7 +264,7 @@ class MessageWidget extends StatelessWidget {
           CupertinoAlertDialog(
             title: const Text('Send failed'),
             content: const Text(
-              '1. Check your network first. 2. Re-Send raw data to Relays',
+              '1. Check your network first. \n2. Re-Send raw data to Relays',
             ),
             actions: [
               CupertinoDialogAction(
@@ -307,8 +297,10 @@ class MessageWidget extends StatelessWidget {
                         eventString: item,
                         roomId: message.roomId,
                       );
-                    } catch (e) {
+                    } catch (e, s) {
+                      final msg = Utils.getErrorMessage(e);
                       logger.e('Failed to send event: $e');
+                      EasyLoading.showError('Failed to resend: $msg');
                     }
                   }
                   await MessageService.instance
@@ -370,7 +362,7 @@ class MessageWidget extends StatelessWidget {
   }
 
   Widget _getMessageContainer() {
-    final child = GestureDetector(
+    final widget = GestureDetector(
       onLongPress: _handleTextLongPress,
       onSecondaryTapDown: (TapDownDetails e) {
         _onSecondaryTapDown(Get.context!, e);
@@ -393,22 +385,63 @@ class MessageWidget extends StatelessWidget {
           bottom: 10,
           left: messageStatus == null ? 40.0 : 0,
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
           children: [
-            Expanded(
-              child: Flex(
-                direction: Axis.horizontal,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Flex(
+                    direction: Axis.horizontal,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: <Widget>[
+                      if (messageStatus != null) messageStatus,
+                      Flexible(child: widget),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 4),
+                myAavtar,
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 48),
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
-                children: <Widget>[
-                  if (messageStatus != null) messageStatus,
-                  Flexible(child: child),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: 16,
+                children: [
+                  Text(
+                    Utils.formatTimeForMessage(message.createdAt),
+                    style: TextStyle(
+                      color: Get.isDarkMode
+                          ? Colors.grey.shade700
+                          : Colors.grey.shade400,
+                      fontSize: 10,
+                    ),
+                  ),
+                  // only show for mls group chat and private chat
+                  if ((cc.roomObs.value.type == RoomType.common ||
+                          cc.roomObs.value.groupType == GroupType.mls) &&
+                      message.connectedRelays >= 0)
+                    GestureDetector(
+                      onTap: _handleShowMessageSendStatus,
+                      child: Text(
+                        'Relays: ${message.successRelays}/${message.connectedRelays}',
+                        style: TextStyle(
+                          color: message.successRelays <= 0
+                              ? Colors.red
+                              : (Get.isDarkMode
+                                  ? Colors.grey.shade700
+                                  : Colors.grey.shade400),
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
-            const SizedBox(width: 4),
-            myAavtar,
           ],
         ),
       );
@@ -425,11 +458,179 @@ class MessageWidget extends StatelessWidget {
               style: TextStyle(fontSize: 14, color: toDisplayNameColor),
             ),
           ),
-          child,
+          widget,
+          Padding(
+            padding: const EdgeInsets.only(left: 5),
+            child: Text(
+              Utils.formatTimeForMessage(message.createdAt),
+              style: TextStyle(
+                color: Get.isDarkMode
+                    ? Colors.grey.shade700
+                    : Colors.grey.shade400,
+                fontSize: 10,
+              ),
+            ),
+          ),
         ],
       );
     }
-    return child;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        widget,
+        Padding(
+          padding: const EdgeInsets.only(left: 5),
+          child: Text(
+            Utils.formatTimeForMessage(message.createdAt),
+            style: TextStyle(
+              color:
+                  Get.isDarkMode ? Colors.grey.shade700 : Colors.grey.shade400,
+              fontSize: 10,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _handleShowMessageSendStatus() async {
+    if (message.eventIds.isEmpty) {
+      EasyLoading.showInfo('Metadata Cleaned');
+      return;
+    }
+
+    final (ess, _) =
+        await _getRawMessageData(message.eventIds[0], message.rawEvents[0]);
+    ess.sort(
+      (a, b) => b.sendStatus.index.compareTo(a.sendStatus.index),
+    );
+
+    final buildContext = Get.context!;
+    await Get.bottomSheet(
+      isScrollControlled: true,
+      ignoreSafeArea: false,
+      Scaffold(
+        appBar: AppBar(
+          title: const Text('Message Send Status'),
+          centerTitle: true,
+          leading: Container(),
+          actions: [
+            IconButton(onPressed: Get.back, icon: const Icon(Icons.close)),
+          ],
+        ),
+        body: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: relayStatusList(buildContext, ess),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    _buildInfoCard(
+                      buildContext,
+                      Icons.send_outlined,
+                      "Sender's Address",
+                      message.from,
+                      Colors.blue,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildInfoCard(
+                      buildContext,
+                      Icons.call_received_outlined,
+                      "Recipient's Address",
+                      message.to,
+                      Colors.green,
+                    ),
+                    if (message.msgKeyHash != null) ...[
+                      const SizedBox(height: 16),
+                      _buildInfoCard(
+                        buildContext,
+                        Icons.vpn_key_outlined,
+                        'Encryption Key Hash',
+                        message.msgKeyHash ?? '',
+                        Colors.purple,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoCard(
+    BuildContext context,
+    IconData icon,
+    String label,
+    String value,
+    Color accentColor,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: accentColor.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: accentColor.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: accentColor,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: accentColor,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Theme.of(context)
+                    .colorScheme
+                    .outline
+                    .withValues(alpha: 0.1),
+              ),
+            ),
+            child: SelectableText(
+              value,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontFamily: 'monospace',
+                    fontSize: 13,
+                    height: 1.4,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.9),
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _handleShowRawdata(BuildContext context) async {
@@ -783,7 +984,7 @@ class MessageWidget extends StatelessWidget {
           ],
         ),
         body: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

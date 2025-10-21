@@ -6,12 +6,12 @@ import 'package:app/nostr-core/close.dart';
 import 'package:app/nostr-core/filter.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/nostr-core/request.dart';
-import 'package:app/nostr-core/subscribe_event_status.dart';
 import 'package:app/nostr-core/subscribe_result.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/service/SignerService.dart';
 import 'package:app/service/identity.service.dart';
 import 'package:app/service/message.service.dart';
+import 'package:app/service/message_retry.service.dart';
 import 'package:app/service/mls_group.service.dart';
 import 'package:app/service/nip4_chat.service.dart';
 import 'package:app/service/room.service.dart';
@@ -95,7 +95,7 @@ class NostrAPI {
     final status = msg[2] as bool;
     final errorMessage = msg[3] as String?;
 
-    await SubscribeEventStatus.fillSubscripton(
+    await MessageRetryService.instance.fillSubscription(
       eventId: eventId,
       relay: relay.url,
       isSuccess: status,
@@ -170,7 +170,7 @@ class NostrAPI {
 
   Future<void> _proccessEvent02(
     NostrEventModel event,
-    List eventList,
+    List<dynamic> eventList,
     Relay relay,
     String raw,
   ) async {
@@ -309,6 +309,7 @@ class NostrAPI {
       mediaType: mediaType,
       encryptType: encryptType,
       msgKeyHash: msgKeyHash,
+      connectedRelays: relays.length,
     );
     return SendMessageResponse(events: [event], message: model);
   }
@@ -402,6 +403,7 @@ class NostrAPI {
       createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
       mediaType: mediaType,
       encryptType: MessageEncryptType.nip17,
+      connectedRelays: relays.length,
     );
 
     return SendMessageResponse(events: [event], message: model);

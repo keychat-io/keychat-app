@@ -667,7 +667,7 @@ window.addEventListener('DOMContentLoaded', function(event) {
     mobileKeepAlive[host] = InAppWebViewKeepAlive();
     await Storage.setStringList(
       StorageKeyString.mobileKeepAlive,
-      mobileKeepAlive.keys.toList(),
+      _getKeepaliveHosts(),
     );
     return mobileKeepAlive[host]!;
   }
@@ -679,8 +679,13 @@ window.addEventListener('DOMContentLoaded', function(event) {
     removeKeepAlive(url);
     await Storage.setStringList(
       StorageKeyString.mobileKeepAlive,
-      mobileKeepAlive.keys.toList(),
+      _getKeepaliveHosts(),
     );
+  }
+
+  List<String> _getKeepaliveHosts() {
+    final list = mobileKeepAlive.keys.toList();
+    return list.where((item) => item.isNotEmpty).toList();
   }
 
   void removeKeepAlive(String url) {

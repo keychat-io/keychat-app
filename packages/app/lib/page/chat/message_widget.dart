@@ -457,10 +457,12 @@ class MessageWidget extends StatelessWidget {
         ),
       );
     }
-    if (isGroup) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
+    // isMeSend == false
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        if (isGroup)
           Padding(
             padding: const EdgeInsets.only(left: 5),
             child: Text(
@@ -469,8 +471,10 @@ class MessageWidget extends StatelessWidget {
               style: TextStyle(fontSize: 14, color: toDisplayNameColor),
             ),
           ),
-          widget,
-          Padding(
+        widget,
+        GestureDetector(
+          onTap: _handleShowRawdata,
+          child: Padding(
             padding: const EdgeInsets.only(left: 5),
             child: Text(
               Utils.formatTimeForMessage(message.createdAt),
@@ -480,23 +484,6 @@ class MessageWidget extends StatelessWidget {
                     : Colors.grey.shade400,
                 fontSize: 10,
               ),
-            ),
-          ),
-        ],
-      );
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        widget,
-        Padding(
-          padding: const EdgeInsets.only(left: 5),
-          child: Text(
-            Utils.formatTimeForMessage(message.createdAt),
-            style: TextStyle(
-              color:
-                  Get.isDarkMode ? Colors.grey.shade700 : Colors.grey.shade400,
-              fontSize: 10,
             ),
           ),
         ),
@@ -985,10 +972,7 @@ class MessageWidget extends StatelessWidget {
                       icon: const Icon(Icons.code, size: 18),
                       label: const Text('View Full Metadata'),
                       onPressed: () {
-                        Get.to(
-                          () => _FullMetadataPage(event: event),
-                          fullscreenDialog: true,
-                        );
+                        Get.bottomSheet(_FullMetadataPage(event: event));
                       },
                     ),
                   ),
@@ -1455,6 +1439,7 @@ class _FullMetadataPage extends StatelessWidget {
     final jsonString = event.toString();
     return Scaffold(
       appBar: AppBar(
+        leading: Container(),
         title: const Text('Full Metadata'),
         actions: [
           IconButton(

@@ -76,6 +76,9 @@ class _WebviewTabState extends State<WebviewTab> {
   Map<String, Map<String, dynamic>> urlScrollPositions = {};
   bool needRestorePosition = false;
 
+  // Add tooltip key
+  final GlobalKey<TooltipState> _tooltipKey = GlobalKey<TooltipState>();
+
   @override
   void initState() {
     multiWebviewController = Get.find<MultiWebviewController>();
@@ -89,10 +92,23 @@ class _WebviewTabState extends State<WebviewTab> {
 
     initBrowserConnect(WebUri(widget.initUrl));
     initPullToRefreshController();
+
+    // Show tooltip after widget is built
+    if (GetPlatform.isMobile && multiWebviewController.showFAB()) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (multiWebviewController.showMiniAppTooltip.value) {
+          _tooltipKey.currentState?.ensureTooltipVisible();
+        }
+      });
+    }
+
     super.initState();
   }
 
   Future<void> menuOpened() async {
+    if (GetPlatform.isMobile) {
+      await HapticFeedback.lightImpact();
+    }
     final uri = await getCurrentUrl();
     initBrowserConnect(uri);
     multiWebviewController.updateTabData(
@@ -119,7 +135,7 @@ class _WebviewTabState extends State<WebviewTab> {
           goBackOrPop();
         },
         child: Scaffold(
-          appBar: GetPlatform.isDesktop || multiWebviewController.showAppBar()
+          appBar: GetPlatform.isDesktop || !multiWebviewController.showFAB()
               ? AppBar(
                   titleSpacing: 0,
                   leadingWidth: 16,
@@ -200,20 +216,10 @@ class _WebviewTabState extends State<WebviewTab> {
                           overflow: TextOverflow.clip,
                         ),
                   actions: [
-                    popMenu(),
+                    popMenu(child: const Icon(Icons.more_horiz)),
                     if (GetPlatform.isMobile)
                       IconButton(
-                        onPressed: () async {
-                          if (pageFailed) {
-                            multiWebviewController
-                                .removeKeepAlive(widget.initUrl);
-                          }
-                          if (Get.isBottomSheetOpen ?? false) {
-                            Get.back<void>();
-                          }
-                          await pausePlayingMedia();
-                          Get.back<void>(); // exit page
-                        },
+                        onPressed: closeTab,
                         icon: SvgPicture.asset(
                           'assets/images/miniapp-exit.svg',
                           height: 28,
@@ -227,20 +233,61 @@ class _WebviewTabState extends State<WebviewTab> {
                   ],
                 )
               : null,
-          floatingActionButton:
-              GetPlatform.isMobile && !multiWebviewController.showAppBar()
-                  ? Padding(
-                      padding: const EdgeInsets.only(bottom: 30),
-                      child: FloatingActionButton(
-                        onPressed: null,
-                        mini: true,
-                        shape: const CircleBorder(),
-                        child: popMenu(),
+          floatingActionButton: GetPlatform.isMobile &&
+                  multiWebviewController.showFAB()
+              ? Padding(
+                  padding: const EdgeInsets.only(bottom: 30),
+                  child: Tooltip(
+                    key: _tooltipKey,
+                    message: 'Long-Press to close mini app',
+                    showDuration: const Duration(seconds: 3),
+                    waitDuration: Duration.zero,
+                    decoration: BoxDecoration(
+                      color: Colors.black87,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    textStyle: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                    ),
+                    child: FloatingActionButton(
+                      onPressed: () async {
+                        if (multiWebviewController.showMiniAppTooltip.value) {
+                          await multiWebviewController.hideTooltipPermanently();
+                        }
+                      },
+                      mini: true,
+                      shape: const CircleBorder(),
+                      child: GestureDetector(
+                        onLongPress: () async {
+                          if (multiWebviewController.showMiniAppTooltip.value) {
+                            await multiWebviewController
+                                .hideTooltipPermanently();
+                          }
+                          await HapticFeedback.mediumImpact();
+                          await closeTab();
+                        },
+                        child: popMenu(
+                          tooltip: '',
+                          child: SvgPicture.asset(
+                            'assets/images/miniapp-exit.svg',
+                            height: 28,
+                            width: 28,
+                            colorFilter: const ColorFilter.mode(
+                              Colors.white,
+                              BlendMode.srcIn,
+                            ),
+                          ),
+                        ),
                       ),
-                    )
-                  : null,
+                    ),
+                  ),
+                )
+              : null,
           floatingActionButtonLocation:
-              FloatingActionButtonLocation.miniEndFloat,
+              multiWebviewController.config['fabPosition'] == 'left'
+                  ? FloatingActionButtonLocation.miniStartFloat
+                  : FloatingActionButtonLocation.miniEndFloat,
           body: SafeArea(
             bottom: GetPlatform.isAndroid ||
                 multiWebviewController.bottomSafeHosts
@@ -271,10 +318,11 @@ class _WebviewTabState extends State<WebviewTab> {
     );
   }
 
-  Widget popMenu() {
+  Widget popMenu({required Widget child, String? tooltip}) {
     return PopupMenuButton<String>(
       onOpened: menuOpened,
       onSelected: popupMenuSelected,
+      tooltip: tooltip,
       itemBuilder: (BuildContext context) {
         return [
           PopupMenuItem(
@@ -516,9 +564,7 @@ class _WebviewTabState extends State<WebviewTab> {
             ),
         ];
       },
-      icon: const Icon(
-        Icons.settings,
-      ),
+      icon: child,
     );
   }
 
@@ -827,6 +873,17 @@ class _WebviewTabState extends State<WebviewTab> {
     );
   }
 
+  Future<void> closeTab() async {
+    if (pageFailed) {
+      multiWebviewController.removeKeepAlive(widget.initUrl);
+    }
+    if (Get.isBottomSheetOpen ?? false) {
+      Get.back<void>();
+    }
+    await pausePlayingMedia();
+    Get.back<void>(); // exit page
+  }
+
   // Add method to restore scroll position
   Future<void> restoreScrollPosition(String url) async {
     if (tabController.inAppWebViewController == null || url.isEmpty) return;
@@ -888,7 +945,11 @@ class _WebviewTabState extends State<WebviewTab> {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.copy, size: 16),
+            icon: Icon(
+              Icons.copy,
+              size: 16,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
+            ),
             padding: EdgeInsets.zero,
             onPressed: () async {
               Get.back<void>();
@@ -907,7 +968,7 @@ class _WebviewTabState extends State<WebviewTab> {
       logger.i('goBackOrPop: canGoBack: $canGoBack');
       if (canGoBack) {
         await pausePlayingMedia();
-        tabController.inAppWebViewController?.goBack();
+        await tabController.inAppWebViewController?.goBack();
         return;
       }
       if (GetPlatform.isDesktop) {
@@ -1171,15 +1232,9 @@ class _WebviewTabState extends State<WebviewTab> {
         tabController.setBrowserConnect(null);
         tabController.canGoBack.value = false;
         tabController.canGoForward.value = false;
-        refreshPage();
+        await refreshPage();
       case 'close':
-        try {
-          multiWebviewController.removeKeepAlive(initDomain);
-          await pausePlayingMedia();
-        } catch (e, s) {
-          logger.e('Error while closing webview: $e', stackTrace: s);
-        }
-        Get.back<void>();
+        await closeTab();
       case 'zoom':
         Get.bottomSheet(
           clipBehavior: Clip.antiAlias,

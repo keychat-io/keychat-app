@@ -2,7 +2,7 @@ name: app
 description: Keychat is the super app for Bitcoiners. Autonomous IDs, Bitcoin ecash wallet, secure chat, and rich Mini Apps — all in Keychat.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.36.3+6452
+version: 1.36.3+6453
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
@@ -97,6 +97,7 @@ dependencies:
   bip21_uri:
     git:
       url: https://github.com/keychat-io/dart-bip21-uri.git
+  flutter_json_view: ^1.1.5
 
 dev_dependencies:
   flutter_test:

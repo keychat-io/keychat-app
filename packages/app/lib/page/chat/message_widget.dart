@@ -12,7 +12,6 @@ import 'package:app/page/chat/chat_bubble_clipper_4.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/routes.dart';
 import 'package:app/page/theme.dart';
-import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/service/file.service.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/websocket.service.dart';
@@ -21,6 +20,7 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter_json_view/flutter_json_view.dart';
 import 'package:get/get.dart';
 import 'package:isar_community/isar.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
@@ -407,39 +407,50 @@ class MessageWidget extends StatelessWidget {
             ),
             Padding(
               padding: const EdgeInsets.only(right: 48),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: 16,
-                children: [
-                  Text(
-                    Utils.formatTimeForMessage(message.createdAt),
-                    style: TextStyle(
-                      color: Get.isDarkMode
-                          ? Colors.grey.shade700
-                          : Colors.grey.shade400,
-                      fontSize: 10,
-                    ),
-                  ),
-                  // only show for mls group chat and private chat
-                  if ((cc.roomObs.value.type == RoomType.common ||
-                          cc.roomObs.value.groupType == GroupType.mls) &&
-                      message.connectedRelays >= 0)
-                    GestureDetector(
-                      onTap: _handleShowMessageSendStatus,
-                      child: Text(
-                        'Relays: ${message.successRelays}/${message.connectedRelays}',
-                        style: TextStyle(
-                          color: message.successRelays <= 0
-                              ? Colors.red
-                              : (Get.isDarkMode
-                                  ? Colors.grey.shade700
-                                  : Colors.grey.shade400),
-                          fontSize: 10,
-                        ),
+              child: GestureDetector(
+                onTap: _handleShowRawdata,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  spacing: 8,
+                  children: [
+                    Text(
+                      Utils.formatTimeForMessage(message.createdAt),
+                      style: TextStyle(
+                        color: Get.isDarkMode
+                            ? Colors.grey.shade700
+                            : Colors.grey.shade400,
+                        fontSize: 10,
                       ),
                     ),
-                ],
+                    Row(
+                      spacing: 2,
+                      children: [
+                        // only show for mls group chat and private chat
+                        if ((cc.roomObs.value.type == RoomType.common ||
+                                cc.roomObs.value.groupType == GroupType.mls) &&
+                            message.connectedRelays >= 0)
+                          Text(
+                            '${message.successRelays}/${message.connectedRelays}',
+                            style: TextStyle(
+                              color: message.successRelays <= 0
+                                  ? Colors.red
+                                  : (Get.isDarkMode
+                                      ? Colors.grey.shade700
+                                      : Colors.grey.shade400),
+                              fontSize: 10,
+                            ),
+                          ),
+                        Icon(
+                          Icons.info_outline,
+                          size: 10,
+                          color: Get.isDarkMode
+                              ? Colors.grey.shade700
+                              : Colors.grey.shade400,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -493,146 +504,12 @@ class MessageWidget extends StatelessWidget {
     );
   }
 
-  Future<void> _handleShowMessageSendStatus() async {
-    if (message.eventIds.isEmpty) {
-      EasyLoading.showInfo('Metadata Cleaned');
-      return;
+  Future<void> _handleShowRawdata() async {
+    Utils.hideKeyboard(Get.context!);
+
+    if (Get.isBottomSheetOpen ?? false) {
+      Get.back<void>();
     }
-    final buildContext = Get.context!;
-    Utils.hideKeyboard(buildContext);
-
-    final (ess, _) =
-        await _getRawMessageData(message.eventIds[0], message.rawEvents[0]);
-
-    await Get.bottomSheet(
-      isScrollControlled: true,
-      ignoreSafeArea: false,
-      Scaffold(
-        appBar: AppBar(
-          title: const Text('Message Send Status'),
-          centerTitle: true,
-          leading: Container(),
-          actions: [
-            IconButton(onPressed: Get.back, icon: const Icon(Icons.close)),
-          ],
-        ),
-        body: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: relayStatusList(buildContext, ess),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    _buildInfoCard(
-                      buildContext,
-                      Icons.send_outlined,
-                      "Sender's Address",
-                      message.from,
-                      Colors.blue,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildInfoCard(
-                      buildContext,
-                      Icons.call_received_outlined,
-                      "Recipient's Address",
-                      message.to,
-                      Colors.green,
-                    ),
-                    if (message.msgKeyHash != null) ...[
-                      const SizedBox(height: 16),
-                      _buildInfoCard(
-                        buildContext,
-                        Icons.vpn_key_outlined,
-                        'Encryption Key Hash',
-                        message.msgKeyHash ?? '',
-                        Colors.purple,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoCard(
-    BuildContext context,
-    IconData icon,
-    String label,
-    String value,
-    Color accentColor,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: accentColor.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: accentColor.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                icon,
-                size: 20,
-                color: accentColor,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: accentColor,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                    ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: Theme.of(context)
-                    .colorScheme
-                    .outline
-                    .withValues(alpha: 0.1),
-              ),
-            ),
-            child: SelectableText(
-              value,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontFamily: 'monospace',
-                    fontSize: 13,
-                    height: 1.4,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.9),
-                  ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _handleShowRawdata(BuildContext context) async {
-    Get.back<void>();
     if (message.eventIds.isEmpty) {
       EasyLoading.showInfo('Metadata Cleaned');
       return;
@@ -998,85 +875,124 @@ class MessageWidget extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 relayStatusList(buildContext, ess),
-                const SizedBox(height: 10),
+                const SizedBox(height: 16),
+
+                // Encryption Info Section
+                _buildSectionCard(
+                  buildContext,
+                  title: 'Encryption and Privacy',
+                  icon: Icons.lock_outline,
+                  children: [
+                    if (event != null) ...[
+                      _buildInfoRow('From', event.pubkey, buildContext),
+                      _buildInfoRow('To', event.tags[0][1], buildContext),
+                      if (message.msgKeyHash != null)
+                        _buildInfoRow(
+                          'Encryption Keys Hash',
+                          message.msgKeyHash!,
+                          buildContext,
+                        ),
+                    ],
+                    _buildInfoChip(
+                      'Encrypted by ${encryptText[message.encryptType.name]}',
+                      buildContext,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Event Details Section
+                if (event != null)
+                  _buildSectionCard(
+                    buildContext,
+                    title: 'Event Details',
+                    icon: Icons.event_note,
+                    children: [
+                      _buildInfoRow('ID', event.id, buildContext),
+                      _buildInfoRow(
+                        'Kind',
+                        event.kind.toString(),
+                        buildContext,
+                        copyable: false,
+                      ),
+                      _buildInfoRow(
+                        'Time',
+                        timestampToDateTime(event.createdAt).toString(),
+                        buildContext,
+                        copyable: false,
+                      ),
+                      _buildInfoRow('Source', message.content, buildContext),
+                      if (message.subEvent != null)
+                        _buildInfoRow(
+                          'Sub Event',
+                          message.subEvent!,
+                          buildContext,
+                        ),
+                      _buildInfoRow('Encrypted', event.content, buildContext),
+                      _buildInfoRow('Signature', event.sig, buildContext),
+                    ],
+                  ),
+                const SizedBox(height: 12),
+
+                // File Info Section
                 if (message.mediaType == MessageMediaType.file ||
                     message.mediaType == MessageMediaType.image ||
                     message.mediaType == MessageMediaType.video)
-                  getFileTable(buildContext, message),
+                  Column(
+                    children: [
+                      getFileTable(buildContext, message),
+                      const SizedBox(height: 12),
+                    ],
+                  ),
+
+                // Bot Payment Section
                 if (botClientMessageModel != null &&
                     botClientMessageModel.priceModel != null)
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Pay To Chat',
-                          style: Theme.of(buildContext).textTheme.titleMedium,
-                        ),
-                        Card(
-                          child: Table(
-                            columnWidths: const {
-                              0: FixedColumnWidth(100),
-                            },
-                            children: [
-                              tableRow(
-                                'Model',
-                                botClientMessageModel.priceModel ?? '',
-                              ),
-                              tableRow(
-                                'Amount',
-                                '${payToken?.amount.toString() ?? 0} ${payToken?.unit ?? 'sat'}',
-                              ),
-                              tableRow('Mint', payToken?.mint ?? ''),
-                            ],
+                  Column(
+                    children: [
+                      _buildSectionCard(
+                        buildContext,
+                        title: 'Pay To Chat',
+                        icon: Icons.payment,
+                        children: [
+                          _buildInfoRow(
+                            'Model',
+                            botClientMessageModel.priceModel ?? '',
+                            buildContext,
+                            copyable: false,
                           ),
-                        ),
-                      ],
-                    ),
+                          _buildInfoRow(
+                            'Amount',
+                            '${payToken?.amount.toString() ?? 0} ${payToken?.unit ?? 'sat'}',
+                            buildContext,
+                            copyable: false,
+                          ),
+                          _buildInfoRow(
+                            'Mint',
+                            payToken?.mint ?? '',
+                            buildContext,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                   ),
-                const SizedBox(height: 10),
-                Padding(
-                  padding: const EdgeInsets.only(left: 4),
-                  child: NoticeTextWidget.success(
-                    'Encrypted by ${encryptText[message.encryptType.name]}',
-                  ),
-                ),
+
+                // Full Metadata Button
                 if (event != null)
-                  Card(
-                    child: Table(
-                      // defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                      // mainAxisAlignment: MainAxisAlignment.,
-                      columnWidths: const {
-                        0: FixedColumnWidth(100),
+                  Center(
+                    child: TextButton.icon(
+                      icon: const Icon(Icons.code, size: 18),
+                      label: const Text('View Full Metadata'),
+                      onPressed: () {
+                        Get.to(
+                          () => _FullMetadataPage(event: event),
+                          fullscreenDialog: true,
+                        );
                       },
-                      // border:
-                      //     TableBorder.all(width: 0.5, color: Colors.grey.shade400),
-                      children: [
-                        // tableRow('Encrypt',
-                        //     encryptText[message.encryptType.name]),
-                        tableRow('ID', event.id),
-                        tableRow('Kind', event.kind.toString()),
-                        tableRow('From', event.pubkey),
-                        tableRow('To', event.tags[0][1]),
-                        tableRow(
-                          'Time',
-                          timestampToDateTime(event.createdAt).toString(),
-                        ),
-                        tableRow('Source Content', message.content),
-                        if (message.subEvent != null)
-                          tableRow('Sub Event', message.subEvent!),
-                        tableRow('Encrypted Content', event.content),
-                        if (message.msgKeyHash != null)
-                          tableRow(
-                            'Encryption Keys Hash',
-                            message.msgKeyHash ?? '',
-                          ),
-                        tableRow('Sig', event.sig),
-                      ],
                     ),
                   ),
-                // JsonView.string(event.toString())
+                const SizedBox(height: 16),
               ],
             ),
           ),
@@ -1171,6 +1087,115 @@ class MessageWidget extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionCard(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  icon,
+                  size: 18,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(
+    String label,
+    String value,
+    BuildContext context, {
+    bool copyable = true,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.6),
+                    fontWeight: FontWeight.w500,
+                  ),
+            ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: copyable
+                  ? () {
+                      Clipboard.setData(ClipboardData(text: value));
+                      EasyLoading.showToast('Copied');
+                    }
+                  : null,
+              child: Text(
+                value,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontFamily: 'monospace',
+                    ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoChip(String text, BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text(
+          text,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                fontWeight: FontWeight.w500,
+              ),
         ),
       ),
     );
@@ -1310,6 +1335,7 @@ class MessageWidget extends StatelessWidget {
         ),
         PopupMenuItem(
           mouseCursor: SystemMouseCursors.click,
+          onTap: _handleShowRawdata,
           child: const Row(
             children: [
               Icon(Icons.code, size: 18),
@@ -1317,7 +1343,6 @@ class MessageWidget extends StatelessWidget {
               Text('Raw Data'),
             ],
           ),
-          onTap: () => _handleShowRawdata(Get.context!),
         ),
         PopupMenuItem(
           mouseCursor: SystemMouseCursors.click,
@@ -1391,7 +1416,9 @@ class MessageWidget extends StatelessWidget {
                 ),
               SettingsTile.navigation(
                 leading: const Icon(Icons.code),
-                onPressed: _handleShowRawdata,
+                onPressed: (_) async {
+                  await _handleShowRawdata();
+                },
                 title: const Text('Raw Data'),
               ),
               SettingsTile.navigation(
@@ -1414,6 +1441,34 @@ class MessageWidget extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FullMetadataPage extends StatelessWidget {
+  const _FullMetadataPage({required this.event});
+  final NostrEventModel event;
+
+  @override
+  Widget build(BuildContext context) {
+    final jsonString = event.toString();
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Full Metadata'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.copy),
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: jsonString));
+              EasyLoading.showToast('Copied');
+            },
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: JsonView.string(event.toString()),
       ),
     );
   }

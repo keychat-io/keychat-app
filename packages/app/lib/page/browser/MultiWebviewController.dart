@@ -50,6 +50,10 @@ class MultiWebviewController extends GetxController {
 
   WebViewEnvironment? webViewEnvironment;
 
+  // Add tooltip state
+  final RxBool showMiniAppTooltip = true.obs;
+  static const String _miniAppTooltipKey = 'miniapp_tooltip_shown';
+
   void addNewTab() {
     final uniqueId = generate64RandomHexChars(8);
 
@@ -278,7 +282,8 @@ class MultiWebviewController extends GetxController {
         'enableRecommend': true,
         'historyRetentionDays': 30,
         'autoSignEvent': true,
-        'showAppBar': true,
+        'showFAB': true,
+        'fabPosition': 'right',
       });
       await Storage.setString('browserConfig', localConfig);
     }
@@ -357,7 +362,20 @@ class MultiWebviewController extends GetxController {
     if (tabs.isEmpty && GetPlatform.isDesktop) {
       addNewTab();
     }
+    if (GetPlatform.isMobile) {
+      _loadTooltipPreference();
+    }
     super.onInit();
+  }
+
+  void _loadTooltipPreference() {
+    final shown = Storage.getBool(_miniAppTooltipKey) ?? false;
+    showMiniAppTooltip.value = !shown;
+  }
+
+  Future<void> hideTooltipPermanently() async {
+    await Storage.setBool(_miniAppTooltipKey, true);
+    showMiniAppTooltip.value = false;
   }
 
   Future<void> deleteOldHistories() async {
@@ -705,8 +723,8 @@ window.addEventListener('DOMContentLoaded', function(event) {
     }
   }
 
-  bool showAppBar() {
-    return config['showAppBar'] as bool? ?? true;
+  bool showFAB() {
+    return config['showFAB'] as bool? ?? true;
   }
 }
 

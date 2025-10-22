@@ -306,7 +306,13 @@ Widget codeSnippet(String text) {
 
 Widget relayStatusList(BuildContext context, List<NostrEventStatus> ess) {
   if (ess.isEmpty) return const SizedBox();
-
+  final sentCount = ess.where((element) => !element.isReceive).length;
+  final sentSuccessCount = ess
+      .where(
+        (element) =>
+            !element.isReceive && element.sendStatus == EventSendEnum.success,
+      )
+      .length;
   return Container(
     decoration: BoxDecoration(
       color: Theme.of(context).colorScheme.surface,
@@ -321,19 +327,25 @@ Widget relayStatusList(BuildContext context, List<NostrEventStatus> ess) {
         Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(
-                Icons.network_check,
-                size: 20,
-                color: Theme.of(context).colorScheme.primary,
+              Row(
+                children: [
+                  Icon(
+                    Icons.network_check,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Message Status',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Text(
-                'Message Status',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-              ),
+              if (sentCount > 0) Text('Success: $sentSuccessCount/$sentCount'),
             ],
           ),
         ),

@@ -22,6 +22,7 @@ class BrowserSetting extends StatefulWidget {
 class _BrowserSettingState extends State<BrowserSetting> {
   late MultiWebviewController controller;
   List<Identity> identities = [];
+  bool showFAB = true;
   @override
   void initState() {
     super.initState();
@@ -179,18 +180,69 @@ class _BrowserSettingState extends State<BrowserSetting> {
                       }
                     },
                   ),
-                if (GetPlatform.isMobile)
+              ],
+            ),
+            if (GetPlatform.isMobile)
+              SettingsSection(
+                tiles: [
                   SettingsTile.switchTile(
-                    initialValue: controller.showAppBar(),
-                    leading: const Icon(Icons.view_headline),
-                    title: const Text('Show AppBar'),
+                    initialValue: showFAB,
+                    leading: const Icon(CupertinoIcons.circle_fill),
+                    title: const Text('Floating Action Button'),
                     onToggle: (value) async {
                       await controller.setConfig('showAppBar', value);
+                      setState(() {
+                        showFAB = value;
+                      });
                       EasyLoading.showSuccess('Success');
                     },
                   ),
-              ],
-            ),
+                  SettingsTile.navigation(
+                    leading: const Icon(CupertinoIcons.arrow_left_right),
+                    title: const Text('Position'),
+                    value: Text(
+                      controller.config['fabPosition'] == 'left'
+                          ? 'Left'
+                          : 'Right',
+                    ),
+                    onPressed: (context) {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return RadioGroup<String>(
+                            groupValue:
+                                controller.config['fabPosition'] as String? ??
+                                    'right',
+                            onChanged: (value) async {
+                              if (value == null) return;
+                              await controller.setConfig('fabPosition', value);
+                              EasyLoading.showSuccess('Success');
+                              Get.back<void>();
+                            },
+                            child: const SimpleDialog(
+                              title: Text('Select Position'),
+                              children: [
+                                ListTile(
+                                  leading: Radio<String>(
+                                    value: 'left',
+                                  ),
+                                  title: Text('Left'),
+                                ),
+                                ListTile(
+                                  leading: Radio<String>(
+                                    value: 'right',
+                                  ),
+                                  title: Text('Right'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
           ],
         ),
       ),
@@ -199,7 +251,9 @@ class _BrowserSettingState extends State<BrowserSetting> {
 
   Future<void> init() async {
     final list = await IdentityService.instance.getEnableBrowserIdentityList();
+    final fab = controller.showFAB();
     setState(() {
+      showFAB = fab;
       identities = list;
     });
   }

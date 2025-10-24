@@ -148,15 +148,13 @@ class RelayWebsocket {
     sentReqCount = 0;
 
     await _startListen();
-    Future.delayed(const Duration(seconds: 1)).then((value) async {
-      // init mls keypackages
-      EasyDebounce.debounce(
-          'connectSuccess:${relay.url}', const Duration(seconds: 3), () async {
-        await MlsGroupService.instance.uploadKeyPackages(toRelay: relay.url);
-      });
-      // nwc reconnect
-      Utils.getGetxController<NostrWalletConnectController>()
-          ?.startListening(relay.url);
+
+    EasyDebounce.debounce(
+        'connectSuccess:${relay.url}', const Duration(seconds: 3), () async {
+      await MlsGroupService.instance.uploadKeyPackages(toRelay: relay.url);
     });
+    // nwc reconnect
+    Utils.getGetxController<NostrWalletConnectController>()
+        ?.startListening(relay.url);
   }
 }

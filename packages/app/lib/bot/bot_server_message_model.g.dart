@@ -6,9 +6,9 @@ part of 'bot_server_message_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_BotServerMessageModel _$BotServerMessageModelFromJson(
+BotServerMessageModel _$BotServerMessageModelFromJson(
         Map<String, dynamic> json) =>
-    _BotServerMessageModel(
+    BotServerMessageModel(
       type: $enumDecode(_$MessageMediaTypeEnumMap, json['type']),
       message: json['message'] as String,
       priceModels: (json['priceModels'] as List<dynamic>)
@@ -18,7 +18,7 @@ _BotServerMessageModel _$BotServerMessageModelFromJson(
     );
 
 Map<String, dynamic> _$BotServerMessageModelToJson(
-        _BotServerMessageModel instance) =>
+        BotServerMessageModel instance) =>
     <String, dynamic>{
       'type': _$MessageMediaTypeEnumMap[instance.type]!,
       'message': instance.message,
@@ -46,18 +46,18 @@ const _$MessageMediaTypeEnumMap = {
   MessageMediaType.lightningInvoice: 'lightningInvoice',
 };
 
-_BotMessageData _$BotMessageDataFromJson(Map<String, dynamic> json) =>
-    _BotMessageData(
+BotMessageData _$BotMessageDataFromJson(Map<String, dynamic> json) =>
+    BotMessageData(
       name: json['name'] as String,
       description: json['description'] as String,
       price: (json['price'] as num).toInt(),
       unit: json['unit'] as String,
       mints:
           (json['mints'] as List<dynamic>?)?.map((e) => e as String).toList() ??
-              const [],
+              [],
     );
 
-Map<String, dynamic> _$BotMessageDataToJson(_BotMessageData instance) =>
+Map<String, dynamic> _$BotMessageDataToJson(BotMessageData instance) =>
     <String, dynamic>{
       'name': instance.name,
       'description': instance.description,

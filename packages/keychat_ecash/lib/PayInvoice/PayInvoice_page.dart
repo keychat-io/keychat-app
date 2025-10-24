@@ -1,7 +1,6 @@
 import 'package:app/page/theme.dart';
 import 'package:app/service/qrscan.service.dart';
 import 'package:app/utils.dart';
-import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -186,18 +185,13 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                   padding: const EdgeInsets.only(bottom: 8),
                   child: cashuController
                           .supportMint(controller.selectedMint.value)
-                      ? FilledButton(
-                          style: ButtonStyle(
-                            minimumSize: WidgetStateProperty.all(
-                              const Size(double.infinity, 44),
-                            ),
-                          ),
-                          onPressed: controller.isLoading.value
-                              ? null
-                              : () async {
-                                  EasyThrottle.throttle('payinvoice',
-                                      const Duration(milliseconds: 2000),
-                                      () async {
+                      ? SizedBox(
+                          width: GetPlatform.isDesktop ? 200 : double.infinity,
+                          height: 44,
+                          child: FilledButton(
+                            onPressed: controller.isLoading.value
+                                ? null
+                                : () async {
                                     if (GetPlatform.isMobile) {
                                       await HapticFeedback.lightImpact();
                                     }
@@ -232,35 +226,39 @@ class _PayInvoicePageState extends State<PayInvoicePage> {
                                     } finally {
                                       controller.isLoading.value = false;
                                     }
-                                  });
-                                },
-                          child: controller.isLoading.value
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Text('Pay Invoice'),
-                        )
-                      : FilledButton(
-                          onPressed: null,
-                          style: ButtonStyle(
-                            minimumSize: WidgetStateProperty.all(
-                              const Size(double.infinity, 44),
-                            ),
-                            backgroundColor:
-                                WidgetStateProperty.resolveWith<Color>(
-                              (Set<WidgetState> states) {
-                                if (states.contains(WidgetState.disabled)) {
-                                  return Colors.grey;
-                                }
-                                return MaterialTheme.lightScheme().primary;
-                              },
-                            ),
+                                  },
+                            child: controller.isLoading.value
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  )
+                                : const Text('Pay Invoice'),
                           ),
-                          child: const Text('Disable By Mint Server'),
+                        )
+                      : SizedBox(
+                          width: GetPlatform.isDesktop ? 200 : double.infinity,
+                          height: 44,
+                          child: FilledButton(
+                            onPressed: null,
+                            style: ButtonStyle(
+                              backgroundColor:
+                                  WidgetStateProperty.resolveWith<Color>(
+                                (Set<WidgetState> states) {
+                                  if (states.contains(WidgetState.disabled)) {
+                                    return Colors.grey;
+                                  }
+                                  return MaterialTheme.lightScheme().primary;
+                                },
+                              ),
+                            ),
+                            child: const Text('Disable By Mint Server'),
+                          ),
                         ),
                 ),
               ),

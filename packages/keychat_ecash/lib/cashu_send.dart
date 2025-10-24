@@ -22,6 +22,8 @@ class CashuSendPage extends StatefulWidget {
 class _CashuSendPageState extends State<CashuSendPage> {
   late EcashController ecashController;
   late String selectedMint;
+  final RxBool isLoading = false.obs;
+
   @override
   void initState() {
     ecashController = Get.find<EcashController>();
@@ -82,89 +84,106 @@ class _CashuSendPageState extends State<CashuSendPage> {
                     ? 0
                     : MediaQuery.of(context).viewInsets.bottom,
               ),
-              child: FilledButton(
-                style: ButtonStyle(
-                  minimumSize: WidgetStateProperty.all(
-                    const Size(double.infinity, 44),
+              child: SizedBox(
+                width: GetPlatform.isDesktop ? 200 : double.infinity,
+                height: 44,
+                child: Obx(
+                  () => FilledButton(
+                    onPressed: isLoading.value
+                        ? null
+                        : () async {
+                            if (isLoading.value) return;
+
+                            try {
+                              isLoading.value = true;
+                              if (GetPlatform.isMobile) {
+                                HapticFeedback.lightImpact();
+                              }
+                              final amountString =
+                                  ecashController.nameController.text.trim();
+                              if (amountString.isEmpty) {
+                                EasyLoading.showToast('Please input amount');
+                                return;
+                              }
+                              var amount = 0;
+                              try {
+                                amount = int.parse(amountString);
+                              } catch (e) {
+                                EasyLoading.showToast('Invalid amount');
+                                return;
+                              }
+                              if (amount == 0) {
+                                EasyLoading.showToast('Amount should > 0');
+                                return;
+                              }
+                              final balance = ecashController
+                                  .getBalanceByMint(selectedMint);
+                              if (balance < amount) {
+                                EasyLoading.showToast('Insufficient balance');
+                                return;
+                              }
+                              EasyLoading.show(status: 'Generating...');
+                              final cashuInfoModel = await CashuUtil.getCashuA(
+                                amount: amount,
+                                mints: [selectedMint],
+                              );
+
+                              EasyLoading.showToast(
+                                'Success',
+                                duration: const Duration(seconds: 2),
+                              );
+                              await ecashController.getBalance();
+                              await ecashController.getRecentTransactions();
+
+                              EasyLoading.dismiss();
+                              if (widget.isRoom) {
+                                Get.back(result: cashuInfoModel);
+                                return;
+                              }
+                              if (Get.isBottomSheetOpen ?? false) {
+                                Get.back<void>();
+                              }
+                              Get.to(
+                                () => CashuTransactionPage(
+                                  transaction:
+                                      cashuInfoModel.toCashuTransaction(),
+                                ),
+                                id: GetPlatform.isDesktop
+                                    ? GetXNestKey.ecash
+                                    : null,
+                              );
+                            } catch (e, s) {
+                              final msg = Utils.getErrorMessage(e);
+                              if (msg.contains('Spent')) {
+                                await rust_cashu.checkProofs();
+                                EasyLoading.showError(
+                                  'Exception: Token already spent. Please retry',
+                                  duration: const Duration(seconds: 3),
+                                );
+                                return;
+                              }
+                              EasyLoading.showError(
+                                msg,
+                                duration: const Duration(seconds: 3),
+                              );
+                              logger.e(msg, error: e, stackTrace: s);
+                            } finally {
+                              isLoading.value = false;
+                            }
+                          },
+                    child: isLoading.value
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text('Send'),
                   ),
                 ),
-                child: const Text('Send'),
-                onPressed: () async {
-                  EasyThrottle.throttle(
-                      'send_ecash', const Duration(milliseconds: 2000),
-                      () async {
-                    if (GetPlatform.isMobile) {
-                      HapticFeedback.lightImpact();
-                    }
-                    final amountString =
-                        ecashController.nameController.text.trim();
-                    if (amountString.isEmpty) {
-                      EasyLoading.showToast('Please input amount');
-                      return;
-                    }
-                    var amount = 0;
-                    try {
-                      amount = int.parse(amountString);
-                    } catch (e) {
-                      EasyLoading.showToast('Invalid amount');
-                      return;
-                    }
-                    if (amount == 0) {
-                      EasyLoading.showToast('Amount should > 0');
-                      return;
-                    }
-                    final balance =
-                        ecashController.getBalanceByMint(selectedMint);
-                    if (balance < amount) {
-                      EasyLoading.showToast('Insufficient balance');
-                      return;
-                    }
-                    try {
-                      EasyLoading.show(status: 'Generating...');
-                      final cashuInfoModel = await CashuUtil.getCashuA(
-                        amount: amount,
-                        mints: [selectedMint],
-                      );
-
-                      EasyLoading.showToast(
-                        'Success',
-                        duration: const Duration(seconds: 2),
-                      );
-                      await ecashController.getBalance();
-                      await ecashController.getRecentTransactions();
-
-                      EasyLoading.dismiss();
-                      if (widget.isRoom) {
-                        Get.back(result: cashuInfoModel);
-                        return;
-                      }
-                      if (Get.isBottomSheetOpen ?? false) {
-                        Get.back<void>();
-                      }
-                      Get.to(
-                        () => CashuTransactionPage(
-                          transaction: cashuInfoModel.toCashuTransaction(),
-                        ),
-                        id: GetPlatform.isDesktop ? GetXNestKey.ecash : null,
-                      );
-                    } catch (e, s) {
-                      final msg = Utils.getErrorMessage(e);
-                      if (msg.contains('Spent')) {
-                        await rust_cashu.checkProofs();
-                        EasyLoading.showError(
-                          'Exception: Token already spent. Please retry',
-                          duration: const Duration(seconds: 3),
-                        );
-                        return;
-                      }
-                      EasyLoading.showError(
-                        msg,
-                        duration: const Duration(seconds: 3),
-                      );
-                      logger.e(msg, error: e, stackTrace: s);
-                    }
-                  });
-                },
               ),
             ),
           ],

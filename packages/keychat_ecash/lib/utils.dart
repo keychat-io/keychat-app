@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:app/global.dart';
 import 'package:app/models/embedded/cashu_info.dart';
 import 'package:app/rust_api.dart';
@@ -177,7 +179,17 @@ class CashuUtil {
     // }
     final ct =
         await rust_cashu.sendStamp(amount: BigInt.from(amount), mints: mints);
-    return CashuInfoModel.fromRustModel(ct);
+    if (ct.isNeedSplit) {
+      unawaited(
+        rust_cashu
+            .prepareOneProofs(mint: ct.tx.mintUrl)
+            .catchError((dynamic e, st) {
+          logger.e(e);
+          return BigInt.from(-1);
+        }),
+      );
+    }
+    return CashuInfoModel.fromRustModel(ct.tx);
   }
 
   static Widget getStatusIcon(TransactionStatus status) {

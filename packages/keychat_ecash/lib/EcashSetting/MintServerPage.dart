@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:app/global.dart';
 import 'package:app/page/widgets/notice_text_widget.dart';
 import 'package:app/utils.dart';
@@ -89,7 +91,7 @@ class _MintServerPageState extends State<MintServerPage> {
   @override
   void initState() {
     super.initState();
-    _fetchMintInfo();
+    unawaited(_fetchMintInfo());
   }
 
   Future<void> _fetchMintInfo() async {
@@ -149,10 +151,11 @@ class _MintServerPageState extends State<MintServerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(title: Text(mintInfo?.name ?? widget.server.mint)),
-        body: isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : Column(children: [
+      appBar: AppBar(title: Text(mintInfo?.name ?? widget.server.mint)),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
                 if (mintInfo != null &&
                     mintInfo?.motd != null &&
                     mintInfo!.motd != 'Message to users')
@@ -161,21 +164,24 @@ class _MintServerPageState extends State<MintServerPage> {
                   child: SettingsList(
                     platform: DevicePlatform.iOS,
                     sections: [
-                      SettingsSection(tiles: [
-                        SettingsTile(
-                          title: Text(widget.server.mint),
-                          trailing: const Icon(Icons.copy),
-                          description:
-                              mintInfo != null && mintInfo?.description != null
-                                  ? Text(mintInfo!.description!)
-                                  : null,
-                          onPressed: (_) {
-                            Clipboard.setData(
-                                ClipboardData(text: widget.server.mint));
-                            EasyLoading.showToast('Copied');
-                          },
-                        ),
-                      ]),
+                      SettingsSection(
+                        tiles: [
+                          SettingsTile(
+                            title: Text(widget.server.mint),
+                            trailing: const Icon(Icons.copy),
+                            description: mintInfo != null &&
+                                    mintInfo?.description != null
+                                ? Text(mintInfo!.description!)
+                                : null,
+                            onPressed: (_) {
+                              Clipboard.setData(
+                                ClipboardData(text: widget.server.mint),
+                              );
+                              EasyLoading.showToast('Copied');
+                            },
+                          ),
+                        ],
+                      ),
 
                       // Basic info section
                       if (mintInfo != null)
@@ -205,7 +211,8 @@ class _MintServerPageState extends State<MintServerPage> {
                                     : null,
                                 onPressed: (_) {
                                   Clipboard.setData(
-                                      ClipboardData(text: mintInfo!.pubkey!));
+                                    ClipboardData(text: mintInfo!.pubkey!),
+                                  );
                                   EasyLoading.showToast('Public key copied');
                                 },
                               ),
@@ -223,16 +230,18 @@ class _MintServerPageState extends State<MintServerPage> {
                         SettingsSection(
                           title: const Text('Contact'),
                           tiles: mintInfo!.contact!
-                              .map((contact) => SettingsTile(
-                                    title:
-                                        Text(contact.method.capitalizeFirst!),
-                                    value: Flexible(child: Text(contact.info)),
-                                    onPressed: (_) {
-                                      Clipboard.setData(
-                                          ClipboardData(text: contact.info));
-                                      EasyLoading.showToast('Copied');
-                                    },
-                                  ))
+                              .map(
+                                (contact) => SettingsTile(
+                                  title: Text(contact.method.capitalizeFirst!),
+                                  value: Flexible(child: Text(contact.info)),
+                                  onPressed: (_) {
+                                    Clipboard.setData(
+                                      ClipboardData(text: contact.info),
+                                    );
+                                    EasyLoading.showToast('Copied');
+                                  },
+                                ),
+                              )
                               .toList(),
                         ),
 
@@ -240,11 +249,13 @@ class _MintServerPageState extends State<MintServerPage> {
                       if (mintInfo?.nuts != null && mintInfo!.nuts!.isNotEmpty)
                         _buildNutsSection(),
 
-                      deleteSection()
+                      deleteSection(),
                     ],
                   ),
-                )
-              ]));
+                ),
+              ],
+            ),
+    );
   }
 
   SettingsSection _buildNutsSection() {
@@ -410,7 +421,7 @@ class _MintServerPageState extends State<MintServerPage> {
               EasyLoading.showError(msg);
             }
           },
-        )
+        ),
       ],
     );
   }

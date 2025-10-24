@@ -1,6 +1,5 @@
 import 'package:app/service/qrscan.service.dart';
 import 'package:app/utils.dart';
-import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -21,6 +20,8 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
   late TextEditingController receiveTextController;
   rust_cashu.TokenInfo? decodedModel;
   bool supported = true;
+  final RxBool isLoading = false.obs;
+
   @override
   void initState() {
     receiveTextController = TextEditingController();
@@ -116,47 +117,61 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
                   ),
                 ),
               ),
-              FilledButton(
-                style: ButtonStyle(
-                  minimumSize: WidgetStateProperty.all(
-                    const Size(double.infinity, 44),
+              SizedBox(
+                width: GetPlatform.isDesktop ? 200 : double.infinity,
+                height: 44,
+                child: Obx(
+                  () => FilledButton(
+                    onPressed: isLoading.value
+                        ? null
+                        : () async {
+                            if (isLoading.value) return;
+
+                            try {
+                              isLoading.value = true;
+                              if (GetPlatform.isMobile) {
+                                HapticFeedback.lightImpact();
+                              }
+                              final encodedToken =
+                                  receiveTextController.text.trim();
+                              if (encodedToken.isEmpty) {
+                                EasyLoading.showToast('Please input token');
+                                return;
+                              }
+                              await CashuUtil.handleReceiveToken(
+                                token: encodedToken,
+                                retry: true,
+                              );
+                              receiveTextController.clear();
+                              controller.requestPageRefresh();
+                              setState(() {
+                                decodedModel = null;
+                              });
+                            } catch (e, s) {
+                              final msg = Utils.getErrorMessage(e);
+                              EasyLoading.showToast(msg);
+                              logger.e(
+                                'Receive token failed',
+                                error: e,
+                                stackTrace: s,
+                              );
+                            } finally {
+                              isLoading.value = false;
+                            }
+                          },
+                    child: isLoading.value
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text('Receive'),
                   ),
                 ),
-                child: const Text('Receive'),
-                onPressed: () async {
-                  EasyThrottle.throttle(
-                      'receive_ecash', const Duration(milliseconds: 2000),
-                      () async {
-                    if (GetPlatform.isMobile) {
-                      HapticFeedback.lightImpact();
-                    }
-                    final encodedToken = receiveTextController.text.trim();
-                    if (encodedToken.isEmpty) {
-                      EasyLoading.showToast('Please input token');
-                      return;
-                    }
-                    try {
-                      await CashuUtil.handleReceiveToken(
-                        token: encodedToken,
-                        retry: true,
-                      );
-                      receiveTextController.clear();
-                      controller.requestPageRefresh();
-                      setState(() {
-                        decodedModel = null;
-                      });
-                      // Get.back<void>();
-                    } catch (e, s) {
-                      final msg = Utils.getErrorMessage(e);
-                      EasyLoading.showToast(msg);
-                      logger.e(
-                        'Receive token failed',
-                        error: e,
-                        stackTrace: s,
-                      );
-                    }
-                  });
-                },
               ),
             ],
           ),

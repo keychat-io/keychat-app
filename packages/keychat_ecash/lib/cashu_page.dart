@@ -448,7 +448,7 @@ class CashuPage extends GetView<EcashController> {
                       borderRadius:
                           BorderRadius.vertical(top: Radius.circular(4)),
                     ),
-                    const CreateInvoicePage(),
+                    CreateInvoicePage(),
                   );
                   if (result == null) return;
                   await Get.to(

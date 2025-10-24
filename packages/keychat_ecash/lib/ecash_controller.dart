@@ -422,13 +422,13 @@ class EcashController extends GetxController {
 
   Future<void> requestPageRefresh() async {
     try {
-      await rust_cashu.checkPending();
+      unawaited(rust_cashu.checkPending());
       await getBalance();
       await getRecentTransactions();
       final pendings = await rust_cashu.getLnPendingTransactions();
       await LightningUtils.instance
           .checkPendings(pendings)
-          .timeout(const Duration(minutes: 1));
+          .timeout(const Duration(minutes: 3));
       // ignore: empty_catches
     } catch (e) {}
   }

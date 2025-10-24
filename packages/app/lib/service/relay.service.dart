@@ -36,11 +36,14 @@ class RelayService {
     relay.active = true;
     relay.errorMessage = null;
     await update(relay);
-    await ws.addChannel(relay, connectedCallback: () async {
-      NotifyService.syncPubkeysToServer(); // sub new relay
-      RelayService.instance.initRelayFeeInfo([relay]);
-      await MlsGroupService.instance.uploadKeyPackages(toRelay: relay.url);
-    });
+    await ws.addChannel(
+      relay,
+      connectedCallback: () async {
+        NotifyService.syncPubkeysToServer(); // sub new relay
+        RelayService.instance.initRelayFeeInfo([relay]);
+        await MlsGroupService.instance.uploadKeyPackages(toRelay: relay.url);
+      },
+    );
     return true;
   }
 
@@ -128,11 +131,12 @@ class RelayService {
     return DBProvider.database.relays.where().count();
   }
 
-  Future<void> updateReadWrite(
-      {required int id,
-      required bool read,
-      required bool write,
-      required bool active}) async {
+  Future<void> updateReadWrite({
+    required int id,
+    required bool read,
+    required bool write,
+    required bool active,
+  }) async {
     final database = DBProvider.database;
 
     await database.writeTxn(() async {
@@ -148,8 +152,11 @@ class RelayService {
     });
   }
 
-  Future<void> updateStatus(
-      {required Relay relay, DateTime? updatedAt, String? errorMessage}) async {
+  Future<void> updateStatus({
+    required Relay relay,
+    DateTime? updatedAt,
+    String? errorMessage,
+  }) async {
     final database = DBProvider.database;
 
     try {
@@ -208,7 +215,8 @@ class RelayService {
       }
     }
     final defaultRelay = relays.firstWhereOrNull(
-        (element) => element.url == KeychatGlobal.defaultRelay);
+      (element) => element.url == KeychatGlobal.defaultRelay,
+    );
     if (defaultRelay == null) {
       final relay = await add(KeychatGlobal.defaultRelay);
       relays.add(relay);
@@ -234,11 +242,14 @@ class RelayService {
       }
       if (url.isEmpty) return null;
 
-      final res = await dio.get(url,
-          options: Options(
-              headers: {'Accept': 'application/nostr+json'},
-              sendTimeout: const Duration(seconds: 10),
-              receiveTimeout: const Duration(seconds: 10)));
+      final res = await dio.get(
+        url,
+        options: Options(
+          headers: {'Accept': 'application/nostr+json'},
+          sendTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 10),
+        ),
+      );
       return res.data as Map<String, dynamic>?;
     } on DioException catch (e, s) {
       final msg = e.response?.data as String?;
@@ -334,7 +345,9 @@ class RelayService {
     }
     // store to local
     await Storage.setLocalStorageMap(
-        StorageKeyString.relayMessageFeeConfig, ws.relayMessageFeeModels);
+      StorageKeyString.relayMessageFeeConfig,
+      ws.relayMessageFeeModels,
+    );
   }
 
   Future<void> fetchRelayFileFee() async {
@@ -347,7 +360,9 @@ class RelayService {
 
     // store to local
     await Storage.setLocalStorageMap(
-        StorageKeyString.relayFileFeeConfig, ws.relayFileFeeModels);
+      StorageKeyString.relayFileFeeConfig,
+      ws.relayFileFeeModels,
+    );
   }
 
   // curl -H "Accept: application/nostr+json" https://relay.keychat.io
@@ -376,7 +391,8 @@ class RelayService {
               final payInfo = RelayMessageFee()
                 ..amount = publication['amount'] as int? ?? 0
                 ..unit = RelayMessageFee.getSymbolByName(
-                    publication['unit'] as String? ?? '-')
+                  publication['unit'] as String? ?? '-',
+                )
                 ..mints = mints;
 
               return payInfo;
@@ -391,12 +407,13 @@ class RelayService {
   // curl https://backup.keychat.io/api/v1/info
   // {"maxsize":104857600,"mints":["https://8333.space:3338"],"prices":[{"max":10485760,"min":1,"price":1},{"max":104857600,"min":10485761,"price":2}],"unit":"sat"}
   Future<Map?> _fetchFileUploadConfig(String url) async {
-    final dio = Dio();
-    dio.options = BaseOptions(
+    final dio = Dio()
+      ..options = BaseOptions(
         headers: {'Content-Type': 'application/json'},
         connectTimeout: const Duration(seconds: 6),
         receiveTimeout: const Duration(seconds: 6),
-        sendTimeout: const Duration(seconds: 6));
+        sendTimeout: const Duration(seconds: 6),
+      );
     try {
       final response = await dio.get('$url/api/v1/info');
 
@@ -404,7 +421,8 @@ class RelayService {
         return response.data as Map<dynamic, dynamic>?;
       } else {
         loggerNoLine.e(
-            'Failed to fetch file server info. Error: ${response.statusCode}');
+          'Failed to fetch file server info. Error: ${response.statusCode}',
+        );
       }
     } catch (e) {
       loggerNoLine.e('Failed to fetch file server info', error: e);

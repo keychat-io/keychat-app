@@ -190,7 +190,7 @@ class _BrowserSettingState extends State<BrowserSetting> {
                     leading: const Icon(CupertinoIcons.circle_fill),
                     title: const Text('Floating Action Button'),
                     onToggle: (value) async {
-                      await controller.setConfig('showAppBar', value);
+                      await controller.setConfig('showFAB', value);
                       setState(() {
                         showFAB = value;
                       });

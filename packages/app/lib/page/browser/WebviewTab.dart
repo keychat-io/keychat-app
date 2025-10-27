@@ -79,6 +79,9 @@ class _WebviewTabState extends State<WebviewTab> {
   // Add tooltip key
   final GlobalKey<TooltipState> _tooltipKey = GlobalKey<TooltipState>();
 
+  // Add MenuController for managing menu state
+  final MenuController _menuController = MenuController();
+
   @override
   void initState() {
     multiWebviewController = Get.find<MultiWebviewController>();
@@ -236,7 +239,7 @@ class _WebviewTabState extends State<WebviewTab> {
           floatingActionButton: GetPlatform.isMobile &&
                   multiWebviewController.showFAB()
               ? Padding(
-                  padding: const EdgeInsets.only(bottom: 30),
+                  padding: const EdgeInsets.only(bottom: 60),
                   child: Tooltip(
                     key: _tooltipKey,
                     message: 'Long-Press to close mini app',
@@ -269,14 +272,10 @@ class _WebviewTabState extends State<WebviewTab> {
                         },
                         child: popMenu(
                           tooltip: '',
-                          child: SvgPicture.asset(
-                            'assets/images/miniapp-exit.svg',
-                            height: 28,
-                            width: 28,
-                            colorFilter: const ColorFilter.mode(
-                              Colors.white,
-                              BlendMode.srcIn,
-                            ),
+                          child: const Icon(
+                            CupertinoIcons.circle_fill,
+                            size: 24,
+                            color: Colors.white,
                           ),
                         ),
                       ),
@@ -319,253 +318,275 @@ class _WebviewTabState extends State<WebviewTab> {
   }
 
   Widget popMenu({required Widget child, String? tooltip}) {
-    return PopupMenuButton<String>(
-      onOpened: menuOpened,
-      onSelected: popupMenuSelected,
-      tooltip: tooltip,
-      itemBuilder: (BuildContext context) {
-        return [
-          PopupMenuItem(
-            value: 'tools',
-            child: getPopTools(),
+    return MenuAnchor(
+      controller: _menuController,
+      alignmentOffset: const Offset(0, 8),
+      style: MenuStyle(
+        elevation: WidgetStateProperty.all(8),
+        backgroundColor: WidgetStateProperty.all(
+          Theme.of(context).colorScheme.surface,
+        ),
+      ),
+      menuChildren: _buildMenuItems(),
+      onOpen: () async {
+        await menuOpened();
+      },
+      onClose: () {
+        logger.d('popup menu closed');
+      },
+      builder: (context, controller, child) {
+        return IconButton(
+          tooltip: tooltip,
+          onPressed: () {
+            if (controller.isOpen) {
+              controller.close();
+            } else {
+              controller.open();
+            }
+          },
+          icon: child!,
+        );
+      },
+      child: child,
+    );
+  }
+
+  List<Widget> _buildMenuItems() {
+    return [
+      MenuItemButton(
+        onPressed: () => _handleMenuSelection('tools'),
+        child: getPopTools(),
+      ),
+      if (GetPlatform.isMobile)
+        MenuItemButton(
+          onPressed: () => _handleMenuSelection('refresh'),
+          child: Row(
+            spacing: 16,
+            children: [
+              Icon(
+                Icons.refresh,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+              ),
+              Text(
+                'Refresh',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            ],
           ),
-          if (GetPlatform.isMobile)
-            PopupMenuItem(
-              value: 'refresh',
-              child: Row(
-                spacing: 16,
-                children: [
-                  Icon(
-                    Icons.refresh,
-                    color: Theme.of(context).textTheme.bodyLarge?.color,
-                  ),
-                  Text(
-                    'Refresh',
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                ],
+        ),
+      MenuItemButton(
+        onPressed: () => _handleMenuSelection('bookmark'),
+        child: Row(
+          spacing: 16,
+          children: [
+            FutureBuilder(
+              future: () async {
+                final url =
+                    await tabController.inAppWebViewController?.getUrl();
+                if (url == null) return null;
+                return DBProvider.database.browserBookmarks
+                    .filter()
+                    .urlEqualTo(url.toString())
+                    .findFirst();
+              }(),
+              builder: (context, snapshot) {
+                if (snapshot.data != null) {
+                  return const Icon(
+                    CupertinoIcons.bookmark_fill,
+                    color: Colors.orange,
+                  );
+                }
+                return Icon(
+                  CupertinoIcons.bookmark,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                );
+              },
+            ),
+            Text(
+              'Bookmark',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ],
+        ),
+      ),
+      MenuItemButton(
+        onPressed: () => _handleMenuSelection('favorite'),
+        child: Row(
+          spacing: 16,
+          children: [
+            SvgPicture.asset(
+              'assets/images/app_add.svg',
+              height: 24,
+              width: 24,
+              colorFilter: ColorFilter.mode(
+                Theme.of(context).iconTheme.color!.withAlpha(200),
+                BlendMode.srcIn,
               ),
             ),
-          PopupMenuItem(
-            value: 'bookmark',
-            child: Row(
-              spacing: 16,
-              children: [
-                FutureBuilder(
-                  future: () async {
-                    final url =
-                        await tabController.inAppWebViewController?.getUrl();
-                    if (url == null) return null;
-                    return DBProvider.database.browserBookmarks
-                        .filter()
-                        .urlEqualTo(url.toString())
-                        .findFirst();
-                  }(),
-                  builder: (context, snapshot) {
-                    if (snapshot.data != null) {
-                      return const Icon(
-                        CupertinoIcons.bookmark_fill,
-                        color: Colors.orange,
+            Text(
+              'Add to Favorites',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ],
+        ),
+      ),
+      const Divider(height: 1),
+      MenuItemButton(
+        onPressed: () => _handleMenuSelection('shareToRooms'),
+        child: Row(
+          spacing: 16,
+          children: [
+            Icon(
+              CupertinoIcons.chat_bubble,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
+            ),
+            Text(
+              'Share to Room',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ],
+        ),
+      ),
+      MenuItemButton(
+        onPressed: () => _handleMenuSelection('share'),
+        child: Row(
+          spacing: 16,
+          children: [
+            Icon(
+              CupertinoIcons.share,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
+            ),
+            Text(
+              'Share',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ],
+        ),
+      ),
+      MenuItemButton(
+        onPressed: () => _handleMenuSelection('zoom'),
+        child: Row(
+          spacing: 16,
+          children: [
+            Icon(
+              CupertinoIcons.zoom_in,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
+            ),
+            Text(
+              'Zoom Text',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ],
+        ),
+      ),
+      if (GetPlatform.isMobile) _buildKeepAliveMenuItem(),
+      if (tabController.browserConnect.value.host == '')
+        MenuItemButton(
+          onPressed: () => _handleMenuSelection('clear'),
+          child: Row(
+            spacing: 12,
+            children: [
+              Icon(
+                Icons.storage,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+              ),
+              Text(
+                'Clear Cache',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            ],
+          ),
+        ),
+      const Divider(height: 1),
+      if (tabController.browserConnect.value.host != '')
+        MenuItemButton(
+          onPressed: () => _handleMenuSelection('disconnect'),
+          child: Row(
+            spacing: 12,
+            children: [
+              Icon(
+                Icons.logout,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+              ),
+              Text(
+                'ID Logout',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            ],
+          ),
+        ),
+      if (GetPlatform.isMobile)
+        MenuItemButton(
+          onPressed: () => _handleMenuSelection('close'),
+          child: Row(
+            spacing: 12,
+            children: [
+              Icon(
+                Icons.exit_to_app,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+              ),
+              Text(
+                'Close',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            ],
+          ),
+        ),
+    ];
+  }
+
+  Widget _buildKeepAliveMenuItem() {
+    return Padding(
+      padding: EdgeInsets.zero,
+      child: Row(
+        children: [
+          Transform.scale(
+            scale: 0.6,
+            child: FutureBuilder(
+              future: (() async {
+                await multiWebviewController.loadKeepAlive();
+              })(),
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  return Icon(
+                    Icons.check_circle,
+                    color: Theme.of(context).primaryColor,
+                  );
+                }
+                return Switch(
+                  value: multiWebviewController.mobileKeepAlive.keys
+                      .contains(initDomain),
+                  onChanged: (value) async {
+                    _menuController.close();
+                    if (value) {
+                      await multiWebviewController.enableKeepAlive(initDomain);
+                      EasyLoading.showSuccess(
+                        'KeepAlive Enabled. Take effect after restarting the page.',
                       );
+                      return;
                     }
-                    return Icon(
-                      CupertinoIcons.bookmark,
-                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    await multiWebviewController.disableKeepAlive(initDomain);
+                    EasyLoading.showSuccess(
+                      'KeepAlive Disabled.',
                     );
                   },
-                ),
-                Text(
-                  'Bookmark',
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-              ],
+                );
+              },
             ),
           ),
-          PopupMenuItem(
-            value: 'favorite',
-            child: Row(
-              spacing: 16,
-              children: [
-                SvgPicture.asset(
-                  'assets/images/app_add.svg',
-                  height: 24,
-                  width: 24,
-                  colorFilter: ColorFilter.mode(
-                    Theme.of(context).iconTheme.color!.withAlpha(200),
-                    BlendMode.srcIn,
-                  ),
-                ),
-                Text(
-                  'Add to Favorites',
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-              ],
-            ),
+          const SizedBox(width: 8),
+          Text(
+            'Keep Alive',
+            style: Theme.of(context).textTheme.bodyLarge,
           ),
-          const PopupMenuItem(
-            height: 1,
-            value: 'divider',
-            child: Divider(),
-          ),
-          PopupMenuItem(
-            value: 'shareToRooms',
-            child: Row(
-              spacing: 16,
-              children: [
-                Icon(
-                  CupertinoIcons.chat_bubble,
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
-                ),
-                Text(
-                  'Share to Room',
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-              ],
-            ),
-          ),
-          PopupMenuItem(
-            value: 'share',
-            child: Row(
-              spacing: 16,
-              children: [
-                Icon(
-                  CupertinoIcons.share,
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
-                ),
-                Text(
-                  'Share',
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-              ],
-            ),
-          ),
-          PopupMenuItem(
-            value: 'zoom',
-            child: Row(
-              spacing: 16,
-              children: [
-                Icon(
-                  CupertinoIcons.zoom_in,
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
-                ),
-                Text(
-                  'Zoom Text',
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-              ],
-            ),
-          ),
-          if (GetPlatform.isMobile)
-            PopupMenuItem(
-              padding: EdgeInsets.zero,
-              value: 'KeepAlive',
-              child: ListTile(
-                leading: Transform.scale(
-                  scale: 0.6,
-                  child: FutureBuilder(
-                    future: (() async {
-                      await multiWebviewController.loadKeepAlive();
-                    })(),
-                    builder: (context, snapshot) {
-                      if (snapshot.hasData) {
-                        return Icon(
-                          Icons.check_circle,
-                          color: Theme.of(context).primaryColor,
-                        );
-                      }
-                      return Switch(
-                        value: multiWebviewController.mobileKeepAlive.keys
-                            .contains(initDomain),
-                        onChanged: (value) async {
-                          if (value) {
-                            await multiWebviewController
-                                .enableKeepAlive(initDomain);
-
-                            Get.back<void>();
-                            EasyLoading.showSuccess(
-                              'KeepAlive Enabled. Take effect after restarting the page.',
-                            );
-                            return;
-                          }
-                          await multiWebviewController
-                              .disableKeepAlive(initDomain);
-                          Get.back<void>();
-                          EasyLoading.showSuccess(
-                            'KeepAlive Disabled.',
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ),
-                contentPadding: EdgeInsets.zero,
-                horizontalTitleGap: 0,
-                title: Text(
-                  'Keep Alive',
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-              ),
-            ),
-          if (tabController.browserConnect.value.host == '')
-            PopupMenuItem(
-              value: 'clear',
-              child: Row(
-                spacing: 12,
-                children: [
-                  Icon(
-                    Icons.storage,
-                    color: Theme.of(context).textTheme.bodyLarge?.color,
-                  ),
-                  Text(
-                    'Clear Cache',
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                ],
-              ),
-            ),
-          const PopupMenuItem(
-            height: 1,
-            value: 'divider',
-            child: Divider(),
-          ),
-          if (tabController.browserConnect.value.host != '')
-            PopupMenuItem(
-              value: 'disconnect',
-              child: Row(
-                spacing: 12,
-                children: [
-                  Icon(
-                    Icons.logout,
-                    color: Theme.of(context).textTheme.bodyLarge?.color,
-                  ),
-                  Text(
-                    'ID Logout',
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                ],
-              ),
-            ),
-          if (GetPlatform.isMobile)
-            PopupMenuItem(
-              value: 'close',
-              child: Row(
-                spacing: 12,
-                children: [
-                  Icon(
-                    Icons.exit_to_app,
-                    color: Theme.of(context).textTheme.bodyLarge?.color,
-                  ),
-                  Text(
-                    'Close',
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                ],
-              ),
-            ),
-        ];
-      },
-      icon: child,
+        ],
+      ),
     );
+  }
+
+  Future<void> _handleMenuSelection(String value) async {
+    _menuController.close();
+    await popupMenuSelected(value);
   }
 
   Widget _getWebview() {
@@ -919,10 +940,7 @@ class _WebviewTabState extends State<WebviewTab> {
   Widget getPopTools() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Theme.of(Get.context!).scaffoldBackgroundColor,
-        borderRadius: BorderRadius.circular(5),
-      ),
+      constraints: const BoxConstraints(maxWidth: 200),
       child: Row(
         spacing: 4,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,

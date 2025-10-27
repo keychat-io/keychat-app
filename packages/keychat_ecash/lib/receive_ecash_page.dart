@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:app/service/qrscan.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
@@ -143,15 +145,41 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
                                 retry: true,
                               );
                               receiveTextController.clear();
-                              controller.requestPageRefresh();
+                              unawaited(controller.requestPageRefresh());
                               setState(() {
                                 decodedModel = null;
                               });
                             } catch (e, s) {
                               final msg = Utils.getErrorMessage(e);
-                              EasyLoading.showToast(msg);
+                              if (msg.contains(
+                                'Blinded Message is already signed',
+                              )) {
+                                await Get.dialog<void>(
+                                  CupertinoAlertDialog(
+                                    title: const Text('Info'),
+                                    content: Text(
+                                      '''
+$msg
+
+Fix this: 
+1. Go to Bitcoin Ecash -> Settings -> Restore from Mint Server
+2. After restore, try to receive the token again.
+''',
+                                    ),
+                                    actions: [
+                                      CupertinoDialogAction(
+                                        isDefaultAction: true,
+                                        onPressed: Get.back<void>,
+                                        child: const Text('OK'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              } else {
+                                await EasyLoading.showToast(msg);
+                              }
                               logger.e(
-                                'Receive token failed',
+                                msg,
                                 error: e,
                                 stackTrace: s,
                               );

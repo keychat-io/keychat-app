@@ -1,16 +1,14 @@
-import 'package:app/utils.dart';
-import 'package:flutter/services.dart';
-import 'package:keychat_ecash/utils.dart';
-import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
-
 import 'package:app/models/embedded/cashu_info.dart';
 import 'package:app/models/message.dart';
-import 'package:keychat_ecash/status_enum.dart';
 import 'package:app/service/message.service.dart';
+import 'package:app/utils.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:easy_debounce/easy_throttle.dart';
+import 'package:keychat_ecash/status_enum.dart';
+import 'package:keychat_ecash/utils.dart';
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
+import 'package:keychat_rust_ffi_plugin/api_cashu/types.dart';
 
 class RedPocketCashu extends StatefulWidget {
   const RedPocketCashu({required this.message, super.key});
@@ -22,6 +20,7 @@ class RedPocketCashu extends StatefulWidget {
 
 class _RedPocketCashuState extends State<RedPocketCashu> {
   late CashuInfoModel _cashuInfoModel;
+  bool _isRedeeming = false;
 
   @override
   void initState() {
@@ -92,34 +91,70 @@ class _RedPocketCashuState extends State<RedPocketCashu> {
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Colors.white70),
                   ),
-                  onPressed: () async {
-                    EasyThrottle.throttle(
-                        'handleReceiveToken', const Duration(seconds: 3),
-                        () async {
-                      if (_cashuInfoModel.status != TransactionStatus.pending) {
-                        return;
-                      }
-                      final model = await CashuUtil.handleReceiveToken(
-                        token: _cashuInfoModel.token,
-                        messageId: widget.message.id,
-                        retry: true,
-                      );
+                  onPressed: _isRedeeming
+                      ? null
+                      : () async {
+                          if (_cashuInfoModel.status !=
+                                  TransactionStatus.pending ||
+                              _isRedeeming) {
+                            return;
+                          }
 
-                      if (model != null) {
-                        logger.d(
-                          'handleReceiveToken status: ${model.status.name}',
-                        );
-                        updateMessageEcashStatus(model.status);
-                      }
-                    });
-                  },
-                  child: Text(
-                    'Redeem',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: Colors.white),
-                  ),
+                          setState(() {
+                            _isRedeeming = true;
+                          });
+
+                          try {
+                            final model = await CashuUtil.handleReceiveToken(
+                              token: _cashuInfoModel.token,
+                              messageId: widget.message.id,
+                              retry: true,
+                            );
+
+                            if (model != null) {
+                              logger.d(
+                                'handleReceiveToken status: ${model.status.name}',
+                              );
+                              await updateMessageEcashStatus(model.status);
+                            }
+                          } finally {
+                            if (mounted) {
+                              setState(() {
+                                _isRedeeming = false;
+                              });
+                            }
+                          }
+                        },
+                  child: _isRedeeming
+                      ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Redeeming...',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(color: Colors.white),
+                            ),
+                          ],
+                        )
+                      : Text(
+                          'Redeem',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(color: Colors.white),
+                        ),
                 ),
                 IconButton(
                   style: OutlinedButton.styleFrom(

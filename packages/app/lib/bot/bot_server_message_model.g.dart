@@ -44,6 +44,7 @@ const _$MessageMediaTypeEnumMap = {
   MessageMediaType.groupInvitationInfo: 'groupInvitationInfo',
   MessageMediaType.groupInvitationRequesting: 'groupInvitationRequesting',
   MessageMediaType.lightningInvoice: 'lightningInvoice',
+  MessageMediaType.profileRequest: 'profileRequest',
 };
 
 BotMessageData _$BotMessageDataFromJson(Map<String, dynamic> json) =>
@@ -53,8 +54,7 @@ BotMessageData _$BotMessageDataFromJson(Map<String, dynamic> json) =>
       price: (json['price'] as num).toInt(),
       unit: json['unit'] as String,
       mints:
-          (json['mints'] as List<dynamic>?)?.map((e) => e as String).toList() ??
-              [],
+          (json['mints'] as List<dynamic>?)?.map((e) => e as String).toList(),
     );
 
 Map<String, dynamic> _$BotMessageDataToJson(BotMessageData instance) =>

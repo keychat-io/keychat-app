@@ -47,6 +47,7 @@ class KeyChatEventKinds {
   static const int signalRelaySyncInvite = 45;
   static const int signalRelaySyncConfirm = 46;
   static const int signalRelaySyncRefuse = 47;
+  static const int signalSendProfile = 48;
 
   // > 2000, common proccess
   // WebRTC

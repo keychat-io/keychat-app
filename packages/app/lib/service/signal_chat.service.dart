@@ -266,6 +266,7 @@ class SignalChatService extends BaseChatService {
     String? msgKeyHash,
   }) async {
     switch (km.type) {
+      case KeyChatEventKinds.signalSendProfile:
       case KeyChatEventKinds.dm: // commom chat, may be contain: reply
         await RoomService.instance.receiveDM(
           room,
@@ -353,6 +354,7 @@ class SignalChatService extends BaseChatService {
       avatarRemoteUrl: model.avatar,
       lightning: model.lightning,
     );
+
     // auto send response
     final oneTimeKey = await IdentityService.instance
         .isFromOnetimeKey((sourceEvent ?? event).tags[0][1]);

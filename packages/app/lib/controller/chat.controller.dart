@@ -2,7 +2,9 @@ import 'dart:async' show Future, Timer, unawaited;
 import 'dart:convert' show jsonDecode, jsonEncode;
 import 'dart:io' show Directory, File;
 
+import 'package:app/constants.dart';
 import 'package:app/controller/home.controller.dart';
+import 'package:app/models/keychat/profile_request_model.dart';
 import 'package:app/models/models.dart';
 import 'package:app/nostr-core/nostr.dart';
 import 'package:app/page/chat/RoomDraft.dart';
@@ -16,6 +18,7 @@ import 'package:app/service/room.service.dart';
 import 'package:app/service/signal_chat.service.dart';
 import 'package:app/utils.dart';
 import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
+import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -101,6 +104,7 @@ class ChatController extends GetxController {
     'assets/images/file.png',
     'assets/images/bitcoin.png',
     'assets/images/lightning.png',
+    'assets/images/profile.png',
   ];
 
   //image video camera-image  camera-video file satos
@@ -111,6 +115,7 @@ class ChatController extends GetxController {
     'File',
     'Sat',
     'Invoice',
+    'Profile',
   ];
 
   List<Function> featuresOnTaps = [];
@@ -301,6 +306,7 @@ class ChatController extends GetxController {
       () => FileService.instance.handleFileUpload(roomObs.value),
       _handleSendSats,
       _handleSendLightning,
+      _handleSendProfile,
     ];
     // disable webrtc
     // bool isCommonRoom = roomObs.value.type == RoomType.common;
@@ -775,6 +781,38 @@ Add as a friend and start the signal protocol chat
       logger.e(msg, error: e, stackTrace: s);
       EasyLoading.showError(msg);
     }
+  }
+
+  Future<void> _handleSendProfile() async {
+    EasyThrottle.throttle('send_profile', const Duration(seconds: 3), () async {
+      try {
+        final identity = roomObs.value.getIdentity();
+        final prm = ProfileRequestModel(
+          pubkey: identity.secp256k1PKHex,
+          name: identity.name,
+          avatar: await identity.getRemoteAvatarUrl(),
+          lightningAddress: identity.lightning,
+        );
+
+        final sm = KeychatMessage(
+          c: MessageType.signal,
+          type: KeyChatEventKinds.signalSendProfile,
+        )
+          ..name = prm.toString()
+          ..msg = "[Send ${identity.name}'s Profile]";
+        await RoomService.instance.sendMessage(
+          roomObs.value,
+          sm.toString(),
+          realMessage: sm.msg,
+          mediaType: MessageMediaType.profileRequest,
+        );
+        hideAdd.value = true; // close features section
+      } catch (e, s) {
+        final msg = Utils.getErrorMessage(e);
+        logger.e(msg, error: e, stackTrace: s);
+        EasyLoading.showError(msg);
+      }
+    });
   }
 
   Future<void> _handleSendWithCamera() async {

@@ -541,19 +541,30 @@ class RoomService extends BaseChatService {
     MessageEncryptType? encryptType,
     String? requestId,
   }) async {
+    var content = decodedContent ?? km?.msg ?? event.content;
+    senderPubkey ??= (room.type == RoomType.common || room.type == RoomType.bot)
+        ? room.toMainPubkey
+        : event.pubkey;
+    final isMeSend = senderPubkey == room.myIdPubkey;
+
     MsgReply? reply;
     if (km != null) {
       if (km.type == KeyChatEventKinds.dm && km.name != null) {
         try {
           reply = MsgReply.fromJson(jsonDecode(km.name!));
-          decodedContent = km.msg;
-          // ignore: empty_catches
+          if (km.msg != null) {
+            content = km.msg!;
+          }
         } catch (e) {}
       }
+      if (!isMeSend) {
+        if (km.type == KeyChatEventKinds.signalSendProfile) {
+          mediaType = MessageMediaType.profileRequest;
+          content = km.toString();
+        }
+      }
     }
-    senderPubkey ??= (room.type == RoomType.common || room.type == RoomType.bot)
-        ? room.toMainPubkey
-        : event.pubkey;
+
     await MessageService.instance.saveMessageToDB(
       events: [sourceEvent ?? event],
       room: room,
@@ -564,11 +575,11 @@ class RoomService extends BaseChatService {
       isSystem: isSystem,
       realMessage: realMessage,
       subEvent: sourceEvent != null ? event.toJson().toString() : null,
-      content: decodedContent ?? km?.msg ?? event.content,
+      content: content,
       encryptType: encryptType ?? RoomUtil.getEncryptMode(event, sourceEvent),
       reply: reply,
       sent: SendStatusType.success,
-      isMeSend: senderPubkey == room.myIdPubkey,
+      isMeSend: isMeSend,
       isRead: isRead,
       mediaType: mediaType,
       requestConfrim: requestConfrim,
@@ -672,7 +683,7 @@ class RoomService extends BaseChatService {
           final cashuToken = await CashuUtil.getStamp(
             amount: bmd.price,
             token: bmd.unit,
-            mints: bmd.mints,
+            mints: bmd.mints ?? [],
           );
           cashuTokenString = cashuToken.token;
           final ecashBill = EcashBill(
@@ -756,14 +767,7 @@ class RoomService extends BaseChatService {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.rooms.put(room);
     });
-    final cc = RoomService.getController(room.id);
-    if (cc == null) return;
-
-    if (room.type == RoomType.common) {
-      room.contact ??=
-          await contactService.getContact(room.identityId, room.toMainPubkey);
-    }
-    cc.setRoom(room);
+    await refreshRoom(room);
   }
 
   Future<void> checkWebsocketConnect() async {
@@ -966,6 +970,17 @@ class RoomService extends BaseChatService {
         .toMainPubkeyEqualTo(hexPubkey)
         .typeEqualTo(RoomType.common)
         .findAll();
+  }
+
+  Future<void> refreshRoom(Room room) async {
+    final cc = RoomService.getController(room.id);
+    if (cc == null) return;
+
+    if (room.type == RoomType.common) {
+      room.contact ??=
+          await contactService.getContact(room.identityId, room.toMainPubkey);
+    }
+    cc.setRoom(room);
   }
 }
 

@@ -530,11 +530,7 @@ class _ChatPage2State extends State<ChatPage> {
               opacity: !controller.hideAdd.value ? 1.0 : 0.0,
               duration: const Duration(milliseconds: 500),
               child: AnimatedContainer(
-                height: !controller.hideAdd.value
-                    ? GetPlatform.isMobile
-                        ? 220.0
-                        : 120
-                    : 0.0,
+                height: !controller.hideAdd.value ? 220.0 : 0.0,
                 duration: const Duration(milliseconds: 500),
                 child: getFeaturesWidget(context),
               ),
@@ -622,8 +618,9 @@ class _ChatPage2State extends State<ChatPage> {
     return GridView.builder(
       physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.all(8),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: GetPlatform.isDesktop ? 6 : 4,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        childAspectRatio: 1.6,
       ),
       itemCount: controller.featuresIcons.length,
       itemBuilder: (context, index) {

@@ -25,12 +25,12 @@ class BotServerMessageModel {
 
 @JsonSerializable()
 class BotMessageData {
-  const BotMessageData({
+  BotMessageData({
     required this.name,
     required this.description,
     required this.price,
     required this.unit,
-    this.mints = const [],
+    this.mints,
   });
 
   factory BotMessageData.fromJson(Map<String, dynamic> json) =>
@@ -39,8 +39,7 @@ class BotMessageData {
   final String description;
   final int price;
   final String unit;
-  @JsonKey(defaultValue: <String>[])
-  final List<String> mints;
+  List<String>? mints;
 
   Map<String, dynamic> toJson() => _$BotMessageDataToJson(this);
 }

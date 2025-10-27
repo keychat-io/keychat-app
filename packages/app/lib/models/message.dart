@@ -39,6 +39,7 @@ enum MessageMediaType {
   groupInvitationInfo,
   groupInvitationRequesting,
   lightningInvoice,
+  profileRequest, // sync my profile to others
 }
 
 enum RequestConfrimEnum { none, request, approved, rejected, expired }

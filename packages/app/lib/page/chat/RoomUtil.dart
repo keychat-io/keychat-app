@@ -9,6 +9,7 @@ import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/ChatMediaFilesPage.dart';
 import 'package:app/page/chat/ForwardSelectRoom.dart';
 import 'package:app/page/chat/contact_page.dart';
+import 'package:app/page/chat/message_actions/ProfileRequestWidget.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/widgets/image_min_preview_widget.dart';
 import 'package:app/page/widgets/image_preview_widget.dart';
@@ -878,6 +879,13 @@ Let's start an encrypted chat.''';
           return GroupInvitationInfoWidget(cc, message, errorCallback);
         case MessageMediaType.groupInvitationRequesting:
           return GroupInvitationRequestingWidget(cc, message, errorCallback);
+        case MessageMediaType.profileRequest:
+          return ProfileRequestWidget(
+            cc,
+            message,
+            cc.roomObs.value,
+            errorCallback,
+          );
         case MessageMediaType.contact:
           // TODO: Handle this case.
           throw UnimplementedError();

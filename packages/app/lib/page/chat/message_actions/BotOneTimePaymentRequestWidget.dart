@@ -43,21 +43,28 @@ class _BotOneTimePaymentRequestWidgetState
     if (widget.message.confirmResult != null) {
       final selected =
           jsonDecode(widget.message.confirmResult!) as Map<String, dynamic>;
-      return perMessagePriceOptionWidget(BotMessageData.fromJson(selected),
-          selected: true);
+      return perMessagePriceOptionWidget(
+        BotMessageData.fromJson(selected),
+        selected: true,
+      );
     }
     return bmm == null
         ? const SizedBox()
-        : Column(children: [
-            ...bmm!.priceModels.map((data) {
-              final index = bmm!.priceModels.indexOf(data) + 1;
-              return perMessagePriceOptionWidget(data, index: index);
-            })
-          ]);
+        : Column(
+            children: [
+              ...bmm!.priceModels.map((data) {
+                final index = bmm!.priceModels.indexOf(data) + 1;
+                return perMessagePriceOptionWidget(data, index: index);
+              }),
+            ],
+          );
   }
 
-  Container perMessagePriceOptionWidget(BotMessageData data,
-      {int index = 1, bool selected = false}) {
+  Container perMessagePriceOptionWidget(
+    BotMessageData data, {
+    int index = 1,
+    bool selected = false,
+  }) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
@@ -94,9 +101,10 @@ class _BotOneTimePaymentRequestWidgetState
                       if (data.unit == 'sat' && data.price > 0) {
                         try {
                           final cashuToken = await CashuUtil.getStamp(
-                              amount: data.price,
-                              token: data.unit,
-                              mints: data.mints);
+                            amount: data.price,
+                            token: data.unit,
+                            mints: data.mints ?? [],
+                          );
                           cashuTokenString = cashuToken.token;
                         } catch (e, s) {
                           final msg = Utils.getErrorMessage(e);
@@ -107,14 +115,17 @@ class _BotOneTimePaymentRequestWidgetState
                       }
                       final confirmResult = jsonEncode(data.toJson());
                       final bcm = BotClientMessageModel(
-                          type: MessageMediaType.botOneTimePaymentRequest,
-                          message: confirmResult,
-                          payToken: cashuTokenString);
+                        type: MessageMediaType.botOneTimePaymentRequest,
+                        message: confirmResult,
+                        payToken: cashuTokenString,
+                      );
 
                       await RoomService.instance.sendMessage(
-                          widget.cc.roomObs.value, jsonEncode(bcm.toJson()),
-                          realMessage:
-                              'Selected ${data.name}, and send ecash: ${data.price} ${data.unit}');
+                        widget.cc.roomObs.value,
+                        jsonEncode(bcm.toJson()),
+                        realMessage:
+                            'Selected ${data.name}, and send ecash: ${data.price} ${data.unit}',
+                      );
 
                       widget.message.confirmResult = confirmResult;
                       await MessageService.instance
@@ -133,12 +144,14 @@ class _BotOneTimePaymentRequestWidgetState
         subtitle: Wrap(
           direction: Axis.vertical,
           children: [
-            Text('${data.price} ${data.unit}',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(color: const Color(0xFFFE4F00))),
-            if (data.description.isNotEmpty) Text(data.description)
+            Text(
+              '${data.price} ${data.unit}',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(color: const Color(0xFFFE4F00)),
+            ),
+            if (data.description.isNotEmpty) Text(data.description),
           ],
         ),
         trailing: selected

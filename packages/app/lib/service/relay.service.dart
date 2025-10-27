@@ -336,7 +336,6 @@ class RelayService {
         // logger.i('fetchRelayMessageFee, $relay: $payInfo');
         if (payInfo != null) {
           ws.relayMessageFeeModels[relay.url] = payInfo;
-          // logger.i('_fetchCashuPayInfo: ${payInfo.amount} ${payInfo.mints}');
           ws.relayMessageFeeModels.refresh();
         }
       } catch (e, s) {
@@ -383,8 +382,8 @@ class RelayService {
               final mintsList =
                   publication['method']['Cashu']['mints'] as List?;
               if (mintsList != null) {
-                for (final m in mintsList) {
-                  mints.add(m);
+                for (final item in mintsList) {
+                  mints.add(item as String);
                 }
               }
 
@@ -436,12 +435,12 @@ class RelayService {
       final map = await _fetchFileUploadConfig(url);
       logger.i('fetchAndSetFileUploadConfig, $url: $map');
       if (map != null) {
-        final rufc = RelayFileFee();
-        rufc.maxSize = map['maxsize'] as int? ?? 0;
-        rufc.mints = map['mints'] as List<dynamic>? ?? [];
-        rufc.prices = map['prices'] as List<dynamic>? ?? [];
-        rufc.unit = map['unit'] as String? ?? '-';
-        rufc.expired = map['expired'] as String? ?? '-';
+        final rufc = RelayFileFee()
+          ..maxSize = map['maxsize'] as int? ?? 0
+          ..mints = map['mints'] as List<dynamic>? ?? []
+          ..prices = map['prices'] as List<dynamic>? ?? []
+          ..unit = map['unit'] as String? ?? '-'
+          ..expired = map['expired'] as String? ?? '-';
         return rufc;
       }
     } catch (e) {

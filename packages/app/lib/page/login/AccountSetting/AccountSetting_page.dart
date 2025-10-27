@@ -338,42 +338,6 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                         ),
                       if (controller.identity.value.enableChat)
                         SettingsTile.navigation(
-                          leading: const Icon(CupertinoIcons.arrow_clockwise),
-                          title: const Text('Sync profile from relay'),
-                          onPressed: (context) async {
-                            try {
-                              unawaited(
-                                EasyLoading.show(status: 'Syncing...'),
-                              );
-                              final identity = await IdentityService.instance
-                                  .syncProfileFromRelay(
-                                controller.identity.value,
-                              );
-                              if (identity == null) {
-                                await EasyLoading.showInfo(
-                                  'No profile found on relay',
-                                );
-                                return;
-                              }
-                              controller.identity.value = identity;
-                              controller.identity.refresh();
-                              await EasyLoading.showSuccess(
-                                'Successfully synced',
-                              );
-                            } catch (e, s) {
-                              logger.e(
-                                'Failed to sync profile: $e',
-                                stackTrace: s,
-                              );
-                              await EasyLoading.showError(
-                                'Failed to sync profile: ${Utils.getErrorMessage(e)}',
-                              );
-                              return;
-                            }
-                          },
-                        ),
-                      if (controller.identity.value.enableChat)
-                        SettingsTile.navigation(
                           leading: const Icon(
                             CupertinoIcons.person_2_square_stack_fill,
                           ),

@@ -1,6 +1,5 @@
 import 'package:app/app.dart';
 import 'package:app/controller/home.controller.dart';
-import 'package:app/page/browser/SelectIdentityForward.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/components.dart';
 import 'package:flutter/material.dart';
@@ -60,9 +59,13 @@ class _ForwardSelectRoomState extends State<ForwardSelectRoom> {
         ),
         title: const Text('Select to Forward'),
         actions: [
-          Utils.selectIdentityIconButton(selectedIdentity, (identity) {
-            init(selectedIdentity);
-          }),
+          Utils.selectIdentityIconButton(
+            identity: selectedIdentity,
+            onChanged: (identity) {
+              if (identity == null) return;
+              init(identity);
+            },
+          ),
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,

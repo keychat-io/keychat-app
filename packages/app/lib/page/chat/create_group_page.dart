@@ -28,11 +28,11 @@ class _AddGroupPageState extends State<AddGroupPage>
   GroupType groupType = GroupType.mls;
   List<String> relays = [];
   late WebsocketService ws;
-  late Identity identity;
+  late Identity selectedIdentity;
   @override
   void initState() {
     _groupNameController = TextEditingController();
-    identity = Get.find<HomeController>().getSelectedIdentity();
+    selectedIdentity = Get.find<HomeController>().getSelectedIdentity();
     super.initState();
   }
 
@@ -49,9 +49,15 @@ class _AddGroupPageState extends State<AddGroupPage>
       appBar: AppBar(
         title: const Text('New Group Chat'),
         actions: [
-          Utils.selectIdentityIconButton(identity, (Identity result) {
-            identity = result;
-          }),
+          Utils.selectIdentityIconButton(
+            identity: selectedIdentity,
+            onChanged: (identity) {
+              if (identity == null) return;
+              setState(() {
+                selectedIdentity = identity;
+              });
+            },
+          ),
         ],
       ),
       floatingActionButtonLocation:
@@ -68,13 +74,13 @@ class _AddGroupPageState extends State<AddGroupPage>
               return;
             }
 
-            var contactList =
-                await ContactService.instance.getFriendContacts(identity.id);
+            var contactList = await ContactService.instance
+                .getFriendContacts(selectedIdentity.id);
             contactList = contactList.reversed.toList();
             final list = <Map<String, dynamic>>[];
             for (var i = 0; i < contactList.length; i++) {
               final c = contactList[i];
-              if (c.pubkey == identity.secp256k1PKHex) continue;
+              if (c.pubkey == selectedIdentity.secp256k1PKHex) continue;
               const exist = false;
               list.add({
                 'pubkey': c.pubkey,
@@ -124,7 +130,7 @@ class _AddGroupPageState extends State<AddGroupPage>
                 Set<String>.from(relays).toList(),
                 groupType,
                 list,
-                identity,
+                selectedIdentity,
               ),
               isScrollControlled: true,
               ignoreSafeArea: false,

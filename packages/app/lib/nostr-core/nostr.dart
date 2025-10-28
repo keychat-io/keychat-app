@@ -748,6 +748,7 @@ class NostrAPI {
         .receiveNip4Message(subEvent, subEvent.content, sourceEvent: event);
   }
 
+  // decrypt nip17 event
   Future<NostrEventModel> _getNostrEventByTo(
     NostrEventModel event,
     void Function(String) failedCallbackync,

@@ -269,8 +269,8 @@ class _WebviewTabState extends State<WebviewTab> {
                       child: Opacity(
                         opacity: 0.7,
                         child: Container(
-                          width: 48,
-                          height: 48,
+                          width: 44,
+                          height: 44,
                           decoration: const BoxDecoration(
                             shape: BoxShape.circle,
                             color: Colors.black,

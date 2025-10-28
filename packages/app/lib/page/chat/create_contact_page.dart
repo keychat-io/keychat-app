@@ -52,11 +52,15 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
         centerTitle: true,
         title: const Text('Add Contact'),
         actions: [
-          Utils.selectIdentityIconButton(selectedIdentity, (identity) {
-            setState(() {
-              selectedIdentity = identity;
-            });
-          }),
+          Utils.selectIdentityIconButton(
+            identity: selectedIdentity,
+            onChanged: (identity) {
+              if (identity == null) return;
+              setState(() {
+                selectedIdentity = identity;
+              });
+            },
+          ),
         ],
       ),
       body: SafeArea(

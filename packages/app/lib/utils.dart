@@ -1437,27 +1437,44 @@ Init File: $time \n
     );
   }
 
-  static Widget selectIdentityIconButton(
-    Identity defaultIdentity,
-    void Function(Identity selected) callback,
-  ) {
-    final selectedIdentity = Rx<Identity>(defaultIdentity);
+  static Widget selectIdentityIconButton({
+    required Identity identity,
+    required void Function(Identity? selected) onChanged,
+  }) {
+    // Use local state that persists across rebuilds
+    return GetBuilder<_IdentityButtonController>(
+      init: _IdentityButtonController(identity),
+      builder: (controller) {
+        return TextButton.icon(
+          onPressed: () async {
+            final selected = await Get.bottomSheet<Identity>(
+              clipBehavior: Clip.antiAlias,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+              ),
+              const SelectIdentityForward('Select a Identity'),
+            );
+            if (selected == null) return;
 
-    return TextButton.icon(
-      onPressed: () async {
-        final selected = await Get.bottomSheet<Identity>(
-          clipBehavior: Clip.antiAlias,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
-          ),
-          const SelectIdentityForward('Select a Identity'),
+            controller.updateIdentity(selected);
+            onChanged(selected);
+          },
+          icon: const Icon(Icons.swap_horiz),
+          label: Text(controller.currentIdentity.displayName),
         );
-        if (selected == null) return;
-        selectedIdentity.value = selected;
-        callback(selected);
       },
-      icon: const Icon(Icons.swap_horiz),
-      label: Obx(() => Text(selectedIdentity.value.displayName)),
     );
+  }
+}
+
+// Add this helper controller class at the end of the file
+class _IdentityButtonController extends GetxController {
+  _IdentityButtonController(this.currentIdentity);
+
+  Identity currentIdentity;
+
+  void updateIdentity(Identity identity) {
+    currentIdentity = identity;
+    update();
   }
 }

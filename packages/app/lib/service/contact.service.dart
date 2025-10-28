@@ -1,4 +1,5 @@
 import 'package:app/app.dart';
+import 'package:app/controller/home.controller.dart';
 import 'package:app/service/file.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/websocket.service.dart';
@@ -303,7 +304,7 @@ class ContactService {
     });
   }
 
-  Future<int> saveContact(Contact contact, {bool sync = true}) async {
+  Future<int> saveContact(Contact contact) async {
     final database = DBProvider.database;
     var id = 0;
     await database.writeTxn(() async {
@@ -341,7 +342,7 @@ class ContactService {
     if (metadata != null) {
       contact.metadata = metadata;
     }
-    await saveContact(contact, sync: false);
+    await saveContact(contact);
   }
 
   Future<void> updateOrCreateByRoom(Room room, String? contactName) async {
@@ -384,6 +385,7 @@ class ContactService {
     String? name,
     String? avatarRemoteUrl,
     String? lightning,
+    String? bio,
   }) async {
     final contact = await ContactService.instance
         .getOrCreateContact(identityId: identityId, pubkey: pubkey);
@@ -392,24 +394,32 @@ class ContactService {
       changed = true;
       contact.name = name;
     }
-    if (lightning != null && contact.lightning != lightning) {
+    if (contact.lightning != lightning) {
       changed = true;
       contact.lightning = lightning;
     }
-    if (avatarRemoteUrl != null &&
-        avatarRemoteUrl.isNotEmpty &&
-        avatarRemoteUrl != contact.avatarRemoteUrl) {
+    if (contact.about != bio) {
+      changed = true;
+      contact.about =
+          bio != null && bio.length > 200 ? bio.substring(0, 200) : bio;
+    }
+    if (avatarRemoteUrl != contact.avatarRemoteUrl) {
       try {
         changed = true;
         contact.avatarRemoteUrl = avatarRemoteUrl;
-        final decryptedFile =
-            await FileService.instance.downloadAndDecryptToPath(
-          url: avatarRemoteUrl,
-          outputFolder: Utils.avatarsFolder,
-        );
-        contact.avatarLocalPath =
-            decryptedFile.path.replaceFirst(Utils.appFolder.path, '');
+        if (avatarRemoteUrl != null) {
+          final decryptedFile =
+              await FileService.instance.downloadAndDecryptToPath(
+            url: avatarRemoteUrl,
+            outputFolder: Utils.avatarsFolder,
+          );
+          contact.avatarLocalPath =
+              decryptedFile.path.replaceFirst(Utils.appFolder.path, '');
+        } else {
+          contact.avatarLocalPath = null;
+        }
         Utils.clearAvatarCache();
+        Get.find<HomeController>().loadIdentityRoomList(identityId);
       } catch (e) {
         logger.e('Failed to download avatar: $e');
       }

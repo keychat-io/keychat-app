@@ -224,48 +224,162 @@ class AccountSettingPage extends GetView<AccountSettingController> {
               child: SettingsList(
                 platform: DevicePlatform.iOS,
                 sections: [
-                  if (kDebugMode ||
-                      (controller.identity.value.index == -1 &&
-                          !controller.identity.value.isFromSigner) ||
-                      controller.identity.value.index > -1)
-                    SettingsSection(
-                      tiles: [
-                        if (kDebugMode)
-                          SettingsTile(
-                            leading: const Icon(CupertinoIcons.person),
-                            title: const Text('Hex'),
-                            onPressed: (c) {
-                              debugPrint(
-                                controller.identity.value.secp256k1PKHex,
-                              );
-                            },
-                            value: Text(
-                              getPublicKeyDisplay(
-                                controller.identity.value.secp256k1PKHex,
+                  SettingsSection(
+                    title: const Text('Profile'),
+                    tiles: [
+                      SettingsTile.navigation(
+                        leading: const Icon(CupertinoIcons.person),
+                        title: const Text('Name'),
+                        value: Obx(
+                          () => Text(controller.identity.value.displayName),
+                        ),
+                        onPressed: (context) async {
+                          await _updateIdentityNameDialog(
+                            context,
+                            controller.identity.value,
+                          );
+                        },
+                      ),
+                      SettingsTile.navigation(
+                        leading: const Icon(Icons.note),
+                        title: const Text('Bio'),
+                        onPressed: (context) async {
+                          final identity = controller.identity.value;
+                          final aboutController =
+                              TextEditingController(text: identity.about ?? '');
+
+                          await showModalBottomSheet<void>(
+                            context: context,
+                            isScrollControlled: true,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(16),
                               ),
                             ),
-                          ),
-                        if (controller.identity.value.index == -1 &&
-                            !controller.identity.value.isFromSigner)
-                          _getNsec(true),
-                        if (controller.identity.value.index > -1)
-                          SettingsTile.navigation(
-                            leading: const Icon(Icons.key),
-                            title: const Text('Seed Phrase'),
-                            onPressed: (context) {
-                              Get.bottomSheet(
-                                clipBehavior: Clip.antiAlias,
-                                shape: const RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.vertical(
-                                    top: Radius.circular(4),
+                            builder: (BuildContext context) {
+                              return Padding(
+                                padding: EdgeInsets.only(
+                                  bottom:
+                                      MediaQuery.of(context).viewInsets.bottom,
+                                  left: 16,
+                                  right: 16,
+                                  top: 16,
+                                ),
+                                child: SafeArea(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 40,
+                                        height: 4,
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[300],
+                                          borderRadius:
+                                              BorderRadius.circular(2),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          TextButton(
+                                            onPressed: Get.back,
+                                            child: const Text('Cancel'),
+                                          ),
+                                          const Text(
+                                            'Update Bio',
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          FilledButton(
+                                            onPressed: () async {
+                                              try {
+                                                final newAbout =
+                                                    aboutController.text.trim();
+                                                identity.about =
+                                                    newAbout.isEmpty
+                                                        ? null
+                                                        : newAbout;
+                                                await IdentityService.instance
+                                                    .updateIdentity(identity);
+                                                controller.identity.value =
+                                                    identity;
+                                                controller.identity.refresh();
+                                                await Get.find<HomeController>()
+                                                    .loadIdentity();
+
+                                                // Close the bottom sheet first
+                                                Navigator.of(context).pop();
+
+                                                // Clear controller and show success message
+                                                aboutController.clear();
+                                                EasyLoading.showSuccess(
+                                                  'Bio updated successfully',
+                                                );
+                                              } catch (e) {
+                                                // Handle error but still close the sheet
+                                                Navigator.of(context).pop();
+                                                aboutController.clear();
+                                                EasyLoading.showError(
+                                                  'Failed to update bio: $e',
+                                                );
+                                              }
+                                            },
+                                            child: const Text('Save'),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      TextField(
+                                        controller: aboutController,
+                                        autofocus: true,
+                                        maxLines: 5,
+                                        maxLength: 200,
+                                        textInputAction:
+                                            TextInputAction.newline,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Bio',
+                                          border: OutlineInputBorder(),
+                                          hintText: 'Tell us about yourself...',
+                                          alignLabelWithHint: true,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                    ],
                                   ),
                                 ),
-                                _idKeysWidget(),
                               );
                             },
+                          );
+                        },
+                      ),
+                      SettingsTile.navigation(
+                        leading: SizedBox(
+                          width: 24,
+                          child: Image.asset(
+                            'assets/images/lightning.png',
+                            fit: BoxFit.contain,
                           ),
-                      ],
-                    ),
+                        ),
+                        title: const Text('Lightning Address'),
+                        onPressed: (context) async {
+                          final result = await Get.dialog<String>(
+                            LightningAddressEditDialog(
+                              identity: controller.identity.value,
+                            ),
+                          );
+
+                          if (result != null) {
+                            controller.identity.value.lightning = result;
+                            controller.identity.refresh();
+                          }
+                        },
+                      ),
+                    ],
+                  ),
                   SettingsSection(
                     tiles: [
                       SettingsTile.switchTile(
@@ -298,7 +412,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                           });
                         },
                       ),
-                      if (controller.identity.value.enableChat)
+                      if (controller.identity.value.enableChat) ...[
                         SettingsTile.navigation(
                           leading: const Icon(CupertinoIcons.qrcode),
                           title: const Text('One-Time Link'),
@@ -310,7 +424,6 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                             );
                           },
                         ),
-                      if (controller.identity.value.enableChat)
                         SettingsTile.navigation(
                           leading: const Icon(CupertinoIcons.link),
                           title: const Text('Universal Link'),
@@ -322,21 +435,6 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                           },
                           value: const Text('Copy'),
                         ),
-                      if (controller.identity.value.enableChat)
-                        SettingsTile.navigation(
-                          leading: const Icon(CupertinoIcons.person),
-                          title: const Text('NickName'),
-                          value: Obx(
-                            () => Text(controller.identity.value.displayName),
-                          ),
-                          onPressed: (context) async {
-                            await _updateIdentityNameDialog(
-                              context,
-                              controller.identity.value,
-                            );
-                          },
-                        ),
-                      if (controller.identity.value.enableChat)
                         SettingsTile.navigation(
                           leading: const Icon(
                             CupertinoIcons.person_2_square_stack_fill,
@@ -351,38 +449,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                             );
                           },
                         ),
-                      if (controller.identity.value.enableChat)
-                        SettingsTile.navigation(
-                          description: Obx(
-                            () => (controller
-                                        .identity.value.lightning?.isNotEmpty ??
-                                    false)
-                                ? Text(
-                                    controller.identity.value.lightning ?? '',
-                                  )
-                                : Container(),
-                          ),
-                          leading: SizedBox(
-                            width: 24,
-                            child: Image.asset(
-                              'assets/images/lightning.png',
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                          title: const Text('Lightning Address'),
-                          onPressed: (context) async {
-                            final result = await Get.dialog<String>(
-                              LightningAddressEditDialog(
-                                identity: controller.identity.value,
-                              ),
-                            );
-
-                            if (result != null) {
-                              controller.identity.value.lightning = result;
-                              controller.identity.refresh();
-                            }
-                          },
-                        ),
+                      ],
                     ],
                   ),
                   SettingsSection(
@@ -431,6 +498,49 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                         ),
                     ],
                   ),
+                  if (kDebugMode ||
+                      (controller.identity.value.index == -1 &&
+                          !controller.identity.value.isFromSigner) ||
+                      controller.identity.value.index > -1)
+                    SettingsSection(
+                      title: const Text('Security'),
+                      tiles: [
+                        if (kDebugMode)
+                          SettingsTile(
+                            leading: const Icon(CupertinoIcons.person),
+                            title: const Text('Hex'),
+                            onPressed: (c) {
+                              debugPrint(
+                                controller.identity.value.secp256k1PKHex,
+                              );
+                            },
+                            value: Text(
+                              getPublicKeyDisplay(
+                                controller.identity.value.secp256k1PKHex,
+                              ),
+                            ),
+                          ),
+                        if (controller.identity.value.index == -1 &&
+                            !controller.identity.value.isFromSigner)
+                          _getNsec(true),
+                        if (controller.identity.value.index > -1)
+                          SettingsTile.navigation(
+                            leading: const Icon(Icons.key),
+                            title: const Text('Seed Phrase'),
+                            onPressed: (context) {
+                              Get.bottomSheet(
+                                clipBehavior: Clip.antiAlias,
+                                shape: const RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.vertical(
+                                    top: Radius.circular(4),
+                                  ),
+                                ),
+                                _idKeysWidget(),
+                              );
+                            },
+                          ),
+                      ],
+                    ),
                 ],
               ),
             ),
@@ -540,8 +650,8 @@ class AccountSettingPage extends GetView<AccountSettingController> {
     BuildContext context,
     Identity identity,
   ) async {
-    final homeController = Get.find<HomeController>();
-
+    final usernameController =
+        TextEditingController(text: identity.displayName);
     await showDialog<void>(
       context: context,
       builder: (BuildContext context) {
@@ -551,7 +661,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
             color: Colors.transparent,
             padding: const EdgeInsets.only(top: 15),
             child: TextField(
-              controller: controller.usernameController,
+              controller: usernameController,
               autofocus: true,
               textInputAction: TextInputAction.done,
               decoration: const InputDecoration(
@@ -568,17 +678,18 @@ class AccountSettingPage extends GetView<AccountSettingController> {
             CupertinoDialogAction(
               child: const Text('Confirm'),
               onPressed: () async {
-                if (controller.usernameController.text.isEmpty) {
+                if (usernameController.text.isEmpty) {
                   EasyLoading.showError('Please input a non-empty name');
                   return;
                 }
-                identity.name = controller.usernameController.text.trim();
+                identity.name = usernameController.text.trim();
                 await IdentityService.instance.updateIdentity(identity);
                 controller.identity.value = identity;
                 controller.identity.refresh();
-                controller.usernameController.clear();
-                await homeController.loadIdentity();
-                homeController.tabBodyDatas.refresh();
+                usernameController.clear();
+                Get.find<HomeController>()
+                  ..loadIdentity()
+                  ..tabBodyDatas.refresh();
                 Get.back<void>();
               },
             ),

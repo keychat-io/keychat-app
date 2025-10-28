@@ -785,13 +785,38 @@ Add as a friend and start the signal protocol chat
 
   Future<void> _handleSendProfile() async {
     EasyThrottle.throttle('send_profile', const Duration(seconds: 3), () async {
+      final approved = await Get.dialog<bool>(
+        CupertinoAlertDialog(
+          title: const Text('Send Profile'),
+          content: const Text(
+            'Are you sure to send your name, bio, avatar and lightning address?',
+          ),
+          actions: [
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Get.back(result: false);
+              },
+              child: const Text('Cancel'),
+            ),
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Get.back(result: true);
+              },
+              child: const Text('Send'),
+            ),
+          ],
+        ),
+      );
+      if (approved != true) return;
+
       try {
         final identity = roomObs.value.getIdentity();
         final prm = ProfileRequestModel(
           pubkey: identity.secp256k1PKHex,
           name: identity.name,
           avatar: await identity.getRemoteAvatarUrl(),
-          lightningAddress: identity.lightning,
+          bio: identity.displayAbout,
+          lightning: identity.lightning,
         );
 
         final sm = KeychatMessage(
@@ -799,7 +824,7 @@ Add as a friend and start the signal protocol chat
           type: KeyChatEventKinds.signalSendProfile,
         )
           ..name = prm.toString()
-          ..msg = "[Send ${identity.name}'s Profile]";
+          ..msg = "[${identity.name}'s Profile]";
         await RoomService.instance.sendMessage(
           roomObs.value,
           sm.toString(),

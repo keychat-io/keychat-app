@@ -10,18 +10,18 @@ class ProfileRequestModel {
     required this.pubkey,
     required this.name,
     this.avatar,
-    this.lightningAddress,
+    this.lightning,
+    this.bio,
     this.note,
-    this.note2,
   });
   factory ProfileRequestModel.fromJson(Map<String, dynamic> json) =>
       _$ProfileRequestModelFromJson(json);
   String name;
   String pubkey;
   String? avatar;
-  String? lightningAddress;
+  String? lightning;
+  String? bio;
   String? note;
-  String? note2;
 
   @override
   String toString() {

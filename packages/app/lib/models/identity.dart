@@ -42,7 +42,7 @@ class Identity extends Equatable {
   String name;
   String? about;
   String get displayName => name.trim();
-  String? get displayAbout => aboutFromRelay ?? about;
+  String? get displayAbout => about ?? aboutFromRelay;
 
   String? curve25519PkHex;
 

@@ -253,29 +253,56 @@ class _WebviewTabState extends State<WebviewTab> {
                       color: Colors.white,
                       fontSize: 14,
                     ),
-                    child: FloatingActionButton(
-                      onPressed: () async {
+                    child: GestureDetector(
+                      onTap: () async {
                         if (multiWebviewController.showMiniAppTooltip.value) {
                           await multiWebviewController.hideTooltipPermanently();
                         }
                       },
-                      mini: true,
-                      shape: const CircleBorder(),
-                      child: GestureDetector(
-                        onLongPress: () async {
-                          if (multiWebviewController.showMiniAppTooltip.value) {
-                            await multiWebviewController
-                                .hideTooltipPermanently();
-                          }
-                          await HapticFeedback.mediumImpact();
-                          await closeTab();
-                        },
-                        child: popMenu(
-                          tooltip: '',
-                          child: const Icon(
-                            CupertinoIcons.circle_fill,
-                            size: 24,
-                            color: Colors.white,
+                      onLongPress: () async {
+                        if (multiWebviewController.showMiniAppTooltip.value) {
+                          await multiWebviewController.hideTooltipPermanently();
+                        }
+                        await HapticFeedback.mediumImpact();
+                        await closeTab();
+                      },
+                      child: Opacity(
+                        opacity: 0.7,
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.black,
+                          ),
+                          child: Container(
+                            margin: const EdgeInsets.all(1.5),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.grey[800],
+                            ),
+                            child: Container(
+                              margin: const EdgeInsets.all(1.5),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.grey[400],
+                              ),
+                              child: Container(
+                                margin: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.grey[200],
+                                ),
+                                child: popMenu(
+                                  tooltip: '',
+                                  child: const Icon(
+                                    CupertinoIcons.circle_fill,
+                                    size: 20,
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),

@@ -400,7 +400,7 @@ class SignalChatService extends BaseChatService {
       logger.i('addRoomKPA success, set room encryptMode to signal');
     }
     room.contact = contact;
-    await RoomService.instance.updateRoomAndRefresh(room);
+    await RoomService.instance.updateRoomAndRefresh(room, refreshContact: true);
 
     await RoomService.instance.receiveDM(
       room,
@@ -578,7 +578,7 @@ ${relays.join('\n')}
       avatarRemoteUrl: prekeyMessageModel.avatar,
       lightning: prekeyMessageModel.lightning,
     );
-    await RoomService.instance.updateRoomAndRefresh(room);
+    await RoomService.instance.updateRoomAndRefresh(room, refreshContact: true);
 
     Get.find<HomeController>().loadIdentityRoomList(room.identityId);
 

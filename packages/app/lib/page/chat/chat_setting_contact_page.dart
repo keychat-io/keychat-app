@@ -89,16 +89,17 @@ class _ChatSettingContactPageState extends State<ChatSettingContactPage> {
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if ((cc.roomContact.value.name ?? '').isNotEmpty)
-                          textSmallGray(
-                            context,
-                            'Name: ${cc.roomContact.value.name}',
-                          ),
                         textSmallGray(
                           context,
                           'ID: ${cc.roomObs.value.npub}',
-                          overflow: TextOverflow.visible,
                         ),
+                        if (cc.roomContact.value.petname !=
+                                cc.roomContact.value.name &&
+                            cc.roomContact.value.name != null)
+                          textSmallGray(
+                            context,
+                            'Name: ${cc.roomContact.value.name ?? ''}',
+                          ),
                       ],
                     ),
                     trailing: IconButton(

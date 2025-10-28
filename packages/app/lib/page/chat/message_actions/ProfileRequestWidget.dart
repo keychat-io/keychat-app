@@ -6,11 +6,13 @@ import 'package:app/models/keychat/keychat_message.dart';
 import 'package:app/models/keychat/profile_request_model.dart';
 import 'package:app/models/message.dart';
 import 'package:app/models/room.dart';
+import 'package:app/page/components.dart';
 import 'package:app/service/contact.service.dart';
 import 'package:app/service/message.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 
 class ProfileRequestWidget extends StatefulWidget {
@@ -36,6 +38,7 @@ class _ProfileRequestWidgetState extends State<ProfileRequestWidget> {
   Future<void> _handleApprove(
     BuildContext context,
     ProfileRequestModel profile,
+    String idPubkey,
   ) async {
     if (_isLoading) return;
 
@@ -44,16 +47,21 @@ class _ProfileRequestWidgetState extends State<ProfileRequestWidget> {
     });
 
     try {
+      if (idPubkey != profile.pubkey) {
+        await EasyLoading.showError('Public key mismatch');
+        return;
+      }
       // Save contact from QR code
       await ContactService.instance.saveContactFromQrCode(
         identityId: widget.message.identityId,
-        pubkey: profile.pubkey,
+        pubkey: idPubkey,
         name: profile.name,
         avatarRemoteUrl: profile.avatar,
-        lightning: profile.lightningAddress,
+        lightning: profile.lightning,
+        bio: profile.bio,
       );
       Get.find<HomeController>().loadIdentityRoomList(widget.room.identityId);
-      await RoomService.instance.refreshRoom(widget.room);
+      await RoomService.instance.refreshRoom(widget.room, refreshContact: true);
 
       // Update message status
       await _updateMessageStatus(RequestConfrimEnum.approved);
@@ -80,6 +88,7 @@ class _ProfileRequestWidgetState extends State<ProfileRequestWidget> {
   }
 
   Future<void> _handleReject() async {
+    if (_isLoading) return;
     await _updateMessageStatus(RequestConfrimEnum.rejected);
   }
 
@@ -121,7 +130,7 @@ class _ProfileRequestWidgetState extends State<ProfileRequestWidget> {
                   child: const Icon(
                     Icons.person,
                     size: 30,
-                    color: Colors.grey,
+                    color: Colors.black54,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -136,20 +145,19 @@ class _ProfileRequestWidgetState extends State<ProfileRequestWidget> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      if (map.lightningAddress != null)
+                      if (map.bio != null)
+                        textSmallGray(
+                          context,
+                          map.bio!,
+                          maxLines: 3,
+                        ),
+                      if (map.lightning != null)
                         Text(
-                          map.lightningAddress!,
+                          'lightning: ${map.lightning!}',
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.grey,
                           ),
-                        ),
-                      if (map.note != null)
-                        Text(
-                          map.note!,
-                          style: const TextStyle(fontSize: 12),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
                         ),
                     ],
                   ),
@@ -183,12 +191,14 @@ class _ProfileRequestWidgetState extends State<ProfileRequestWidget> {
           children: [
             OutlinedButton(
               onPressed: _handleReject,
-              child: const Text('Reject'),
+              child: const Text('Ignore'),
             ),
             const SizedBox(width: 8),
             OutlinedButton(
-              onPressed:
-                  _isLoading ? null : () => _handleApprove(context, profile),
+              onPressed: _isLoading
+                  ? null
+                  : () =>
+                      _handleApprove(context, profile, widget.message.idPubkey),
               child: _isLoading
                   ? const SizedBox(
                       height: 16,
@@ -235,7 +245,7 @@ class _ProfileRequestWidgetState extends State<ProfileRequestWidget> {
               Icon(Icons.cancel, color: Colors.red, size: 16),
               SizedBox(width: 4),
               Text(
-                'Request Rejected',
+                'Ignored',
                 style: TextStyle(color: Colors.red, fontSize: 12),
               ),
             ],

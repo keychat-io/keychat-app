@@ -763,11 +763,14 @@ class RoomService extends BaseChatService {
     return room;
   }
 
-  Future<void> updateRoomAndRefresh(Room room) async {
+  Future<void> updateRoomAndRefresh(
+    Room room, {
+    bool refreshContact = false,
+  }) async {
     await DBProvider.database.writeTxn(() async {
       await DBProvider.database.rooms.put(room);
     });
-    await refreshRoom(room);
+    await refreshRoom(room, refreshContact: refreshContact);
   }
 
   Future<void> checkWebsocketConnect() async {
@@ -972,13 +975,16 @@ class RoomService extends BaseChatService {
         .findAll();
   }
 
-  Future<void> refreshRoom(Room room) async {
+  Future<void> refreshRoom(Room room, {bool refreshContact = false}) async {
     final cc = RoomService.getController(room.id);
     if (cc == null) return;
 
     if (room.type == RoomType.common) {
-      room.contact ??=
-          await contactService.getContact(room.identityId, room.toMainPubkey);
+      if (room.contact == null || refreshContact) {
+        room.contact =
+            await contactService.getContact(room.identityId, room.toMainPubkey);
+        logger.d('refresh room contact: ${room.contact}');
+      }
     }
     cc.setRoom(room);
   }

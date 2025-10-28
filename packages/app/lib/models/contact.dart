@@ -85,11 +85,8 @@ class Contact extends Equatable {
   List<Object?> get props => [
         id,
         pubkey,
-        npubkey,
         name,
         petname,
         about,
-        avatarLocalPath,
-        avatarRemoteUrl,
       ];
 }

@@ -7,7 +7,6 @@ import 'package:app/service/contact.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/signal_chat.service.dart';
 import 'package:app/utils.dart';
-import 'package:avatar_plus/avatar_plus.dart';
 import 'package:convert/convert.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/material.dart';
@@ -17,7 +16,6 @@ import 'package:get/get.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:settings_ui/settings_ui.dart';
 
-// ignore: must_be_immutable
 class ContactPage extends StatelessWidget {
   ContactPage({
     required this.identityId,

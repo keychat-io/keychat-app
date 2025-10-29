@@ -298,7 +298,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                           },
                         ),
                         SettingsTile.navigation(
-                          leading: const Icon(Icons.note),
+                          leading: const Icon(Icons.note_outlined),
                           title: const Text('Bio'),
                           onPressed: (context) async {
                             final identity = controller.identity.value;
@@ -443,9 +443,7 @@ class AccountSettingPage extends GetView<AccountSettingController> {
                           },
                         ),
                         SettingsTile.navigation(
-                          leading: const Icon(
-                            CupertinoIcons.person_2_square_stack_fill,
-                          ),
+                          leading: const Icon(Icons.contacts_outlined),
                           title: const Text('Contact List'),
                           onPressed: (context) {
                             Get.to(

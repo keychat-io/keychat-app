@@ -2,11 +2,9 @@ import 'package:app/app.dart';
 import 'package:app/service/secure_storage.dart';
 import 'package:flutter/foundation.dart'
     show FlutterError, FlutterErrorDetails, PlatformDispatcher;
-import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 import 'package:get/get.dart';
-import 'package:local_auth/error_codes.dart' as auth_error;
 import 'package:local_auth/local_auth.dart';
 
 class SettingController extends GetxController with StateMixin<Type> {
@@ -22,7 +20,7 @@ class SettingController extends GetxController with StateMixin<Type> {
   RxList<String> mediaServers = [
     KeychatGlobal.defaultFileServer,
     'https://void.cat',
-    'https://nostr.download'
+    'https://nostr.download',
   ].obs;
 
   RxInt biometricsAuthTime = RxInt(0);
@@ -31,8 +29,9 @@ class SettingController extends GetxController with StateMixin<Type> {
   Future<void> onInit() async {
     await loadBiometricsStatus();
     // viewKeychatFutures.value = await getViewKeychatFutures();
-    autoCleanMessageDays.value =
-        Storage.getIntOrZero(StorageKeyString.autoDeleteMessageDays);
+    autoCleanMessageDays.value = Storage.getIntOrZero(
+      StorageKeyString.autoDeleteMessageDays,
+    );
 
     // Catch uncaught Flutter errors
     FlutterError.onError = (FlutterErrorDetails details) {
@@ -66,8 +65,9 @@ class SettingController extends GetxController with StateMixin<Type> {
     final status = await SecureStorage.instance.isBiometricsEnable();
     biometricsEnabled.value = status;
 
-    biometricsAuthTime.value =
-        Storage.getIntOrZero(StorageKeyString.biometricsAuthTime);
+    biometricsAuthTime.value = Storage.getIntOrZero(
+      StorageKeyString.biometricsAuthTime,
+    );
   }
 
   Future<void> setBiometricsStatus(bool status) async {
@@ -75,7 +75,8 @@ class SettingController extends GetxController with StateMixin<Type> {
     final canAuthenticate =
         canAuthenticateWithBiometrics || await auth.isDeviceSupported();
     logger.d(
-        'canAuthenticate: $canAuthenticate canAuthenticateWithBiometrics: $canAuthenticateWithBiometrics');
+      'canAuthenticate: $canAuthenticate canAuthenticateWithBiometrics: $canAuthenticateWithBiometrics',
+    );
     if (!canAuthenticate) {
       EasyLoading.showError('Biometrics not available');
       return;
@@ -83,8 +84,8 @@ class SettingController extends GetxController with StateMixin<Type> {
 
     try {
       final didAuthenticate = await auth.authenticate(
-          localizedReason: 'Authenticate',
-          options: const AuthenticationOptions(useErrorDialogs: false));
+        localizedReason: 'Authenticate',
+      );
       loggerNoLine.i('User authenticated: $didAuthenticate');
       if (!didAuthenticate) {
         EasyLoading.showError('Authentication failed');
@@ -92,14 +93,14 @@ class SettingController extends GetxController with StateMixin<Type> {
       }
       await SecureStorage.instance.setBiometrics(status);
       biometricsEnabled.value = status;
-    } on PlatformException catch (e) {
+    } on LocalAuthException catch (e) {
       late String message;
-      if (e.code == auth_error.notAvailable) {
+      if (e.code == LocalAuthExceptionCode.noBiometricHardware) {
         message = 'Biometrics are not available.';
-      } else if (e.code == auth_error.notEnrolled) {
+      } else if (e.code == LocalAuthExceptionCode.noBiometricsEnrolled) {
         message = 'No biometrics are enrolled.';
       } else {
-        message = 'Authentication failed: ${e.message}';
+        message = 'Authentication failed: $e';
       }
       EasyLoading.showError(message);
     }
@@ -116,8 +117,8 @@ class SettingController extends GetxController with StateMixin<Type> {
 
     try {
       final result = await auth.authenticate(
-          localizedReason: 'Authenticate',
-          options: const AuthenticationOptions(useErrorDialogs: false));
+        localizedReason: 'Authenticate',
+      );
       return result;
     } catch (e) {
       EasyLoading.showError('Auth Failed: $e');
@@ -166,7 +167,9 @@ class SettingController extends GetxController with StateMixin<Type> {
           : KeychatGlobal.defaultFileServer;
     }
     await Storage.setStringList(
-        StorageKeyString.mediaServers, List.from(mediaServers));
+      StorageKeyString.mediaServers,
+      List.from(mediaServers),
+    );
   }
 
   Future<void> setBiometricsAuthTime(int minutes) async {

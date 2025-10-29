@@ -28,7 +28,7 @@ class QuickSection extends GetView<MultiWebviewController> {
                   padding: EdgeInsets.zero,
                   physics: const NeverScrollableScrollPhysics(),
                 ),
-                minItemWidth: 80,
+                minItemWidth: 68,
                 children: controller.favorites.map((favorite) {
                   return _buildQuickSectionItem(favorite, controller, context);
                 }).toList(),

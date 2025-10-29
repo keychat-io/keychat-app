@@ -544,7 +544,7 @@ class _ChatPage2State extends State<ChatPage> {
                       padding: EdgeInsets.zero,
                       physics: const NeverScrollableScrollPhysics(),
                     ),
-                    minItemWidth: 80,
+                    minItemWidth: 68,
                     children: controller.featuresIcons.indexed.map((record) {
                       final (index, item) = record;
                       return GestureDetector(

@@ -41,8 +41,9 @@ Logger logger = Logger(
   filter: kReleaseMode ? MyLogFilter() : null,
   output: MyOutput(),
   printer: PrettyPrinter(
-    dateTimeFormat:
-        kDebugMode ? DateTimeFormat.onlyTime : DateTimeFormat.dateAndTime,
+    dateTimeFormat: kDebugMode
+        ? DateTimeFormat.onlyTime
+        : DateTimeFormat.dateAndTime,
     colors: false,
     methodCount: 5,
   ),
@@ -262,7 +263,8 @@ class Utils {
     final time = getYearMonthDay();
     final file = File('${logDir.path}/err_logs_$time.txt');
     if (file.existsSync()) return file;
-    final initString = '''
+    final initString =
+        '''
 Init File: $time \n
  env: ${Config.env} \n
  kReleaseMode: $kReleaseMode \n
@@ -398,8 +400,9 @@ Init File: $time \n
       case 'linux':
         // Linux: ~/.config/<appName>
         final home = Platform.environment['HOME']!;
-        directory =
-            Directory(path.join(home, '.config', KeychatGlobal.appPackageName));
+        directory = Directory(
+          path.join(home, '.config', KeychatGlobal.appPackageName),
+        );
         if (!directory.existsSync()) {
           directory.createSync(recursive: true);
         }
@@ -597,7 +600,8 @@ Init File: $time \n
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(borderRadius),
         gradient: LinearGradient(
-          colors: backgroudColors ??
+          colors:
+              backgroudColors ??
               [const Color(0xff713CD0), const Color(0xff945BF3)],
         ),
       ),
@@ -825,7 +829,8 @@ Init File: $time \n
     String? localPath,
   }) {
     // Include file paths in cache key to handle path changes
-    final filePath = localPath ??
+    final filePath =
+        localPath ??
         contact?.avatarLocalPath ??
         contact?.avatarFromRelayLocalPath;
     final cacheKey = 'avatar_${id}_${contact?.id}_$size${filePath ?? ""}';
@@ -979,7 +984,9 @@ Init File: $time \n
       );
     }
     final bytes =
-        <int>[]; // Use List<int> instead of Uint8List for return type consistency
+        <
+          int
+        >[]; // Use List<int> instead of Uint8List for return type consistency
     for (var i = 0; i < hex.length; i += 2) {
       final hexByte = hex.substring(i, i + 2);
       final byte = int.tryParse(hexByte, radix: 16);
@@ -1020,8 +1027,9 @@ Init File: $time \n
     logger = Logger(
       filter: kReleaseMode ? MyLogFilter() : null,
       printer: PrettyPrinter(
-        dateTimeFormat:
-            kDebugMode ? DateTimeFormat.onlyTime : DateTimeFormat.dateAndTime,
+        dateTimeFormat: kDebugMode
+            ? DateTimeFormat.onlyTime
+            : DateTimeFormat.dateAndTime,
         colors: false,
         methodCount: kReleaseMode ? 1 : 5,
       ),
@@ -1033,8 +1041,9 @@ Init File: $time \n
     loggerNoLine = logger = Logger(
       filter: kReleaseMode ? MyLogFilter() : null,
       printer: PrettyPrinter(
-        dateTimeFormat:
-            kDebugMode ? DateTimeFormat.onlyTime : DateTimeFormat.dateAndTime,
+        dateTimeFormat: kDebugMode
+            ? DateTimeFormat.onlyTime
+            : DateTimeFormat.dateAndTime,
         colors: false,
         methodCount: kReleaseMode ? 1 : 0,
       ),
@@ -1047,16 +1056,20 @@ Init File: $time \n
   static String randomString(int length) {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
     final random = Random.secure();
-    return List.generate(length, (index) => chars[random.nextInt(chars.length)])
-        .join();
+    return List.generate(
+      length,
+      (index) => chars[random.nextInt(chars.length)],
+    ).join();
   }
 
   static int randomInt(int length) {
     const chars = '0123456789';
     final random = Random.secure();
     return int.parse(
-      List.generate(length, (index) => chars[random.nextInt(chars.length)])
-          .join(),
+      List.generate(
+        length,
+        (index) => chars[random.nextInt(chars.length)],
+      ).join(),
     );
   }
 
@@ -1127,8 +1140,9 @@ Init File: $time \n
 
     for (var initAttempts = 1; initAttempts <= 5; initAttempts++) {
       if (ws != null) break;
-      logger
-          .i('Waiting for WebsocketService to initialize... ($initAttempts/5)');
+      logger.i(
+        'Waiting for WebsocketService to initialize... ($initAttempts/5)',
+      );
       await Future.delayed(const Duration(milliseconds: 300));
       ws = getGetxController<WebsocketService>();
     }
@@ -1143,9 +1157,11 @@ Init File: $time \n
       activeRelays = ws.getActiveRelayString();
     }
     final result = getIntersection(onlineRelays, activeRelays);
-    for (var checkRelayOnlineTimes = 0;
-        checkRelayOnlineTimes < 5;
-        checkRelayOnlineTimes++) {
+    for (
+      var checkRelayOnlineTimes = 0;
+      checkRelayOnlineTimes < 5;
+      checkRelayOnlineTimes++
+    ) {
       if (result.isNotEmpty) {
         return result;
       }
@@ -1378,8 +1394,10 @@ Init File: $time \n
 
               try {
                 EasyLoading.show(status: 'Decrypting...');
-                final success =
-                    await DbSetting().importDB(passwordController.text, file);
+                final success = await DbSetting().importDB(
+                  passwordController.text,
+                  file,
+                );
                 EasyLoading.dismiss();
                 if (!success) {
                   EasyLoading.showError('Decryption failed');

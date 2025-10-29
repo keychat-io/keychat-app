@@ -67,6 +67,9 @@ add_executable(${BINARY_NAME}
   "my_application.cc"
   "${FLUTTER_MANAGED_DIR}/generated_plugin_registrant.cc"
 )
+set_target_properties(${BINARY_NAME} PROPERTIES
+    OUTPUT_NAME "Keychat"
+)
 
 # Apply the standard set of build settings. This can be removed for applications
 # that need different build settings.

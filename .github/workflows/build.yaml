@@ -104,7 +104,7 @@ jobs:
       - name: Build-Linux-APP
         working-directory: ./packages/app/
         run: |
-          wget -O libisar.so "https://github.com/isar-community/isar-community/releases/download/3.3.0-dev.3/libisar_linux_x64.so"
+          wget -O linux/libisar.so "https://github.com/isar-community/isar-community/releases/download/3.3.0-dev.3/libisar_linux_x64.so"
           echo "PROJECT_NAME=Keychat" > .env
           export PROTOC=$(which protoc)
           fastforge package \

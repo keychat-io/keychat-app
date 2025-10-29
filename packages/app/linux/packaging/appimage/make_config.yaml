@@ -31,4 +31,5 @@ categories:
 
 startup_notify: true
 
-# include: []
+include:
+  - linux/libisar.so
